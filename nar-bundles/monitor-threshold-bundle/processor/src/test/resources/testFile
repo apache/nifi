@@ -1,0 +1,23 @@
+This is the test file used in MonitorThreshold  unit tests.
+It's content is irrelevant (hence the gibberish below), 
+since the primary focus is on its attributes; 
+which are setup in the unit tests.
+However, its size is relevant, as it affects the unit tests.
+The size of this file should be 1,668 bytes.
+There is nothing special about the number 1,668.  
+It just happened to be the size of the test file that was used for most of the unit tests for the precursor processor,
+and it was easier to create a file containing 1,668 bytes than to modify all of the unit tests.
+Besides, what difference does it make how big the test file is, as long as it is a known quantity.
+          1         2         3         4         5         6         7         8
+012345678901234567890123456789012345678901234567890123456789012345678901234567890
+dfadfsfgasdfgdgbhadg2346475789087908907u3aDFAdfu5675868978aswgt45yeryh56767768rt
+dfsfg567878649468947957989078907890689068fjfhjshhjjtre57yjuyju469r4y5h65yuy65476
+DFSgfgfsd3578684686fghsd579057890fgadghadghsfyhjsffnsfgn65756757846956h6yh6h6sgh
+DFSgfgfsd3578684686fghsd579057890fgadghadghsfyhjsffnsfgn65756757846956h6yh6h6sgh
+dfsfg567878649468947957989078907890689068fjfhjshhjjtre57yjuyju469r4y5h65yuy65476
+dfsfg567878649468947957989078907890689068fjfhjshhjjtre57yjuyju469r4y5h65yuy65476
+dfsfg567878649468947957989078907890689068fjfhjshhjjtre57yjuyju469r4y5h65yuy65476
+dfsfg567878649468947957989078907890689068fjfhjshhjjtre57yjuyju469r4y5h65yuy65476
+dfsfg567878649468947957989078907890689068fjfhjshhjjtre57yjuyju469r4y5h65yuy65476
+wx
+01234567890123456789012345678901234567890123456789012345678901234567890123456789

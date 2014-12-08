@@ -1,0 +1,100 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.nifi.controller.service;
+
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
+import org.apache.nifi.controller.ConfiguredComponent;
+import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.controller.ReportingTaskNode;
+
+public class StandardControllerServiceReference implements ControllerServiceReference {
+
+    private final ControllerServiceNode referenced;
+    private final Set<ConfiguredComponent> components;
+
+    public StandardControllerServiceReference(final ControllerServiceNode referencedService,
+            final Set<ConfiguredComponent> referencingComponents) {
+        this.referenced = referencedService;
+        this.components = new HashSet<>(referencingComponents);
+    }
+
+    @Override
+    public ControllerServiceNode getReferencedComponent() {
+        return referenced;
+    }
+
+    @Override
+    public Set<ConfiguredComponent> getReferencingComponents() {
+        return Collections.unmodifiableSet(components);
+    }
+
+    private boolean isRunning(final ConfiguredComponent component) {
+        if (component instanceof ReportingTaskNode) {
+            return ((ReportingTaskNode) component).isRunning();
+        }
+
+        if (component instanceof ProcessorNode) {
+            return ((ProcessorNode) component).isRunning();
+        }
+
+        return false;
+    }
+
+    @Override
+    public Set<ConfiguredComponent> getRunningReferences() {
+        final Set<ConfiguredComponent> runningReferences = new HashSet<>();
+        final Set<ControllerServiceNode> serviceNodes = new HashSet<>();
+
+        for (final ConfiguredComponent component : components) {
+            if (component instanceof ControllerServiceNode) {
+                serviceNodes.add((ControllerServiceNode) component);
+            } else if (isRunning(component)) {
+                runningReferences.add(component);
+            }
+        }
+
+        runningReferences.addAll(getRunningIndirectReferences(serviceNodes));
+        return runningReferences;
+    }
+
+    private Set<ConfiguredComponent> getRunningIndirectReferences(final Set<ControllerServiceNode> referencingServices) {
+        if (referencingServices.isEmpty()) {
+            return Collections.emptySet();
+        }
+
+        final Set<ConfiguredComponent> references = new HashSet<>();
+        for (final ControllerServiceNode referencingService : referencingServices) {
+            final Set<ControllerServiceNode> serviceNodes = new HashSet<>();
+            final ControllerServiceReference ref = referencingService.getReferences();
+
+            for (final ConfiguredComponent component : ref.getReferencingComponents()) {
+                if (component instanceof ControllerServiceNode) {
+                    serviceNodes.add((ControllerServiceNode) component);
+                } else if (isRunning(component)) {
+                    references.add(component);
+                }
+            }
+
+            references.addAll(getRunningIndirectReferences(serviceNodes));
+        }
+
+        return references;
+    }
+}

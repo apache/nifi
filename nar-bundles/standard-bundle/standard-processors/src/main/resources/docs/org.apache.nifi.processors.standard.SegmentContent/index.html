@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8" />
+        <title>SegmentContent</title>
+
+        <link rel="stylesheet" href="../../css/component-usage.css" type="text/css" />
+    </head>
+
+    <body>
+        <!-- Processor Documentation ================================================== -->
+        <h2>Description:</h2>
+        <p>This processor segments a FlowFile into multiple smaller segments on byte boundaries. Each segment is given attributes that can
+            then be used by the MergeContent processor to reconstruct the original FlowFile.</p>
+
+        <p>
+            <strong>Adds or Modifies Attributes:</strong>
+        </p>
+        <table border="1">
+            <thead>
+                <tr>
+                    <th>Attribute Name</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>segment.identifier</td>
+                    <td>All segments produced from the same parent FlowFile will have the same randomly generated UUID added for this attribute. This attribute is added to maintain backward compatibility, but the fragment.identifier is preferred, as it is designed to work in conjunction with the MergeContent Processor.</td>
+                </tr>
+                <tr>
+                    <td>segment.index</td>
+                    <td>A one-up number that indicates the ordering of the segments that were created from a single parent FlowFile. This attribute is added to maintain backward compatibility, but the fragment.index is preferred, as it is designed to work in conjunction with the MergeContent Processor.</td>
+                </tr>
+                <tr>
+                    <td>segment.count</td>
+                    <td>The number of segments generated from the parent FlowFile. This attribute is added to maintain backward compatibility, but the fragment.count is preferred, as it is designed to work in conjunction with the MergeContent Processor.</td>
+                </tr>
+
+                <tr>
+                    <td>fragment.identifier</td>
+                    <td>All segments produced from the same parent FlowFile will have the same randomly generated UUID added for this attribute.</td>
+                </tr>
+                <tr>
+                    <td>fragment.index</td>
+                    <td>A one-up number that indicates the ordering of the segments that were created from a single parent FlowFile.</td>
+                </tr>
+                <tr>
+                    <td>fragment.count</td>
+                    <td>The number of segments generated from the parent FlowFile.</td>
+                </tr>
+
+                <tr>
+                    <td>segment.original.filename</td>
+                    <td>The filename of the parent FlowFile</td>
+                </tr>
+                <tr>
+                    <td>filename</td>
+                    <td>The filename will be updated to include the parent's filename, the segment index, and the segment count.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p>
+            <strong>Properties:</strong>
+        </p>
+        <p>In the list below, the names of required properties appear
+            in bold. Any other properties (not in bold) are considered optional.
+            If a property has a default value, it is indicated. If a property
+            supports the use of the NiFi Expression Language (or simply,
+            "expression language"), that is also indicated.</p>
+        <ul>
+            <li><strong>Segment Size</strong>
+                <ul>
+                    <li>The maximum data size for each segment. The value must be a
+                        non-negative integer followed by a supported Data Unit, such as B,
+                        KB, MB, GB, or TB. Example: 1 MB.</li>
+                    <li>Default value: no default</li>
+                    <li>Supports expression language: false</li>
+                </ul></li>
+        </ul>
+
+        <p>
+            <strong>Relationships:</strong>
+        </p>
+        <ul>
+            <li>original
+                <ul>
+                    <li>The original FlowFile will be sent to this relationship.</li>
+                </ul>
+            </li>
+            <li>segments
+                <ul>
+                    <li>All segments will be sent to this relationship. If the file
+                        was small enough that it was not segmented, then a copy of the
+                        original is sent to this relationship as well as original.</li>
+                </ul>
+            </li>
+        </ul>
+
+        <p>
+            <strong>See Also:</strong>
+        </p>
+        <ul>
+            <li><a href="../org.apache.nifi.processors.standard.MergeContent/index.html">MergeContent</a> - can defragment FlowFiles
+                that have been segmented.</li>
+        </ul>
+    </body>
+</html>

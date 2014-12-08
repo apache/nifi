@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8" />
+        <title>PutSFTP</title>
+        <link rel="stylesheet" href="../../css/component-usage.css" type="text/css" />
+    </head>
+
+    <body>
+        <!-- Processor Documentation ================================================== -->
+        <h2>Description:</h2>
+        <p>
+            This processor sends FlowFiles via SFTP to an SFTP server.
+        </p>
+        <p>
+            <strong>Properties:</strong>
+        </p>
+        <p>
+            In the list below, the names of required properties appear in bold.
+            Any other properties (not in bold) are considered optional. If a
+            property has a default value, it is indicated. If a property supports
+            the use of the NiFi Expression Language (or simply,
+            "expression language"), that is also indicated.
+        </p>
+        <ul>
+            <li>
+                <strong>Hostname</strong>
+                <ul>
+                    <li>The fully qualified hostname or IP address of the remote
+                        system.</li>
+                    <li>Default value: no default</li>
+                    <li>Supports expression language: true</li>
+                </ul>
+            </li>
+            <li>
+                <strong>Port</strong>
+                <ul>
+                    <li>The port that the remote system is listening on for file transfers.</li>
+                    <li>Default value: 22</li>
+                    <li>Supports expression language: false</li>
+                </ul>
+            </li>
+            <li>
+                <strong>Username</strong>
+                <ul>
+                    <li>The username for the user account.</li>
+                    <li>Default value: no default</li>
+                    <li>Supports expression language: false</li>
+                </ul>
+            </li>
+            <li>
+                Password
+                <ul>
+                    <li>The password for the user account.</li>
+                    <li>Default value: no default</li>
+                    <li>Supports expression language: false</li>
+                </ul>
+            </li>
+            <li>
+                Private Key Path
+                <ul>
+                    <li>The fully qualified path for the private key file.</li>
+                    <li>Default value: no default</li>
+                    <li>Supports expression language: false</li>
+                </ul>
+            </li>
+            <li>
+                Private Key Passphrase
+                <ul>
+                    <li>The password for the private key.</li>
+                    <li>Default value: no default</li>
+                    <li>Supports expression language: false</li>
+                </ul>
+            </li>
+            <li>
+                Remote Path
+                <ul>
+                    <li>The path on the remote system to which files should be transferred. If not specified, the user's home directory will be used. You may use expression language such as /aa/bb/${path}.</li>
+                    <li>Default value: no default</li>
+                    <li>Supports expression language: true</li>
+                </ul>
+            </li>
+            <li><strong>Create Directory</strong>
+                <ul>
+                    <li>Specifies whether or not the remote directory should be created if it does not exist. Recommend setting to true when Remote Path uses expression language.</li>
+                    <li>Default value: false</li>
+                    <li>Supports expression language: false</li>
+                </ul>
+            </li>
+            <li><strong>Batch Size</strong>
+                <ul>
+                    <li>The maximum number of FlowFiles to send in a single connection.</li>
+                    <li>Default value: 500</li>
+                    <li>Supports expression language: false</li>
+                </ul>
+            </li>
+            <li>
+                <strong>Connection Timeout</strong>
+                <ul>
+                    <li>The amount of time to wait before timing out while creating a
+                        connection. </li>
+                    <li>Default value: 30 sec</li>
+                    <li>Supports expression language: false</li>
+                </ul>
+            </li>
+            <li>
+                <strong>Data Timeout</strong>
+                <ul>
+                    <li>The amount of time to wait before timing out while transferring
+                        data. </li>
+                    <li>Default value: 30 sec</li>
+                    <li>Supports expression language: false</li>
+                </ul>
+            </li>
+            <li>
+                <strong>Conflict Resolution</strong>
+                <ul>
+                    <li>Specifies what action the processor should take if a conflict
+                        prevents it from delivering the files. Valid options are:</li>
+                    <ul>
+                        <li>replace</li>
+                        <li>ignore</li>
+                        <li>rename</li>
+                        <li>reject</li>
+                        <li>fail</li>
+                        <li>NONE</li>
+                    </ul>
+                    <li>Default value: NONE</li>
+                    <li>Supports expression language: false</li>
+                </ul>
+            </li>
+            <li>
+                Reject Zero-Byte Files
+                <ul>
+                    <li>A Boolean value (true/false), indicating whether to reject
+                        files that have zero bytes of content rather than transferring
+                        them.</li>
+                    <li>Default value: true</li>
+                    <li>Supports expression language: false</li>
+                </ul>
+            </li>
+            <li>
+                Dot Rename
+                <ul>
+                    <li>A Boolean value (true/false), indicating whether to prepend the
+                        filename of the file with a dot (.) while the file is transferring
+                        and remove the dot when the file is completely transferred.</li>
+                    <li>Default value: true</li>
+                    <li>Supports expression language: false</li>
+                </ul>
+            </li>
+            <li>Temporary Filename
+                <ul>
+                    <li>If set, the filename of the sent file will be equal to the value specified during the transfer and
+                        after successful completion will be renamed to the original filename. If this value is set, the Dot
+                        Rename property is ignored.
+                    </li>
+                    <li>Default value: no default</li>
+                    <li>Supports expression language: true</li>
+                </ul>
+            </li>
+            <li>
+                Host Key File
+                <ul>
+                    <li>The local file path to the host key file; if not supplied, no
+                        host key file will be used. </li>
+                    <li>Default value: no default</li>
+                    <li>Supports expression language: false</li>
+                </ul>
+            </li>
+            <li>Last Modified Time
+                <ul>
+                    <li>The lastModifiedTime to assign to the file after transferring it. If not set, the lastModifiedTime
+                        will not be changed. Format must be yyyy-MM-dd'T'HH:mm:ssZ. You may also use expression language such as
+                        ${file.lastModifiedTime}. If the value is invalid, the processor will not be invalid but will fail to
+                        change lastModifiedTime of the file.</li>
+                    <li>Default value: no default</li>
+                    <li>Supports expression language: true</li>
+                </ul>
+            </li>
+            <li>Permissions
+                <ul>
+                    <li>The permissions to assign to the file after transferring it. Format must be either UNIX rwxrwxrwx
+                        with a - in place of denied permissions (e.g. rw-r--r--) or an octal number (e.g. 644). If not set, the
+                        permissions will not be changed. You may also use expression language such as ${file.permissions}. If
+                        the value is invalid, the processor will not be invalid but will fail to change permissions of the file.
+                    </li>
+                    <li>Default value: no default</li>
+                    <li>Supports expression language: true</li>
+                </ul>
+            </li>
+            <li>Remote Owner
+                <ul>
+                    <li>Integer value representing the User ID to set on the file after transferring it. If not set, the
+                        owner will not be changed. You may also use expression language such as ${file.owner}. If the value is
+                        invalid, the processor will not be invalid but will fail to change the owner of the file.</li>
+                    <li>Default value: no default</li>
+                    <li>Supports expression language: true</li>
+                </ul>
+            </li>
+            <li>Remote Group
+                <ul>
+                    <li>Integer value representing the Group ID to set on the file after transferring it. If not set, the
+                        group will not be changed. You may also use expression language such as ${file.group}. If the value is
+                        invalid, the processor will not be invalid but will fail to change the group of the file.</li>
+                    <li>Default value: no default</li>
+                    <li>Supports expression language: true</li>
+                </ul>
+            </li>
+            <li>
+                <strong>Strict Host Key Checking</strong>
+                <ul>
+                    <li>A Boolean value (true/false), indicating whether to apply
+                        strict enforcement of host keys. </li>
+                    <li>Default value: false</li>
+                    <li>Supports expression language: false</li>
+                </ul>
+            </li>
+            <li>
+                <strong>Use Compression</strong>
+                <ul>
+                    <li>A Boolean value (true/false), indicating whether to use ZLIB
+                        compression when transferring files.</li>
+                    <li>Default value: false</li>
+                    <li>Supports expression language: false</li>
+                </ul>
+            </li>
+        </ul>
+
+        <p>
+            <strong>Relationships:</strong>
+        </p>
+        <ul>
+            <li>
+                failure
+                <ul>
+                    <li>If FlowFiles fail to be transferred, then they follow this
+                        relationship.</li>
+                </ul>
+            </li>
+            <li>
+                reject
+                <ul>
+                    <li>If the property Reject Zero-Byte Files is set to true and
+                        incoming FlowFiles meet this criteria, then they follow this
+                        relationship.</li>
+                </ul>
+            </li>
+            <li>
+                success
+                <ul>
+                    <li>If FlowFiles are successfully transferred, then they follow
+                        this relationship.</li>
+                </ul>
+            </li>
+        </ul>
+
+        <p>
+            <strong>See Also:</strong>
+        <ul>
+            <li>
+                <a href="../org.apache.nifi.processors.standard.GetSFTP/index.html">GetSFTP</a>
+            </li>
+        </ul>
+    </p>
+</body>
+</html>

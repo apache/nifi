@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8" />
+        <title>GenerateFlowFile</title>
+        <link rel="stylesheet" href="../../css/component-usage.css" type="text/css" />
+    </head>
+
+    <body>
+        <!-- Processor Documentation ================================================== -->
+        <h2>Description:</h2>
+        <p>
+            This processor creates FlowFiles of random data to be used for load testing purposes.
+        </p>
+        <p>
+            <strong>Properties:</strong>
+        </p>
+        <p>
+            In the list below, the names of required properties appear in bold. Any other properties (not in bold) are considered optional. If a property has a default value, it is indicated. If a property supports the use of the NiFi Expression Language (or simply, "expression language"), that is also indicated.
+        </p>
+        <ul>
+            <li><strong>File Size</strong>
+                <ul>
+                    <li>The file size for each generated FlowFile. The value must be a non-negative integer, followed by a data unit, such as B, KB, MB, GB, TB. Example: 3 KB.</li>
+                    <li>Default value: no default</li>
+                    <li>Supports expression language: false</li>
+                </ul></li>
+            <li><strong>Batch Size</strong>
+                <ul>
+                    <li>The number of FlowFiles to be transferred in each invocation. The value must be a non-negative integer.</li>
+                    <li>Default value: 1</li>
+                    <li>Supports expression language: false</li>
+                </ul></li>
+        </ul>
+
+        <p>
+            <strong>Relationships:</strong>
+        </p>
+        <ul>
+            <li>success
+                <ul>
+                    <li>If FlowFiles are successfully generated, they follow this relationship.</li>
+                </ul></li>
+        </ul>
+
+
+
+
+    </body>
+</html>

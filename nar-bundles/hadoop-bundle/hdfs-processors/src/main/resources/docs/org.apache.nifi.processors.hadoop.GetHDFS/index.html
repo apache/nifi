@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8" />
+        <title>GetHDFS</title>
+
+        <link rel="stylesheet" href="../../css/component-usage.css" type="text/css" />
+    </head>
+
+    <body>
+        <!-- Processor Documentation ================================================== -->
+        <h2>Description:</h2>
+        <p>This processor reads files from an HDFS cluster into NiFi FlowFiles.</p>
+
+        <p>
+            <strong>Modifies Attributes:</strong>
+        </p>
+        <table border="1">
+            <thead>
+                <tr>
+                    <th>Attribute Name</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>filename</td>
+                    <td>The name of the file that was read from HDFS.</td>
+                </tr>
+                <tr>
+                    <td>path</td>
+                    <td>The path is set to the relative path of the file's directory on HDFS. For example, if the <em>Directory</em>
+                        property is set to <code>/tmp</code>, then files picked up from /tmp will have the path attribute set to
+                        &quot;<code>./</code>&quot;. If the <em>Recurse Subdirectories</em> property is set to <code>true</code>
+                        and a file is picked up from /tmp/abc/1/2/3, then the path attribute will be set to &quot;<code>abc/1/2/3</code>&quot;.
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>Properties:</h2>
+        <p>In the list below, the names of required properties appear in bold. Any other properties (not in bold) are
+            considered optional. If a property has a default value, it is indicated. If a property supports the use of the
+            NiFi Expression Language (or simply, "expression language"), that is also indicated.</p>
+        <ul>
+            <li>Hadoop Configuration Resources
+                <ul>
+                    <li>A file or comma separated list of files which contains the Hadoop file system configuration.
+                        Without this, Hadoop will search the classpath for a 'core-site.xml' and 'hdfs-site.xml' file or will
+                        revert to a default configuration.</li>
+                    <li>Default value: none</li>
+                </ul>
+            </li>
+            <li><strong>Directory</strong>
+                <ul>
+                    <li>The HDFS directory from which FlowFile content should be read.</li>
+                    <li>Default value: none</li>
+                </ul></li>
+            <li><strong>Recurse Subdirectories</strong>
+                <ul>
+                    <li>A Boolean value (true/false), when true will pull files from subdirectories of the HDFS <em>Directory</em>.
+                    </li>
+                    <li>Default value: true</li>
+                </ul></li>
+            <li><strong>Keep Source File</strong>
+                <ul>
+                    <li>A Boolean value (true/false), indicates whether to keep (true) or delete (false) the file from HDFS
+                        after it has been successfully transferred.</li>
+                    <li>Default value: false</li>
+                </ul></li>
+            <li>File Filter Regex
+                <ul>
+                    <li>A Java Regular Expression for filtering Filenames; if a filter is supplied then only files whose
+                        names match that Regular Expression will be fetched, otherwise all files will be fetched.</li>
+                    <li>Default value: none</li>
+                </ul>
+            </li>
+            <li><strong>Filter Match Name Only</strong>
+                <ul>
+                    <li>A Boolean value (true/false), when true <em>File Filter Regex</em> will match on just the filename,
+                        otherwise subdirectory names will be included with filename in the regex comparison.
+                    </li>
+                    <li>Default value: true</li>
+                </ul></li>
+            <li><strong>Ignore Dotted Files</strong>
+                <ul>
+                    <li>A Boolean value (true/false), when true files whose names begin with a dot (&quot;.&quot;) will not
+                        be fetched.</li>
+                    <li>Default value: true</li>
+                </ul></li>
+            <li><strong>Minimum File Age</strong>
+                <ul>
+                    <li>The minimum age that a file must be in order to be fetched; any file that is younger than this
+                        amount of time (based on last modification time) will be ignored. The value must be a non-negative
+                        integer and be followed by a time unit, such as nanos, millis, secs, mins, hrs, days.</li>
+                    <li>Default value: 0 sec</li>
+                </ul></li>
+            <li>Maximum File Age
+                <ul>
+                    <li>The maximum age that a file must be in order to be fetched; any file that is older than this amount
+                        of time (based on last modification time) will be ignored. The value must be a non-negative integer,
+                        followed by a time unit, such as nanos, millis, secs, mins, hrs, days. Cannot be less than 100 millis.</li>
+                    <li>Default value: none</li>
+                </ul>
+            </li>
+            <li><strong>Polling Interval</strong>
+                <ul>
+                    <li>Indicates how long to wait between performing directory listings. The value must be a non-negative
+                        integer and be followed by a time unit, such as nanos, millis, secs, mins, hrs, days.</li>
+                    <li>Default value: 0 sec</li>
+                </ul></li>
+            <li><strong>Batch Size</strong>
+                <ul>
+                    <li>The maximum number of files to pull in each iteration, based on configured run schedule.</li>
+                    <li>Default value: 100</li>
+                </ul></li>
+            <li>IO Buffer Size
+                <ul>
+                    <li>Amount of memory to use to buffer file contents during IO. This is a data size integer that must
+                        include units of B, KB, MB, GB, or TB. This overrides the Hadoop Configuration.</li>
+                    <li>Default value: none</li>
+                </ul>
+            </li>
+        </ul>
+
+        <h2>Relationships:</h2>
+        <ul>
+            <li>success
+                <ul>
+                    <li>All files retrieved from HDFS are transferred to this relationship.</li>
+                </ul>
+            </li>
+            <li>passthrough
+                <ul>
+                    <li>If this processor has an input queue for some reason, then FlowFiles arriving on that input are
+                        transferred to this relationship.</li>
+                </ul>
+            </li>
+        </ul>
+
+        <p>
+            <strong>See Also:</strong>
+        </p>
+        <ul>
+            <li><a href="../org.apache.nifi.processors.hadoop.PutHDFS/index.html">PutHDFS</a></li>
+        </ul>
+    </body>
+</html>

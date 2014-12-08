@@ -1,0 +1,9 @@
+target
+.project
+.settings
+nbactions.xml
+
+# Intellij
+.idea/
+*.iml
+*.iws

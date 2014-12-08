@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8" />
+        <title>ScanAttribute</title>
+
+        <link rel="stylesheet" href="../../css/component-usage.css" type="text/css" />
+    </head>
+
+    <body>
+        <!-- Processor Documentation ================================================== -->
+        <h2>Description:</h2>
+        <p>
+            This processor scans the specified attributes of FlowFiles, checking to see if any of their values are present within the specified dictionary of terms.
+        <p>
+
+            <strong>Properties:</strong>
+        </p>
+        <p>
+            In the list below, the names of required properties appear in bold. Any other properties (not in bold) are considered optional. If a property has a default value, it is indicated. If a property supports the use of the NiFi Expression Language (or simply, "expression language"), that is also indicated.
+        </p>
+        <ul>
+            <li><strong>Dictionary File</strong>
+                <ul>
+                    <li>The local file path to a new-line-delimited text file that includes terms that should trigger a match. Empty lines are ignored.</li>
+                    <li>Default value: no default</li>
+                    <li>Supports expression language: false</li>
+                </ul></li>
+            <li><strong>Attribute Pattern</strong>
+                <ul>
+                    <li>A Java regular expression that specifies the names of attributes whose values will be matched against the terms in the dictionary file.</li>
+                    <li>Default value: .*</li>
+                    <li>Supports expression language: false</li>
+                </ul></li>
+            <li><strong>Match Criteria</strong>
+                <ul>
+                    <li>If set to "All Must Match", then FlowFiles will be routed to the matched relationship only if all specified attributes' values are found in the dictionary file. If set to "At Least 1 Must Match", then FlowFiles will be routed to "matched" if any attribute specified is found in the dictionary file. </li>
+                    <li>Default value: At Least 1 Must Match</li>
+                    <li>Supports expression language: false</li>
+                </ul></li>
+            <!--
+        <li><strong>Attribute Value Match Criteria</strong>
+            <ul>
+                <li>If set to "All of the Value", a dictionary value needs to match the complete attribute value. If set to "Part of the Value", the dictionary value match part of the attribute value. </li>
+                <li>Default value: Match All of the Value</li>
+                <li>Supports expression language: false</li>
+            </ul></li>
+            -->
+            <li>Dictionary Filter Pattern
+                <ul>
+                    <li>A Java regular expression that will be applied to each line in the dictionary file. If the regular expression does not match the line, then the line will not be included in the list of terms to search for. If a Matching Group is specified, only the portion of the term that matches that Matching Group will be used instead of the entire term. If not specified, all terms in the dictionary will be used and each term will consist of the text of the entire line in the file.</li>
+                    <li>Supports expression language: false</li>
+                </ul></li>
+        </ul>
+
+        <p>
+            <strong>Relationships:</strong>
+        </p>
+        <ul>
+            <li>matched
+                <ul>
+                    <li>FlowFiles whose attributes are found in the dictionary file follow this relationship.</li>
+                </ul></li>
+            <li>unmatched
+                <ul>
+                    <li>FlowFiles whose attributes are not found in the dictionary file follow this relationship.</li>
+                </ul></li>
+        </ul>
+
+    </body>
+</html>

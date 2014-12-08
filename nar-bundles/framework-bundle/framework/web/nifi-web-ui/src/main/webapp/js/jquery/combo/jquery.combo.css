@@ -1,0 +1,82 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/*
+    Styles for the Nifi combo box.
+*/
+
+.combo {
+    border: 1px solid #aaa;
+    font: bold 10px/18px Verdana, Geneva, sans-serif;
+    color: #525252;
+    padding: 2px 4px; 
+}
+
+.combo-options {
+    padding: 2px 4px; 
+    background: #fefefe;
+    font: bold 10px/16px Verdana, Geneva, sans-serif;
+    color: #525252;
+    list-style: none;
+    border: 1px solid #aaa;
+    box-shadow: 2px 2px 2px #666;
+    -moz-box-shadow: 2px 2px 2px #666;
+    -webkit-box-shadow: 2px 2px 2px #666;
+    z-index: 2000;
+}
+
+.combo-arrow {
+    float: right;
+    width: 10px;
+    height: 5px;
+    background-color: red;
+    margin-top: 7px;
+    background-image: url(menuArrow.png);
+    background-color: transparent;
+}
+
+.combo-text {
+    float: left;
+    height: 18px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+div.selected-disabled-option {
+    font-style: italic;
+    color: #828282;
+}
+
+.combo-option-text {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    float: left;
+    height: 16px;
+}
+
+.combo-glass-pane {
+    position: absolute;
+    background-image: url(../../../images/spacer.png);
+    background-repeat: repeat;
+    background-color: transparent;
+    left: 0px;
+    top: 0px;
+    right: 0px;
+    bottom: 0px;
+    z-index: 1999;
+}

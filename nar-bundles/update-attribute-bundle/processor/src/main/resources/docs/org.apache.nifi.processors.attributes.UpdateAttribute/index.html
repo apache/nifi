@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8" />
+        <title>UpdateAttribute</title>
+
+        <link rel="stylesheet" href="../../css/component-usage.css" type="text/css" />
+    </head>
+
+    <body>
+        <!-- Processor Documentation ================================================== -->
+        <h2>Description:</h2>
+        <p>
+            This processor updates the attributes of a FlowFile using properties or rules that are added by the user. 
+            There are two ways to use this processor to add or modify attributes. One way is the "Basic Usage"; this allows you to set default attribute changes that affect 
+            every FlowFile going through the processor. The second way is the "Advanced Usage"; this allows you to make conditional attribute changes that only affect a FlowFile if it 
+            meets certain conditions. It is possible to use both methods in the same processor at the same time.
+        </p>
+
+        <p>
+            <strong>Basic Usage</strong>
+        </p>
+
+        <p>
+            For basic usage, changes are made by adding a new processor property and referencing as its name the attribute you want to change. Then enter the desired attribute 
+            value as the Value. The Value can be as simple as any text string or it can be a NiFi Expression Language statement that specifies how to formulate the value. 
+            (See the NiFi Expression Language Usage Guide for details on crafting NiFi Expression Language statements.)
+        </p>
+
+        <p>
+            As an example, to alter the standard "filename" attribute so that it has ".txt" appended to the end of it, add a new property and make the property 
+            name "filename" (to reference the desired attribute), and as the value, use the NiFi Expression Language statement shown below:
+        </p>
+
+        <ul>
+            <li><strong>Property</strong>: filename
+            </li>
+            <li><strong>Value</strong>: ${filename}.txt
+            </li>
+        </ul>
+
+        <p>
+            The preceding example illustrates how to modify an existing attribute. If an attribute does not already exist, this processor can also be used to add a new attribute. 
+            For example, the following property could be added to create a new attribute called myAttribute that has the value myValue:
+        </p>
+
+        <ul>
+            <li><strong>Property</strong>: myAttribute
+            </li>
+            <li><strong>Value</strong>: myValue
+            </li>
+        </ul>
+
+        <p>
+            In this example, all FlowFiles passing through this processor will receive an additional FlowFile attribute called myAttribute with the value myValue. 
+            This type of configuration might be used in a flow where you want to tag every FlowFile with an attribute so that it can be used later in the flow, 
+            such as for routing in a RouteOnAttribute processor.
+        </p>
+
+        <p><strong>Advanced Usage</strong>
+        </p>
+
+        <p>
+            The preceding examples illustrate how to make changes to every FlowFile that goes through the processor.  However, the UpdateAttribute processor 
+            may also be used to make conditional changes. 
+        </p>
+
+        <p>
+            To change attributes based on some condition, use the Advanced User Interface (UI) in the processor by clicking the <strong>Advanced</strong> button in the lower right corner.
+        </p>
+
+        <p>
+            Clicking the Advanced button displays the Advanced UI. In the Advanced UI, Conditions and their associated Actions are entered as "Rules".  
+            Each rule basically says, "If these conditions are met, then do this action." One or more conditions may be used in a given rule, 
+            and they all must be met in order for the designated action(s) to be taken. 
+        </p>
+
+        <p><strong>Adding Rules</strong>
+        </p>
+
+        <p>
+            To add rules and their associated conditions and actions, click on the buttons with the plus symbol located to the right of the "Rules", "Conditions", and "Actions" labels.
+        </p>
+
+        <p>
+            Upon adding a rule with its condition(s) and action(s), it is important to save it by clicking the <strong>Save</strong> button in the lower right corner.  
+            If you do not do so and attempt to add or navigate to another rule, an error message will appear, asking you if you want to save your changes.
+        </p>
+
+        <p><strong>Example Rules</strong>
+        </p>
+
+        <p>
+            This example has two rules: CheckForLargeFiles and CheckForGiantFiles. The CheckForLargeFiles rule has these conditions:
+        </p>
+
+        <ul>
+            <li>${filename:equals('fileOfInterest')}
+            </li>
+            <li>${fileSize:toNumber():ge(1048576)}
+            </li>
+            <li>${fileSize:toNumber():lt(1073741824)}
+            </li>
+        </ul>
+
+        <p>
+            Then it has this action for the filename attribute:
+        </p>
+        <ul>
+            <li>${filename}.meg
+            </li>
+        </ul>
+
+        <p>
+            Taken together, this rule says:
+        </p>
+        <ul>
+            <li>If the value of the filename attribute is fileOfInterest, <strong>and</strong>
+            </li>
+            <li>If the fileSize is greater than or equal to (ge) one megabyte (1,048,576 bytes), <strong>and</strong>
+            </li>
+            <li>If the fileSize is less than (lt) one gigabyte (1,073,741,824 bytes)
+            </li>
+            <li>Then change the value of the filename attribute by appending ".meg" to the filename.
+            </li>
+        </ul>
+
+        <p><strong>Adding another Rule</strong>
+        </p>
+
+        <p>
+            Continuing with this example, we can add another rule to check for files that are larger than one gigabyte. When we add this second rule, we can use the 
+            previous rule as a template, so to speak, by taking advantage of the "Copy from existing rule" option in the New Rule window. Simply start typing the name of 
+            an existing rule, and it will show up in a dropdown menu below the entry field.
+        </p>
+
+        <p>
+            In this example, the CheckForGiantFiles rule has these conditions:
+        </p>
+
+        <ul>
+            <li>${filename:equals('fileOfInterest')}
+            </li>
+            <li>${fileSize:toNumber():gt(1073741824)}
+            </li>
+        </ul>
+
+        <p>
+            Then it has this action for the filename attribute:
+        </p>
+
+        <ul>
+            <li>${filename}.gig
+            </li>
+        </ul>
+
+        <p>
+            Taken together, this rule says:
+        </p>
+        <ul>
+            <li>If the value of the filename attribute is fileOfInterest, <strong>and</strong>
+            </li>
+            <li>If the fileSize is greater than (gt) one gigabyte (1,073,741,824 bytes)
+            </li>
+            <li>Then change the value of the filename attribute by appending ".gig" to the filename.
+            </li>
+        </ul>
+
+        <p><strong>Combining the Basic Usage with the Advanced Usage</strong>
+        </p>
+
+        <p>
+            The UpdateAttribute processor allows you to make both basic usage changes (i.e., to every FlowFile) and advanced usage changes (i.e., conditional) 
+            at the same time; however, if they both affect the same attribute(s), then the conditional changes take precedence. This has the added benefit of supporting 
+            a type of "else" construct. In other words, if none of the rules match for the attribute, then the basic usage changes will be made.
+        </p>
+
+        <p><strong>FlowFile Policy</strong>
+        </p>
+
+        <p>
+            Another setting in the Advanced UI is the FlowFile Policy. It is located in the upper-left corner of the UI, and it defines the processor's behavior when multiple rules 
+            match. It may be changed using the dropdown menu. By default, the FlowFile Policy is set to "use clone".
+        </p>
+
+        <p>
+            If the FlowFile policy is set to "use clone", and multiple rules match, then a copy of the incoming FlowFile is created, such that the number of outgoing FlowFiles 
+            is equal to the number of rules that match. In other words, if two rules (A and B) both match, then there will be two outgoing FlowFiles, one for Rule A and one for Rule B.  
+            This can be useful in situations where you want to add an attribute to use as a flag for routing later. In this example, there will be two copies of the file available, 
+            one to route for the A path, and one to route for the B path. 
+        </p>
+
+        <p>
+            If the FlowFile policy is set to "use original", then all matching rules are applied to the same incoming FlowFile, and there is only one outgoing FlowFile with all the 
+            attribute changes applied. In this case, the order of the rules matters and the action for each rule that matches will be applied in that order. If multiple rules contain
+            actions that update the same attribute, the action from the last matching rule will take precedence. Notably, you can drag and drop the rules into a certain order within 
+            the Rules list.
+        </p>
+
+        <p><strong>Filtering Rules</strong>
+        </p>
+
+        <p>
+            The Advanced UI supports the creation of an arbitrarily large number of rules.  In order to manage large rule sets, the listing of rules may be filtered using the 
+            Filter mechanism in the lower left corner. Rules may be filtered by any text in the name, condition, or action.
+        </p>
+
+        <p><strong>Closing the Advanced UI</strong>
+        </p>
+
+        <p>
+            Once all changes have been saved in the Advanced UI, the UI can be closed using the X in the top right corner.
+        </p>
+
+        <p>
+            <strong>Properties:</strong>
+        </p>
+        <p>
+            The properties in this processor are added by the user. The expression language is supported in user-added 
+            properties for this processor. See the NiFi Expression Language Guide to learn how to formulate proper expression language statements to perform the desired functions.
+        </p>
+
+        <p>
+            If an Attribute is added with the name <strong>alternate.identifier</strong> and that attribute's value is a URI, an ADD_INFO Provenance Event will be registered,
+            correlating the FlowFile with the given alternate identifier.
+        </p>
+
+        <p>
+            <strong>Relationships:</strong>
+        </p>
+        <ul>
+            <li>success
+                <ul>
+                    <li>If the processor successfully updates the specified attribute(s), then the FlowFile follows this relationship.</li>
+                </ul></li>		
+        </ul>
+
+    </body>
+</html>

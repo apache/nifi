@@ -1,0 +1,199 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/* status history dialog */
+
+#status-history-dialog {
+    display: none;
+    z-index: 1301;
+    border: 1px solid #eee;
+    padding: 10px;
+    border: 3px solid #365C6A;
+    box-shadow: 4px 4px 6px rgba(0, 0, 0, 0.9);
+    cursor: move;
+}
+
+#status-history-containment {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 30px;
+    bottom: 0;
+    visibility: hidden;
+}
+
+#status-history-refresh-container {
+    width: 100%;
+    height: 24px;
+}
+
+#status-history-last-refreshed-container {
+    float: left;
+    color: #666;
+    font-weight: normal;
+    margin-top: 6px;
+    margin-left: 3px;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+}
+
+#status-history-loading-container {
+    float: left;
+    width: 16px;
+    height: 16px;
+    background-color: transparent;
+    margin-top: 4px;
+    margin-left: 3px;
+}
+
+#status-history-last-refreshed {
+    font-weight: bold;
+}
+
+#status-history-refresh-button {
+    height: 24px;
+    width: 26px;
+    float: left;
+}
+
+#status-history-loading-container {
+    float: left;
+    width: 16px;
+    height: 16px;
+    background-color: transparent;
+    margin-top: 4px;
+    margin-right: 3px;
+}
+
+#status-history-metric-combo {
+    float: right;
+    height: 18px;
+    line-height: 18px;
+    width: 175px;
+}
+
+#status-history-container {
+    float: left;
+    margin-left: 2px;
+    margin-bottom: 35px;
+}
+
+#status-history-chart-container {
+    width: 494px;
+    height: 325px;
+    border: 1px solid #aaa;
+    background-color: #fff;
+    overflow: hidden;
+    padding: 5px;
+    margin-top: 5px; 
+    cursor: default;
+}
+
+#status-history-chart-container .ui-resizable-se {
+    width: 16px;
+    height: 16px;
+    background-image: url(../images/iconResize.png);
+}
+
+#status-history-details {
+    float: left;
+    width: 275px;
+    padding: 3px;
+    overflow: auto;
+    cursor: default;
+}
+
+div.status-history-detail {
+    margin-bottom: 8px; 
+}
+
+div.detail-container-label {
+    color: #333;
+    font-size: 12px;
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+div.detail-item {
+    margin-bottom: 5px;
+}
+
+div.detail-item-label {
+    color: #527991;
+    font-size: 10px;
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+div.detail-item-value {
+    line-height: normal;
+    overflow: hidden;
+}
+
+#status-history-chart-control-container {
+    height: 125px;
+    border: 1px solid #aaa;
+    background-color: #fff;
+    margin-top: 5px;
+    cursor: default;
+    overflow: hidden;
+    padding: 5px;
+}
+
+div.legend-entry {
+    margin-bottom: 3px;
+    cursor: default;
+    clear: left;
+}
+
+div.legend-label {
+    font-weight: bold;
+    width: 240px;
+    overflow: hidden;
+    white-space: nowrap;
+    line-height: normal;
+}
+
+#status-history-chart-container text, #status-history-chart-control-container text {
+    fill: #527991;
+    font-family: Arial,​ sans-serif;
+    font-size: 10px;
+}
+
+.axis path, .axis line {
+    fill: none;
+    stroke: #000;
+    shape-rendering: crispEdges;
+}
+
+.chart-area {
+    clip-path: url(#clip);
+}
+
+.chart-line {
+    fill: none;
+    stroke-width: 1.5px;
+}
+
+.chart-line.over {
+    stroke-width: 2.5px;
+}
+
+.brush .extent {
+    stroke: #666;
+    fill-opacity: .125;
+    shape-rendering: crispEdges;
+}

@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8" />
+        <title>IdentifyMimeType</title>
+
+        <link rel="stylesheet" href="../../css/component-usage.css" type="text/css" />
+    </head>
+
+    <body>
+        <!-- Processor Documentation ================================================== -->
+        <h2>Description:</h2>
+        <p>
+            This processor attempts to identify the MIME type used for a
+            FlowFile. If the MIME type can be identified, an attribute with the
+            name
+            <code>mime.type</code>
+            is added to the FlowFile, and its value is the detected MIME type.
+            Some MIME
+            types require the processor to read a significant amount of data; for
+            these MIME types, their identification is optional. (See the
+            properties Identify ZIP and Identify TAR.) The algorithm may have to
+            read the entire contents of a file for each type of identification. If
+            the MIME Type cannot be determined, its mime.type attribute will be
+            set to
+            <code>application/octet-stream</code>
+            .
+        </p>
+
+        <p>The following MIME Types are detected:
+        <ul>
+            <li>application/gzip</li>
+            <li>application/bzip2</li>
+            <li>application/flowfile-v3</li>
+            <li>application/flowfile-v1 (requires Identify TAR be set to true)</li>
+            <li>application/xml</li>
+            <li>video/mp4</li>
+            <li>video/x-m4v</li>
+            <li>video/mp4a-latm</li>
+            <li>video/quicktime</li>
+            <li>video/mpeg</li>
+            <li>audio/wav</li>
+            <li>audio/mp3</li>
+            <li>image/bmp</li>
+            <li>image/png</li>
+            <li>image/jpg</li>
+            <li>image/gif</li>
+            <li>image/tif</li>
+            <li>application/vnd.ms-works</li>
+            <li>application/msexcel</li>
+            <li>application/mspowerpoint</li>
+            <li>application/msaccess</li>
+            <li>application/x-ms-wmv</li>
+            <li>application/pdf</li>
+            <li>application/x-rpm</li>
+            <li>application/tar</li>
+            <li>application/x-7z-compressed</li>
+            <li>application/java-archive</li>
+            <li>application/zip</li>
+            <li>application/x-lzh</li>
+        </ul>
+    </p>
+
+    <p>
+        <strong>Modifies Attributes:</strong>
+    </p>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>Attribute Name</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>mime.type</td>
+                <td>This Processor sets the FlowFile's mime.type attribute to the detected MIME Type. If unable to detect
+                    the MIME Type, the attribute's value will be set to <code>application/octet-stream</code>.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <p>
+        <strong>Properties:</strong>
+    </p>
+    <p>In the list below, the names of required properties appear
+        in bold. Any other properties (not in bold) are considered optional.
+        If a property has a default value, it is indicated. If a property
+        supports the use of the NiFi Expression Language (or simply,
+        "expression language"), that is also indicated.</p>
+    <ul>
+        <li><strong>Identify ZIP</strong>
+            <ul>
+                <li>A Boolean value (true/false), indicating whether to attempt in depth identification
+                    of ZIP MIME types.</li>
+                <li>Default value: false</li>
+                <li>Supports expression language: false</li>
+            </ul></li>
+        <li><strong>Identify TAR</strong>
+            <ul>
+                <li>A Boolean value (true/false), indicating whether to attempt in depth identification
+                    of TAR MIME types.</li>
+                <li>Default value: false</li>
+                <li>Supports expression language: false</li>
+            </ul></li>
+    </ul>
+
+</ul>
+<p>
+    <strong>Relationships:</strong>
+</p>
+<ul>
+    <li>success
+        <ul>
+            <li>All FlowFiles follow this relationship, regardless of
+                whether the MIME type was detected.</li>
+        </ul>
+    </li>
+</ul>
+
+</body>
+</html>

@@ -1,0 +1,98 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/*
+    Styles for the custom processor ui shell.
+*/
+
+#shell-dialog {
+    display: none;
+    z-index: 1250;
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    bottom: 20px;
+    right: 20px;
+    border: 6px solid #365c6a;
+    box-shadow: 4px 4px 6px rgba(0,0,0,.9);
+    -webkit-box-shadow: 4px 4px 6px rgba(0,0,0,.9);
+    -moz-box-shadow: 4px 4px 6px rgba(0,0,0,.9);
+}
+
+#shell-container {
+    background: #fff;
+    border: 6px solid #d4e0e5;
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    bottom: 0px;
+    right: 0px;
+}
+
+#shell-close-container {
+    background: url(../images/bgShellClose.png) no-repeat;
+    background-color: #d4e0e5;
+    float: right;
+    height: 25px;
+}
+
+#shell-undock-button {
+    display: none;
+    float: left;
+    height: 16px;
+    width: 16px;
+    margin: 5px -5px 0px 12px;
+}
+
+div.undock-normal {
+    background: transparent url(../images/iconPopOut.png) no-repeat left;
+}
+
+div.undock-hover {
+    background: transparent url(../images/iconPopOut.png) no-repeat right;
+}
+
+#shell-close-button {
+    float: left;
+    height: 16px;
+    width: 16px;
+    margin: 5px 5px 0 12px;
+}
+
+div.close-normal {
+    background: transparent url(../images/iconClose.png) no-repeat left;
+}
+
+div.close-hover {
+    background: transparent url(../images/iconClose.png) no-repeat right;
+}
+
+#shell {
+    position: absolute;
+    top: 30px;
+    left: 10px;
+    bottom: 10px;
+    right: 10px;
+    overflow: hidden;
+}
+
+#shell-iframe {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    bottom: 0px;
+    right: 0px;
+}

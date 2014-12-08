@@ -1,0 +1,351 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/*
+    Specific dialog settings.
+*/
+
+#new-port-dialog {
+    z-index: 1301;
+    display: none;
+    width: 350px;
+    height: 150px;
+    border: 1px solid #eee;
+}
+
+#new-port-name {
+    width: 320px;
+}
+
+#new-process-group-dialog {
+    z-index: 1301;
+    display: none;
+    width: 350px;
+    height: 150px;
+    border: 1px solid #eee;
+}
+
+#new-process-group-name {
+    width: 320px;
+}
+
+#new-remote-process-group-dialog {
+    z-index: 1301;
+    display: none;
+    width: 350px;
+    height: 150px;
+    border: 1px solid #eee;
+}
+
+#new-remote-process-group-uri {
+    width: 320px;
+}
+
+#new-template-dialog {
+    z-index: 1301;
+    display: none;
+    width: 350px;
+    height: 300px;
+    border: 1px solid #eee;
+}
+
+.new-template-field {
+    width: 320px;
+}
+
+#processor-property-dialog {
+    z-index: 1301;
+    display: none;
+    border: 1px solid #eee;
+    padding: 10px;
+    border: 3px solid #365C6A;
+    box-shadow: 4px 4px 6px rgba(0, 0, 0, 0.9);
+    cursor: move;
+}
+
+#alias-dialog {
+    z-index: 1301;
+    display: none;
+    width: 350px;
+    height: 195px;
+    border: 1px solid #eee;
+}
+
+#fill-color-dialog {
+    z-index: 1301;
+    display: none;
+    width: 195px;
+    height: 345px;
+    border: 1px solid #eee;
+}
+
+#fill-color-processor-preview {
+    width: 173px;
+    height: 56px;
+    font-weight: bold;
+    border-width: 1px;
+    border-style: solid;
+}
+
+#fill-color-processor-preview-name {
+    margin-left: 5px;
+    margin-top: 5px;
+    float: left;
+}
+
+#fill-color-processor-preview-icon {
+    margin-top: 5px;
+    margin-right: 5px;
+    float: right;
+    background-image: url(../images/iconSmallProcessor.png);
+    width: 14px;
+    height: 14px;
+}
+
+#fill-color-processor-preview-stats {
+    margin-top: 1px;
+    margin-left: 5px;
+    float: left;
+    border: 1px solid #6f97ac;
+    background-color: #ffffff;
+    height: 30px;
+    width: 161px;
+}
+
+#fill-color-processor-preview-stats-label {
+    float: left;
+    background: linear-gradient(to bottom, #30505c, #6f97ac);
+    filter: progid:DXImageTransform.Microsoft.gradient(gradientType=0, startColorstr=#30505c, endColorstr=#6f97ac);
+    height: 30px;
+    width: 30px;
+}
+
+#fill-color-label-preview {
+    width: 173px;
+    height: 56px;
+    font-weight: bold;
+    border-width: 1px;
+    border-style: solid;
+}
+
+#fill-color-label-preview-value {
+    margin-left: 5px;
+    margin-top: 5px;
+    float: left;
+}
+
+#connections-dialog {
+    z-index: 1301;
+    display: none;
+    height: 365px;
+    width: 646px;
+    border: 1px solid #eee;
+}
+
+div.connections-component-name {
+    float: left;
+    width: 390px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+#connections-source {
+    float: left;
+}
+
+#connections-destination {
+    float: left;
+    margin-left: 370px;
+}
+
+#connections-container {
+    width: 612px;
+    height: 190px;
+    border: 1px solid #aaa;
+    padding: 5px;
+    overflow-y: auto;
+}
+
+div.source-destination-connection {
+    margin-bottom: 10px;
+}
+
+div.connection-entry {
+    float: left;
+    width: 190px;
+    margin-left: 10px;
+}
+
+div.connection-entry-name {
+    float: left;
+    width: 170px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+div.destination-component {
+    float: left;
+    width: 190px;
+    margin-left: 10px;
+}
+
+div.destination-component-name {
+    float: left;
+    width: 170px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+div.destination-input-port {
+    margin-left: 20px;
+}
+
+div.destination-input-port-name {
+    float: left;
+    width: 150px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+div.source-component {
+    float: left;
+    width: 190px;
+}
+
+div.source-component-name {
+    float: left;
+    width: 170px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+div.source-output-port {
+    margin-left: 20px;
+}
+
+div.source-output-port-name {
+    float: left;
+    width: 150px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+div.go-to-link {
+    color: #264c58;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+#system-diagnostics-dialog {
+    z-index: 1301;
+    display: none;
+    height: 450px;
+    width: 420px;
+    border: 1px solid #eee;
+}
+
+#instantiate-template-dialog {
+    z-index: 1301;
+    display: none;
+    width: 355px;
+    height: 120px;
+    border: 1px solid #eee;
+}
+
+#available-templates {
+    width: 325px;
+    height: 18px;
+    line-height: 18px;
+}
+
+#remote-port-configuration {
+    z-index: 1301;
+    display: none;
+    width: 350px;
+    height: 195px;
+    border: 1px solid #eee;
+}
+
+#nf-ok-dialog {
+    z-index: 1302;
+    display: none;
+    height: 225px;
+    width: 375px;
+    border: 1px solid #eee;
+}
+
+#nf-ok-dialog-content {
+    width: 355px;
+    height: 130px;
+    overflow: auto;
+    margin-top: -10px;
+}
+
+#nf-yes-no-dialog {
+    z-index: 1302;
+    display: none;
+    height: 175px;
+    width: 350px;
+    border: 1px solid #eee;
+}
+
+#nf-yes-no-dialog-content {
+    width: 330px;
+    height: 180px;
+    overflow: auto;
+    margin-top: -10px;
+}
+
+/*
+    General dialog styles.
+*/
+
+ul.result {
+    list-style-type: disc;
+    margin-left: 15px;
+}
+
+ul.result li {
+    padding: 3px 0px;
+}
+
+.setting {
+    margin-bottom: 15px;
+}
+
+.setting-name {
+    font-size: 10px;
+    font-weight: bold;
+    padding-bottom: 4px;
+    color: #527991;
+}
+
+.setting-field {
+    overflow: hidden;
+    line-height: normal;
+}
+
+img.icon-info {
+    position: relative;
+    left: 3px;
+    top: 1px;
+}

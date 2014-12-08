@@ -1,0 +1,216 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/*
+    Status Styles
+*/
+
+#history {
+    position: absolute;
+    top: 0px;
+    bottom: 0px;
+    left: 0px;
+    right: 0px;
+}
+
+#history-header-text {
+    height: 35px;
+    margin-top: 20px;
+    margin-left: 20px;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+#history-refresh-container {
+    height: 26px;
+    margin-left: 20px;
+    margin-right: 20px;
+    margin-top: 18px;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+}
+
+#history-last-refreshed-container {
+    float: left;
+    color: #666;
+    font-weight: normal;
+    margin-top: 6px;
+    margin-left: 3px;
+}
+
+#history-loading-container {
+    float: left;
+    width: 16px;
+    height: 16px;
+    background-color: transparent;
+    margin-top: 4px;
+    margin-left: 3px;
+}
+
+#history-last-refreshed {
+    font-weight: bold;
+}
+
+#history-header {
+    padding-top: 10px;
+}
+
+#refresh-button {
+    height: 24px;
+    width: 26px;
+    float: left;
+}
+
+/* history filter controls */
+
+#history-filter-container {
+    position: absolute;
+    right: 20px;
+    top: 75px;
+}
+
+#history-filter-button {
+    height: 20px;
+    line-height: 20px;
+    width: 55px;
+    text-align: center;
+    font-weight: bold;
+    border: 1px solid #AAAAAA;
+    color: #525252;
+    float: left;
+    margin-right: 0;
+    padding: 0;
+}
+
+#history-filter-overview {
+    float: left;
+    color: #9F6000;
+    font-size: 9px;
+    font-weight: bold;
+    line-height: normal;
+    float: left;
+    margin-top: 6px;
+    margin-right: 8px;
+    display: none;
+}
+
+#clear-history-filter {
+    cursor: pointer;
+    color:#31849B;
+    text-decoration: underline;
+}
+
+#history-purge-button {
+    height: 20px;
+    line-height: 20px;
+    width: 55px;
+    text-align: center;
+    font-weight: bold;
+    border: 1px solid #AAAAAA;
+    color: #525252;
+    float: left;
+    margin-left: 5px;
+    margin-right: 0;
+    padding: 0;
+}
+
+
+/* history filter dialog */
+
+#history-filter-dialog {
+    display: none;
+    width: 454px;
+    height: 250px;
+    z-index: 1301;
+}
+
+.start-date-setting, .start-time-setting, .end-date-setting, .end-time-setting {
+    float: left;
+}
+
+.start-date-setting, .end-date-setting {
+    margin-right: 15px;
+}
+
+.history-small-input {
+    padding: 3px 0px 1px 3px;
+    font-size: 11px;
+    width: 183px;
+    border: 1px solid #ccc;
+}
+
+.history-large-input {
+    margin-right: 10px;
+    font-size: 11px;
+    float: left;
+    width: 275px;
+}
+
+#history-filter-type {
+    width: 127px;
+    height: 18px;
+    line-height: 18px;
+    float: left;
+}
+
+/* history purge controls */
+
+#history-purge-dialog {
+    display: none;
+    width: 422px;
+    height: 150px;
+    z-index: 1301;
+}
+
+/* action details dialog */
+
+#action-details-dialog {
+    display: none;
+    width: 400px;
+    height: 350px;
+    z-index: 1301;
+}
+
+#action-details {
+    height: 250px;
+    overflow-y: auto;
+}
+
+div.action-detail {
+    margin-bottom: 2px;
+}
+
+div.history-details-name {
+    float: left;
+    color: #527991;
+    font-size: 10px;
+    font-weight: bold;
+    line-height: normal;
+    width: 115px;
+    margin-right: 10px;
+}
+
+/* history table */
+
+#history-table {
+    position: absolute;
+    top: 100px;
+    left: 20px;
+    bottom: 20px;
+    right: 20px;
+    border: 1px solid #666;
+    overflow: hidden;
+}

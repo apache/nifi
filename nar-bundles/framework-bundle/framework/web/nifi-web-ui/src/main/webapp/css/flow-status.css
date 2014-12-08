@@ -1,0 +1,110 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/* flow status styles positioned at the top of the graph */
+
+#flow-status {
+    position: absolute;
+    top: 94px;
+    left: 0px;
+    right: 0px;
+    height: 13px;
+    padding: 7px 8px 3px 40px;
+    background: #e3ebee url(../images/bgStatusPanel.png) repeat-x scroll top left;
+    color: #598599;
+    z-index: 2;
+}
+
+div.flow-status-property-element {
+    float: left;
+    margin-left: 25px;
+    font-size: 10px;
+}
+
+span.flow-status-property-value {
+    font-weight: bold;
+    font-size: 10px;
+    color: #000;
+}
+
+#connected-nodes-element {
+    display: none;
+}
+
+#controller-bulletins {
+    margin-top: -1px;
+    margin-left: 9px;
+    float: left;
+    width: 12px;
+    height: 12px;
+    background-color: transparent;
+    display: none;
+}
+
+#canvas-loading-container {
+    margin-top: -2px;
+    margin-left: 9px;
+    float: left;
+    width: 16px;
+    height: 16px;
+    background-color: transparent;
+}
+
+span.alert {
+    color: #c00;
+}
+
+#refresh-required-container {
+    display: none;
+    float: left;
+    margin-left: 10px;
+    font-size: 10px;
+}
+
+#refresh-required-icon {
+    float: left;
+    margin-top: -2px;
+    margin-right: 10px;
+    width: 18px;
+    height: 16px;
+    background-image: url(../images/iconAlert.png);
+}
+
+#refresh-required-container span.link {
+    cursor: pointer;
+    color: #1e373f;
+    text-decoration: underline;
+    font-weight: bold;
+}
+
+#refresh-required-container span.header-link-over {
+    color: #264c58;
+    text-decoration: underline;
+    font-weight: bold;
+}
+
+#controller-counts {
+    float: right;
+    margin-right: 195px;
+    margin-top: -3px;
+}
+
+div.controller-component-count {
+    font-weight: bold;
+    color: #000;
+    margin: 3px 10px 3px 2px;
+    float: left;
+}

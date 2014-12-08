@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8" />
+        <title>GetFile</title>
+        <link rel="stylesheet" href="../../css/component-usage.css" type="text/css" />
+    </head>
+
+    <body>
+        <!-- Processor Documentation ================================================== -->
+        <h2>Description:</h2>
+        <p>This processor obtains FlowFiles from a local directory.</p>
+
+        <p>
+            <strong>Modifies Attributes:</strong>
+        </p>
+        <table border="1">
+            <thead>
+                <tr>
+                    <th>Attribute Name</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>filename</td>
+                    <td>The filename is set to the name of the file on disk</td>
+                </tr>
+                <tr>
+                    <td>path</td>
+                    <td>The path is set to the relative path of the file's directory on disk. For example, if the &lt;Input Directory&gt;
+                        property is set to <code>/tmp</code>, files picked up from /tmp will have the path attribute set to <code>./</code>.
+                        If the &lt;Recurse Subdirectories&gt; property is set to <code>true</code> and a file is picked up
+                        from /tmp/abc/1/2/3, then the path attribute will be set to <code>abc/1/2/3</code>
+                </tr>
+                <tr>
+                    <td>file.creationTime</td>
+                    <td>The date and time that the file was created. May not work on all file systems</td>
+                </tr>
+                <tr>
+                    <td>file.lastModifiedTime</td>
+                    <td>The date and time that the file was last modified. May not work on all file systems</td>
+                </tr>
+                <tr>
+                    <td>file.lastAccessTime</td>
+                    <td>The date and time that the file was last accessed. May not work on all file systems</td>
+                </tr>
+                <tr>
+                    <td>file.owner</td>
+                    <td>The owner of the file. May not work on all file systems</td>
+                </tr>
+                <tr>
+                    <td>file.group</td>
+                    <td>The group owner of the file. May not work on all file systems</td>
+                </tr>
+                <tr>
+                    <td>file.permissions</td>
+                    <td>The read/write/execute permissions of the file. May not work on all file systems</td>
+                </tr>
+                <tr>
+                    <td>absolute.path</td>
+                    <td>The full/absolute path from where a file was picked up. The current 'path' attribute is still populated, but may be a relative path.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p>
+            <strong>Properties:</strong>
+        </p>
+        <p>In the list below, the names of required properties appear
+            in bold. Any other properties (not in bold) are considered optional.
+            If a property has a default value, it is indicated. If a property
+            supports the use of the NiFi Expression Language (or simply,
+            "expression language"), that is also indicated.</p>
+        <ul>
+            <li><strong>Input Directory</strong>
+                <ul>
+                    <li>The input directory from which to pull files.</li>
+                    <li>Default value: no default</li>
+                    <li>Supports expression language: true</li>
+                </ul></li>
+            <li><strong>File Filter</strong>
+                <ul>
+                    <li>Only files whose names match the given regular expression
+                        are picked up.</li>
+                    <li>Default value: [^\.].*</li>
+                    <li>Supports expression language: false</li>
+                </ul></li>
+            <li><strong>Keep Source File</strong>
+                <ul>
+                    <li>A Boolean value (true/false), indicating whether to leave a
+                        copy of the file in the input directory after retrieving it; this
+                        causes the file to be picked up continually and is useful for
+                        testing purposes.</li>
+                    <li>Default value: false</li>
+                    <li>Supports expression language: false</li>
+                </ul></li>
+            <li><strong>Recurse Subdirectories</strong>
+                <ul>
+                    <li>A Boolean value (true/false), indicating whether to pull
+                        files from subdirectories.</li>
+                    <li>Default value: true</li>
+                    <li>Supports expression language: false</li>
+                </ul></li>
+            <li><strong>Polling Interval</strong>
+                <ul>
+                    <li>The amount of time to wait between directory listings. Valid values must be non-negative integers
+                        followed by a time unit, such as nanos, millis, secs, mins, hrs, days. <b>NOTE:</b> If a directory
+                        listing is empty, the processor will yield for the full yield duration and will not poll during that
+                        time.
+                    </li>
+                    <li>Default value: 0 sec</li>
+                    <li>Supports expression language: false</li>
+                </ul></li>
+            <li><strong>Ignore Hidden Files</strong>
+                <ul>
+                    <li>A Boolean value (true/false), indicating whether to ignore
+                        hidden files.</li>
+                    <li>Default value: true</li>
+                    <li>Supports expression language: false</li>
+                </ul></li>
+            <li><strong>Minimum File Age</strong>
+                <ul>
+                    <li>The minimum age that a file must be in order to be pulled;
+                        any file younger than this amount of time (according to the last
+                        modification date) will be ignored.</li>
+                    <li>Default value: 0 sec</li>
+                    <li>Supports expression language: false</li>
+                </ul></li>
+            <li>Maximum File Age
+                <ul>
+                    <li>The maximum age that a file must be in order to be pulled;
+                        any file older than this amount of time (according to the last
+                        modification date) will be ignored. The value must be a
+                        non-negative integer, followed by a time unit, such as nanos,
+                        millis, secs, mins, hrs, days.</li>
+                    <li>Default value: no default</li>
+                    <li>Supports expression language: false</li>
+                </ul>
+            </li>
+            <li><strong>Minimum File Size</strong>
+                <ul>
+                    <li>The minimum size that a file must be in order to be pulled.</li>
+                    <li>Default value: 0 B</li>
+                    <li>Supports expression language: false</li>
+                </ul></li>
+            <li>Maximum File Size
+                <ul>
+                    <li>The maximum size that a file must be in order to be pulled.
+                        The value must be a non-negative integer followed by a data size
+                        unit, such as B, KB, MB, GB, TB.</li>
+                    <li>Default value: no default</li>
+                    <li>Supports expression language: false</li>
+                </ul>
+            </li>
+        </ul>
+        <p>
+            <strong>Relationships:</strong>
+        </p>
+        <ul>
+            <li>success
+                <ul>
+                    <li>If FlowFiles are successfully selected, they follow this
+                        relationship.</li>
+                </ul>
+            </li>
+        </ul>
+
+    </body>
+</html>

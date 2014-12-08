@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<flowController xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <maxThreadCount>100</maxThreadCount>
+    <rootGroup>
+        <id>1234</id>
+        <name>Root Group</name>
+        <position x="0.0" y="0.0"/>
+        <style>style</style>
+        <comment />
+        <processor>
+            <id>0000</id>
+            <name>Data Generator</name>
+            <position x="0.0" y="0.0"/>
+            <style>style</style>
+            <comment></comment>
+            <class>org.apache.nifi.processors.standard.LocalSelectionFileProcessor</class>
+            <maxConcurrentTasks>5</maxConcurrentTasks>
+            <schedulingPeriodSeconds>0</schedulingPeriodSeconds>
+            <maxWorkQueueSize>500</maxWorkQueueSize>
+            <running>true</running>
+            <property>
+                <name>root.directory.path</name>
+                <value>target/input</value>
+            </property>
+            <property>
+                <name>keep.original</name>
+                <value>true</value>
+            </property>
+            <property>
+                <name>polling.interval.secs</name>
+                <value>1</value>
+            </property>
+        </processor>
+        <processor>
+            <id>destroyer</id>
+            <name>Data Destroyer</name>
+            <position x="0.0" y="0.0"/>
+            <style>style</style>
+            <comment></comment>
+            <class>org.apache.nifi.processors.standard.TerminationFileProcessor</class>
+            <maxConcurrentTasks>5</maxConcurrentTasks>
+            <schedulingPeriodSeconds>0</schedulingPeriodSeconds>
+            <maxWorkQueueSize>20000</maxWorkQueueSize>
+            <running>true</running>
+        </processor>
+        <processor>
+            <id>logger</id>
+            <name>Logger</name>
+            <position x="0.0" y="0.0"/>
+            <style>style</style>
+            <comment></comment>
+            <class>org.apache.nifi.processors.standard.AttributeLoggerProcessor</class>
+            <maxConcurrentTasks>5</maxConcurrentTasks>
+            <schedulingPeriodSeconds>0</schedulingPeriodSeconds>
+            <maxWorkQueueSize>500</maxWorkQueueSize>
+            <running>true</running>
+            <property>
+                <name>log.level</name>
+                <value>info</value>
+            </property>
+        </processor>
+
+        <inputPort>
+            <id>input</id>
+            <name>Input Port</name>
+            <position x="0.0" y="0.0"/>
+            <style></style>
+        </inputPort>
+
+        <remoteProcessGroup>
+            <id>remoteGroup</id>
+            <name>Remote Group</name>
+            <position x="0.0" y="0.0"/>
+            <style></style>
+            <comment />
+            <url>http://localhost:8080/nifi</url>
+        </remoteProcessGroup>
+
+        <connection>
+            <id>7777</id>
+            <name>success</name>
+            <bendPoints/>
+            <labelIndex>1</labelIndex>
+            <zIndex>0</zIndex>
+            <style></style>
+            <sourceId>0000</sourceId>
+            <sourceGroupId>1234</sourceGroupId>
+            <sourceType>PROCESSOR</sourceType>
+            <destinationId>input</destinationId>
+            <destinationGroupId>remoteGroup</destinationGroupId>
+            <destinationType>INPUT_PORT</destinationType>
+            <countFlowFiles>false</countFlowFiles>
+            <countBytes>false</countBytes>
+            <relationship>success</relationship>
+        </connection>
+        <connection>
+            <id>12378461946123976329</id>
+            <name>success</name>
+            <bendPoints/>
+            <labelIndex>1</labelIndex>
+            <zIndex>0</zIndex>
+            <style></style>
+            <sourceId>logger</sourceId>
+            <sourceGroupId>1234</sourceGroupId>
+            <sourceType>PROCESSOR</sourceType>
+            <destinationId>destroyer</destinationId>
+            <destinationGroupId>1234</destinationGroupId>
+            <destinationType>PROCESSOR</destinationType>
+            <countFlowFiles>false</countFlowFiles>
+            <countBytes>false</countBytes>
+            <relationship>success</relationship>
+        </connection>
+        <connection>
+            <id>2347892</id>
+            <name>Input Port Connection</name>
+            <bendPoints/>
+            <labelIndex>1</labelIndex>
+            <zIndex>0</zIndex>
+            <style></style>
+            <sourceId>input</sourceId>
+            <sourceGroupId>1234</sourceGroupId>
+            <sourceType>INPUT_PORT</sourceType>
+            <destinationId>logger</destinationId>
+            <destinationGroupId>1234</destinationGroupId>
+            <destinationType>PROCESSOR</destinationType>
+            <countFlowFiles>false</countFlowFiles>
+            <countBytes>false</countBytes>
+            <relationship></relationship>
+        </connection>
+    </rootGroup>
+</flowController>

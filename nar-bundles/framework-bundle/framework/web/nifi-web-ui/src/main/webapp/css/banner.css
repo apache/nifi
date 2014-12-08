@@ -1,0 +1,80 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/* 
+  Banner settings
+*/
+
+div.main-banner-header {
+    z-index: 100;
+    font-weight: bold;
+    font-size: 1em;
+    text-align: center;
+    line-height: 15px;
+    color: #7e7e7e;
+    margin: 0px auto;
+    width: 900px;
+    height: 17px;
+    background-color: #fff;
+    z-index: 100;
+}
+
+div.banner-header-background {
+    background-image: url(../images/bgHeader.png);
+}
+
+div.main-banner-footer {
+    display: none;
+    position: absolute;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+    height: 15px;
+    color: #fff;
+    text-align: center;
+    font-weight: bold;
+    font-size: 1em;
+    line-height: 15px;
+    overflow: visible;
+    background-color: #9eb9c7;
+    background-image: url(../images/bgBannerFoot.png);
+    background-repeat: repeat-x;
+    background-position: left top;
+}
+
+div.utility-banner-header {
+    display: none;
+    z-index: 100;
+    font-weight: bold;
+    font-size: 1em;
+    text-align: center;
+    line-height: 15px;
+    color: #7ea3b6;
+}
+
+div.utility-banner-footer {
+    display: none;
+    position: absolute;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+    height: 15px;
+    color: #7ea3b6;
+    text-align: center;
+    font-weight: bold;
+    font-size: 1em;
+    line-height: 15px;
+}

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bundle xmlns="http://namespace/1">
+    <node>
+        <subNode1 attribute="d&amp;b">
+            <value>Hello &amp; Goodbye</value>
+        </subNode1>
+        <subNode2>
+            <value>World</value>
+        </subNode2>
+    </node>
+    <node xmlns="http://namespace/1">
+        <subNode1>
+            <value>Hello</value>
+        </subNode1>
+        <subNode2>
+            <value>World</value>
+        </subNode2>
+    </node>
+    <node xmlns="http://namespace/1">
+        <subNode1>
+            <value>Hello</value>
+        </subNode1>
+        <subNode2>
+            <value>World</value>
+        </subNode2>
+    </node>
+    <node xmlns="http://namespace/1">
+        <subNode1>
+            <value>Hello</value>
+        </subNode1>
+        <subNode2>
+            <value>World</value>
+        </subNode2>
+    </node>
+    <node xmlns="http://namespace/1">
+        <subNode1>
+            <value>Hello</value>
+        </subNode1>
+        <subNode2>
+            <value>World</value>
+        </subNode2>
+    </node>
+    <node xmlns="http://namespace/1">
+        <subNode1>
+            <value>Hello</value>
+        </subNode1>
+        <subNode2>
+            <value>World</value>
+        </subNode2>
+    </node>
+</bundle>

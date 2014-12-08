@@ -1,0 +1,233 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/*
+    Remote process group configuration styles.
+*/
+
+#remote-process-group-configuration {
+    position: absolute;
+    overflow: hidden;
+    width: 400px;
+    height: 280px;
+    font-size: 10px;
+    z-index: 1201;
+    display: none;
+    border: 1px solid #eee;
+}
+
+#remote-process-group-details {
+    position: absolute;
+    overflow: hidden;
+    width: 400px;
+    height: 280px;
+    font-size: 10px;
+    z-index: 1201;
+    display: none;
+    border: 1px solid #eee;
+}
+
+#remote-process-group-ports {
+    position: absolute;
+    overflow: hidden;
+    width: 800px;
+    height: 515px;
+    font-size: 10px;
+    z-index: 1201;
+    display: none;
+    border: 1px solid #eee;
+}
+
+/* remote process group settings */
+
+#remote-process-group-ports div.settings-left {
+    float: left;
+    width: 378px;
+}
+
+#remote-process-group-ports div.settings-right {
+    float: left;
+    width: 378px;
+}
+
+#remote-process-group-ports div.spacer {
+    float: left;
+    margin-right: 20px;
+}
+
+#remote-process-group-configuration input {
+    width: 370px;
+}
+
+/* remote process group port configuration */
+
+div.remote-port-header {
+    color: #ffffff;
+    font-weight: bold;
+    line-height: 26px;
+    height: 26px;
+    background-image: url("../images/bgTableHeader.png");
+    border-top: 1px solid #666666;
+    border-left: 1px solid #666666;
+    border-right: 1px solid #666666;
+    padding: 0 5px;
+}
+
+div.remote-ports-container {
+    padding: 5px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    height: 335px;
+    border: 1px solid #666;
+}
+
+div.remote-port-container {
+    margin-bottom: 20px;
+}
+
+div.remote-port-removed {
+    margin-left: 19px;
+    margin-top: 17px;
+    width: 18px;
+    height: 18px;
+    background-image: url("../images/iconPortRemoved.png");
+}
+
+div.remote-port-edit-container {
+    float: left;
+    width: 53px;
+}
+
+div.edit-button {
+    cursor: pointer;
+    width: 26px;
+    height: 24px;
+    clear: both;
+}
+
+div.edit-remote-port {
+    margin-top: 13px;
+    margin-left: 16px;
+    background: transparent url(../images/iconEditButton.png) no-repeat scroll top left;
+}
+
+div.edit-remote-port-hover {
+    margin-top: 13px;
+    margin-left: 16px;
+    background: transparent url(../images/iconEditButton.png) no-repeat scroll top right;
+}
+
+div.remote-port-details-container {
+    float: left;
+    width: 295px;
+}
+
+div.remote-port-name {
+    color: #000000;
+    font-weight: bold;
+    float: left;
+    width: 290px;
+    line-height: normal;
+    margin-bottom: 3px;
+}
+
+div.remote-port-description {
+    color: #888888;
+    float: left;
+    margin-bottom: 8px;
+    width: 290px;
+}
+
+div.concurrent-task-container {
+    width: 190px;
+    float: left;
+}
+
+img.concurrent-tasks-info {
+    margin-left: 3px;
+    margin-top: 1px;
+}
+
+div.compression-container {
+    width: 105px;
+    float: left;
+}
+
+div.remote-port-transmission-container {
+    float: left;
+    padding-left: 4px;
+}
+
+div.transmission-light-switch {
+    width: 50px;
+    height: 12px;
+    border: 1px solid;
+    cursor: pointer;
+}
+
+div.enabled-transmission-switch {
+    cursor: pointer;
+    width: 42px;
+    height: 18px;
+    margin-top: 5px;
+}
+
+div.enabled-active-transmission {
+    background: transparent url(../images/transmissionSwitchEnabled.png) no-repeat scroll top left;
+}
+
+div.enabled-inactive-transmission {
+    background: transparent url(../images/transmissionSwitchEnabled.png) no-repeat scroll top right;
+}
+
+div.disabled-transmission-switch {
+    width: 42px;
+    height: 18px;
+    margin-top: 5px;
+}
+
+div.disabled-active-transmission {
+    background: transparent url(../images/transmissionSwitchDisabled.png) no-repeat scroll top left;
+}
+
+div.disabled-inactive-transmission {
+    background: transparent url(../images/transmissionSwitchDisabled.png) no-repeat scroll top right;
+}
+
+/* remote port configuration dialog */
+
+#remote-port-name {
+    width: 320px;
+}
+
+#remote-port-concurrent-tasks {
+    font-size: 11px !important;
+    float: left;
+    width: 220px;
+}
+
+#remote-port-use-compression-container {
+    margin-left: 8px;
+    margin-top: 5px;
+    float: left;
+}
+
+#remote-port-use-compression {
+}
+
+#remote-port-concurrent-task-header {
+    margin-top: 5px;
+}

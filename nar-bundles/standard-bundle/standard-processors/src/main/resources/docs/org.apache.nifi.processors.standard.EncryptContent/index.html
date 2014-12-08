@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8" />
+        <title>EncryptContent</title>
+        <link rel="stylesheet" href="../../css/component-usage.css" type="text/css" />
+    </head>
+
+    <body>
+        <!-- Processor Documentation ================================================== -->
+        <h2>Description:</h2>
+        <p>
+            This processor encrypts or decrypts FlowFiles.
+        <p>
+            <strong>Properties:</strong>
+        </p>
+        <p>
+            In the list below, the names of required properties appear in bold. Any other properties (not in bold) are considered optional. If a property has a default value, it is indicated. If a property supports the use of the NiFi Expression Language (or simply, "expression language"), that is also indicated.
+        </p>
+
+        <ul>
+            <li><strong>Mode</strong>
+                <ul>
+                    <li>This property specifies whether the content should be encrypted or decrypted. Valid values are:
+                        <ul>
+                            <li>Encrypt</li>
+                            <li>Decrypt</li>
+                        </ul></li>
+                    <li>Default value: Encrypt</li>
+                    <li>Supports expression language: false</li>
+                </ul></li>
+            <li><strong>Encryption Algorithm</strong>
+                <ul>
+                    <li>The encryption algorithm to use. Valid values are available in the property's drop down menu; they include:	
+                        <ul>
+                            <li>MD5_128AES - requires only 'strong encryption policies'</li>
+                            <li>MD5_256AES - requires only 'strong encryption policies'</li>
+                            <li>SHA1_RC2 - requires only 'strong encryption policies'</li>
+                            <li>SHA1_DES - requires only 'strong encryption policies'</li>
+                            <li>MD5_192AES - requires only 'strong encryption policies'</li>
+                            <li>MD5_DES - requires only 'strong encryption policies'</li>
+                            <li>MD5_RC2 - requires only 'strong encryption policies'</li>
+                            <li>SHA_192AES - requires unlimited JCE policies</li>
+                            <li>SHA_40RC4 - requires unlimited JCE policies</li>
+                            <li>SHA256_128AES - requires unlimited JCE policies</li>
+                            <li>SHA_128RC2 - requires unlimited JCE policies</li>
+                            <li>SHA_128AES - requires unlimited JCE policies</li>
+                            <li>SHA256_192AES - requires unlimited JCE policies</li>
+                            <li>SHA_2KEYTRIPLEDES - requires unlimited JCE policies</li>
+                            <li>SHA256_256AES - requires unlimited JCE policies</li>
+                            <li>SHA_40RC2 - requires unlimited JCE policies</li>
+                            <li>SHA_256AES - requires unlimited JCE policies</li>
+                            <li>SHA_3KEYTRIPLEDES - requires unlimited JCE policies</li>
+                            <li>SHA_TWOFISH - requires unlimited JCE policies</li>
+                            <li>SHA_128RC4 - requires unlimited JCE policies</li>
+                        </ul></li>
+                    <li>Default value: MD5_256AES</li>
+                    <li>Supports expression language: false</li>
+                </ul></li>
+            <li><strong>Password</strong>
+                <ul>
+                    <li>The password to use for encrypting or decrypting the data.  Passwords longer than 16 characters require unlimited JCE policies</li>		
+                    <li>Default value: no default</li>
+                    <li>Supports expression language: false</li>
+                </ul></li>
+        </ul>
+        <p>
+            <strong>Relationships:</strong>
+        </p>
+        <ul>
+            <li>failure
+                <ul>
+                    <li>If a FlowFile cannot be encrypted or decrypted, then it follows this relationship</li>
+                </ul></li>
+            <li>success
+                <ul>
+                    <li>If a FlowFile is successfully encrypted or decrypted, then it follows this relationship</li>
+                </ul></li>
+        </ul>
+
+
+    </body>
+</html>

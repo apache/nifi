@@ -1,0 +1,229 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/*
+    Templates Styles
+*/
+
+#templates {
+    position: absolute;
+    top: 0px;
+    bottom: 0px;
+    left: 0px;
+    right: 0px;
+}
+
+#templates-header-and-filter {
+    height: 35px;
+    margin-top: 20px;
+    margin-left: 20px;
+    margin-right: 20px;
+}
+
+#templates-header-text {
+    float: left;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+#templates-refresh-container {
+    height: 26px;
+    margin-left: 20px;
+    margin-right: 20px;
+    margin-top: 18px;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+}
+
+#templates-last-refreshed-container {
+    float: left;
+    color: #666;
+    font-weight: normal;
+    margin-top: 6px;
+    margin-left: 3px;
+}
+
+#templates-loading-container {
+    float: left;
+    width: 16px;
+    height: 16px;
+    background-color: transparent;
+    margin-top: 4px;
+    margin-left: 3px;
+}
+
+#templates-last-refreshed {
+    font-weight: bold;
+}
+
+#templates-header {
+    padding-top: 10px;
+}
+
+#refresh-button {
+    height: 24px;
+    width: 26px;
+    float: left;
+}
+
+/* filter controls */
+
+#templates-filter-controls {
+    float: right;
+}
+
+#templates-filter-container {
+    height: 24px;
+    width: 318px;
+}
+
+#templates-filter {
+    padding: 3px 0px 1px 3px;
+    font-size: 12px;
+    height: 18px;
+    line-height: 20px;
+    width: 173px;
+    border: 1px solid #ccc;
+    margin-right: 3px;
+    float: left;
+}
+
+input.templates-filter-list {
+    color: #888;
+}
+
+#templates-filter-type {
+    width: 127px;
+    height: 18px;
+    line-height: 18px;
+    float: left;
+}
+
+#templates-filter-stats {
+    font-size: 9px;
+    font-weight: bold;
+    color: #9f6000;
+    clear: left; 
+    line-height: normal;
+    margin-left: 5px;
+}
+
+/* upload */
+
+#select-template-container {
+}
+
+#template-browse-container {
+    display: block;
+    height: 20px;
+}
+
+#template-file-field {
+    height: 22px;
+    display: inline;
+    position: absolute;
+    top: -1px;
+    right: -1px;
+    float: right;
+    opacity: 0;
+    filter: alpha(opacity = 0);
+    z-index: 3000;
+    cursor: pointer;
+}
+
+.import-status-error {
+    color: #ff0000;
+}
+
+.import-status {
+    color: #888888;
+}
+
+.template-button {
+    height: 20px;
+    line-height: 20px;
+    float: right;
+    border-top: 1px solid #d1d1d1;
+    border-right: 1px solid #a7a7a7;
+    border-bottom: 1px solid #828282;
+    border-left: 1px solid #a7a7a7;
+    cursor: pointer;
+    font-weight: bold;
+    padding: 0 10px;
+}
+
+#cancel-upload-template-button {
+    margin-right: 4px;
+}
+
+#upload-template-container {
+    float: right;
+}
+
+#submit-template-container {
+    display: none;
+}
+
+#selected-template-name {
+    color: #444444;
+    float: right;
+    font-weight: bold;
+    margin-right: 20px;
+    margin-top: 6px;
+}
+
+#upload-template-status {
+    float: right;
+    font-weight: bold;
+    margin-right: 20px;
+    margin-top: 6px;
+    line-height: normal;
+}
+
+#select-template-button {
+    margin: 0;
+    width: 50px;
+    overflow: hidden;
+    position: relative;
+}
+
+#template-upload-form-container {
+    display: none;
+}
+
+#upload-template-button {
+    margin-right: 0;
+}
+
+#template-file-upload {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 22px;
+    width: 300px;
+}
+
+/* templates table */
+
+#templates-table {
+    position: absolute;
+    top: 100px;
+    left: 20px;
+    bottom: 20px;
+    right: 20px;
+    border: 1px solid #666;
+    overflow: hidden;
+}

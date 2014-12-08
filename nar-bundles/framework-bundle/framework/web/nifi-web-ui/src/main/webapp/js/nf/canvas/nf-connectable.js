@@ -1,0 +1,209 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+nf.Connectable = (function () {
+
+    var connect;
+    var canvas;
+    var origin;
+
+    return {
+        init: function () {
+            canvas = d3.select('#canvas');
+
+            // dragging behavior for the connector
+            connect = d3.behavior.drag()
+                    .origin(function (d) {
+                        origin = d3.mouse(canvas.node());
+                        return {
+                            x: origin[0],
+                            y: origin[1]
+                        };
+                    })
+                    .on('dragstart', function (d) {
+                        // stop further propagation
+                        d3.event.sourceEvent.stopPropagation();
+
+                        // unselect the previous components
+                        nf.CanvasUtils.getSelection().classed('selected', false);
+
+                        // mark the source component has selected
+                        var source = d3.select(this.parentNode).classed('selected', true);
+
+                        // mark this component as dragging and selected
+                        d3.select(this).classed('dragging', true);
+
+                        // mark the source of the drag
+                        var sourceData = source.datum();
+
+                        // start the drag line and insert it first to keep it on the bottom
+                        var position = d3.mouse(canvas.node());
+                        canvas.insert('path', ':first-child')
+                                .datum({
+                                    'sourceId': sourceData.component.id,
+                                    'sourceWidth': sourceData.dimensions.width,
+                                    'x': position[0],
+                                    'y': position[1]
+                                })
+                                .attr({
+                                    'class': 'connector',
+                                    'd': function (pathDatum) {
+                                        return 'M' + pathDatum.x + ' ' + pathDatum.y + 'L' + pathDatum.x + ' ' + pathDatum.y;
+                                    }
+                                });
+
+                        // updates the location of the connection img
+                        d3.select(this).attr('transform', function () {
+                            return 'translate(' + position[0] + ', ' + (position[1] + 20) + ')';
+                        });
+
+                        // re-append the image to keep it on top
+                        canvas.node().appendChild(this);
+                    })
+                    .on('drag', function (d) {
+                        // updates the location of the connection img
+                        d3.select(this).attr('transform', function () {
+                            return 'translate(' + d3.event.x + ', ' + (d3.event.y + 20) + ')';
+                        });
+
+                        // mark node's connectable if supported
+                        var destination = d3.select('g.hover').classed('connectable-destination', function () {
+                            // ensure the mouse has moved at least 10px in any direction, it seems that 
+                            // when the drag event is trigger is not consistent between browsers. as a result
+                            // some browser would trigger when the mouse hadn't moved yet which caused
+                            // click and contextmenu events to appear like an attempt to connection the
+                            // component to itself. requiring the mouse to have actually moved before 
+                            // checking the eligiblity of the destination addresses the issue
+                            return (Math.abs(origin[0] - d3.event.x) > 10 || Math.abs(origin[1] - d3.event.y) > 10) &&
+                                    nf.CanvasUtils.isValidConnectionDestination(d3.select(this));
+                        });
+
+                        // update the drag line
+                        d3.select('path.connector').classed('connectable', function () {
+                            if (destination.empty()) {
+                                return false;
+                            }
+
+                            // if there is a potential destination, see if its connectable
+                            return destination.classed('connectable-destination');
+                        }).attr('d', function (pathDatum) {
+                            if (!destination.empty() && destination.classed('connectable-destination')) {
+                                var destinationData = destination.datum();
+
+                                // get the position on the destination perimeter
+                                var end = nf.CanvasUtils.getPerimeterPoint(pathDatum, {
+                                    'x': destinationData.component.position.x,
+                                    'y': destinationData.component.position.y,
+                                    'width': destinationData.dimensions.width,
+                                    'height': destinationData.dimensions.height
+                                });
+
+                                // direct line between components to provide a 'snap feel'
+                                return 'M' + pathDatum.x + ' ' + pathDatum.y + 'L' + end.x + ' ' + end.y;
+                            } else {
+                                return 'M' + pathDatum.x + ' ' + pathDatum.y + 'L' + d3.event.x + ' ' + d3.event.y;
+                            }
+                        });
+                    })
+                    .on('dragend', function (d) {
+                        // stop further propagation
+                        d3.event.sourceEvent.stopPropagation();
+
+                        // get the connector, if it the current point is not over a new destination
+                        // the connector will be removed. otherwise it will be removed after the
+                        // connection has been configured/cancelled
+                        var connector = d3.select('path.connector');
+
+                        // get the destination
+                        var destination = d3.select('g.connectable-destination');
+
+                        // we are not over a new destination
+                        if (destination.empty()) {
+                            connector.remove();
+                        } else {
+                            var connectorData = connector.datum();
+                            var destinationData = destination.datum();
+
+                            // if this is a self loop we need to insert some bend points
+                            if (connectorData.sourceId === destinationData.component.id) {
+                                connector.attr('d', function (pathDatum) {
+                                    var x = pathDatum.x;
+                                    var y = pathDatum.y;
+                                    var componentOffset = pathDatum.sourceWidth / 2;
+                                    var xOffset = nf.Connection.config.selfLoopXOffset;
+                                    var yOffset = nf.Connection.config.selfLoopYOffset;
+                                    return 'M' + x + ' ' + y + 'L' + (x + componentOffset + xOffset) + ' ' + (y - yOffset) + 'L' + (x + componentOffset + xOffset) + ' ' + (y + yOffset) + 'Z';
+                                });
+                            }
+
+                            // create the connection
+                            nf.ConnectionConfiguration.createConnection(connectorData.sourceId, destinationData.component.id);
+                        }
+
+                        // remove this component
+                        d3.select(this).remove();
+                    });
+        },
+        activate: function (components) {
+            components
+                    .on('mouseenter.connectable', function (d) {
+                        if (!d3.event.ctrlKey && d3.select('rect.drag-selection').empty()) {
+                            var selection = d3.select(this);
+
+                            // ensure the current component supports connection source
+                            if (nf.CanvasUtils.isValidConnectionSource(selection)) {
+                                // see if theres already a connector rendered
+                                var anyConnector = d3.select('image.add-connect');
+                                if (anyConnector.empty()) {
+                                    var x = (d.dimensions.width / 2) - 14;
+                                    var y = (d.dimensions.height / 2) - 14;
+
+                                    selection.append('image')
+                                            .call(connect)
+                                            .call(nf.CanvasUtils.disableImageHref)
+                                            .attr({
+                                                'class': 'add-connect',
+                                                'xlink:href': 'images/addConnect.png',
+                                                'width': 28,
+                                                'height': 28,
+                                                'transform': 'translate(' + x + ', ' + y + ')'
+                                            });
+                                }
+                            }
+                        }
+                    })
+                    .on('mouseleave.connectable', function () {
+                        // conditionally remove the connector
+                        var connector = d3.select(this).select('image.add-connect');
+                        if (!connector.empty() && !connector.classed('dragging')) {
+                            connector.remove();
+                        }
+                    })
+                    //Using mouseover/out to workaround chrom issue #122746
+                    .on('mouseover.connectable', function () {
+                        //mark that we are hovering when appropriate
+                        var selection = d3.select(this);
+                        selection.classed('hover', function () {
+                            return !d3.event.ctrlKey && !selection.classed('hover') && d3.select('rect.drag-selection').empty();
+                        });
+                    })
+                    .on('mouseout.connection', function () {
+                        // remove all hover related classes
+                        d3.select(this).classed('hover connectable-destination', false);
+                    });
+        }
+    };
+}());

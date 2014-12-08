@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<web-app version="3.0" xmlns="http://java.sun.com/xml/ns/javaee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd">
+    <display-name>nifi</display-name>
+    <!-- servlet to map to canvas page -->
+    <servlet>
+        <servlet-name>NiFiCanvas</servlet-name>
+        <jsp-file>/WEB-INF/pages/canvas.jsp</jsp-file>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>NiFiCanvas</servlet-name>
+        <url-pattern>/canvas</url-pattern>
+    </servlet-mapping>
+    <!-- servlet to map to summary page -->
+    <servlet>
+        <servlet-name>NiFiSummary</servlet-name>
+        <jsp-file>/WEB-INF/pages/summary.jsp</jsp-file>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>NiFiSummary</servlet-name>
+        <url-pattern>/summary</url-pattern>
+    </servlet-mapping>
+    <!-- servlet to map to history page -->
+    <servlet>
+        <servlet-name>NiFiHistory</servlet-name>
+        <jsp-file>/WEB-INF/pages/history.jsp</jsp-file>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>NiFiHistory</servlet-name>
+        <url-pattern>/history</url-pattern>
+    </servlet-mapping>
+    <!-- servlet to map to provenance page -->
+    <servlet>
+        <servlet-name>NiFiProvenance</servlet-name>
+        <jsp-file>/WEB-INF/pages/provenance.jsp</jsp-file>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>NiFiProvenance</servlet-name>
+        <url-pattern>/provenance</url-pattern>
+    </servlet-mapping>
+    <!-- servlet to map to counters page -->
+    <servlet>
+        <servlet-name>NiFiCounters</servlet-name>
+        <jsp-file>/WEB-INF/pages/counters.jsp</jsp-file>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>NiFiCounters</servlet-name>
+        <url-pattern>/counters</url-pattern>
+    </servlet-mapping>
+    <!-- servlet to map to templates page -->
+    <servlet>
+        <servlet-name>NiFiTemplates</servlet-name>
+        <jsp-file>/WEB-INF/pages/templates.jsp</jsp-file>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>NiFiTemplates</servlet-name>
+        <url-pattern>/templates</url-pattern>
+    </servlet-mapping>
+    <!-- servlet to map to users page -->
+    <servlet>
+        <servlet-name>NiFiUsers</servlet-name>
+        <jsp-file>/WEB-INF/pages/users.jsp</jsp-file>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>NiFiUsers</servlet-name>
+        <url-pattern>/users</url-pattern>
+    </servlet-mapping>
+    <!-- servlet to map to cluster page -->
+    <servlet>
+        <servlet-name>NiFiCluster</servlet-name>
+        <jsp-file>/WEB-INF/pages/cluster.jsp</jsp-file>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>NiFiCluster</servlet-name>
+        <url-pattern>/cluster</url-pattern>
+    </servlet-mapping>
+    <!-- servlet to map to bulletin board page -->
+    <servlet>
+        <servlet-name>BulletinBoard</servlet-name>
+        <jsp-file>/WEB-INF/pages/bulletin-board.jsp</jsp-file>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>BulletinBoard</servlet-name>
+        <url-pattern>/bulletin-board</url-pattern>
+    </servlet-mapping>
+    <!-- servlet to support image downloading -->
+    <servlet>
+        <servlet-name>ConvertSvg</servlet-name>
+        <servlet-class>org.apache.nifi.web.servlet.ConvertSvg</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>ConvertSvg</servlet-name>
+        <url-pattern>/convert-svg</url-pattern>
+    </servlet-mapping>
+    <filter>
+        <filter-name>IeEdgeHeader</filter-name>
+        <filter-class>org.apache.nifi.web.filter.IeEdgeHeader</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>IeEdgeHeader</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+    <welcome-file-list>
+        <welcome-file>canvas.jsp</welcome-file>
+        <welcome-file>/WEB-INF/pages/canvas.jsp</welcome-file>
+    </welcome-file-list>
+</web-app>

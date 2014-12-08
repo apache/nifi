@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<beans default-lazy-init="true"
+       xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+    http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.1.xsd
+    http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd
+    http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.1.xsd">
+
+    <!-- nifi properties created via getInstance using a file path specified as a system property -->
+    <bean id="nifiProperties" class="org.apache.nifi.util.NiFiProperties" factory-method="getInstance"/>
+
+    <!-- flow file event repository -->
+    <bean id="flowFileEventRepository" class="org.apache.nifi.spring.RingBufferEventRepositoryBean">
+    </bean>
+    
+    <bean id="stringEncryptor" class="org.apache.nifi.encrypt.StringEncryptor" factory-method="createEncryptor"/>
+
+    <!-- flow controller -->
+    <bean id="flowController" class="org.apache.nifi.spring.FlowControllerFactoryBean">
+        <property name="properties" ref="nifiProperties"/>
+        <property name="userService" ref="userService" />
+        <property name="encryptor" ref="stringEncryptor" />
+    </bean>
+
+    <!-- flow service -->
+    <bean id="flowService" class="org.apache.nifi.spring.StandardFlowServiceFactoryBean">
+        <property name="properties" ref="nifiProperties"/>
+        <property name="encryptor" ref="stringEncryptor" />
+    </bean>
+
+</beans>

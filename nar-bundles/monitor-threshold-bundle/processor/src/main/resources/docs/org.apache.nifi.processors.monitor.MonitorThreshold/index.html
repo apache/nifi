@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8" />
+        <title>MonitorThreshold</title>
+        <link rel="stylesheet" href="../css/component-usage.css" type="text/css" />
+    </head>
+    <body>
+        <h2>Description:</h2>
+        <p>This processor examines values found in selected FlowFile attributes and
+            maintains counts of the number of times the values have been encountered.  
+            The counts are then used to check against user defined thresholds.
+            Both the counts and the thresholds can be exposed as FlowFile attributes, for 
+            later examination and use by downstream processors.   
+        </p>
+        <strong>Thresholds for Each Identified Attribute Value</strong>
+        <p>One or more FlowFile attributes can be identified for monitoring purposes, using 
+            this processorâ€™s advanced user interface (use the Advanced button when configuring the processor).
+        </p>  
+        <p>In the following example, two FlowFile attributes have been identified: category and priority.  
+            In other words, for each FlowFile that is presented to this processor both the category and priority 
+            attributes (if they exist) will be examined to see if thresholds have been exceeded.  For each attribute 
+            that is identified, different thresholds (and counts) are used for every unique attribute value.  
+            Finally, for each attribute value, two types of thresholds are supported; size (bytes) and number of files.
+        </p>
+        <p><strong>Example Thresholds:</strong></p>
+        <table border="1">
+            <tr><th>Attribute Names</th><th>Attribute Values</th><th>Size Threshold (bytes)</th><th>File Threshold<th></tr>
+            <tr><td>category</td><td>Default</td><td>10000</td><td>100</td></tr>
+            <tr><td></td><td>red</td><td>1000</td><td>10</td></tr>
+            <tr><td></td><td>green</td><td>1000</td><td>5</td></tr>
+            <tr><th></th><th>Attribute Values</th><th>Size Threshold (bytes)</th><th>File Threshold<th></tr>
+            <tr><td>priority</td><td>Default</td><td>100000</td><td>200</td></tr>
+            <tr><td></td><td>blue</td><td>1000</td><td>50</td></tr>
+            <tr><td></td><td>yellow</td><td>1000</td><td>100</td></tr>
+        </table>
+        <br><strong>When Thresholds are Exceeded</strong>
+        <p>
+            To allow downstream flows (processors) to react, this processor adds two new attributes 
+            (<strong>numApplicableThresholds</strong> and <strong>numThresholdsExceeded</strong>) to 
+            every FlowFile that passes through the processor, no matter whether a threshold is exceeded.
+        </p>
+        <p>
+            In addition, if a monitored attribute value is present on a FlowFile, and 
+            <strong>'Add Attributes'</strong> is set to 'Only When Threshold Exceeded', 
+            this processor will add an additional pair of attributes to each FlowFile that exceeds 
+            the threshold; one attribute will contain the threshold and the other attribute will contain the count
+            (that exceeded the threshold), e.g., 
+        <ul>
+            <li>If a byte count threshold is exceeded, both
+                <ul>
+                    <li><strong>byteCount<i>.attributeName.value</i></strong> and </li> 
+                    <li><strong>byteThreshold<i>.attributeName.value</i></strong> </li>
+                </ul> 
+                attributes will be added to the FlowFile 
+            </li>
+            <li>If a file count threshold is exceeded, both
+                <ul>
+                    <li><strong>fileCount<i>.attributeName.value</i></strong> and </li> 
+                    <li><strong>fileThreshold<i>.attributeName.value</i></strong> </li>
+                </ul> 
+                attributes will be added to the FlowFile,
+                where <strong><i>attributeName</i></strong> is replaced with the 
+                actual attribute name and <strong><i>value</i></strong> is replaced with the actual attribute value. 
+            </li>
+        </ul>
+    </p>
+    <p>For example, assuming the aforementioned thresholds (from the preceding table) are in effect, if
+    <ul>
+        <li>a FlowFile is encountered with a category value of red,</li> 
+        <li>and it is the 11th such file encountered,</li> 
+    </ul>
+    then the file count threshold (=10) would be exceeded.  
+    This would cause the following new attributes to be added to the FlowFile:
+    <p>
+    <table border="1">
+        <tr><th>Attribute Name</th><th>Value</th></tr>
+        <tr><td><strong>fileCount.category.red</strong></td><td>11</td></tr>
+        <tr><td><strong>fileThreshold.category.red</strong></td><td>10</td></tr>
+    </table>
+</p>
+</p>
+<p>
+    Note that when a threshold is exceeded, it is always noted in the 
+    log, no matter the value of <strong>'Add Attributes'</strong>.
+</p>
+<p>
+    Finally, if a monitored attribute value is present on the FlowFile, and
+    <strong>'Add Attributes'</strong> is set to 'Always', <strong>four</strong> additional 
+    attributes will be added to FlowFiles, <i>no matter whether a threshold has been exceeded</i>.
+    (This can be a convenient mechanism for counting values found in FlowFile attributes.)  
+    <br>The four additional attributes are: <strong>fileCount<i>.attributeName.value</i></strong>, 
+    a <strong>fileThreshold<i>.attributeName.value</i></strong>, a <strong>byteCount<i>.attributeName.value</i></strong>, 
+    and a <strong>byteThreshold<i>.attributeName.value</i></strong> where <strong><i>attributeName</i></strong> is replaced with the 
+    actual attribute name and <strong><i>value</i></strong> is replaced with the actual attribute value. 
+
+</p>
+<p>
+    Note that a FlowFile must have a monitored attribute before corresponding count/threshold attributes will be added.   
+    In other words, if a particular FlowFile does not have a monitored attribute, the associated 
+    count/threshold attributes will not be added under any circumstances (no matter the value of 'Add Attributes').
+</p>
+
+<br><strong>When Multiple Thresholds are Exceeded</strong>
+<p>  
+    If more than one threshold is exceeded, a pair of attributes are added <i>for each</i> threshold 
+    that is exceeded (subject to the values of the 
+    <strong>'Add Attributes'</strong> and 
+    <strong>'Maximum Attribute Pairs to Add When Multiple Thresholds Exceeded' </strong>properties). 
+</p>
+
+<br><strong>Default Thresholds Required</strong>
+<p>
+    Since the range of possible values (for a particular FlowFile attribute) can be large/unknown
+    in advance, it is conceivable that thresholds may not be supplied for all possible values.  
+    To account for this possibility, a <strong><i>default threshold must be specified for every attribute that is 
+            monitored</i></strong>. Default thresholds are used when a "monitored" attribute has a value for 
+    which no thresholds were supplied.
+</p>
+<p> 
+    For example, in the following table, assume that thresholds have been specified for FlowFiles 
+    with a category value of red or green, but no thresholds were specified for category values of cyan or magenta.  
+    FlowFiles that are encountered with a category value of cyan or magenta will be checked using the default 
+    thresholds.
+</p>
+<table border="1">
+    <tr><th>Attribute Names</th><th>Attribute Values</th><th>Size Threshold (bytes)</th><th>File Threshold<th></tr>
+    <tr><td>category</td><td>Default</td><td>10000</td><td>100</td></tr>
+    <tr><td></td><td>red</td><td>1000</td><td>10</td></tr>
+    <tr><td></td><td>green</td><td>1000</td><td>5</td></tr>
+
+    <tr><td></td><td><strike>cyan value not supplied</strike></td><td>(use Default)</td><td>(use Default)</td></tr>
+<tr><td></td><td><strike>magenta value not supplied</strike></td><td>(use Default)</td><td>(use Default)</td></tr>
+
+<tr><th></th><th>Attribute Values</th><th>Size Threshold (bytes)</th><th>File Threshold<th></tr>
+<tr><td>priority</td><td>Default</td><td>100000</td><td>200</td></tr>
+<tr><td></td><td>blue</td><td>1000</td><td>50</td></tr>
+<tr><td></td><td>yellow</td><td>1000</td><td>100</td></tr>
+</table>
+<br><strong>Counting Without Thresholds</strong>
+<p>
+    When a value (in a monitored attribute) is encountered, but no thresholds have been specified
+    for that value, the <strong>'Aggregate Counts When No Threshold Provided'</strong>  determines how counts are maintained.
+<ul>
+    <li>If false, then :
+        <ul>  
+            <li>Separate, individual counts are maintained for each non-threshold, value that is encountered.
+                As shown in the following table, if a FlowFile has a category value of cyan, its counts would be added to the cyan counts. 
+                If a FlowFile has a category value of magenta, its counts would be added to the magenta counts  
+                - even though no thresholds were provided for category values cyan or magenta. 
+                <table border="1">
+                    <tr><th>Attribute Names</th><th>Attribute Values</th><th>Size Threshold (bytes)</th><th><i>byte count</i></th><th>File Threshold</th><th><i>file count</i></th></tr>
+                    <tr><td>category</td><td>Default</td><td>10000</td><td><strike>n/a</strike></td><td>100</td><td><strike>n/a</strike></td></tr>
+                    <tr><td></td><td>red</td><td>1000</td><td></td><td>10</td><td></td></tr>
+                    <tr><td></td><td>green</td><td>1000</td><td></td><td>5</td><td></td></tr>
+
+                    <tr><td></td><td><strike>cyan value not supplied</strike></td><td>(use Default threshold)</td><td></td><td>(use Default threshold)</td><td></td></tr>
+                    <tr><td></td><td><strike>magenta value not supplied</strike></td><td>(use Default threshold)</td><td></td><td>(use Default threshold)</td><td></td></tr>
+
+                    <tr><th></th><th>Attribute Values</th><th>Size Threshold (bytes)</th><th><i>byte count</i></th><th>File Threshold</th><th><i>file count</i></th></tr>
+                    <tr><td>priority</td><td>Default</td><td>100000</td><td><strike>n/a</strike></td><td>200</td><td><strike>n/a</strike></td></tr>
+                    <tr><td></td><td>blue</td><td>1000</td><td></td><td>50</td><td></td></tr>
+                    <tr><td></td><td>yellow</td><td>1000</td><td></td><td>100</td><td></td></tr>
+                </table>
+                NOTE: Counts (shown in the above table) can <strong>not</strong> be viewed in the Advanced user interface. Only thresholds can be viewed in the Advanced user interface.  
+            </li> 
+            <li>When a non-threshold value is encountered, it's unique count will be compared with the default threshold.
+                So, if a FlowFile has a category value of cyan, the cyan count will be checked against the default thresholds (since no 
+                thresholds were provided for a cyan category value).  If a FlowFile has a category value of magenta, magenta  
+                counts will be checked against the (same) default thresholds (since no thresholds were provided for a magenta category).
+            </li>
+        </ul>
+    </li>
+    <li>If true (default), then:
+        <ul>
+            <li>Counts for ALL non-threshold values are aggregated into a single default count.  As shown in the following table, 
+                all FlowFiles with a category value of cyan or magenta will have their counts added to a single, default count.</li>
+            <table border="1">
+                <tr><th>Attribute Names</th><th>Attribute Values</th><th>Size Threshold (bytes)</th><th><i>byte count</i></th><th>File Threshold</th><th><i>file count</i></th></tr>
+                <tr><td>category</td><td>Default</td><td>10000</td><td></td><td>100</td><td></td></tr>
+                <tr><td></td><td>red</td><td>1000</td><td></td><td>10</td><td></td></tr>
+                <tr><td></td><td>green</td><td>1000</td><td></td><td>5</td><td></td></tr>
+
+                <tr><td></td><td><strike>cyan value not supplied</strike></td><td>(use Default threshold)</td><td>(use Default count)</td><td>(use Default threshold)</td><td>(use Default count)</td></tr>
+                <tr><td></td><td><strike>magenta value not supplied</strike></td><td>(use Default threshold)</td><td>(use Default count)</td><td>(use Default threshold)</td><td>(use Default count)</td></tr>
+
+                <tr><th></th><th>Attribute Values</th><th>Size Threshold (bytes)</th><th><i>byte count</i></th><th>File Threshold</th><th><i>file count</i></th></tr>
+                <tr><td>priority</td><td>Default</td><td>100000</td><td></td><td>200</td><td></td></tr>
+                <tr><td></td><td>blue</td><td>1000</td><td></td><td>50</td><td></td></tr>
+                <tr><td></td><td>yellow</td><td>1000</td><td></td><td>100</td><td></td></tr>
+            </table>
+            NOTE: Counts (shown in the above table) can <strong>not</strong> be viewed in the Advanced user interface. Only thresholds can be viewed in the Advanced user interface.  
+            <li>When a non-threshold value is encountered, the default count (containing counts for both cyan and magenta 
+                category values) will be compared to the default threshold.</li>
+        </ul>
+    </li> 
+</ul> 
+</p>
+
+<p>NOTE 1: Counts are never maintained for attributes that have not been 
+    identified for monitoring, i.e., do not have a default threshold. Once an attribute has
+    been identified for monitoring (has a default threshold), counts are always maintained 
+    for thresholds that have been specified.  The <strong>'Aggregate Counts When No Threshold Provided'</strong> 
+    property only applies in situations where an attribute has been identified for monitoring, and a value is 
+    encountered with no threshold.
+</p>
+
+<p>
+    NOTE 2: If separate counts are maintained for each unique value for each attribute with thresholds
+    (<strong>'Aggregate Counts When No Threshold Provided'</strong> is set to <strong>true</strong>), 
+    consideration should be given to the choice of attributes to be monitored.  An attribute that is 
+    known to have a range of 1 million values, could (ultimately) result in this processor maintaining 
+    2 million counts in memory.  
+    If the range of values for an attribute are expected to be larger than available memory resources 
+    (for maintaining counts), set the <strong>'Aggregate Counts When No Threshold Provided'</strong> property 
+    to <strong>false</strong>.  Adopting this approach will require that specific thresholds be provided for any
+    attribute values that should be "counted" separately.   
+</p>
+<p><strong>Separate Instance Equals Separate Counts</strong></p>
+<p>
+    Each MonitorThreshold instance maintains its own, separate counts.  This is likely the expected 
+    behavior when there are multiple MonitorThreshold instances on a flow.  However, this has significant 
+    implications when only a single MonitorThreshold instance appears on a flow, but the flow is running 
+    on a NiFi <strong><i>cluster</i></strong>.  In this case, each node (in the cluster) will have its 
+    own instance of MonitorThreshold, each with its own,independent set of counts (unless MonitorThreshold is running isolated).  
+    Assuming an even distribution of FlowFiles across all of the nodes in the
+    cluster will result in counts that increase slower, and therefore exceed 
+    thresholds later, than might otherwise be expected.  Consequently, thresholds may need to be set lower 
+    in clustered environments, in order to achieve desired results.
+</p>
+<p><strong>Resetting Counts</strong></p>
+<p>
+    To avoid counts that increase forever (that might eventually force all thresholds to be exceeded), 
+    counts are reset on a periodic basis.  Resets can be scheduled for a particular <strong>'Count Reset Time'</strong> 
+    every day, or after a specific number of <strong>'Minutes to Wait Before Resetting Counts'</strong> have elapsed. At 
+    least one value must be provided.  If <strong>â€œCount Reset Timeâ€�</strong> is not provided, then the minutes to delay 
+    are counted from the last reset.  
+</p>
+<p>
+    When counts are reset, the current thresholds, total number of bytes and the number of files seen 
+    for each Attribute and Value pair is printed in the logs, and the counts are then reset to zero.
+</p>
+<p><strong>Changing Thresholds</strong></p>
+<p>
+    If changes are made to other parameters, such as the size or file thresholds, 
+    after the processor has already been running, then the changes will not go into effect until the 
+    Minutes to Waitâ€¦ point has been reached. To circumvent this problem, consider temporarily changing the 
+    <strong>'Count Reset Time'</strong> (and stop/restart the processor) to force the changes to be implemented sooner; then 
+    revert back to the desired <strong>'Count Reset Time'</strong>.
+</p>
+
+<p> 
+<p><strong>Persisting Counts</strong></p>
+<p> 
+    To avoid unplanned count resets (due to system restarts, etcâ€¦), counts are persisted to disk on
+    a user defined periodic basis according to the <strong>'Frequency to Persist Counts (seconds)'</strong> property.
+</p>
+
+<p><strong>Modifies Attributes:</strong>
+<table border="1">
+    <tr><th>Attribute Name</th><th>Description</th></tr>
+    <tr><td>numApplicableThresholds</td><td>The number of thresholds that were applicable for the FlowFile.  Added to every FlowFile.</td></tr>
+    <tr><td>numThresholdsExceeded</td><td>The number of thresholds that the FlowFile exceeded.  Added to every FlowFile.</td></tr>
+    <tr><td>fileThreshold<i>.attributeName.value</i></td><td>Contains the file threshold for an attribute name and value.
+            <br>A separate fileThreshold.attributeName.value attribute is added for each file threshold that is exceeded.
+            <br><i>attributeName</i> will be the name of the attribute who's file threshold was exceeded.  
+            <br><i>value</i> will be the value of the attribute encountered on the FlowFile.
+    <br><br>Added <u>only</u> if <i>attributeName</i> is a monitored attribute <u>and</u> <i>attributeName</i> 
+    is present on the FlowFile <u>and</u> one of the following is true:
+    <ul><li><strong>'Add Attributes'</strong> is set to 'Always' <u>or</u></li> 
+        <li><strong>'Add Attributes'</strong> is set to 'Only When Threshold Exceeded' <u>and</u> a file threshold is exceeded.</li></ul>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(See also: <strong>'Maximum Attribute Pairs to Add When Multiple Thresholds Exceeded'</strong>).
+    <br><br>Not added when <strong>'Add Attributes'</strong> is set to 'Never' 
+</td></tr>  
+<tr><td>fileCount<i>.attributeName.value</i></td><td>Contains the file count for an attribute name and value who's threshold was exceeded.
+        <br>A separate fileCount.attributeName.value attribute is added for each file threshold that is exceeded.
+        <br><i>attributeName</i> will be the name of the attribute who's file threshold was exceeded.  
+        <br><i>value</i> will be the value of the attribute encountered on the FlowFile.  
+<br><br>Added <u>only</u> if <i>attributeName</i> is a monitored attribute <u>and</u> <i>attributeName</i> 
+is present on the FlowFile <u>and</u> one of the following is true:
+<ul><li><strong>'Add Attributes'</strong> is set to 'Always' <u>or</u></li> 
+    <li><strong>'Add Attributes'</strong> is set to 'Only When Threshold Exceeded' <u>and</u> a file threshold is exceeded.</li></ul>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(See also: <strong>'Maximum Attribute Pairs to Add When Multiple Thresholds Exceeded'</strong>).
+<br><br>Not added when <strong>'Add Attributes'</strong> is set to 'Never'
+</td></tr>
+<tr><td>byteThreshold<i>.attributeName.value</i></td><td>Contains the byte threshold for an attribute name and value.
+        <br>A separate byteThreshold.attributeName.value attribute is added for each byte threshold that is exceeded.
+        <br><i>attributeName</i> will be the name of the attribute who's byte threshold was exceeded.  
+        <br><i>value</i> will be the value of the attribute encountered on the FlowFile.  
+<br><br>Added <u>only</u> if <i>attributeName</i> is a monitored attribute <u>and</u> <i>attributeName</i> 
+is present on the FlowFile <u>and</u> one of the following is true:
+<ul><li><strong>'Add Attributes'</strong> is set to 'Always' <u>or</u></li> 
+    <li><strong>'Add Attributes'</strong> is set to 'Only When Threshold Exceeded' <u>and</u> a file threshold is exceeded.</li></ul>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(See also: <strong>'Maximum Attribute Pairs to Add When Multiple Thresholds Exceeded'</strong>).
+<br><br>Not added when <strong>'Add Attributes'</strong> is set to 'Never'    
+</td></tr>  
+<tr><td>byteCount<i>.attributeName.value</i></td><td>Contains the byte count for an attribute name and value who's threshold was exceeded.
+        <br>A separate byteCount.attributeName.value attribute is added for each byte threshold is exceeded.
+        <br><i>attributeName</i> will be the name of the attribute who's byte threshold that was exceeded.  
+        <br><i>value</i> will be the value of the attribute encountered on the FlowFile.  
+<br><br>Added <u>only</u> if <i>attributeName</i> is a monitored attribute <u>and</u> <i>attributeName</i> 
+is present on the FlowFile <u>and</u> one of the following is true:
+<ul><li><strong>'Add Attributes'</strong> is set to 'Always' <u>or</u></li> 
+    <li><strong>'Add Attributes'</strong> is set to 'Only When Threshold Exceeded' <u>and</u> a file threshold is exceeded.</li></ul>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(See also: <strong>'Maximum Attribute Pairs to Add When Multiple Thresholds Exceeded'</strong>).
+<br><br>Not added when <strong>'Add Attributes'</strong> is set to 'Never'    
+</td></tr>
+</table>
+
+
+
+
+
+
+<p><strong>Properties:</strong>
+    <br>Required properties appear in bold. Non-bold properties are optional.  
+    If a property has a default, it is indicated.
+    If a property supports the NiFi Expression Language, it is indicated.
+</p>
+<p><ul>
+    <li>Aggregate Counts When No Threshold Provided</li>
+    <ul>
+        <li>When a value (in a monitored attribute) is encountered, but no thresholds have been specified
+            for that value, this property determines how counts are maintained.
+            <ul>
+                <li>If true (default):
+                    <ul>
+                        <li>Counts for ALL non-threshold values are aggregated into a single count.</li>
+                        <li>When a non-threshold value is encountered, the aggregate count will be compared to the default threshold.</li>
+                    </ul>
+                </li> 
+                <li>If false:
+                    <ul>  
+                        <li>Separate, individual counts are maintained for each non-threshold, value that is encountered.</li> 
+                        <li>When a non-threshold value is encountered, it's unique count will be compared with the default threshold.</li>
+                    </ul>
+                </li>
+            </ul> 
+            </p>
+
+            <p>NOTE 1: Counts are never maintained for attributes that have not been 
+                identified for monitoring, i.e., do not have a default threshold. Once an attribute has
+                been identified for monitoring (has a default threshold), counts are always maintained 
+                for thresholds that have been specified.  This property only applies in situations 
+                where an attribute has been identified for monitoring, and a value is encountered for which there is no user supplied threshold.
+            </p>
+
+            <p>NOTE 2: Changing this property from false to true will not remove unique, "non-threshold" counts 
+                that are being maintained.  It will simply suspend accumulating unique, "non-threshold" counts
+                and begin accumulating an aggregate/"default" count for all "non-threshold" values.
+                Setting the property back to false, will resume accumulating unique, "non-threshold" counts.
+                Since repeatedly changing this property, may give the mistaken appearance that counts are not 
+                accurately maintained, it is advised that this property be set to one value and left unchanged
+                during a counting "period".  See <strong>Count Reset Time</strong> and 
+                <strong>Minutes to Wait Before Resetting Counts </strong> for information on starting a new counting period.
+            </p>
+        </li>
+        <li>Default: true</li>
+        <li>Supports expression language: false.</li>
+    </ul>
+
+    <li>Count Reset Time</li>
+    <ul>
+        <li>The time (24-hour clock, hh:mm:ss format, GMT Timezone) when the byte and file counts 
+            will be reset to zero.  All of hours, minutes, and seconds are required, i.e., hh:mm is insufficient.</li>
+        <li>Default: none â€“ either <strong>Count Reset Time</strong> or <strong>Minutes to Wait Before Resetting Counts </strong>must be provided.</li>
+        <li>Supports expression language: false.</li>
+    </ul>
+
+    <li>Minutes to Wait Before Resetting Counts</li>
+    <ul>
+        <li>Minutes to delay count reset, beginning at Count Reset Time, if provided. If Count 
+            Reset Time is not provided, then the minutes to delay are counted from the last reset.  
+            (Last reset is initially set to the time when the processor is created (added to a flow).)
+            <br> NOTE: If changes are made to other 
+            parameters, such as the size or file thresholds after the processor has already been running, 
+            then the changes will not go into effect until this Minutes to Waitâ€¦ point has been reached. 
+            To circumvent this problem, consider temporarily changing the Count Reset Time (and 
+            stop/restart the processor) to force the changes to be implemented sooner; then revert back 
+            to the desired settings.
+        </li>   
+        <li>Default: none â€“ either <strong>Count Reset Time</strong> or <strong>Minutes to Wait 
+                Before Resetting Counts </strong>must be provided.</li>
+        <li>Supports expression language: false.</li>
+    </ul>
+
+    <li>Add Attributes</li>
+    <ul>
+        <li>Setting this property to 'Only When Threshold Exceeded' (the default) will cause <strong>two</strong> additional attributes to be added to 
+            FlowFiles for every threshold that is exceeded, <i>but only when the threshold is exceeded</i>.  
+            <br>For example, if a file count threshold 
+            is exceeded, a <strong>fileCount.attributeName.value</strong> and a <strong>fileThreshold.attributeName.value</strong> 
+            will be added to the FlowFile.
+        <li>Setting this property to 'Always' will cause <strong>four</strong> additional attributes to be added to 
+            FlowFiles <i>no matter whether the threshold has been exceeded</i>. 
+            <br>The four additional attributes include a <strong>fileCount.attributeName.value</strong>, 
+            a <strong>fileThreshold.attributeName.value</strong>, a <strong>byteCount.attributeName.value</strong>, 
+            and a <strong>byteThreshold.attributeName.value</strong>.
+        <li>Setting this property to 'Never' means do not add additional attributes to FlowFiles.
+        <li>Note 1: Attributes are only added if a monitored attribute is present on the FlowFile, no matter 
+            the value of this property.
+        <li>Note 2: This processor makes a log entry for every threshold 
+            that is exceeded, no matter the value of this property.</li>
+        <li>Defaults to: 'Only When Threshold Exceeded'.</li>
+        <li>Supports expression language: false.</li>
+    </ul>
+
+    <li>Maximum Attribute Pairs to Add When Multiple Thresholds Exceeded</li>
+    <ul>
+        <li>Controls/limits the number of FlowFile attributes that are added when 
+            multiple thresholds are exceeded.  
+            <br>Recall that when a threshold is exceeded,  
+            a pair of two attributes are added to the FlowFile, one is the current count and  
+            the other is the threshold.  If 100 thresholds are exceeded, then 200 
+            attributes will be added to the FlowFile.  Setting this property to zero means add 
+            all count/threshold pairs that were exceeded.  Any setting greater than zero indicates  
+            how many count/threshold pairs to add when multiple thresholds are exceeded.  
+            Only non-negative settings are supported.  The default is 0.  
+            <br>NOTE: This property is in effect only when <strong>'Add Attributes'</strong> is 'Only When Threshold Exceeded'. 
+            In other words, setting <strong>'Add Attributes'</strong> to 'Always'  or 'Never'
+            causes this property to be ignored.
+        </li>
+        <li>Defaults to: 0</li>
+        <li>Supports expression language: false.</li>
+    </ul>
+
+    <li>Delimiter to Use for Counts Attributes</li>
+    <ul>
+    </li><li>The delimiter to use when naming counts that are published as FlowFile 
+    attributes, e.g., fileCount.attributeName.value.  
+</li><li>Defaults to: â€œ.â€�
+</li><li>Supports expression language: false.
+</ul>
+
+<li>Attribute to use for Counting Bytes</li>
+<ul>
+    <li>Setting this property allows a FlowFile attribute to be used for counting bytes, 
+        in place of the actual fileSize.  Note that the attribute named by this property must 
+        contain only numeric, non-negative integer values for each FlowFile. Non-numeric or 
+        negative values that are encountered will be ignored, causing the actual fileSize to 
+        be used instead.</li>
+    <li>Defaults to: fileSize.</li>
+    <li>Supports expression language: false.</li>
+</ul>
+
+<li>Frequency to Save Counts (seconds)</li>
+<ul>
+    <li>How often all of the counts should be written to disk.</li>
+    <li>Defaults to: 30 seconds.</li>
+    <li>Supports expression language: false.</li>
+</ul>
+
+<li>Prefix for Counts Persistence File </li>
+<ul>
+    <li>The prefix for the file that is persisted to maintain counts across NIFI restarts. 
+        The actual name of the state file will be this value plus "-XXXX.state" where XXXX is 
+        the processor ID.</li>
+    <li>Defaults to: conf/MonitorThreshold</li>
+    <li>Supports expression language: false.</li>
+</ul>
+</ul></p>
+<p>
+    <strong>Relationships:</strong>
+</p>
+<ul>
+    <li>success - all FlowFiles follow this relationship, unless there is a problem with the FlowFile.</li>
+    <li>failure - FlowFiles follow this relationship path if there is a problem processing the FlowFile, or if there is a unrecoverable configuration error.</li>
+</ul>
+</p>
+</body>
+</html>

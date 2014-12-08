@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8" />
+        <title>SplitText</title>
+
+        <link rel="stylesheet" href="../../css/component-usage.css" type="text/css" />
+    </head>
+
+    <body>
+        <!-- Processor Documentation ================================================== -->
+        <h2>Description:</h2>
+        <p>
+            This processor splits a text file into multiple smaller text files on line boundaries, each having up to a configured number of lines.
+        </p>
+
+        <p>
+            <strong>Modifies Attributes:</strong>
+        </p>
+        <table border="1">
+            <thead>
+                <tr>
+                    <th>Attribute Name</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>text.line.count</td>
+                    <td>The number of lines of text from the original FlowFile that were copied to this FlowFile.</td>
+                </tr>
+                <tr>
+                    <td>fragment.identifier</td>
+                    <td>All split FlowFiles produced from the same parent FlowFile will have the same randomly generated
+                        UUID added for this attribute.</td>
+                </tr>
+                <tr>
+                    <td>fragment.index</td>
+                    <td>A one-up number that indicates the ordering of the split FlowFiles that were created from a
+                        single parent FlowFile.</td>
+                </tr>
+                <tr>
+                    <td>fragment.count</td>
+                    <td>The number of split FlowFiles generated from the parent FlowFile.</td>
+                </tr>
+                <tr>
+                    <td>segment.original.filename</td>
+                    <td>The filename of the parent FlowFile.
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p>
+            <strong>Properties:</strong>
+        </p>
+        <p>
+            In the list below, the names of required properties appear in bold. Any other properties (not in bold) are considered optional. If a property has a default value, it is indicated. If a property supports the use of the NiFi Expression Language (or simply, "expression language"), that is also indicated.
+        </p>
+        <ul>
+            <li><strong>Line Split Count</strong>
+                <ul>
+                    <li>The number of lines to be included in each split file. The value must be a non-negative integer.</li>
+                    <li>Default value: no default</li>
+                    <li>Supports expression language: false</li>
+                </ul></li>
+            <li><strong>Header Line Count</strong>
+                <ul>
+                    <li>The number of lines that should be considered part of a header on each split file.</li>
+                    <li>Default value: 0</li>
+                    <li>Supports expression language: false</li>
+                </ul></li>
+            <li><strong>Remove Trailing Newlines</strong>
+                <ul>
+                    <li>Whether to remove newlines at the end of each split file. This should be false if you intend to merge the split files later.</li>
+                    <li>Default value: true</li>
+                    <li>Supports expression language: false</li>
+                </ul></li>
+        </ul>
+
+        <p>
+            <strong>Relationships:</strong>
+        </p>
+        <ul>
+            <li>failure
+                <ul>
+                    <li>If FlowFiles cannot be split for some reason, the original file follows this relationship and does not follow the original relationship.</li>
+                </ul></li>	
+            <li>original
+                <ul>
+                    <li>If FlowFiles are successfully split into one or more files, a copy of the original file follows this relationship.</li>
+                </ul></li>	
+            <li>splits
+                <ul>
+                    <li>If FlowFiles are successfully split into one or more files, those split files follow this relationship.</li>
+                </ul></li>	
+        </ul>
+
+        <p>
+            <strong>See Also:</strong>
+        </p>
+        <ul>
+            <li><a href="../org.apache.nifi.processors.standard.MergeContent/index.html">MergeContent</a> - can defragment FlowFiles
+                that have been split if <em>Remove Trailing Newlines</em> is set to false and <em>Header Line Count</em> is set to 0.</li>
+        </ul>
+    </body>
+</html>

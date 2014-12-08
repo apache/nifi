@@ -1,0 +1,77 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/*
+    Connection details styles. Uses many styles from the connection configuration stylesheet.
+*/
+
+#connection-details {
+    z-index: 1301;
+    display: none;
+    width: 700px;
+    height: 400px;
+    border: 1px solid #eee;
+}
+
+div.connection-details-tab-container {
+    margin-top: -10px;
+    padding: 5px 11px;
+}
+
+#connection-details-tabs {
+    background-color: transparent;
+    border-bottom: 3px solid #666666;
+    height: 21px;
+    width: 678px;
+}
+
+#connection-details div.configuration-tab {
+    height: 275px;
+    overflow: auto;
+    padding: 10px;
+    background: #eee url(../images/bgTabContainer.png) repeat-x;
+    display: none;
+}
+
+#connection-details div.settings-left {
+    float: left;
+    width: 280px;
+}
+
+#connection-details div.spacer {
+    float: left;
+    margin-right: 40px;
+}
+
+#connection-details div.settings-right {
+    float: left;
+    width: 330px;
+}
+
+#read-only-relationship-names {
+    border: 0 solid #CCCCCC;
+    height: 145px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 2px 2px 0;
+    width: 274px;
+}
+
+#connection-details div.relationship-name {
+    display: inline-block;
+    line-height: normal;
+    width: 240px;
+}

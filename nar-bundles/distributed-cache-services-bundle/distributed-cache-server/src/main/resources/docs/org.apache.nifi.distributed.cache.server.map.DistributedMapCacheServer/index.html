@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<head>
+<meta charset="utf-8" />
+<title>Distributed Map Cache Client Service</title>
+<link rel="stylesheet" href="../../css/component-usage.css" type="text/css" />
+</head>
+
+<body>
+	<h2>Description:</h2>
+
+	<p>A Controller Service that starts an embedded server and listens for connections from clients. The
+	server provides the ability to query the cache, add data to the cache, and remove data from the cache.</p>
+
+
+
+	<p>
+		<strong>Properties:</strong>
+	</p>
+	<p>In the list below, the names of required properties appear
+		in bold. Any other properties (not in bold) are considered optional.
+		If a property has a default value, it is indicated. If a property
+		supports the use of the NiFi Expression Language (or simply,
+		"expression language"), that is also indicated.</p>
+
+	<ul>
+		<li><strong>Port</strong>
+			<ul>
+				<li>The port to listen on for incoming connections</li>
+				<li>Default value: 4557</li>
+				<li>Supports expression language: false</li>
+			</ul></li>
+		<li>SSL Context Service
+			<ul>
+				<li>If specified, this service will be used to create an SSL Context that will be used to secure communications; if not specified, communications will not be secure</li>
+				<li>Default value: no default</li>
+				<li>Supports expression language: false</li>
+			</ul></li>
+		<li><strong>Maximum Cache Entries</strong>
+			<ul>
+				<li>The maximum number of cache entries that the cache can hold
+				<li>Default value: 10,000</li>
+				<li>Supports expression language: false</li>
+			</ul></li>
+		<li><strong>Eviction Strategy</strong>
+			<ul>
+				<li>Determines which strategy should be used to evict values from the cache to make room for new entries. Valid values: 
+					<code>Least Frequently Used</code>, <code>Least Recently Used</code>, and <code>First In, First Out</code>
+				<li>Default value: Least Frequently Used</li>
+				<li>Supports expression language: false</li>
+			</ul></li>
+		<li>Persistence Directory
+			<ul>
+				<li>If specified, the cache will be persisted in the given directory; if not specified, the cache will be in-memory only</li>
+				<li>Default value: no default (in-memory)</li>
+				<li>Supports expression language: true - JVM and System Properties Only</li>
+			</ul></li>
+	</ul>
+
+
+	<i>See Also:</i>
+	<ul>
+		<li><a href="../org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService/index.html">Distributed Map Cache Client Service</a></li>
+		<li><a href="../org.apache.nifi.ssl.StandardSSLContextService/index.html">Standard SSL Context Service</a></li>
+	</ul>
+
+</body>
+</html>

@@ -1,0 +1,292 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+/* styles for the graph pan/zoom controls */
+
+#pan-and-zoom {
+    position: absolute;
+    top: 94px;
+    width: 59px;
+    height: 153px;
+    padding-right: 4px;
+    padding-bottom: 4px;
+    z-index: 1000;
+    background: transparent url(../images/bgPanZoom.png) no-repeat scroll top left;
+}
+
+table.pan {
+    float: left;
+    clear: left;
+    border-collapse: collapse;
+    padding: 0;
+    margin: 0;
+    margin-left: 6px;
+}
+
+#pan-up-button, #pan-down-button {
+    height: 12px;
+    width: 18px;
+    cursor: pointer;
+    z-index: inherit;
+}
+
+#pan-left-button, #pan-right-button {
+    width: 14px;
+    height: 16px;
+    cursor: pointer;
+    z-index: inherit;
+}
+
+#pan-center {
+    width: 18px;
+    height: 16px;
+    background: transparent url(../images/bgPanCenter.png) no-repeat scroll center center;
+}
+
+#pan-top-right, #pan-top-left, #pan-bottom-right, #pan-bottom-left {
+    background-color: transparent;
+}
+
+td.pan-up {
+    background: transparent url(../images/buttonPanUp.png) no-repeat scroll top left;
+}
+
+td.pan-up-hover {
+    background: transparent url(../images/buttonPanUp.png) no-repeat scroll top right;
+}
+
+td.pan-down {
+    background: transparent url(../images/buttonPanDown.png) no-repeat scroll top left;
+}
+
+td.pan-down-hover {
+    background: transparent url(../images/buttonPanDown.png) no-repeat scroll top right;
+}
+
+td.pan-left {
+    background: transparent url(../images/buttonPanLeft.png) no-repeat scroll top left;
+}
+
+td.pan-left-hover {
+    background: transparent url(../images/buttonPanLeft.png) no-repeat scroll top right;
+}
+
+td.pan-right {
+    background: transparent url(../images/buttonPanRight.png) no-repeat scroll top left;
+}
+
+td.pan-right-hover {
+    background: transparent url(../images/buttonPanRight.png) no-repeat scroll top right;
+}
+
+div.zoom-in {
+    background: transparent url(../images/buttonZoomIn.png) no-repeat scroll top left;
+}
+
+div.zoom-in-hover {
+    background: transparent url(../images/buttonZoomIn.png) no-repeat scroll top right;
+}
+
+div.zoom-out {
+    background: transparent url(../images/buttonZoomOut.png) no-repeat scroll top left;
+}
+
+div.zoom-out-hover {
+    background: transparent url(../images/buttonZoomOut.png) no-repeat scroll top right;
+}
+
+div.fit-image {
+    background: transparent url(../images/buttonZoomFit.png) no-repeat scroll top left;
+}
+
+div.fit-image-hover {
+    background: transparent url(../images/buttonZoomFit.png) no-repeat scroll top right;
+}
+
+div.actual-size {
+    background: transparent url(../images/buttonZoom100.png) no-repeat scroll top left;
+}
+
+div.actual-size-hover {
+    background: transparent url(../images/buttonZoom100.png) no-repeat scroll top right;
+}
+
+#zoom-in-button, #zoom-out-button, #zoom-fit-button, #zoom-actual-button {
+    float: left;
+    clear: left;
+    margin-left: 20px;
+    height: 16px;
+    width: 18px;
+    cursor: pointer;
+    z-index: inherit;
+}
+
+#graph-control-separator {
+    float: left;
+    clear: left;
+    height: 8px;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+}
+
+/* styles for the breadcrumbs bar */
+
+#breadcrumbs {
+    position: absolute;
+    top: 64px;
+    left: 0px;
+    right: 0px;
+    height: 26px;
+    padding: 0 2px 2px;
+    background-color: #FFF;
+    color: #598599;
+    z-index: 2;
+}
+
+#cluster-indicator {
+    width: 49px;
+    height: 15px;
+    background-image: url(../images/cluster.png);
+    background-color: transparent;
+    display: none;
+    position: absolute;
+    left: 59px;
+    top: 8px;
+}
+
+#breadcrumbs-background {
+    width: 800px;
+    height: 26px;
+    background-image: url(../images/bgBreadcrumbs.png);
+    background-color: transparent;
+    margin: 0 auto;
+    position: relative;
+    top: -1px;
+    z-index: 3;
+}
+
+#breadcrumbs-left-border {
+    position: absolute;
+    left: 0;
+    width: 10px;
+    height: 13px;
+    z-index: 3;
+    background-color: transparent;
+    background: linear-gradient(to right, #ffffff, rgba(255, 255, 255, 0));
+    filter: progid:DXImageTransform.Microsoft.gradient(gradientType=1, startColorstr=#ffffffff, endColorstr=#00ffffff);
+}
+
+#breadcrumbs-right-border {
+    position: absolute;
+    right: 0px;
+    width: 10px;
+    height: 13px;
+    z-index: 3;
+    background-color: transparent;
+    background: linear-gradient(to left, #ffffff, rgba(255, 255, 255, 0));
+    filter: progid:DXImageTransform.Microsoft.gradient(gradientType=1, startColorstr=#00ffffff, endColorstr=#ffffffff);
+}
+
+#data-flow-title-viewport {
+    overflow: hidden;
+    position: absolute;
+    left: 55px;
+    top: 9px;
+    right: 25px;
+    z-index: 4;
+}
+
+#data-flow-title-container {
+    font-weight: bold;
+    font-size: 8pt;
+    color: #000;
+    line-height: normal;
+    position: relative;
+    left: 10px;
+    float: left;
+    white-space: nowrap;
+}
+
+/* styles for the outline */
+
+#birdseye-container {
+    position: absolute;
+    top: 94px;
+    right: 0px;
+    width: 202px;
+    height: 117px;
+    background-image: url(../images/bgOutline.png);
+    background-color: transparent;
+    z-index: 1000;
+    overflow: hidden;
+}
+
+#birdseye-container svg, #birdseye-container canvas {
+    position: absolute;
+    overflow: hidden;
+    top: 1px;
+    left: 4px;
+    bottom: 0px;
+    right: 0px;
+}
+
+#birdseye {
+    margin-top: 1px;
+    margin-left: 4px;
+    width: 194px;
+    height: 108px;
+    background: #fff;
+    z-index: 1001;
+    overflow: hidden;
+    border: 1px solid #ccc;
+}
+
+#birdseye-collapse {
+    position: absolute;
+    top: 80px;
+    right: 5px;
+    width: 15px;
+    height: 10px;
+    z-index: 1010;
+    cursor: pointer;
+}
+
+div.birdseye-expanded {
+    background: transparent url(../images/buttonOutline.png) no-repeat scroll top left;
+}
+
+div.birdseye-expanded-hover {
+    background: transparent url(../images/buttonOutline.png) no-repeat scroll top right;
+}
+
+div.birdseye-collapsed {
+    background: transparent url(../images/buttonOutline.png) no-repeat scroll bottom left;
+}
+
+div.birdseye-collapsed-hover {
+    background: transparent url(../images/buttonOutline.png) no-repeat scroll bottom right;
+}
+
+.brush .extent {
+    stroke: #666;
+    fill-opacity: .125;
+    shape-rendering: crispEdges;
+}
+
+rect.birdseye-brush {
+    stroke: #7098ad;
+    fill: transparent;
+}

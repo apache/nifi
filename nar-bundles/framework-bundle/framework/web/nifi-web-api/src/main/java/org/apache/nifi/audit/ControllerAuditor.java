@@ -1,0 +1,257 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.nifi.audit;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Date;
+import org.apache.nifi.action.Action;
+import org.apache.nifi.action.Component;
+import org.apache.nifi.action.Operation;
+import org.apache.nifi.action.details.ConfigureDetails;
+import org.apache.nifi.web.security.user.NiFiUserUtils;
+import org.apache.nifi.user.NiFiUser;
+import org.apache.nifi.web.controller.ControllerFacade;
+import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.Around;
+import org.aspectj.lang.annotation.Aspect;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * Audits configuration changes to the controller.
+ */
+@Aspect
+public class ControllerAuditor extends NiFiAuditor {
+
+    private static final Logger logger = LoggerFactory.getLogger(ControllerAuditor.class);
+
+    /**
+     * Audits updating the name of the controller.
+     *
+     * @param proceedingJoinPoint
+     * @param name
+     * @param controllerFacade
+     * @throws java.lang.Throwable
+     */
+    @Around("within(org.apache.nifi.web.controller.ControllerFacade) && "
+            + "execution(void setName(java.lang.String)) && "
+            + "args(name) && "
+            + "target(controllerFacade)")
+    public void updateControllerNameAdvice(ProceedingJoinPoint proceedingJoinPoint, String name, ControllerFacade controllerFacade) throws Throwable {
+        // get the previous name
+        String previousName = controllerFacade.getName();
+
+        // update the configuraion
+        proceedingJoinPoint.proceed();
+
+        // if no exception were thrown, add the configuration action...
+        // ensure the name changed
+        if (!name.equals(previousName)) {
+            // get the current user
+            NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+            // ensure the user was found
+            if (user != null) {
+                Collection<Action> actions = new ArrayList<>();
+
+                // create the configuration details
+                ConfigureDetails configDetails = new ConfigureDetails();
+                configDetails.setName("Controller Name");
+                configDetails.setValue(name);
+                configDetails.setPreviousValue(previousName);
+
+                // create the config action
+                Action configAction = new Action();
+                configAction.setUserDn(user.getDn());
+                configAction.setUserName(user.getUserName());
+                configAction.setOperation(Operation.Configure);
+                configAction.setTimestamp(new Date());
+                configAction.setSourceId("Flow Controller");
+                configAction.setSourceName(controllerFacade.getName());
+                configAction.setSourceType(Component.Controller);
+                configAction.setActionDetails(configDetails);
+                actions.add(configAction);
+
+                // record the action
+                saveActions(actions, logger);
+            }
+        }
+    }
+
+    /**
+     * Audits updating the comments of the controller.
+     *
+     * @param proceedingJoinPoint
+     * @param comments
+     * @param controllerFacade
+     * @throws java.lang.Throwable
+     */
+    @Around("within(org.apache.nifi.web.controller.ControllerFacade) && "
+            + "execution(void setComments(java.lang.String)) && "
+            + "args(comments) && "
+            + "target(controllerFacade)")
+    public void updateControllerCommentsAdvice(ProceedingJoinPoint proceedingJoinPoint, String comments, ControllerFacade controllerFacade) throws Throwable {
+        // get the previous name
+        String previousComments = controllerFacade.getComments();
+
+        // update the configuraion
+        proceedingJoinPoint.proceed();
+
+        // if no exception were thrown, add the configuration action...
+        // ensure the name changed
+        if (!comments.equals(previousComments)) {
+            // get the current user
+            NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+            // ensure the user was found
+            if (user != null) {
+                Collection<Action> actions = new ArrayList<>();
+
+                // create the configuration details
+                ConfigureDetails configDetails = new ConfigureDetails();
+                configDetails.setName("Controller Comments");
+                configDetails.setValue(comments);
+                configDetails.setPreviousValue(previousComments);
+
+                // create the config action
+                Action configAction = new Action();
+                configAction.setUserDn(user.getDn());
+                configAction.setUserName(user.getUserName());
+                configAction.setOperation(Operation.Configure);
+                configAction.setTimestamp(new Date());
+                configAction.setSourceId("Flow Controller");
+                configAction.setSourceName(controllerFacade.getName());
+                configAction.setSourceType(Component.Controller);
+                configAction.setActionDetails(configDetails);
+                actions.add(configAction);
+
+                // record the action
+                saveActions(actions, logger);
+            }
+        }
+    }
+
+    /**
+     * Audits updating the max number of timer driven threads for the
+     * controller.
+     *
+     * @param proceedingJoinPoint
+     * @param maxTimerDrivenThreadCount
+     * @param controllerFacade
+     * @throws java.lang.Throwable
+     */
+    @Around("within(org.apache.nifi.web.controller.ControllerFacade) && "
+            + "execution(void setMaxTimerDrivenThreadCount(int)) && "
+            + "args(maxTimerDrivenThreadCount) && "
+            + "target(controllerFacade)")
+    public void updateControllerTimerDrivenThreadsAdvice(ProceedingJoinPoint proceedingJoinPoint, int maxTimerDrivenThreadCount, ControllerFacade controllerFacade) throws Throwable {
+        // get the current max thread count
+        int previousMaxTimerDrivenThreadCount = controllerFacade.getMaxTimerDrivenThreadCount();
+
+        // update the processors state
+        proceedingJoinPoint.proceed();
+
+        // if no exception were thrown, add the configuration action...
+        // ensure the value changed
+        if (previousMaxTimerDrivenThreadCount != maxTimerDrivenThreadCount) {
+            // get the current user
+            NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+            // ensure the user was found
+            if (user != null) {
+                Collection<Action> actions = new ArrayList<>();
+
+                // create the configure details
+                ConfigureDetails configDetails = new ConfigureDetails();
+                configDetails.setName("Controller Max Timer Driven Thread Count");
+                configDetails.setValue(String.valueOf(maxTimerDrivenThreadCount));
+                configDetails.setPreviousValue(String.valueOf(previousMaxTimerDrivenThreadCount));
+
+                // create the config action
+                Action configAction = new Action();
+                configAction.setUserDn(user.getDn());
+                configAction.setUserName(user.getUserName());
+                configAction.setOperation(Operation.Configure);
+                configAction.setTimestamp(new Date());
+                configAction.setSourceId("Flow Controller");
+                configAction.setSourceName(controllerFacade.getName());
+                configAction.setSourceType(Component.Controller);
+                configAction.setActionDetails(configDetails);
+                actions.add(configAction);
+
+                // record the action
+                saveActions(actions, logger);
+            }
+        }
+    }
+
+    /**
+     * Audits updating the max number of event driven threads for the
+     * controller.
+     *
+     * @param proceedingJoinPoint
+     * @param maxEventDrivenThreadCount
+     * @param controllerFacade
+     * @throws java.lang.Throwable
+     */
+    @Around("within(org.apache.nifi.web.controller.ControllerFacade) && "
+            + "execution(void setMaxEventDrivenThreadCount(int)) && "
+            + "args(maxEventDrivenThreadCount) && "
+            + "target(controllerFacade)")
+    public void updateControllerEventDrivenThreadsAdvice(ProceedingJoinPoint proceedingJoinPoint, int maxEventDrivenThreadCount, ControllerFacade controllerFacade) throws Throwable {
+        // get the current max thread count
+        int previousMaxEventDrivenThreadCount = controllerFacade.getMaxEventDrivenThreadCount();
+
+        // update the processors state
+        proceedingJoinPoint.proceed();
+
+        // if no exception were thrown, add the configuration action...
+        // ensure the value changed
+        if (previousMaxEventDrivenThreadCount != maxEventDrivenThreadCount) {
+            // get the current user
+            NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+            // ensure the user was found
+            if (user != null) {
+                Collection<Action> actions = new ArrayList<>();
+
+                // create the configure details
+                ConfigureDetails configDetails = new ConfigureDetails();
+                configDetails.setName("Controller Max Event Driven Thread Count");
+                configDetails.setValue(String.valueOf(maxEventDrivenThreadCount));
+                configDetails.setPreviousValue(String.valueOf(previousMaxEventDrivenThreadCount));
+
+                // create the config action
+                Action configAction = new Action();
+                configAction.setUserDn(user.getDn());
+                configAction.setUserName(user.getUserName());
+                configAction.setOperation(Operation.Configure);
+                configAction.setTimestamp(new Date());
+                configAction.setSourceId("Flow Controller");
+                configAction.setSourceName(controllerFacade.getName());
+                configAction.setSourceType(Component.Controller);
+                configAction.setActionDetails(configDetails);
+                actions.add(configAction);
+
+                // record the action
+                saveActions(actions, logger);
+            }
+        }
+    }
+
+}

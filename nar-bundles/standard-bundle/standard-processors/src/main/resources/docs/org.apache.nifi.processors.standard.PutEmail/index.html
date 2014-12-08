@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8" />
+        <title>PutEmail</title>
+
+        <link rel="stylesheet" href="../../css/component-usage.css" type="text/css" />
+    </head>
+
+    <body>
+        <!-- Processor Documentation ================================================== -->
+        <h2>Description:</h2>
+        <p>
+            This processor sends an e-mail to configured recipients for each incoming FlowFile.</p>
+        <p>
+            <strong>Properties:</strong>
+        </p>
+        <p>
+            In the list below, the names of required properties appear in bold. Any other properties (not in bold) are considered optional. If a property has a default value, it is indicated. If a property supports the use of the NiFi Expression Language (or simply, "expression language"), that is also indicated.
+        </p>
+        <ul>
+            <li><strong>SMTP Hostname</strong>
+                <ul>
+                    <li>The hostname of the SMTP host.</li>
+                    <li>Default value: no default</li>
+                    <li>Supports expression language: false</li>
+                </ul></li>
+            <li><strong>SMTP Port</strong>
+                <ul>
+                    <li>The port used for SMTP communication.</li>
+                    <li>Default value: 25</li>
+                    <li>Supports expression language: false</li>
+                </ul></li>
+            <li><strong>From</strong>
+                <ul>
+                    <li>Specifies the email address to use as the sender.</li>
+                    <li>Default value: no default</li>
+                    <li>Supports expression language: true</li>
+                </ul></li>
+            <li>To
+                <ul>
+                    <li>The recipients to include in the To line of the email.</li>
+                    <li>Default value: no default</li>
+                    <li>Supports expression language: true</li>
+                </ul></li>
+            <li>CC
+                <ul>
+                    <li>The recipients to include in the CC line of the email.</li>
+                    <li>Default value: no default</li>
+                    <li>Supports expression language: true</li>
+                </ul></li>
+            <li>BCC
+                <ul>
+                    <li>The recipients to include in the BCC line of the email.</li>
+                    <li>Default value: no default</li>
+                    <li>Supports expression language: true</li>
+                </ul></li>
+            <li><strong>Subject</strong>
+                <ul>
+                    <li>This content will appear in the email Subject line.</li>
+                    <li>Default value: Message from NiFi</li>
+                    <li>Supports expression language: true</li>
+                </ul></li>
+            <li><strong>Message</strong>
+                <ul>
+                    <li>The body of the email message.</li>
+                    <li>Default value: no default</li>
+                    <li>Supports expression language: true</li>
+                </ul></li>
+            <li><strong>Attach File</strong>
+                <ul>
+                    <li>A Boolean value (true/false), indicating whether to attach the FlowFile content to the email.</li>
+                    <li>Default value: false</li>
+                    <li>Supports expression language: false</li>
+                </ul></li>
+            <li><strong>Include All Attributes In Message</strong>
+                <ul>
+                    <li>A Boolean value (true/false), indicating whether or not all FlowFile attributes should be recorded
+                        in the body of the email message.</li>
+                    <li>Default value: false</li>
+                    <li>Supports expression language: false</li>
+                </ul></li>
+        </ul>
+        <p>
+            <strong>Relationships:</strong>
+        </p>
+        <ul>
+            <li>failure
+                <ul>
+                    <li>If FlowFiles fail to send, then they follow this relationship.</li>
+                </ul></li>
+            <li>success
+                <ul>
+                    <li>If an email is successfully sent for a given FlowFile, then the FlowFile follows this relationship.</li>
+                </ul></li>
+        </ul>
+
+
+    </body>
+</html>

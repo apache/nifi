@@ -1,0 +1,87 @@
+<?xml version="1.0"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" version="1.0">
+    <xs:element name="tasks" type="ReportingTasks"/>
+
+    <xs:complexType name="ReportingTasks">
+        <xs:sequence>
+
+            <!-- properties that may exist and offer further information about all tasks.
+            For instance, possibly the system that is sending the information. -->
+            <xs:element name="property" type="PropertyType" minOccurs="0" maxOccurs="unbounded"/>
+
+            <!-- Each "processor" defines the actual dataflow work horses that make dataflow happen-->
+            <xs:element name="task" type="ReportingTaskType" minOccurs="0" maxOccurs="unbounded"/>
+
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- the Controller Task "id" is a key that should be valid within each flowController-->
+    <xs:complexType name="ReportingTaskType">
+        <xs:sequence>
+
+            <!-- The "id" is a name used to uniquely identify the Controller Task. -->
+            <xs:element name="id" type="NonEmptyStringType"/>
+
+            <!-- The "name" is a nicely displayable description of the Controller Task's duty-->
+            <xs:element name="name" type="NonEmptyStringType"/>
+
+            <!-- "class" is the actual Java class that performs the type of controller task desired-->
+            <xs:element name="class" type="NonEmptyStringType"/>
+
+            <!-- 
+                "schedulingPeriod" is the amount of time that should elapse between successive 
+                executions of this task. The timer starts as soon as an execution finishes
+            -->
+            <xs:element name="schedulingPeriod" type="NonEmptyStringType"/>
+            
+            <xs:element name="schedulingStrategy" type="SchedulingStrategyType" minOccurs="0" default="TIMER_DRIVEN" />
+
+            <!-- "optionalTaskProperty" are properties that may exist and offer further information about a task.
+            For instance, information about where a specific task should send information. -->
+            <xs:element name="property" type="PropertyType" minOccurs="0" maxOccurs="unbounded" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Name/Value properties-->
+    <xs:complexType name="PropertyType">
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attribute name="name" type="xs:string"></xs:attribute>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <xs:simpleType name="SchedulingStrategyType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="TIMER_DRIVEN"></xs:enumeration>
+            <xs:enumeration value="CRON_DRIVEN"></xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="NonEmptyStringType">
+        <xs:restriction base="xs:string">
+            <xs:minLength value="1"/>
+        </xs:restriction>
+    </xs:simpleType>
+    
+    <xs:simpleType name="TimePeriod">
+        <xs:restriction base="xs:string">
+            <xs:pattern value="\d+\s*(ns|nano|nanos|nanoseconds|ms|milli|millis|milliseconds|s|sec|secs|seconds|m|min|mins|minutes|h|hr|hrs|hours|d|day|days)"></xs:pattern>
+        </xs:restriction>
+    </xs:simpleType>
+    
+</xs:schema>

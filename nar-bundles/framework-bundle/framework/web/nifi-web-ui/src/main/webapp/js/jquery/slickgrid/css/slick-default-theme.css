@@ -1,0 +1,121 @@
+/*
+IMPORTANT:
+In order to preserve the uniform grid appearance, all cell styles need to have padding, margin and border sizes.
+No built-in (selected, editable, highlight, flashing, invalid, loading, :focus) or user-specified CSS
+classes should alter those!
+*/
+
+.slick-header-columns {
+    /*background: url('../images/header-columns-bg.gif') repeat-x center bottom;*/
+    /*border-bottom: 1px solid silver;*/
+    background: url(../../../../images/bgTableHeader.png) repeat-x center center;
+    border-bottom: 1px solid #365C6A;
+    color: #fff;
+}
+
+.slick-header-column {
+    /*background: url('../images/header-columns-bg.gif') repeat-x center bottom;*/
+    /*border-right: 1px solid silver;*/
+    background: url(../../../../images/bgTableHeader.png) repeat-x center center;
+    border-right: 1px solid #172B31 !important;
+    color: #fff;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.slick-header-column:hover, .slick-header-column-active {
+    /*background: white url('../images/header-columns-over-bg.gif') repeat-x center bottom;*/
+    background-image: url(../../../../images/bgTableHeader.png);
+    background-repeat: repeat-x;
+    color: #fff;
+}
+
+.slick-headerrow {
+    background: #fafafa;
+}
+
+.slick-headerrow-column {
+    background: #fafafa;
+    border-bottom: 0;
+    height: 100%;
+}
+
+.slick-row.ui-state-active {
+    background: #F5F7D7;
+}
+
+.slick-row {
+    position: absolute;
+    background: white;
+    border: 0px;
+    line-height: 20px;
+}
+
+.slick-row:hover {
+    background-color: #d4e0e5 !important;
+}
+
+.slick-row.selected {
+    z-index: 10;
+    background: #DFE8F6 !important;
+}
+
+.slick-cell {
+    padding-left: 4px;
+    padding-right: 4px;
+    border-style: solid !important;
+}
+
+.slick-group {
+    border-bottom: 2px solid silver;
+}
+
+.slick-group-toggle {
+    width: 9px;
+    height: 9px;
+    margin-right: 5px;
+}
+
+.slick-group-toggle.expanded {
+    background: url(../../../../images/collapse.gif) no-repeat center center;
+}
+
+.slick-group-toggle.collapsed {
+    background: url(../../../../images/expand.gif) no-repeat center center;
+}
+
+.slick-group-totals {
+    color: gray;
+    background: white;
+}
+
+.slick-cell.selected {
+    /*background-color: beige;*/
+    background-color: #ffe8b3;
+}
+
+.slick-cell.active {
+    /*border-color: gray;*/
+    /*border-style: solid;*/
+}
+
+.slick-sortable-placeholder {
+    background: silver !important;
+}
+
+.slick-row[row$="1"], .slick-row[row$="3"], .slick-row[row$="5"], .slick-row[row$="7"], .slick-row[row$="9"] {
+    background: #fafafa;
+}
+
+.slick-row.ui-state-active {
+    background: #F5F7D7;
+}
+
+.slick-row.loading {
+    opacity: 0.5;
+    filter: alpha(opacity = 50);
+}
+
+.slick-cell.invalid {
+    border-color: red;
+}

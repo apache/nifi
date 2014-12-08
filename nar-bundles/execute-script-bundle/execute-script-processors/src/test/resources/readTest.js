@@ -1,0 +1,30 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+with (Scripting) {
+
+    var instance = new ReaderScript({
+        route: function (input) {
+            str = IOUtils.toString(input);
+            if (str.match(/sed do/i)) {
+                return Script.FAIL_RELATIONSHIP;
+            } else {
+                return Script.SUCCESS_RELATIONSHIP;
+            }
+        }
+    });
+    logger.debug("Got a logger and properties" + properties);
+}

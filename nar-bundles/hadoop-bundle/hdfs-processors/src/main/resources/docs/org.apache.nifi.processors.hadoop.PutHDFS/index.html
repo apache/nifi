@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8" />
+        <title>PutHDFS</title>
+
+        <link rel="stylesheet" href="../../css/component-usage.css" type="text/css" />
+    </head>
+
+    <body>
+        <!-- Processor Documentation ================================================== -->
+        <h2>Description:</h2>
+        <p>
+            This processor writes FlowFiles to an HDFS cluster. It will create directories in which to store files as
+            needed based on the <em>Directory</em> property.
+        </p>
+
+        <p>
+            When files are written to HDFS, the file's owner is the user identity of the NiFi process, the file's group is the
+            group of the parent directory, and the read/write/execute permissions use the default umask. The owner can be
+            overridden using the <em>Remote Owner</em> property, the group can be overridden using the <em>Remote Group</em>
+            property, and the read/write/execute permissions can be overridden using the <em>Permissions umask</em> property.
+        </p>
+        <p>NOTE: This processor can change owner or group only if the user identity of the NiFi process has super user
+            privilege in HDFS to do so.</p>
+        <p>
+            NOTE: The <em>Permissions umask</em> property cannot add execute permissions to regular files.
+        </p>
+
+        <p>
+            <strong>Uses Attributes:</strong>
+        </p>
+        <table border="1">
+            <thead>
+                <tr>
+                    <th>Attribute Name</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>filename</td>
+                    <td>The name of the file written to HDFS comes from the value of this attribute.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>Properties:</h2>
+        <p>In the list below, the names of required properties appear in bold. Any other properties (not in bold) are
+            considered optional. If a property has a default value, it is indicated. If a property supports the use of the
+            NiFi Expression Language (or simply, "expression language"), that is also indicated.</p>
+        <ul>
+            <li>Hadoop Configuration Resources
+                <ul>
+                    <li>A file or comma separated list of files which contains the Hadoop file system configuration.
+                        Without this, Hadoop will search the classpath for a 'core-site.xml' and 'hdfs-site.xml' file or will
+                        revert to a default configuration.</li>
+                    <li>Default value: none</li>
+                </ul>
+            </li>
+            <li><strong>Directory</strong>
+                <ul>
+                    <li>The HDFS directory to which FlowFile content should be written. This property supports the
+                        expression language so you can keep the FlowFile's directory structure by using the ${path} attribute
+                        reference, e.g. /in/data/${path}.</li>
+                    <li>Default value: none</li>
+                    <li>Supports expression language: true</li>
+                </ul></li>
+            <li><strong>Conflict Resolution Strategy</strong>
+                <ul>
+                    <li>Indicates what should happen when a file with the same name already exists in the output directory.
+                        Valid options are:</li>
+                    <ul>
+                        <li>replace - existing file is overwritten by new file</li>
+                        <li>ignore - existing file is untouched, FlowFile routed to success</li>
+                        <li>fail - existing file is untouched, FlowFile routed to failure</li>
+                    </ul>
+                    <li>Default value: fail</li>
+                </ul></li>
+            <li>Block Size
+                <ul>
+                    <li>Size of each block as written to HDFS. This is a data size integer that must include units of B,
+                        KB, MB, GB, or TB. This overrides the Hadoop Configuration.</li>
+                    <li>Default value: none</li>
+                </ul>
+            </li>
+            <li>IO Buffer Size
+                <ul>
+                    <li>Amount of memory to use to buffer file contents during IO. This is a data size integer that must
+                        include units of B, KB, MB, GB, or TB. This overrides the Hadoop Configuration.</li>
+                    <li>Default value: none</li>
+                </ul>
+            </li>
+            <li>Replication
+                <ul>
+                    <li>Number of times that HDFS will replicate each file. This must be an integer greater than 0. This
+                        overrides the Hadoop Configuration.</li>
+                    <li>Default value: none</li>
+                </ul>
+            </li>
+            <li>Permissions umask
+                <ul>
+                    <li>A umask represented as an octal number which determines the permissions of files written to HDFS.
+                        This overrides the Hadoop Configuration dfs.umaskmode.</li>
+                    <li>Default value: none</li>
+                </ul>
+            </li>
+            <li>Remote Owner
+                <ul>
+                    <li>Changes the owner of the HDFS file to this value after it is written. This only works if NiFi is
+                        running as a user that has HDFS super user privilege to change owner.</li>
+                    <li>Default value: none</li>
+                </ul>
+            </li>
+            <li>Remote Group
+                <ul>
+                    <li>Changes the group of the HDFS file to this value after it is written. This only works if NiFi is
+                        running as a user that has HDFS super user privilege to change group.</li>
+                    <li>Default value: none</li>
+                </ul>
+            </li>
+        </ul>
+
+        <h2>Relationships:</h2>
+        <ul>
+            <li>success
+                <ul>
+                    <li>Files that have been successfully written to HDFS are transferred to this relationship.</li>
+                </ul>
+            </li>
+            <li>failure
+                <ul>
+                    <li>Files that could not be written to HDFS for some reason are transferred to this relationship.</li>
+                </ul>
+            </li>
+        </ul>
+
+        <p>
+            <strong>See Also:</strong>
+        </p>
+        <ul>
+            <li><a href="../org.apache.nifi.processors.hadoop.GetHDFS/index.html">GetHDFS</a></li>
+        </ul>
+    </body>
+</html>

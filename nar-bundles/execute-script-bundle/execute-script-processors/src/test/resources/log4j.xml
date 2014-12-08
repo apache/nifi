@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+
+<log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
+    <appender name="CONSOLE" class="org.apache.log4j.ConsoleAppender">
+        <param name="Target" value="System.out"/>
+        <param name="Threshold" value="DEBUG"/>
+
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{MM-dd-yy HH:mm:ss.SSS} %-5p %c{2} %x - %m%n"/>
+        </layout>
+
+    </appender>
+
+    <logger name="org.nifi.model.processor.FlowFileProcessor" additivity="false">
+        <level value="INFO"/>
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+
+    <logger name="junit.TestableAppender" additivity="false">
+        <level value="TRACE"/>
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+
+    <logger name="org.nifi.model.processor.impl.ScriptRunnerProcessor" additivity="false">
+        <level value="WARN"/>
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+  
+    <logger name="org.nifi.model.processor.impl.ScriptRunnerProcessorTest" additivity="false">
+        <level value="INFO"/>
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+
+    <root>
+        <level value="INFO"/>
+        <appender-ref ref="CONSOLE" />
+    </root>
+
+</log4j:configuration>

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8" />
+        <title>InvokeHTTP - a swiss army http client processor</title>
+        <link rel="stylesheet" href="../../css/component-usage.css" type="text/css" />
+    </head>
+
+    <body>
+        <h2>Description:</h2>
+        <p>
+            Making requests to remote HTTP servers.  Supporting common HTTP methods.
+            Storing results as new flowfiles upon success. Routing to failure on error.
+        </p>
+        <p>
+            An HTTP client processor that converts FlowFile attributes to HTTP headers with configurable HTTP method, URL, etc.
+        <p>
+
+        <p>
+            <strong>Adds Attributes:</strong>
+        </p>
+
+        <table border="1">
+            <thead>
+                <tr>
+                    <th>Attribute Name</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>invokehttp.status.code</td>
+                    <td>The status code that is returned.</td>
+                </tr>
+                <tr>
+                    <td>invokehttp.status.message</td>
+                    <td>The status message that is returned.</td>
+                </tr>
+                <tr>
+                    <td>invokehttp.response.body</td>
+                    <td>The response body.</td>
+                </tr>
+                <tr>
+                    <td>invokehttp.request.url</td>
+                    <td>The request URL.</td>
+                </tr>
+                <tr>
+                    <td>invokehttp.tx.id</td>
+                    <td>The transaction ID that is returned after reading the response.</td>
+                </tr>
+                <tr>
+                    <td>invokehttp.remote.dn</td>
+                    <td>The DN of the remote server.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p>
+            <strong>Properties:</strong>
+        </p>
+        <ul>
+            <li>
+                <strong>HTTP Method</strong>
+                <ul>
+                    <li>The HTTP request method (e.g., GET, POST, PUT, DELETE, HEAD, OPTIONS)</li>
+                    <li>Default value: GET</li>
+                    <li>Supports expression language: false</li>
+                </ul>
+            </li>
+            <li>
+                <strong>Remote URL</strong>
+                <ul>
+                    <li>The remote URL that will be conneted to, including scheme, host, port, and path.</li>
+                    <li>Default value: no default</li>
+                    <li>Supports expression language: true</li>
+                </ul>
+            </li>
+            <li>
+                SSL Context Service
+                <ul>
+                    <li>The Controller Service to use for obtaining an SSL Context. The SSL Context controller service is a mechanism for providing all the security properties
+                        that allow for secure communications between NiFi extensions and other systems. See the User Guide or the Controller Services documentation (via the "help" link in the
+                        upper-right corner of the GUI for more information about the StandardSSLContextService. The value for this property is the identifier name that is configured in 
+                        the StandardSSLContextService.</li>
+                    <li>Default value: no default</li>
+                    <li>Supports expression language: false</li>
+                </ul>
+            </li>
+            <li>
+                <strong>Connection Timeout</strong>
+                <ul>
+                    <li>The amount of time to wait before timing out while creating a connection.</li>
+                    <li>Default value: 5 secs</li>
+                    <li>Supports expression language: false</li>
+                </ul>
+            </li>
+            <li>
+                <strong>Read Timeout</strong>
+                <ul>
+                    <li>The amount of time to wait before timing out while waiting for a response from the remote service.</li>
+                    <li>Default value: 15 secs</li>
+                    <li>Supports expression language: false</li>
+                </ul>
+            </li>
+            <li>
+                <strong>Include Data Header</strong>
+                <ul>
+                    <li>A Boolean value (true/false), indicating whether to include an RFC-2616 date header in the request.</li>
+                    <li>Default value: True</li>
+                    <li>Supports expression language: false</li>
+                </ul>
+            </li>
+            <li>
+                <strong>Follow Redirects</strong>
+                <ul>
+                    <li>A Boolean value (true/false), indicating whether to follow HTTP redirects issued by the remote server.</li>
+                    <li>Default value: True</li>
+                    <li>Supports expression language: false</li>
+                </ul>
+            </li>
+            <li>
+                Attributes to Send
+                <ul>
+                    <li>A regular expression that defines which attributes to send as HTTP headers in the request. If not defined, no  attributes are sent as headers.</li>
+                    <li>Default value: no default</li>
+                    <li>Supports expression language: false</li>
+                </ul>
+            </li>
+        </ul>
+        <p>
+            <strong>Relationships:</strong>
+        </p>
+        <ul>
+            <li>
+                <strong>Original</strong>
+                <ul>
+                    <li>Original FlowFile will be routed upon success (2xx status codes).</li>
+                </ul>
+            </li>
+            <li>
+                <strong>Response</strong>
+                <ul>
+                    <li>Response FlowFile will be routed upon success (2xx status codes).</li>
+                </ul>
+            </li>
+            <li>
+                <strong>Retry</strong>
+                <ul>
+                    <li>FlowFile will be routed on any status code that can be retried (5xx status codes).</li>
+                </ul>
+            </li>
+            <li>
+                <strong>No Retry</strong>
+                <ul>
+                    <li>FlowFile will be routed on any status code that should NOT be retried (1xx, 3xx, 4xx status codes).</li>
+                </ul>
+            </li>
+            <li>
+                <strong>Failure</strong>
+                <ul>
+                    <li>FlowFile will be routed on any type of connection failure, timeout or general exception.</li>
+                </ul>
+            </li>
+        </ul>
+
+    </body>
+</html>

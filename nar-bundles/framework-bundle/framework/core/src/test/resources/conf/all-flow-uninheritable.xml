@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<flowController>
+    <maxThreadCount>15</maxThreadCount>
+    <rootGroup>
+        <id>4190002f-8b17-4772-bd62-8efec12c0cd0</id>
+        <name>new group 1</name>
+        <position x="0.0" y="0.0"/>
+        <style>new style</style>
+        <comment>new comments</comment>
+        <processor>
+            <id>7fc60e56-c7cd-47bc-8290-bcd52b42b4ac</id>
+            <name>new TerminationFileProcessor</name>
+            <position x="0.0" y="0.0"/>
+            <style>new processor</style>
+            <comment/>
+            <class>org.apache.nifi.test.processors.StubTerminationFileProcessor</class>
+            <maxConcurrentTasks>10</maxConcurrentTasks>
+            <schedulingPeriodSeconds>10</schedulingPeriodSeconds>
+            <maxWorkQueueSize>10</maxWorkQueueSize>
+            <lossTolerant>false</lossTolerant>
+            <running>true</running>
+            <flowFileExpirationMinutes>10</flowFileExpirationMinutes>
+            <queuePrioritizerClass>org.apache.nifi.comparator.NewestFlowFileFirstComparator</queuePrioritizerClass>
+            <annotationData>some annotation data</annotationData>
+        </processor>
+        <processor>
+            <id>1bc2d455-a45d-43fc-a96c-909b6a00311e</id>
+            <name>AttributeLoggerProcessor</name>
+            <position x="0.0" y="0.0"/>
+            <style>processor</style>
+            <comment/>
+            <class>org.apache.nifi.test.processors.StubAttributeLoggerProcessor</class>
+            <maxConcurrentTasks>1</maxConcurrentTasks>
+            <schedulingPeriodSeconds>0</schedulingPeriodSeconds>
+            <maxWorkQueueSize>0</maxWorkQueueSize>
+            <lossTolerant>false</lossTolerant>
+            <running>false</running>
+            <flowFileExpirationMinutes>0</flowFileExpirationMinutes>
+            <property>
+                <name>log.level</name>
+                <value>trace</value>
+            </property>
+            <property>
+                <name>log.payload</name>
+                <value>true</value>
+            </property>
+            <annotationData/>
+        </processor>
+        <inputPort>
+            <id>e8cf322a-7855-442b-8478-b76520ae62a2</id>
+            <name>new Remote In</name>
+            <position x="0.0" y="0.0"/>
+            <style>new input-port</style>
+        </inputPort>
+        <outputPort>
+            <id>069757e4-a3c9-474f-9593-c55516c510f8</id>
+            <name>new Remote Out</name>
+            <position x="0.0" y="0.0"/>
+            <style>new output-port</style>
+            <destination>
+                <hostname>localhost</hostname>
+                <controllerPort>8080</controllerPort>
+                <protocol>http</protocol>
+                <remotePortId>e8cf322a-7855-442b-8478-b76520ae62a2</remotePortId>
+            </destination>
+        </outputPort>
+        <label>
+            <id>59a5a3ff-1b87-45c6-b5b4-307735baf2b7</id>
+            <position x="0.0" y="0.0"/>
+            <style>new label</style>
+            <value></value>
+        </label>
+        <processGroup>
+            <id>994be764-7e03-421c-ab10-f21956073c2a</id>
+            <name>new gr</name>
+            <position x="0.0" y="0.0"/>
+            <style>new process-group</style>
+            <comment> some comments </comment>
+            <processor>
+                <id>d489d825-67da-45eb-a714-98a811608daf</id>
+                <name>new AttributeLoggerProcessor</name>
+                <position x="0.0" y="0.0"/>
+                <style>new processor</style>
+                <comment/>
+                <class>org.apache.nifi.test.processors.StubAttributeLoggerProcessor</class>
+                <maxConcurrentTasks>1</maxConcurrentTasks>
+                <schedulingPeriodSeconds>0</schedulingPeriodSeconds>
+                <maxWorkQueueSize>0</maxWorkQueueSize>
+                <lossTolerant>false</lossTolerant>
+                <running>false</running>
+                <flowFileExpirationMinutes>0</flowFileExpirationMinutes>
+                <property>
+                    <name>log.level</name>
+                    <value>debug</value>
+                </property>
+                <annotationData/>
+            </processor>
+            <inputPort>
+                <id>167e3556-b6f2-4e9a-b143-e02c91bb7fb6</id>
+                <name>Group In</name>
+                <position x="0.0" y="0.0"/>
+                <style>input-port</style>
+            </inputPort>
+            <outputPort>
+                <id>b14135ee-411d-46be-b377-5ed4c8d72cbe</id>
+                <name>Group Out</name>
+                <position x="0.0" y="0.0"/>
+                <style>output-port</style>
+            </outputPort>
+            <connection>
+                <id>b8886cad-373f-4ac4-8028-3968fdcd5252</id>
+                <name>new name</name>
+                <bendPoints/>
+                <labelIndex>1</labelIndex>
+                <zIndex>0</zIndex>
+                <style>new style</style>
+                <sourceId>167e3556-b6f2-4e9a-b143-e02c91bb7fb6</sourceId>
+                <sourceGroupId>994be764-7e03-421c-ab10-f21956073c2a</sourceGroupId>
+                <sourceType>INPUT_PORT</sourceType>
+                <destinationId>b14135ee-411d-46be-b377-5ed4c8d72cbe</destinationId>
+                <destinationGroupId>994be764-7e03-421c-ab10-f21956073c2a</destinationGroupId>
+                <destinationType>OUTPUT_PORT</destinationType>
+                <countFlowFiles>false</countFlowFiles>
+                <countBytes>false</countBytes>
+                <relationship/>
+            </connection>
+        </processGroup>
+        <remoteProcessGroup>
+            <id>52c47e32-91c5-40d4-bf0a-37d672ce8190</id>
+            <name>new Unable to Connect</name>
+            <position x="0.0" y="0.0"/>
+            <style>new remote-process-group</style>
+            <comment/>
+            <url>http://localhost:8080</url>
+        </remoteProcessGroup>
+        <connection>
+            <id>cede7d64-040e-4951-bea4-04c100bf1064</id>
+            <name/>
+            <bendPoints/>
+            <labelIndex>1</labelIndex>
+            <zIndex>0</zIndex>
+            <style/>
+            <sourceId>e8cf322a-7855-442b-8478-b76520ae62a2</sourceId>
+            <sourceGroupId>4190002f-8b17-4772-bd62-8efec12c0cd0</sourceGroupId>
+            <sourceType>INPUT_PORT</sourceType>
+            <destinationId>1bc2d455-a45d-43fc-a96c-909b6a00311e</destinationId>
+            <destinationGroupId>4190002f-8b17-4772-bd62-8efec12c0cd0</destinationGroupId>
+            <destinationType>PROCESSOR</destinationType>
+            <countFlowFiles>false</countFlowFiles>
+            <countBytes>false</countBytes>
+            <relationship/>
+        </connection>
+        <connection>
+            <id>edba74b5-8bd9-44a0-b0d7-1adfc946e948</id>
+            <name/>
+            <bendPoints/>
+            <labelIndex>1</labelIndex>
+            <zIndex>0</zIndex>
+            <style/>
+            <sourceId>1bc2d455-a45d-43fc-a96c-909b6a00311e</sourceId>
+            <sourceGroupId>4190002f-8b17-4772-bd62-8efec12c0cd0</sourceGroupId>
+            <sourceType>PROCESSOR</sourceType>
+            <destinationId>167e3556-b6f2-4e9a-b143-e02c91bb7fb6</destinationId>
+            <destinationGroupId>994be764-7e03-421c-ab10-f21956073c2a</destinationGroupId>
+            <destinationType>INPUT_PORT</destinationType>
+            <countFlowFiles>false</countFlowFiles>
+            <countBytes>false</countBytes>
+            <relationship>success</relationship>
+        </connection>
+        <connection>
+            <id>17a9cdd4-de3d-4d14-a57b-3dee8d503d3a</id>
+            <name/>
+            <bendPoints/>
+            <labelIndex>1</labelIndex>
+            <zIndex>0</zIndex>
+            <style/>
+            <sourceId>b14135ee-411d-46be-b377-5ed4c8d72cbe</sourceId>
+            <sourceGroupId>994be764-7e03-421c-ab10-f21956073c2a</sourceGroupId>
+            <sourceType>OUTPUT_PORT</sourceType>
+            <destinationId>7fc60e56-c7cd-47bc-8290-bcd52b42b42c</destinationId>
+            <destinationGroupId>4190002f-8b17-4772-bd62-8efec12c0cd0</destinationGroupId>
+            <destinationType>PROCESSOR</destinationType>
+            <countFlowFiles>false</countFlowFiles>
+            <countBytes>false</countBytes>
+            <relationship/>
+        </connection>
+    </rootGroup>
+</flowController>

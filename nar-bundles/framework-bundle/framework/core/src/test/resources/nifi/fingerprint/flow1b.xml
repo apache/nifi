@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<flowController>
+    <maxThreadCount>15</maxThreadCount>
+    <rootGroup>
+        <id>e3909250-331d-420b-a9b3-cc54ad459401</id>
+        <name>NiFi Flow</name>
+        <position x="0.0" y="0.0"/>
+        <style/>
+        <comment/>
+        <processor>
+            <id>d89ada5d-35fb-44ff-83f1-4cc00b48b2df</id>
+            <name>GenerateFlowFile</name>
+            <position x="0.0" y="0.0"/>
+            <style>processor</style>
+            <comment/>
+            <class>org.apache.nifi.processors.standard.GenerateFlowFile</class>
+            <maxConcurrentTasks>1</maxConcurrentTasks>
+            <schedulingPeriod>0 s</schedulingPeriod>
+            <lossTolerant>false</lossTolerant>
+            <running>false</running>
+            <property>
+                <name>file.size</name>
+                <value>5</value>
+            </property>
+            <annotationData/>
+        </processor>
+        <processor>
+            <id>e520797a-dddb-4930-9034-2092d3e816a6</id>
+            <name>LogAttribute</name>
+            <position x="0.0" y="0.0"/>
+            <style>processor</style>
+            <comment/>
+            <class>org.apache.nifi.processors.standard.LogAttribute</class>
+            <maxConcurrentTasks>10</maxConcurrentTasks>
+            <schedulingPeriod>0 s</schedulingPeriod>
+            <lossTolerant>false</lossTolerant>
+            <running>false</running>
+            <annotationData/>
+            <autoTerminatedRelationship>success</autoTerminatedRelationship>
+        </processor>
+        <processGroup>
+            <id>efeece05-3934-4298-a725-658eec116470</id>
+            <name>Hello2</name>
+            <position x="0.0" y="0.0"/>
+            <style>process-group</style>
+            <comment/>
+            <processor>
+                <id>34caa1d6-cf14-4ec0-9f18-12859c37d55d</id>
+                <name>LogAttribute</name>
+                <position x="0.0" y="0.0"/>
+                <style>processor</style>
+                <comment/>
+                <class>org.apache.nifi.processors.standard.LogAttribute</class>
+                <maxConcurrentTasks>1</maxConcurrentTasks>
+                <schedulingPeriod>0 s</schedulingPeriod>
+                <lossTolerant>false</lossTolerant>
+                <running>false</running>
+                <annotationData/>
+            </processor>
+            <inputPort>
+                <id>91fae6d8-ad95-47cf-aa83-a6dfc742b7cb</id>
+                <name>In</name>
+                <position x="0.0" y="0.0"/>
+                <style>input-port</style>
+                <comments>foobar</comments>
+                <running>false</running>
+            </inputPort>
+            <outputPort>
+                <id>a65695bb-a938-4d3d-bf5d-f70a335268ec</id>
+                <name>Out</name>
+                <position x="0.0" y="0.0"/>
+                <style>output-port</style>
+                <comments/>
+                <running>false</running>
+            </outputPort>
+            <connection>
+                <id>b25c3c8f-8dfe-4dda-950e-b6edfb6c99f4</id>
+                <name>In</name>
+                <bendPoints/>
+                <labelIndex>1</labelIndex>
+                <zIndex>0</zIndex>
+                <style/>
+                <sourceId>91fae6d8-ad95-47cf-aa83-a6dfc742b7cb</sourceId>
+                <sourceGroupId>efeece05-3934-4298-a725-658eec116470</sourceGroupId>
+                <sourceType>INPUT_PORT</sourceType>
+                <destinationId>34caa1d6-cf14-4ec0-9f18-12859c37d55d</destinationId>
+                <destinationGroupId>efeece05-3934-4298-a725-658eec116470</destinationGroupId>
+                <destinationType>PROCESSOR</destinationType>
+                <relationship/>
+                <maxWorkQueueSize>10</maxWorkQueueSize>
+                <flowFileExpiration>10 s</flowFileExpiration>
+            </connection>
+            <connection>
+                <id>908afab7-8777-4acf-a807-24f684f7aa9f</id>
+                <name/>
+                <bendPoints/>
+                <labelIndex>1</labelIndex>
+                <zIndex>0</zIndex>
+                <style/>
+                <sourceId>34caa1d6-cf14-4ec0-9f18-12859c37d55d</sourceId>
+                <sourceGroupId>efeece05-3934-4298-a725-658eec116470</sourceGroupId>
+                <sourceType>PROCESSOR</sourceType>
+                <destinationId>a65695bb-a938-4d3d-bf5d-f70a335268ec</destinationId>
+                <destinationGroupId>efeece05-3934-4298-a725-658eec116470</destinationGroupId>
+                <destinationType>OUTPUT_PORT</destinationType>
+                <relationship>success</relationship>
+                <maxWorkQueueSize>0</maxWorkQueueSize>
+                <flowFileExpiration>0 s</flowFileExpiration>
+            </connection>
+        </processGroup>
+        <connection>
+            <id>03f4f5bf-baa5-47fa-9b1a-b77860d67d4f</id>
+            <name/>
+            <bendPoints/>
+            <labelIndex>1</labelIndex>
+            <zIndex>0</zIndex>
+            <style/>
+            <sourceId>d89ada5d-35fb-44ff-83f1-4cc00b48b2df</sourceId>
+            <sourceGroupId>e3909250-331d-420b-a9b3-cc54ad459401</sourceGroupId>
+            <sourceType>PROCESSOR</sourceType>
+            <destinationId>91fae6d8-ad95-47cf-aa83-a6dfc742b7cb</destinationId>
+            <destinationGroupId>efeece05-3934-4298-a725-658eec116470</destinationGroupId>
+            <destinationType>INPUT_PORT</destinationType>
+            <relationship>success</relationship>
+            <maxWorkQueueSize>0</maxWorkQueueSize>
+            <flowFileExpiration>0 s</flowFileExpiration>
+        </connection>
+        <connection>
+            <id>5bd05300-f03d-4511-a13f-6a36afe2bcc5</id>
+            <name/>
+            <bendPoints/>
+            <labelIndex>1</labelIndex>
+            <zIndex>0</zIndex>
+            <style/>
+            <sourceId>a65695bb-a938-4d3d-bf5d-f70a335268ec</sourceId>
+            <sourceGroupId>efeece05-3934-4298-a725-658eec116470</sourceGroupId>
+            <sourceType>OUTPUT_PORT</sourceType>
+            <destinationId>e520797a-dddb-4930-9034-2092d3e816a6</destinationId>
+            <destinationGroupId>e3909250-331d-420b-a9b3-cc54ad459401</destinationGroupId>
+            <destinationType>PROCESSOR</destinationType>
+            <relationship/>
+            <maxWorkQueueSize>0</maxWorkQueueSize>
+            <flowFileExpiration>0 s</flowFileExpiration>
+        </connection>
+    </rootGroup>
+</flowController>

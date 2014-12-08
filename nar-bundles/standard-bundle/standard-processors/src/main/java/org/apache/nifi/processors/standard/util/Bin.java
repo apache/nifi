@@ -1,0 +1,168 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.nifi.processors.standard.util;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
+
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.ProcessSession;
+
+public class Bin {
+
+    private final long creationMomentEpochNs;
+    private final long minimumSizeBytes;
+    private final long maximumSizeBytes;
+
+    private volatile int minimumEntries = 0;
+    private volatile int maximumEntries = Integer.MAX_VALUE;
+    private final String fileCountAttribute;
+
+    final List<FlowFileSessionWrapper> binContents = new ArrayList<>();
+    long size;
+    int successiveFailedOfferings = 0;
+
+    /**
+     * Constructs a new bin
+     *
+     * @param minSizeBytes
+     * @param maxSizeBytes
+     * @param minEntries
+     * @param maxEntries
+     * @param fileCountAttribute
+     * @throws IllegalArgumentException if the min is not less than or equal to
+     * the max.
+     */
+    public Bin(final long minSizeBytes, final long maxSizeBytes, final int minEntries, final int maxEntries, final String fileCountAttribute) {
+        this.minimumSizeBytes = minSizeBytes;
+        this.maximumSizeBytes = maxSizeBytes;
+        this.minimumEntries = minEntries;
+        this.maximumEntries = maxEntries;
+        this.fileCountAttribute = fileCountAttribute;
+
+        this.creationMomentEpochNs = System.nanoTime();
+        if (minSizeBytes > maxSizeBytes) {
+            throw new IllegalArgumentException();
+        }
+    }
+
+    /**
+     * Indicates whether the bin has enough items to be considered full. This is
+     * based on whether the current size of the bin is greater than the minimum
+     * size in bytes and based on having a number of successive unsuccessful
+     * attempts to add a new item (because it is so close to the max or the size
+     * of the objects being attempted do not favor tight packing)
+     *
+     * @return true if considered full; false otherwise
+     */
+    public boolean isFull() {
+        return (((size >= minimumSizeBytes) && binContents.size() >= minimumEntries) && (successiveFailedOfferings > 5))
+                || (size >= maximumSizeBytes) || (binContents.size() >= maximumEntries);
+    }
+
+    /**
+     * Indicates enough size exists to meet the minimum requirements
+     *
+     * @return
+     */
+    public boolean isFullEnough() {
+        return isFull() || (size >= minimumSizeBytes && (binContents.size() >= minimumEntries));
+    }
+
+    /**
+     * Determines if this bin is older than the time specified.
+     *
+     * @param duration
+     * @param unit
+     * @return true if this bin is older than the length of time given; false
+     * otherwise
+     */
+    public boolean isOlderThan(final int duration, final TimeUnit unit) {
+        final long ageInNanos = System.nanoTime() - creationMomentEpochNs;
+        return ageInNanos > TimeUnit.NANOSECONDS.convert(duration, unit);
+    }
+
+    /**
+     * Determines if this bin is older than the specified bin
+     *
+     * @param other
+     * @return
+     */
+    public boolean isOlderThan(final Bin other) {
+        return creationMomentEpochNs < other.creationMomentEpochNs;
+    }
+
+    /**
+     * If this bin has enough room for the size of the given flow file then it
+     * is added otherwise it is not
+     *
+     * @param flowFile
+     * @param session the ProcessSession to which the FlowFile belongs
+     * @return true if added; false otherwise
+     */
+    public boolean offer(final FlowFile flowFile, final ProcessSession session) {
+        if (((size + flowFile.getSize()) > maximumSizeBytes) || (binContents.size() >= maximumEntries)) {
+            successiveFailedOfferings++;
+            return false;
+        }
+
+        if (fileCountAttribute != null) {
+            final String countValue = flowFile.getAttribute(fileCountAttribute);
+            final Integer count = toInteger(countValue);
+            if (count != null) {
+                this.maximumEntries = Math.min(count, this.maximumEntries);
+                this.minimumEntries = this.maximumEntries;
+            }
+        }
+
+        size += flowFile.getSize();
+        binContents.add(new FlowFileSessionWrapper(flowFile, session));
+        successiveFailedOfferings = 0;
+        return true;
+    }
+
+    private static final Pattern intPattern = Pattern.compile("\\d+");
+
+    public Integer toInteger(final String value) {
+        if (value == null) {
+            return null;
+        }
+        if (!intPattern.matcher(value).matches()) {
+            return null;
+        }
+
+        try {
+            return Integer.parseInt(value);
+        } catch (final Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * @return the underlying list of flow files within this bin
+     */
+    public List<FlowFileSessionWrapper> getContents() {
+        return binContents;
+    }
+
+    public long getBinAge() {
+        final long ageInNanos = System.nanoTime() - creationMomentEpochNs;
+        return TimeUnit.MILLISECONDS.convert(ageInNanos, TimeUnit.NANOSECONDS);
+    }
+}
