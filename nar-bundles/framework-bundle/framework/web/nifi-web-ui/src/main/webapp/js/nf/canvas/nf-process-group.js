@@ -148,24 +148,35 @@ nf.ProcessGroup = (function () {
 
         // always support selecting and navigation
         processGroup.on('dblclick', function (d) {
-            // enter this group on double click
-            nf.CanvasUtils.enterGroup(d.component.id);
-        })
+                    // enter this group on double click
+                    nf.CanvasUtils.enterGroup(d.component.id);
+                })
                 .call(nf.Selectable.activate).call(nf.ContextMenu.activate);
 
         // only support dragging, connection, and drag and drop if appropriate
         if (nf.Common.isDFM()) {
             processGroup
-                    //Using mouseover/out to workaround chrom issue #122746
+                    // Using mouseover/out to workaround chrome issue #122746
                     .on('mouseover.drop', function (d) {
+                        // get the target and ensure its not already been marked for drop
                         var target = d3.select(this);
-
-                        //mark that we are hovering over a drop area if appropriate 
-                        if (!target.classed('drop') && !d3.select('rect.drag-selection').empty()) {
-                            target.classed('drop', function () {
-                                //get the current selection and ensure its disconnected
-                                return nf.CanvasUtils.isDisconnected(nf.CanvasUtils.getSelection());
-                            });
+                        if (!target.classed('drop')) {
+                            var targetData = target.datum();
+                            
+                            // see if there is a selection being dragged
+                            var selection = d3.select('rect.drag-selection');
+                            if (!selection.empty()) {
+                                var selectionData = selection.datum();
+                                
+                                // ensure what is being dragged isn't the target
+                                if (targetData.component.id !== selectionData.component.id) {
+                                    // mark that we are hovering over a drop area if appropriate 
+                                    target.classed('drop', function () {
+                                        // get the current selection and ensure its disconnected
+                                        return nf.CanvasUtils.isDisconnected(nf.CanvasUtils.getSelection());
+                                    });
+                                }
+                            }
                         }
                     })
                     .on('mouseout.drop', function (d) {
