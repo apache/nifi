@@ -198,8 +198,6 @@ nf.Canvas = (function () {
 
         // create the canvas
         svg = d3.select('#canvas-container').append('svg')
-                .attr('width', canvasContainer.width())
-                .attr('height', canvasContainer.height())
                 .on('contextmenu', function () {
                     // reset the canvas click flag
                     canvasClicked = false;
@@ -213,14 +211,6 @@ nf.Canvas = (function () {
                     // prevent default browser behavior
                     d3.event.preventDefault();
                 });
-
-        // listen for browser resize events to update the svg
-        $(window).resize(function () {
-            svg.attr({
-                'width': canvasContainer.width(),
-                'height': canvasContainer.height()
-            });
-        });
 
         // create the definitions element
         var defs = svg.append('defs');
@@ -470,13 +460,22 @@ nf.Canvas = (function () {
                 bottom = footer.height();
             }
 
-            var graph = $('#canvas-container');
-            var top = parseInt(graph.css('top'), 10);
+            // calculate size
+            var top = parseInt(canvasContainer.css('top'), 10);
             var windowHeight = $(window).height();
-            var graphHeight = (windowHeight - (bottom + top));
-            graph.css('height', graphHeight + 'px');
-            graph.css('bottom', bottom + 'px');
+            var canvasHeight = (windowHeight - (bottom + top));
+            
+            // canvas/svg
+            canvasContainer.css({
+                'height': canvasHeight + 'px',
+                'bottom': bottom + 'px'
+            });
+            svg.attr({
+                'height': canvasContainer.height(),
+                'width': canvasContainer.width()
+            });
 
+            // body
             $('#canvas-body').css({
                 'height': windowHeight + 'px',
                 'width': $(window).width() + 'px'
