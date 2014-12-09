@@ -30,7 +30,6 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -250,7 +249,13 @@ public class RunNiFi {
 			builder.directory(new File(specifiedWorkingDir));
 		}
 
-		final File workingDir = builder.directory();
+		final File bootstrapConfigAbsoluteFile = bootstrapConfigFile.getAbsoluteFile();
+		final File binDir = bootstrapConfigAbsoluteFile.getParentFile();
+		final File workingDir = binDir.getParentFile();
+		
+		if ( specifiedWorkingDir == null ) {
+			builder.directory(workingDir);
+		}
 		
 		final String libFilename = replaceNull(props.get("lib.dir"), "./lib").trim();
 		File libDir = getFile(libFilename, workingDir);
@@ -295,13 +300,10 @@ public class RunNiFi {
 			throw new RuntimeException("Could not find conf directory at " + confDir.getAbsolutePath());
 		}
 
-		final Path workingDirPath = workingDir.toPath();
 		final List<String> cpFiles = new ArrayList<>(confFiles.length + libFiles.length);
 		cpFiles.add(confDir.getAbsolutePath());
 		for ( final File file : libFiles ) {
-			final Path path = workingDirPath.relativize(file.toPath());
-			final String cpPath = path.toString();
-			cpFiles.add(cpPath);
+			cpFiles.add(file.getAbsolutePath());
 		}
 		
 		final StringBuilder classPathBuilder = new StringBuilder();
@@ -380,12 +382,12 @@ public class RunNiFi {
 	}
 	
 	private File getFile(final String filename, final File workingDir) {
-		File libDir = new File(filename);
-		if ( !libDir.isAbsolute() ) {
-			libDir = new File(workingDir, filename);
+		File file = new File(filename);
+		if ( !file.isAbsolute() ) {
+			file = new File(workingDir, filename);
 		}
 		
-		return libDir;
+		return file;
 	}
 	
 	private String replaceNull(final String value, final String replacement) {
