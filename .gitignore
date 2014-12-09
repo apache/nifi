@@ -1,6 +1,7 @@
 target
 .project
 .settings
+.classpath
 nbactions.xml
 .DS_Store
 
