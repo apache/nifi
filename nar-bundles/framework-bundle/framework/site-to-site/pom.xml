@@ -54,6 +54,10 @@
             <artifactId>jersey-client</artifactId>
         </dependency>
         <dependency>
+            <groupId>javax.mail</groupId>
+            <artifactId>mail</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-web-utils</artifactId>
         </dependency>
