@@ -2,6 +2,7 @@ target
 .project
 .settings
 nbactions.xml
+.DS_Store
 
 # Intellij
 .idea/
