@@ -332,41 +332,41 @@ nf.Canvas = (function () {
 
         // handle canvas events
         svg.on('mousedown.selection', function () {
-            canvasClicked = true;
+                    canvasClicked = true;
 
-            if (d3.event.button !== 0) {
-                // prevent further propagation (to parents and others handlers 
-                // on the same element to prevent zoom behavior)
-                d3.event.stopImmediatePropagation();
-                return;
-            }
+                    if (d3.event.button !== 0) {
+                        // prevent further propagation (to parents and others handlers 
+                        // on the same element to prevent zoom behavior)
+                        d3.event.stopImmediatePropagation();
+                        return;
+                    }
 
-            // show selection box if control is held down
-            if (d3.event.ctrlKey) {
-                var position = d3.mouse(canvas.node());
-                canvas.append('rect')
-                        .attr('rx', 6)
-                        .attr('ry', 6)
-                        .attr('x', position[0])
-                        .attr('y', position[1])
-                        .attr('class', 'selection')
-                        .attr('width', 0)
-                        .attr('height', 0)
-                        .attr('stroke-width', function () {
-                            return 1 / nf.Canvas.View.scale();
-                        })
-                        .attr('stroke-dasharray', function () {
-                            return 4 / nf.Canvas.View.scale();
-                        })
-                        .datum(position);
+                    // show selection box if shift is held down
+                    if (d3.event.shiftKey) {
+                        var position = d3.mouse(canvas.node());
+                        canvas.append('rect')
+                                .attr('rx', 6)
+                                .attr('ry', 6)
+                                .attr('x', position[0])
+                                .attr('y', position[1])
+                                .attr('class', 'selection')
+                                .attr('width', 0)
+                                .attr('height', 0)
+                                .attr('stroke-width', function () {
+                                    return 1 / nf.Canvas.View.scale();
+                                })
+                                .attr('stroke-dasharray', function () {
+                                    return 4 / nf.Canvas.View.scale();
+                                })
+                                .datum(position);
 
-                // prevent further propagation (to parents)
-                d3.event.stopPropagation();
-            }
-        })
+                        // prevent further propagation (to parents)
+                        d3.event.stopPropagation();
+                    }
+                })
                 .on('mousemove.selection', function () {
-                    // update selection box if control is held down
-                    if (d3.event.ctrlKey) {
+                    // update selection box if shift is held down
+                    if (d3.event.shiftKey) {
                         // get the selection box
                         var selectionBox = d3.select('rect.selection');
                         if (!selectionBox.empty()) {
@@ -492,7 +492,7 @@ nf.Canvas = (function () {
                 return;
             }
 
-            if (evt.ctrlKey === true) {
+            if (evt.ctrlKey || evt.metaKey) {
                 if (evt.keyCode === 82) {
                     // ctrl-r
                     nf.Actions.reloadStatus();
