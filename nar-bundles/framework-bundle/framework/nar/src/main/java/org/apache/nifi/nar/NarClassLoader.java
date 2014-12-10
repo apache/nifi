@@ -199,6 +199,28 @@ public class NarClassLoader extends URLClassLoader {
     }
 
     @Override
+    protected String findLibrary(final String libname) {
+        File dependencies = new File(narWorkingDirectory, "META-INF/dependencies");
+        if (!dependencies.isDirectory()) {
+            LOGGER.warn(narWorkingDirectory + " does not contain META-INF/dependencies!");
+        }
+        
+        final File nativeDir = new File(dependencies, "native");
+        final File soFile = new File(nativeDir, libname + ".so");
+        if ( soFile.exists() ) {
+            return soFile.getAbsolutePath();
+        } else {
+            final File dllFile = new File(nativeDir, libname + ".dll");
+            if ( dllFile.exists() ) {
+                return dllFile.getAbsolutePath();
+            }
+        }
+        
+        // not found in the nar. try system native dir
+        return null;
+    }
+    
+    @Override
     public String toString() {
         return NarClassLoader.class.getName() + "[" + narWorkingDirectory.getPath() + "]";
     }
