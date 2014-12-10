@@ -1,3 +1,4 @@
+@echo off
 rem
 rem    Licensed to the Apache Software Foundation (ASF) under one or more
 rem    contributor license agreements.  See the NOTICE file distributed with
@@ -15,18 +16,17 @@ rem    See the License for the specific language governing permissions and
 rem    limitations under the License.
 rem
 
-@echo off
 
 rem Use JAVA_HOME if it's set; otherwise, just use java
 IF "%JAVA_HOME%"=="" (SET JAVA_EXE=java) ELSE (SET JAVA_EXE=%JAVA_HOME%\bin\java.exe)
 
-SET LIB_DIR=%~dp0..\lib
+SET LIB_DIR=%~dp0..\lib\bootstrap
 SET CONF_DIR=%~dp0..\conf
 
 SET BOOTSTRAP_CONF_FILE=%CONF_DIR%\bootstrap.conf
 SET JAVA_ARGS=-Dorg.apache.nifi.bootstrap.config.file=%BOOTSTRAP_CONF_FILE%
 
-SET JAVA_PARAMS=-cp %LIB_DIR%\nifi-bootstrap*.jar -Xms12m -Xmx24m %JAVA_ARGS% org.apache.nifi.bootstrap.RunNiFi
+SET JAVA_PARAMS=-cp %LIB_DIR%\* -Xms12m -Xmx24m %JAVA_ARGS% org.apache.nifi.bootstrap.RunNiFi
 SET BOOTSTRAP_ACTION=run
 
 cmd.exe /C "%JAVA_EXE%" %JAVA_PARAMS% %BOOTSTRAP_ACTION%

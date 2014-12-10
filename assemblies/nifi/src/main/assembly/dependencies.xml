@@ -27,6 +27,18 @@
             <scope>runtime</scope>
             <outputDirectory>lib</outputDirectory>
             <useTransitiveFiltering>true</useTransitiveFiltering>
+            <excludes>
+            	<exclude>nifi-bootstrap</exclude>
+            </excludes>
+        </dependencySet>
+        
+        <dependencySet>
+            <scope>runtime</scope>
+            <outputDirectory>lib/bootstrap</outputDirectory>
+            <useTransitiveFiltering>true</useTransitiveFiltering>
+            <includes>
+            	<include>nifi-bootstrap</include>
+            </includes>
         </dependencySet>
     </dependencySets>
 
