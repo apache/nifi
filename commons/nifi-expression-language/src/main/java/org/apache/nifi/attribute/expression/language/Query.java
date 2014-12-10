@@ -569,29 +569,33 @@ public class Query {
             return new EmptyPreparedQuery(query.replace("$$", "$"));
         }
 
-        final List<String> substrings = new ArrayList<>();
-        final Map<String, Tree> trees = new HashMap<>();
-
-        int lastIndex = 0;
-        for (final Range range : ranges) {
-            if (range.getStart() > lastIndex) {
-                substrings.add(query.substring(lastIndex, range.getStart()).replace("$$", "$"));
+        try {
+            final List<String> substrings = new ArrayList<>();
+            final Map<String, Tree> trees = new HashMap<>();
+    
+            int lastIndex = 0;
+            for (final Range range : ranges) {
+                if (range.getStart() > lastIndex) {
+                    substrings.add(query.substring(lastIndex, range.getStart()).replace("$$", "$"));
+                    lastIndex = range.getEnd() + 1;
+                }
+    
+                final String treeText = query.substring(range.getStart(), range.getEnd() + 1).replace("$$", "$");
+                substrings.add(treeText);
+                trees.put(treeText, Query.compileTree(treeText));
                 lastIndex = range.getEnd() + 1;
             }
-
-            final String treeText = query.substring(range.getStart(), range.getEnd() + 1).replace("$$", "$");
-            substrings.add(treeText);
-            trees.put(treeText, Query.compileTree(treeText));
-            lastIndex = range.getEnd() + 1;
+    
+            final Range lastRange = ranges.get(ranges.size() - 1);
+            if (lastRange.getEnd() + 1 < query.length()) {
+                final String treeText = query.substring(lastRange.getEnd() + 1).replace("$$", "$");
+                substrings.add(treeText);
+            }
+    
+            return new StandardPreparedQuery(substrings, trees);
+        } catch (final AttributeExpressionLanguageParsingException e) {
+            return new InvalidPreparedQuery(query, e.getMessage());
         }
-
-        final Range lastRange = ranges.get(ranges.size() - 1);
-        if (lastRange.getEnd() + 1 < query.length()) {
-            final String treeText = query.substring(lastRange.getEnd() + 1).replace("$$", "$");
-            substrings.add(treeText);
-        }
-
-        return new StandardPreparedQuery(substrings, trees);
     }
 
     public static Query compile(final String query) throws AttributeExpressionLanguageParsingException {
