@@ -397,7 +397,11 @@ public class RunNiFi {
 					} catch (final InterruptedException ie) {
 					}
 				} else {
-					runtime.removeShutdownHook(shutdownHook);
+				    try {
+				        runtime.removeShutdownHook(shutdownHook);
+				    } catch (final IllegalStateException ise) {
+				        // happens when already shutting down
+				    }
 					
 					if (autoRestartNiFi) {
 						System.out.println("Apache NiFi appears to have died. Restarting...");
