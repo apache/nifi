@@ -138,6 +138,9 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                 LOG.error("", t);
             }
         }
+        
+        frameworkTaskExecutor.shutdown();
+        componentLifeCycleThreadPool.shutdown();
     }
 
     public void schedule(final ReportingTaskNode taskNode) {

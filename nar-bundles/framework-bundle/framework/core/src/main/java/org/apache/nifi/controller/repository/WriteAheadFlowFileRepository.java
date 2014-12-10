@@ -90,6 +90,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     private final long checkpointDelayMillis;
     private final Path flowFileRepositoryPath;
     private final int numPartitions;
+    private final ScheduledExecutorService checkpointExecutor;
 
     // effectively final
     private WriteAheadRepository<RepositoryRecord> wal;
@@ -128,6 +129,8 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         flowFileRepositoryPath = properties.getFlowFileRepositoryPath();
         numPartitions = properties.getFlowFileRepositoryPartitions();
         checkpointDelayMillis = FormatUtils.getTimeDuration(properties.getFlowFileRepositoryCheckpointInterval(), TimeUnit.MILLISECONDS);
+        
+        checkpointExecutor = Executors.newSingleThreadScheduledExecutor();
     }
 
     @Override
@@ -150,6 +153,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
             checkpointFuture.cancel(false);
         }
 
+        checkpointExecutor.shutdown();
         wal.shutdown();
     }
 
@@ -363,8 +367,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
             }
         };
 
-        final ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
-        checkpointFuture = executorService.scheduleWithFixedDelay(checkpointRunnable, checkpointDelayMillis, checkpointDelayMillis, TimeUnit.MILLISECONDS);
+        checkpointFuture = checkpointExecutor.scheduleWithFixedDelay(checkpointRunnable, checkpointDelayMillis, checkpointDelayMillis, TimeUnit.MILLISECONDS);
 
         return maxId;
     }
