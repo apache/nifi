@@ -50,6 +50,11 @@ if [ "x$JAVA_MAX_PERMSIZE" = "x" ]; then
     export JAVA_MAX_PERMSIZE
 fi
 
+#
+#Readlink is not available on all systems. Change variable to appropriate alternative as part of OS detection
+#
+
+READLINK="readlink"
 
 warn() {
     echo "${PROGNAME}: $*"
@@ -65,6 +70,7 @@ detectOS() {
     cygwin=false;
     aix=false;
     os400=false;
+    darwin=false;
     case "`uname`" in
         CYGWIN*)
             cygwin=true
@@ -75,11 +81,17 @@ detectOS() {
         OS400*)
             os400=true
             ;;
+        Darwin)
+        	darwin=true
+        	;;
     esac
     # For AIX, set an environment variable
     if $aix; then
          export LDR_CNTRL=MAXDATA=0xB0000000@DSA
          echo $LDR_CNTRL
+    fi
+    if $darwin; then
+    	READLINK="greadlink"
     fi
 }
 
@@ -118,8 +130,8 @@ locateHome() {
 
     # In POSIX shells, CDPATH may cause cd to write to stdout
     (unset CDPATH) >/dev/null 2>&1 && unset CDPATH
-    NIFI_HOME=$(dirname $(readlink -f $0))/../
-    NIFI_HOME=$(readlink -f $NIFI_HOME)
+    NIFI_HOME=$(dirname $($READLINK -f $0))/../
+    NIFI_HOME=$($READLINK -f $NIFI_HOME)
     cd $NIFI_HOME
     echo "Directory changed to NIFI_HOME of '$NIFI_HOME'"
     if [ ! -d "$NIFI_HOME" ]; then

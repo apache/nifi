@@ -462,6 +462,7 @@ nf.ProcessorDetails = (function () {
 
                             // determine the property type
                             var type = 'userDefined';
+                            var displayName = name;
                             if (nf.Common.isDefinedAndNotNull(descriptor)) {
                                 if (descriptor.required === true) {
                                     type = 'required';
@@ -470,17 +471,20 @@ nf.ProcessorDetails = (function () {
                                 } else {
                                     type = 'optional';
                                 }
-                            }
-
-                            // determine the value
-                            if (nf.Common.isUndefined(value) || nf.Common.isNull(value)) {
-                                value = descriptor.defaultValue;
+                                
+                                // use the display name if possible
+                                displayName = descriptor.displayName;
+                                
+                                // determine the value
+                                if (nf.Common.isUndefined(value) || nf.Common.isNull(value)) {
+                                    value = descriptor.defaultValue;
+                                }
                             }
 
                             // add the row
                             propertyData.addItem({
                                 id: i++,
-                                property: name,
+                                property: displayName,
                                 value: value,
                                 type: type
                             });
