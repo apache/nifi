@@ -160,18 +160,13 @@ nf.ProcessorPropertyNfelEditor = function (args) {
                 // otherwise if the property is required
                 if (nf.ProcessorPropertyTable.isRequiredProperty(propertyDescriptor)) {
                     if (nf.Common.isBlank(propertyDescriptor.defaultValue)) {
-                        // reset to the previous value if available
-                        if (nf.Common.isDefinedAndNotNull(previousValue)) {
-                            return previousValue;
-                        } else {
-                            return undefined;
-                        }
+                        return previousValue;
                     } else {
                         return propertyDescriptor.defaultValue;
                     }
                 } else {
                     // if the property is not required, clear the value
-                    return undefined;
+                    return null;
                 }
             }
         } else {

@@ -51,13 +51,15 @@ nf.ProcessorPropertyComboEditor = function (args) {
                 optionClass: 'unset'
             });
         }
-        $.each(allowableValues, function (i, allowableValue) {
-            options.push({
-                text: allowableValue.displayName,
-                value: allowableValue.value,
-                description: nf.Common.escapeHtml(allowableValue.description)
+        if ($.isArray(allowableValues)) {
+            $.each(allowableValues, function (i, allowableValue) {
+                options.push({
+                    text: allowableValue.displayName,
+                    value: allowableValue.value,
+                    description: nf.Common.escapeHtml(allowableValue.description)
+                });
             });
-        });
+        }
 
         // ensure the options there is at least one option
         if (options.length === 0) {
