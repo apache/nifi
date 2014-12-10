@@ -26,12 +26,12 @@ import java.util.concurrent.TimeUnit;
 public class ShutdownHook extends Thread {
 	private final Process nifiProcess;
 	private final RunNiFi runner;
+	private final int gracefulShutdownSeconds;
 	
-	public static final int WAIT_SECONDS = 10;
-	
-	public ShutdownHook(final Process nifiProcess, final RunNiFi runner) {
+	public ShutdownHook(final Process nifiProcess, final RunNiFi runner, final int gracefulShutdownSeconds) {
 		this.nifiProcess = nifiProcess;
 		this.runner = runner;
+		this.gracefulShutdownSeconds = gracefulShutdownSeconds;
 	}
 	
 	@Override
@@ -58,9 +58,9 @@ public class ShutdownHook extends Thread {
 		while ( isAlive(nifiProcess) ) {
 			final long waitNanos = System.nanoTime() - startWait;
 			final long waitSeconds = TimeUnit.NANOSECONDS.toSeconds(waitNanos);
-			if ( waitSeconds >= WAIT_SECONDS ) {
+			if ( waitSeconds >= gracefulShutdownSeconds && gracefulShutdownSeconds > 0 ) {
 				if ( isAlive(nifiProcess) ) {
-					System.out.println("NiFi has not finished shutting down after " + WAIT_SECONDS + " seconds. Killing process.");
+					System.out.println("NiFi has not finished shutting down after " + gracefulShutdownSeconds + " seconds. Killing process.");
 					nifiProcess.destroy();
 				}
 				break;
@@ -73,7 +73,7 @@ public class ShutdownHook extends Thread {
 		
 		final File statusFile = runner.getStatusFile();
 		if ( !statusFile.delete() ) {
-			System.err.println("Failed to delete status file " + statusFile.getAbsolutePath());
+			System.err.println("Failed to delete status file " + statusFile.getAbsolutePath() + "; this file should be cleaned up manually");
 		}
 	}
 	

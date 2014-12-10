@@ -24,6 +24,7 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
@@ -38,8 +39,8 @@ public class BootstrapListener {
 	private final NiFi nifi;
 	private final int bootstrapPort;
 
-	private Listener listener;
-	private ServerSocket serverSocket;
+	private volatile Listener listener;
+	private volatile ServerSocket serverSocket;
 	
 	
 	public BootstrapListener(final NiFi nifi, final int port) {
@@ -52,12 +53,14 @@ public class BootstrapListener {
 		
 		serverSocket = new ServerSocket();
 		serverSocket.bind(new InetSocketAddress("localhost", 0));
+		serverSocket.setSoTimeout(2000);
 		
 		final int localPort = serverSocket.getLocalPort();
 		logger.info("Started Bootstrap Listener, Listening for incoming requests on port {}", localPort);
 		
 		listener = new Listener(serverSocket);
 		final Thread listenThread = new Thread(listener);
+		listenThread.setDaemon(true);
 		listenThread.setName("Listen to Bootstrap");
 		listenThread.start();
 		
@@ -114,15 +117,17 @@ public class BootstrapListener {
 		
 		@Override
 		public void run() {
-			while (!serverSocket.isClosed()) {
+			while (!stopped) {
 				try {
-					if ( stopped ) {
-						return;
-					}
-					
 					final Socket socket;
 					try {
 						socket = serverSocket.accept();
+					} catch (final SocketTimeoutException ste) {
+						if ( stopped ) {
+							return;
+						}
+						
+						continue;
 					} catch (final IOException ioe) {
 						if ( stopped ) {
 							return;

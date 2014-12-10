@@ -48,6 +48,7 @@ public class NiFi {
     private final BootstrapListener bootstrapListener;
     
     public static final String BOOTSTRAP_PORT_PROPERTY = "nifi.bootstrap.listen.port";
+    private volatile boolean shutdown = false;
 
     public NiFi(final NiFiProperties properties) throws ClassNotFoundException, IOException, NoSuchMethodException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
         Thread.setDefaultUncaughtExceptionHandler(new UncaughtExceptionHandler() {
@@ -126,13 +127,21 @@ public class NiFi {
         final long startTime = System.nanoTime();
         nifiServer = (NiFiServer) jettyConstructor.newInstance(properties);
         nifiServer.setExtensionMapping(extensionMapping);
-        nifiServer.start();
-        final long endTime = System.nanoTime();
-        logger.info("Controller initialization took " + (endTime - startTime) + " nanoseconds.");
+        
+        if ( shutdown ) {
+        	logger.info("NiFi has been shutdown via NiFi Bootstrap. Will not start Controller");
+        } else {
+	        nifiServer.start();
+	        
+	        final long endTime = System.nanoTime();
+	        logger.info("Controller initialization took " + (endTime - startTime) + " nanoseconds.");
+        }
     }
 
     protected void shutdownHook() {
         try {
+        	this.shutdown = true;
+        	
             logger.info("Initiating shutdown of Jetty web server...");
             if (nifiServer != null) {
                 nifiServer.stop();

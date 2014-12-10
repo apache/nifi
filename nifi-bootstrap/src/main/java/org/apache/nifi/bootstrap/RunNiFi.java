@@ -57,6 +57,9 @@ public class RunNiFi {
 	public static final String DEFAULT_CONFIG_FILE = "./conf/boostrap.conf";
 	public static final String DEFAULT_NIFI_PROPS_FILE = "./conf/nifi.properties";
 
+	public static final String GRACEFUL_SHUTDOWN_PROP = "graceful.shutdown.seconds";
+	public static final String DEFAULT_GRACEFUL_SHUTDOWN_VALUE = "20";
+	
 	public static final int MAX_RESTART_ATTEMPTS = 5;
 	public static final int STARTUP_WAIT_SECONDS = 60;
 	
@@ -85,6 +88,7 @@ public class RunNiFi {
 		System.out.println("Start : Start a new instance of Apache NiFi");
 		System.out.println("Stop : Stop a running instance of Apache NiFi");
 		System.out.println("Status : Determine if there is a running instance of Apache NiFi");
+		System.out.println("Run : Start a new instance of Apache NiFi and monitor the Process, restarting if the instance dies");
 		System.out.println();
 	}
 	
@@ -96,6 +100,7 @@ public class RunNiFi {
 		
 		switch (args[0].toLowerCase()) {
 			case "start":
+			case "run":
 			case "stop":
 			case "status":
 				break;
@@ -127,7 +132,10 @@ public class RunNiFi {
 		
 		switch (args[0].toLowerCase()) {
 			case "start":
-				runNiFi.start();
+				runNiFi.start(false);
+				break;
+			case "run":
+				runNiFi.start(true);
 				break;
 			case "stop":
 				runNiFi.stop();
@@ -140,8 +148,10 @@ public class RunNiFi {
 	
 	
 	public File getStatusFile() {
-		final File rootDir = bootstrapConfigFile.getParentFile();
-		final File statusFile = new File(rootDir, "nifi.port");
+		final File confDir = bootstrapConfigFile.getParentFile();
+		final File nifiHome = confDir.getParentFile();
+		final File bin = new File(nifiHome, "bin");
+		final File statusFile = new File(bin, "nifi.port");
 		return statusFile;
 	}
 
@@ -165,11 +175,7 @@ public class RunNiFi {
 					return port;
 				}
 			} catch (final IOException ioe) {
-				System.out.println("Found NiFi instance info at " + statusFile + " but information appears to be stale. Removing file.");
-				if ( !statusFile.delete() ) {
-					System.err.println("Unable to remove status file");
-				}
-				
+				System.out.println("Found NiFi instance info at " + statusFile + " indicating that NiFi is running and listening to port " + port + " but unable to communicate with NiFi on that port. The process may have died or may be hung.");
 				throw ioe;
 			}
 		} catch (final Exception e) {
@@ -212,6 +218,11 @@ public class RunNiFi {
 			final String response = reader.readLine();
 			if ( SHUTDOWN_CMD.equals(response) ) {
 				System.out.println("Apache NiFi has accepted the Shutdown Command and is shutting down now");
+				
+				final File statusFile = getStatusFile();
+				if ( !statusFile.delete() ) {
+					System.err.println("Failed to delete status file " + statusFile + "; this file should be cleaned up manually");
+				}
 			} else {
 				System.err.println("When sending SHUTDOWN command to NiFi, got unexpected response " + response);
 			}
@@ -222,8 +233,17 @@ public class RunNiFi {
 	}
 	
 	
+	private boolean isAlive(final Process process) {
+		try {
+			process.exitValue();
+			return false;
+		} catch (final IllegalThreadStateException itse) {
+			return true;
+		}
+	}
+	
 	@SuppressWarnings({ "rawtypes", "unchecked" })
-	public void start() throws IOException, InterruptedException {
+	public void start(final boolean monitor) throws IOException, InterruptedException {
 		final Integer port = getCurrentPort();
 		if ( port != null ) {
 			System.out.println("Apache NiFi is already running, listening on port " + port);
@@ -344,16 +364,71 @@ public class RunNiFi {
 		System.out.println("Working Directory: " + workingDir.getAbsolutePath());
 		System.out.println("Command: " + cmdBuilder.toString());
 		
-		builder.start();
-		boolean started = waitForStart();
-		
-		if ( started ) {
-			System.out.println("Successfully started Apache NiFi");
+		if ( monitor ) {
+			String gracefulShutdown = props.get(GRACEFUL_SHUTDOWN_PROP);
+			if ( gracefulShutdown == null ) {
+				gracefulShutdown = DEFAULT_GRACEFUL_SHUTDOWN_VALUE;
+			}
+
+			final int gracefulShutdownSeconds;
+			try {
+				gracefulShutdownSeconds = Integer.parseInt(gracefulShutdown);
+			} catch (final NumberFormatException nfe) {
+				throw new NumberFormatException("The '" + GRACEFUL_SHUTDOWN_PROP + "' property in Boostrap Config File " + bootstrapConfigAbsoluteFile.getAbsolutePath() + " has an invalid value. Must be a non-negative integer");
+			}
+			
+			if ( gracefulShutdownSeconds < 0 ) {
+				throw new NumberFormatException("The '" + GRACEFUL_SHUTDOWN_PROP + "' property in Boostrap Config File " + bootstrapConfigAbsoluteFile.getAbsolutePath() + " has an invalid value. Must be a non-negative integer");
+			}
+			
+			Process process = builder.start();
+			
+			ShutdownHook shutdownHook = new ShutdownHook(process, this, gracefulShutdownSeconds);
+			final Runtime runtime = Runtime.getRuntime();
+			runtime.addShutdownHook(shutdownHook);
+			
+			while (true) {
+				final boolean alive = isAlive(process);
+				
+				if ( alive ) {
+					try {
+						Thread.sleep(1000L);
+					} catch (final InterruptedException ie) {
+					}
+				} else {
+					runtime.removeShutdownHook(shutdownHook);
+					
+					if (autoRestartNiFi) {
+						System.out.println("Apache NiFi appears to have died. Restarting...");
+						process = builder.start();
+						
+						shutdownHook = new ShutdownHook(process, this, gracefulShutdownSeconds);
+						runtime.addShutdownHook(shutdownHook);
+						
+						final boolean started = waitForStart();
+						
+						if ( started ) {
+							System.out.println("Successfully started Apache NiFi");
+						} else {
+							System.err.println("Apache NiFi does not appear to have started");
+						}
+					} else {
+						return;
+					}
+				}
+			}
 		} else {
-			System.err.println("Apache NiFi does not appear to have started");
+			builder.start();
+			boolean started = waitForStart();
+			
+			if ( started ) {
+				System.out.println("Successfully started Apache NiFi");
+			} else {
+				System.err.println("Apache NiFi does not appear to have started");
+			}
+			
+			listener.stop();
 		}
-		
-		listener.stop();
 	}
 	
 	
