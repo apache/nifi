@@ -160,7 +160,7 @@ nf.Connectable = (function () {
         activate: function (components) {
             components
                     .on('mouseenter.connectable', function (d) {
-                        if (!d3.event.ctrlKey && d3.select('rect.drag-selection').empty()) {
+                        if (!d3.event.shiftKey && d3.select('rect.drag-selection').empty()) {
                             var selection = d3.select(this);
 
                             // ensure the current component supports connection source
@@ -192,12 +192,12 @@ nf.Connectable = (function () {
                             connector.remove();
                         }
                     })
-                    //Using mouseover/out to workaround chrom issue #122746
+                    // Using mouseover/out to workaround chrome issue #122746
                     .on('mouseover.connectable', function () {
-                        //mark that we are hovering when appropriate
+                        // mark that we are hovering when appropriate
                         var selection = d3.select(this);
                         selection.classed('hover', function () {
-                            return !d3.event.ctrlKey && !selection.classed('hover') && d3.select('rect.drag-selection').empty();
+                            return !d3.event.shiftKey && !selection.classed('hover') && d3.select('rect.drag-selection').empty();
                         });
                     })
                     .on('mouseout.connection', function () {

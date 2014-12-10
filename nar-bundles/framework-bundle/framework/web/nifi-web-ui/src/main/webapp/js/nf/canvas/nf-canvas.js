@@ -198,8 +198,6 @@ nf.Canvas = (function () {
 
         // create the canvas
         svg = d3.select('#canvas-container').append('svg')
-                .attr('width', canvasContainer.width())
-                .attr('height', canvasContainer.height())
                 .on('contextmenu', function () {
                     // reset the canvas click flag
                     canvasClicked = false;
@@ -213,14 +211,6 @@ nf.Canvas = (function () {
                     // prevent default browser behavior
                     d3.event.preventDefault();
                 });
-
-        // listen for browser resize events to update the svg
-        $(window).resize(function () {
-            svg.attr({
-                'width': canvasContainer.width(),
-                'height': canvasContainer.height()
-            });
-        });
 
         // create the definitions element
         var defs = svg.append('defs');
@@ -332,41 +322,41 @@ nf.Canvas = (function () {
 
         // handle canvas events
         svg.on('mousedown.selection', function () {
-            canvasClicked = true;
+                    canvasClicked = true;
 
-            if (d3.event.button !== 0) {
-                // prevent further propagation (to parents and others handlers 
-                // on the same element to prevent zoom behavior)
-                d3.event.stopImmediatePropagation();
-                return;
-            }
+                    if (d3.event.button !== 0) {
+                        // prevent further propagation (to parents and others handlers 
+                        // on the same element to prevent zoom behavior)
+                        d3.event.stopImmediatePropagation();
+                        return;
+                    }
 
-            // show selection box if control is held down
-            if (d3.event.ctrlKey) {
-                var position = d3.mouse(canvas.node());
-                canvas.append('rect')
-                        .attr('rx', 6)
-                        .attr('ry', 6)
-                        .attr('x', position[0])
-                        .attr('y', position[1])
-                        .attr('class', 'selection')
-                        .attr('width', 0)
-                        .attr('height', 0)
-                        .attr('stroke-width', function () {
-                            return 1 / nf.Canvas.View.scale();
-                        })
-                        .attr('stroke-dasharray', function () {
-                            return 4 / nf.Canvas.View.scale();
-                        })
-                        .datum(position);
+                    // show selection box if shift is held down
+                    if (d3.event.shiftKey) {
+                        var position = d3.mouse(canvas.node());
+                        canvas.append('rect')
+                                .attr('rx', 6)
+                                .attr('ry', 6)
+                                .attr('x', position[0])
+                                .attr('y', position[1])
+                                .attr('class', 'selection')
+                                .attr('width', 0)
+                                .attr('height', 0)
+                                .attr('stroke-width', function () {
+                                    return 1 / nf.Canvas.View.scale();
+                                })
+                                .attr('stroke-dasharray', function () {
+                                    return 4 / nf.Canvas.View.scale();
+                                })
+                                .datum(position);
 
-                // prevent further propagation (to parents)
-                d3.event.stopPropagation();
-            }
-        })
+                        // prevent further propagation (to parents)
+                        d3.event.stopPropagation();
+                    }
+                })
                 .on('mousemove.selection', function () {
-                    // update selection box if control is held down
-                    if (d3.event.ctrlKey) {
+                    // update selection box if shift is held down
+                    if (d3.event.shiftKey) {
                         // get the selection box
                         var selectionBox = d3.select('rect.selection');
                         if (!selectionBox.empty()) {
@@ -470,13 +460,22 @@ nf.Canvas = (function () {
                 bottom = footer.height();
             }
 
-            var graph = $('#canvas-container');
-            var top = parseInt(graph.css('top'), 10);
+            // calculate size
+            var top = parseInt(canvasContainer.css('top'), 10);
             var windowHeight = $(window).height();
-            var graphHeight = (windowHeight - (bottom + top));
-            graph.css('height', graphHeight + 'px');
-            graph.css('bottom', bottom + 'px');
+            var canvasHeight = (windowHeight - (bottom + top));
+            
+            // canvas/svg
+            canvasContainer.css({
+                'height': canvasHeight + 'px',
+                'bottom': bottom + 'px'
+            });
+            svg.attr({
+                'height': canvasContainer.height(),
+                'width': canvasContainer.width()
+            });
 
+            // body
             $('#canvas-body').css({
                 'height': windowHeight + 'px',
                 'width': $(window).width() + 'px'
@@ -492,7 +491,7 @@ nf.Canvas = (function () {
                 return;
             }
 
-            if (evt.ctrlKey === true) {
+            if (evt.ctrlKey || evt.metaKey) {
                 if (evt.keyCode === 82) {
                     // ctrl-r
                     nf.Actions.reloadStatus();

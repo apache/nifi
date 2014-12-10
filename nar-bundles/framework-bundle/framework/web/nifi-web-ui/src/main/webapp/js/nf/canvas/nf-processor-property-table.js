@@ -475,11 +475,11 @@ nf.ProcessorPropertyTable = (function () {
 
                         // use the display name if possible
                         displayName = descriptor.displayName;
-                    }
-
-                    // determine the value
-                    if (nf.Common.isUndefined(value) || nf.Common.isNull(value)) {
-                        value = descriptor.defaultValue;
+                        
+                        // determine the value
+                        if (nf.Common.isUndefined(value) || nf.Common.isNull(value)) {
+                            value = descriptor.defaultValue;
+                        }
                     }
 
                     // add the row
