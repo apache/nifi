@@ -24,7 +24,7 @@
         ${nf.bulletin.board.style.tags}
         <link rel="stylesheet" href="js/jquery/combo/jquery.combo.css?${project.version}" type="text/css" />
         <link rel="stylesheet" href="js/jquery/modal/jquery.modal.css?${project.version}" type="text/css" />
-        <link rel="stylesheet" href="js/jquery/qtip2/jquery.qtip.css?" type="text/css" />
+        <link rel="stylesheet" href="js/jquery/qtip2/jquery.qtip.min.css?" type="text/css" />
         <link rel="stylesheet" href="js/jquery/css/smoothness/jquery-ui-1.8.10.custom.css" type="text/css" />
         <script type="text/javascript" src="js/jquery/jquery-1.7.min.js"></script>
         <script type="text/javascript" src="js/jquery/jquery.center.js"></script>
