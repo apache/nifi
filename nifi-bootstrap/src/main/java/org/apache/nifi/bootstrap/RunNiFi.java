@@ -54,7 +54,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * If the {@code bootstrap.conf} file cannot be found, throws a {@code FileNotFoundException].
  */
 public class RunNiFi {
-	public static final String DEFAULT_CONFIG_FILE = "./conf/boostrap.conf";
+	public static final String DEFAULT_CONFIG_FILE = "./conf/bootstrap.conf";
 	public static final String DEFAULT_NIFI_PROPS_FILE = "./conf/nifi.properties";
 
 	public static final String GRACEFUL_SHUTDOWN_PROP = "graceful.shutdown.seconds";
@@ -111,7 +111,7 @@ public class RunNiFi {
 				return;
 		}
 		
-		String configFilename = System.getProperty("org.apache.nifi.boostrap.config.file");
+		String configFilename = System.getProperty("org.apache.nifi.bootstrap.config.file");
 		
 		if ( configFilename == null ) {
 			final String nifiHome = System.getenv("NIFI_HOME");
@@ -233,11 +233,11 @@ public class RunNiFi {
 	}
 	
 	
-	private boolean isAlive(final Process process) {
+	public static boolean isAlive(final Process process) {
 		try {
 			process.exitValue();
 			return false;
-		} catch (final IllegalThreadStateException itse) {
+		} catch (final IllegalStateException | IllegalThreadStateException itse) {
 			return true;
 		}
 	}
@@ -253,7 +253,7 @@ public class RunNiFi {
 		final ProcessBuilder builder = new ProcessBuilder();
 
 		if ( !bootstrapConfigFile.exists() ) {
-			throw new FileNotFoundException(DEFAULT_CONFIG_FILE);
+			throw new FileNotFoundException(bootstrapConfigFile.getAbsolutePath());
 		}
 		
 		final Properties properties = new Properties();
@@ -351,6 +351,7 @@ public class RunNiFi {
 		cmd.addAll(javaAdditionalArgs);
 		cmd.add("-Dnifi.properties.file.path=" + nifiPropsFilename);
 		cmd.add("-Dnifi.bootstrap.listen.port=" + listenPort);
+		cmd.add("-Dapp=NiFi");
 		cmd.add("org.apache.nifi.NiFi");
 		
 		builder.command(cmd);
@@ -374,11 +375,11 @@ public class RunNiFi {
 			try {
 				gracefulShutdownSeconds = Integer.parseInt(gracefulShutdown);
 			} catch (final NumberFormatException nfe) {
-				throw new NumberFormatException("The '" + GRACEFUL_SHUTDOWN_PROP + "' property in Boostrap Config File " + bootstrapConfigAbsoluteFile.getAbsolutePath() + " has an invalid value. Must be a non-negative integer");
+				throw new NumberFormatException("The '" + GRACEFUL_SHUTDOWN_PROP + "' property in Bootstrap Config File " + bootstrapConfigAbsoluteFile.getAbsolutePath() + " has an invalid value. Must be a non-negative integer");
 			}
 			
 			if ( gracefulShutdownSeconds < 0 ) {
-				throw new NumberFormatException("The '" + GRACEFUL_SHUTDOWN_PROP + "' property in Boostrap Config File " + bootstrapConfigAbsoluteFile.getAbsolutePath() + " has an invalid value. Must be a non-negative integer");
+				throw new NumberFormatException("The '" + GRACEFUL_SHUTDOWN_PROP + "' property in Bootstrap Config File " + bootstrapConfigAbsoluteFile.getAbsolutePath() + " has an invalid value. Must be a non-negative integer");
 			}
 			
 			Process process = builder.start();

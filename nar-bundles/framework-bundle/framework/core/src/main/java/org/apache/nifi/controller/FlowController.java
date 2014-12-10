@@ -1045,6 +1045,21 @@ public class FlowController implements EventAccess, ControllerServiceProvider, H
             if (flowFileSwapManager != null) {
                 flowFileSwapManager.shutdown();
             }
+            
+            if ( processScheduler != null ) {
+            	processScheduler.shutdown();
+            }
+            
+            if ( provenanceEventRepository != null ) {
+            	try {
+            		provenanceEventRepository.close();
+            	} catch (final IOException ioe) {
+            		LOG.warn("There was a problem shutting down the Provenance Repository: " + ioe.toString());
+            		if ( LOG.isDebugEnabled() ) {
+            			LOG.warn("", ioe);
+            		}
+            	}
+            }
         } finally {
             writeLock.unlock();
         }

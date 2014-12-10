@@ -55,11 +55,11 @@ public class ShutdownHook extends Thread {
 		
 		System.out.println("Waiting for Apache NiFi to finish shutting down...");
 		final long startWait = System.nanoTime();
-		while ( isAlive(nifiProcess) ) {
+		while ( RunNiFi.isAlive(nifiProcess) ) {
 			final long waitNanos = System.nanoTime() - startWait;
 			final long waitSeconds = TimeUnit.NANOSECONDS.toSeconds(waitNanos);
 			if ( waitSeconds >= gracefulShutdownSeconds && gracefulShutdownSeconds > 0 ) {
-				if ( isAlive(nifiProcess) ) {
+				if ( RunNiFi.isAlive(nifiProcess) ) {
 					System.out.println("NiFi has not finished shutting down after " + gracefulShutdownSeconds + " seconds. Killing process.");
 					nifiProcess.destroy();
 				}
@@ -74,15 +74,6 @@ public class ShutdownHook extends Thread {
 		final File statusFile = runner.getStatusFile();
 		if ( !statusFile.delete() ) {
 			System.err.println("Failed to delete status file " + statusFile.getAbsolutePath() + "; this file should be cleaned up manually");
-		}
-	}
-	
-	private boolean isAlive(final Process process) {
-		try {
-			process.exitValue();
-			return false;
-		} catch (final IllegalThreadStateException itse) {
-			return true;
 		}
 	}
 }
