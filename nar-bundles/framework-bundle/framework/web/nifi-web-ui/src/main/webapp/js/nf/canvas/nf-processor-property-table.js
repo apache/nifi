@@ -40,7 +40,7 @@ nf.ProcessorPropertyTable = (function () {
                     hidden: false,
                     property: propertyName,
                     displayName: propertyName,
-                    previousValue: undefined,
+                    previousValue: null,
                     value: propertyValue,
                     type: 'userDefined'
                 });
@@ -377,7 +377,7 @@ nf.ProcessorPropertyTable = (function () {
             if (nf.Common.isDefinedAndNotNull(propertyDescriptor)) {
                 return propertyDescriptor.allowableValues;
             } else {
-                return undefined;
+                return null;
             }
         },
         /**
@@ -477,7 +477,7 @@ nf.ProcessorPropertyTable = (function () {
                         displayName = descriptor.displayName;
                         
                         // determine the value
-                        if (nf.Common.isUndefined(value) || nf.Common.isNull(value)) {
+                        if (nf.Common.isNull(value) && nf.Common.isDefinedAndNotNull(descriptor.defaultValue)) {
                             value = descriptor.defaultValue;
                         }
                     }

@@ -476,7 +476,7 @@ nf.ProcessorDetails = (function () {
                                 displayName = descriptor.displayName;
                                 
                                 // determine the value
-                                if (nf.Common.isUndefined(value) || nf.Common.isNull(value)) {
+                                if (nf.Common.isNull(value) && nf.Common.isDefinedAndNotNull(descriptor.defaultValue)) {
                                     value = descriptor.defaultValue;
                                 }
                             }
