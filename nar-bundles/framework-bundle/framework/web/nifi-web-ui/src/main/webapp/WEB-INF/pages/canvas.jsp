@@ -33,9 +33,7 @@
         <link rel="stylesheet" href="js/jquery/minicolors/jquery.minicolors.css" type="text/css" />
         <link rel="stylesheet" href="js/jquery/slickgrid/css/slick.grid.css" type="text/css" />
         <link rel="stylesheet" href="js/jquery/slickgrid/css/slick-default-theme.css" type="text/css" />
-        <script type="text/javascript" src="js/codemirror/lib/codemirror.js"></script>
-        <script type="text/javascript" src="js/codemirror/addon/edit/matchbrackets.js"></script>
-        <script type="text/javascript" src="js/codemirror/addon/hint/show-hint.js"></script>
+        <script type="text/javascript" src="js/codemirror/lib/codemirror-compressed.js"></script>
         <script type="text/javascript" src="js/jquery/jquery-1.7.min.js"></script>
         <script type="text/javascript" src="js/jquery/jquery-ui-1.8.10.custom.min.js"></script>
         <script type="text/javascript" src="js/jquery/jquery.center.js"></script>
