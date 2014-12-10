@@ -28,7 +28,7 @@
         <link rel="stylesheet" href="js/jquery/tabbs/jquery.tabbs.css?${project.version}" type="text/css" />
         <link rel="stylesheet" href="js/jquery/combo/jquery.combo.css?${project.version}" type="text/css" />
         <link rel="stylesheet" href="js/jquery/modal/jquery.modal.css?${project.version}" type="text/css" />
-        <link rel="stylesheet" href="js/jquery/qtip2/jquery.qtip.css?" type="text/css" />
+        <link rel="stylesheet" href="js/jquery/qtip2/jquery.qtip.min.css?" type="text/css" />
         <link rel="stylesheet" href="js/jquery/css/smoothness/jquery-ui-1.8.10.custom.css" type="text/css" />
         <link rel="stylesheet" href="js/jquery/minicolors/jquery.minicolors.css" type="text/css" />
         <link rel="stylesheet" href="js/jquery/slickgrid/css/slick.grid.css" type="text/css" />
