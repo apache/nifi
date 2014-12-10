@@ -76,7 +76,6 @@ import org.apache.nifi.util.FlowFilePackagerV1;
 import org.apache.nifi.util.FlowFilePackagerV2;
 import org.apache.nifi.util.FlowFilePackagerV3;
 import org.apache.nifi.util.ObjectHolder;
-
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 
@@ -317,6 +316,7 @@ public class MergeContent extends AbstractSessionFactoryProcessor {
         return Files.readAllBytes(Paths.get(filename));
     }
 
+    
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
         int binsAdded = binFlowFiles(context, sessionFactory);
@@ -331,6 +331,7 @@ public class MergeContent extends AbstractSessionFactoryProcessor {
             context.yield();
         }
     }
+    
 
     private int migrateBins(final ProcessContext context) {
         int added = 0;
@@ -548,20 +549,27 @@ public class MergeContent extends AbstractSessionFactoryProcessor {
     public void onScheduled(final ProcessContext context) throws IOException {
         binManager.setMinimumSize(context.getProperty(MIN_SIZE).asDataSize(DataUnit.B).longValue());
 
-        if (context.getProperty(MAX_BIN_AGE).getValue() != null) {
+        if (context.getProperty(MAX_BIN_AGE).isSet() ) {
             binManager.setMaxBinAge(context.getProperty(MAX_BIN_AGE).asTimePeriod(TimeUnit.SECONDS).intValue());
+        } else {
+            binManager.setMaxBinAge(Integer.MAX_VALUE);
         }
-
-        if (context.getProperty(MAX_SIZE).getValue() != null) {
+        
+        if ( context.getProperty(MAX_SIZE).isSet() ) {
             binManager.setMaximumSize(context.getProperty(MAX_SIZE).asDataSize(DataUnit.B).longValue());
+        } else {
+            binManager.setMaximumSize(Long.MAX_VALUE);
         }
-
+        
         if (MERGE_STRATEGY_DEFRAGMENT.equals(context.getProperty(MERGE_STRATEGY).getValue())) {
             binManager.setFileCountAttribute(FRAGMENT_COUNT_ATTRIBUTE);
         } else {
             binManager.setMinimumEntries(context.getProperty(MIN_ENTRIES).asInteger());
-            if (context.getProperty(MAX_ENTRIES).getValue() != null) {
-                binManager.setMaximumEntries(context.getProperty(MAX_ENTRIES).asInteger());
+
+            if ( context.getProperty(MAX_ENTRIES).isSet() ) {
+                binManager.setMaximumEntries(context.getProperty(MAX_ENTRIES).asInteger().intValue());
+            } else {
+                binManager.setMaximumEntries(Integer.MAX_VALUE);
             }
         }
 
