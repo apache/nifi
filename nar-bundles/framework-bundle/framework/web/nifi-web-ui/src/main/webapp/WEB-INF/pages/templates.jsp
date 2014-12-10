@@ -37,7 +37,7 @@
         <script type="text/javascript" src="js/jquery/jquery.each.js"></script>
         <script type="text/javascript" src="js/jquery/jquery-ui-1.8.10.custom.min.js"></script>
         <script type="text/javascript" src="js/jquery/qtip2/jquery.qtip.min.js"></script>
-        <script type="text/javascript" src="js/jquery/jquery.event.drag-2.0.min.js"></script>
+        <script type="text/javascript" src="js/jquery/jquery.event.drag-2.2.min.js"></script>
         <script type="text/javascript" src="js/jquery/slickgrid/plugins/slick.cellrangeselector.js"></script>
         <script type="text/javascript" src="js/jquery/slickgrid/plugins/slick.cellselectionmodel.js"></script>
         <script type="text/javascript" src="js/jquery/slickgrid/plugins/slick.rowselectionmodel.js"></script>
