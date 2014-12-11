@@ -145,6 +145,12 @@ div.relationship-description {
     margin-top: 5px;
 }
 
+#run-duration-slider .ui-slider-handle {
+    border-radius: 0;
+    border: 1px solid #999;
+    outline: none;
+}
+
 #run-duration-labels {
     font-family: sans-serif;
 }

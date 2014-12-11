@@ -93,7 +93,7 @@
 
         // ensure we found the selected option
         if (isDefinedAndNotNull(selectedOption)) {
-            $(comboText).removeClass('selected-disabled-option').attr('title', selectedOption.text).text(selectedOption.text).data('text', selectedOption.text);
+            $(comboText).removeClass('selected-disabled-option').attr('title', selectedOption.text).text(selectedOption.text).data('text', selectedOption.text).width(combo.outerWidth() - 25);
 
             // if the selected option is disabled show it
             if (selectedOption.disabled === true) {
@@ -244,9 +244,6 @@
 
                     // add the drop down arrow
                     $('<div class="combo-arrow"></div>').appendTo(combo);
-
-                    // set the width of the combo text
-                    comboText.width($(combo).outerWidth() - 25);
 
                     // set the selection
                     if (isDefinedAndNotNull(options.selectedOption)) {
