@@ -27,6 +27,7 @@ import java.util.Arrays;
 
 import org.apache.nifi.bootstrap.exception.InvalidCommandException;
 
+
 public class BootstrapCodec {
 	private final RunNiFi runner;
 	private final BufferedReader reader;
