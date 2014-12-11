@@ -579,7 +579,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 continue;
             }
             
-            if ( contentChanged ) {
+            final boolean newFlowFile = repoRecord.getOriginal() == null;
+            if ( contentChanged && !newFlowFile ) {
                 recordsToSubmit.add(provenanceReporter.build(curFlowFile, ProvenanceEventType.CONTENT_MODIFIED).build());
                 addEventType(eventTypesPerFlowFileId, flowFileId, ProvenanceEventType.CONTENT_MODIFIED);
                 eventAdded = true;
