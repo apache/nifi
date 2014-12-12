@@ -977,6 +977,10 @@ public class TestStandardProcessSession {
 
         private ConcurrentMap<ContentClaim, AtomicInteger> claimantCounts = new ConcurrentHashMap<>();
 
+        @Override
+        public void shutdown() {
+        }
+        
         public Set<ContentClaim> getExistingClaims() {
             final Set<ContentClaim> claims = new HashSet<>();
 
