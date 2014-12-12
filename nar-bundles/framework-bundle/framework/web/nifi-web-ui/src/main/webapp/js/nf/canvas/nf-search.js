@@ -36,6 +36,11 @@ nf.Search = (function () {
                     var ul = this.menu.element;
                     ul.width(399);
                 },
+                _normalize: function(searchResults) {
+                    var items = [];
+                    items.push(searchResults);
+                    return items;
+                },
                 _renderMenu: function (ul, items) {
                     var self = this;
                     
@@ -130,7 +135,7 @@ nf.Search = (function () {
                         dataType: 'json',
                         url: config.urls.search
                     }).done(function (searchResponse) {
-                        response(searchResponse);
+                        response(searchResponse.searchResultsDTO);
                     });
                 },
                 select: function (event, ui) {

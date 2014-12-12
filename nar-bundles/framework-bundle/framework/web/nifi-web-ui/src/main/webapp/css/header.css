@@ -456,6 +456,7 @@ input.search-flow {
     overflow: auto;
     border: 1px solid #aaaaaa;
     z-index: 1251;
+    border-radius: 0;
 }
 
 #search-flow-results .ui-menu .ui-menu-item a.ui-state-focus {
