@@ -373,6 +373,11 @@ public class RunNiFi {
 	        return;
 	    }
 	    
+	    if ( status.getPort() == null ) {
+	        logger.info("Apache NiFi is not running");
+	        return;
+	    }
+	    
 	    if ( status.getPid() == null ) {
 	        logger.info("Apache NiFi is not responding to Ping requests. The process may have died or may be hung");
 	    } else {
