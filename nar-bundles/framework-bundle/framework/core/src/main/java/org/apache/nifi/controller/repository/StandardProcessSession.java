@@ -479,7 +479,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
             context.getFlowFileEventRepository().updateRepository(flowFileEvent);
 
-            for (final FlowFileEvent connectionEvent : connectionCounts.values()) {
+            for (final FlowFileEvent connectionEvent : checkpoint.connectionCounts.values()) {
                 context.getFlowFileEventRepository().updateRepository(connectionEvent);
             }
         } catch (final IOException ioe) {
