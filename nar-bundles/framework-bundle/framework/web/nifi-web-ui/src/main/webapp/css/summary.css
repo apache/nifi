@@ -139,9 +139,18 @@ div.search-match {
     font-size: 10px;
 }
 
-.ui-autocomplete {
+#search-cluster-results .ui-autocomplete {
     max-height: 300px;
     overflow: auto;
+    border: 1px solid #aaaaaa;
+    z-index: 1351;
+    border-radius: 0;
+}
+
+#search-cluster-results .ui-menu .ui-menu-item a.ui-state-focus {
+    background: #D4E0E5 !important;
+    border: 1px solid #999999;
+    border-radius: 0;
 }
 
 input.search-nodes {
