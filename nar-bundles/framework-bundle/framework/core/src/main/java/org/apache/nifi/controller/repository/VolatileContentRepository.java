@@ -137,6 +137,11 @@ public class VolatileContentRepository implements ContentRepository {
     public void initialize(final ContentClaimManager claimManager) {
         this.claimManager = claimManager;
     }
+    
+    @Override
+    public void shutdown() {
+        executor.shutdown();
+    }
 
     /**
      * Specifies a Backup Repository where data should be written if this

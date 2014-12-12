@@ -1050,6 +1050,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, H
             	processScheduler.shutdown();
             }
             
+            if ( contentRepository != null ) {
+                contentRepository.shutdown();
+            }
+            
             if ( provenanceEventRepository != null ) {
             	try {
             		provenanceEventRepository.close();

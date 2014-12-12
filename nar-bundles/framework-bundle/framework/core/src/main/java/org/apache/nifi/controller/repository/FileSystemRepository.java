@@ -223,6 +223,12 @@ public class FileSystemRepository implements ContentRepository {
         this.contentClaimManager = claimManager;
     }
 
+    @Override
+    public void shutdown() {
+        executor.shutdown();
+        containerCleanupExecutor.shutdown();
+    }
+    
     private static double getRatio(final String value) {
         final String trimmed = value.trim();
         final String percentage = trimmed.substring(0, trimmed.length() - 1);
