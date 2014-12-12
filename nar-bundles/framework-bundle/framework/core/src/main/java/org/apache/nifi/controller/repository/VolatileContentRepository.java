@@ -92,7 +92,7 @@ public class VolatileContentRepository implements ContentRepository {
     public static final String MAX_SIZE_PROPERTY = "nifi.volatile.content.repository.max.size";
     public static final String BLOCK_SIZE_PROPERTY = "nifi.volatile.content.repository.block.size";
 
-    private final ScheduledExecutorService executor = new FlowEngine(3, "VolatileContentRepository Workers");
+    private final ScheduledExecutorService executor = new FlowEngine(3, "VolatileContentRepository Workers", true);
     private final ConcurrentMap<ContentClaim, ContentBlock> claimMap = new ConcurrentHashMap<>(256);
     private final AtomicLong repoSize = new AtomicLong(0L);
 

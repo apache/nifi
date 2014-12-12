@@ -31,7 +31,10 @@ import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.attribute.PosixFilePermission;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -205,6 +208,20 @@ public class RunNiFi {
 	
 	private synchronized void saveProperties(final Properties nifiProps) throws IOException {
 	    final File statusFile = getStatusFile();
+	    if ( statusFile.exists() && !statusFile.delete() ) {
+	        logger.warning("Failed to delete " + statusFile);
+	    }
+
+	    if ( !statusFile.createNewFile() ) {
+	        throw new IOException("Failed to create file " + statusFile);
+	    }
+
+	    try {
+	        Files.setPosixFilePermissions(statusFile.toPath(), Collections.singleton(PosixFilePermission.OWNER_READ));
+	    } catch (final Exception e) {
+	        logger.warning("Failed to set permissions so that only the owner can read status file " + statusFile + "; this may allows others to have access to the key needed to communicate with NiFi. Permissions should be changed so that only the owner can read this file");
+	    }
+	    
         try (final FileOutputStream fos = new FileOutputStream(statusFile)) {
             nifiProps.store(fos, null);
             fos.getFD().sync();
@@ -213,16 +230,16 @@ public class RunNiFi {
         logger.fine("Saved Properties " + nifiProps + " to " + statusFile);
 	}
 
-	private boolean isPingSuccessful(final int port) {
+	private boolean isPingSuccessful(final int port, final String secretKey) {
 	    logger.fine("Pinging " + port);
 	    
 	    try (final Socket socket = new Socket("localhost", port)) {
             final OutputStream out = socket.getOutputStream();
-            out.write((PING_CMD + "\n").getBytes(StandardCharsets.UTF_8));
+            out.write((PING_CMD + " " + secretKey + "\n").getBytes(StandardCharsets.UTF_8));
             out.flush();
 
             logger.fine("Sent PING command");
-            
+            socket.setSoTimeout(5000);
             final InputStream in = socket.getInputStream();
             final BufferedReader reader = new BufferedReader(new InputStreamReader(in));
             final String response = reader.readLine();
@@ -245,7 +262,7 @@ public class RunNiFi {
 		}
 		
 		final int port = Integer.parseInt(portVal);
-	    final boolean success = isPingSuccessful(port);
+	    final boolean success = isPingSuccessful(port, props.getProperty("secret.key"));
 	    if ( success ) {
 	        logger.fine("Successful PING on port " + port);
 	        return port;
@@ -271,10 +288,7 @@ public class RunNiFi {
 	        // We use the "ps" command to check if the process is still running.
 	        final ProcessBuilder builder = new ProcessBuilder();
 	        
-	        // ps -p <pid> -o comm=
-	        // -> -p <pid> to filter just the pid we care about
-	        // -> -o comm= to remove headers from the output
-	        builder.command("ps", "-p", pid, "-o", "comm=");
+	        builder.command("ps", "-p", pid, "--no-headers");
 	        final Process proc = builder.start();
 	        
 	        // Read how many lines are output by the 'ps' command
@@ -321,6 +335,7 @@ public class RunNiFi {
 	    
         final String portValue = props.getProperty("port");
         final String pid = props.getProperty("pid");
+        final String secretKey = props.getProperty("secret.key");
         
         if ( portValue == null && pid == null ) {
             return new Status(null, null, false, false);
@@ -331,7 +346,7 @@ public class RunNiFi {
         if ( portValue != null ) {
             try {
                 port = Integer.parseInt(portValue);
-                pingSuccess = isPingSuccessful(port);
+                pingSuccess = isPingSuccessful(port, secretKey);
             } catch (final NumberFormatException nfe) {
                 return new Status(null, null, false, false);
             }
@@ -373,14 +388,19 @@ public class RunNiFi {
 			return;
 		}
 		
+		final Properties nifiProps = loadProperties();
+		final String secretKey = nifiProps.getProperty("secret.key");
+		
 		try (final Socket socket = new Socket()) {
+		    logger.fine("Connecting to NiFi instance");
 			socket.setSoTimeout(60000);
 			socket.connect(new InetSocketAddress("localhost", port));
+			logger.fine("Established connection to NiFi instance.");
 			socket.setSoTimeout(60000);
 			
 			logger.fine("Sending SHUTDOWN Command to port " + port);
 			final OutputStream out = socket.getOutputStream();
-			out.write((SHUTDOWN_CMD + "\n").getBytes(StandardCharsets.UTF_8));
+			out.write((SHUTDOWN_CMD + " " + secretKey + "\n").getBytes(StandardCharsets.UTF_8));
 			out.flush();
 			
 			final InputStream in = socket.getInputStream();
@@ -392,10 +412,8 @@ public class RunNiFi {
 			if ( SHUTDOWN_CMD.equals(response) ) {
 				logger.info("Apache NiFi has accepted the Shutdown Command and is shutting down now");
 				
-				final Properties nifiProps = loadProperties();
 				final String pid = nifiProps.getProperty("pid");
 				if ( pid != null ) {
-
 			        final Properties bootstrapProperties = new Properties();
 			        try (final FileInputStream fis = new FileInputStream(bootstrapConfigFile)) {
 			            bootstrapProperties.load(fis);
@@ -418,7 +436,7 @@ public class RunNiFi {
 			                if ( isProcessRunning(pid) ) {
 			                    logger.warning("NiFi has not finished shutting down after " + gracefulShutdownSeconds + " seconds. Killing process.");
 			                    try {
-			                        killProcess(pid);
+			                        killProcessTree(pid);
 			                    } catch (final IOException ioe) {
 			                        logger.severe("Failed to kill Process with PID " + pid);
 			                    }
@@ -448,7 +466,31 @@ public class RunNiFi {
 	}
 	
 	
-	private static void killProcess(final String pid) throws IOException {
+	private static List<String> getChildProcesses(final String ppid) throws IOException {
+	    final Process proc = Runtime.getRuntime().exec(new String[] {"ps", "-o", "pid", "--no-headers", "--ppid", ppid});
+	    final List<String> childPids = new ArrayList<>();
+	    try (final InputStream in = proc.getInputStream();
+	         final BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
+	        
+	        String line;
+	        while ((line = reader.readLine()) != null) {
+	            childPids.add(line.trim());
+	        }
+	    }
+	    
+	    return childPids;
+	}
+	
+	private void killProcessTree(final String pid) throws IOException {
+	    logger.fine("Killing Process Tree for PID " + pid);
+	    
+	    final List<String> children = getChildProcesses(pid);
+	    logger.fine("Children of PID " + pid + ": " + children);
+	    
+	    for ( final String childPid : children ) {
+	        killProcessTree(childPid);
+	    }
+	    
 	    Runtime.getRuntime().exec(new String[] {"kill", "-9", pid});
 	}
 	
@@ -620,7 +662,7 @@ public class RunNiFi {
                 nifiPid = pid;
                 final Properties nifiProps = new Properties();
                 nifiProps.setProperty("pid", String.valueOf(nifiPid));
-                saveProperties(properties);
+                saveProperties(nifiProps);
             }
 			
 			ShutdownHook shutdownHook = new ShutdownHook(process, this, gracefulShutdownSeconds);
@@ -651,7 +693,7 @@ public class RunNiFi {
 			                nifiPid = pid;
 			                final Properties nifiProps = new Properties();
 			                nifiProps.setProperty("pid", String.valueOf(nifiPid));
-			                saveProperties(properties);
+			                saveProperties(nifiProps);
 			            }
 						
 						shutdownHook = new ShutdownHook(process, this, gracefulShutdownSeconds);
@@ -677,7 +719,7 @@ public class RunNiFi {
 			    nifiPid = pid;
                 final Properties nifiProps = new Properties();
                 nifiProps.setProperty("pid", String.valueOf(nifiPid));
-                saveProperties(properties);
+                saveProperties(nifiProps);
 			}
 			
 			boolean started = waitForStart();
@@ -758,9 +800,8 @@ public class RunNiFi {
 		this.autoRestartNiFi = restart;
 	}
 	
-	void setNiFiCommandControlPort(final int port) {
+	void setNiFiCommandControlPort(final int port, final String secretKey) {
 		this.ccPort = port;
-
 		final File statusFile = getStatusFile();
 		
 		final Properties nifiProps = new Properties();
@@ -768,6 +809,8 @@ public class RunNiFi {
 		    nifiProps.setProperty("pid", String.valueOf(nifiPid));
 		}
 		nifiProps.setProperty("port", String.valueOf(ccPort));
+		nifiProps.setProperty("secret.key", secretKey);
+		
 		try {
 		    saveProperties(nifiProps);
 		} catch (final IOException ioe) {

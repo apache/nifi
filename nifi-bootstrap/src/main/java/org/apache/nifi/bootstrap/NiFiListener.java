@@ -17,12 +17,15 @@
 package org.apache.nifi.bootstrap;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.nifi.bootstrap.util.LimitingInputStream;
 
 public class NiFiListener {
 	private ServerSocket serverSocket;
@@ -92,17 +95,26 @@ public class NiFiListener {
 						throw ioe;
 					}
 					
-					
 					executor.submit(new Runnable() {
 						@Override
 						public void run() {
 							try {
-								final BootstrapCodec codec = new BootstrapCodec(runner, socket.getInputStream(), socket.getOutputStream());
+							    // we want to ensure that we don't try to read data from an InputStream directly
+						        // by a BufferedReader because any user on the system could open a socket and send
+						        // a multi-gigabyte file without any new lines in order to crash the Bootstrap,
+							    // which in turn may cause the Shutdown Hook to shutdown NiFi.
+						        // So we will limit the amount of data to read to 4 KB
+						        final InputStream limitingIn = new LimitingInputStream(socket.getInputStream(), 4096);
+								final BootstrapCodec codec = new BootstrapCodec(runner, limitingIn, socket.getOutputStream());
 								codec.communicate();
-								socket.close();
 							} catch (final Throwable t) {
 								System.out.println("Failed to communicate with NiFi due to " + t);
 								t.printStackTrace();
+							} finally {
+							    try {
+							        socket.close();
+							    } catch (final IOException ioe) {
+							    }
 							}
 						}
 					});
