@@ -46,6 +46,12 @@ public interface ContentRepository {
     void initialize(ContentClaimManager claimManager) throws IOException;
 
     /**
+     * Shuts down the Content Repository, freeing any resources that may be held.
+     * This is called when an administrator shuts down NiFi.
+     */
+    void shutdown();
+    
+    /**
      * Returns the names of all Containers that exist for this Content
      * Repository
      *
