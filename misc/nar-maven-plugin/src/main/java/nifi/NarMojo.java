@@ -86,10 +86,10 @@ public class NarMojo extends AbstractMojo {
      * POM
      *
      */
-    @Parameter(property = "project", readonly = true, required = true)
+    @Parameter(defaultValue = "${project}", readonly = true, required = true)
     protected MavenProject project;
 
-    @Parameter(property = "session", readonly = true, required = true)
+    @Parameter(defaultValue = "${session}", readonly = true, required = true)
     protected MavenSession session;
 
     /**
