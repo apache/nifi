@@ -138,17 +138,10 @@ nf.SecurePortConfiguration = (function () {
 
         // initialize the access control auto complete
         $.widget('nf.userSearchAutocomplete', $.ui.autocomplete, {
-            _response: function (content) {
-                if (!this.options.disabled && content) {
-                    this._suggest(content);
-                    this._trigger('open');
-                } else {
-                    this.close();
-                }
-                this.pending--;
-                if (!this.pending) {
-                    this.element.removeClass('ui-autocomplete-loading');
-                }
+            _normalize: function(searchResults) {
+                var items = [];
+                items.push(searchResults);
+                return items;
             },
             _resizeMenu: function () {
                 var ul = this.menu.element;
@@ -157,14 +150,16 @@ nf.SecurePortConfiguration = (function () {
             _renderMenu: function (ul, items) {
                 var self = this;
 
+                // results are normalized into an array
+                var results = items[0];
 
                 // show all groups not currently selected
-                if (!nf.Common.isEmpty(items.userGroupResults)) {
+                if (!nf.Common.isEmpty(results.userGroupResults)) {
                     var allowedGroups = getAllowedGroups();
                     var groupHeaderAdded = false;
 
                     // go through each group result
-                    $.each(items.userGroupResults, function (i, groupMatch) {
+                    $.each(results.userGroupResults, function (i, groupMatch) {
 
                         // see if this match is not already selected
                         if ($.inArray(groupMatch.group, allowedGroups) === -1) {
@@ -182,12 +177,12 @@ nf.SecurePortConfiguration = (function () {
                 }
 
                 // show all users not currently selected
-                if (!nf.Common.isEmpty(items.userResults)) {
+                if (!nf.Common.isEmpty(results.userResults)) {
                     var allowedUsers = getAllowedUsers();
                     var userHeaderAdded = false;
 
                     // go through each user result
-                    $.each(items.userResults, function (i, userMatch) {
+                    $.each(results.userResults, function (i, userMatch) {
 
                         // see if this match is not already selected
                         if ($.inArray(userMatch.userDn, allowedUsers) === -1) {
@@ -211,17 +206,18 @@ nf.SecurePortConfiguration = (function () {
             },
             _renderGroupItem: function (ul, groupMatch) {
                 var groupContent = $('<a></a>').append($('<div class="search-users-match-header"></div>').text(groupMatch.group));
-                return $('<li></li>').data('item.autocomplete', groupMatch).append(groupContent).appendTo(ul);
+                return $('<li></li>').data('ui-autocomplete-item', groupMatch).append(groupContent).appendTo(ul);
             },
             _renderUserItem: function (ul, userMatch) {
                 var userContent = $('<a></a>').append($('<div class="search-users-match-header"></div>').text(userMatch.userDn));
-                return $('<li></li>').data('item.autocomplete', userMatch).append(userContent).appendTo(ul);
+                return $('<li></li>').data('ui-autocomplete-item', userMatch).append(userContent).appendTo(ul);
             }
         });
 
         // configure the autocomplete field
         $('#secure-port-access-control').userSearchAutocomplete({
             minLength: 0,
+            appendTo: '#search-users-results',
             position: {
                 my: 'left top',
                 at: 'left bottom',
