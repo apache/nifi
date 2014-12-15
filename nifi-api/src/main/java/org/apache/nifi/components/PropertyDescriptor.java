@@ -425,7 +425,7 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
                 throw new IllegalStateException("Must specify a name");
             }
             if (!isValueAllowed(defaultValue)) {
-                throw new IllegalStateException("Default value is not in the set of allowable values");
+                throw new IllegalStateException("Default value ["+ defaultValue +"] is not in the set of allowable values");
             }
 
             return new PropertyDescriptor(this);
