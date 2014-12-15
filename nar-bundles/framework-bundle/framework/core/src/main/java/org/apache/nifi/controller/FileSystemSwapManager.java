@@ -549,7 +549,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
 
                         swapQueue.getQueue().add(swapFile);
                     } else {
-                        swapFile.delete();
+                        swapTempFile.delete();
                     }
                 }
             }
