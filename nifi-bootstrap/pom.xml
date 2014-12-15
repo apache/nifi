@@ -1,5 +1,5 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-	<!--
+    <!--
       Licensed to the Apache Software Foundation (ASF) under one or more
       contributor license agreements.  See the NOTICE file distributed with
       this work for additional information regarding copyright ownership.
@@ -13,19 +13,17 @@
       See the License for the specific language governing permissions and
       limitations under the License.
     -->
-	<modelVersion>4.0.0</modelVersion>
+    <modelVersion>4.0.0</modelVersion>
 
-	<parent>
-		<groupId>org.apache.nifi</groupId>
-		<artifactId>nifi-parent</artifactId>
-		<version>0.0.1-SNAPSHOT</version>
-	</parent>
+    <parent>
+        <groupId>org.apache.nifi</groupId>
+        <artifactId>nifi-parent</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
 
-	<artifactId>nifi-bootstrap</artifactId>
-	<packaging>jar</packaging>
+    <artifactId>nifi-bootstrap</artifactId>
+    <packaging>jar</packaging>
 
-	<name>nifi-bootstrap</name>
+    <name>nifi-bootstrap</name>
 
-	<dependencies>
-	</dependencies>
 </project>

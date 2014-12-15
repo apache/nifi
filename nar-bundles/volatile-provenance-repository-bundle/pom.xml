@@ -17,11 +17,11 @@
 
     <parent>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nar-container-common</artifactId>
+        <artifactId>nar-bundle-parent</artifactId>
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>volatile-provenance-repository-bundle</artifactId>
+    <artifactId>volatile-provenance-repository-parent</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>Volatile Provenance Repository</name>
     <packaging>pom</packaging>
@@ -30,19 +30,15 @@
         <module>volatile-provenance-repository</module>
         <module>nar</module>
     </modules>
-	
+    
     <dependencyManagement>
         <dependencies>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>data-provenance-utils</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-utils</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <artifactId>volatile-provenance-repository</artifactId>
+                <version>${project.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
+
 </project>

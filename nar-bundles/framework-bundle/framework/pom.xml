@@ -35,6 +35,7 @@
         <module>cluster-protocol</module>
         <module>cluster-web</module>
         <module>cluster</module>
+        <module>file-authorization-provider</module>
         <module>cluster-authorization-provider</module>
         <module>user-actions</module>
         <module>administration</module>

@@ -14,9 +14,10 @@
       limitations under the License.
     -->
     <modelVersion>4.0.0</modelVersion>
+
     <parent>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-parent</artifactId>
+        <artifactId>nifi-commons-parent</artifactId>
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
@@ -29,7 +30,6 @@
         <dependency>
             <groupId>commons-codec</groupId>
             <artifactId>commons-codec</artifactId>
-            <version>1.10</version>
         </dependency>
     </dependencies>
 </project>

@@ -58,7 +58,7 @@ import org.apache.nifi.util.FlowFileUnpackagerV2;
 import org.apache.nifi.util.FlowFileUnpackagerV3;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 @Path(ListenHTTP.URI)
 public class ListenHTTPServlet extends HttpServlet {

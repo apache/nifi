@@ -64,7 +64,7 @@ import org.apache.nifi.web.NiFiWebContextConfig;
 import org.apache.nifi.web.ProcessorInfo;
 import org.apache.nifi.web.Revision;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import com.sun.jersey.api.NotFoundException;
 import org.apache.nifi.update.attributes.FlowFilePolicy;

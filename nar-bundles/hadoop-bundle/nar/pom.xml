@@ -22,6 +22,7 @@
     </parent>
 
     <artifactId>hadoop-nar</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
     <packaging>nar</packaging>
 
     <name>Hadoop NAR</name>
@@ -35,7 +36,6 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>hdfs-processors</artifactId>
-            <version>${project.version}</version>
         </dependency>
     </dependencies>
 </project>

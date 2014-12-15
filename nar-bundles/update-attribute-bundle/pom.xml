@@ -17,7 +17,7 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nar-container-common</artifactId>
+        <artifactId>nar-bundle-parent</artifactId>
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
@@ -25,7 +25,6 @@
     <version>0.0.1-SNAPSHOT</version>
     <name>Update Attribute Bundle</name>
     <packaging>pom</packaging>
-
 
     <modules>
         <module>model</module>
@@ -38,31 +37,19 @@
         <dependencies>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-processor-utils</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <artifactId>update-attribute-model</artifactId>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-expression-language</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <artifactId>update-attribute-processor</artifactId>
+                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-core-flowfile-attributes</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>custom-ui-utilities</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
-            </dependency>
-
-
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-mock</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
-                <scope>test</scope>
+                <artifactId>update-attribute-ui</artifactId>
+                <type>war</type>
+                <version>${project.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

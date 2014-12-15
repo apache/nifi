@@ -115,6 +115,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>client-dto</artifactId>
+            <version>${project.version}</version>
             <classifier>sources</classifier>
             <scope>provided</scope>
             <optional>true</optional>
@@ -131,13 +132,15 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>framework-cluster-web</artifactId>
-            <version>${project.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
-            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-nar</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -295,7 +298,6 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>volatile-provenance-repository</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
