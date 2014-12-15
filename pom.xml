@@ -849,11 +849,6 @@
         <pluginManagement>
             <plugins>
                 <plugin>
-                    <groupId>org.apache.nifi</groupId>
-                    <artifactId>nar-maven-plugin</artifactId>
-                    <version>${project.version}</version>
-                </plugin>
-                <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>3.2</version>
@@ -958,7 +953,7 @@
             <plugin>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nar-maven-plugin</artifactId>
-                <version>${project.version}</version>
+                <version>0.0.1-SNAPSHOT</version>
                 <extensions>true</extensions>
             </plugin>
         </plugins>
