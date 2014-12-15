@@ -15,18 +15,15 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 #
+# chkconfig: 2345 20 80
+# description: Apache NiFi is a dataflow system based on the principles of Flow-Based Programming.
+#
 
 # Script structure inspired from Apache Karaf and other Apache projects with similar startup approaches
 
-DIRNAME=`dirname "$0"`
+NIFI_HOME=`cd $(dirname "$0") && cd .. && pwd`
 PROGNAME=`basename "$0"`
 
-
-#
-#Readlink is not available on all systems. Change variable to appropriate alternative as part of OS detection
-#
-
-READLINK="readlink"
 
 warn() {
     echo "${PROGNAME}: $*"
@@ -54,16 +51,13 @@ detectOS() {
             os400=true
             ;;
         Darwin)
-        	darwin=true
-        	;;
+                darwin=true
+                ;;
     esac
     # For AIX, set an environment variable
     if $aix; then
          export LDR_CNTRL=MAXDATA=0xB0000000@DSA
          echo $LDR_CNTRL
-    fi
-    if $darwin; then
-    	READLINK="greadlink"
     fi
 }
 
@@ -95,22 +89,6 @@ unlimitFD() {
     fi
 }
 
-locateHome() {
-    if [ "x$NIFI_HOME" != "x" ]; then
-        warn "Ignoring predefined value for NIFI_HOME"
-    fi
-
-    # In POSIX shells, CDPATH may cause cd to write to stdout
-    (unset CDPATH) >/dev/null 2>&1 && unset CDPATH
-    NIFI_HOME=$(dirname $($READLINK -f $0))/../
-    NIFI_HOME=$($READLINK -f $NIFI_HOME)
-    cd $NIFI_HOME
-    echo "Directory changed to NIFI_HOME of '$NIFI_HOME'"
-    if [ ! -d "$NIFI_HOME" ]; then
-        die "NIFI_HOME is not valid: $NIFI_HOME"
-    fi
-
-}
 
 
 locateJava() {
@@ -138,9 +116,6 @@ locateJava() {
             fi
         fi
     fi
-    if [ "x$JAVA_HOME" = "x" ]; then
-        JAVA_HOME="$(dirname $(dirname $(pathCanonical "$JAVA")))"
-    fi
 }
 
 init() {
@@ -150,29 +125,41 @@ init() {
     # Unlimit the number of file descriptors if possible
     unlimitFD
 
-    # Locate the NiFi home directory
-    locateHome
-
     # Locate the Java VM to execute
     locateJava
 }
 
+
+install() {
+        SVC_NAME=nifi
+        if [ "x$2" != "x" ] ; then
+                SVC_NAME=$2
+        fi
+
+        SVC_FILE=/etc/init.d/$SVC_NAME
+        cp $0 $SVC_FILE
+        sed -i s:NIFI_HOME=.*:NIFI_HOME="$NIFI_HOME": $SVC_FILE
+        sed -i s:PROGNAME=.*:PROGNAME=$(basename "$0"): $SVC_FILE
+        echo Service $SVC_NAME installed
+}
+
+
 run() {
-	BOOTSTRAP_CONF="$NIFI_HOME/conf/bootstrap.conf";
-	
+    BOOTSTRAP_CONF="$NIFI_HOME/conf/bootstrap.conf";
+
     if $cygwin; then
         NIFI_HOME=`cygpath --path --windows "$NIFI_HOME"`
         BOOTSTRAP_CONF=`cygpath --path --windows "$BOOTSTRAP_CONF"`
     fi
-    
-    echo 
+
+    echo
     echo "Java home: $JAVA_HOME"
     echo "NiFi home: $NIFI_HOME"
     echo
     echo "Bootstrap Config File: $BOOTSTRAP_CONF"
     echo
-    
-    exec "$JAVA" -cp "$NIFI_HOME"/lib/bootstrap/* -Xms12m -Xmx24m -Dorg.apache.nifi.bootstrap.config.file="$BOOTSTRAP_CONF" org.apache.nifi.bootstrap.RunNiFi $1 $2
+
+    exec "$JAVA" -cp "$NIFI_HOME"/lib/bootstrap/* -Xms12m -Xmx24m -Dorg.apache.nifi.bootstrap.config.file="$BOOTSTRAP_CONF" org.apache.nifi.bootstrap.RunNiFi $@
 }
 
 main() {
@@ -180,4 +167,15 @@ main() {
     run "$@"
 }
 
-main "$@"
+
+case "$1" in
+    install)
+        install "$@"
+        ;;
+    start|stop|run|status)
+        main "$@"
+        ;;
+    *)
+        echo "Usage nifi {start|stop|run|status|install}"
+        ;;
+esac
