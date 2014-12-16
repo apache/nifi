@@ -27,6 +27,7 @@ import java.util.Arrays;
 
 import org.apache.nifi.bootstrap.exception.InvalidCommandException;
 
+
 public class BootstrapCodec {
 	private final RunNiFi runner;
 	private final BufferedReader reader;
@@ -63,7 +64,7 @@ public class BootstrapCodec {
 	private void processRequest(final String cmd, final String[] args) throws InvalidCommandException, IOException {
 		switch (cmd) {
 			case "PORT": {
-				if ( args.length != 1 ) {
+				if ( args.length != 2 ) {
 					throw new InvalidCommandException();
 				}
 				
@@ -77,8 +78,10 @@ public class BootstrapCodec {
 				if ( port < 1 || port > 65535 ) {
 					throw new InvalidCommandException("Invalid Port number; should be integer between 1 and 65535");
 				}
+
+				final String secretKey = args[1];
 				
-				runner.setNiFiCommandControlPort(port);
+				runner.setNiFiCommandControlPort(port, secretKey);
 				writer.write("OK");
 				writer.newLine();
 				writer.flush();

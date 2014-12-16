@@ -27,9 +27,11 @@ import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import org.apache.nifi.util.LimitingInputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,14 +40,16 @@ public class BootstrapListener {
 	
 	private final NiFi nifi;
 	private final int bootstrapPort;
-
+	private final String secretKey;
+	
 	private volatile Listener listener;
 	private volatile ServerSocket serverSocket;
 	
 	
-	public BootstrapListener(final NiFi nifi, final int port) {
+	public BootstrapListener(final NiFi nifi, final int bootstrapPort) {
 		this.nifi = nifi;
-		this.bootstrapPort = port;
+		this.bootstrapPort = bootstrapPort;
+		secretKey = UUID.randomUUID().toString();
 	}
 	
 	public void start() throws IOException {
@@ -71,7 +75,7 @@ public class BootstrapListener {
 			socket.setSoTimeout(60000);
 			
 			final OutputStream out = socket.getOutputStream();
-			out.write(("PORT " + localPort + "\n").getBytes(StandardCharsets.UTF_8));
+			out.write(("PORT " + localPort + " " + secretKey + "\n").getBytes(StandardCharsets.UTF_8));
 			out.flush();
 			
 			logger.debug("Awaiting response from Bootstrap...");
@@ -121,6 +125,7 @@ public class BootstrapListener {
 				try {
 					final Socket socket;
 					try {
+					    logger.debug("Listening for Bootstrap Requests");
 						socket = serverSocket.accept();
 					} catch (final SocketTimeoutException ste) {
 						if ( stopped ) {
@@ -135,6 +140,9 @@ public class BootstrapListener {
 						
 						throw ioe;
 					}
+					
+					logger.debug("Received connection from Bootstrap");
+					socket.setSoTimeout(5000);
 					
 					executor.submit(new Runnable() {
 						@Override
@@ -184,27 +192,42 @@ public class BootstrapListener {
 		out.flush();
 	}
 	
-	private BootstrapRequest readRequest(final InputStream in) throws IOException {
-		final BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+	
+	@SuppressWarnings("resource")  // we don't want to close the stream, as the caller will do that
+    private BootstrapRequest readRequest(final InputStream in) throws IOException {
+	    // We want to ensure that we don't try to read data from an InputStream directly
+	    // by a BufferedReader because any user on the system could open a socket and send
+	    // a multi-gigabyte file without any new lines in order to crash the NiFi instance
+	    // (or at least cause OutOfMemoryErrors, which can wreak havoc on the running instance).
+	    // So we will limit the Input Stream to only 4 KB, which should be plenty for any request.
+	    final LimitingInputStream limitingIn = new LimitingInputStream(in, 4096);
+		final BufferedReader reader = new BufferedReader(new InputStreamReader(limitingIn));
 		
 		final String line = reader.readLine();
 		final String[] splits = line.split(" ");
 		if ( splits.length < 0 ) {
-			throw new IOException("Received invalid command from NiFi: " + line);
+			throw new IOException("Received invalid request from Bootstrap: " + line);
 		}
 		
 		final String requestType = splits[0];
 		final String[] args;
 		if ( splits.length == 1 ) {
-			args = new String[0];
+			throw new IOException("Received invalid request from Bootstrap; request did not have a secret key; request type = " + requestType);
+		} else if ( splits.length == 2 ) {
+		    args = new String[0];
 		} else {
-			args = Arrays.copyOfRange(splits, 1, splits.length);
+			args = Arrays.copyOfRange(splits, 2, splits.length);
+		}
+		
+		final String requestKey = splits[1];
+		if ( !secretKey.equals(requestKey) ) {
+		    throw new IOException("Received invalid Secret Key for request type " + requestType);
 		}
 		
 		try {
 			return new BootstrapRequest(requestType, args);
 		} catch (final Exception e) {
-			throw new IOException("Received invalid request from bootstrap; request type = " + requestType);
+			throw new IOException("Received invalid request from Bootstrap; request type = " + requestType);
 		}
 	}
 	
@@ -227,7 +250,8 @@ public class BootstrapListener {
 			return requestType;
 		}
 		
-		public String[] getArgs() {
+		@SuppressWarnings("unused")
+        public String[] getArgs() {
 			return args;
 		}
 	}
