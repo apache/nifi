@@ -290,6 +290,9 @@ public class NarMojo extends AbstractMojo {
      */
     @Parameter(property = "overWriteIfNewer", required = false, defaultValue = "true")
     protected boolean overWriteIfNewer;
+    
+    @Parameter( property = "projectBuildDirectory", required = false, defaultValue = "${project.build.directory}")
+    protected File projectBuildDirectory;
 
     /**
      * Used to look up Artifacts in the remote repository.
@@ -499,12 +502,12 @@ public class NarMojo extends AbstractMojo {
     }
 
     private File getClassesDirectory() {
-        final File outputDirectory = new File(project.getBasedir(), "target");
+        final File outputDirectory = projectBuildDirectory;
         return new File(outputDirectory, "classes");
     }
 
     private File getDependenciesDirectory() {
-        return new File(getClassesDirectory(), "META-INF/dependencies");
+        return new File(getClassesDirectory(), "META-INF/bundled-dependencies");
     }
 
     private void makeNar() throws MojoExecutionException {
@@ -518,7 +521,7 @@ public class NarMojo extends AbstractMojo {
     }
 
     public File createArchive() throws MojoExecutionException {
-        final File outputDirectory = new File(project.getBasedir(), "target");
+        final File outputDirectory = projectBuildDirectory;
         File narFile = getNarFile(outputDirectory, finalName, classifier);
         MavenArchiver archiver = new MavenArchiver();
         archiver.setArchiver(jarArchiver);

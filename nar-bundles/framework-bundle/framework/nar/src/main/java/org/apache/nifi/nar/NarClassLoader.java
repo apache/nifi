@@ -50,7 +50,7 @@ import org.slf4j.LoggerFactory;
  *
  * <pre>
  *	+META-INF/
- *	+-- dependencies/
+ *	+-- bundled-dependencies/
  *	    +-- &lt;JAR files&gt;
  *	+-- MANIFEST.MF
  * </pre>
@@ -186,9 +186,9 @@ public class NarClassLoader extends URLClassLoader {
     private void updateClasspath(File root) throws IOException {
         addURL(root.toURI().toURL()); // for compiled classes, META-INF/, etc.
 
-        File dependencies = new File(root, "META-INF/dependencies");
+        File dependencies = new File(root, "META-INF/bundled-dependencies");
         if (!dependencies.isDirectory()) {
-            LOGGER.warn(narWorkingDirectory + " does not contain META-INF/dependencies!");
+            LOGGER.warn(narWorkingDirectory + " does not contain META-INF/bundled-dependencies!");
         }
         addURL(dependencies.toURI().toURL());
         if (dependencies.isDirectory()) {
@@ -200,9 +200,9 @@ public class NarClassLoader extends URLClassLoader {
 
     @Override
     protected String findLibrary(final String libname) {
-        File dependencies = new File(narWorkingDirectory, "META-INF/dependencies");
+        File dependencies = new File(narWorkingDirectory, "META-INF/bundled-dependencies");
         if (!dependencies.isDirectory()) {
-            LOGGER.warn(narWorkingDirectory + " does not contain META-INF/dependencies!");
+            LOGGER.warn(narWorkingDirectory + " does not contain META-INF/bundled-dependencies!");
         }
         
         final File nativeDir = new File(dependencies, "native");
