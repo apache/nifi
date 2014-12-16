@@ -123,7 +123,7 @@
                     url: '../nifi-api/controller/history',
                     data: query,
                     dataType: 'json'
-                }).then(function (response) {
+                }).done(function (response) {
                     var history = response.history;
 
                     // calculate the indices
@@ -160,7 +160,7 @@
                         from: from,
                         to: to
                     });
-                }, nf.Common.handleAjaxError);
+                }).fail(nf.Common.handleAjaxError);
                 xhr.fromPage = fromPage;
                 xhr.toPage = toPage;
 

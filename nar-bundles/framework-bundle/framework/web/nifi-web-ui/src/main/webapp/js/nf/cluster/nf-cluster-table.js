@@ -95,14 +95,14 @@ nf.ClusterTable = (function () {
                 status: 'CONNECTING'
             },
             dataType: 'json'
-        }).then(function (response) {
+        }).done(function (response) {
             var node = response.node;
 
             // update the node in the table
             var clusterGrid = $('#cluster-table').data('gridInstance');
             var clusterData = clusterGrid.getData();
             clusterData.updateItem(node.nodeId, node);
-        }, nf.Common.handleAjaxError);
+        }).fail(nf.Common.handleAjaxError);
     };
 
     /**
@@ -118,14 +118,14 @@ nf.ClusterTable = (function () {
                 status: 'DISCONNECTING'
             },
             dataType: 'json'
-        }).then(function (response) {
+        }).done(function (response) {
             var node = response.node;
 
             // update the node in the table
             var clusterGrid = $('#cluster-table').data('gridInstance');
             var clusterData = clusterGrid.getData();
             clusterData.updateItem(node.nodeId, node);
-        }, nf.Common.handleAjaxError);
+        }).fail(nf.Common.handleAjaxError);
     };
 
     /**
@@ -138,12 +138,12 @@ nf.ClusterTable = (function () {
             type: 'DELETE',
             url: config.urls.nodes + '/' + encodeURIComponent(nodeId),
             dataType: 'json'
-        }).then(function () {
+        }).done(function () {
             // get the table and update the row accordingly
             var clusterGrid = $('#cluster-table').data('gridInstance');
             var clusterData = clusterGrid.getData();
             clusterData.deleteItem(nodeId);
-        }, nf.Common.handleAjaxError);
+        }).fail(nf.Common.handleAjaxError);
     };
 
     /**
@@ -391,6 +391,7 @@ nf.ClusterTable = (function () {
             // initialize the number of displayed items
             $('#displayed-nodes').text('0');
         },
+        
         /**
          * Prompts to verify node connection.
          * 
@@ -413,6 +414,7 @@ nf.ClusterTable = (function () {
             }
 
         },
+        
         /**
          * Prompts to verify node disconnection.
          * 
@@ -434,6 +436,7 @@ nf.ClusterTable = (function () {
                 });
             }
         },
+        
         /**
          * Makes the specified node the primary node of the cluster.
          * 
@@ -452,7 +455,7 @@ nf.ClusterTable = (function () {
                         primary: true
                     },
                     dataType: 'json'
-                }).then(function (response) {
+                }).done(function (response) {
                     var node = response.node;
 
                     var clusterGrid = $('#cluster-table').data('gridInstance');
@@ -482,9 +485,10 @@ nf.ClusterTable = (function () {
 
                     // end the update
                     clusterData.endUpdate();
-                }, nf.Common.handleAjaxError);
+                }).fail(nf.Common.handleAjaxError);
             }
         },
+        
         /**
          * Prompts to verify node disconnection.
          * 
@@ -506,6 +510,7 @@ nf.ClusterTable = (function () {
                 });
             }
         },
+        
         /**
          * Update the size of the grid based on its container's current size.
          */
@@ -515,6 +520,7 @@ nf.ClusterTable = (function () {
                 clusterGrid.resizeCanvas();
             }
         },
+        
         /**
          * Load the processor cluster table.
          */
@@ -523,7 +529,7 @@ nf.ClusterTable = (function () {
                 type: 'GET',
                 url: config.urls.cluster,
                 dataType: 'json'
-            }).then(function (response) {
+            }).done(function (response) {
                 var cluster = response.cluster;
 
                 // ensure there are groups specified
@@ -544,8 +550,9 @@ nf.ClusterTable = (function () {
                 } else {
                     $('#total-nodes').text('0');
                 }
-            }, nf.Common.handleAjaxError);
+            }).fail(nf.Common.handleAjaxError);
         },
+        
         /**
          * Populate the expanded row.
          * 
@@ -561,7 +568,7 @@ nf.ClusterTable = (function () {
                     type: 'GET',
                     url: config.urls.nodes + '/' + encodeURIComponent(item.nodeId),
                     dataType: 'json'
-                }).then(function (response) {
+                }).done(function (response) {
                     var node = response.node;
 
                     // update the dialog fields
@@ -582,7 +589,7 @@ nf.ClusterTable = (function () {
 
                     // show the dialog
                     $('#node-details-dialog').modal('show');
-                }, nf.Common.handleAjaxError);
+                }).fail(nf.Common.handleAjaxError);
             }
         }
     };

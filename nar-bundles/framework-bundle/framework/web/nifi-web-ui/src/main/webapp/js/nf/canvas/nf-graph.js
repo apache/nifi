@@ -55,6 +55,7 @@ nf.Graph = (function () {
             // load the graph
             return nf.CanvasUtils.enterGroup(nf.Canvas.getGroupId());
         },
+        
         /**
          * Populates the graph with the resources defined in the response.
          * 
@@ -96,6 +97,7 @@ nf.Graph = (function () {
                 nf.Connection.add(processGroupContents.connections, selectAll);
             }
         },
+        
         /**
          * Gets the components currently on the canvas.
          */
@@ -110,6 +112,7 @@ nf.Graph = (function () {
                 connections: nf.Connection.get()
             };
         },
+        
         /**
          * Sets the components contained within the specified process group.
          * 
@@ -142,6 +145,7 @@ nf.Graph = (function () {
                 nf.Connection.set(processGroupContents.connections);
             }
         },
+        
         /**
          * Populates the status for the components specified. This will update the content 
          * of the existing components on the graph and will not cause them to be repainted. 
@@ -160,6 +164,7 @@ nf.Graph = (function () {
             nf.Processor.setStatus(processGroupStatus.processorStatus);
             nf.Connection.setStatus(processGroupStatus.connectionStatus);
         },
+        
         /**
          * Clears all the components currently on the canvas. This function does not automatically refresh.
          */
@@ -173,6 +178,7 @@ nf.Graph = (function () {
             nf.Processor.removeAll();
             nf.Connection.removeAll();
         },
+        
         /**
          * Refreshes all components currently on the canvas.
          */

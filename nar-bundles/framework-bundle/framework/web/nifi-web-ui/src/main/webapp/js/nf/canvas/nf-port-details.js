@@ -41,6 +41,7 @@ nf.PortDetails = (function () {
                 }
             });
         },
+        
         showDetails: function (selection) {
             // if the specified component is a processor, load its properties
             if (nf.CanvasUtils.isInputPort(selection) || nf.CanvasUtils.isOutputPort(selection)) {

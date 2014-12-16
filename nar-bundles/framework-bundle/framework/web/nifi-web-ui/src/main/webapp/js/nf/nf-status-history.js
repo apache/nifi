@@ -1175,6 +1175,7 @@ nf.StatusHistory = (function () {
                 instances = null;
             });
         },
+        
         /**
          * Shows the status history for the specified connection across the cluster.
          * 
@@ -1187,10 +1188,11 @@ nf.StatusHistory = (function () {
                 type: 'GET',
                 url: config.urls.clusterConnection + encodeURIComponent(connectionId) + '/status/history',
                 dataType: 'json'
-            }).then(function (response) {
+            }).done(function (response) {
                 handleClusteredStatusHistoryResponse(groupId, connectionId, response.clusterStatusHistory, config.type.connection, selectedDescriptor);
-            }, nf.Common.handleAjaxError);
+            }).fail(nf.Common.handleAjaxError);
         },
+        
         /**
          * Shows the status history for the specified processor across the cluster.
          * 
@@ -1203,10 +1205,11 @@ nf.StatusHistory = (function () {
                 type: 'GET',
                 url: config.urls.clusterProcessor + encodeURIComponent(processorId) + '/status/history',
                 dataType: 'json'
-            }).then(function (response) {
+            }).done(function (response) {
                 handleClusteredStatusHistoryResponse(groupId, processorId, response.clusterStatusHistory, config.type.processor, selectedDescriptor);
-            }, nf.Common.handleAjaxError);
+            }).fail(nf.Common.handleAjaxError);
         },
+        
         /**
          * Shows the status history for the specified process group across the cluster.
          * 
@@ -1219,10 +1222,11 @@ nf.StatusHistory = (function () {
                 type: 'GET',
                 url: config.urls.clusterProcessGroup + encodeURIComponent(processGroupId) + '/status/history',
                 dataType: 'json'
-            }).then(function (response) {
+            }).done(function (response) {
                 handleClusteredStatusHistoryResponse(groupId, processGroupId, response.clusterStatusHistory, config.type.processGroup, selectedDescriptor);
-            }, nf.Common.handleAjaxError);
+            }).fail(nf.Common.handleAjaxError);
         },
+        
         /**
          * Shows the status history for the specified remote process group across the cluster.
          * 
@@ -1235,10 +1239,11 @@ nf.StatusHistory = (function () {
                 type: 'GET',
                 url: config.urls.clusterRemoteProcessGroup + encodeURIComponent(remoteProcessGroupId) + '/status/history',
                 dataType: 'json'
-            }).then(function (response) {
+            }).done(function (response) {
                 handleClusteredStatusHistoryResponse(groupId, remoteProcessGroupId, response.clusterStatusHistory, config.type.remoteProcessGroup, selectedDescriptor);
-            }, nf.Common.handleAjaxError);
+            }).fail(nf.Common.handleAjaxError);
         },
+        
         /**
          * Shows the status history for the specified connection in this instance.
          * 
@@ -1251,10 +1256,11 @@ nf.StatusHistory = (function () {
                 type: 'GET',
                 url: config.urls.processGroups + encodeURIComponent(groupId) + '/connections/' + encodeURIComponent(connectionId) + '/status/history',
                 dataType: 'json'
-            }).then(function (response) {
+            }).done(function (response) {
                 handleStandaloneStatusHistoryResponse(groupId, connectionId, response.statusHistory, config.type.connection, selectedDescriptor);
-            }, nf.Common.handleAjaxError);
+            }).fail(nf.Common.handleAjaxError);
         },
+        
         /**
          * Shows the status history for the specified processor in this instance.
          * 
@@ -1267,10 +1273,11 @@ nf.StatusHistory = (function () {
                 type: 'GET',
                 url: config.urls.processGroups + encodeURIComponent(groupId) + '/processors/' + encodeURIComponent(processorId) + '/status/history',
                 dataType: 'json'
-            }).then(function (response) {
+            }).done(function (response) {
                 handleStandaloneStatusHistoryResponse(groupId, processorId, response.statusHistory, config.type.processor, selectedDescriptor);
-            }, nf.Common.handleAjaxError);
+            }).fail(nf.Common.handleAjaxError);
         },
+        
         /**
          * Shows the status history for the specified process group in this instance.
          * 
@@ -1283,10 +1290,11 @@ nf.StatusHistory = (function () {
                 type: 'GET',
                 url: config.urls.processGroups + encodeURIComponent(processGroupId) + '/status/history',
                 dataType: 'json'
-            }).then(function (response) {
+            }).done(function (response) {
                 handleStandaloneStatusHistoryResponse(groupId, processGroupId, response.statusHistory, config.type.processGroup, selectedDescriptor);
-            }, nf.Common.handleAjaxError);
+            }).fail(nf.Common.handleAjaxError);
         },
+        
         /**
          * Shows the status history for the specified remote process group in this instance.
          * 
@@ -1299,9 +1307,9 @@ nf.StatusHistory = (function () {
                 type: 'GET',
                 url: config.urls.processGroups + encodeURIComponent(groupId) + '/remote-process-groups/' + encodeURIComponent(remoteProcessGroupId) + '/status/history',
                 dataType: 'json'
-            }).then(function (response) {
+            }).done(function (response) {
                 handleStandaloneStatusHistoryResponse(groupId, remoteProcessGroupId, response.statusHistory, config.type.remoteProcessGroup, selectedDescriptor);
-            }, nf.Common.handleAjaxError);
+            }).fail(nf.Common.handleAjaxError);
         }
     };
 }());

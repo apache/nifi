@@ -34,6 +34,7 @@ nf.Clipboard = (function () {
         addListener: function (listener, funct) {
             listeners[listener] = funct;
         },
+        
         /**
          * Remove the specified listener.
          * 
@@ -44,6 +45,7 @@ nf.Clipboard = (function () {
                 delete listeners[listener];
             }
         },
+        
         /**
          * Copy the specified data.
          * 
@@ -57,12 +59,14 @@ nf.Clipboard = (function () {
                 listeners[listener].call(listener, COPY, data);
             }
         },
+        
         /**
          * Checks to see if any data has been copied.
          */
         isCopied: function () {
             return nf.Common.isDefinedAndNotNull(data);
         },
+        
         /**
          * Gets the most recent data thats copied. This operation
          * will remove the corresponding data from the clipboard.

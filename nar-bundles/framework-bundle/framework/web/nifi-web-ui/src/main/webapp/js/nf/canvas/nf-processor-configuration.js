@@ -454,6 +454,7 @@ nf.ProcessorConfiguration = (function () {
             // initialize the property table
             nf.ProcessorPropertyTable.init();
         },
+        
         /**
          * Shows the configuration dialog for the specified processor.
          * 
@@ -586,7 +587,7 @@ nf.ProcessorConfiguration = (function () {
                                         dataType: 'json',
                                         processData: false,
                                         contentType: 'application/json'
-                                    }).then(function (response) {
+                                    }).done(function (response) {
                                         if (nf.Common.isDefinedAndNotNull(response.processor)) {
                                             // update the revision
                                             nf.Client.setRevision(response.revision);
@@ -597,7 +598,7 @@ nf.ProcessorConfiguration = (function () {
                                             // close the details panel
                                             $('#processor-configuration').modal('hide');
                                         }
-                                    }, handleProcessorConfigurationError);
+                                    }).fail(handleProcessorConfigurationError);
                                 }
                             }
                         }
@@ -650,7 +651,7 @@ nf.ProcessorConfiguration = (function () {
                                                     dataType: 'json',
                                                     processData: false,
                                                     contentType: 'application/json'
-                                                }).then(function (response) {
+                                                }).done(function (response) {
                                                     if (nf.Common.isDefinedAndNotNull(response.processor)) {
                                                         // update the revision
                                                         nf.Client.setRevision(response.revision);
@@ -658,7 +659,7 @@ nf.ProcessorConfiguration = (function () {
                                                         // open the custom ui
                                                         openCustomUi();
                                                     }
-                                                }, handleProcessorConfigurationError);
+                                                }).fail(handleProcessorConfigurationError);
                                             }
                                         }
                                     });
@@ -679,7 +680,7 @@ nf.ProcessorConfiguration = (function () {
                     type: 'GET',
                     url: '../nifi-api/controller/history/processors/' + encodeURIComponent(processor.id),
                     dataType: 'json'
-                }).then(function (response) {
+                }).done(function (response) {
                     var processorHistory = response.processorHistory;
 
                     // record the processor history
@@ -696,7 +697,7 @@ nf.ProcessorConfiguration = (function () {
                     if (processorRelationships.is(':visible') && processorRelationships.get(0).scrollHeight > processorRelationships.innerHeight()) {
                         processorRelationships.css('border-width', '1px');
                     }
-                }, nf.Common.handleAjaxError);
+                }).fail(nf.Common.handleAjaxError);
             }
         }
     };

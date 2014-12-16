@@ -335,6 +335,7 @@ nf.Birdseye = (function () {
                     })
                     .call(brush);
         },
+        
         /**
          * Handles rendering of the birdseye tool.
          */

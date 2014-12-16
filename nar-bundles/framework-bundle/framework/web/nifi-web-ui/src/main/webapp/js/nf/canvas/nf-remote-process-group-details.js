@@ -39,6 +39,7 @@ nf.RemoteProcessGroupDetails = (function () {
                 }
             });
         },
+        
         /**
          * Shows the details for the remote process group in the specified selection.
          * 

@@ -651,6 +651,7 @@ nf.Processor = (function () {
                         'class': 'processors'
                     });
         },
+        
         /**
          * Populates the graph with the specified processors.
          * 
@@ -681,6 +682,7 @@ nf.Processor = (function () {
             // apply the selection and handle all new processors
             select().enter().call(renderProcessors, selectAll);
         },
+        
         /**
          * If the processor id is specified it is returned. If no processor id
          * specified, all processors are returned.
@@ -694,6 +696,7 @@ nf.Processor = (function () {
                 return processorMap.get(id);
             }
         },
+        
         /**
          * If the processor id is specified it is refresh according to the current 
          * state. If not processor id is specified, all processors are refreshed.
@@ -707,6 +710,7 @@ nf.Processor = (function () {
                 d3.selectAll('g.processor').call(updateProcessors);
             }
         },
+        
         /**
          * Positions the component.
          * 
@@ -715,12 +719,14 @@ nf.Processor = (function () {
         position: function (id) {
             d3.select('#id-' + id).call(nf.CanvasUtils.position);
         },
+        
         /**
          * Refreshes the components necessary after a pan event.
          */
         pan: function () {
             d3.selectAll('g.processor.entering, g.processor.leaving').call(updateProcessors);
         },
+        
         /**
          * Reloads the processor state from the server and refreshes the UI.
          * If the processor is currently unknown, this function just returns.
@@ -738,6 +744,7 @@ nf.Processor = (function () {
                 });
             }
         },
+        
         /**
          * Sets the specified processor(s). If the is an array, it 
          * will set each processor. If it is not an array, it will 
@@ -766,6 +773,7 @@ nf.Processor = (function () {
                 set(processors);
             }
         },
+        
         /**
          * Removes the specified processor.
          * 
@@ -783,12 +791,14 @@ nf.Processor = (function () {
             // apply the selection and handle all removed processors
             select().exit().call(removeProcessors);
         },
+        
         /**
          * Removes all processors.
          */
         removeAll: function () {
             nf.Processor.remove(processorMap.keys());
         },
+        
         /**
          * Sets the processor status using the specified status.
          * 
@@ -810,6 +820,7 @@ nf.Processor = (function () {
             // update the visible processor status
             d3.selectAll('g.processor.visible').call(updateProcessorStatus);
         },
+        
         /**
          * Returns the default color that should be used when drawing a processor.
          */

@@ -417,12 +417,14 @@ nf.ContextMenu = (function () {
                 'y': position[1]
             });
         },
+        
         /**
          * Hides the context menu.
          */
         hide: function () {
             $('#context-menu').hide();
         },
+        
         /**
          * Activates the context menu for the components in the specified selection.
          * 

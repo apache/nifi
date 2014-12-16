@@ -40,6 +40,7 @@ nf.ProcessGroupDetails = (function () {
                 }
             });
         },
+        
         showDetails: function (selection) {
             // if the specified selection is a process group
             if (nf.CanvasUtils.isProcessGroup(selection)) {

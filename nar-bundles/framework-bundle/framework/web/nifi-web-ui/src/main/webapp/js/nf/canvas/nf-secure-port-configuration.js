@@ -80,7 +80,7 @@ nf.SecurePortConfiguration = (function () {
                                 contentType: 'application/json',
                                 url: portUri,
                                 dataType: 'json'
-                            }).then(function (response) {
+                            }).done(function (response) {
                                 // update the revision
                                 nf.Client.setRevision(response.revision);
 
@@ -96,7 +96,7 @@ nf.SecurePortConfiguration = (function () {
 
                                 // close the details panel
                                 $('#secure-port-configuration').modal('hide');
-                            }, function (xhr, status, error) {
+                            }).fail(function (xhr, status, error) {
                                 // close the details panel
                                 $('#secure-port-configuration').modal('hide');
 
@@ -322,6 +322,7 @@ nf.SecurePortConfiguration = (function () {
         init: function () {
             initPortConfigurationDialog();
         },
+        
         /**
          * Shows the details for the port specified selection.
          * 

@@ -35,8 +35,7 @@
         <link rel="stylesheet" href="js/jquery/slickgrid/css/slick-default-theme.css" type="text/css" />
         <script type="text/javascript" src="js/codemirror/lib/codemirror-compressed.js"></script>
         <script type="text/javascript" src="js/jquery/jquery-2.1.1.min.js"></script>
-        <script src="http://code.jquery.com/jquery-migrate-1.2.1.js"></script>
-        <script type="text/javascript" src="js/jquery/ui-smoothness/jquery-ui-1.10.4.js"></script>
+        <script type="text/javascript" src="js/jquery/ui-smoothness/jquery-ui-1.10.4.min.js"></script>
         <script type="text/javascript" src="js/jquery/jquery.center.js"></script>
         <script type="text/javascript" src="js/jquery/jquery.count.js"></script>
         <script type="text/javascript" src="js/jquery/jquery.ellipsis.js"></script>

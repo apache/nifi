@@ -69,6 +69,7 @@ nf.Snippet = (function () {
 
             return snippet;
         },
+        
         /**
          * Creates a snippet.
          * 
@@ -90,6 +91,7 @@ nf.Snippet = (function () {
                 nf.Client.setRevision(response.revision);
             });
         },
+        
         /**
          * Copies the snippet to the specified group and origin.
          * 
@@ -116,6 +118,7 @@ nf.Snippet = (function () {
                 nf.Client.setRevision(response.revision);
             });
         },
+        
         /**
          * Removes the specified snippet.
          * 
@@ -135,6 +138,7 @@ nf.Snippet = (function () {
                 nf.Client.setRevision(response.revision);
             });
         },
+        
         /**
          * Moves the snippet into the specified group.
          * 
@@ -158,6 +162,7 @@ nf.Snippet = (function () {
                 nf.Client.setRevision(response.revision);
             });
         },
+        
         /**
          * Unlinks the snippet from the actual data flow.
          * 
@@ -180,6 +185,7 @@ nf.Snippet = (function () {
                 nf.Client.setRevision(response.revision);
             });
         },
+        
         /**
          * Links the snippet from the actual data flow.
          * 

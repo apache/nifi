@@ -85,6 +85,7 @@ nf.SecurePortDetails = (function () {
                 }
             });
         },
+        
         showDetails: function (selection) {
             // if the specified component is a port, load its properties
             if (nf.CanvasUtils.isInputPort(selection) || nf.CanvasUtils.isOutputPort(selection)) {

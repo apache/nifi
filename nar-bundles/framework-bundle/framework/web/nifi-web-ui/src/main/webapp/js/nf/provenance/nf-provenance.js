@@ -47,10 +47,10 @@ nf.Provenance = (function () {
             $.ajax({
                 type: 'HEAD',
                 url: config.urls.cluster
-            }).then(function () {
+            }).done(function () {
                 isClustered = true;
                 deferred.resolve();
-            }, function (xhr, status, error) {
+            }).fail(function (xhr, status, error) {
                 if (xhr.status === 404) {
                     isClustered = false;
                     deferred.resolve();
@@ -70,7 +70,7 @@ nf.Provenance = (function () {
             type: 'GET',
             url: config.urls.config,
             dataType: 'json'
-        }).then(function (response) {
+        }).done(function (response) {
             var config = response.config;
 
             // store the controller name
@@ -80,7 +80,7 @@ nf.Provenance = (function () {
             if (!nf.Common.isBlank(config.contentViewerUrl)) {
                 $('#nifi-content-viewer-url').text(config.contentViewerUrl);
             }
-        }, nf.Common.handleAjaxError);
+        }).fail(nf.Common.handleAjaxError);
     };
 
     /**
@@ -92,7 +92,7 @@ nf.Provenance = (function () {
                 type: 'GET',
                 url: config.urls.authorities,
                 dataType: 'json'
-            }).then(function (response) {
+            }).done(function (response) {
                 if (nf.Common.isDefinedAndNotNull(response.authorities)) {
                     // record the users authorities
                     nf.Common.setAuthorities(response.authorities);
@@ -100,7 +100,7 @@ nf.Provenance = (function () {
                 } else {
                     deferred.reject();
                 }
-            }, function (xhr, status, error) {
+            }).fail(function (xhr, status, error) {
                 nf.Common.handleAjaxError(xhr, status, error);
                 deferred.reject();
             });
@@ -124,7 +124,7 @@ nf.Provenance = (function () {
                     type: 'GET',
                     url: config.urls.banners,
                     dataType: 'json'
-                }).then(function (response) {
+                }).done(function (response) {
                     // ensure the banners response is specified
                     if (nf.Common.isDefinedAndNotNull(response.banners)) {
                         if (nf.Common.isDefinedAndNotNull(response.banners.headerText) && response.banners.headerText !== '') {
@@ -156,7 +156,7 @@ nf.Provenance = (function () {
                     }
 
                     deferred.resolve();
-                }, function (xhr, status, error) {
+                }).fail(function (xhr, status, error) {
                     nf.Common.handleAjaxError(xhr, status, error);
                     deferred.reject();
                 });
@@ -188,14 +188,14 @@ nf.Provenance = (function () {
                             type: 'GET',
                             url: config.urls.controllerAbout,
                             dataType: 'json'
-                        }).then(function (response) {
+                        }).done(function (response) {
                             var aboutDetails = response.about;
                             var provenanceTitle = aboutDetails.title + ' Data Provenance';
 
                             // set the document title and the about title
                             document.title = provenanceTitle;
                             $('#provenance-header-text').text(provenanceTitle);
-                        }, nf.Common.handleAjaxError);
+                        }).fail(nf.Common.handleAjaxError);
                     });
                 });
             });

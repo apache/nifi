@@ -945,13 +945,13 @@ nf.Connection = (function () {
             data: JSON.stringify(entity),
             dataType: 'json',
             contentType: 'application/json'
-        }).then(function (response) {
+        }).done(function (response) {
             // update the revision
             nf.Client.setRevision(response.revision);
 
             // request was successful, update the entry
             nf.Connection.set(response.connection);
-        }, function (xhr, status, error) {
+        }).fail(function (xhr, status, error) {
             if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
                 nf.Dialog.showOkDialog({
                     dialogContent: nf.Common.escapeHtml(xhr.responseText),
@@ -973,6 +973,7 @@ nf.Connection = (function () {
             selfLoopXOffset: (dimensions.width / 2) + 5,
             selfLoopYOffset: 25
         },
+        
         init: function () {
             connectionMap = d3.map();
 
@@ -1122,7 +1123,7 @@ nf.Connection = (function () {
                                     url: connectionData.component.uri,
                                     data: updatedConnectionData,
                                     dataType: 'json'
-                                }).then(function (response) {
+                                }).done(function (response) {
                                     var connectionData = response.connection;
 
                                     // update the revision
@@ -1130,7 +1131,7 @@ nf.Connection = (function () {
 
                                     // refresh to update the label
                                     nf.Connection.set(connectionData);
-                                }, function (xhr, status, error) {
+                                }).fail(function (xhr, status, error) {
                                     if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
                                         nf.Dialog.showOkDialog({
                                             dialogContent: nf.Common.escapeHtml(xhr.responseText),
@@ -1268,6 +1269,7 @@ nf.Connection = (function () {
                         d3.event.sourceEvent.stopPropagation();
                     });
         },
+        
         /**
          * Populates the graph with the specified connections.
          * 
@@ -1304,12 +1306,14 @@ nf.Connection = (function () {
             // apply the selection and handle all new connection
             select().enter().call(renderConnections, selectAll);
         },
+        
         /**
          * Reorders the connections based on their current z index.
          */
         reorder: function () {
             d3.selectAll('g.connection').call(sort);
         },
+        
         /**
          * Sets the value of the specified connection.
          * 
@@ -1343,6 +1347,7 @@ nf.Connection = (function () {
                 set(connection);
             }
         },
+        
         /**
          * Sets the connection status using the specified status.
          * 
@@ -1364,6 +1369,7 @@ nf.Connection = (function () {
             // update the visible connections
             d3.selectAll('g.connection.visible').call(updateConnectionStatus);
         },
+        
         /**
          * Refreshes the connection in the UI.
          * 
@@ -1376,12 +1382,14 @@ nf.Connection = (function () {
                 d3.selectAll('g.connection').call(updateConnections, true, true);
             }
         },
+        
         /**
          * Refreshes the components necessary after a pan event.
          */
         pan: function () {
             d3.selectAll('g.connection.entering, g.connection.leaving').call(updateConnections, false, true);
         },
+        
         /**
          * Removes the specified connection.
          * 
@@ -1399,12 +1407,14 @@ nf.Connection = (function () {
             // apply the selection and handle all removed connections
             select().exit().call(removeConnections);
         },
+        
         /**
          * Removes all processors.
          */
         removeAll: function () {
             nf.Connection.remove(connectionMap.keys());
         },
+        
         /**
          * Reloads the connection state from the server and refreshes the UI.
          * 
@@ -1421,6 +1431,7 @@ nf.Connection = (function () {
                 });
             }
         },
+        
         /**
          * Gets the connection that have a source or destination component with the specified id.
          * 
@@ -1439,6 +1450,7 @@ nf.Connection = (function () {
             });
             return connections;
         },
+        
         /**
          * If the connection id is specified it is returned. If no connection id
          * specified, all connections are returned.

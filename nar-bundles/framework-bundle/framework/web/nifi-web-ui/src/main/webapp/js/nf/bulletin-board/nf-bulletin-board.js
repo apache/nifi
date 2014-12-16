@@ -112,14 +112,14 @@ nf.BulletinBoard = (function () {
             type: 'GET',
             url: config.urls.controllerAbout,
             dataType: 'json'
-        }).then(function (response) {
+        }).done(function (response) {
             var aboutDetails = response.about;
             var bulletinBoardTitle = aboutDetails.title + ' Bulletin Board';
 
             // set the document title and the about title
             document.title = bulletinBoardTitle;
             $('#bulletin-board-header-text').text(bulletinBoardTitle);
-        }, nf.Common.handleAjaxError);
+        }).fail(nf.Common.handleAjaxError);
 
         // get the banners if we're not in the shell
         var loadBanners = $.Deferred(function (deferred) {
@@ -128,7 +128,7 @@ nf.BulletinBoard = (function () {
                     type: 'GET',
                     url: config.urls.banners,
                     dataType: 'json'
-                }).then(function (response) {
+                }).done(function (response) {
                     // ensure the banners response is specified
                     if (nf.Common.isDefinedAndNotNull(response.banners)) {
                         if (nf.Common.isDefinedAndNotNull(response.banners.headerText) && response.banners.headerText !== '') {
@@ -160,7 +160,7 @@ nf.BulletinBoard = (function () {
                     }
 
                     deferred.resolve();
-                }, function (xhr, status, error) {
+                }).fail(function (xhr, status, error) {
                     nf.Common.handleAjaxError(xhr, status, error);
                     deferred.reject();
                 });
@@ -170,9 +170,9 @@ nf.BulletinBoard = (function () {
         });
 
         return $.Deferred(function (deferred) {
-            $.when(getTitle, loadBanners).then(function () {
+            $.when(getTitle, loadBanners).done(function () {
                 deferred.resolve();
-            }, function () {
+            }).fail(function () {
                 deferred.reject();
             });
         }).promise();
@@ -294,7 +294,7 @@ nf.BulletinBoard = (function () {
             url: config.urls.bulletinBoard,
             data: data,
             dataType: 'json'
-        }).then(function (response) {
+        }).done(function (response) {
             // ensure the bulletin board was specified
             if (nf.Common.isDefinedAndNotNull(response.bulletinBoard)) {
                 var bulletinBoard = response.bulletinBoard;
@@ -369,7 +369,7 @@ nf.BulletinBoard = (function () {
                     bulletinContainer.prepend('<div class="bulletin-action">&#8230;</div>');
                 }
             }
-        }, function (xhr, status, error) {
+        }).fail(function (xhr, status, error) {
             // likely caused by a invalid regex
             if (xhr.status === 404) {
                 $('#bulletin-error-message').text(xhr.responseText).show();

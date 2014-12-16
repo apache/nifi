@@ -25,9 +25,8 @@
         <link rel="stylesheet" href="js/jquery/combo/jquery.combo.css?${project.version}" type="text/css" />
         <link rel="stylesheet" href="js/jquery/modal/jquery.modal.css?${project.version}" type="text/css" />
         <link rel="stylesheet" href="js/jquery/qtip2/jquery.qtip.min.css?" type="text/css" />
-        <link rel="stylesheet" href="js/jquery/ui-smoothness/jquery-ui-1.10.4.css" type="text/css" />
+        <link rel="stylesheet" href="js/jquery/ui-smoothness/jquery-ui-1.10.4.min.css" type="text/css" />
         <script type="text/javascript" src="js/jquery/jquery-2.1.1.min.js"></script>
-        <script src="http://code.jquery.com/jquery-migrate-1.2.1.js"></script>
         <script type="text/javascript" src="js/jquery/jquery.center.js"></script>
         <script type="text/javascript" src="js/jquery/combo/jquery.combo.js?${project.version}"></script>
         <script type="text/javascript" src="js/jquery/modal/jquery.modal.js?${project.version}"></script>

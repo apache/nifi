@@ -41,13 +41,13 @@ nf.LabelConfiguration = (function () {
                         'style[font-size]': fontSize.value
                     },
                     dataType: 'json'
-                }).then(function (response) {
+                }).done(function (response) {
                     // update the revision
                     nf.Client.setRevision(response.revision);
 
                     // get the label out of the response
                     nf.Label.set(response.label);
-                }, nf.Common.handleAjaxError);
+                }).fail(nf.Common.handleAjaxError);
 
 
                 // reset and hide the dialog
@@ -92,6 +92,7 @@ nf.LabelConfiguration = (function () {
                 }
             });
         },
+        
         /**
          * Shows the configuration for the specified label.
          * 

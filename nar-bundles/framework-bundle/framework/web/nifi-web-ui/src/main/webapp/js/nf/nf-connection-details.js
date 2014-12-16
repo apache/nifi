@@ -47,7 +47,7 @@ nf.ConnectionDetails = (function () {
             type: 'GET',
             url: '../nifi-api/controller/process-groups/' + encodeURIComponent(groupId) + '/processors/' + encodeURIComponent(source.id),
             dataType: 'json'
-        }).then(function (response) {
+        }).done(function (response) {
             var processor = response.processor;
             var processorName = $('<div class="label"></div>').text(processor.name);
             var processorType = $('<div></div>').text(nf.Common.substringAfterLast(processor.type, '.'));
@@ -124,7 +124,7 @@ nf.ConnectionDetails = (function () {
                         verbose: true
                     },
                     dataType: 'json'
-                }).then(function (response) {
+                }).done(function (response) {
                     var processGroup = response.processGroup;
 
                     // populate source port details
@@ -133,7 +133,7 @@ nf.ConnectionDetails = (function () {
                     $('#read-only-connection-source-group-name').text(processGroup.name);
 
                     deferred.resolve();
-                }, function () {
+                }).fail(function () {
                     deferred.reject();
                 });
             }
@@ -172,7 +172,7 @@ nf.ConnectionDetails = (function () {
                 type: 'GET',
                 url: '../nifi-api/controller/process-groups/' + encodeURIComponent(groupId) + '/processors/' + encodeURIComponent(destination.id),
                 dataType: 'json'
-            }).then(function (response) {
+            }).done(function (response) {
                 var processor = response.processor;
                 var processorName = $('<div class="label"></div>').text(processor.name);
                 var processorType = $('<div></div>').text(nf.Common.substringAfterLast(processor.type, '.'));
@@ -183,7 +183,7 @@ nf.ConnectionDetails = (function () {
                 $('#read-only-connection-target-group-name').text(groupName);
 
                 deferred.resolve();
-            }, function () {
+            }).fail(function () {
                 deferred.reject();
             });
         }).promise();
@@ -254,7 +254,7 @@ nf.ConnectionDetails = (function () {
                         verbose: true
                     },
                     dataType: 'json'
-                }).then(function (response) {
+                }).done(function (response) {
                     var processGroup = response.processGroup;
 
                     // populate destination port details
@@ -263,7 +263,7 @@ nf.ConnectionDetails = (function () {
                     $('#read-only-connection-target-group-name').text(processGroup.name);
 
                     deferred.resolve();
-                }, function () {
+                }).fail(function () {
                     deferred.reject();
                 });
             }
@@ -346,6 +346,7 @@ nf.ConnectionDetails = (function () {
                 }
             });
         },
+        
         /**
          * Shows the details for the specified edge.
          * 
@@ -368,7 +369,7 @@ nf.ConnectionDetails = (function () {
             });
 
             // populate the dialog once get have all necessary details
-            $.when(groupXhr, connectionXhr).then(function (groupResult, connectionResult) {
+            $.when(groupXhr, connectionXhr).done(function (groupResult, connectionResult) {
                 var groupResponse = groupResult[0];
                 var connectionResponse = connectionResult[0];
 
@@ -453,7 +454,7 @@ nf.ConnectionDetails = (function () {
                         }
                     });
                 }
-            }, nf.Common.handleAjaxError);
+            }).fail(nf.Common.handleAjaxError);
         }
     };
 }());
