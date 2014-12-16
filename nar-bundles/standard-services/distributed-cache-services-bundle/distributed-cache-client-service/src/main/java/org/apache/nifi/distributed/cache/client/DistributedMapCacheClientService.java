@@ -248,13 +248,16 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
             } catch (final IOException e) {
             }
         }
-        logger.info("Closed {}", new Object[] { getIdentifier() });
+        if (logger.isDebugEnabled() && getIdentifier() != null) {
+            logger.debug("Closed {}", new Object[]{getIdentifier()});
+        }
     }
 
     @Override
     protected void finalize() throws Throwable {
-        if (!closed)
+        if (!closed) {
             close();
+        }
         logger.debug("Finalize called");
     }
 
@@ -295,6 +298,7 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
     }
 
     private static interface CommsAction<T> {
+
         T execute(CommsSession commsSession) throws IOException;
     }
 

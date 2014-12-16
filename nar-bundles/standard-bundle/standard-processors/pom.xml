@@ -135,7 +135,6 @@
             <groupId>net.sf.saxon</groupId>
             <artifactId>Saxon-HE</artifactId>
         </dependency>
-        
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
@@ -152,6 +151,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>distributed-cache-client-service</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>joda-time</groupId>

@@ -73,6 +73,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>ssl-context-service</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>
