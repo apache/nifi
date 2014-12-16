@@ -45,13 +45,13 @@ nf.RemoteProcessGroupConfiguration = (function () {
                                     dataType: 'json',
                                     processData: false,
                                     contentType: 'application/json'
-                                }).then(function (response) {
+                                }).done(function (response) {
                                     // update the revision
                                     nf.Client.setRevision(response.revision);
 
                                     // close the details panel
                                     $('#remote-process-group-configuration').modal('hide');
-                                }, function (xhr, status, error) {
+                                }).fail(function (xhr, status, error) {
                                     if (xhr.status === 400) {
                                         var errors = xhr.responseText.split('\n');
 
@@ -93,6 +93,7 @@ nf.RemoteProcessGroupConfiguration = (function () {
                 }
             });
         },
+        
         /**
          * Shows the details for the remote process group in the specified selection.
          * 

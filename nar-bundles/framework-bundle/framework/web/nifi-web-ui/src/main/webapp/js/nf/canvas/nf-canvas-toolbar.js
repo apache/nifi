@@ -95,6 +95,7 @@ nf.CanvasToolbar = (function () {
                 });
             }
         },
+        
         /**
          * Called when the selection changes to update the toolbar appropriately.
          */

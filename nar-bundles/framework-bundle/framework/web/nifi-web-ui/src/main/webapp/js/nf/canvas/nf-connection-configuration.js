@@ -250,7 +250,7 @@ nf.ConnectionConfiguration = (function () {
                     verbose: true
                 },
                 dataType: 'json'
-            }).then(function (response) {
+            }).done(function (response) {
                 var processGroup = response.processGroup;
                 var processGroupContents = processGroup.contents;
 
@@ -301,7 +301,7 @@ nf.ConnectionConfiguration = (function () {
 
                     deferred.reject();
                 }
-            }, function (xhr, status, error) {
+            }).fail(function (xhr, status, error) {
                 // handle the error
                 nf.Common.handleAjaxError(xhr, status, error);
 
@@ -327,7 +327,7 @@ nf.ConnectionConfiguration = (function () {
                     verbose: true
                 },
                 dataType: 'json'
-            }).then(function (response) {
+            }).done(function (response) {
                 var remoteProcessGroup = response.remoteProcessGroup;
                 var remoteProcessGroupContents = remoteProcessGroup.contents;
 
@@ -379,7 +379,7 @@ nf.ConnectionConfiguration = (function () {
 
                     deferred.reject();
                 }
-            }, function (xhr, status, error) {
+            }).fail(function (xhr, status, error) {
                 // handle the error
                 nf.Common.handleAjaxError(xhr, status, error);
 
@@ -475,7 +475,7 @@ nf.ConnectionConfiguration = (function () {
                     verbose: true
                 },
                 dataType: 'json'
-            }).then(function (response) {
+            }).done(function (response) {
                 var processGroup = response.processGroup;
                 var processGroupContents = processGroup.contents;
 
@@ -526,7 +526,7 @@ nf.ConnectionConfiguration = (function () {
 
                     deferred.reject();
                 }
-            }, function (xhr, status, error) {
+            }).fail(function (xhr, status, error) {
                 // handle the error
                 nf.Common.handleAjaxError(xhr, status, error);
 
@@ -551,7 +551,7 @@ nf.ConnectionConfiguration = (function () {
                     verbose: true
                 },
                 dataType: 'json'
-            }).then(function (response) {
+            }).done(function (response) {
                 var remoteProcessGroup = response.remoteProcessGroup;
                 var remoteProcessGroupContents = remoteProcessGroup.contents;
 
@@ -603,7 +603,7 @@ nf.ConnectionConfiguration = (function () {
 
                     deferred.reject();
                 }
-            }, function (xhr, status, error) {
+            }).fail(function (xhr, status, error) {
                 // handle the error
                 nf.Common.handleAjaxError(xhr, status, error);
 
@@ -848,7 +848,7 @@ nf.ConnectionConfiguration = (function () {
                     destinationType: destinationType
                 },
                 dataType: 'json'
-            }).then(function (response) {
+            }).done(function (response) {
                 // update the revision
                 nf.Client.setRevision(response.revision);
 
@@ -876,7 +876,7 @@ nf.ConnectionConfiguration = (function () {
 
                 // update the birdseye
                 nf.Birdseye.refresh();
-            }, function (xhr, status, error) {
+            }).fail(function (xhr, status, error) {
                 // handle the error
                 nf.Common.handleAjaxError(xhr, status, error);
             });
@@ -935,7 +935,7 @@ nf.ConnectionConfiguration = (function () {
                     destinationGroupId: destinationGroupId
                 },
                 dataType: 'json'
-            }).then(function (response) {
+            }).done(function (response) {
                 if (nf.Common.isDefinedAndNotNull(response.connection)) {
                     var connection = response.connection;
 
@@ -959,7 +959,7 @@ nf.ConnectionConfiguration = (function () {
                         nf.RemoteProcessGroup.reload(destinationData.component);
                     }
                 }
-            }, function (xhr, status, error) {
+            }).fail(function (xhr, status, error) {
                 if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
                     nf.Dialog.showOkDialog({
                         dialogContent: nf.Common.escapeHtml(xhr.responseText),
@@ -1128,7 +1128,7 @@ nf.ConnectionConfiguration = (function () {
                 type: 'GET',
                 url: config.urls.prioritizers,
                 dataType: 'json'
-            }).then(function (response) {
+            }).done(function (response) {
                 // create an element for each available prioritizer
                 $.each(response.prioritizerTypes, function (i, documentedType) {
                     nf.ConnectionConfiguration.addAvailablePrioritizer('#prioritizer-available', documentedType);
@@ -1142,8 +1142,9 @@ nf.ConnectionConfiguration = (function () {
                     opacity: 0.6
                 });
                 $('#prioritizer-available, #prioritizer-selected').disableSelection();
-            }, nf.Common.handleAjaxError);
+            }).fail(nf.Common.handleAjaxError);
         },
+        
         /**
          * Adds the specified prioritizer to the specified container.
          * 
@@ -1165,6 +1166,7 @@ nf.ConnectionConfiguration = (function () {
                 }));
             }
         },
+        
         /**
          * Shows the dialog for creating a new connection.
          * 
@@ -1209,6 +1211,7 @@ nf.ConnectionConfiguration = (function () {
                 removeTempEdge();
             });
         },
+        
         /**
          * Shows the configuration for the specified connection. If a destination is
          * specified it will be considered a new destination.
@@ -1232,7 +1235,7 @@ nf.ConnectionConfiguration = (function () {
                 }
 
                 // initialize the connection dialog
-                $.when(initializeSourceEditConnectionDialog(source), initializeDestinationEditConnectionDialog(destination)).then(function () {
+                $.when(initializeSourceEditConnectionDialog(source), initializeDestinationEditConnectionDialog(destination)).done(function () {
                     var availableRelationships = connection.availableRelationships;
                     var selectedRelationships = connection.selectedRelationships;
 
@@ -1311,9 +1314,9 @@ nf.ConnectionConfiguration = (function () {
                                     if (nf.CanvasUtils.isProcessor(source)) {
                                         if (selectedRelationships.length > 0) {
                                             // if there are relationships selected update
-                                            updateConnection(selectedRelationships).then(function () {
+                                            updateConnection(selectedRelationships).done(function () {
                                                 deferred.resolve();
-                                            }, function () {
+                                            }).fail(function () {
                                                 deferred.reject();
                                             });
                                         } else {
@@ -1328,9 +1331,9 @@ nf.ConnectionConfiguration = (function () {
                                         }
                                     } else {
                                         // there are no relationships, but the source wasn't a processor, so update anyway
-                                        updateConnection(undefined).then(function () {
+                                        updateConnection(undefined).done(function () {
                                             deferred.resolve();
-                                        }, function () {
+                                        }).fail(function () {
                                             deferred.reject();
                                         });
                                     }
@@ -1366,7 +1369,7 @@ nf.ConnectionConfiguration = (function () {
                     if (relationshipNames.is(':visible') && relationshipNames.get(0).scrollHeight > relationshipNames.innerHeight()) {
                         relationshipNames.css('border-width', '1px');
                     }
-                }, function () {
+                }).fail(function () {
                     deferred.reject();
                 });
             }).promise();

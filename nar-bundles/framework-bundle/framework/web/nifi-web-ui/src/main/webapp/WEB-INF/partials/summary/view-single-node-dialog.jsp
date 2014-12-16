@@ -21,3 +21,4 @@
         <div id="cluster-search-example">(e.g.&nbsp;my.host:80)</div>
     </div>
 </div>
+<div id="search-cluster-results"></div>

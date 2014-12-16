@@ -170,7 +170,7 @@ nf.Canvas = (function () {
             type: 'GET',
             url: config.urls.revision,
             dataType: 'json'
-        }).then(function (response) {
+        }).done(function (response) {
             if (nf.Common.isDefinedAndNotNull(response.revision)) {
                 var revision = response.revision;
                 var currentRevision = nf.Client.getRevision();
@@ -187,7 +187,7 @@ nf.Canvas = (function () {
                     }
                 }
             }
-        }, nf.Common.handleAjaxError);
+        }).fail(nf.Common.handleAjaxError);
     };
 
     /**
@@ -534,7 +534,7 @@ nf.Canvas = (function () {
             type: 'GET',
             url: config.urls.banners,
             dataType: 'json'
-        }).then(function (response) {
+        }).done(function (response) {
             // ensure the banners response is specified
             if (nf.Common.isDefinedAndNotNull(response.banners)) {
                 if (nf.Common.isDefinedAndNotNull(response.banners.headerText) && response.banners.headerText !== '') {
@@ -558,7 +558,7 @@ nf.Canvas = (function () {
 
             // update the graph dimensions
             updateGraphSize();
-        }, nf.Common.handleAjaxError);
+        }).fail(nf.Common.handleAjaxError);
     };
 
     /**
@@ -614,7 +614,7 @@ nf.Canvas = (function () {
             type: 'GET',
             url: config.urls.status,
             dataType: 'json'
-        }).then(function (response) {
+        }).done(function (response) {
             // report the updated status
             if (nf.Common.isDefinedAndNotNull(response.controllerStatus)) {
                 var controllerStatus = response.controllerStatus;
@@ -712,7 +712,7 @@ nf.Canvas = (function () {
                     $('#has-pending-accounts').hide();
                 }
             }
-        }, nf.Common.handleAjaxError);
+        }).fail(nf.Common.handleAjaxError);
     };
 
     /**
@@ -729,7 +729,7 @@ nf.Canvas = (function () {
                 verbose: true
             },
             dataType: 'json'
-        }).then(function (processGroupResponse) {
+        }).done(function (processGroupResponse) {
             // set the revision
             nf.Client.setRevision(processGroupResponse.revision);
 
@@ -759,7 +759,7 @@ nf.Canvas = (function () {
 
             // update the toolbar
             nf.CanvasToolbar.refresh();
-        }, nf.Common.handleAjaxError);
+        }).fail(nf.Common.handleAjaxError);
     };
 
     /**
@@ -777,7 +777,7 @@ nf.Canvas = (function () {
                     recursive: false
                 },
                 dataType: 'json'
-            }).then(function (response) {
+            }).done(function (response) {
                 // report the updated stats
                 if (nf.Common.isDefinedAndNotNull(response.processGroupStatus)) {
                     var processGroupStatus = response.processGroupStatus;
@@ -789,7 +789,7 @@ nf.Canvas = (function () {
                     $('#stats-last-refreshed').text(processGroupStatus.statsLastRefreshed);
                 }
                 deferred.resolve();
-            }, function (xhr, status, error) {
+            }).fail(function (xhr, status, error) {
                 // if clustered, a 404 likely means the flow status at the ncm is stale
                 if (!nf.Canvas.isClustered() || xhr.status !== 404) {
                     nf.Common.handleAjaxError(xhr, status, error);
@@ -857,9 +857,9 @@ nf.Canvas = (function () {
                     }
 
                     // don't load the status until the graph is loaded
-                    reloadStatus(nf.Canvas.getGroupId()).then(function () {
+                    reloadStatus(nf.Canvas.getGroupId()).done(function () {
                         deferred.resolve(processGroupResult);
-                    }, function () {
+                    }).fail(function () {
                         deferred.reject();
                     });
                 });
@@ -871,9 +871,9 @@ nf.Canvas = (function () {
         reloadStatus: function () {
             return $.Deferred(function (deferred) {
                 // refresh the status and check any bulletins
-                $.when(reloadStatus(nf.Canvas.getGroupId()), reloadFlowStatus()).then(function () {
+                $.when(reloadStatus(nf.Canvas.getGroupId()), reloadFlowStatus()).done(function () {
                     deferred.resolve();
-                }, function () {
+                }).fail(function () {
                     deferred.reject();
                 });
             }).promise();
@@ -900,13 +900,13 @@ nf.Canvas = (function () {
                     url: config.urls.cluster
                 }).done(function (response, status, xhr) {
                     clustered = true;
-                    deferred.resolveWith(xhr, [response, status, xhr]);
+                    deferred.resolve(response, status, xhr);
                 }).fail(function (xhr, status, error) {
                     if (xhr.status === 404) {
                         clustered = false;
-                        deferred.resolveWith(xhr, ['', 'success', xhr]);
+                        deferred.resolve('', 'success', xhr);
                     } else {
-                        deferred.rejectWith(xhr, [xhr, status, error]);
+                        deferred.reject(xhr, status, error);
                     }
                 });
             }).promise();
@@ -919,7 +919,7 @@ nf.Canvas = (function () {
             });
 
             // ensure the authorities and config request is processed first
-            $.when(authoritiesXhr, configXhr).then(function (authoritiesResult, configResult) {
+            $.when(authoritiesXhr, configXhr).done(function (authoritiesResult, configResult) {
                 var authoritiesResponse = authoritiesResult[0];
                 var configResponse = configResult[0];
 
@@ -934,7 +934,7 @@ nf.Canvas = (function () {
                 var configDetails = configResponse.config;
 
                 // when both request complete, load the application
-                isClusteredRequest.then(function () {
+                isClusteredRequest.done(function () {
                     // get the auto refresh interval
                     var autoRefreshIntervalSeconds = parseInt(configDetails.autoRefreshIntervalSeconds, 10);
 
@@ -942,7 +942,7 @@ nf.Canvas = (function () {
                     secureSiteToSite = configDetails.siteToSiteSecure;
 
                     // load d3
-                    loadD3().then(function () {
+                    loadD3().done(function () {
                         nf.Storage.init();
 
                         // initialize the application
@@ -982,7 +982,7 @@ nf.Canvas = (function () {
                         nf.ConnectionDetails.init();
                         nf.RemoteProcessGroupDetails.init();
                         nf.GoTo.init();
-                        nf.Graph.init().then(function () {
+                        nf.Graph.init().done(function () {
                             // determine the split between the polling
                             var pollingSplit = autoRefreshIntervalSeconds / 2;
 
@@ -994,10 +994,10 @@ nf.Canvas = (function () {
 
                             // hide the splash screen
                             nf.Canvas.hideSplash();
-                        }, nf.Common.handleAjaxError);
-                    }, nf.Common.handleAjaxError);
-                }, nf.Common.handleAjaxError);
-            }, nf.Common.handleAjaxError);
+                        }).fail(nf.Common.handleAjaxError);
+                    }).fail(nf.Common.handleAjaxError);
+                }).fail(nf.Common.handleAjaxError);
+            }).fail(nf.Common.handleAjaxError);
         },
         /**
          * Defines the gradient colors used to render processors.
@@ -1214,6 +1214,7 @@ nf.Canvas = (function () {
                     // add the behavior to the canvas and disable dbl click zoom
                     svg.call(behavior).on('dblclick.zoom', null);
                 },
+                
                 /**
                  * Whether or not a component should be rendered based solely on the current scale.
                  * 
@@ -1222,6 +1223,7 @@ nf.Canvas = (function () {
                 shouldRenderPerScale: function () {
                     return nf.Canvas.View.scale() >= MIN_SCALE_TO_RENDER;
                 },
+                
                 /**
                  * Updates component visibility based on the current translation/scale.
                  */
@@ -1229,6 +1231,7 @@ nf.Canvas = (function () {
                     updateComponentVisibility();
                     nf.Graph.pan();
                 },
+                
                 /**
                  * Sets/gets the current translation.
                  * 
@@ -1241,6 +1244,7 @@ nf.Canvas = (function () {
                         behavior.translate(translate);
                     }
                 },
+                
                 /**
                  * Sets/gets the current scale.
                  * 
@@ -1253,6 +1257,7 @@ nf.Canvas = (function () {
                         behavior.scale(scale);
                     }
                 },
+                
                 /**
                  * Zooms in a single zoom increment.
                  */
@@ -1277,6 +1282,7 @@ nf.Canvas = (function () {
                         height: 1
                     });
                 },
+                
                 /**
                  * Zooms out a single zoom increment.
                  */
@@ -1301,6 +1307,7 @@ nf.Canvas = (function () {
                         height: 1
                     });
                 },
+                
                 /**
                  * Zooms to fit the entire graph on the canvas.
                  */
@@ -1347,6 +1354,7 @@ nf.Canvas = (function () {
                         height: canvasHeight / newScale
                     });
                 },
+                
                 /**
                  * Zooms to the actual size (1 to 1).
                  */
@@ -1395,6 +1403,7 @@ nf.Canvas = (function () {
                     // center as appropriate
                     nf.CanvasUtils.centerBoundingBox(box);
                 },
+                
                 /**
                  * Refreshes the view based on the configured translation and scale.
                  * 

@@ -57,7 +57,7 @@ nf.Draggable = (function () {
                         y: newPosition.y
                     },
                     dataType: 'json'
-                }).then(function (response) {
+                }).done(function (response) {
                     // update the revision
                     nf.Client.setRevision(response.revision);
 
@@ -69,7 +69,7 @@ nf.Draggable = (function () {
                         type: d.type,
                         id: d.component.id
                     });
-                }, function (xhr, status, error) {
+                }).fail(function (xhr, status, error) {
                     if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
                         nf.Dialog.showOkDialog({
                             dialogContent: nf.Common.escapeHtml(xhr.responseText),
@@ -114,7 +114,7 @@ nf.Draggable = (function () {
                     data: JSON.stringify(entity),
                     dataType: 'json',
                     contentType: 'application/json'
-                }).then(function (response) {
+                }).done(function (response) {
                     // update the revision
                     nf.Client.setRevision(response.revision);
 
@@ -132,7 +132,7 @@ nf.Draggable = (function () {
                         type: d.type,
                         id: d.component.id
                     });
-                }, function (xhr, status, error) {
+                }).fail(function (xhr, status, error) {
                     if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
                         nf.Dialog.showOkDialog({
                             dialogContent: nf.Common.escapeHtml(xhr.responseText),
@@ -300,6 +300,7 @@ nf.Draggable = (function () {
                         dragSelection.remove();
                     });
         },
+        
         /**
          * Activates the drag behavior for the components in the specified selection.
          * 

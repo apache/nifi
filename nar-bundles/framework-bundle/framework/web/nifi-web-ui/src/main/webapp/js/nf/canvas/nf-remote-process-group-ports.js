@@ -59,7 +59,7 @@ nf.RemoteProcessGroupPorts = (function () {
                                     dataType: 'json',
                                     processData: false,
                                     contentType: 'application/json'
-                                }).then(function (response) {
+                                }).done(function (response) {
                                     // update the revision
                                     nf.Client.setRevision(response.revision);
 
@@ -75,7 +75,7 @@ nf.RemoteProcessGroupPorts = (function () {
                                     // set the new values
                                     $('#' + remotePortId + '-concurrent-tasks').text(remotePort.concurrentlySchedulableTaskCount);
                                     $('#' + remotePortId + '-compression').text(compressionLabel);
-                                }, function (xhr, status, error) {
+                                }).fail(function (xhr, status, error) {
                                     if (xhr.status === 400) {
                                         var errors = xhr.responseText.split('\n');
 
@@ -270,7 +270,7 @@ nf.RemoteProcessGroupPorts = (function () {
                         dataType: 'json',
                         processData: false,
                         contentType: 'application/json'
-                    }).then(function (response) {
+                    }).done(function (response) {
                         // update the revision
                         nf.Client.setRevision(response.revision);
 
@@ -306,7 +306,7 @@ nf.RemoteProcessGroupPorts = (function () {
                                 }
                             }
                         }
-                    }, function (xhr, status, error) {
+                    }).fail(function (xhr, status, error) {
                         if (xhr.status === 400) {
                             var errors = xhr.responseText.split('\n');
 
@@ -428,6 +428,7 @@ nf.RemoteProcessGroupPorts = (function () {
             initRemotePortConfigurationDialog();
             initRemoteProcessGroupConfigurationDialog();
         },
+        
         /**
          * Shows the details for the remote process group in the specified selection.
          * 
@@ -446,7 +447,7 @@ nf.RemoteProcessGroupPorts = (function () {
                         verbose: true
                     },
                     dataType: 'json'
-                }).then(function (response) {
+                }).done(function (response) {
                     var remoteProcessGroup = response.remoteProcessGroup;
 
                     // set the model locally
@@ -509,7 +510,7 @@ nf.RemoteProcessGroupPorts = (function () {
 
                     // show the details
                     $('#remote-process-group-ports').modal('show');
-                }, nf.Common.handleAjaxError);
+                }).fail(nf.Common.handleAjaxError);
             }
         }
     };

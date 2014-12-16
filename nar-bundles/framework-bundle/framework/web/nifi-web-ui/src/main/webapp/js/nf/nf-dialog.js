@@ -78,6 +78,7 @@ nf.Dialog = (function () {
             // show the dialog
             $('#nf-ok-dialog').modal('setHeaderText', options.headerText).modal('setOverlayBackground', options.overlayBackground).modal('show');
         },
+        
         /**
          * Shows an general dialog with Yes and No buttons populated with the
          * specified dialog content.

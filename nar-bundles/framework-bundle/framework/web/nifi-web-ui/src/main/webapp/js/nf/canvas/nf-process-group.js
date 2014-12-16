@@ -888,6 +888,7 @@ nf.ProcessGroup = (function () {
                         'class': 'process-groups'
                     });
         },
+        
         /**
          * Populates the graph with the specified process groups.
          *
@@ -918,6 +919,7 @@ nf.ProcessGroup = (function () {
             // apply the selection and handle all new process group
             select().enter().call(renderProcessGroups, selectAll);
         },
+        
         /**
          * If the process group id is specified it is returned. If no process group id
          * specified, all process groups are returned.
@@ -931,6 +933,7 @@ nf.ProcessGroup = (function () {
                 return processGroupMap.get(id);
             }
         },
+        
         /**
          * If the process group id is specified it is refresh according to the current
          * state. If no process group id is specified, all process groups are refreshed.
@@ -944,12 +947,14 @@ nf.ProcessGroup = (function () {
                 d3.selectAll('g.process-group').call(updateProcessGroups);
             }
         },
+        
         /**
          * Refreshes the components necessary after a pan event.
          */
         pan: function () {
             d3.selectAll('g.process-group.entering, g.process-group.leaving').call(updateProcessGroups);
         },
+        
         /**
          * Reloads the process group state from the server and refreshes the UI.
          * If the process group is currently unknown, this function just returns.
@@ -967,6 +972,7 @@ nf.ProcessGroup = (function () {
                 });
             }
         },
+        
         /**
          * Positions the component.
          * 
@@ -975,6 +981,7 @@ nf.ProcessGroup = (function () {
         position: function (id) {
             d3.select('#id-' + id).call(nf.CanvasUtils.position);
         },
+        
         /**
          * Sets the specified process group(s). If the is an array, it
          * will set each process group. If it is not an array, it will
@@ -1003,6 +1010,7 @@ nf.ProcessGroup = (function () {
                 set(processGroups);
             }
         },
+        
         /**
          * Sets the process group status using the specified status.
          * 
@@ -1024,6 +1032,7 @@ nf.ProcessGroup = (function () {
             // update the visible process groups
             d3.selectAll('g.process-group.visible').call(updateProcessGroupStatus);
         },
+        
         /**
          * Removes the specified process group.
          *
@@ -1041,6 +1050,7 @@ nf.ProcessGroup = (function () {
             // apply the selection and handle all removed process groups
             select().exit().call(removeProcessGroups);
         },
+        
         /**
          * Removes all process groups.
          */

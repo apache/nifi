@@ -24,19 +24,19 @@
         ${nf.cluster.style.tags}
         <link rel="stylesheet" href="js/jquery/combo/jquery.combo.css?${project.version}" type="text/css" />
         <link rel="stylesheet" href="js/jquery/modal/jquery.modal.css?${project.version}" type="text/css" />
-        <link rel="stylesheet" href="js/jquery/qtip2/jquery.qtip.css?" type="text/css" />
-        <link rel="stylesheet" href="js/jquery/css/smoothness/jquery-ui-1.8.10.custom.css" type="text/css" />
+        <link rel="stylesheet" href="js/jquery/qtip2/jquery.qtip.min.css?" type="text/css" />
+        <link rel="stylesheet" href="js/jquery/ui-smoothness/jquery-ui-1.10.4.min.css" type="text/css" />
         <link rel="stylesheet" href="js/jquery/slickgrid/css/slick.grid.css" type="text/css" />
         <link rel="stylesheet" href="js/jquery/slickgrid/css/slick-default-theme.css" type="text/css" />
-        <script type="text/javascript" src="js/jquery/jquery-1.7.min.js"></script>
+        <script type="text/javascript" src="js/jquery/jquery-2.1.1.min.js"></script>
         <script type="text/javascript" src="js/jquery/jquery.center.js"></script>
         <script type="text/javascript" src="js/jquery/combo/jquery.combo.js?${project.version}"></script>
         <script type="text/javascript" src="js/jquery/modal/jquery.modal.js?${project.version}"></script>
         <script type="text/javascript" src="js/jquery/jquery.ellipsis.js"></script>
         <script type="text/javascript" src="js/jquery/jquery.each.js"></script>
-        <script type="text/javascript" src="js/jquery/jquery-ui-1.8.10.custom.min.js"></script>
+        <script type="text/javascript" src="js/jquery/ui-smoothness/jquery-ui-1.10.4.min.js"></script>
         <script type="text/javascript" src="js/jquery/qtip2/jquery.qtip.min.js"></script>
-        <script type="text/javascript" src="js/jquery/jquery.event.drag-2.0.min.js"></script>
+        <script type="text/javascript" src="js/jquery/jquery.event.drag-2.2.min.js"></script>
         <script type="text/javascript" src="js/jquery/slickgrid/plugins/slick.cellrangeselector.js"></script>
         <script type="text/javascript" src="js/jquery/slickgrid/plugins/slick.cellselectionmodel.js"></script>
         <script type="text/javascript" src="js/jquery/slickgrid/plugins/slick.rowselectionmodel.js"></script>

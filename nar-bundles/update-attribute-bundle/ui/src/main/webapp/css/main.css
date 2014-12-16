@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 /*
     document styles
 */
@@ -59,7 +60,21 @@ div.new-rule {
 }
 
 #new-rule-dialog input {
-    width: 374px;
+    width: 370px;
+}
+
+#update-attributes-content .ui-autocomplete {
+    max-height: 400px;
+    overflow: auto;
+    border: 1px solid #aaaaaa;
+    z-index: 1351;
+    border-radius: 0;
+}
+
+#update-attributes-content .ui-menu .ui-menu-item a.ui-state-focus {
+    background: #D4E0E5 !important;
+    border: 1px solid #999999;
+    border-radius: 0;
 }
 
 input.search {

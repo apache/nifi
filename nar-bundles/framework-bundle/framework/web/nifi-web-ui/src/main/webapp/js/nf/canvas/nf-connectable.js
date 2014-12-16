@@ -157,6 +157,7 @@ nf.Connectable = (function () {
                         d3.select(this).remove();
                     });
         },
+        
         activate: function (components) {
             components
                     .on('mouseenter.connectable', function (d) {

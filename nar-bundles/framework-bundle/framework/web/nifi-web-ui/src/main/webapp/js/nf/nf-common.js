@@ -72,14 +72,17 @@ nf.Common = {
             }
         }
     },
+    
     /**
      * Determines if the current broswer supports SVG.
      */
     SUPPORTS_SVG: !!document.createElementNS && !!document.createElementNS('http://www.w3.org/2000/svg', 'svg').createSVGRect,
+    
     /**
      * The authorities for the current user.
      */
     authorities: undefined,
+    
     /**
      * Sets the authorities for the current user.
      * 
@@ -88,6 +91,7 @@ nf.Common = {
     setAuthorities: function (roles) {
         nf.Common.authorities = roles;
     },
+    
     /**
      * Loads a script at the specified URL. Supports caching the script on the browser.
      * 
@@ -100,6 +104,7 @@ nf.Common = {
             url: url
         });
     },
+    
     /**
      * Determines whether the current user can access provenance.
      * 
@@ -117,6 +122,7 @@ nf.Common = {
         }
         return canAccessProvenance;
     },
+    
     /**
      * Returns whether or not the current user is a DFM.
      */
@@ -132,6 +138,7 @@ nf.Common = {
         }
         return dfm;
     },
+    
     /**
      * Returns whether or not the current user is a DFM.
      */
@@ -147,6 +154,7 @@ nf.Common = {
         }
         return admin;
     },
+    
     /**
      * Adds a mouse over effect for the specified selector using
      * the specified styles.
@@ -163,6 +171,7 @@ nf.Common = {
         });
         return $(selector).addClass(normalStyle);
     },
+    
     /**
      * Method for handling ajax errors.
      * 
@@ -237,6 +246,7 @@ nf.Common = {
             nf.Common.closeCanvas();
         }
     },
+    
     /**
      * Closes the canvas by removing the splash screen and stats poller.
      */
@@ -256,6 +266,7 @@ nf.Common = {
             nf.Canvas.stopStatusPolling();
         }
     },
+    
     /**
      * Populates the specified field with the specified value. If the value is 
      * undefined, the field will read 'No value set.' If the value is an empty
@@ -273,6 +284,7 @@ nf.Common = {
             return $('#' + target).text(value);
         }
     },
+    
     /**
      * Clears the specified field. Removes any style that may have been applied
      * by a preceeding call to populateField.
@@ -282,6 +294,7 @@ nf.Common = {
     clearField: function (target) {
         return $('#' + target).removeClass('unset blank').text('');
     },
+    
     /**
      * Formats the tooltip for the specified property.
      * 
@@ -321,6 +334,7 @@ nf.Common = {
             return null;
         }
     },
+    
     /**
      * Formats the specified property (name and value) accordingly.
      * 
@@ -330,6 +344,7 @@ nf.Common = {
     formatProperty: function (name, value) {
         return '<div><span class="label">' + nf.Common.formatValue(name) + ': </span>' + nf.Common.formatValue(value) + '</div>';
     },
+    
     /**
      * Formats the specified value accordingly.
      * 
@@ -346,6 +361,7 @@ nf.Common = {
             return '<span class="unset">No value set</span>';
         }
     },
+    
     /**
      * HTML escapes the specified string. If the string is null 
      * or undefined, an empty string is returned.
@@ -372,6 +388,7 @@ nf.Common = {
             }
         };
     }()),
+    
     /**
      * Creates a form inline in order to submit the specified params to the specified URL
      * using the specified method.
@@ -407,6 +424,7 @@ nf.Common = {
             window.onbeforeunload = previousBeforeUnload;
         }
     },
+    
     /**
      * Formats the specified array as an unordered list. If the array is not an 
      * array, null is returned.
@@ -429,6 +447,7 @@ nf.Common = {
             return null;
         }
     },
+    
     /**
      * Extracts the contents of the specified str after the strToFind. If the
      * strToFind is not found or the last part of the str, an empty string is
@@ -448,6 +467,7 @@ nf.Common = {
         }
         return result;
     },
+    
     /**
      * Updates the mouse pointer.
      * 
@@ -461,6 +481,7 @@ nf.Common = {
             $('#' + domId).removeClass('pointer');
         }
     },
+    
     /**
      * Constants for time duration formatting.
      */
@@ -468,6 +489,7 @@ nf.Common = {
     MILLIS_PER_HOUR: 3600000,
     MILLIS_PER_MINUTE: 60000,
     MILLIS_PER_SECOND: 1000,
+    
     /**
      * Formats the specified duration.
      * 
@@ -515,6 +537,7 @@ nf.Common = {
             return time;
         }
     },
+    
     /**
      * Constants for formatting data size.
      */
@@ -522,6 +545,7 @@ nf.Common = {
     BYTES_IN_MEGABYTE: 1048576,
     BYTES_IN_GIGABYTE: 1073741824,
     BYTES_IN_TERABYTE: 1099511627776,
+    
     /**
      * Formats the specified number of bytes into a human readable string.
      * 
@@ -556,6 +580,7 @@ nf.Common = {
         // default to bytes
         return parseFloat(dataSize).toFixed(2) + " bytes";
     },
+    
     /**
      * Formats the specified integer as a string (adding commas). At this
      * point this does not take into account any locales.
@@ -570,6 +595,7 @@ nf.Common = {
         }
         return string;
     },
+    
     /**
      * Formats the specified float using two demical places.
      * 
@@ -581,6 +607,7 @@ nf.Common = {
         }
         return f.toFixed(2) + '';
     },
+    
     /**
      * Pads the specified value to the specified width with the specified character.
      * If the specified value is already wider than the specified width, the original
@@ -601,6 +628,7 @@ nf.Common = {
 
         return s;
     },
+    
     /**
      * Formats the specified DateTime.
      * 
@@ -622,6 +650,7 @@ nf.Common = {
                 '.' +
                 nf.Common.pad(date.getMilliseconds(), 3, '0');
     },
+    
     /**
      * Parses the specified date time into a Date object. The resulting
      * object does not account for timezone and should only be used for
@@ -667,6 +696,7 @@ nf.Common = {
             return new Date(parseInt(date[2], 10), parseInt(date[0], 10), parseInt(date[1], 10), parseInt(time[0], 10), parseInt(time[1], 10), parseInt(time[2], 10), 0);
         }
     },
+    
     /**
      * Parses the specified duration and returns the total number of millis.
      * 
@@ -689,6 +719,7 @@ nf.Common = {
             return new Date(1970, 0, 1, parseInt(duration[0], 10), parseInt(duration[1], 10), parseInt(duration[2], 10), 0).getTime();
         }
     },
+    
     /**
      * Parses the specified size.
      * 
@@ -712,6 +743,7 @@ nf.Common = {
             return size;
         }
     },
+    
     /**
      * Parses the specified count.
      * 
@@ -736,6 +768,7 @@ nf.Common = {
         }
         return intCount;
     },
+    
     /**
      * Determines if the specified object is defined and not null.
      * 
@@ -744,6 +777,7 @@ nf.Common = {
     isDefinedAndNotNull: function (obj) {
         return !nf.Common.isUndefined(obj) && !nf.Common.isNull(obj);
     },
+    
     /**
      * Determines if the specified object is undefined or null.
      * 
@@ -752,6 +786,7 @@ nf.Common = {
     isUndefinedOrNull: function (obj) {
         return nf.Common.isUndefined(obj) || nf.Common.isNull(obj);
     },
+    
     /**
      * Determines if the specified object is undefined.
      * 
@@ -760,6 +795,7 @@ nf.Common = {
     isUndefined: function (obj) {
         return typeof obj === 'undefined';
     },
+    
     /**
      * Determines whether the specified string is blank (or null or undefined).
      * 
@@ -768,6 +804,7 @@ nf.Common = {
     isBlank: function (str) {
         return nf.Common.isUndefined(str) || nf.Common.isNull(str) || $.trim(str) === '';
     },
+    
     /**
      * Determines if the specified object is null.
      * 
@@ -776,6 +813,7 @@ nf.Common = {
     isNull: function (obj) {
         return obj === null;
     },
+    
     /**
      * Determines if the specified array is empty. If the specified arg is not an
      * array, then true is returned.
@@ -785,6 +823,7 @@ nf.Common = {
     isEmpty: function (arr) {
         return $.isArray(arr) ? arr.length === 0 : true;
     },
+    
     /**
      * Determines if these are the same bulletins. If both arguments are not
      * arrays, false is returned.
@@ -809,6 +848,7 @@ nf.Common = {
         }
         return false;
     },
+    
     /**
      * Formats the specified bulletin list.
      * 

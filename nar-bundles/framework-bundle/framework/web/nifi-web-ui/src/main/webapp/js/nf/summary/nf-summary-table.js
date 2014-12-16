@@ -45,7 +45,7 @@ nf.SummaryTable = (function () {
     var loadChartCapabilities = function () {
         return $.Deferred(function (deferred) {
             if (nf.Common.SUPPORTS_SVG) {
-                nf.Common.cachedScript(config.urls.d3Script).then(function () {
+                nf.Common.cachedScript(config.urls.d3Script).done(function () {
                     // get the controller config to get the server offset
                     var configRequest = $.ajax({
                         type: 'GET',
@@ -54,17 +54,17 @@ nf.SummaryTable = (function () {
                     });
 
                     // get the config details and load the chart script
-                    $.when(configRequest, nf.Common.cachedScript(config.urls.statusHistory)).then(function (response) {
+                    $.when(configRequest, nf.Common.cachedScript(config.urls.statusHistory)).done(function (response) {
                         var configResponse = response[0];
                         var configDetails = configResponse.config;
 
                         // initialize the chart
                         nf.StatusHistory.init(configDetails.timeOffset);
                         deferred.resolve();
-                    }, function () {
+                    }).fail(function () {
                         deferred.reject();
                     });
-                }, function () {
+                }).fail(function () {
                     deferred.reject();
                 });
             } else {
@@ -1549,7 +1549,7 @@ nf.SummaryTable = (function () {
             type: 'GET',
             url: nf.SummaryTable.systemDiagnosticsUrl,
             dataType: 'json'
-        }).then(function (response) {
+        }).done(function (response) {
             var systemDiagnostics = response.systemDiagnostics;
 
             // heap
@@ -1588,7 +1588,7 @@ nf.SummaryTable = (function () {
 
             // update the stats last refreshed timestamp
             $('#system-diagnostics-last-refreshed').text(systemDiagnostics.statsLastRefreshed);
-        }, nf.Common.handleAjaxError);
+        }).fail(nf.Common.handleAjaxError);
     };
 
     /**
@@ -1717,7 +1717,7 @@ nf.SummaryTable = (function () {
                 verbose: true
             },
             dataType: 'json'
-        }).then(function (response) {
+        }).done(function (response) {
             if (nf.Common.isDefinedAndNotNull(response.clusterProcessorStatus)) {
                 var clusterProcessorStatus = response.clusterProcessorStatus;
 
@@ -1755,7 +1755,7 @@ nf.SummaryTable = (function () {
                 // update the stats last refreshed timestamp
                 $('#cluster-processor-summary-last-refreshed').text(clusterProcessorStatus.statsLastRefreshed);
             }
-        }, nf.Common.handleAjaxError);
+        }).fail(nf.Common.handleAjaxError);
     };
 
     /**
@@ -1772,7 +1772,7 @@ nf.SummaryTable = (function () {
                 verbose: true
             },
             dataType: 'json'
-        }).then(function (response) {
+        }).done(function (response) {
             if (nf.Common.isDefinedAndNotNull(response.clusterConnectionStatus)) {
                 var clusterConnectionStatus = response.clusterConnectionStatus;
 
@@ -1807,7 +1807,7 @@ nf.SummaryTable = (function () {
                 // update the stats last refreshed timestamp
                 $('#cluster-connection-summary-last-refreshed').text(clusterConnectionStatus.statsLastRefreshed);
             }
-        }, nf.Common.handleAjaxError);
+        }).fail(nf.Common.handleAjaxError);
     };
 
     /**
@@ -1824,7 +1824,7 @@ nf.SummaryTable = (function () {
                 verbose: true
             },
             dataType: 'json'
-        }).then(function (response) {
+        }).done(function (response) {
             if (nf.Common.isDefinedAndNotNull(response.clusterPortStatus)) {
                 var clusterInputPortStatus = response.clusterPortStatus;
 
@@ -1856,7 +1856,7 @@ nf.SummaryTable = (function () {
                 // update the stats last refreshed timestamp
                 $('#cluster-input-port-summary-last-refreshed').text(clusterInputPortStatus.statsLastRefreshed);
             }
-        }, nf.Common.handleAjaxError);
+        }).fail(nf.Common.handleAjaxError);
     };
 
     /**
@@ -1873,7 +1873,7 @@ nf.SummaryTable = (function () {
                 verbose: true
             },
             dataType: 'json'
-        }).then(function (response) {
+        }).done(function (response) {
             if (nf.Common.isDefinedAndNotNull(response.clusterPortStatus)) {
                 var clusterOutputPortStatus = response.clusterPortStatus;
 
@@ -1905,7 +1905,7 @@ nf.SummaryTable = (function () {
                 // update the stats last refreshed timestamp
                 $('#cluster-output-port-summary-last-refreshed').text(clusterOutputPortStatus.statsLastRefreshed);
             }
-        }, nf.Common.handleAjaxError);
+        }).fail(nf.Common.handleAjaxError);
     };
 
     /**
@@ -1922,7 +1922,7 @@ nf.SummaryTable = (function () {
                 verbose: true
             },
             dataType: 'json'
-        }).then(function (response) {
+        }).done(function (response) {
             if (nf.Common.isDefinedAndNotNull(response.clusterRemoteProcessGroupStatus)) {
                 var clusterRemoteProcessGroupStatus = response.clusterRemoteProcessGroupStatus;
 
@@ -1957,7 +1957,7 @@ nf.SummaryTable = (function () {
                 // update the stats last refreshed timestamp
                 $('#cluster-remote-process-group-summary-last-refreshed').text(clusterRemoteProcessGroupStatus.statsLastRefreshed);
             }
-        }, nf.Common.handleAjaxError);
+        }).fail(nf.Common.handleAjaxError);
     };
 
     return {
@@ -1965,10 +1965,12 @@ nf.SummaryTable = (function () {
          * URL for loading system diagnostics.
          */
         systemDiagnosticsUrl: null,
+        
         /**
          * URL for loading the summary.
          */
         url: null,
+        
         /**
          * Initializes the status table.
          * 
@@ -1980,18 +1982,19 @@ nf.SummaryTable = (function () {
             nf.SummaryTable.systemDiagnosticsUrl = config.urls.systemDiagnostics;
 
             return $.Deferred(function (deferred) {
-                loadChartCapabilities().then(function () {
+                loadChartCapabilities().done(function () {
                     // initialize the processor/connection details dialog
                     nf.ProcessorDetails.init(false);
                     nf.ConnectionDetails.init(false);
                     initSummaryTable(isClustered);
 
                     deferred.resolve();
-                }, function () {
+                }).fail(function () {
                     deferred.reject();
                 });
             }).promise();
         },
+        
         /**
          * Update the size of the grid based on its container's current size.
          */
@@ -2021,6 +2024,7 @@ nf.SummaryTable = (function () {
                 remoteProcessGroupGrid.resizeCanvas();
             }
         },
+        
         /**
          * Load the processor status table.
          */
@@ -2032,7 +2036,7 @@ nf.SummaryTable = (function () {
                     recursive: true
                 },
                 dataType: 'json'
-            }).then(function (response) {
+            }).done(function (response) {
                 var processGroupStatus = response.processGroupStatus;
 
                 if (nf.Common.isDefinedAndNotNull(processGroupStatus)) {
@@ -2103,8 +2107,9 @@ nf.SummaryTable = (function () {
                 } else {
                     $('#total-items').text('0');
                 }
-            }, nf.Common.handleAjaxError);
+            }).fail(nf.Common.handleAjaxError);
         },
+        
         // processor actions
 
         /**
@@ -2120,6 +2125,7 @@ nf.SummaryTable = (function () {
                 nf.ProcessorDetails.showDetails(item.groupId, item.id);
             }
         },
+        
         /**
          * Goes to the specified processor.
          * 
@@ -2133,6 +2139,7 @@ nf.SummaryTable = (function () {
                 goTo(item.groupId, item.id);
             }
         },
+        
         /**
          * Shows the processor status history for a cluster.
          * 
@@ -2146,6 +2153,7 @@ nf.SummaryTable = (function () {
                 nf.StatusHistory.showClusterProcessorChart(item.groupId, item.id);
             }
         },
+        
         /**
          * Shows the processor status history.
          * 
@@ -2159,6 +2167,7 @@ nf.SummaryTable = (function () {
                 nf.StatusHistory.showStandaloneProcessorChart(item.groupId, item.id);
             }
         },
+        
         /**
          * Shows the cluster processor details dialog for the specified processor.
          * 
@@ -2180,6 +2189,7 @@ nf.SummaryTable = (function () {
                 $('#cluster-processor-summary-dialog').modal('show');
             }
         },
+        
         // connection actions
 
         /**
@@ -2195,6 +2205,7 @@ nf.SummaryTable = (function () {
                 nf.ConnectionDetails.showDetails(item.groupId, item.id);
             }
         },
+        
         /**
          * Goes to the specified connection.
          * 
@@ -2208,6 +2219,7 @@ nf.SummaryTable = (function () {
                 goTo(item.groupId, item.id);
             }
         },
+        
         /**
          * Shows the connection status history for a cluster.
          * 
@@ -2221,6 +2233,7 @@ nf.SummaryTable = (function () {
                 nf.StatusHistory.showClusterConnectionChart(item.groupId, item.id);
             }
         },
+        
         /**
          * Shows the connection status history.
          * 
@@ -2234,6 +2247,7 @@ nf.SummaryTable = (function () {
                 nf.StatusHistory.showStandaloneConnectionChart(item.groupId, item.id);
             }
         },
+        
         /**
          * Shows the cluster connection details dialog for the specified connection.
          * 
@@ -2255,6 +2269,7 @@ nf.SummaryTable = (function () {
                 $('#cluster-connection-summary-dialog').modal('show');
             }
         },
+        
         // input actions
 
         /**
@@ -2270,6 +2285,7 @@ nf.SummaryTable = (function () {
                 goTo(item.groupId, item.id);
             }
         },
+        
         /**
          * Shows the cluster input port details dialog for the specified connection.
          * 
@@ -2291,6 +2307,7 @@ nf.SummaryTable = (function () {
                 $('#cluster-input-port-summary-dialog').modal('show');
             }
         },
+        
         // output actions
 
         /**
@@ -2306,6 +2323,7 @@ nf.SummaryTable = (function () {
                 goTo(item.groupId, item.id);
             }
         },
+        
         /**
          * Shows the cluster output port details dialog for the specified connection.
          * 
@@ -2327,6 +2345,7 @@ nf.SummaryTable = (function () {
                 $('#cluster-output-port-summary-dialog').modal('show');
             }
         },
+        
         // remote process group actions
 
         /**
@@ -2342,6 +2361,7 @@ nf.SummaryTable = (function () {
                 goTo(item.groupId, item.id);
             }
         },
+        
         /**
          * Shows the remote process group status history for a cluster.
          * 
@@ -2355,6 +2375,7 @@ nf.SummaryTable = (function () {
                 nf.StatusHistory.showClusterRemoteProcessGroupChart(item.groupId, item.id);
             }
         },
+        
         /**
          * Shows the remote process group status history.
          * 
@@ -2368,6 +2389,7 @@ nf.SummaryTable = (function () {
                 nf.StatusHistory.showStandaloneRemoteProcessGroupChart(item.groupId, item.id);
             }
         },
+        
         /**
          * Shows the cluster remote process group details dialog for the specified connection.
          * 
