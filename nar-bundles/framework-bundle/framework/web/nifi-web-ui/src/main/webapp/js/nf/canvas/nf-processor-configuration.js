@@ -426,6 +426,8 @@ nf.ProcessorConfiguration = (function () {
                         $('#processor-configuration').removeData('processorHistory');
                     }
                 }
+            }).draggable({
+                handle: ".modal-header"
             });
 
             // initialize the bulletin combo
