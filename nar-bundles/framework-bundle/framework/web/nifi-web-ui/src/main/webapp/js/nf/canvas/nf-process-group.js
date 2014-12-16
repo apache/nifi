@@ -164,12 +164,15 @@ nf.ProcessGroup = (function () {
                             var targetData = target.datum();
                             
                             // see if there is a selection being dragged
-                            var selection = d3.select('rect.drag-selection');
-                            if (!selection.empty()) {
-                                var selectionData = selection.datum();
+                            var drag = d3.select('rect.drag-selection');
+                            if (!drag.empty()) {
+                                // filter the current selection by this group
+                                var selection = nf.CanvasUtils.getSelection().filter(function(d) {
+                                    return targetData.component.id === d.component.id;
+                                });
                                 
-                                // ensure what is being dragged isn't the target
-                                if (targetData.component.id !== selectionData.component.id) {
+                                // ensure this group isn't in the selection
+                                if (selection.empty()) {
                                     // mark that we are hovering over a drop area if appropriate 
                                     target.classed('drop', function () {
                                         // get the current selection and ensure its disconnected
