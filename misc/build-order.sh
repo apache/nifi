@@ -5,7 +5,9 @@ cd misc/nar-maven-plugin && \
 mvn $MAVEN_FLAGS install && \
 cd ../../commons/nifi-parent && \
 mvn $MAVEN_FLAGS install && \
-cd ../../nifi-api && \
+cd ../../nifi-bootstrap && \
+mvn $MAVEN_FLAGS install && \
+cd ../nifi-api && \
 mvn $MAVEN_FLAGS install && \
 cd ../commons/ && \
 cd	nifi-stream-utils && \

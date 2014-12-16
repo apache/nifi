@@ -75,7 +75,6 @@ import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.provenance.ProvenanceReporter;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.apache.nifi.util.NiFiProperties;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -480,7 +479,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
             context.getFlowFileEventRepository().updateRepository(flowFileEvent);
 
-            for (final FlowFileEvent connectionEvent : connectionCounts.values()) {
+            for (final FlowFileEvent connectionEvent : checkpoint.connectionCounts.values()) {
                 context.getFlowFileEventRepository().updateRepository(connectionEvent);
             }
         } catch (final IOException ioe) {
@@ -488,6 +487,16 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         }
     }
 
+    private void addEventType(final Map<String, Set<ProvenanceEventType>> map, final String id, final ProvenanceEventType eventType) {
+        Set<ProvenanceEventType> eventTypes = map.get(id);
+        if ( eventTypes == null ) {
+            eventTypes = new HashSet<>();
+            map.put(id, eventTypes);
+        }
+        
+        eventTypes.add(eventType);
+    }
+    
     private void updateProvenanceRepo(final Checkpoint checkpoint) {
         // Update Provenance Repository
         final ProvenanceEventRepository provenanceRepo = context.getProvenanceRepository();
@@ -496,7 +505,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         // in case the Processor developer submitted the same events to the reporter. So we use a LinkedHashSet
         // for this, so that we are able to ensure that the events are submitted in the proper order.
         final Set<ProvenanceEventRecord> recordsToSubmit = new LinkedHashSet<>();
-
+        final Map<String, Set<ProvenanceEventType>> eventTypesPerFlowFileId = new HashMap<>();
+        
         final Set<ProvenanceEventRecord> processorGenerated = checkpoint.reportedEvents;
 
         // We first want to submit FORK events because if the Processor is going to create events against
@@ -513,6 +523,13 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
             if (!event.getChildUuids().isEmpty() && !isSpuriousForkEvent(event, checkpoint.removedFlowFiles) && !processorGenerated.contains(event)) {
                 recordsToSubmit.add(event);
+                
+                for ( final String childUuid : event.getChildUuids() ) {
+                    addEventType(eventTypesPerFlowFileId, childUuid, event.getEventType());
+                }
+                for ( final String parentUuid : event.getParentUuids() ) {
+                    addEventType(eventTypesPerFlowFileId, parentUuid, event.getEventType());
+                }
             }
         }
 
@@ -521,8 +538,16 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             if (isSpuriousForkEvent(event, checkpoint.removedFlowFiles)) {
                 continue;
             }
-
+            if ( isSpuriousRouteEvent(event, checkpoint.records) ) {
+                continue;
+            }
+            
+            // Check if the event indicates that the FlowFile was routed to the same 
+            // connection from which it was pulled (and only this connection). If so, discard the event.
+            isSpuriousRouteEvent(event, checkpoint.records);
+            
             recordsToSubmit.add(event);
+            addEventType(eventTypesPerFlowFileId, event.getFlowFileUuid(), event.getEventType());
         }
 
         // Finally, add any other events that we may have generated.
@@ -533,6 +558,68 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 }
 
                 recordsToSubmit.add(event);
+                addEventType(eventTypesPerFlowFileId, event.getFlowFileUuid(), event.getEventType());
+            }
+        }
+        
+        // Check if content or attributes changed. If so, register the appropriate events.
+        for (final StandardRepositoryRecord repoRecord : checkpoint.records.values() ) {
+            final ContentClaim original = repoRecord.getOriginalClaim();
+            final ContentClaim current = repoRecord.getCurrentClaim();
+            
+            boolean contentChanged = false;
+            if ( original == null && current != null ) {
+                contentChanged = true;
+            }
+            if ( original != null && current == null ) {
+                contentChanged = true;
+            }
+            if ( original != null && current != null && !original.equals(current) ) {
+                contentChanged = true;
+            }
+            
+            final FlowFileRecord curFlowFile = repoRecord.getCurrent();
+            final String flowFileId = curFlowFile.getAttribute(CoreAttributes.UUID.key());
+            boolean eventAdded = false;
+            
+            if (checkpoint.removedFlowFiles.contains(flowFileId)) {
+                continue;
+            }
+            
+            final boolean newFlowFile = repoRecord.getOriginal() == null;
+            if ( contentChanged && !newFlowFile ) {
+                recordsToSubmit.add(provenanceReporter.build(curFlowFile, ProvenanceEventType.CONTENT_MODIFIED).build());
+                addEventType(eventTypesPerFlowFileId, flowFileId, ProvenanceEventType.CONTENT_MODIFIED);
+                eventAdded = true;
+            }
+            
+            if ( checkpoint.createdFlowFiles.contains(flowFileId) ) {
+                final Set<ProvenanceEventType> registeredTypes = eventTypesPerFlowFileId.get(flowFileId);
+                boolean creationEventRegistered = false;
+                if ( registeredTypes != null ) {
+                    if ( registeredTypes.contains(ProvenanceEventType.CREATE) ||
+                            registeredTypes.contains(ProvenanceEventType.FORK) ||
+                            registeredTypes.contains(ProvenanceEventType.JOIN) ||
+                            registeredTypes.contains(ProvenanceEventType.RECEIVE) ) {
+                        creationEventRegistered = true;
+                    }
+                }
+                
+                if ( !creationEventRegistered ) {
+                    recordsToSubmit.add(provenanceReporter.build(curFlowFile, ProvenanceEventType.CREATE).build());
+                    eventAdded = true;
+                }
+            }
+            
+            if ( !eventAdded && !repoRecord.getUpdatedAttributes().isEmpty() ) {
+                // We generate an ATTRIBUTES_MODIFIED event only if no other event has been
+                // created for the FlowFile. We do this because all events contain both the
+                // newest and the original attributes, so generating an ATTRIBUTES_MODIFIED
+                // event is redundant if another already exists.
+                if ( !eventTypesPerFlowFileId.containsKey(flowFileId) ) {
+                    recordsToSubmit.add(provenanceReporter.build(curFlowFile, ProvenanceEventType.ATTRIBUTES_MODIFIED).build());
+                    addEventType(eventTypesPerFlowFileId, flowFileId, ProvenanceEventType.ATTRIBUTES_MODIFIED);
+                }
             }
         }
 
@@ -696,6 +783,45 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         return false;
     }
 
+    
+    /**
+     * Checks if the given event is a spurious ROUTE, meaning that the ROUTE indicates that a FlowFile
+     * was routed to a relationship with only 1 connection and that Connection is the Connection from which
+     * the FlowFile was pulled. I.e., the FlowFile was really routed nowhere.
+     * 
+     * @param event
+     * @param records
+     * @return
+     */
+    private boolean isSpuriousRouteEvent(final ProvenanceEventRecord event, final Map<FlowFileRecord, StandardRepositoryRecord> records) {
+        if ( event.getEventType() == ProvenanceEventType.ROUTE ) {
+            final String relationshipName = event.getRelationship();
+            final Relationship relationship = new Relationship.Builder().name(relationshipName).build();
+            final Collection<Connection> connectionsForRelationship = this.context.getConnections(relationship);
+            
+            // If the number of connections for this relationship is not 1, then we can't ignore this ROUTE event,
+            // as it may be cloning the FlowFile and adding to multiple connections.
+            if ( connectionsForRelationship.size() == 1 ) {
+                for ( final Map.Entry<FlowFileRecord, StandardRepositoryRecord> entry : records.entrySet() ) {
+                    final FlowFileRecord flowFileRecord = entry.getKey();
+                    if ( event.getFlowFileUuid().equals(flowFileRecord.getAttribute(CoreAttributes.UUID.key())) ) {
+                        final StandardRepositoryRecord repoRecord = entry.getValue();
+                        if ( repoRecord.getOriginalQueue() == null ) {
+                            return false;
+                        }
+                        
+                        final String originalQueueId = repoRecord.getOriginalQueue().getIdentifier();
+                        final Connection destinationConnection = connectionsForRelationship.iterator().next();
+                        final String destinationQueueId = destinationConnection.getFlowFileQueue().getIdentifier();
+                        return originalQueueId.equals(destinationQueueId);
+                    }
+                }
+            }
+        }
+        
+        return false;
+    }
+    
     @Override
     public void rollback() {
         rollback(false);

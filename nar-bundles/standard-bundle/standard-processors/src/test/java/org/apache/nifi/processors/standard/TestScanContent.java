@@ -55,7 +55,7 @@ public class TestScanContent {
             Files.write(dictionaryPath, termBytes, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
 
             final TestRunner runner = TestRunners.newTestRunner(new ScanContent());
-            runner.setThreadCount(3);
+            runner.setThreadCount(1);
             runner.setProperty(ScanContent.DICTIONARY, dictionaryPath.toString());
             runner.setProperty(ScanContent.DICTIONARY_ENCODING, ScanContent.BINARY_ENCODING);
 

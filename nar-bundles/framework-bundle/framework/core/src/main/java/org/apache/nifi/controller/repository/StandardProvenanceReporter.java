@@ -328,7 +328,7 @@ public class StandardProvenanceReporter implements ProvenanceReporter {
             }
         }
     }
-
+    
     @Override
     public void modifyContent(final FlowFile flowFile) {
         modifyContent(flowFile, null, -1L);
@@ -421,7 +421,7 @@ public class StandardProvenanceReporter implements ProvenanceReporter {
         }
     }
 
-    private ProvenanceEventBuilder build(final FlowFile flowFile, final ProvenanceEventType eventType) {
+    ProvenanceEventBuilder build(final FlowFile flowFile, final ProvenanceEventType eventType) {
         final ProvenanceEventBuilder builder = repository.eventBuilder();
         builder.setEventType(eventType);
         builder.fromFlowFile(flowFile);

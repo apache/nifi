@@ -166,15 +166,13 @@ run() {
     fi
     
     echo 
-    echo "Classpath: $CLASSPATH"
-    echo
     echo "Java home: $JAVA_HOME"
     echo "NiFi home: $NIFI_HOME"
     echo
     echo "Bootstrap Config File: $BOOTSTRAP_CONF"
     echo
     
-    exec "$JAVA" -cp "$NIFI_HOME"/lib/nifi-bootstrap*.jar -Xms12m -Xmx24m -Dorg.apache.nifi.bootstrap.config.file="$BOOTSTRAP_CONF" org.apache.nifi.bootstrap.RunNiFi $1
+    exec "$JAVA" -cp "$NIFI_HOME"/lib/bootstrap/* -Xms12m -Xmx24m -Dorg.apache.nifi.bootstrap.config.file="$BOOTSTRAP_CONF" org.apache.nifi.bootstrap.RunNiFi $1
 }
 
 main() {

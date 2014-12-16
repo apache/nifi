@@ -388,13 +388,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, H
 
         try {
             this.provenanceEventRepository = createProvenanceRepository(properties);
-            this.provenanceEventRepository.initialize(new EventReporter() {
-                @Override
-                public void reportEvent(final Severity severity, final String category, final String message) {
-                    final Bulletin bulletin = BulletinFactory.createBulletin(category, severity.name(), message);
-                    bulletinRepository.addBulletin(bulletin);
-                }
-            });
+            this.provenanceEventRepository.initialize(createEventReporter(bulletinRepository));
 
             this.contentRepository = createContentRepository(properties);
         } catch (final Exception e) {
@@ -516,6 +510,16 @@ public class FlowController implements EventAccess, ControllerServiceProvider, H
         }
     }
 
+    private static EventReporter createEventReporter(final BulletinRepository bulletinRepository) {
+        return new EventReporter() {
+            @Override
+            public void reportEvent(final Severity severity, final String category, final String message) {
+                final Bulletin bulletin = BulletinFactory.createBulletin(category, severity.name(), message);
+                bulletinRepository.addBulletin(bulletin);
+            }
+        };
+    }
+    
     public void initializeFlow() throws IOException {
         writeLock.lock();
         try {
@@ -537,7 +541,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, H
             contentRepository.cleanup();
 
             if (flowFileSwapManager != null) {
-                flowFileSwapManager.start(flowFileRepository, this, contentClaimManager);
+                flowFileSwapManager.start(flowFileRepository, this, contentClaimManager, createEventReporter(bulletinRepository));
             }
 
             if (externalSiteListener != null) {
@@ -1048,6 +1052,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, H
             
             if ( processScheduler != null ) {
             	processScheduler.shutdown();
+            }
+            
+            if ( contentRepository != null ) {
+                contentRepository.shutdown();
             }
             
             if ( provenanceEventRepository != null ) {
