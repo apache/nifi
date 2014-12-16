@@ -36,7 +36,6 @@ import org.apache.nifi.nar.NarClassLoaders;
 import org.apache.nifi.nar.NarUnpacker;
 import org.apache.nifi.util.FileUtils;
 import org.apache.nifi.util.NiFiProperties;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.bridge.SLF4JBridgeHandler;
@@ -61,7 +60,6 @@ public class NiFi {
 
         // register the shutdown hook
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-
             @Override
             public void run() {
                 // shutdown the jetty server
