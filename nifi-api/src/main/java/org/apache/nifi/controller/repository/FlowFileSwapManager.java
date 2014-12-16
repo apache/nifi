@@ -17,6 +17,7 @@
 package org.apache.nifi.controller.repository;
 
 import org.apache.nifi.controller.repository.claim.ContentClaimManager;
+import org.apache.nifi.events.EventReporter;
 
 /**
  * Defines a mechanism by which FlowFiles can be move into external storage or
@@ -34,8 +35,10 @@ public interface FlowFileSwapManager {
      * can be obtained and restored
      * @param claimManager the ContentClaimManager to use for interacting with
      * Content Claims
+     * @param reporter the EventReporter that can be used for notifying users of
+     * important events
      */
-    void start(FlowFileRepository flowFileRepository, QueueProvider queueProvider, ContentClaimManager claimManager);
+    void start(FlowFileRepository flowFileRepository, QueueProvider queueProvider, ContentClaimManager claimManager, EventReporter reporter);
 
     /**
      * Shuts down the manager
