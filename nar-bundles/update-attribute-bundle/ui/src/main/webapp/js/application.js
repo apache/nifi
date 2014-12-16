@@ -23,6 +23,7 @@ var ua = {
     searchRules: 'Search rule name',
     newRuleIndex: 0,
     editable: false,
+    
     /**
      * Initializes this web application.
      * 
@@ -244,6 +245,7 @@ var ua = {
             }
         });
     },
+    
     /**
      * Initializes the new rule dialog.
      * 
@@ -369,17 +371,10 @@ var ua = {
 
         // initialize the access control auto complete
         $.widget('nf.copyFromRuleAutocomplete', $.ui.autocomplete, {
-            _response: function (content) {
-                if (!this.options.disabled && content) {
-                    this._suggest(content);
-                    this._trigger('open');
-                } else {
-                    this.close();
-                }
-                this.pending--;
-                if (!this.pending) {
-                    this.element.removeClass('ui-autocomplete-loading');
-                }
+            _normalize: function(searchResults) {
+                var items = [];
+                items.push(searchResults);
+                return items;
             },
             _resizeMenu: function () {
                 var ul = this.menu.element;
@@ -388,9 +383,12 @@ var ua = {
             _renderMenu: function (ul, items) {
                 var self = this;
 
-                if ($.isArray(items.rules) && items.rules.length > 0) {
+                // the object that holds the search results is normalized into a single element array
+                var searchResults = items[0];
+
+                if ($.isArray(searchResults.rules) && searchResults.rules.length > 0) {
                     // go through each matching rule
-                    $.each(items.rules, function (i, rule) {
+                    $.each(searchResults.rules, function (i, rule) {
                         // add the user match
                         self._renderRule(ul, rule);
                     });
@@ -403,7 +401,7 @@ var ua = {
             },
             _renderRule: function (ul, ruleMatch) {
                 var ruleContent = $('<a></a>').append($('<div></div>').text(ruleMatch.name));
-                return $('<li style="height: 20px;"></li>').data('item.autocomplete', ruleMatch).append(ruleContent).appendTo(ul);
+                return $('<li style="height: 20px;"></li>').data('ui-autocomplete-item', ruleMatch).append(ruleContent).appendTo(ul);
             }
         });
 
@@ -448,6 +446,7 @@ var ua = {
             }
         }).val(ua.searchRules).addClass('search');
     },
+    
     /**
      * Initializes the new condition dialog.
      */
@@ -523,6 +522,7 @@ var ua = {
             containment: 'parent'
         }).on('click', '#new-condition-add', add).on('click', '#new-condition-cancel', cancel);
     },
+    
     /**
      * Initializes the new action dialog.
      */
@@ -610,6 +610,7 @@ var ua = {
             }
         });
     },
+    
     /**
      * Configure the ok dialog.
      * 
@@ -635,6 +636,7 @@ var ua = {
             }
         });
     },
+    
     /**
      * Configure the yes no dialog.
      * 
@@ -645,6 +647,7 @@ var ua = {
             overlayBackground: false
         });
     },
+    
     /**
      * Initializes the conditions grid.
      * 
@@ -724,6 +727,7 @@ var ua = {
         $('#selected-rule-conditions').data('gridInstance', conditionsGrid);
         return conditionsGrid;
     },
+    
     /**
      * Initializes the actions grid.
      */
@@ -801,6 +805,7 @@ var ua = {
         $('#selected-rule-actions').data('gridInstance', actionsGrid);
         return actionsGrid;
     },
+    
     /**
      * Initializes the rule list.
      * 
@@ -940,6 +945,7 @@ var ua = {
             e.stopPropagation();
         }).children(':first').click();
     },
+    
     /**
      * Saves the current rule order
      */
@@ -975,6 +981,7 @@ var ua = {
             $('#ok-dialog').modal('setHeaderText', 'Error').modal('show');
         });
     },
+    
     /**
      * Clears the rule details.
      */
@@ -1006,6 +1013,7 @@ var ua = {
         var actionsData = actionsGrid.getData();
         actionsData.setItems([]);
     },
+    
     /**
      * Loads the rule list.
      * 
@@ -1069,6 +1077,7 @@ var ua = {
             });
         }).promise();
     },
+    
     /**
      * Selects the specified rule and populates its details.
      * 
@@ -1133,6 +1142,7 @@ var ua = {
             actionsGrid.invalidate();
         }).promise();
     },
+    
     /**
      * Deletes the specified rule.
      * 
@@ -1191,6 +1201,7 @@ var ua = {
 
         }).promise();
     },
+    
     /**
      * Saves the currently selected rule.
      * 
@@ -1268,6 +1279,7 @@ var ua = {
             $('#ok-dialog').modal('setHeaderText', 'Error').modal('show');
         });
     },
+    
     /**
      * Deletes the specified row from the specified grid.
      * 
@@ -1284,6 +1296,7 @@ var ua = {
         // mark the rule as modified
         $('#rule-list').children('li.selected').addClass('unsaved');
     },
+    
     /**
      * Creates a new rule and adds it to the rule list.
      * 
@@ -1308,6 +1321,7 @@ var ua = {
 
         return ruleItem;
     },
+    
     /**
      * Hides the rule list.
      * 
@@ -1318,6 +1332,7 @@ var ua = {
         $('#no-rules').show();
         $('#rule-filter-controls').hide();
     },
+    
     /**
      * Shows the rule list.
      * 
@@ -1331,9 +1346,8 @@ var ua = {
         // apply the filter
         ua.applyRuleFilter();
     },
-    /*
-     * Rule filter functions. 
-     */
+    
+    // Rule filter functions. 
 
     /**
      * Get the filter text.
@@ -1348,6 +1362,7 @@ var ua = {
         }
         return filter;
     },
+    
     /**
      * Get the text for the rule to be filtered.
      * 
@@ -1376,6 +1391,7 @@ var ua = {
             return actions;
         }
     },
+    
     /**
      * Apply the rule filter.
      * 
@@ -1446,6 +1462,7 @@ var ua = {
         $('#displayed-rules').text(matchingRules);
         $('#total-rules').text(ruleItems.length);
     },
+    
     /**
      * Adds a hover effects to the specified selector.
      * 
@@ -1454,12 +1471,14 @@ var ua = {
      * @param {type} overStyle
      */
     addHoverEffect: function (selector, normalStyle, overStyle) {
-        return $(selector).addClass(normalStyle).live('mouseenter', function () {
+        $(document).on('mouseenter', selector, function () {
             $(this).removeClass(normalStyle).addClass(overStyle);
-        }).live('mouseleave', function () {
+        }).on('mouseleave', selector, function () {
             $(this).removeClass(overStyle).addClass(normalStyle);
         });
+        return $(selector).addClass(normalStyle);
     },
+    
     /**
      * Shows the specified text and clears it after 10 seconds.
      * 
@@ -1472,6 +1491,7 @@ var ua = {
             $('#message').text('');
         }, 10000);
     },
+    
     /**
      * Custom validator for required fields.
      * 
@@ -1484,6 +1504,7 @@ var ua = {
             return {valid: true, msg: null};
         }
     },
+    
     /**
      * Function for prevent cell editing before a rule is selected.
      * 
@@ -1501,6 +1522,7 @@ var ua = {
             return false;
         }
     },
+    
     /**
      * Shows the property value for the specified row and cell.
      * 
@@ -1593,12 +1615,14 @@ var ua = {
             'padding': '0 3px 5px'
         }).append(ok).append('<div class="clear"></div>').appendTo(wrapper);
     },
+    
     /**
      * Removes all currently open process property detail dialogs.
      */
     removeAllDetailDialogs: function () {
         $('body').children('div.update-attribute-detail').hide().remove();
     },
+    
     /**
      * Gets a custom editor for editing long values.
      * 
@@ -1728,6 +1752,7 @@ var ua = {
         // initialize the custom long text editor
         this.init();
     },
+    
     /**
      * Gets a custom editor for editing long values.
      * 
@@ -1851,6 +1876,7 @@ var ua = {
         // initialize the custom long text editor
         this.init();
     },
+    
     /**
      * Adjust the size of the selected rule name field.
      */
@@ -1859,6 +1885,7 @@ var ua = {
         var ruleNameField = $('#selected-rule-name');
         ruleNameField.width(Math.min(500, ruleDetailsPanel.width() - 10));
     },
+    
     /**
      * Gets the client id.
      * 
@@ -1867,6 +1894,7 @@ var ua = {
     getClientId: function () {
         return $('#attribute-updater-client-id').text();
     },
+    
     /**
      * Gets the revision.
      * 
@@ -1875,6 +1903,7 @@ var ua = {
     getRevision: function () {
         return $('#attribute-updater-revision').text();
     },
+    
     /**
      * Gets the processor id.
      * 

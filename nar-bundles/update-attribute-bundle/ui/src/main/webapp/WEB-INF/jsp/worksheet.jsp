@@ -19,17 +19,29 @@
 <html>
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-        <script type="text/javascript" src="../nifi/js/jquery/jquery-1.7.min.js"></script>
+        <link rel="stylesheet" href="../nifi/js/jquery/ui-smoothness/jquery-ui-1.10.4.min.css" type="text/css" />
+        <link rel="stylesheet" href="../nifi/js/jquery/slickgrid/css/slick.grid.css" type="text/css" />
+        <link rel="stylesheet" href="../nifi/js/jquery/slickgrid/css/slick-default-theme.css" type="text/css" />
+        <link rel="stylesheet" href="../nifi/js/jquery/modal/jquery.modal.css" type="text/css" />
+        <link rel="stylesheet" href="../nifi/js/jquery/combo/jquery.combo.css" type="text/css" />
+        <link rel="stylesheet" href="../nifi/js/jquery/qtip2/jquery.qtip.min.css" type="text/css" />
+        <link rel="stylesheet" href="../nifi/js/codemirror/lib/codemirror.css" type="text/css" />
+        <link rel="stylesheet" href="../nifi/js/codemirror/addon/hint/show-hint.css" type="text/css" />
+        <link rel="stylesheet" href="../nifi/js/jquery/nfeditor/jquery.nfeditor.css" type="text/css" />
+        <link rel="stylesheet" href="../nifi/css/reset.css" type="text/css" />
+        <link rel="stylesheet" href="css/main.css" type="text/css" />
+        <script type="text/javascript" src="../nifi/js/jquery/jquery-2.1.1.min.js"></script>
+        <script src="http://code.jquery.com/jquery-migrate-1.2.1.js"></script>
         <script type="text/javascript" src="../nifi/js/jquery/jquery.center.js"></script>
         <script type="text/javascript" src="../nifi/js/jquery/jquery.each.js"></script>
         <script type="text/javascript" src="../nifi/js/jquery/jquery.tab.js"></script>
         <script type="text/javascript" src="../nifi/js/jquery/modal/jquery.modal.js"></script>
         <script type="text/javascript" src="../nifi/js/jquery/combo/jquery.combo.js"></script>
         <script type="text/javascript" src="../nifi/js/jquery/jquery.ellipsis.js"></script>
-        <script type="text/javascript" src="../nifi/js/jquery/jquery-ui-1.8.10.custom.min.js"></script>
+        <script type="text/javascript" src="../nifi/js/jquery/ui-smoothness/jquery-ui-1.10.4.min.js"></script>
         <script type="text/javascript" src="../nifi/js/jquery/qtip2/jquery.qtip.min.js"></script>
         <script type="text/javascript" src="../nifi/js/json2.js"></script>
-        <script type="text/javascript" src="../nifi/js/jquery/jquery.event.drag-2.0.min.js"></script>
+        <script type="text/javascript" src="../nifi/js/jquery/jquery.event.drag-2.2.min.js"></script>
         <script type="text/javascript" src="../nifi/js/jquery/slickgrid/plugins/slick.cellrangedecorator.js"></script>
         <script type="text/javascript" src="../nifi/js/jquery/slickgrid/plugins/slick.cellrangeselector.js"></script>
         <script type="text/javascript" src="../nifi/js/jquery/slickgrid/plugins/slick.cellselectionmodel.js"></script>
@@ -39,24 +51,11 @@
         <script type="text/javascript" src="../nifi/js/jquery/slickgrid/slick.dataview.js"></script>
         <script type="text/javascript" src="../nifi/js/jquery/slickgrid/slick.core.js"></script>
         <script type="text/javascript" src="../nifi/js/jquery/slickgrid/slick.grid.js"></script>
-        <script type="text/javascript" src="../nifi/js/codemirror/lib/codemirror.js"></script>
-        <script type="text/javascript" src="../nifi/js/codemirror/addon/edit/matchbrackets.js"></script>
-        <script type="text/javascript" src="../nifi/js/codemirror/addon/hint/show-hint.js"></script>
+        <script type="text/javascript" src="../nifi/js/codemirror/lib/codemirror-compressed.js"></script>
         <script type="text/javascript" src="../nifi/js/nf/nf-namespace.js"></script>
         <script type="text/javascript" src="../nifi/js/jquery/nfeditor/languages/nfel.js"></script>
         <script type="text/javascript" src="../nifi/js/jquery/nfeditor/jquery.nfeditor.js"></script>
         <script type="text/javascript" src="js/application.js"></script>
-        <link rel="stylesheet" href="../nifi/js/jquery/css/smoothness/jquery-ui-1.8.10.custom.css" type="text/css" />
-        <link rel="stylesheet" href="../nifi/js/jquery/slickgrid/css/slick.grid.css" type="text/css" />
-        <link rel="stylesheet" href="../nifi/js/jquery/slickgrid/css/slick-default-theme.css" type="text/css" />
-        <link rel="stylesheet" href="../nifi/js/jquery/modal/jquery.modal.css" type="text/css" />
-        <link rel="stylesheet" href="../nifi/js/jquery/combo/jquery.combo.css" type="text/css" />
-        <link rel="stylesheet" href="../nifi/js/jquery/qtip2/jquery.qtip.css?" type="text/css" />
-        <link rel="stylesheet" href="../nifi/js/codemirror/lib/codemirror.css" type="text/css" />
-        <link rel="stylesheet" href="../nifi/js/codemirror/addon/hint/show-hint.css" type="text/css" />
-        <link rel="stylesheet" href="../nifi/js/jquery/nfeditor/jquery.nfeditor.css" type="text/css" />
-        <link rel="stylesheet" href="css/reset.css" type="text/css" />
-        <link rel="stylesheet" href="css/main.css" type="text/css" />
         <title>Update Attribute</title>
     </head>
     <body>
