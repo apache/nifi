@@ -395,7 +395,12 @@ nf.StatusHistory = (function () {
         }
 
         // the container for the main chart
-        var chartContainer = $('#status-history-chart-container').resizable('destroy').empty();
+        var chartContainer = $('#status-history-chart-container').empty();
+        if (chartContainer.hasClass('ui-resizable')) {
+            chartContainer.resizable('destroy');
+        }
+        
+        // calculate the dimensions
         var width = chartContainer.width() - margin.left - margin.right;
         var height = chartContainer.height() - margin.top - margin.bottom;
 
