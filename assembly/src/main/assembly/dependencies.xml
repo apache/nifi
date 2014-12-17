@@ -25,6 +25,7 @@
     <dependencySets>
         <dependencySet>
             <scope>runtime</scope>
+            <useProjectArtifact>false</useProjectArtifact>
             <outputDirectory>lib</outputDirectory>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <excludes>
@@ -34,6 +35,7 @@
         
         <dependencySet>
             <scope>runtime</scope>
+            <useProjectArtifact>false</useProjectArtifact>
             <outputDirectory>lib/bootstrap</outputDirectory>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <includes>
