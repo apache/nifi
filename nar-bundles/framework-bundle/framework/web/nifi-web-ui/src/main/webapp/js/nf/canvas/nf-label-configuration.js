@@ -62,7 +62,8 @@ nf.LabelConfiguration = (function () {
 
             // make the new property dialog draggable
             $('#label-configuration').draggable({
-                containment: 'parent'
+                containment: 'parent',
+                cancel: 'textarea, .button, .combo'
             }).on('click', '#label-configuration-apply', apply).on('click', '#label-configuration-cancel', cancel);
 
             // create the available sizes
