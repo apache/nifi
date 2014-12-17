@@ -398,7 +398,7 @@ nf.ClusterTable = (function () {
          * @argument {string} row     The row
          */
         promptForConnect: function (row) {
-            var grid = $('#cluster-table');
+            var grid = $('#cluster-table').data('gridInstance');
             if (nf.Common.isDefinedAndNotNull(grid)) {
                 var data = grid.getData();
                 var node = data.getItem(row);
@@ -421,7 +421,7 @@ nf.ClusterTable = (function () {
          * @argument {string} row     The row
          */
         promptForDisconnect: function (row) {
-            var grid = $('#cluster-table');
+            var grid = $('#cluster-table').data('gridInstance');
             if (nf.Common.isDefinedAndNotNull(grid)) {
                 var data = grid.getData();
                 var node = data.getItem(row);
@@ -443,7 +443,7 @@ nf.ClusterTable = (function () {
          * @argument {string} row     The row
          */
         makePrimary: function (row) {
-            var grid = $('#cluster-table');
+            var grid = $('#cluster-table').data('gridInstance');
             if (nf.Common.isDefinedAndNotNull(grid)) {
                 var data = grid.getData();
                 var item = data.getItem(row);
@@ -458,16 +458,13 @@ nf.ClusterTable = (function () {
                 }).done(function (response) {
                     var node = response.node;
 
-                    var clusterGrid = $('#cluster-table').data('gridInstance');
-                    var clusterData = clusterGrid.getData();
-
                     // start the update
-                    clusterData.beginUpdate();
-                    clusterData.updateItem(node.nodeId, node);
+                    data.beginUpdate();
+                    data.updateItem(node.nodeId, node);
 
                     // need to find the previous primary node
                     // get the property grid data
-                    var clusterItems = clusterData.getItems();
+                    var clusterItems = data.getItems();
                     $.each(clusterItems, function (i, otherNode) {
                         // attempt to identify the previous primary node
                         if (node.nodeId !== otherNode.nodeId && otherNode.primary === true) {
@@ -476,7 +473,7 @@ nf.ClusterTable = (function () {
                             otherNode.status = 'CONNECTED';
 
                             // set the new node state
-                            clusterData.updateItem(otherNode.nodeId, otherNode);
+                            data.updateItem(otherNode.nodeId, otherNode);
 
                             // no need to continue processing
                             return false;
@@ -484,7 +481,7 @@ nf.ClusterTable = (function () {
                     });
 
                     // end the update
-                    clusterData.endUpdate();
+                    data.endUpdate();
                 }).fail(nf.Common.handleAjaxError);
             }
         },
@@ -495,7 +492,7 @@ nf.ClusterTable = (function () {
          * @argument {string} row     The row
          */
         promptForRemoval: function (row) {
-            var grid = $('#cluster-table');
+            var grid = $('#cluster-table').data('gridInstance');
             if (nf.Common.isDefinedAndNotNull(grid)) {
                 var data = grid.getData();
                 var node = data.getItem(row);
@@ -559,7 +556,7 @@ nf.ClusterTable = (function () {
          * @argument {string} row     The row
          */
         showNodeDetails: function (row) {
-            var grid = $('#cluster-table');
+            var grid = $('#cluster-table').data('gridInstance');
             if (nf.Common.isDefinedAndNotNull(grid)) {
                 var data = grid.getData();
                 var item = data.getItem(row);
