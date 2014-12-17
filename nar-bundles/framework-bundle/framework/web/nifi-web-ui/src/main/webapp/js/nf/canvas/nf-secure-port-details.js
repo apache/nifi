@@ -83,6 +83,9 @@ nf.SecurePortDetails = (function () {
                         $('#read-only-allowed-groups').empty();
                     }
                 }
+            }).draggable({
+                containment: 'parent',
+                handle: '.dialog-header'
             });
         },
         

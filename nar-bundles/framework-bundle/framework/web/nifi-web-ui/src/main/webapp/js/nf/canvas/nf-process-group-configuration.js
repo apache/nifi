@@ -78,6 +78,9 @@ nf.ProcessGroupConfiguration = (function () {
                         $('#process-group-comments').val('');
                     }
                 }
+            }).draggable({
+                containment: 'parent',
+                handle: '.dialog-header'
             });
         },
         

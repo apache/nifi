@@ -1108,6 +1108,9 @@ nf.ConnectionConfiguration = (function () {
                         resetDialog();
                     }
                 }
+            }).draggable({
+                containment: 'parent',
+                handle: '.dialog-header'
             });
 
             // initialize the properties tabs

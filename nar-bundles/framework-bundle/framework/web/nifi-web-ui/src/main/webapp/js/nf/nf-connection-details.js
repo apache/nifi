@@ -345,6 +345,13 @@ nf.ConnectionDetails = (function () {
                     }
                 }
             });
+            
+            if (overlayBackground) {
+                $('#connection-details').draggable({
+                    containment: 'parent',
+                    handle: '.dialog-header'
+                });
+            }
         },
         
         /**

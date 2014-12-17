@@ -427,7 +427,8 @@ nf.ProcessorConfiguration = (function () {
                     }
                 }
             }).draggable({
-                handle: ".modal-header"
+                containment: 'parent',
+                handle: '.dialog-header'
             });
 
             // initialize the bulletin combo

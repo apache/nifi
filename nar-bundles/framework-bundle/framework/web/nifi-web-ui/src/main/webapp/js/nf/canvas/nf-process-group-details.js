@@ -38,6 +38,9 @@ nf.ProcessGroupDetails = (function () {
                         nf.Common.clearField('read-only-process-group-comments');
                     }
                 }
+            }).draggable({
+                containment: 'parent',
+                handle: '.dialog-header'
             });
         },
         

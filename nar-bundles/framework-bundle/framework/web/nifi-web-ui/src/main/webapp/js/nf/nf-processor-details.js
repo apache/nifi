@@ -249,6 +249,13 @@ nf.ProcessorDetails = (function () {
                     }
                 }
             });
+            
+            if (overlayBackground) {
+                $('#processor-details').draggable({
+                    containment: 'parent',
+                    handle: '.dialog-header'
+                });
+            }
 
             // function for formatting the property name
             var nameFormatter = function (row, cell, value, columnDef, dataContext) {

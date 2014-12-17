@@ -121,6 +121,9 @@ nf.PortConfiguration = (function () {
                     $('#port-comments').val('');
                 }
             }
+        }).draggable({
+            containment: 'parent',
+            handle: '.dialog-header'
         });
     };
 

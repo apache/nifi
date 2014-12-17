@@ -37,6 +37,9 @@ nf.RemoteProcessGroupDetails = (function () {
                         $('#read-only-remote-process-group-yield-duration').val('');
                     }
                 }
+            }).draggable({
+                containment: 'parent',
+                handle: '.dialog-header'
             });
         },
         

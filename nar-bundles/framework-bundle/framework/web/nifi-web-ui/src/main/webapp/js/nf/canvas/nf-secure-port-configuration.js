@@ -128,6 +128,9 @@ nf.SecurePortConfiguration = (function () {
                     $('#allowed-groups').empty();
                 }
             }
+        }).draggable({
+            containment: 'parent',
+            handle: '.dialog-header'
         });
 
         // listen for removal requests

@@ -91,6 +91,9 @@ nf.RemoteProcessGroupConfiguration = (function () {
                         $('#remote-process-group-yield-duration').val('');
                     }
                 }
+            }).draggable({
+                containment: 'parent',
+                handle: '.dialog-header'
             });
         },
         
