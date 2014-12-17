@@ -194,18 +194,6 @@ nf.Birdseye = (function () {
             context.fillRect(d.component.position.x, d.component.position.y, d.dimensions.width, d.dimensions.height);
         });
 
-        // connections
-        context.strokeStyle = '#000';
-        context.beginPath();
-        $.each(components.connections, function (_, d) {
-            context.moveTo(d.start.x, d.start.y);
-            $.each(d.bends, function (i, bend) {
-                context.lineTo(bend.x, bend.y);
-            });
-            context.lineTo(d.end.x, d.end.y);
-        });
-        context.stroke();
-
         context.restore();
     };
 
