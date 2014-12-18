@@ -394,6 +394,10 @@ image::comments-tab.png["Comments Tab"]
 
 === Additional Help
 
+Each Processor has the ability to provide additional documentation about its usage. This documentation can be found by right-clicking
+on the Processor and then selecting the `Usage' item from the context menu. Alternatively, clicking the `Help' link in the top-right
+corner of the application will provide a Help page with all of the Processors that are available. Clicking on the Processor in the list
+will then show its usage.
 
 
 === Connecting Components
@@ -440,7 +444,18 @@ value of `0 sec` indicates that the data will never expire.
 
 NiFi provides two different configuration elements for back pressure. These thresholds indicate how much data should be
 allowed to exist in the queue before the component that is the source of the Connection is no longer scheduled to run. 
-This allows the system to avoid being overrun with data.
+This allows the system to avoid being overrun with data. The first option provided is the `Back pressure object threshold.'
+This is the number of FlowFiles that can be in the queue before back pressure is applied. The second configuration option
+is the `Back pressure data size threshold.' This specifies the maximum amount of data that should be queued up before
+applying back pressure. This value is configured by entering a number followed by a data size (`B` for bytes, `KB` for 
+kilobytes, `MB` for megabytes, `GB` for gigabytes, or `TB` for terabytes).
+
+The right-hand side of the tab provides the ability to prioritize the data in queue so that higher priority data is 
+processed first. Prioritizers can be dragged from the top (`Available prioritizers') to the bottom (`Selected prioritizers').
+Multiple prioritizers can be selected. The prioritizer that is at the top of the `Selected prioritizers' list is the highest
+priority. If two FlowFiles have the same value according to this prioritizer, the second prioritizer will determine which
+FlowFile to process first, and so on. If a prioritizer is no longer desired, it can then be dragged from the `Selected
+prioritizers' list to the `Available prioritizers' list.
 
 
 
