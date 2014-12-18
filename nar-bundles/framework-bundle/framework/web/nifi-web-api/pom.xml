@@ -23,7 +23,7 @@
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-web-api</artifactId>
     <packaging>war</packaging>
-    <name>NiFi Web Rest Api</name>
+    <name>NiFi Rest Api</name>
     <profiles>
         <profile>
             <id>docs</id>
