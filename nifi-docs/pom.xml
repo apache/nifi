@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>org.apache.nifi</groupId>
+    <artifactId>nifi-parent</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>nifi-docs</artifactId>
+
+  <name>nifi-docs</name>
+  
+  <build>
+	<plugins>
+		<plugin>
+			<groupId>org.asciidoctor</groupId>
+			<artifactId>asciidoctor-maven-plugin</artifactId>
+			<version>1.5.0</version>
+			<executions>
+				<execution>
+					<id>output-html</id>
+					<phase>generate-resources</phase>
+					<goals>
+						<goal>process-asciidoc</goal>
+					</goals>
+				</execution>
+			</executions>
+			<configuration>
+				<backend>html</backend>
+			</configuration>
+		</plugin>
+	</plugins>
+  </build>
+  
+  <dependencies>
+  </dependencies>
+</project>
