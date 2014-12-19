@@ -504,10 +504,15 @@ Stopped state, the component can then be configured, started, or disabled.
 === Starting a Component
 
 In order to start a component, the following conditions must be met:
+
 - The component's configuration must be valid.
+
 - All defined Relationships for component must be connected to another component or auto-terminated.
+
 - The component must be stopped.
+
 - The component must be enabled.
+
 - The component must have no active tasks. For more information about active tasks, see the ``Anatomy of ...'' 
 sections under <<monitoring>> (<<processor_anatomy>>, <<process_group_anatomy>>, <<remote_group_anatomy>>).
 
