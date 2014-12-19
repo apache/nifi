@@ -199,9 +199,9 @@ $(document).ready(function () {
             }
         }).blur(function () {
             if ($(this).val() === '') {
-                $(this).addClass('component-filter-list').val('Filter components');
+                $(this).addClass('component-filter-list').val('Filter');
             }
-        }).addClass('component-filter-list').val('Filter components');
+        }).addClass('component-filter-list').val('Filter');
 
         // get the component usage container to install the window listener
         var componentUsageContainer = $('#component-usage-container');
@@ -254,6 +254,11 @@ $(document).ready(function () {
             if (componentName !== '') {
                 selectComponent(componentName);
             }
+        });
+        
+        // listen for on the rest api and user guide
+        $('a.rest-api a.user-guide').on('click', function() {
+            selectComponent($(this).text());
         });
 
         // get the initial selection

@@ -34,7 +34,7 @@
                 <resources>
                     <resource>
                         <directory>src/main/enunciate/images</directory>
-                        <targetPath>${project.build.directory}/${project.artifactId}-${project.version}/docs/img</targetPath>
+                        <targetPath>${project.build.directory}/${project.artifactId}-${project.version}/docs/rest-api/img</targetPath>
                     </resource>
                 </resources>
                 <plugins>
@@ -51,7 +51,7 @@
                                     <goal>docs</goal>
                                 </goals>
                                 <configuration>
-                                    <docsDir>${project.build.directory}/${project.artifactId}-${project.version}/docs</docsDir>
+                                    <docsDir>${project.build.directory}/${project.artifactId}-${project.version}/docs/rest-api</docsDir>
                                 </configuration>
                             </execution>
                         </executions>

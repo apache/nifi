@@ -18,7 +18,7 @@
 }
 
 #site-name a {
-    /*font-variant: normal !important;*/
+    font-variant: normal !important;
     letter-spacing: 1px;
 }
 
@@ -35,10 +35,6 @@
     color: #fff !important;
 }
 
-.xbreadcrumbs li {
-    /*padding: 10px 15px 10px 10px !important;*/
-}
-
 .xbreadcrumbs li a, .xbreadcrumbs li.current a {
     font-size: 13px !important;
     color: #fff !important;
@@ -46,6 +42,7 @@
 
 .xbreadcrumbs li a.home {
     background: url(img/home.png) no-repeat left center;
+    line-height: 16px;
 }
 
 .xbreadcrumbs li ul {
@@ -58,8 +55,8 @@
 }
 
 .home {
-    background-color: #dfe8ec;
     color: #444;
+    font-family: Verdana, Arial, Helvetica, sans-serif !important;
 }
 
 a {
@@ -71,9 +68,6 @@ a:hover {
 }
 
 .container {
-    width: 940px !important;
-    border-left: 2px solid #efefef;
-    border-right: 2px solid #efefef;
     padding: 0 10px;
     background-color: #fff;
 }
@@ -139,12 +133,6 @@ code {
     border-top: 3px solid #eee;
 }
 
-/* width */
-
 .span-18 {
-    width: 916px !important;
-}
-
-.span-20 {
-    width: 935px !important;
+    width: 776px !important;
 }

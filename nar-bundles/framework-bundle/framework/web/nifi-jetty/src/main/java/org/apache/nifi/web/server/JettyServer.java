@@ -384,14 +384,24 @@ public class JettyServer implements NiFiServer {
             // load the docs directory 
             final File docsDir = Paths.get("docs").toRealPath().toFile();
             final Resource docsResource = Resource.newResource(docsDir);
-            // load the component documentation working directory
             
+            // load the component documentation working directory
             final String componentDocsDirPath = props.getProperty(NiFiProperties.COMPONENT_DOCS_DIRECTORY, "work/docs/components");
             final File workingDocsDirectory = Paths.get(componentDocsDirPath).toRealPath().getParent().toFile();
             final Resource workingDocsResource = Resource.newResource(workingDocsDirectory);
 
+            // load the rest documentation
+            final File webApiDocsDir = new File(webApiContext.getTempDirectory(), "webapp/docs");
+            if (!webApiDocsDir.exists()) {
+                final boolean made = webApiDocsDir.mkdirs();
+                if (!made) {
+                    throw new RuntimeException(webApiDocsDir.getAbsolutePath() + " could not be created");
+                }
+            }
+            final Resource webApiDocsResource = Resource.newResource(webApiDocsDir);
+            
             // create resources for both docs locations
-            final ResourceCollection resources = new ResourceCollection(docsResource, workingDocsResource);
+            final ResourceCollection resources = new ResourceCollection(docsResource, workingDocsResource, webApiDocsResource);
             resourceHandler.setBaseResource(resources);
 
             // create the context handler

@@ -20,6 +20,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        <link rel="shortcut icon" href="../nifi/images/nifi16.ico"/>
         <title>NiFi Documentation</title>
         <script type="text/javascript" src="../nifi/js/jquery/jquery-2.1.1.min.js"></script>
         <script type="text/javascript" src="js/application.js"></script>
@@ -41,6 +42,7 @@
                 <div class="header">Documents</div>
                 <div class="component-links">
                     <ul>
+                        <li class="component-item"><a class="component-link user-guide" href="user-guide/nifi-user-guide.html" target="component-usage">User Guide</a></li>
                     </ul>
                 </div>
             </div>
@@ -96,6 +98,15 @@
                             <span class="no-components">No reporting task documentation found</span>
                         </c:otherwise>
                     </c:choose>
+                </div>
+            </div>
+            <div class="section">
+                <div class="header">Developer</div>
+                <div class="component-links">
+                    <ul>
+                        <li class="component-item"><a class="component-link rest-api" href="rest-api/index.html" target="component-usage">Rest Api</a></li>
+                        <li class="component-item"><a class="component-link" href="javascript:void(0);" target="component-usage">Developer Guide</a></li>
+                    </ul>
                 </div>
             </div>
         </div>
