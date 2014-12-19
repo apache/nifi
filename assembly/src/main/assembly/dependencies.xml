@@ -81,6 +81,13 @@
             <fileMode>0640</fileMode>
             <filtered>false</filtered>
         </fileSet>
+        <fileSet>
+            <directory>${project.build.directory}/generated-docs/</directory>
+            <outputDirectory>docs</outputDirectory>
+            <directoryMode>0750</directoryMode>
+            <fileMode>0640</fileMode>
+            <filtered>false</filtered>
+        </fileSet>
     </fileSets>
 
     <files>

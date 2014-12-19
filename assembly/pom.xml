@@ -43,6 +43,19 @@
                             <excludeTransitive>false</excludeTransitive>
                         </configuration>
                     </execution>
+                    <execution>
+                        <id>unpack-docs</id>
+                        <goals>
+                            <goal>unpack-dependencies</goal>
+                        </goals>
+                        <phase>generate-resources</phase>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/generated-docs</outputDirectory>
+                            <includeArtifactIds>nifi-docs</includeArtifactIds>
+                            <includeGroupIds>org.apache.nifi</includeGroupIds>
+                            <excludeTransitive>false</excludeTransitive>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
             <plugin>
@@ -119,6 +132,13 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-resources</artifactId>
+            <classifier>resources</classifier>
+            <scope>provided</scope> <!-- Provided - we don't want the zip in the libs -->
+            <type>zip</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-docs</artifactId>
             <classifier>resources</classifier>
             <scope>provided</scope> <!-- Provided - we don't want the zip in the libs -->
             <type>zip</type>

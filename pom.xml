@@ -710,6 +710,14 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-docs</artifactId>
+                <version>${project.version}</version>
+                <classifier>resources</classifier>
+                <scope>provided</scope> <!-- Provided - we don't want the zip in the libs -->
+                <type>zip</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-framework-nar</artifactId>
                 <version>${project.version}</version>
                 <type>nar</type>
