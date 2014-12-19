@@ -58,16 +58,19 @@
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>distributed-cache-client-service-api</artifactId>
                 <version>${project.version}</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>ssl-context-service-api</artifactId>
                 <version>${project.version}</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>load-distribution-service-api</artifactId>
                 <version>${project.version}</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
