@@ -17,7 +17,7 @@
 NiFi User Guide (Draft - Preview Version)
 =========================================
 Apache_NiFi_Team
-:toc: left
+:toc:
 :icons:
 
 
@@ -351,7 +351,7 @@ resources that then are not usable by other Processors. This essentially provide
 how much of the system's resources should be allocated to this Processor instead of other Processors. This field is available for
 most Processors. There are, however, some types of Processors that can only be scheduled with a single Concurrent task.
 
-The `Run schedule` dictates how often this Processor should be scheduled to run. The valid values for this field depend on the selected
+The ``Run schedule'' dictates how often this Processor should be scheduled to run. The valid values for this field depend on the selected
 Scheduling Strategy (see above). If using the Event driven Scheduling Strategy, this field is not available. When using the Timer driven
 Scheduling Strategy, this value is a time duration specified by a number followed by a time unit. For example, `1 second` or `5 mins`.
 The default value of `0 sec` means that the Processor should run as often as possible as long as it has data to process. This is true
@@ -480,20 +480,170 @@ prioritizers' list to the `Available prioritizers' list.
 === Processor Validation
 
 Before trying to start a Processor, it's important to make sure that the Processor's configuration is valid.
+A status indicator is shown in the top-left of the Processor. If the Processor is invalid, the indicator
+will show a yellow Warning indicator with an exclamation mark indicating that there is a problem:
 
+image::invalid-processor.png["Invalid Processor"]
+
+In this case, hovering over the indicator icon with the mouse will provide a tooltip showing all of the validation
+failures for the Processor. Once all of the validation errors have been addressed, the status indicator will change
+to a Stop icon, indicating that the Processor is valid and ready to be start but currently is not running:
+
+image::valid-processor.png["Valid Processor"]
 
 
 
 
 == Command and Control of DataFlow
 
+When a component is added to the NiFi canvas, it is in the Stopped state. In order to cause the component to
+be triggered, the component must be started. Once started, the component can be stopped at any time. From a
+Stopped state, the component can then be configured, started, or disabled.
+
 === Starting a Component
+
+In order to start a component, the following conditions must be met:
+- The component's configuration must be valid.
+- All defined Relationships for component must be connected to another component or auto-terminated.
+- The component must be stopped.
+- The component must be enabled.
+- The component must have no active tasks. For more information about active tasks, see the ``Anatomy of ...'' 
+sections under <<monitoring>> (<<processor_anatomy>>, <<process_group_anatomy>>, <<remote_group_anatomy>>).
+
+Components can be started by selecting all of the components to start and then clicking the Start icon (
+image:iconRun.png["Start"]
+) in the
+Actions Toolbar or by right-clicking a single component and choosing Start from the context menu.
+
+If starting a Process Group, all components within that Process Group (including child Process Groups) will
+be started, with the exception of those components that are invalid or disabled.
+
+Once started, the status indicator of a Processor will change to a Play symbol (
+image:iconRun.png["Run"]
+).
+
 
 === Stopping a Component
 
-=== Enabling a Component
+A component can be stopped any time that it is running. A component is stopped by right-clicking on the component
+and clicking Stop from the context menu, or by clicking the Stop icon (
+image:iconStop.png["Stop"]
+) in the Actions Toolbar.
 
-=== Disabling a Component
+If a Process Group is stopped, all of the components within the Process Group (including child Process Groups)
+will be stopped.
+
+Once stopped, the status indicator of a Processor will change to the Stop symbol (
+image:iconStop.png["Stop"]
+).
+
+Stopping a component does not interrupt its currently running tasks. Rather, it stops scheduling new tasks to
+be performed. The number of active tasks is shown in the top-right corner of the Processor (see <<processor_anatomy>>
+for more information).
+
+=== Enabling/Disabling a Component
+
+When a component is enabled, it is able to be started. Components may be disabled when part of a 
+dataflow is still being assembled, for example, and as a result should not be started. Typically, 
+if a component is not intended to be run, the component is disabled, rather than being left in the 
+Stopped state. This helps to distinguish between components that are intentionally not running and 
+those components that may have been stopped temporarily (for instance, to change the component's 
+configuration) and inadvertently were never restarted. 
+
+When it is desirable to re-enable a component, it can be enabled by selecting the component and 
+clicking the Enable icon (
+image:iconEnable.png["Enable"]
+) in the Actions Toolbar. This is available only when the selected component or components are disabled.
+Alternatively, a component can be enabled by checking the checkbox next  to the ``Enabled'' option in 
+the Settings tab of the Processor configuration dialog or the configuration dialog for a Port.
+
+Once enabled, the component's status indicator will change to either Invalid (
+image:iconAlert.png["Invalid"]
+) or Stopped (
+image:iconStop.png["Stopped"]
+), depending on whether or not the component is valid.
+
+A component is then disabled by selecting the component and clicking the Disable icon (
+image:iconDisable.png["Disable"]
+) in the Actions Toolbar, or by clearing the checkbox next to the ``Enabled'' option in the Settings tab
+of the Processor configuration dialog or the configuration dialog for a Port.
+
+Only Ports and Processors can be enabled and disabled.
+
+
+
+=== Remote Process Group Transmission
+
+Remote Process Groups provide a mechanism for sending data to or retrieving data from a remote instance
+of NiFi. When a Remote Process Group (RPG) is added to the canvas, it is added with the Transmision Disabled,
+as indicated by the icon (
+image:iconTransmissionInactive.png["Transmission Disabled"]
+) in the top-left corner. When Transmission is Disabled, it can be enabled by right-clicking on the
+RPG and clicking the ``Enable Transmission'' menu item. This will cause all ports for which there is a Connection
+to begin transmitting data. This will cause the status indicator to then change to the Transmission Enabled icon (
+image:iconTransmissionActive.png["Transmission Enabled"]
+). 
+
+If there are problems communicating with the Remote Process Group, a Warning indicator (
+image:iconAlert.png["Warning"]
+) may instead be present in the top-left corner. Hovering over this Warning indicator with the mouse will provide
+more information about the problem.
+
+
+==== Individual Port Transmission
+
+There are times when the DFM may want to either enable or disable transmission for only a specific 
+Port within the Remote Process Group. This can be accomplished by right-clicking on the Remote Process Group
+and choosing the ``Remote ports'' menu item. This provides a configuration dialog from which each Port can be
+configured:
+
+image::remote-group-ports-dialog.png["Remote Process Groups"]
+
+The left-hand side lists all of the Input Ports that the remote instance of NiFi allows data to be sent to.
+The right-hand side lists all of the Output Ports from which this instance is able to pull data.
+If the remote instance is using secure communications (the URL of the NiFi instance begins with `https://`, 
+rather than `http://`), any Ports that the remote instance has not made available to this instance will not
+be shown.
+
+*Note*: If a Port that is expected to be shown is not shown in this dialog, ensure that the instance has proper
+permissions and that the Remote Process Group's flow is current. This can be checked by closing the Port
+Configuration Dialog and looking at the bottom-right corner of the Remote Process Group. The data at which
+the flow was last refresh is shown. If the flow appears to be outdated, it can be updated by right-clicking
+on the Remote Process Group and selecting ``Refresh flow.'' (See <<remote_group_anatomy>> for more information).
+
+Each Port is shown with the Port name, followed by its description, currently configured number of Concurrent
+tasks, and whether or not data sent to this port will be compressed. To the left of this information is a switch
+to turn the Port on or off. Those Ports that have no Connections attached to them are grayed out:
+
+image::remote-port-connection-status.png["Remote Port Statuses"]
+
+The on/off switch provides a mechanism to enable and disable transmission for each Port in the Remote
+Process Group independently. Those Ports that are connected but are not currently transmitting can be 
+configured by clicking the pencil icon (
+image:iconEdit.png["Edit"]
+) below the on/off switch. Clicking this icon will allow the DFM to change the number of Concurrent tasks and whether
+or not compression should be used when transmitting data to or from this Port.
+
+
+
+
+
+[[monitoring]]
+== Monitoring of DataFlow
+
+[[processor_anatomy]]
+=== Anatomy of a Processor
+
+[[process_group_anatomy]]
+=== Anatomy of a Process Group
+
+[[remote_group_anatomy]]
+=== Anatomy of a Remote Process Group
+
+=== Status Page
+
+=== Historical Statics of a Component
+
 
 
 
@@ -511,25 +661,6 @@ Before trying to start a Processor, it's important to make sure that the Process
 ==== Importing a Template
 ==== Exporting a Template
 ==== Removing a Template
-
-
-
-
-
-
-== Monitoring of DataFlow
-
-=== Anatomy of a Processor
-
-=== Anatomy of a Process Group
-
-=== Anatomy of a Remote Process Group
-
-=== Status Page
-
-=== Historical Statics of a Component
-
-
 
 
 
