@@ -1024,7 +1024,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             for (final Relationship relationship : getUndefinedRelationships()) {
                 if (!isAutoTerminated(relationship)) {
                     final ValidationResult error = new ValidationResult.Builder()
-                            .explanation(relationship.getName() + " is not defined")
+                            .explanation("Relationship '" + relationship.getName() + "' is not connected to any component and is not auto-terminated")
                             .subject("Relationship " + relationship.getName())
                             .valid(false)
                             .build();
