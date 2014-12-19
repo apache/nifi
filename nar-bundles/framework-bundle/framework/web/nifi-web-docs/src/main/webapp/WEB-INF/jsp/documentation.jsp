@@ -41,6 +41,7 @@
                 <div class="header">Documents</div>
                 <div class="component-links">
                     <ul>
+	                    <li class="component-item"><a class="component-link user-guide" href="user-guide/nifi-user-guide.html" target="component-usage">User Guide</a></li>
                     </ul>
                 </div>
             </div>
