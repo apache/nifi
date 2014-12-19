@@ -285,6 +285,11 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     }
 
     @Override
+    public void shutdown() {
+        backgroundThreadExecutor.shutdown();
+    }
+    
+    @Override
     public String getIdentifier() {
         return id;
     }

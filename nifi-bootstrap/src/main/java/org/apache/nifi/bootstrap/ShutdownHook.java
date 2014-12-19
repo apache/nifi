@@ -28,10 +28,17 @@ public class ShutdownHook extends Thread {
 	private final RunNiFi runner;
 	private final int gracefulShutdownSeconds;
 	
-	public ShutdownHook(final Process nifiProcess, final RunNiFi runner, final int gracefulShutdownSeconds) {
+	private volatile String secretKey;
+	
+	public ShutdownHook(final Process nifiProcess, final RunNiFi runner, final String secretKey, final int gracefulShutdownSeconds) {
 		this.nifiProcess = nifiProcess;
 		this.runner = runner;
+		this.secretKey = secretKey;
 		this.gracefulShutdownSeconds = gracefulShutdownSeconds;
+	}
+	
+	void setSecretKey(final String secretKey) {
+	    this.secretKey = secretKey;
 	}
 	
 	@Override
@@ -44,7 +51,7 @@ public class ShutdownHook extends Thread {
 			try {
 				final Socket socket = new Socket("localhost", ccPort);
 				final OutputStream out = socket.getOutputStream();
-				out.write("SHUTDOWN\n".getBytes(StandardCharsets.UTF_8));
+				out.write(("SHUTDOWN " + secretKey + "\n").getBytes(StandardCharsets.UTF_8));
 				out.flush();
 				
 				socket.close();
