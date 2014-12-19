@@ -21,7 +21,7 @@
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
         <title>NiFi Documentation</title>
-        <script type="text/javascript" src="../nifi/js/jquery/jquery-1.7.min.js"></script>
+        <script type="text/javascript" src="../nifi/js/jquery/jquery-2.1.1.min.js"></script>
         <script type="text/javascript" src="js/application.js"></script>
         <link href="css/main.css" rel="stylesheet" type="text/css" />
         <link href="css/component-usage.css" rel="stylesheet" type="text/css" />
@@ -41,6 +41,7 @@
                 <div class="header">Documents</div>
                 <div class="component-links">
                     <ul>
+	                    <li class="component-item"><a class="component-link user-guide" href="user-guide/nifi-user-guide.html" target="component-usage">User Guide</a></li>
                     </ul>
                 </div>
             </div>
