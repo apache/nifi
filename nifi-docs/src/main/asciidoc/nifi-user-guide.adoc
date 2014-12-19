@@ -1,7 +1,23 @@
-NiFi User Guide
-===============
+//
+// Licensed to the Apache Software Foundation (ASF) under one or more
+// contributor license agreements.  See the NOTICE file distributed with
+// this work for additional information regarding copyright ownership.
+// The ASF licenses this file to You under the Apache License, Version 2.0
+// (the "License"); you may not use this file except in compliance with
+// the License.  You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+NiFi User Guide (Draft - Preview Version)
+=========================================
 Apache_NiFi_Team
-:toc:
+:toc: left
 :icons:
 
 
@@ -10,103 +26,103 @@ Terminology
 -----------
 *DataFlow Manager*: A DataFlow Manager (DFM) is a NiFi user who has permissions to add, remove, and modify components of a NiFi dataflow.
 
-*FlowFile*: The FlowFile represents a single piece of data in NiFi. A FlowFile is made up of two components: 
-	FlowFile Attributes and FlowFile Content. 
-	Content is the data that is represented by the FlowFile. Attributes are key-value pairs that provide information or 
-	context about the data. 
+*FlowFile*: The FlowFile represents a single piece of data in NiFi. A FlowFile is made up of two components:
+	FlowFile Attributes and FlowFile Content.
+	Content is the data that is represented by the FlowFile. Attributes are key-value pairs that provide information or
+	context about the data.
 	All FlowFiles have the following Standard Attributes:
-	
+
 - *uuid*: A unique identifier for the FlowFile
 - *filename*: A human-readable filename that may be used when storing the data to disk or in an external service
 - *path*: A hierarchically structured value that can be used when storing data to disk or an external service so that the data is not stored in a single directory
 
-*Processor*: The Processor is the NiFi component that is used to listen for incoming data; pull data from external sources; 
+*Processor*: The Processor is the NiFi component that is used to listen for incoming data; pull data from external sources;
 	publish data to external sources; and route, transform, or extract information from FlowFiles.
 
-*Relationship*: Each Processor has zero or more Relationships defined for it. These Relationships are named to indicate the result of processing a FlowFile. 
-	After a Processor has finished processing a FlowFile, it will route (or “transfer”) the FlowFile to one of the Relationships. 
-	A DataFlow Manager is then able to connect each of these Relationships to other components in order to specify where the FlowFile should 
+*Relationship*: Each Processor has zero or more Relationships defined for it. These Relationships are named to indicate the result of processing a FlowFile.
+	After a Processor has finished processing a FlowFile, it will route (or “transfer”) the FlowFile to one of the Relationships.
+	A DataFlow Manager is then able to connect each of these Relationships to other components in order to specify where the FlowFile should
 	go next under each potential processing result.
 
-*Connection*: A DataFlow Manager creates an automated dataflow by dragging components from the Components part of the NiFi toolbar to the canvas 
-	and then connecting the components together via Connections. Each connection consists of one or more Relationships. 
-	For each Connection that is drawn, a DataFlow Manager can determine which Relationships should be used for the Connection. 
-	This allows data to be routed in different ways based on its processing outcome. Each connection houses a FlowFile Queue. 
+*Connection*: A DataFlow Manager creates an automated dataflow by dragging components from the Components part of the NiFi toolbar to the canvas
+	and then connecting the components together via Connections. Each connection consists of one or more Relationships.
+	For each Connection that is drawn, a DataFlow Manager can determine which Relationships should be used for the Connection.
+	This allows data to be routed in different ways based on its processing outcome. Each connection houses a FlowFile Queue.
 	When a FlowFile is transferred to a particular Relationship, it is added to the queue belonging to the associated Connection.
-	
+
 *Funnel*: A funnel is a NiFi component that is used to combine the data from several Connections into a single Connection.
 
-*Process Group*: When a dataflow becomes complex, it often is beneficial to reason about the dataflow at a higher, more abstract level. 
-	NiFi allows multiple components, such as Processors, to be grouped together into a Process Group. 
-	The NiFi User Interface then makes it easy for a DataFlow Manager to connect together multiple Process Groups into a logical dataflow, 
+*Process Group*: When a dataflow becomes complex, it often is beneficial to reason about the dataflow at a higher, more abstract level.
+	NiFi allows multiple components, such as Processors, to be grouped together into a Process Group.
+	The NiFi User Interface then makes it easy for a DataFlow Manager to connect together multiple Process Groups into a logical dataflow,
 	as well as allowing the DataFlow Manager to enter a Process Group in order to see and manipulate the components within the Process Group.
 
-*Port*: Dataflows that are constructed using one or more Process Groups need a way to connect a Process Group to other dataflow components. 
+*Port*: Dataflows that are constructed using one or more Process Groups need a way to connect a Process Group to other dataflow components.
 	This is achieved by using Ports. A DataFlow Manager can add any number of Input Ports and Output Ports to a Process Group and name these ports appropriately.
 
-*Remote Process Group*: Just as data is transferred into and out of a Process Group, it is sometimes necessary to transfer data from one instance of NiFi to another. 
-	While NiFi provides many different mechanisms for transferring data from one system to another, Remote Process Groups are often the easiest way to accomplish 
+*Remote Process Group*: Just as data is transferred into and out of a Process Group, it is sometimes necessary to transfer data from one instance of NiFi to another.
+	While NiFi provides many different mechanisms for transferring data from one system to another, Remote Process Groups are often the easiest way to accomplish
 	this if transferring data to another instance of NiFi.
 
-*Bulletin*: The NiFi User Interface provides a significant amount of monitoring and feedback about the current status of the application. 
-	In addition to rolling statistics and the current status that are provided for each component, components are able to report Bulletins. 
-	Whenever a component reports a Bulletin, an icon is displayed on that component (or on the Status bar near the top of the page, for System-Level Bulletins). 
-	Using the mouse to hover over that icon will provide a tool-tip that shows the time and severity (Debug, Info, Warning, Error) of the bulletin, 
-	as well as the message of the Bulletin. 
+*Bulletin*: The NiFi User Interface provides a significant amount of monitoring and feedback about the current status of the application.
+	In addition to rolling statistics and the current status that are provided for each component, components are able to report Bulletins.
+	Whenever a component reports a Bulletin, an icon is displayed on that component (or on the Status bar near the top of the page, for System-Level Bulletins).
+	Using the mouse to hover over that icon will provide a tool-tip that shows the time and severity (Debug, Info, Warning, Error) of the bulletin,
+	as well as the message of the Bulletin.
 	Bulletins from all components can also be viewed and filtered in the Bulletins Page, available in the Management Toolbar.
 
-*Template*: Often times, a dataflow is comprised of many sub-flows that could be reused. NiFi allows DataFlow Managers to select a part of the dataflow 
-	(or the entire dataflow) and create a Template. This Template is given a name can then be dragged onto the canvas just like the other components. 
-	As a result, several components be combined together to make a larger building block from which to create a dataflow. 
+*Template*: Often times, a dataflow is comprised of many sub-flows that could be reused. NiFi allows DataFlow Managers to select a part of the dataflow
+	(or the entire dataflow) and create a Template. This Template is given a name can then be dragged onto the canvas just like the other components.
+	As a result, several components be combined together to make a larger building block from which to create a dataflow.
 	These templates can also be exported as XML and imported into another NiFi instance, allowing these building blocks to be shared.
-	
 
-	
+
+
 NiFi User Interface
 -------------------
 
-The NiFi User Interface (UI) provides mechanisms for creating automated dataflows, as well as visualizing, 
-editing, monitoring, and administering those dataflows. The UI can be broken down into several different segments, 
-each responsible for different functionality of the application. We will begin by looking at screenshots of the 
-application and labeling the different segments of the UI. We will provide a brief explanation of the purpose of each segment. 
+The NiFi User Interface (UI) provides mechanisms for creating automated dataflows, as well as visualizing,
+editing, monitoring, and administering those dataflows. The UI can be broken down into several different segments,
+each responsible for different functionality of the application. We will begin by looking at screenshots of the
+application and labeling the different segments of the UI. We will provide a brief explanation of the purpose of each segment.
 Then, in the following sections of this document, we will discuss each of those segments in greater detail.
 
-When the application is started, by default, the user is able to navigate to the User Interface by going to 
-`http://<hostname>:8080/nifi` in a web browser. There are no permissions configured, by default, so anyone is 
+When the application is started, by default, the user is able to navigate to the User Interface by going to
+`http://<hostname>:8080/nifi` in a web browser. There are no permissions configured, by default, so anyone is
 able to view and modify the dataflow. For information on securing the system, see Systems Administrator guide.
 
 When a DataFlow Manager navigates to the UI for the first time, a blank canvas is provided on which a dataflow can be built:
 
 image::new-flow.png["Empty Flow"]
 
-Along the top of the of the screen is a toolbar that contains several of these segments. 
-To the left is the Components Toolbar. This toolbar consists of the different components that can be dragged onto the canvas. 
+Along the top of the of the screen is a toolbar that contains several of these segments.
+To the left is the Components Toolbar. This toolbar consists of the different components that can be dragged onto the canvas.
 
-Next to the Components Toolbar is the Actions Toolbar. This toolbar consists of buttons to manipulate the existing 
-components on the graph. Following the Actions Toolbar is the Search Toolbar. This toolbar consists of a single 
-Search field that allows users to easily find components on the graph. Users are able to search by component name, 
+Next to the Components Toolbar is the Actions Toolbar. This toolbar consists of buttons to manipulate the existing
+components on the graph. Following the Actions Toolbar is the Search Toolbar. This toolbar consists of a single
+Search field that allows users to easily find components on the graph. Users are able to search by component name,
 type, identifier, and configuration properties.
 
-Finally, the Management Toolbar sits to the right-hand side of the screen. This toolbar consists of buttons that are 
-of use to DataFlow Managers to manage the flow as well as administrators who may use this section to manage user access 
+Finally, the Management Toolbar sits to the right-hand side of the screen. This toolbar consists of buttons that are
+of use to DataFlow Managers to manage the flow as well as administrators who may use this section to manage user access
 and configure system properties, such as how many system resources should be provided to the application.
 
 image::nifi-toolbar-components.png["NiFi Components Toolbar"]
 
-Next, we have segments that provide capabilities to easily navigate around the graph. On the left-hand side is a toolbar that 
-provides the ability to pan around the graph and zoom in and out. On the right-hand side is a “Birds-Eye View” of the dataflow. 
-This provides a high-level view of the dataflow and allows the user to quickly and easily pan across large portions of the dataflow. 
-Along the top of the screen is a trail of breadcrumbs. As users navigate into and out of Process Groups, the breadcrumbs show 
-the depth in the flow and each Process Group that was entered to reach this depth. Each of the Process Groups listed in the breadcrumbs 
+Next, we have segments that provide capabilities to easily navigate around the graph. On the left-hand side is a toolbar that
+provides the ability to pan around the graph and zoom in and out. On the right-hand side is a “Birds-Eye View” of the dataflow.
+This provides a high-level view of the dataflow and allows the user to quickly and easily pan across large portions of the dataflow.
+Along the top of the screen is a trail of breadcrumbs. As users navigate into and out of Process Groups, the breadcrumbs show
+the depth in the flow and each Process Group that was entered to reach this depth. Each of the Process Groups listed in the breadcrumbs
 is a link that will take you back up to that level in the flow.
 
 image::nifi-navigation.png["NiFi Navigation"]
 
-Below the breadcrumbs lives the Status bar. The Status bar provides information about how many Processors exist in the graph in 
-each state (Stopped, Running, Invalid, Disabled), how many Remote Process Groups exist on the graph in each state 
-(Transmitting, Not Transmitting), the number of threads that are currently active in the flow, the amount of data that currently 
-exists in the flow, and the timestamp at which all of this information was last refreshed. If there are any System-Level bulletins, 
-these are shown in the Status bar as well. Additionally, if the instance of NiFi is clustered, the Status bar shows many nodes 
+Below the breadcrumbs lives the Status bar. The Status bar provides information about how many Processors exist in the graph in
+each state (Stopped, Running, Invalid, Disabled), how many Remote Process Groups exist on the graph in each state
+(Transmitting, Not Transmitting), the number of threads that are currently active in the flow, the amount of data that currently
+exists in the flow, and the timestamp at which all of this information was last refreshed. If there are any System-Level bulletins,
+these are shown in the Status bar as well. Additionally, if the instance of NiFi is clustered, the Status bar shows many nodes
 are in the cluster and how many are currently connected.
 
 image::status-bar.png["NiFi Status Bar"]
@@ -118,100 +134,100 @@ image::status-bar.png["NiFi Status Bar"]
 Building a DataFlow
 -------------------
 
-A DataFlow Manager (DFM) is able to build an automated dataflow using the NiFi User Interface (UI). This is accomplished 
-by dragging components from the toolbar to the canvas, configuring the components to meet specific needs, and connecting 
+A DataFlow Manager (DFM) is able to build an automated dataflow using the NiFi User Interface (UI). This is accomplished
+by dragging components from the toolbar to the canvas, configuring the components to meet specific needs, and connecting
 the components together.
 
 
 === Adding Components to the Canvas
 
-In the User Interface section above, we outlined the different segments of the UI and pointed out a Components Toolbar. 
+In the User Interface section above, we outlined the different segments of the UI and pointed out a Components Toolbar.
 Here, we will look at each of the Components in that toolbar:
 
 image::components.png["Components"]
 
 image:iconProcessor.png["Processor", width=32]
-*Processor*: The Processor is the most commonly used component, as it is responsible for data ingress, egress, routing, and 
-	manipulating. There are many different types of Processors. In fact, this is a very common Extension Point in NiFi, 
-	meaning that many vendors may implement their own Processors to perform whatever functions are necessary for their use case. 
+*Processor*: The Processor is the most commonly used component, as it is responsible for data ingress, egress, routing, and
+	manipulating. There are many different types of Processors. In fact, this is a very common Extension Point in NiFi,
+	meaning that many vendors may implement their own Processors to perform whatever functions are necessary for their use case.
 	When a Processor is dragged onto the graph, the user is presented with a dialog to choose which type of Processor to use:
 
 image::add-processor.png["Add Processor Dialog"]
 
-In the top-right corner, the user is able to filter the list based on the Processor Type or the Tags associated with a Processor. 
-Processor developers have the ability to add Tags to their Processors. These tags are used in this dialog for filtering and are 
-displayed on the left-hand side in a Tag Cloud. The more Processors that exist with a particular Tag, the larger the Tag appears 
-in the Tag Cloud. Clicking a Tag in the Cloud will filter the available Processors to only those that contain that Tag. If multiple 
-Tags are selected, only those Processors that contain all of those Tags are shown. For example, if we want to show only those 
+In the top-right corner, the user is able to filter the list based on the Processor Type or the Tags associated with a Processor.
+Processor developers have the ability to add Tags to their Processors. These tags are used in this dialog for filtering and are
+displayed on the left-hand side in a Tag Cloud. The more Processors that exist with a particular Tag, the larger the Tag appears
+in the Tag Cloud. Clicking a Tag in the Cloud will filter the available Processors to only those that contain that Tag. If multiple
+Tags are selected, only those Processors that contain all of those Tags are shown. For example, if we want to show only those
 Processors that allow us to ingest data via HTTP, we can select both the `http` Tag and the `ingest` Tag:
 
 image::add-processor-with-tag-cloud.png["Add Processor with Tag Cloud"]
 
-Clicking the `Add` button or double-clicking on a Processor Type will add the selected Processor to the canvas at the 
+Clicking the `Add` button or double-clicking on a Processor Type will add the selected Processor to the canvas at the
 location that it was dropped.
 
 
 
 image:iconInputPort.png["Input Port", width=32]
-*Input Port*: Input Ports provide a mechanism for transferring data into a Process Group. When an Input Port is dragged 
+*Input Port*: Input Ports provide a mechanism for transferring data into a Process Group. When an Input Port is dragged
 onto the canvas, the DFM is prompted to name the Port. All Ports within a Process Group must have unique names.
 
-All components exist only within a Process Group. When a user navigates to the NiFi page, the user is placed in the 
-Root Progress Group. If the Input Port is dragged onto the Root Progress Group, the Input Port provides a mechanism 
-to receive data from remote instances of NiFi. In this case, the Input Port can be configured to restrict access to 
+All components exist only within a Process Group. When a user navigates to the NiFi page, the user is placed in the
+Root Progress Group. If the Input Port is dragged onto the Root Progress Group, the Input Port provides a mechanism
+to receive data from remote instances of NiFi. In this case, the Input Port can be configured to restrict access to
 appropriate users.
 
 
 
 
 image:iconOutputPort.png["Output Port", width=32]
-*Output Port*: Output Ports provide a mechanism for transferring data from a Process Group back to destination outside 
-of the Process Group. When an Output Port is dragged onto the canvas, the DFM is prompted to name the Port. All Ports 
+*Output Port*: Output Ports provide a mechanism for transferring data from a Process Group back to destination outside
+of the Process Group. When an Output Port is dragged onto the canvas, the DFM is prompted to name the Port. All Ports
 within a Process Group must have unique names.
 
-If the Output Port is dragged onto the Root Process Group, the Output Port provides a mechanism for sending data to 
-remote instances of NiFi. In this case, the Port acts as a queue. As remote instances of NiFi pull data from the port, 
+If the Output Port is dragged onto the Root Process Group, the Output Port provides a mechanism for sending data to
+remote instances of NiFi. In this case, the Port acts as a queue. As remote instances of NiFi pull data from the port,
 that data is removed from the queues of the incoming Connections.
 
 
 
 image:iconProcessGroup.png["Process Group", width=32]
-*Process Group*: Process Groups can be used logically group a set of components so that the dataflow is easier to understand 
-and maintain. When a Process Group is dragged onto the canvas, the DFM is prompted to name the Process Group. All Process 
+*Process Group*: Process Groups can be used logically group a set of components so that the dataflow is easier to understand
+and maintain. When a Process Group is dragged onto the canvas, the DFM is prompted to name the Process Group. All Process
 Groups within the same parent group must have unique names.
 
 
 
 image:iconRemoteProcessGroup.png["Remote Process Group", width=32]
-*Remote Process Group*: Remote Process Groups appear and behave similar to Process Groups. However, the Remote Process Group (RPG) 
-references a remote instance of NiFi. When an RPG is dragged onto the canvas, rather than being prompted for a name, the DFM 
-is prompted for the URL of the remote NiFi instance. If the remote NiFi is a clustered instance, the URL that should be used 
-is the URL of the remote instance's NiFi Cluster Manager (NCM). When data is transferred to a clustered instance of NiFi 
-via an RPG, the RPG it will first connect to the remote instance's NCM to determine which nodes are in the cluster and 
-how busy each node is. This information is then used to load balance the data that is pushed to each node. The remote NCM is 
+*Remote Process Group*: Remote Process Groups appear and behave similar to Process Groups. However, the Remote Process Group (RPG)
+references a remote instance of NiFi. When an RPG is dragged onto the canvas, rather than being prompted for a name, the DFM
+is prompted for the URL of the remote NiFi instance. If the remote NiFi is a clustered instance, the URL that should be used
+is the URL of the remote instance's NiFi Cluster Manager (NCM). When data is transferred to a clustered instance of NiFi
+via an RPG, the RPG it will first connect to the remote instance's NCM to determine which nodes are in the cluster and
+how busy each node is. This information is then used to load balance the data that is pushed to each node. The remote NCM is
 then interrogated periodically to ensure that any nodes that are dropped from the cluster and no longer sent to, any new nodes
 will be added to the list of nodes, and to recalculate the load balancing based on each node's load.
 
 
 
 image:iconFunnel.png["Funnel", width=32]
-*Funnel*: Funnels are used to combine the data from many Connections into a single Connection. This has two advantages. 
-First, if many Connections are created with the same destination, the canvas can become cluttered if those Connections 
-have to span a large space. By funneling these Connections into a single Connection, that single Connection can then be 
-drawn to span that large space instead. Secondly, Connections can be configured with FlowFile Prioritizers. Data from 
-several Connections can be funneled into a single Connection, providing the ability to Prioritize all of the data on that 
+*Funnel*: Funnels are used to combine the data from many Connections into a single Connection. This has two advantages.
+First, if many Connections are created with the same destination, the canvas can become cluttered if those Connections
+have to span a large space. By funneling these Connections into a single Connection, that single Connection can then be
+drawn to span that large space instead. Secondly, Connections can be configured with FlowFile Prioritizers. Data from
+several Connections can be funneled into a single Connection, providing the ability to Prioritize all of the data on that
 one Connection, rather than prioritizing the data on each Connection independently.
 
 
 
 image:iconTemplate.png["Template", width=32]
-*Template*: Templates can be created by DataFlow Managers from sections of the flow, or they can be imported from other 
-dataflows. These Templates provide larger building blocks for creating a  complex flow quickly. When the Template is 
+*Template*: Templates can be created by DataFlow Managers from sections of the flow, or they can be imported from other
+dataflows. These Templates provide larger building blocks for creating a  complex flow quickly. When the Template is
 dragged onto the canvas, the DFM is provided a dialog to choose which Template to add to the canvas:
 
 image::instantiate-template.png["Instantiate Template Dialog"]
 
-Clicking the drop-down box shows all available Templates. Any Template that was created with a description will show an 
+Clicking the drop-down box shows all available Templates. Any Template that was created with a description will show an
 icon indicating that there is more information. Hovering over the icon with the mouse will show this description:
 
 image::instantiate-template-description.png["Instantiate Template Dialog"]
@@ -220,9 +236,9 @@ image::instantiate-template-description.png["Instantiate Template Dialog"]
 
 
 image:iconLabel.png["Label"]
-*Label*: Labels are used to provide documentation to parts of a dataflow. When a Label is dropped onto the canvas, 
-it is created with a default size. The Label can then be resized by dragging the handle in the bottom-right corner. 
-The Label has no text when initially created. The text of the Label can be added by right-clicking on the Label and 
+*Label*: Labels are used to provide documentation to parts of a dataflow. When a Label is dropped onto the canvas,
+it is created with a default size. The Label can then be resized by dragging the handle in the bottom-right corner.
+The Label has no text when initially created. The text of the Label can be added by right-clicking on the Label and
 choosing `Configure...`
 
 
@@ -257,7 +273,7 @@ Below the Name configuration, the Processor's unique identifier is displayed alo
 values cannot be modified.
 
 Next are two dialogues for configuring `Penalty duration' and `Yield duration'. During the normal course of processing a
-piece of data (a FlowFile), an event may occur that indicates that the data cannot be processed at this time but the 
+piece of data (a FlowFile), an event may occur that indicates that the data cannot be processed at this time but the
 data may be processable at a later time. When this occurs, the Processor may choose to Penalize the FlowFile. This will
 prevent the FlowFile from being Processed for some period of time. For example, if the Processor is to push the data
 to a remote service, but the remote service already has a file with the same name as the filename that the Processor
@@ -314,8 +330,8 @@ The first configuration option is the Scheduling Strategy. There are three optio
 		. Day of Week
 		. Year
 +
-The value for each of these fields should be a number, range, or increment. 
-Range here refers to a syntax of <number>-<number>. 
+The value for each of these fields should be a number, range, or increment.
+Range here refers to a syntax of <number>-<number>.
 For example,the Seconds field could be set to 0-30, meaning that the Processor should only be scheduled if the time is 0 to 30 seconds
 after the minute. Additionally, a value of `*` indicates that all values are valid for this field. Multiple values can also
 be entered using a `,` as a separator: `0,5,10,15,30`.
@@ -327,7 +343,7 @@ For the Month field, valid values are 1 (January) through 12 (December).
 For the Day of Week field, valid values are 1 (Sunday) through 7 (Saturday). Additionally, a value of `L` may be appended to one of these
 values to indicate the last occurrence of this day in the month. For example, `1L` can be used to indicate the last Monday of the month.
 
-	
+
 Next, the Scheduling Tab provides a configuration option named `Concurrent tasks.' This controls how many threads the Processor
 will use. Said a different way, this controls how many FlowFiles should be processed by this Processor at the same time. Increasing
 this value will typically allow the Processor to handle more data in the same amount of time. However, it does this by using system
@@ -339,7 +355,7 @@ The `Run schedule` dictates how often this Processor should be scheduled to run.
 Scheduling Strategy (see above). If using the Event driven Scheduling Strategy, this field is not available. When using the Timer driven
 Scheduling Strategy, this value is a time duration specified by a number followed by a time unit. For example, `1 second` or `5 mins`.
 The default value of `0 sec` means that the Processor should run as often as possible as long as it has data to process. This is true
-for any time duration of 0, regardless of the time unit (i.e., `0 sec`, `0 mins`, `0 days`). For an explanation of values that are 
+for any time duration of 0, regardless of the time unit (i.e., `0 sec`, `0 mins`, `0 days`). For an explanation of values that are
 applicable for the CRON driven Scheduling Strategy, see the description of the CRON driven Scheduling Strategy itself.
 
 The right-hand side of the tab contains a slider for choosing the `Run duration.' This controls how long the Processor should be scheduled
@@ -359,12 +375,12 @@ must define which Properties make sense for its use case. Below, we see the Prop
 
 image::properties-tab.png["Properties Tab"]
 
-This Processor, by default, has only a single property: `Routing Strategy.' The default value is `Route on Property name.' Next to 
+This Processor, by default, has only a single property: `Routing Strategy.' The default value is `Route on Property name.' Next to
 the name of this property is a small question-mark symbol (
 image:iconInfo.png["Question Mark"]
-). This help symbol is seen in other places throughout the application, as well, and indicates that more information is available. 
-Hovering over this symbol with the mouse will provide additional details about the property and the default value, as well as 
-historical values that have been set for the Property. 
+). This help symbol is seen in other places throughout the application, as well, and indicates that more information is available.
+Hovering over this symbol with the mouse will provide additional details about the property and the default value, as well as
+historical values that have been set for the Property.
 
 Clicking on the value for the property will allow a DFM to change the value. Depending on the values that are allowed for the property,
 the user is either provided a drop-down from which to choose a value or is given a text area to type a value:
@@ -415,7 +431,7 @@ This Connection bubble can then be dragged from this component to another compon
 
 ==== Details Tab
 
-The Details Tab provides information about the source and destination components, including the component name, the 
+The Details Tab provides information about the source and destination components, including the component name, the
 component type, and the Process Group in which the component lives:
 
 image::create-connection.png["Create Connection"]
@@ -442,15 +458,17 @@ In this case, the expiration can be used in conjunction with Prioritizers to ens
 processed first and then anything that cannot be processed within one hour, for example, can be dropped. The default
 value of `0 sec` indicates that the data will never expire.
 
+
 NiFi provides two different configuration elements for back pressure. These thresholds indicate how much data should be
-allowed to exist in the queue before the component that is the source of the Connection is no longer scheduled to run. 
-This allows the system to avoid being overrun with data. The first option provided is the `Back pressure object threshold.'
+allowed to exist in the queue before the component that is the source of the Connection is no longer scheduled to run.
+This allows the system to avoid being overrun with data. The first option provided is the ``Back pressure object threshold.''
 This is the number of FlowFiles that can be in the queue before back pressure is applied. The second configuration option
-is the `Back pressure data size threshold.' This specifies the maximum amount of data that should be queued up before
-applying back pressure. This value is configured by entering a number followed by a data size (`B` for bytes, `KB` for 
+is the ``Back pressure data size threshold.'' 
+This specifies the maximum amount of data that should be queued up before
+applying back pressure. This value is configured by entering a number followed by a data size (`B` for bytes, `KB` for
 kilobytes, `MB` for megabytes, `GB` for gigabytes, or `TB` for terabytes).
 
-The right-hand side of the tab provides the ability to prioritize the data in queue so that higher priority data is 
+The right-hand side of the tab provides the ability to prioritize the data in queue so that higher priority data is
 processed first. Prioritizers can be dragged from the top (`Available prioritizers') to the bottom (`Selected prioritizers').
 Multiple prioritizers can be selected. The prioritizer that is at the top of the `Selected prioritizers' list is the highest
 priority. If two FlowFiles have the same value according to this prioritizer, the second prioritizer will determine which
@@ -459,10 +477,9 @@ prioritizers' list to the `Available prioritizers' list.
 
 
 
-
 === Processor Validation
 
-
+Before trying to start a Processor, it's important to make sure that the Processor's configuration is valid.
 
 
 
@@ -531,4 +548,3 @@ prioritizers' list to the `Available prioritizers' list.
 === Viewing FlowFile Lineage
 ==== Find Parents
 ==== Expanding an Event
-
