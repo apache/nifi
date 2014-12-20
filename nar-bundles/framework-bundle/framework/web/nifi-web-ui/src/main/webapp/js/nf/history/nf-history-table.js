@@ -321,9 +321,9 @@ nf.HistoryTable = (function () {
                 endDate: endDateTime
             }),
             dataType: 'json'
-        }).then(function () {
+        }).done(function () {
             nf.HistoryTable.loadHistoryTable();
-        }, nf.Common.handleAjaxError);
+        }).fail(nf.Common.handleAjaxError);
     };
 
     return {
@@ -333,6 +333,7 @@ nf.HistoryTable = (function () {
             initPurgeDialog();
             initHistoryTable();
         },
+        
         /**
          * Update the size of the grid based on its container's current size.
          */
@@ -342,6 +343,7 @@ nf.HistoryTable = (function () {
                 historyGrid.resizeCanvas();
             }
         },
+        
         /**
          * Load the processor status table.
          */
@@ -355,6 +357,7 @@ nf.HistoryTable = (function () {
             // request refresh of the current 'page'
             historyGrid.onViewportChanged.notify();
         },
+        
         /**
          * Shows the details for the specified action.
          * 

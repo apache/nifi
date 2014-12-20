@@ -44,6 +44,7 @@ nf.ProcessorPropertyTextEditor = function (args) {
             'box-shadow': '4px 4px 6px rgba(0, 0, 0, 0.9)',
             'cursor': 'move'
         }).draggable({
+            cancel: '.button, textarea, .nf-checkbox',
             containment: 'parent'
         }).appendTo(container);
 

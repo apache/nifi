@@ -114,7 +114,7 @@ nf.UsersTable = (function () {
                                 data: JSON.stringify(userEntity),
                                 contentType: 'application/json',
                                 dataType: 'json'
-                            }).then(function (response) {
+                            }).done(function (response) {
                                 if (nf.Common.isDefinedAndNotNull(response.user)) {
                                     var user = response.user;
 
@@ -123,7 +123,7 @@ nf.UsersTable = (function () {
                                     var usersData = usersGrid.getData();
                                     usersData.updateItem(user.id, user);
                                 }
-                            }, nf.Common.handleAjaxError);
+                            }).fail(nf.Common.handleAjaxError);
 
                             // hide the dialog
                             $('#user-roles-dialog').modal('hide');
@@ -203,9 +203,9 @@ nf.UsersTable = (function () {
                                 data: JSON.stringify(userGroupEntity),
                                 contentType: 'application/json',
                                 dataType: 'json'
-                            }).then(function () {
+                            }).done(function () {
                                 nf.UsersTable.loadUsersTable();
-                            }, nf.Common.handleAjaxError);
+                            }).fail(nf.Common.handleAjaxError);
 
                             // hide the dialog
                             $('#group-roles-dialog').modal('hide');
@@ -244,9 +244,9 @@ nf.UsersTable = (function () {
                                 type: 'DELETE',
                                 url: config.urls.users + '/' + encodeURIComponent(userId),
                                 dataType: 'json'
-                            }).then(function () {
+                            }).done(function () {
                                 nf.UsersTable.loadUsersTable();
-                            }, nf.Common.handleAjaxError);
+                            }).fail(nf.Common.handleAjaxError);
 
                             // hide the dialog
                             $('#user-delete-dialog').modal('hide');
@@ -291,7 +291,7 @@ nf.UsersTable = (function () {
                                     'status': 'DISABLED'
                                 },
                                 dataType: 'json'
-                            }).then(function (response) {
+                            }).done(function (response) {
                                 if (nf.Common.isDefinedAndNotNull(response.user)) {
                                     var user = response.user;
 
@@ -300,7 +300,7 @@ nf.UsersTable = (function () {
                                     var usersData = usersGrid.getData();
                                     usersData.updateItem(user.id, user);
                                 }
-                            }, nf.Common.handleAjaxError);
+                            }).fail(nf.Common.handleAjaxError);
 
                             // hide the dialog
                             $('#user-revoke-dialog').modal('hide');
@@ -345,9 +345,9 @@ nf.UsersTable = (function () {
                                     'status': 'DISABLED'
                                 },
                                 dataType: 'json'
-                            }).then(function () {
+                            }).done(function () {
                                 nf.UsersTable.loadUsersTable();
-                            }, nf.Common.handleAjaxError);
+                            }).fail(nf.Common.handleAjaxError);
 
                             // hide the dialog
                             $('#group-revoke-dialog').modal('hide');
@@ -407,9 +407,9 @@ nf.UsersTable = (function () {
                                     data: JSON.stringify(userGroupEntity),
                                     contentType: 'application/json',
                                     dataType: 'json'
-                                }).then(function () {
+                                }).done(function () {
                                     nf.UsersTable.loadUsersTable();
-                                }, nf.Common.handleAjaxError);
+                                }).fail(nf.Common.handleAjaxError);
                             }
 
                             // hide the dialog
@@ -815,6 +815,7 @@ nf.UsersTable = (function () {
             initGroupRevokeDialog();
             initUsersTable();
         },
+        
         /**
          * Disables the specified user's account.
          * 
@@ -834,6 +835,7 @@ nf.UsersTable = (function () {
                 $('#user-revoke-dialog').modal('show');
             }
         },
+        
         /**
          * Delete's the specified user's account.
          * 
@@ -853,6 +855,7 @@ nf.UsersTable = (function () {
                 $('#user-delete-dialog').modal('show');
             }
         },
+        
         /**
          * Disables the specified group's account.
          * 
@@ -871,6 +874,7 @@ nf.UsersTable = (function () {
                 $('#group-revoke-dialog').modal('show');
             }
         },
+        
         /**
          * Updates the specified users's level of access.
          * 
@@ -913,6 +917,7 @@ nf.UsersTable = (function () {
                 $('#user-roles-dialog').modal('show');
             }
         },
+        
         /**
          * Updates the specified groups level of access.
          * 
@@ -931,6 +936,7 @@ nf.UsersTable = (function () {
                 $('#group-roles-dialog').modal('show');
             }
         },
+        
         /**
          * Prompts to verify group removal.
          * 
@@ -951,13 +957,14 @@ nf.UsersTable = (function () {
                             type: 'DELETE',
                             url: config.urls.userGroups + '/' + encodeURIComponent(item.userGroup) + '/users/' + encodeURIComponent(item.id),
                             dataType: 'json'
-                        }).then(function (response) {
+                        }).done(function (response) {
                             nf.UsersTable.loadUsersTable();
-                        }, nf.Common.handleAjaxError);
+                        }).fail(nf.Common.handleAjaxError);
                     }
                 });
             }
         },
+        
         /**
          * Ungroups the specified group.
          * 
@@ -978,13 +985,14 @@ nf.UsersTable = (function () {
                             type: 'DELETE',
                             url: config.urls.userGroups + '/' + encodeURIComponent(item.userGroup),
                             dataType: 'json'
-                        }).then(function (response) {
+                        }).done(function (response) {
                             nf.UsersTable.loadUsersTable();
-                        }, nf.Common.handleAjaxError);
+                        }).fail(nf.Common.handleAjaxError);
                     }
                 });
             }
         },
+        
         /**
          * Update the size of the grid based on its container's current size.
          */
@@ -994,6 +1002,7 @@ nf.UsersTable = (function () {
                 grid.resizeCanvas();
             }
         },
+        
         /**
          * Load the processor status table.
          */
@@ -1005,7 +1014,7 @@ nf.UsersTable = (function () {
                     'grouped': $('#group-collaspe-checkbox').hasClass('checkbox-checked')
                 },
                 dataType: 'json'
-            }).then(function (response) {
+            }).done(function (response) {
                 // ensure there are users
                 if (nf.Common.isDefinedAndNotNull(response.users)) {
                     var usersGrid = $('#users-table').data('gridInstance');
@@ -1027,8 +1036,9 @@ nf.UsersTable = (function () {
                 } else {
                     $('#total-users').text('0');
                 }
-            }, nf.Common.handleAjaxError);
+            }).fail(nf.Common.handleAjaxError);
         },
+        
         /**
          * Shows details for the specified user.
          * 

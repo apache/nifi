@@ -33,7 +33,10 @@ nf.ProcessorPropertyComboEditor = function (args) {
             'border': '3px solid #365C6A',
             'box-shadow': '4px 4px 6px rgba(0, 0, 0, 0.9)',
             'cursor': 'move'
-        }).draggable().appendTo(container);
+        }).draggable({
+            cancel: '.button, .combo',
+            containment: 'parent'
+        }).appendTo(container);
 
         // identify the property descriptor - property descriptor is never null/undefined here... in order
         // to use this editor, the property descriptor would have had to indicate a set of allowable values

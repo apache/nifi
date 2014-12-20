@@ -58,8 +58,8 @@ public class FlowFilePackagerV1 implements FlowFilePackager {
         sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?><!DOCTYPE properties\n  SYSTEM \"http://java.sun.com/dtd/properties.dtd\">\n");
         sb.append("<properties>");
         for (final Map.Entry<String, String> entry : attributes.entrySet()) {
-            final String escapedKey = StringEscapeUtils.escapeXml(entry.getKey());
-            final String escapedValue = StringEscapeUtils.escapeXml(entry.getValue());
+            final String escapedKey = StringEscapeUtils.escapeXml11(entry.getKey());
+            final String escapedValue = StringEscapeUtils.escapeXml11(entry.getValue());
             sb.append("\n  <entry key=\"").append(escapedKey).append("\">").append(escapedValue).append("</entry>");
         }
         sb.append("</properties>");

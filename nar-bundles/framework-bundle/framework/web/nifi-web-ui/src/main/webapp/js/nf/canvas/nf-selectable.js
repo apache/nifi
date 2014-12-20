@@ -20,6 +20,7 @@ nf.Selectable = (function () {
         init: function () {
 
         },
+        
         select: function (g) {
             // hide any context menus as necessary
             nf.ContextMenu.hide();
@@ -46,6 +47,7 @@ nf.Selectable = (function () {
             // stop propagation
             d3.event.stopPropagation();
         },
+        
         activate: function (components) {
             components.on('mousedown.selection', function () {
                 // get the clicked component to update selection

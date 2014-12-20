@@ -222,6 +222,7 @@ nf.CountersTable = (function () {
             // initialize the number of display items
             $('#displayed-counters').text('0');
         },
+        
         /**
          * Resets the specified counter.
          * 
@@ -237,16 +238,17 @@ nf.CountersTable = (function () {
                     type: 'PUT',
                     url: config.urls.counters + '/' + encodeURIComponent(item.id),
                     dataType: 'json'
-                }).then(function (response) {
+                }).done(function (response) {
                     var counter = response.counter;
 
                     // get the table and update the row accordingly
                     var countersGrid = $('#counters-table').data('gridInstance');
                     var countersData = countersGrid.getData();
                     countersData.updateItem(counter.id, counter);
-                }, nf.Common.handleAjaxError);
+                }).fail(nf.Common.handleAjaxError);
             }
         },
+        
         /**
          * Update the size of the grid based on its container's current size.
          */
@@ -256,6 +258,7 @@ nf.CountersTable = (function () {
                 countersGrid.resizeCanvas();
             }
         },
+        
         /**
          * Load the processor counters table.
          */
@@ -264,7 +267,7 @@ nf.CountersTable = (function () {
                 type: 'GET',
                 url: config.urls.counters,
                 dataType: 'json'
-            }).then(function (response) {
+            }).done(function (response) {
                 var report = response.counters;
 
                 // ensure there are groups specified
@@ -285,7 +288,7 @@ nf.CountersTable = (function () {
                 } else {
                     $('#total-counters').text('0');
                 }
-            }, nf.Common.handleAjaxError);
+            }).fail(nf.Common.handleAjaxError);
         }
     };
 }());

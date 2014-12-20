@@ -17,7 +17,7 @@
 
     <parent>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-parent</artifactId>
+        <artifactId>nifi-commons-parent</artifactId>
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
@@ -27,6 +27,4 @@
 
     <name>search-utils</name>
 
-    <dependencies>
-    </dependencies>
 </project>

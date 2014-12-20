@@ -63,11 +63,11 @@ nf.TemplatesTable = (function () {
             type: 'DELETE',
             url: config.urls.templates + '/' + encodeURIComponent(templateId),
             dataType: 'json'
-        }).then(function () {
+        }).done(function () {
             var templatesGrid = $('#templates-table').data('gridInstance');
             var templatesData = templatesGrid.getData();
             templatesData.deleteItem(templateId);
-        }, nf.Common.handleAjaxError);
+        }).fail(nf.Common.handleAjaxError);
     };
 
     /**
@@ -249,6 +249,7 @@ nf.TemplatesTable = (function () {
             // initialize the number of displayed items
             $('#displayed-templates').text('0');
         },
+        
         /**
          * Update the size of the grid based on its container's current size.
          */
@@ -258,6 +259,7 @@ nf.TemplatesTable = (function () {
                 templateGrid.resizeCanvas();
             }
         },
+        
         /**
          * Exports the specified template.
          * 
@@ -271,6 +273,7 @@ nf.TemplatesTable = (function () {
                 nf.Common.submit('GET', config.urls.templates + '/' + encodeURIComponent(item.id));
             }
         },
+        
         /**
          * Prompts the user before attempting to delete the specified template.
          * 
@@ -292,6 +295,7 @@ nf.TemplatesTable = (function () {
                 });
             }
         },
+        
         /**
          * Load the processor templates table.
          */
@@ -303,7 +307,7 @@ nf.TemplatesTable = (function () {
                     verbose: false
                 },
                 dataType: 'json'
-            }).then(function (response) {
+            }).done(function (response) {
                 // ensure there are groups specified
                 if (nf.Common.isDefinedAndNotNull(response.templates)) {
                     var templatesGrid = $('#templates-table').data('gridInstance');
@@ -322,7 +326,7 @@ nf.TemplatesTable = (function () {
                 } else {
                     $('#total-templates').text('0');
                 }
-            }, nf.Common.handleAjaxError);
+            }).fail(nf.Common.handleAjaxError);
         }
     };
 }());

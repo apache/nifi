@@ -32,25 +32,20 @@ nf.Search = (function () {
                 reset: function () {
                     this.term = null;
                 },
-                _response: function (content) {
-                    if (!this.options.disabled && content) {
-                        this._suggest(content);
-                        this._trigger('open');
-                    } else {
-                        this.close();
-                    }
-                    this.pending--;
-                    if (!this.pending) {
-                        this.element.removeClass('ui-autocomplete-loading');
-                    }
-                },
                 _resizeMenu: function () {
                     var ul = this.menu.element;
                     ul.width(399);
                 },
+                _normalize: function(searchResults) {
+                    var items = [];
+                    items.push(searchResults);
+                    return items;
+                },
                 _renderMenu: function (ul, items) {
                     var self = this;
-                    var searchResults = items.searchResultsDTO;
+                    
+                    // the object that holds the search results is normalized into a single element array
+                    var searchResults = items[0];
 
                     // show all processors
                     if (!nf.Common.isEmpty(searchResults.processorResults)) {
@@ -118,12 +113,13 @@ nf.Search = (function () {
                     $.each(match.matches, function (i, match) {
                         itemContent.append($('<div class="search-match"></div>').text(match));
                     });
-                    return $('<li></li>').data('item.autocomplete', match).append(itemContent).appendTo(ul);
+                    return $('<li></li>').data('ui-autocomplete-item', match).append(itemContent).appendTo(ul);
                 }
             });
 
             // configure the search field
             $('#search-field').zIndex(1250).searchAutocomplete({
+                appendTo: '#search-flow-results',
                 position: {
                     my: 'right top',
                     at: 'right bottom',
@@ -139,7 +135,7 @@ nf.Search = (function () {
                         dataType: 'json',
                         url: config.urls.search
                     }).done(function (searchResponse) {
-                        response(searchResponse);
+                        response(searchResponse.searchResultsDTO);
                     });
                 },
                 select: function (event, ui) {

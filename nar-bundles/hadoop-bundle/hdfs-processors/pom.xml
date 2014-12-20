@@ -46,12 +46,6 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-stream-utils</artifactId>
         </dependency>
-
-        <!--        <dependency>
-            <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-core</artifactId>
-        </dependency>-->
-
         <dependency> 
             <groupId>org.apache.hadoop</groupId> 
             <artifactId>hadoop-common</artifactId> 
@@ -62,13 +56,11 @@
             <artifactId>hadoop-hdfs</artifactId> 
             <scope>provided</scope> 
         </dependency>
-
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
             <scope>test</scope>
         </dependency>
-
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>

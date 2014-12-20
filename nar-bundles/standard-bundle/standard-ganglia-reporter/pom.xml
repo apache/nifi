@@ -42,7 +42,6 @@
         <dependency>
             <groupId>com.yammer.metrics</groupId>
             <artifactId>metrics-ganglia</artifactId>
-            <version>2.2.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>

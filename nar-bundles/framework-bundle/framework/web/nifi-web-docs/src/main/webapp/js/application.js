@@ -256,6 +256,11 @@ $(document).ready(function () {
             }
         });
 
+	   // listen for on the rest api and user guide
+       $('a.rest-api a.user-guide').on('click', function() {
+           selectComponent($(this).text());
+       });
+       
         // get the initial selection
         var initialComponentLink = $('a.component-link:first');
         var initialSelection = $('#initial-selection').text();

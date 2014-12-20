@@ -135,6 +135,7 @@ nf.Funnel = (function () {
                         'class': 'funnels'
                     });
         },
+        
         /**
          * Populates the graph with the specified funnels.
          * 
@@ -165,6 +166,7 @@ nf.Funnel = (function () {
             // apply the selection and handle all new processors
             select().enter().call(renderFunnels, selectAll);
         },
+        
         /**
          * If the funnel id is specified it is returned. If no funnel id
          * specified, all funnels are returned.
@@ -178,6 +180,7 @@ nf.Funnel = (function () {
                 return funnelMap.get(id);
             }
         },
+        
         /**
          * If the funnel id is specified it is refresh according to the current 
          * state. If not funnel id is specified, all funnels are refreshed.
@@ -191,6 +194,7 @@ nf.Funnel = (function () {
                 d3.selectAll('g.funnel').call(updateFunnels);
             }
         },
+        
         /**
          * Reloads the funnel state from the server and refreshes the UI.
          * If the funnel is currently unknown, this function just returns.
@@ -208,6 +212,7 @@ nf.Funnel = (function () {
                 });
             }
         },
+        
         /**
          * Positions the component.
          * 
@@ -216,6 +221,7 @@ nf.Funnel = (function () {
         position: function (id) {
             d3.select('#id-' + id).call(nf.CanvasUtils.position);
         },
+        
         /**
          * Sets the specified funnel(s). If the is an array, it 
          * will set each funnel. If it is not an array, it will 
@@ -244,6 +250,7 @@ nf.Funnel = (function () {
                 set(funnels);
             }
         },
+        
         /**
          * Removes the specified funnel.
          * 
@@ -261,6 +268,7 @@ nf.Funnel = (function () {
             // apply the selection and handle all removed funnels
             select().exit().call(removeFunnels);
         },
+        
         /**
          * Removes all processors.
          */

@@ -80,6 +80,7 @@ public class MulticastProtocolListenerTest {
         }
     }
 
+    @Ignore("This test must be reworked.  Requires an active network connection")
     @Test
     public void testBadRequest() throws Exception {
         DelayedProtocolHandler handler = new DelayedProtocolHandler(0);

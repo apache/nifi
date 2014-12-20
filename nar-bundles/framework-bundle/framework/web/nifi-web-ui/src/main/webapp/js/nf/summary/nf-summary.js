@@ -40,17 +40,17 @@ nf.Summary = (function () {
             $.ajax({
                 type: 'HEAD',
                 url: config.urls.cluster
-            }).then(function () {
-                nf.SummaryTable.init(true).then(function () {
+            }).done(function () {
+                nf.SummaryTable.init(true).done(function () {
                     deferred.resolve();
-                }, function () {
+                }).fail(function () {
                     deferred.reject();
                 });
-            }, function (xhr, status, error) {
+            }).fail(function (xhr, status, error) {
                 if (xhr.status === 404) {
-                    nf.SummaryTable.init(false).then(function () {
+                    nf.SummaryTable.init(false).done(function () {
                         deferred.resolve();
-                    }, function () {
+                    }).fail(function () {
                         deferred.reject();
                     });
                 } else {
@@ -84,7 +84,7 @@ nf.Summary = (function () {
                     type: 'GET',
                     url: config.urls.banners,
                     dataType: 'json'
-                }).then(function (response) {
+                }).done(function (response) {
                     // ensure the banners response is specified
                     if (nf.Common.isDefinedAndNotNull(response.banners)) {
                         if (nf.Common.isDefinedAndNotNull(response.banners.headerText) && response.banners.headerText !== '') {
@@ -116,7 +116,7 @@ nf.Summary = (function () {
                     }
 
                     deferred.resolve();
-                }, function (xhr, status, error) {
+                }).fail(function (xhr, status, error) {
                     nf.Common.handleAjaxError(xhr, status, error);
                     deferred.reject();
                 });
@@ -145,14 +145,14 @@ nf.Summary = (function () {
                             type: 'GET',
                             url: config.urls.controllerAbout,
                             dataType: 'json'
-                        }).then(function (response) {
+                        }).done(function (response) {
                             var aboutDetails = response.about;
                             var statusTitle = aboutDetails.title + ' Summary';
 
                             // set the document title and the about title
                             document.title = statusTitle;
                             $('#status-header-text').text(statusTitle);
-                        }, nf.Common.handleAjaxError);
+                        }).fail(nf.Common.handleAjaxError);
 
                         var setBodySize = function () {
                             $('body').css({

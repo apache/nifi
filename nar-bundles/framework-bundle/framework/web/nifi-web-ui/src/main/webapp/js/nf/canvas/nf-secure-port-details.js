@@ -83,8 +83,12 @@ nf.SecurePortDetails = (function () {
                         $('#read-only-allowed-groups').empty();
                     }
                 }
+            }).draggable({
+                containment: 'parent',
+                handle: '.dialog-header'
             });
         },
+        
         showDetails: function (selection) {
             // if the specified component is a port, load its properties
             if (nf.CanvasUtils.isInputPort(selection) || nf.CanvasUtils.isOutputPort(selection)) {

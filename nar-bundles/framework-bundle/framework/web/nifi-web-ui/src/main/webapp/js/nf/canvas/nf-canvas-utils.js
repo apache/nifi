@@ -91,6 +91,7 @@ nf.CanvasUtils = (function () {
                 }
             }
         },
+        
         /**
          * Calculates the point on the specified bounding box that is closest to the
          * specified point.
@@ -151,6 +152,7 @@ nf.CanvasUtils = (function () {
                 };
             }
         },
+        
         /**
          * Shows the specified component in the specified group.
          *
@@ -165,9 +167,9 @@ nf.CanvasUtils = (function () {
                     // load a different group if necessary
                     if (groupId !== nf.Canvas.getGroupId()) {
                         nf.Canvas.setGroupId(groupId);
-                        nf.Canvas.reload().then(function () {
+                        nf.Canvas.reload().done(function () {
                             deferred.resolve();
-                        }, function () {
+                        }).fail(function () {
                             nf.Dialog.showOkDialog({
                                 dialogContent: 'Unable to load the group for the specified component.',
                                 overlayBackground: false
@@ -194,6 +196,7 @@ nf.CanvasUtils = (function () {
                 });
             }
         },
+        
         /**
          * Gets the currently selected components and connections.
          * 
@@ -221,6 +224,7 @@ nf.CanvasUtils = (function () {
             // calculate the difference between the center point and the position of this component and convert to screen space
             nf.Canvas.View.translate([(center[0] - boundingBox.x) * scale, (center[1] - boundingBox.y) * scale]);
         },
+        
         /**
          * Position the component accordingly.
          * 
@@ -236,6 +240,7 @@ nf.CanvasUtils = (function () {
                 return 'translate(' + d.component.position.x + ', ' + d.component.position.y + ')';
             });
         },
+        
         /**
          * Applies single line ellipsis to the component in the specified selection if necessary.
          * 
@@ -271,6 +276,7 @@ nf.CanvasUtils = (function () {
                 selection.text(text.substring(0, i) + String.fromCharCode(8230));
             }
         },
+        
         /**
          * Applies multiline ellipsis to the component in the specified seleciton. Text will
          * wrap for the specified number of lines. The last line will be ellipsis if necessary.
@@ -343,6 +349,7 @@ nf.CanvasUtils = (function () {
                 word = words.pop();
             }
         },
+        
         /**
          * Updates the active thread count on the specified selection.
          * 
@@ -388,6 +395,7 @@ nf.CanvasUtils = (function () {
                 selection.selectAll('text.active-thread-count, rect.active-thread-count-background').style('display', 'none');
             }
         },
+        
         /**
          * Disables the default browser behavior of following image href when control clicking.
          * 
@@ -400,6 +408,7 @@ nf.CanvasUtils = (function () {
                 }
             });
         },
+        
         /**
          * Handles component bulletins.
          * 
@@ -456,6 +465,7 @@ nf.CanvasUtils = (function () {
                 selection.selectAll('image.bulletin-icon').style('display', 'none');
             }
         },
+        
         /**
          * Adds the specified tooltip to the specified target.
          * 
@@ -473,6 +483,7 @@ nf.CanvasUtils = (function () {
                         tip.style('display', 'none');
                     });
         },
+        
         /**
          * Determines if the specified selection is a connection.
          *
@@ -481,6 +492,7 @@ nf.CanvasUtils = (function () {
         isConnection: function (selection) {
             return selection.classed('connection');
         },
+        
         /**
          * Determines if the specified selection is a remote process group.
          *
@@ -489,6 +501,7 @@ nf.CanvasUtils = (function () {
         isRemoteProcessGroup: function (selection) {
             return selection.classed('remote-process-group');
         },
+        
         /**
          * Determines if the specified selection is a processor.
          *
@@ -497,6 +510,7 @@ nf.CanvasUtils = (function () {
         isProcessor: function (selection) {
             return selection.classed('processor');
         },
+        
         /**
          * Determines if the specified selection is a label.
          *
@@ -505,6 +519,7 @@ nf.CanvasUtils = (function () {
         isLabel: function (selection) {
             return selection.classed('label');
         },
+        
         /**
          * Determines if the specified selection is an input port.
          *
@@ -513,6 +528,7 @@ nf.CanvasUtils = (function () {
         isInputPort: function (selection) {
             return selection.classed('input-port');
         },
+        
         /**
          * Determines if the specified selection is an output port.
          *
@@ -521,6 +537,7 @@ nf.CanvasUtils = (function () {
         isOutputPort: function (selection) {
             return selection.classed('output-port');
         },
+        
         /**
          * Determines if the specified selection is a process group.
          *
@@ -529,6 +546,7 @@ nf.CanvasUtils = (function () {
         isProcessGroup: function (selection) {
             return selection.classed('process-group');
         },
+        
         /**
          * Determines if the specified selection is a funnel.
          *
@@ -537,6 +555,7 @@ nf.CanvasUtils = (function () {
         isFunnel: function (selection) {
             return selection.classed('funnel');
         },
+        
         /**
          * Determines if the components in the specified selection are runnable.
          *
@@ -558,6 +577,7 @@ nf.CanvasUtils = (function () {
 
             return runnable;
         },
+        
         /**
          * Determines if the component in the specified selection is runnable.
          *
@@ -578,6 +598,7 @@ nf.CanvasUtils = (function () {
 
             return runnable;
         },
+        
         /**
          * Determines if the components in the specified selection are stoppable.
          *
@@ -599,6 +620,7 @@ nf.CanvasUtils = (function () {
 
             return stoppable;
         },
+        
         /**
          * Determines if the component in the specified selection is runnable.
          *
@@ -617,6 +639,7 @@ nf.CanvasUtils = (function () {
 
             return stoppable;
         },
+        
         /**
          * Determines if the specified selection can all start transmitting.
          *
@@ -637,6 +660,7 @@ nf.CanvasUtils = (function () {
             });
             return canStartTransmitting;
         },
+        
         /**
          * Determines if the specified selection supports starting transmission.
          *
@@ -645,6 +669,7 @@ nf.CanvasUtils = (function () {
         canStartTransmitting: function (selection) {
             return nf.CanvasUtils.isRemoteProcessGroup(selection);
         },
+        
         /**
          * Determines if the specified selection can all stop transmitting.
          *
@@ -665,6 +690,7 @@ nf.CanvasUtils = (function () {
             });
             return canStopTransmitting;
         },
+        
         /**
          * Determines if the specified selection can stop transmission.
          *
@@ -673,6 +699,7 @@ nf.CanvasUtils = (function () {
         canStopTransmitting: function (selection) {
             return nf.CanvasUtils.isRemoteProcessGroup(selection);
         },
+        
         /**
          * Determines whether the components in the specified selection are deletable.
          *
@@ -686,6 +713,7 @@ nf.CanvasUtils = (function () {
 
             return nf.CanvasUtils.supportsModification(selection);
         },
+        
         /**
          * Determines whether the specified selection is in a state to support modification.
          *
@@ -741,6 +769,7 @@ nf.CanvasUtils = (function () {
             }
             return supportsModification;
         },
+        
         /**
          * Determines the connectable type for the specified source selection.
          *
@@ -761,6 +790,7 @@ nf.CanvasUtils = (function () {
             }
             return type;
         },
+        
         /**
          * Determines the connectable type for the specified destination selection.
          *
@@ -781,6 +811,7 @@ nf.CanvasUtils = (function () {
             }
             return type;
         },
+        
         /**
          * Determines if the graph is currently in a state to copy.
          *
@@ -813,12 +844,14 @@ nf.CanvasUtils = (function () {
             // ensure everything selected is copyable
             return selection.size() === copyable.size();
         },
+        
         /**
          * Determines if something is currently pastable.
          */
         isPastable: function () {
             return nf.Clipboard.isCopied();
         },
+        
         /**
          * Persists the current user view.
          */
@@ -836,6 +869,7 @@ nf.CanvasUtils = (function () {
             // store the item
             nf.Storage.setItem(name, item);
         },
+        
         /**
          * Gets the name for this connection.
          * 
@@ -849,6 +883,7 @@ nf.CanvasUtils = (function () {
             }
             return '';
         },
+        
         /**
          * Returns the component id of the source of this processor. If the connection is attached
          * to a port in a [sub|remote] group, the component id will be that of the group. Otherwise
@@ -863,6 +898,7 @@ nf.CanvasUtils = (function () {
             }
             return sourceId;
         },
+        
         /**
          * Returns the component id of the source of this processor. If the connection is attached
          * to a port in a [sub|remote] group, the component id will be that of the group. Otherwise
@@ -877,6 +913,7 @@ nf.CanvasUtils = (function () {
             }
             return destinationId;
         },
+        
         /**
          * Attempts to restore a persisted view. Returns a flag that indicates if the
          * view was restored.
@@ -911,6 +948,7 @@ nf.CanvasUtils = (function () {
 
             return viewRestored;
         },
+        
         /**
          * Enters the specified group.
          *
@@ -944,6 +982,7 @@ nf.CanvasUtils = (function () {
                 });
             });
         },
+        
         /**
          * Gets the origin of the bounding box for the specified selection.
          *
@@ -966,6 +1005,7 @@ nf.CanvasUtils = (function () {
 
             return origin;
         },
+        
         /**
          * Moves the specified components into the specified group.
          * 
@@ -979,11 +1019,11 @@ nf.CanvasUtils = (function () {
             nf.CanvasUtils.eligibleForMove(components, group).done(function () {
                 // create a snippet for the specified components and link to the data flow
                 var snippetDetails = nf.Snippet.marshal(components, true);
-                nf.Snippet.create(snippetDetails).then(function (response) {
+                nf.Snippet.create(snippetDetails).done(function (response) {
                     var snippet = response.snippet;
 
                     // move the snippet into the target
-                    nf.Snippet.move(snippet.id, groupData.component.id).then(function () {
+                    nf.Snippet.move(snippet.id, groupData.component.id).done(function () {
                         var componentMap = d3.map();
 
                         // add the id to the type's array
@@ -1006,16 +1046,17 @@ nf.CanvasUtils = (function () {
 
                         // reload the target group
                         nf.ProcessGroup.reload(groupData.component);
-                    }, nf.Common.handleAjaxError).always(function () {
+                    }).fail(nf.Common.handleAjaxError).always(function () {
                         // unable to acutally move the components so attempt to
                         // unlink and remove just the snippet
                         nf.Snippet.unlink(snippet.id).done(function () {
                             nf.Snippet.remove(snippet.id);
                         });
                     });
-                }, nf.Common.handleAjaxError);
+                }).fail(nf.Common.handleAjaxError);
             });
         },
+        
         /**
          * Removes any dangling edges. All components are retained as well as any
          * edges whose source and destination are also retained.
@@ -1053,6 +1094,7 @@ nf.CanvasUtils = (function () {
                 }
             });
         },
+        
         /**
          * Determines if the specified selection is disconnected from other nodes.
          *
@@ -1098,6 +1140,7 @@ nf.CanvasUtils = (function () {
 
             return isDisconnected;
         },
+        
         /**
          * Ensures components are eligible to be moved. The new target can be optionally specified.
          *
@@ -1138,7 +1181,7 @@ nf.CanvasUtils = (function () {
                                     type: 'GET',
                                     url: config.urls.controller + '/process-groups/' + encodeURIComponent(nf.Canvas.getParentGroupId()) + '/connections',
                                     dataType: 'json'
-                                }).then(function (response) {
+                                }).done(function (response) {
                                     var connections = response.connections;
                                     var conflictingPorts = [];
 
@@ -1173,7 +1216,7 @@ nf.CanvasUtils = (function () {
                                         portConnectionDeferred.resolve();
                                     }
 
-                                }, function () {
+                                }).fail(function () {
                                     portConnectionDeferred.reject();
                                 });
                             }
@@ -1193,7 +1236,7 @@ nf.CanvasUtils = (function () {
                                     verbose: true
                                 },
                                 dataType: 'json'
-                            }).then(function (response) {
+                            }).done(function (response) {
                                 var processGroup = response.processGroup;
                                 var processGroupContents = processGroup.contents;
 
@@ -1224,24 +1267,24 @@ nf.CanvasUtils = (function () {
                                 } else {
                                     portNameDeferred.resolve();
                                 }
-                            }, function () {
+                            }).fail(function () {
                                 portNameDeferred.reject();
                             });
                         }).promise();
                     };
 
                     // execute the checks in order
-                    $.when(portConnectionCheck()).then(function () {
+                    portConnectionCheck().done(function () {
                         if (nf.Common.isDefinedAndNotNull(group)) {
-                            $.when(portNameCheck()).then(function () {
+                            $.when(portNameCheck()).done(function () {
                                 deferred.resolve();
-                            }, function () {
+                            }).fail(function () {
                                 deferred.reject();
                             });
                         } else {
                             deferred.resolve();
                         }
-                    }, function () {
+                    }).fail(function () {
                         deferred.reject();
                     });
                 } else {
@@ -1249,6 +1292,7 @@ nf.CanvasUtils = (function () {
                 }
             }).promise();
         },
+        
         /**
          * Determines if the component in the specified selection is a valid connection source.
          * 
@@ -1264,6 +1308,7 @@ nf.CanvasUtils = (function () {
                     nf.CanvasUtils.isRemoteProcessGroup(selection) || nf.CanvasUtils.isInputPort(selection) ||
                     nf.CanvasUtils.isFunnel(selection);
         },
+        
         /**
          * Determines if the component in the specified selection is a valid connection destination.
          * 

@@ -249,6 +249,13 @@ nf.ProcessorDetails = (function () {
                     }
                 }
             });
+            
+            if (overlayBackground) {
+                $('#processor-details').draggable({
+                    containment: 'parent',
+                    handle: '.dialog-header'
+                });
+            }
 
             // function for formatting the property name
             var nameFormatter = function (row, cell, value, columnDef, dataContext) {
@@ -381,6 +388,7 @@ nf.ProcessorDetails = (function () {
                 }
             });
         },
+        
         /**
          * Shows the details for the specified processor.
          * 
@@ -508,7 +516,7 @@ nf.ProcessorDetails = (function () {
             });
 
             // show the dialog once we have the processor and its history
-            $.when(getProcessor, getProcessorHistory).then(function (response) {
+            $.when(getProcessor, getProcessorHistory).done(function (response) {
                 var processorResponse = response[0];
                 var processor = processorResponse.processor;
 
@@ -549,7 +557,7 @@ nf.ProcessorDetails = (function () {
                 if (processorRelationships.is(':visible') && processorRelationships.get(0).scrollHeight > processorRelationships.innerHeight()) {
                     processorRelationships.css('border-width', '1px');
                 }
-            }, function (xhr, status, error) {
+            }).fail(function (xhr, status, error) {
                 if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
                     nf.Dialog.showOkDialog({
                         dialogContent: nf.Common.escapeHtml(xhr.responseText),

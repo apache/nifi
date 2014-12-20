@@ -117,9 +117,8 @@
             <artifactId>data-provenance-utils</artifactId>
         </dependency>
         <dependency>
-            <groupId>wali</groupId>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>wali</artifactId>
-            <version>3.0.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>

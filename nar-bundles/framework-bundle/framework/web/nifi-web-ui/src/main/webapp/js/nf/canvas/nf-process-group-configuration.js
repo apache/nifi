@@ -42,7 +42,7 @@ nf.ProcessGroupConfiguration = (function () {
                                     },
                                     url: processGroupData.component.uri,
                                     dataType: 'json'
-                                }).then(function (response) {
+                                }).done(function (response) {
                                     if (nf.Common.isDefinedAndNotNull(response.processGroup)) {
                                         // update the revision
                                         nf.Client.setRevision(response.revision);
@@ -53,7 +53,7 @@ nf.ProcessGroupConfiguration = (function () {
                                         // close the details panel
                                         $('#process-group-configuration').modal('hide');
                                     }
-                                }, function (xhr, status, error) {
+                                }).fail(function (xhr, status, error) {
                                     // close the details panel
                                     $('#process-group-configuration').modal('hide');
 
@@ -78,8 +78,12 @@ nf.ProcessGroupConfiguration = (function () {
                         $('#process-group-comments').val('');
                     }
                 }
+            }).draggable({
+                containment: 'parent',
+                handle: '.dialog-header'
             });
         },
+        
         /**
          * Shows the details for the specified selection.
          * 

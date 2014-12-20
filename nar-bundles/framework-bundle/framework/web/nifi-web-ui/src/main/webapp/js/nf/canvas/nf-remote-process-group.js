@@ -881,6 +881,7 @@ nf.RemoteProcessGroup = (function () {
                         'class': 'remote-process-groups'
                     });
         },
+        
         /**
          * Populates the graph with the specified remote process groups.
          *
@@ -911,6 +912,7 @@ nf.RemoteProcessGroup = (function () {
             // apply the selection and handle all new remote process groups
             select().enter().call(renderRemoteProcessGroups, selectAll);
         },
+        
         /**
          * If the remote process group id is specified it is returned. If no remote process 
          * group id specified, all remote process groups are returned.
@@ -924,6 +926,7 @@ nf.RemoteProcessGroup = (function () {
                 return remoteProcessGroupMap.get(id);
             }
         },
+        
         /**
          * If the remote process group id is specified it is refresh according to the current
          * state. If no remote process group id is specified, all remote process groups are refreshed.
@@ -937,12 +940,14 @@ nf.RemoteProcessGroup = (function () {
                 d3.selectAll('g.remote-process-group').call(updateRemoteProcessGroups);
             }
         },
+        
         /**
          * Refreshes the components necessary after a pan event.
          */
         pan: function () {
             d3.selectAll('g.remote-process-group.entering, g.remote-process-group.leaving').call(updateRemoteProcessGroups);
         },
+        
         /**
          * Reloads the remote process group state from the server and refreshes the UI.
          * If the remote process group is currently unknown, this function just returns.
@@ -966,6 +971,7 @@ nf.RemoteProcessGroup = (function () {
                 });
             }
         },
+        
         /**
          * Positions the component.
          * 
@@ -974,6 +980,7 @@ nf.RemoteProcessGroup = (function () {
         position: function (id) {
             d3.select('#id-' + id).call(nf.CanvasUtils.position);
         },
+        
         /**
          * Sets the specified remote process group(s). If the is an array, it
          * will set each remote process group. If it is not an array, it will
@@ -1002,6 +1009,7 @@ nf.RemoteProcessGroup = (function () {
                 set(remoteProcessGroups);
             }
         },
+        
         /**
          * Sets the remote process group status using the specified status.
          * 
@@ -1023,6 +1031,7 @@ nf.RemoteProcessGroup = (function () {
             // only update the visible components
             d3.selectAll('g.remote-process-group.visible').call(updateProcessGroupStatus);
         },
+        
         /**
          * Removes the specified process group.
          *
@@ -1040,6 +1049,7 @@ nf.RemoteProcessGroup = (function () {
             // apply the selection and handle all removed remote process groups
             select().exit().call(removeRemoteProcessGroups);
         },
+        
         /**
          * Removes all remote process groups.
          */

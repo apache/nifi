@@ -446,6 +446,7 @@ nf.Port = (function () {
                         'class': 'ports'
                     });
         },
+        
         /**
          * Populates the graph with the specified ports.
          *
@@ -485,6 +486,7 @@ nf.Port = (function () {
             // apply the selection and handle all new ports
             select().enter().call(renderPorts, selectAll);
         },
+        
         /**
          * If the port id is specified it is returned. If no port id
          * specified, all ports are returned.
@@ -498,6 +500,7 @@ nf.Port = (function () {
                 return portMap.get(id);
             }
         },
+        
         /**
          * If the port id is specified it is refresh according to the current
          * state. If not port id is specified, all ports are refreshed.
@@ -511,12 +514,14 @@ nf.Port = (function () {
                 d3.selectAll('g.input-port, g.output-port').call(updatePorts);
             }
         },
+        
         /**
          * Refreshes the components necessary after a pan event.
          */
         pan: function () {
             d3.selectAll('g.input-port.entering, g.output-port.entering, g.input-port.leaving, g.output-port.leaving').call(updatePorts);
         },
+        
         /**
          * Reloads the port state from the server and refreshes the UI.
          * If the port is currently unknown, this function just returns.
@@ -538,6 +543,7 @@ nf.Port = (function () {
                 });
             }
         },
+        
         /**
          * Positions the component.
          * 
@@ -546,6 +552,7 @@ nf.Port = (function () {
         position: function (id) {
             d3.select('#id-' + id).call(nf.CanvasUtils.position);
         },
+        
         /**
          * Sets the specified port(s). If the is an array, it
          * will set each port. If it is not an array, it will
@@ -574,6 +581,7 @@ nf.Port = (function () {
                 set(ports);
             }
         },
+        
         /**
          * Sets the port status using the specified status.
          * 
@@ -595,6 +603,7 @@ nf.Port = (function () {
             // update the visible ports
             d3.selectAll('g.input-port.visible, g.output-port.visible').call(updatePortStatus);
         },
+        
         /**
          * Removes the specified port.
          *
@@ -612,6 +621,7 @@ nf.Port = (function () {
             // apply the selection and handle all removed ports
             select().exit().call(removePorts);
         },
+        
         /**
          * Removes all ports..
          */

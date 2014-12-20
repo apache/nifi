@@ -58,7 +58,7 @@ nf.PortConfiguration = (function () {
                                 data: data,
                                 url: portData.component.uri,
                                 dataType: 'json'
-                            }).then(function (response) {
+                            }).done(function (response) {
                                 // update the revision
                                 nf.Client.setRevision(response.revision);
 
@@ -74,7 +74,7 @@ nf.PortConfiguration = (function () {
 
                                 // close the details panel
                                 $('#port-configuration').modal('hide');
-                            }, function (xhr, status, error) {
+                            }).fail(function (xhr, status, error) {
                                 // handle bad request locally to keep the dialog open, allowing the user
                                 // to make changes. if the request fails for another reason, the dialog
                                 // should be closed so the issue can be addressed (stale flow for instance)
@@ -121,6 +121,9 @@ nf.PortConfiguration = (function () {
                     $('#port-comments').val('');
                 }
             }
+        }).draggable({
+            containment: 'parent',
+            handle: '.dialog-header'
         });
     };
 
@@ -128,6 +131,7 @@ nf.PortConfiguration = (function () {
         init: function () {
             initPortConfigurationDialog();
         },
+        
         /**
          * Shows the details for the specified selection.
          * 

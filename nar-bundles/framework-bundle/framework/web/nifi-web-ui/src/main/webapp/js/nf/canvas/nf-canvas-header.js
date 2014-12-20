@@ -103,7 +103,7 @@ nf.CanvasHeader = (function () {
 
             // setup the refresh link actions
             $('#refresh-required-link').click(function () {
-                nf.Canvas.reload().then(function () {
+                nf.Canvas.reload().done(function () {
                     // update component visibility
                     nf.Canvas.View.updateVisibility();
 
@@ -113,7 +113,7 @@ nf.CanvasHeader = (function () {
                     // hide the refresh link
                     $('#stats-last-refreshed').removeClass('alert');
                     $('#refresh-required-container').hide();
-                }, function () {
+                }).fail(function () {
                     nf.Dialog.showOkDialog({
                         dialogContent: 'Unable to refresh the current group.',
                         overlayBackground: true
@@ -126,12 +126,12 @@ nf.CanvasHeader = (function () {
                 type: 'GET',
                 url: config.urls.controllerAbout,
                 dataType: 'json'
-            }).then(function (response) {
+            }).done(function (response) {
                 var aboutDetails = response.about;
                 // set the document title and the about title
                 document.title = aboutDetails.title;
                 $('#nf-version').text(aboutDetails.version);
-            }, nf.Common.handleAjaxError);
+            }).fail(nf.Common.handleAjaxError);
 
             // configure the about dialog
             $('#nf-about').modal({
@@ -192,7 +192,7 @@ nf.CanvasHeader = (function () {
                                             'style[background-color]': color
                                         },
                                         dataType: 'json'
-                                    }).then(function (response) {
+                                    }).done(function (response) {
                                         // update the revision
                                         nf.Client.setRevision(response.revision);
 
@@ -202,7 +202,7 @@ nf.CanvasHeader = (function () {
                                         } else {
                                             nf.Label.set(response.label);
                                         }
-                                    }, function (xhr, status, error) {
+                                    }).fail(function (xhr, status, error) {
                                         if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
                                             nf.Dialog.showOkDialog({
                                                 dialogContent: nf.Common.escapeHtml(xhr.responseText),

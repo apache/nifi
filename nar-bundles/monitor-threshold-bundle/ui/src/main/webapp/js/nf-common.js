@@ -878,10 +878,11 @@ $(document).ready(function () {
     }
 
     function addHoverEffect(selector, normalStyle, overStyle) {
-        return $(selector).addClass(normalStyle).live('mouseover', function () {
+        $(document).on('mouseenter', selector, function () {
             $(this).removeClass(normalStyle).addClass(overStyle);
-        }).live('mouseout', function () {
+        }).on('mouseleave', selector, function () {
             $(this).removeClass(overStyle).addClass(normalStyle);
-        })
+        });
+        return $(selector).addClass(normalStyle);
     }
 });

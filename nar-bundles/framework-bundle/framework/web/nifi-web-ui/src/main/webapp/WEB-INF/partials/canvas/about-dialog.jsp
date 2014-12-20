@@ -20,8 +20,8 @@
     <div id="nf-about-content">
         <span id="nf-version"></span>
         <p>
-            NiFi is a framework to support highly scalable and flexible dataflow scaling from a
-            laptop through an enterprise class server handling just a few transfers per day or millions.
+            Apache NiFi (incubating) is a framework to support highly scalable and flexible dataflows.
+            It can be run on on laptops up through clusters of enterprise class servers.
             Instead of dictating a particular dataflow or behavior it empowers you to design your own
             optimal dataflow tailored to your specific environment.
         </p>

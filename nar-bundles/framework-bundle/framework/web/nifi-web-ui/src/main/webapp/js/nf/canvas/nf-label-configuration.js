@@ -41,13 +41,13 @@ nf.LabelConfiguration = (function () {
                         'style[font-size]': fontSize.value
                     },
                     dataType: 'json'
-                }).then(function (response) {
+                }).done(function (response) {
                     // update the revision
                     nf.Client.setRevision(response.revision);
 
                     // get the label out of the response
                     nf.Label.set(response.label);
-                }, nf.Common.handleAjaxError);
+                }).fail(nf.Common.handleAjaxError);
 
 
                 // reset and hide the dialog
@@ -62,7 +62,8 @@ nf.LabelConfiguration = (function () {
 
             // make the new property dialog draggable
             $('#label-configuration').draggable({
-                containment: 'parent'
+                containment: 'parent',
+                cancel: 'textarea, .button, .combo'
             }).on('click', '#label-configuration-apply', apply).on('click', '#label-configuration-cancel', cancel);
 
             // create the available sizes
@@ -92,6 +93,7 @@ nf.LabelConfiguration = (function () {
                 }
             });
         },
+        
         /**
          * Shows the configuration for the specified label.
          * 

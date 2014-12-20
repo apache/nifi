@@ -26,19 +26,28 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.Reader;
+import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.attribute.PosixFilePermission;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Handler;
+import java.util.logging.Level;
 
 
 /**
@@ -60,6 +69,8 @@ public class RunNiFi {
 	public static final String GRACEFUL_SHUTDOWN_PROP = "graceful.shutdown.seconds";
 	public static final String DEFAULT_GRACEFUL_SHUTDOWN_VALUE = "20";
 	
+	public static final String RUN_AS_PROP = "run.as";
+	
 	public static final int MAX_RESTART_ATTEMPTS = 5;
 	public static final int STARTUP_WAIT_SECONDS = 60;
 	
@@ -68,20 +79,32 @@ public class RunNiFi {
 	
 	private volatile boolean autoRestartNiFi = true;
 	private volatile int ccPort = -1;
+	private volatile long nifiPid = -1L;
 	
 	private final Lock lock = new ReentrantLock();
 	private final Condition startupCondition = lock.newCondition();
 	
 	private final File bootstrapConfigFile;
+
+	private final java.util.logging.Logger logger;
 	
-	public RunNiFi(final File bootstrapConfigFile) {
+	public RunNiFi(final File bootstrapConfigFile, final boolean verbose) {
 		this.bootstrapConfigFile = bootstrapConfigFile;
+		logger = java.util.logging.Logger.getLogger("Bootstrap");
+		if ( verbose ) {
+		    logger.info("Enabling Verbose Output");
+		    
+		    logger.setLevel(Level.FINE);
+		    final Handler handler = new ConsoleHandler();
+		    handler.setLevel(Level.FINE);
+		    logger.addHandler(handler);
+		}
 	}
 	
 	private static void printUsage() {
 		System.out.println("Usage:");
 		System.out.println();
-		System.out.println("java org.apache.nifi.bootstrap.RunNiFi <command>");
+		System.out.println("java org.apache.nifi.bootstrap.RunNiFi [<-verbose>] <command>");
 		System.out.println();
 		System.out.println("Valid commands include:");
 		System.out.println("");
@@ -91,22 +114,33 @@ public class RunNiFi {
 		System.out.println("Run : Start a new instance of Apache NiFi and monitor the Process, restarting if the instance dies");
 		System.out.println();
 	}
+
 	
 	public static void main(final String[] args) throws IOException, InterruptedException {
-		if ( args.length != 1 ) {
+		if ( args.length < 1 || args.length > 2 ) {
 			printUsage();
 			return;
 		}
 		
-		switch (args[0].toLowerCase()) {
+		boolean verbose = false;
+		if ( args.length == 2 ) {
+		    if ( args[0].equals("-verbose") ) {
+		        verbose = true;
+		    } else {
+		        printUsage();
+		        return;
+		    }
+		}
+		
+		final String cmd = args.length == 1 ? args[0] : args[1];
+		
+		switch (cmd.toLowerCase()) {
 			case "start":
 			case "run":
 			case "stop":
 			case "status":
 				break;
 			default:
-				System.out.println("Invalid argument: " + args[0]);
-				System.out.println();
 				printUsage();
 				return;
 		}
@@ -128,9 +162,9 @@ public class RunNiFi {
 		
 		final File configFile = new File(configFilename);
 		
-		final RunNiFi runNiFi = new RunNiFi(configFile);
+		final RunNiFi runNiFi = new RunNiFi(configFile, verbose);
 		
-		switch (args[0].toLowerCase()) {
+		switch (cmd.toLowerCase()) {
 			case "start":
 				runNiFi.start(false);
 				break;
@@ -151,49 +185,209 @@ public class RunNiFi {
 		final File confDir = bootstrapConfigFile.getParentFile();
 		final File nifiHome = confDir.getParentFile();
 		final File bin = new File(nifiHome, "bin");
-		final File statusFile = new File(bin, "nifi.port");
+		final File statusFile = new File(bin, "nifi.pid");
+		
+		logger.fine("Status File: " + statusFile);
+		
 		return statusFile;
 	}
+	
+	private Properties loadProperties() throws IOException {
+	    final Properties props = new Properties();
+	    final File statusFile = getStatusFile();
+	    if ( statusFile == null || !statusFile.exists() ) {
+	        logger.fine("No status file to load properties from");
+	        return props;
+	    }
+	    
+	    try (final FileInputStream fis = new FileInputStream(getStatusFile())) {
+	        props.load(fis);
+	    }
+	    
+	    logger.fine("Properties: " + props);
+	    return props;
+	}
+	
+	private synchronized void saveProperties(final Properties nifiProps) throws IOException {
+	    final File statusFile = getStatusFile();
+	    if ( statusFile.exists() && !statusFile.delete() ) {
+	        logger.warning("Failed to delete " + statusFile);
+	    }
 
+	    if ( !statusFile.createNewFile() ) {
+	        throw new IOException("Failed to create file " + statusFile);
+	    }
+
+	    try {
+	        final Set<PosixFilePermission> perms = new HashSet<>();
+	        perms.add(PosixFilePermission.OWNER_READ);
+	        perms.add(PosixFilePermission.OWNER_WRITE);
+	        Files.setPosixFilePermissions(statusFile.toPath(), perms);
+	    } catch (final Exception e) {
+	        logger.warning("Failed to set permissions so that only the owner can read status file " + statusFile + "; this may allows others to have access to the key needed to communicate with NiFi. Permissions should be changed so that only the owner can read this file");
+	    }
+	    
+        try (final FileOutputStream fos = new FileOutputStream(statusFile)) {
+            nifiProps.store(fos, null);
+            fos.getFD().sync();
+        }
+        
+        logger.fine("Saved Properties " + nifiProps + " to " + statusFile);
+	}
+
+	private boolean isPingSuccessful(final int port, final String secretKey) {
+	    logger.fine("Pinging " + port);
+	    
+	    try (final Socket socket = new Socket("localhost", port)) {
+            final OutputStream out = socket.getOutputStream();
+            out.write((PING_CMD + " " + secretKey + "\n").getBytes(StandardCharsets.UTF_8));
+            out.flush();
+
+            logger.fine("Sent PING command");
+            socket.setSoTimeout(5000);
+            final InputStream in = socket.getInputStream();
+            final BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+            final String response = reader.readLine();
+            logger.fine("PING response: " + response);
+            
+            return PING_CMD.equals(response);
+	    } catch (final IOException ioe) {
+	        return false;
+	    }
+	}
+	
 	private Integer getCurrentPort() throws IOException {
-		try {
-			final File statusFile = getStatusFile();
-			final byte[] info = Files.readAllBytes(statusFile.toPath());
-			final String text = new String(info);
-			
-			final int port = Integer.parseInt(text);
-			
-			try (final Socket socket = new Socket("localhost", port)) {
-				final OutputStream out = socket.getOutputStream();
-				out.write((PING_CMD + "\n").getBytes(StandardCharsets.UTF_8));
-				out.flush();
-				
-				final InputStream in = socket.getInputStream();
-				final BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-				final String response = reader.readLine();
-				if ( response.equals(PING_CMD) ) {
-					return port;
-				}
-			} catch (final IOException ioe) {
-				System.out.println("Found NiFi instance info at " + statusFile + " indicating that NiFi is running and listening to port " + port + " but unable to communicate with NiFi on that port. The process may have died or may be hung.");
-				throw ioe;
-			}
-		} catch (final Exception e) {
-			return null;
+		final Properties props = loadProperties();
+		final String portVal = props.getProperty("port");
+		if ( portVal == null ) {
+		    logger.fine("No Port found in status file");
+		    return null;
+		} else { 
+		    logger.fine("Port defined in status file: " + portVal);
 		}
 		
-		return null;
+		final int port = Integer.parseInt(portVal);
+	    final boolean success = isPingSuccessful(port, props.getProperty("secret.key"));
+	    if ( success ) {
+	        logger.fine("Successful PING on port " + port);
+	        return port;
+	    }
+
+	    final String pid = props.getProperty("pid");
+	    logger.fine("PID in status file is " + pid);
+	    if ( pid != null ) {
+	        final boolean procRunning = isProcessRunning(pid);
+	        if ( procRunning ) {
+	            return port;
+	        } else {
+	            return null;
+	        }
+	    }
+	    
+	    return null;
 	}
 	
 	
+	private boolean isProcessRunning(final String pid) {
+	    try {
+	        // We use the "ps" command to check if the process is still running.
+	        final ProcessBuilder builder = new ProcessBuilder();
+	        
+	        builder.command("ps", "-p", pid, "--no-headers");
+	        final Process proc = builder.start();
+	        
+	        // Read how many lines are output by the 'ps' command
+	        int lineCount = 0;
+	        String line;
+	        try (final InputStream in = proc.getInputStream();
+	             final Reader streamReader = new InputStreamReader(in);
+	             final BufferedReader reader = new BufferedReader(streamReader)) {
+	            
+	            while ((line = reader.readLine()) != null) {
+	                if ( !line.trim().isEmpty() ) {
+	                    lineCount++;
+	                }
+	            }
+	        }
+	        
+	        // If anything was output, the process is running.
+	        final boolean running = lineCount > 0;
+	        if ( running ) {
+	            logger.fine("Process with PID " + pid + " is running");
+	        } else {
+	            logger.fine("Process with PID " + pid + " is not running");
+	        }
+	        
+	        return running;
+	    } catch (final IOException ioe) {
+	        System.err.println("Failed to determine if Process " + pid + " is running; assuming that it is not");
+	        return false;
+	    }
+	}
+	
+	
+	private Status getStatus() {
+	    final Properties props;
+	    try {
+	        props = loadProperties();
+	    } catch (final IOException ioe) {
+	        return new Status(null, null, false, false);
+	    }
+	    
+	    if ( props == null ) {
+	        return new Status(null, null, false, false);
+	    }
+	    
+        final String portValue = props.getProperty("port");
+        final String pid = props.getProperty("pid");
+        final String secretKey = props.getProperty("secret.key");
+        
+        if ( portValue == null && pid == null ) {
+            return new Status(null, null, false, false);
+        }
+        
+        Integer port = null;
+        boolean pingSuccess = false;
+        if ( portValue != null ) {
+            try {
+                port = Integer.parseInt(portValue);
+                pingSuccess = isPingSuccessful(port, secretKey);
+            } catch (final NumberFormatException nfe) {
+                return new Status(null, null, false, false);
+            }
+        }
+        
+        if ( pingSuccess ) {
+            return new Status(port, pid, true, true);
+        }
+        
+        final boolean alive = (pid == null) ? false : isProcessRunning(pid);
+        return new Status(port, pid, pingSuccess, alive);
+	}
+	
 	public void status() throws IOException {
-		final Integer port = getCurrentPort();
-		if ( port == null ) {
-			System.out.println("Apache NiFi does not appear to be running");
-		} else {
-			System.out.println("Apache NiFi is currently running, listening on port " + port);
-		}
-		return;
+	    final Status status = getStatus();
+	    if ( status.isRespondingToPing() ) {
+	        logger.info("Apache NiFi is currently running, listening to Bootstrap on port " + status.getPort() + 
+	                ", PID=" + (status.getPid() == null ? "unknkown" : status.getPid()));
+	        return;
+	    }
+
+	    if ( status.isProcessRunning() ) {
+	        logger.info("Apache NiFi is running at PID " + status.getPid() + " but is not responding to ping requests");
+	        return;
+	    }
+	    
+	    if ( status.getPort() == null ) {
+	        logger.info("Apache NiFi is not running");
+	        return;
+	    }
+	    
+	    if ( status.getPid() == null ) {
+	        logger.info("Apache NiFi is not responding to Ping requests. The process may have died or may be hung");
+	    } else {
+	        logger.info("Apache NiFi is not running");
+	    }
 	}
 	
 	
@@ -204,34 +398,111 @@ public class RunNiFi {
 			return;
 		}
 		
+		final Properties nifiProps = loadProperties();
+		final String secretKey = nifiProps.getProperty("secret.key");
+		
 		try (final Socket socket = new Socket()) {
+		    logger.fine("Connecting to NiFi instance");
 			socket.setSoTimeout(60000);
 			socket.connect(new InetSocketAddress("localhost", port));
+			logger.fine("Established connection to NiFi instance.");
 			socket.setSoTimeout(60000);
 			
+			logger.fine("Sending SHUTDOWN Command to port " + port);
 			final OutputStream out = socket.getOutputStream();
-			out.write((SHUTDOWN_CMD + "\n").getBytes(StandardCharsets.UTF_8));
+			out.write((SHUTDOWN_CMD + " " + secretKey + "\n").getBytes(StandardCharsets.UTF_8));
 			out.flush();
 			
 			final InputStream in = socket.getInputStream();
 			final BufferedReader reader = new BufferedReader(new InputStreamReader(in));
 			final String response = reader.readLine();
+			
+			logger.fine("Received response to SHUTDOWN command: " + response);
+			
 			if ( SHUTDOWN_CMD.equals(response) ) {
-				System.out.println("Apache NiFi has accepted the Shutdown Command and is shutting down now");
+				logger.info("Apache NiFi has accepted the Shutdown Command and is shutting down now");
+				
+				final String pid = nifiProps.getProperty("pid");
+				if ( pid != null ) {
+			        final Properties bootstrapProperties = new Properties();
+			        try (final FileInputStream fis = new FileInputStream(bootstrapConfigFile)) {
+			            bootstrapProperties.load(fis);
+			        }
+
+				    String gracefulShutdown = bootstrapProperties.getProperty(GRACEFUL_SHUTDOWN_PROP, DEFAULT_GRACEFUL_SHUTDOWN_VALUE);
+				    int gracefulShutdownSeconds;
+				    try {
+				        gracefulShutdownSeconds = Integer.parseInt(gracefulShutdown);
+				    } catch (final NumberFormatException nfe) {
+				        gracefulShutdownSeconds = Integer.parseInt(DEFAULT_GRACEFUL_SHUTDOWN_VALUE);
+				    }
+			        
+			        final long startWait = System.nanoTime();
+			        while ( isProcessRunning(pid) ) {
+			            logger.info("Waiting for Apache NiFi to finish shutting down...");
+			            final long waitNanos = System.nanoTime() - startWait;
+			            final long waitSeconds = TimeUnit.NANOSECONDS.toSeconds(waitNanos);
+			            if ( waitSeconds >= gracefulShutdownSeconds && gracefulShutdownSeconds > 0 ) {
+			                if ( isProcessRunning(pid) ) {
+			                    logger.warning("NiFi has not finished shutting down after " + gracefulShutdownSeconds + " seconds. Killing process.");
+			                    try {
+			                        killProcessTree(pid);
+			                    } catch (final IOException ioe) {
+			                        logger.severe("Failed to kill Process with PID " + pid);
+			                    }
+			                }
+			                break;
+			            } else {
+			                try {
+			                    Thread.sleep(2000L);
+			                } catch (final InterruptedException ie) {}
+			            }
+			        }
+			        
+			        logger.info("NiFi has finished shutting down.");
+				}
 				
 				final File statusFile = getStatusFile();
 				if ( !statusFile.delete() ) {
-					System.err.println("Failed to delete status file " + statusFile + "; this file should be cleaned up manually");
+					logger.severe("Failed to delete status file " + statusFile + "; this file should be cleaned up manually");
 				}
 			} else {
-				System.err.println("When sending SHUTDOWN command to NiFi, got unexpected response " + response);
+				logger.severe("When sending SHUTDOWN command to NiFi, got unexpected response " + response);
 			}
 		} catch (final IOException ioe) {
-			System.err.println("Failed to communicate with Apache NiFi");
+		    logger.severe("Failed to send shutdown command to port " + port + " due to " + ioe);
 			return;
 		}
 	}
 	
+	
+	private static List<String> getChildProcesses(final String ppid) throws IOException {
+	    final Process proc = Runtime.getRuntime().exec(new String[] {"ps", "-o", "pid", "--no-headers", "--ppid", ppid});
+	    final List<String> childPids = new ArrayList<>();
+	    try (final InputStream in = proc.getInputStream();
+	         final BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
+	        
+	        String line;
+	        while ((line = reader.readLine()) != null) {
+	            childPids.add(line.trim());
+	        }
+	    }
+	    
+	    return childPids;
+	}
+	
+	private void killProcessTree(final String pid) throws IOException {
+	    logger.fine("Killing Process Tree for PID " + pid);
+	    
+	    final List<String> children = getChildProcesses(pid);
+	    logger.fine("Children of PID " + pid + ": " + children);
+	    
+	    for ( final String childPid : children ) {
+	        killProcessTree(childPid);
+	    }
+	    
+	    Runtime.getRuntime().exec(new String[] {"kill", "-9", pid});
+	}
 	
 	public static boolean isAlive(final Process process) {
 		try {
@@ -246,7 +517,7 @@ public class RunNiFi {
 	public void start(final boolean monitor) throws IOException, InterruptedException {
 		final Integer port = getCurrentPort();
 		if ( port != null ) {
-			System.out.println("Apache NiFi is already running, listening on port " + port);
+			System.out.println("Apache NiFi is already running, listening to Bootstrap on port " + port);
 			return;
 		}
 		
@@ -344,7 +615,20 @@ public class RunNiFi {
 		final NiFiListener listener = new NiFiListener();
 		final int listenPort = listener.start(this);
 		
+		String runAs = isWindows() ? null : props.get(RUN_AS_PROP);
+		if ( runAs != null ) {
+		    runAs = runAs.trim();
+		    if ( runAs.isEmpty() ) {
+		        runAs = null;
+		    }
+		}
+		
 		final List<String> cmd = new ArrayList<>();
+		if ( runAs != null ) {
+		    cmd.add("sudo");
+		    cmd.add("-u");
+		    cmd.add(runAs);
+		}
 		cmd.add(javaCmd);
 		cmd.add("-classpath");
 		cmd.add(classPath);
@@ -361,9 +645,9 @@ public class RunNiFi {
 			cmdBuilder.append(s).append(" ");
 		}
 
-		System.out.println("Starting Apache NiFi...");
-		System.out.println("Working Directory: " + workingDir.getAbsolutePath());
-		System.out.println("Command: " + cmdBuilder.toString());
+		logger.info("Starting Apache NiFi...");
+		logger.info("Working Directory: " + workingDir.getAbsolutePath());
+		logger.info("Command: " + cmdBuilder.toString());
 		
 		if ( monitor ) {
 			String gracefulShutdown = props.get(GRACEFUL_SHUTDOWN_PROP);
@@ -383,6 +667,13 @@ public class RunNiFi {
 			}
 			
 			Process process = builder.start();
+			Long pid = getPid(process);
+		    if ( pid != null ) {
+                nifiPid = pid;
+                final Properties nifiProps = new Properties();
+                nifiProps.setProperty("pid", String.valueOf(nifiPid));
+                saveProperties(nifiProps);
+            }
 			
 			ShutdownHook shutdownHook = new ShutdownHook(process, this, gracefulShutdownSeconds);
 			final Runtime runtime = Runtime.getRuntime();
@@ -404,8 +695,16 @@ public class RunNiFi {
 				    }
 					
 					if (autoRestartNiFi) {
-						System.out.println("Apache NiFi appears to have died. Restarting...");
+						logger.warning("Apache NiFi appears to have died. Restarting...");
 						process = builder.start();
+						
+						pid = getPid(process);
+						if ( pid != null ) {
+			                nifiPid = pid;
+			                final Properties nifiProps = new Properties();
+			                nifiProps.setProperty("pid", String.valueOf(nifiPid));
+			                saveProperties(nifiProps);
+			            }
 						
 						shutdownHook = new ShutdownHook(process, this, gracefulShutdownSeconds);
 						runtime.addShutdownHook(shutdownHook);
@@ -413,9 +712,9 @@ public class RunNiFi {
 						final boolean started = waitForStart();
 						
 						if ( started ) {
-							System.out.println("Successfully started Apache NiFi");
+							logger.info("Successfully started Apache NiFi" + (pid == null ? "" : " with PID " + pid));
 						} else {
-							System.err.println("Apache NiFi does not appear to have started");
+							logger.severe("Apache NiFi does not appear to have started");
 						}
 					} else {
 						return;
@@ -423,19 +722,52 @@ public class RunNiFi {
 				}
 			}
 		} else {
-			builder.start();
+			final Process process = builder.start();
+			final Long pid = getPid(process);
+			
+			if ( pid != null ) {
+			    nifiPid = pid;
+                final Properties nifiProps = new Properties();
+                nifiProps.setProperty("pid", String.valueOf(nifiPid));
+                saveProperties(nifiProps);
+			}
+			
 			boolean started = waitForStart();
 			
 			if ( started ) {
-				System.out.println("Successfully started Apache NiFi");
+				logger.info("Successfully started Apache NiFi" + (pid == null ? "" : " with PID " + pid));
 			} else {
-				System.err.println("Apache NiFi does not appear to have started");
+				logger.severe("Apache NiFi does not appear to have started");
 			}
 			
 			listener.stop();
 		}
 	}
 	
+	
+	private Long getPid(final Process process) {
+	    try {
+            final Class<?> procClass = process.getClass();
+            final Field pidField = procClass.getDeclaredField("pid");
+            pidField.setAccessible(true);
+            final Object pidObject = pidField.get(process);
+            
+            logger.fine("PID Object = " + pidObject);
+            
+            if ( pidObject instanceof Number ) {
+                return ((Number) pidObject).longValue();
+            }
+            return null;
+        } catch (final IllegalAccessException | NoSuchFieldException nsfe) {
+            logger.fine("Could not find PID for child process due to " + nsfe);
+            return null;
+        }
+	}
+	
+	private boolean isWindows() {
+	    final String osName = System.getProperty("os.name");
+	    return osName != null && osName.toLowerCase().contains("win");
+	}
 	
 	private boolean waitForStart() {
 		lock.lock();
@@ -478,21 +810,59 @@ public class RunNiFi {
 		this.autoRestartNiFi = restart;
 	}
 	
-	void setNiFiCommandControlPort(final int port) {
+	void setNiFiCommandControlPort(final int port, final String secretKey) {
 		this.ccPort = port;
-
 		final File statusFile = getStatusFile();
-		try (final FileOutputStream fos = new FileOutputStream(statusFile)) {
-			fos.write(String.valueOf(port).getBytes(StandardCharsets.UTF_8));
-			fos.getFD().sync();
+		
+		final Properties nifiProps = new Properties();
+		if ( nifiPid != -1 ) {
+		    nifiProps.setProperty("pid", String.valueOf(nifiPid));
+		}
+		nifiProps.setProperty("port", String.valueOf(ccPort));
+		nifiProps.setProperty("secret.key", secretKey);
+		
+		try {
+		    saveProperties(nifiProps);
 		} catch (final IOException ioe) {
-			System.err.println("Apache NiFi has started but failed to persist NiFi Port information to " + statusFile.getAbsolutePath() + " due to " + ioe);
+		    logger.warning("Apache NiFi has started but failed to persist NiFi Port information to " + statusFile.getAbsolutePath() + " due to " + ioe);
 		}
 		
-		System.out.println("Apache NiFi now running and listening for requests on port " + port);
+		logger.info("Apache NiFi now running and listening for Bootstrap requests on port " + port);
 	}
 	
 	int getNiFiCommandControlPort() {
 		return this.ccPort;
+	}
+	
+	
+	private static class Status {
+	    private final Integer port;
+	    private final String pid;
+	    
+	    private final Boolean respondingToPing;
+	    private final Boolean processRunning;
+	    
+	    public Status(final Integer port, final String pid, final Boolean respondingToPing, final Boolean processRunning) {
+	        this.port = port;
+	        this.pid = pid;
+	        this.respondingToPing = respondingToPing;
+	        this.processRunning = processRunning;
+	    }
+	    
+	    public String getPid() {
+	        return pid;
+	    }
+	    
+	    public Integer getPort() {
+	        return port;
+	    }
+	    
+	    public boolean isRespondingToPing() {
+	        return Boolean.TRUE.equals(respondingToPing);
+	    }
+	    
+        public boolean isProcessRunning() {
+            return Boolean.TRUE.equals(processRunning);
+        }
 	}
 }

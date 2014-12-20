@@ -100,6 +100,7 @@ nf.Shell = (function () {
                 });
             }).promise();
         },
+        
         /**
          * Shows the specified content in the shell. When the shell is closed, the content
          * will be hidden and returned to its previous location in the dom.

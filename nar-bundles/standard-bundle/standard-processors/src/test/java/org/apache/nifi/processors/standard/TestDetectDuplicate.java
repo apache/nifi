@@ -37,7 +37,7 @@ import org.apache.nifi.util.MockControllerServiceInitializationContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 
-import org.apache.commons.lang.SerializationException;
+import org.apache.commons.lang3.SerializationException;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
