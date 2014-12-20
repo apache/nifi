@@ -27,7 +27,7 @@ import javax.net.ssl.SSLContext;
 
 import org.apache.nifi.distributed.cache.server.AbstractCacheServer;
 import org.apache.nifi.distributed.cache.server.EvictionPolicy;
-import org.apache.nifi.io.DataOutputStream;
+import org.apache.nifi.stream.io.DataOutputStream;
 
 public class MapCacheServer extends AbstractCacheServer {
 

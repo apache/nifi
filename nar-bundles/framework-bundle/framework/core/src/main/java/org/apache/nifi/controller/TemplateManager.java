@@ -42,10 +42,10 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import org.apache.nifi.io.ByteArrayInputStream;
-import org.apache.nifi.io.ByteArrayOutputStream;
-import org.apache.nifi.io.DataOutputStream;
-import org.apache.nifi.io.StreamUtils;
+import org.apache.nifi.stream.io.ByteArrayInputStream;
+import org.apache.nifi.stream.io.ByteArrayOutputStream;
+import org.apache.nifi.stream.io.DataOutputStream;
+import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.persistence.TemplateDeserializer;
 import org.apache.nifi.persistence.TemplateSerializer;
 import org.apache.nifi.web.api.dto.ConnectableDTO;

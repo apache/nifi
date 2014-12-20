@@ -52,7 +52,7 @@ import org.apache.nifi.connectable.Size;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.events.BulletinFactory;
-import org.apache.nifi.file.FileUtils;
+import org.apache.nifi.util.file.FileUtils;
 import org.apache.nifi.fingerprint.FingerprintException;
 import org.apache.nifi.fingerprint.FingerprintFactory;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;

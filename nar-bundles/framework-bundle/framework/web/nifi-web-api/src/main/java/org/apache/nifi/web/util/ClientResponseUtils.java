@@ -19,7 +19,7 @@ package org.apache.nifi.web.util;
 import com.sun.jersey.api.client.ClientResponse;
 import java.io.BufferedInputStream;
 import java.io.IOException;
-import org.apache.nifi.io.NullOutputStream;
+import org.apache.nifi.stream.io.NullOutputStream;
 import org.apache.nifi.logging.NiFiLog;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;

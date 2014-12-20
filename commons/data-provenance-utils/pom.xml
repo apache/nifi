@@ -34,7 +34,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-core-flowfile-attributes</artifactId>
+            <artifactId>nifi-utils</artifactId>
         </dependency>
     </dependencies>
 </project>

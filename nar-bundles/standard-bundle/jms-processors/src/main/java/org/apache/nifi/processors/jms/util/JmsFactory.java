@@ -60,7 +60,7 @@ import javax.jms.StreamMessage;
 import javax.jms.TextMessage;
 import javax.jms.Topic;
 
-import org.apache.nifi.io.ByteArrayOutputStream;
+import org.apache.nifi.stream.io.ByteArrayOutputStream;
 import org.apache.nifi.processor.ProcessContext;
 
 import org.apache.activemq.ActiveMQConnectionFactory;

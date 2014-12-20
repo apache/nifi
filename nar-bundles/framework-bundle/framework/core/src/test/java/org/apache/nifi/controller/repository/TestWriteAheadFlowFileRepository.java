@@ -35,7 +35,7 @@ import java.util.List;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.FlowFileQueue;
 import org.apache.nifi.controller.repository.claim.StandardContentClaimManager;
-import org.apache.nifi.file.FileUtils;
+import org.apache.nifi.util.file.FileUtils;
 
 import org.junit.Test;
 import org.mockito.Mockito;
