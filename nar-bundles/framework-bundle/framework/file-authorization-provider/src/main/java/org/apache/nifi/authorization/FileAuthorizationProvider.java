@@ -36,7 +36,7 @@ import org.apache.nifi.authorization.exception.AuthorityAccessException;
 import org.apache.nifi.authorization.exception.IdentityAlreadyExistsException;
 import org.apache.nifi.authorization.exception.ProviderCreationException;
 import org.apache.nifi.authorization.exception.UnknownIdentityException;
-import org.apache.nifi.file.FileUtils;
+import org.apache.nifi.util.file.FileUtils;
 import org.apache.nifi.user.generated.ObjectFactory;
 import org.apache.nifi.user.generated.Role;
 import org.apache.nifi.user.generated.User;

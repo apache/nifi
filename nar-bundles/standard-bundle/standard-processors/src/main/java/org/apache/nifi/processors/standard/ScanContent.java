@@ -36,9 +36,9 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.io.BufferedInputStream;
-import org.apache.nifi.io.LastModifiedMonitor;
-import org.apache.nifi.io.SynchronousFileWatcher;
+import org.apache.nifi.stream.io.BufferedInputStream;
+import org.apache.nifi.util.file.monitor.LastModifiedMonitor;
+import org.apache.nifi.util.file.monitor.SynchronousFileWatcher;
 import org.apache.nifi.logging.ProcessorLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;

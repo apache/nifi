@@ -56,20 +56,20 @@
         <maven>${maven.min-version}</maven>
     </prerequisites>
     <modules>
-        <module>commons</module>
         <!--
         ! Would prefer to have the nar-maven-plugin built as part of this parent.  However, Maven
         ! blocks building plugins with extensions in the same reactor as other components which want to use the plugin.
         ! See MNG-1911 and MNG-5572 for more details.
         -->
         <!--<module>nar-maven-plugin</module>-->
+        <module>commons</module>
         <module>nifi-api</module>
         <module>nifi-bootstrap</module>
         <module>nifi-mock</module>
         <module>nar-bundles</module>
         <module>assembly</module>
-    <module>nifi-docs</module>
-  </modules>
+        <module>nifi-docs</module>
+    </modules>
     <scm>
         <connection>scm:git:git://git.apache.org/incubator-nifi.git</connection>
         <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-nifi.git</developerConnection>
@@ -647,11 +647,6 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-file-utils</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-expression-language</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -662,22 +657,7 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-core-flowfile-attributes</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
                 <artifactId>flowfile-packager</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>naive-search-ring-buffer</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-search-utils</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -790,11 +770,6 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-stream-utils</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-properties</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -816,11 +791,6 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-processor-utils</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>remote-communications-utils</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

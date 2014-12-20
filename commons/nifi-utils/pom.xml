@@ -26,4 +26,8 @@
     <version>0.0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
     <name>NiFi Utils</name>
+    <!--
+    This project intentionally has no additional dependencies beyond that pulled in by the parent.  It is a general purpose utility library
+    and should keep its surface/tension minimal.
+    -->
 </project>

@@ -44,8 +44,8 @@ import org.apache.nifi.controller.repository.claim.StandardContentClaim;
 import org.apache.nifi.controller.repository.io.ArrayManagedOutputStream;
 import org.apache.nifi.controller.repository.io.MemoryManager;
 import org.apache.nifi.engine.FlowEngine;
-import org.apache.nifi.io.ByteArrayInputStream;
-import org.apache.nifi.io.StreamUtils;
+import org.apache.nifi.stream.io.ByteArrayInputStream;
+import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.util.NiFiProperties;
 

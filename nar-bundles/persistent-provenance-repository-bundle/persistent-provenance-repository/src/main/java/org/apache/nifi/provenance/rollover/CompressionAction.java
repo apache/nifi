@@ -22,8 +22,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
-import org.apache.nifi.io.GZIPOutputStream;
-import org.apache.nifi.io.StreamUtils;
+import org.apache.nifi.stream.io.GZIPOutputStream;
+import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.provenance.lucene.IndexingAction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -45,7 +45,7 @@ import javax.jms.MessageConsumer;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.io.BufferedOutputStream;
+import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.apache.nifi.logging.ProcessorLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
