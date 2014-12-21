@@ -22,7 +22,7 @@ Apache NiFi supports powerful and scalable directed graphs of data routing, tran
 
 ## Getting Started
 
-Execute <nifi install dir>/bin/nifi.sh
+Execute <nifi install dir>/bin/nifi.sh start
 
 ## Getting Help
 If you have questions, you can reach out to our mailing list: dev@nifi.incubator.apache.org

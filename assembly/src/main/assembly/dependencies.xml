@@ -106,38 +106,31 @@
             <filtered>true</filtered>
         </file>
         <file>
-            <source>${project.build.directory}/generated-resources/docs/README.md</source>
-            <outputDirectory>docs</outputDirectory>
-            <destName>README.md</destName>
-            <fileMode>0640</fileMode>
+            <source>../README.md</source>
+            <outputDirectory>./</outputDirectory>
+            <destName>README</destName>
+            <fileMode>0644</fileMode>
             <filtered>true</filtered>
         </file>
         <file>
-            <source>${project.build.directory}/generated-resources/DISCLAIMER</source>
+            <source>../DISCLAIMER</source>
             <outputDirectory>./</outputDirectory>
             <destName>DISCLAIMER</destName>
-            <fileMode>0640</fileMode>
+            <fileMode>0644</fileMode>
             <filtered>true</filtered>
         </file>
         <file>
-            <source>${project.build.directory}/generated-resources/DISCLAIMER</source>
-            <outputDirectory>./</outputDirectory>
-            <destName>DISCLAIMER</destName>
-            <fileMode>0640</fileMode>
-            <filtered>true</filtered>
-        </file>    
-        <file>
-            <source>${project.build.directory}/generated-resources/LICENSE</source>
+            <source>../LICENSE</source>
             <outputDirectory>./</outputDirectory>
             <destName>LICENSE</destName>
-            <fileMode>0640</fileMode>
+            <fileMode>0644</fileMode>
             <filtered>true</filtered>
         </file>       
         <file>
-            <source>${project.build.directory}/generated-resources/NOTICE</source>
+            <source>../NOTICE</source>
             <outputDirectory>./</outputDirectory>
             <destName>NOTICE</destName>
-            <fileMode>0640</fileMode>
+            <fileMode>0644</fileMode>
             <filtered>true</filtered>
         </file>
     </files>

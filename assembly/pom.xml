@@ -345,16 +345,10 @@
         <nifi.cluster.manager.flow.retrieval.delay>5 sec</nifi.cluster.manager.flow.retrieval.delay>
         <nifi.cluster.manager.protocol.threads>10</nifi.cluster.manager.protocol.threads>
         <nifi.cluster.manager.safemode.duration>0 sec</nifi.cluster.manager.safemode.duration>
-        <!--
-            Properties to execute nifi using Maven.  It is assumed that the assembly has a
-            format of type 'dir' so that the executable can be referenced in a defined location.
-        -->
-        <nifi.assembly.id>bin</nifi.assembly.id>
-        <nifi.executable>${project.artifactId}-${project.version}/bin/${project.artifactId}</nifi.executable>
     </properties>
     <profiles>
         <profile>
-            <id>standard-rpm</id>
+            <id>rpm</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
             </activation>
@@ -363,101 +357,91 @@
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>rpm-maven-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>rpm</goal>
-                                </goals>
-                            </execution>
-                        </executions>
                         <configuration>
-                            <name>${project.artifactId}</name>
-                            <projversion>${project.version}</projversion>
                             <summary>Apache NiFi (incubating)</summary>
-                            <description>
-                                Apache Nifi (incubating) is dataflow system
-                                based on the Flow-Based Programming concepts.
-                            </description>
-                            <copyright>NONE</copyright>
-                            <url>http://nifi.apache.org</url>
+                            <description>Apache Nifi (incubating) is dataflow system based on the Flow-Based Programming concepts.</description>
+                            <license>Apache License, Version 2.0 and others (see included LICENSE file)</license>
+                            <url>http://nifi.incubator.apache.org</url>
                             <group>Utilities</group>
-                            <requires>
-                                <require>jdk</require>
-                            </requires>
-                            <prefix>/opt/${project.artifactId}</prefix>
+                            <prefix>/opt/nifi</prefix>
                             <defineStatements>
                                 <defineStatement>_use_internal_dependency_generator 0</defineStatement>
                             </defineStatements>
                             <defaultDirmode>750</defaultDirmode>
                             <defaultFilemode>640</defaultFilemode>
-                            <defaultUsername>nifi</defaultUsername>
-                            <defaultGroupname>nifi</defaultGroupname>
-                            <mappings>
-                                <mapping>
-                                    <directory>/opt/${project.artifactId}/${project.artifactId}-${project.version}</directory>
-                                </mapping>
-                                <mapping>
-                                    <directory>/opt/${project.artifactId}/${project.artifactId}-${project.version}/bin</directory>
-                                    <filemode>750</filemode>
-                                    <sources>
-                                        <source>
-                                            <location>${project.build.directory}/generated-resources/bin/nifi</location>
-                                            <destination>${project.artifactId}</destination>
-                                            <filter>true</filter>
-                                        </source>
-                                        <source>
-                                            <location>${project.build.directory}/generated-resources/bin/wrapper-linux-x86-32</location>
-                                        </source>
-                                        <source>
-                                            <location>${project.build.directory}/generated-resources/bin/wrapper-linux-x86-64</location>
-                                        </source>
-                                    </sources>
-                                </mapping>
-                                <mapping>
-                                    <directory>/opt/${project.artifactId}/${project.artifactId}-${project.version}/conf</directory>
-                                    <configuration>true</configuration>
-                                    <sources>
-                                        <source>
-                                            <location>${project.build.directory}/generated-resources/conf</location>
-                                            <excludes>
-                                                <exclude>nifi.properties</exclude>
-                                            </excludes>
-                                            <filter>true</filter>
-                                        </source>
-                                        <source>
-                                            <location>${project.build.directory}/generated-resources/conf/nifi.properties</location>
-                                            <destination>${project.artifactId}.properties</destination>
-                                            <filter>true</filter>
-                                        </source>
-                                    </sources>
-                                </mapping>
-                                <mapping>
-                                    <directory>/opt/${project.artifactId}/${project.artifactId}-${project.version}/lib</directory>
-                                    <dependency />
-                                    <sources>
-                                        <source>
-                                            <location>${project.build.directory}/generated-resources/lib</location>
-                                        </source>
-                                    </sources>
-                                </mapping>
-                                <mapping>
-                                    <directory>/opt/${project.artifactId}/${project.artifactId}-${project.version}/docs</directory>
-                                    <sources>
-                                        <source>
-                                            <location>${project.build.directory}/generated-resources/docs</location>
-                                        </source>
-                                    </sources>
-                                </mapping>
-                                <mapping>
-                                    <directory>/opt/${project.artifactId}/${project.artifactId}-${project.version}/logs</directory>
-                                    <sources>
-                                        <source>
-                                            <location>${project.build.directory}/generated-resources/logs</location>
-                                        </source>
-                                    </sources>
-                                </mapping>
-                            </mappings>
+                            <defaultUsername>root</defaultUsername>
+                            <defaultGroupname>root</defaultGroupname>
                         </configuration>
+                        <executions>
+                            <execution>
+                                <id>build-bin-rpm</id>
+                                <goals>
+                                    <goal>attached-rpm</goal>
+                                </goals>
+                                <configuration>
+                                    <classifier>bin</classifier>
+                                    <provides>
+                                        <provide>nifi</provide>
+                                    </provides>
+                                    <requires>
+                                        <require>jdk</require>
+                                    </requires>
+                                    <mappings>
+                                        <mapping>
+                                            <directory>/opt/nifi/nifi-${project.version}</directory>
+                                        </mapping>
+                                        <mapping>
+                                            <directory>/opt/nifi/nifi-${project.version}</directory>
+                                            <sources>
+                                                <source>
+                                                    <location>../LICENSE</location>
+                                                </source>
+                                                <source>
+                                                    <location>../NOTICE</location>
+                                                </source>
+                                                <source>
+                                                    <location>../README.md</location>
+                                                    <destination>README</destination>
+                                                </source>
+                                            </sources>
+                                        </mapping>
+                                        <mapping>
+                                            <directory>/opt/nifi/nifi-${project.version}/bin</directory>
+                                            <filemode>750</filemode>
+                                            <sources>
+                                                <source>
+                                                    <location>${project.build.directory}/generated-resources/bin/nifi.sh</location>
+                                                    <destination>nifi.sh</destination>
+                                                    <filter>true</filter>
+                                                </source>
+                                            </sources>
+                                        </mapping>
+                                        <mapping>
+                                            <directory>/opt/nifi/nifi-${project.version}/conf</directory>
+                                            <configuration>true</configuration>
+                                            <sources>
+                                                <source>
+                                                    <location>${project.build.directory}/generated-resources/conf</location>
+                                                    <filter>true</filter>
+                                                </source>
+                                            </sources>
+                                        </mapping>
+                                        <mapping>
+                                            <directory>/opt/nifi/nifi-${project.version}/lib</directory>
+                                            <dependency />
+                                        </mapping>
+                                        <mapping>
+                                            <directory>/opt/nifi/nifi-${project.version}/docs</directory>
+                                            <sources>
+                                                <source>
+                                                    <location>${project.build.directory}/generated-docs</location>
+                                                </source>
+                                            </sources>
+                                        </mapping>
+                                    </mappings>
+                                </configuration>
+                            </execution>
+                        </executions>
                     </plugin>
                 </plugins>
             </build>
