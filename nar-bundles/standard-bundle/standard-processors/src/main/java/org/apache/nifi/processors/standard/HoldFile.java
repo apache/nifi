@@ -13,7 +13,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.flowfile.FlowFile;
@@ -145,7 +144,10 @@ public class HoldFile extends AbstractProcessor {
 		int encountered = 0;
 		FlowFile flowFile = null;
 		while((flowFile = session.get()) != null) {
-			if (StringUtils.isBlank(flowFile.getAttribute(FLOW_FILE_RELEASE_VALUE))) {
+			String releaseValueAttribute = flowFile.getAttribute(FLOW_FILE_RELEASE_VALUE);
+			
+			if ((releaseValueAttribute == null)
+					|| (releaseValueAttribute.trim().length() == 0)) {
 				this.processHoldFile(flowFile, session);
 			} else {
 				this.processSignal(flowFile, session);
