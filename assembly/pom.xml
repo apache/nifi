@@ -383,9 +383,6 @@
                                     <provides>
                                         <provide>nifi</provide>
                                     </provides>
-                                    <requires>
-                                        <require>jdk</require>
-                                    </requires>
                                     <mappings>
                                         <mapping>
                                             <directory>/opt/nifi/nifi-${project.version}</directory>
@@ -428,7 +425,19 @@
                                         </mapping>
                                         <mapping>
                                             <directory>/opt/nifi/nifi-${project.version}/lib</directory>
-                                            <dependency />
+                                            <dependency>
+                                                <excludes>
+                                                    <exclude>org.apache.nifi:nifi-bootstrap</exclude>
+                                                </excludes>
+                                            </dependency>
+                                        </mapping>
+                                        <mapping>
+                                            <directory>/opt/nifi/nifi-${project.version}/lib/bootstrap</directory>
+                                            <dependency>
+                                                <includes>
+						    <include>org.apache.nifi:nifi-bootstrap</include>
+                                                </includes>
+                                            </dependency>
                                         </mapping>
                                         <mapping>
                                             <directory>/opt/nifi/nifi-${project.version}/docs</directory>
