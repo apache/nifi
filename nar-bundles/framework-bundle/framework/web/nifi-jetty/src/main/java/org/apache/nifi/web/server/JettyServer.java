@@ -652,12 +652,6 @@ public class JettyServer implements NiFiServer {
             for (final String url : urls) {
                 logger.info(String.format("%s/nifi", url));
             }
-
-            // log the rest api location
-            logger.info("The REST API documentation is available at the following URLs:");
-            for (final String url : urls) {
-                logger.info(String.format("%s/nifi-api/docs", url));
-            }
         }
     }
 
