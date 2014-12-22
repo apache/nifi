@@ -25,7 +25,6 @@ import static org.apache.nifi.processors.jms.util.JmsProperties.DESTINATION_TYPE
 import static org.apache.nifi.processors.jms.util.JmsProperties.DESTINATION_TYPE_QUEUE;
 import static org.apache.nifi.processors.jms.util.JmsProperties.DESTINATION_TYPE_TOPIC;
 import static org.apache.nifi.processors.jms.util.JmsProperties.DURABLE_SUBSCRIPTION;
-import static org.apache.nifi.processors.jms.util.JmsProperties.HORNETQ_PROVIDER;
 import static org.apache.nifi.processors.jms.util.JmsProperties.JMS_PROVIDER;
 import static org.apache.nifi.processors.jms.util.JmsProperties.MESSAGE_SELECTOR;
 import static org.apache.nifi.processors.jms.util.JmsProperties.PASSWORD;
@@ -35,8 +34,6 @@ import static org.apache.nifi.processors.jms.util.JmsProperties.USERNAME;
 
 import java.io.IOException;
 import java.io.ObjectOutputStream;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
@@ -66,11 +63,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.command.ActiveMQQueue;
 import org.apache.activemq.command.ActiveMQTopic;
-import org.hornetq.api.core.TransportConfiguration;
-import org.hornetq.core.remoting.impl.netty.NettyConnectorFactory;
-import org.hornetq.jms.client.HornetQJMSConnectionFactory;
-import org.hornetq.jms.client.HornetQQueue;
-import org.hornetq.jms.client.HornetQTopic;
 
 public class JmsFactory {
 
@@ -341,8 +333,6 @@ public class JmsFactory {
 
     public static Queue createQueue(final String jmsProvider, final String queueName) {
         switch (jmsProvider) {
-            case HORNETQ_PROVIDER:
-                return new HornetQQueue(queueName);
             case ACTIVEMQ_PROVIDER:
             default:
                 return new ActiveMQQueue(queueName);
@@ -352,8 +342,6 @@ public class JmsFactory {
     private static Topic createTopic(final ProcessContext context) {
         final String topicName = context.getProperty(DESTINATION_NAME).getValue();
         switch (context.getProperty(JMS_PROVIDER).getValue()) {
-            case HORNETQ_PROVIDER:
-                return new HornetQTopic(topicName);
             case ACTIVEMQ_PROVIDER:
             default:
                 return new ActiveMQTopic(topicName);
@@ -373,22 +361,6 @@ public class JmsFactory {
                 final ActiveMQConnectionFactory factory = new ActiveMQConnectionFactory(url);
                 factory.setSendTimeout(timeoutMillis);
                 return factory;
-            }
-            case HORNETQ_PROVIDER: {
-                final Map<String, Object> params = new HashMap<>();
-
-                try {
-                    final URI uriObject = new URI(url);
-                    params.put("host", uriObject.getHost());
-                    params.put("port", uriObject.getPort());
-
-                    final TransportConfiguration transportConfig = new TransportConfiguration(NettyConnectorFactory.class.getName(), params);
-                    final HornetQJMSConnectionFactory factory = new HornetQJMSConnectionFactory(false, transportConfig);
-                    factory.setCallTimeout(timeoutMillis);
-                    return factory;
-                } catch (final URISyntaxException e) {
-                    return null;    // won't happen b/c we already validated the URL
-                }
             }
             default:
                 throw new IllegalArgumentException("Unknown JMS Provider: " + jmsProvider);
