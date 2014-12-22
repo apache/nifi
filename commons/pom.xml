@@ -29,22 +29,16 @@
     <name>NiFi :: Commons Parent</name>
 
     <modules>
-        <module>core-flowfile-attributes</module>
         <module>data-provenance-utils</module>
         <module>flowfile-packager</module>
-        <module>naive-search-ring-buffer</module>
         <module>nifi-expression-language</module>
-        <module>nifi-file-utils</module>
         <module>nifi-logging-utils</module>
         <module>nifi-properties</module>
         <module>nifi-security-utils</module>
         <module>nifi-socket-utils</module>
-        <module>nifi-stream-utils</module>
         <module>nifi-utils</module>
         <module>nifi-web-utils</module>
         <module>processor-utilities</module>
-        <module>remote-communications-utils</module>
-        <module>search-utils</module>
         <module>wali</module>
     </modules>
 </project>

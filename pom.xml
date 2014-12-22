@@ -12,8 +12,7 @@
   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
   See the License for the specific language governing permissions and
   limitations under the License.
--->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+--><project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache</groupId>
@@ -57,18 +56,19 @@
         <maven>${maven.min-version}</maven>
     </prerequisites>
     <modules>
-        <module>commons</module>
         <!--
         ! Would prefer to have the nar-maven-plugin built as part of this parent.  However, Maven
         ! blocks building plugins with extensions in the same reactor as other components which want to use the plugin.
         ! See MNG-1911 and MNG-5572 for more details.
         -->
         <!--<module>nar-maven-plugin</module>-->
+        <module>commons</module>
         <module>nifi-api</module>
         <module>nifi-bootstrap</module>
         <module>nifi-mock</module>
         <module>nar-bundles</module>
         <module>assembly</module>
+        <module>nifi-docs</module>
     </modules>
     <scm>
         <connection>scm:git:git://git.apache.org/incubator-nifi.git</connection>
@@ -248,6 +248,16 @@
                 <groupId>org.quartz-scheduler</groupId>
                 <artifactId>quartz</artifactId>
                 <version>2.2.1</version>
+                <exclusions>
+                    <!-- 
+                    | Exclude the quartz 2.2.1 bundled version of c3p0 because it is lgpl licensed
+                    | We also don't use the JDBC related features of quartz for which the dependency would matter
+                    -->                    
+                    <exclusion>
+                        <groupId>c3p0</groupId>
+                        <artifactId>c3p0</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>com.sun.jersey.contribs</groupId>
@@ -647,11 +657,6 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-file-utils</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-expression-language</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -662,22 +667,7 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-core-flowfile-attributes</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
                 <artifactId>flowfile-packager</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>naive-search-ring-buffer</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-search-utils</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -703,6 +693,14 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-resources</artifactId>
+                <version>${project.version}</version>
+                <classifier>resources</classifier>
+                <scope>provided</scope> <!-- Provided - we don't want the zip in the libs -->
+                <type>zip</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-docs</artifactId>
                 <version>${project.version}</version>
                 <classifier>resources</classifier>
                 <scope>provided</scope> <!-- Provided - we don't want the zip in the libs -->
@@ -782,11 +780,6 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-stream-utils</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-properties</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -808,11 +801,6 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-processor-utils</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>remote-communications-utils</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

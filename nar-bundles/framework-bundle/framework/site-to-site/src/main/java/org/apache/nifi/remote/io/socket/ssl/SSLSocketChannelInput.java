@@ -19,8 +19,8 @@ package org.apache.nifi.remote.io.socket.ssl;
 import java.io.IOException;
 import java.io.InputStream;
 
-import org.apache.nifi.io.BufferedInputStream;
-import org.apache.nifi.io.ByteCountingInputStream;
+import org.apache.nifi.stream.io.BufferedInputStream;
+import org.apache.nifi.stream.io.ByteCountingInputStream;
 import org.apache.nifi.remote.protocol.CommunicationsInput;
 
 public class SSLSocketChannelInput implements CommunicationsInput {

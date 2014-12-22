@@ -16,13 +16,12 @@
  */
 package org.apache.nifi.controller.repository.io;
 
-import org.apache.nifi.controller.repository.io.LimitedInputStream;
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.io.InputStream;
 
-import org.apache.nifi.io.ByteArrayInputStream;
+import org.apache.nifi.stream.io.ByteArrayInputStream;
 
 import org.junit.Test;
 

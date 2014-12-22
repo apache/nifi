@@ -30,8 +30,8 @@ import javax.net.ssl.SSLContext;
 
 import org.apache.nifi.distributed.cache.protocol.ProtocolHandshake;
 import org.apache.nifi.distributed.cache.protocol.exception.HandshakeException;
-import org.apache.nifi.io.BufferedInputStream;
-import org.apache.nifi.io.BufferedOutputStream;
+import org.apache.nifi.stream.io.BufferedInputStream;
+import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.apache.nifi.remote.StandardVersionNegotiator;
 import org.apache.nifi.remote.VersionNegotiator;
 import org.apache.nifi.remote.io.socket.SocketChannelInputStream;

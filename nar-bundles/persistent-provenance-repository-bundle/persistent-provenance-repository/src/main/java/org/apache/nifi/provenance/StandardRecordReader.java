@@ -26,8 +26,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.nifi.io.ByteCountingInputStream;
-import org.apache.nifi.io.StreamUtils;
+import org.apache.nifi.stream.io.ByteCountingInputStream;
+import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.provenance.serialization.RecordReader;
 
 public class StandardRecordReader implements RecordReader {

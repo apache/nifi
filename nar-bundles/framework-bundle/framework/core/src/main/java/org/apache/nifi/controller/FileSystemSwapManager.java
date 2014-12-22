@@ -62,7 +62,7 @@ import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ContentClaimManager;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.io.BufferedOutputStream;
+import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.apache.nifi.processor.QueueSize;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.FormatUtils;

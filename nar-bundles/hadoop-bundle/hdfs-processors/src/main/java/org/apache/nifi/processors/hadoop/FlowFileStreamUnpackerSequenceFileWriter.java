@@ -25,7 +25,7 @@ import java.util.Map;
 
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.io.BufferedInputStream;
+import org.apache.nifi.stream.io.BufferedInputStream;
 import org.apache.nifi.processors.hadoop.util.InputStreamWritable;
 import org.apache.nifi.util.FlowFilePackagerV3;
 

@@ -25,9 +25,9 @@ import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.nifi.io.BufferedOutputStream;
-import org.apache.nifi.io.ByteCountingOutputStream;
-import org.apache.nifi.io.DataOutputStream;
+import org.apache.nifi.stream.io.BufferedOutputStream;
+import org.apache.nifi.stream.io.ByteCountingOutputStream;
+import org.apache.nifi.stream.io.DataOutputStream;
 import org.apache.nifi.provenance.serialization.RecordWriter;
 
 public class StandardRecordWriter implements RecordWriter {

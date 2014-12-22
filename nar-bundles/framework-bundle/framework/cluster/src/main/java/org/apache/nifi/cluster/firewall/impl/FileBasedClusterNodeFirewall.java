@@ -22,7 +22,7 @@ import java.net.UnknownHostException;
 import java.util.*;
 import org.apache.commons.net.util.SubnetUtils;
 import org.apache.nifi.cluster.firewall.ClusterNodeFirewall;
-import org.apache.nifi.file.FileUtils;
+import org.apache.nifi.util.file.FileUtils;
 import org.apache.nifi.logging.NiFiLog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

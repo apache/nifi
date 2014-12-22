@@ -48,11 +48,11 @@ import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
 import org.apache.nifi.cluster.protocol.jaxb.message.NodeIdentifierAdapter;
-import org.apache.nifi.file.FileUtils;
-import org.apache.nifi.io.BufferedInputStream;
-import org.apache.nifi.io.BufferedOutputStream;
-import org.apache.nifi.io.ByteArrayInputStream;
-import org.apache.nifi.io.StreamUtils;
+import org.apache.nifi.util.file.FileUtils;
+import org.apache.nifi.stream.io.BufferedInputStream;
+import org.apache.nifi.stream.io.BufferedOutputStream;
+import org.apache.nifi.stream.io.ByteArrayInputStream;
+import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.logging.NiFiLog;
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
