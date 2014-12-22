@@ -95,14 +95,14 @@ $(document).ready(function () {
     };
 
     var applyFilter = function () {
-        var matchingGuides = applyComponentFilter($('#guide-links'));
+        var matchingGeneral = applyComponentFilter($('#general-links'));
         var matchingProcessors = applyComponentFilter($('#processor-links'));
         var matchingControllerServices = applyComponentFilter($('#controller-service-links'));
         var matchingReportingTasks = applyComponentFilter($('#reporting-task-links'));
-        var matchingDev = applyComponentFilter($('#developer-links'));
+        var matchingDeveloper = applyComponentFilter($('#developer-links'));
 
         // update the rule count
-        $('#displayed-components').text(matchingGuides + matchingProcessors + matchingControllerServices + matchingReportingTasks + matchingDev);
+        $('#displayed-components').text(matchingGeneral + matchingProcessors + matchingControllerServices + matchingReportingTasks + matchingDeveloper);
     };
 
     var selectComponent = function (componentName) {

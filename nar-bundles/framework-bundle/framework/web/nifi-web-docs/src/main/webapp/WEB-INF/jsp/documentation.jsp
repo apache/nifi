@@ -39,12 +39,12 @@
         </div>
         <div id="component-listing" class="component-listing">
             <div class="section">
-                <div class="header">Guides</div>
-                <div id="guide-links" class="component-links">
+                <div class="header">General</div>
+                <div id="general-links" class="component-links">
                     <ul>
                         <li class="component-item"><a class="component-link user-guide" href="user-guide/nifi-user-guide.html" target="component-usage">User Guide</a></li>
                     </ul>
-                    <span class="no-matching no-components hidden">No matching user guides</span>
+                    <span class="no-matching no-components hidden">No matching guides</span>
                 </div>
             </div>
             <div class="section">
