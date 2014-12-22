@@ -13,6 +13,13 @@
   limitations under the License.
 */
 
+@import "https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic|Noto+Serif:400,400italic,700,700italic|Droid+Sans+Mono:400";
+
+html, html a {
+    -webkit-font-smoothing: antialiased;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.004);
+}
+
 #site-name {
     padding-left: 0;
 }
@@ -56,7 +63,16 @@
 
 .home {
     color: #444;
-    font-family: Verdana, Arial, Helvetica, sans-serif !important;
+    font-family: "Open Sans","DejaVu Sans",sans-serif !important;
+}
+
+p {
+    font-family: 'Noto Serif', 'DejaVu Serif', serif;
+    font-size: 16px;
+}
+
+p strong {
+    font-weight: bold;
 }
 
 a {
@@ -68,6 +84,7 @@ a:hover {
 }
 
 .container {
+    width: 940px !important;
     padding: 0 10px;
     background-color: #fff;
 }
@@ -77,9 +94,9 @@ a:hover {
 }
 
 #main p.note {
-    background: url(img/bg.png);
-    border: 1px solid #eee;
-    border-left: 4px solid #eee;
+    background-color: #fefefe;
+    border: 1px solid #ccc;
+    border-left: 6px solid #ccc;
     color: #666;
     display: block;
     margin-bottom: 12px;
@@ -89,9 +106,9 @@ a:hover {
 /* tables */
 
 table {
-    background: url(img/bg.png);
-    border: 1px solid #eee;
-    border-left: 4px solid #eee;
+    background-color: #fefefe;
+    border: 1px solid #ccc;
+    border-left: 6px solid #ccc;
     color: #666;
     display: block;
     margin-bottom: 12px;
@@ -118,9 +135,9 @@ table tbody tr th {
 
 code {
     font-size: 14px;
-    background: url(img/bg.png);
-    border: 1px solid #eee;
-    border-left: 4px solid #eee;
+    background-color: #fefefe;
+    border: 1px solid #ccc;
+    border-left: 6px solid #ccc;
     color: #666;
     margin-bottom: 10px;
     padding: 5px 8px;
@@ -133,6 +150,12 @@ code {
     border-top: 3px solid #eee;
 }
 
+/* width */
+
 .span-18 {
-    width: 776px !important;
+    width: 916px !important;
+}
+
+.span-20 {
+    width: 935px !important;
 }
