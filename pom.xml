@@ -144,11 +144,6 @@
                 <type>maven-plugin</type>
             </dependency>
             <dependency>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <version>2.5</version>
-            </dependency>
-            <dependency>
                 <groupId>org.apache.maven.plugin-tools</groupId>
                 <artifactId>maven-plugin-annotations</artifactId>
                 <version>3.3</version>
@@ -889,11 +884,6 @@
                         <attach>false</attach>
                         <tarLongFileMode>gnu</tarLongFileMode>
                     </configuration>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-release-plugin</artifactId>
-                    <version>2.5.1</version>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
