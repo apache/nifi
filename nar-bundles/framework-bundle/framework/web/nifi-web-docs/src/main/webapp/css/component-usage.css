@@ -65,6 +65,7 @@ tr th {
     text-align:left;
     padding: 4px;
     border-width: 0;
+    white-space: nowrap;
 }
 
 /* links */

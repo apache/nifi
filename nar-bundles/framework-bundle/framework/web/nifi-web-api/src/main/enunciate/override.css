@@ -101,6 +101,18 @@ a:hover {
     display: block;
     margin-bottom: 12px;
     padding: 5px 8px;
+    font-family: "Open Sans","DejaVu Sans",sans-serif;
+    font-size: 16px;
+}
+
+ul.navigation li, ul.xbreadcrumbs li {
+    font-family: "Open Sans","DejaVu Sans",sans-serif;
+    font-size: 16px;
+}
+
+ul li {
+    font-family: 'Noto Serif', 'DejaVu Serif', serif;
+    font-size: 16px;
 }
 
 /* tables */
@@ -144,6 +156,11 @@ code {
     white-space: pre;
 }
 
+h1, h2 {
+    font-weight: normal;
+    color: #ba3925;
+}
+
 /* footer */
 
 #footer {
@@ -153,7 +170,7 @@ code {
 /* width */
 
 .span-18 {
-    width: 916px !important;
+    width: 921px !important;
 }
 
 .span-20 {
