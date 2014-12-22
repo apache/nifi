@@ -23,7 +23,7 @@
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-web</artifactId>
     <packaging>war</packaging>
-    <name>NiFi Web UI</name>
+    <name>NiFi UI</name>
     <properties>
         <staging.dir>${project.build.directory}/tmp</staging.dir>
         <canvas.filter>canvas.properties</canvas.filter>

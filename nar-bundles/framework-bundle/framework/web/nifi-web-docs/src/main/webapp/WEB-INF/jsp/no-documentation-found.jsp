@@ -18,14 +18,14 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>Component documentation not found</title>
+        <title>NiFi</title>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
         <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7"/>
         <link rel="shortcut icon" href="../nifi/images/nifi16.ico"/>
-        <link href="css/main.css" rel="stylesheet" type="text/css" />
-        <link href="css/component-usage.css" rel="stylesheet" type="text/css" />
+        <link href="../../css/component-usage.css" rel="stylesheet" type="text/css" />
     </head>
-    <body style="padding: 4px;">
-        <div>No usage documentation found.</div>
+    <body>
+        <h2>Yikes!</h2>
+        <p>Unable to locate the documentation for the selected item.</p>
     </body>
 </html>
