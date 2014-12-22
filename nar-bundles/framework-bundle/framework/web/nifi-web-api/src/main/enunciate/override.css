@@ -97,7 +97,7 @@ a:hover {
     background-color: #fefefe;
     border: 1px solid #ccc;
     border-left: 6px solid #ccc;
-    color: #666;
+    color: #555;
     display: block;
     margin-bottom: 12px;
     padding: 5px 8px;
@@ -121,7 +121,7 @@ table {
     background-color: #fefefe;
     border: 1px solid #ccc;
     border-left: 6px solid #ccc;
-    color: #666;
+    color: #555;
     display: block;
     margin-bottom: 12px;
     padding: 5px 8px;
@@ -150,7 +150,7 @@ code {
     background-color: #fefefe;
     border: 1px solid #ccc;
     border-left: 6px solid #ccc;
-    color: #666;
+    color: #555;
     margin-bottom: 10px;
     padding: 5px 8px;
     white-space: pre;
