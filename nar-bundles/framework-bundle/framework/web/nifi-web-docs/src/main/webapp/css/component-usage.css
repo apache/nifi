@@ -14,15 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+@import "https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic|Noto+Serif:400,400italic,700,700italic|Droid+Sans+Mono:400";
+
+html, html a {
+    -webkit-font-smoothing: antialiased;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.004);
+}
+
 body {
+    width: 62.5em;
+    margin: 0 auto;
     display: block;
-    font-family: Verdana, Arial, Helvetica, sans-serif;
-    font-size: 12px;
+    font-family: "Open Sans","DejaVu Sans",sans-serif;
 }
 
 .title {
     font-weight: bold;
-    color: #294c58;
+    color: #7a2518;
     font-size: 18px;
 }
 
@@ -33,39 +42,85 @@ body {
 /* tables */
 
 table {
-    border-collapse: collapse;
+    background-color: #fefefe;
+    border: 1px solid #ccc;
+    border-left: 6px solid #ccc;
+    color: #666;
+    display: block;
+    margin-bottom: 12px;
+    padding: 5px 8px;
 }
 
-table th {
-    background-image: url(../images/bgTableHeader.png);
-    background-repeat: repeat-x;
-    border-bottom: 1px solid #365C6A;
-    border-right: 1px solid #172B31;
-    height: 26px;
-    padding: 0 2px;
-    color: #fff;
-    white-space: nowrap;
+tr td {
+    font-size: 14px;
+    vertical-align:top;
+    text-align:left;
+    padding: 4px;
+    border-width: 0;
 }
 
-table td {
-    padding: 2px;
+tr th {
+    font-size: 16px;
+    vertical-align:top;
+    text-align:left;
+    padding: 4px;
+    border-width: 0;
 }
 
 /* links */
 
 a, a:link, a:visited {
     cursor: pointer;
-    color: #1e373f;
+    color: #2156a5;
     text-decoration: none;
     border: none;
 }
 
 a:hover, a:active {
-    color: #264c58;
-    text-decoration: underline;
+    color: #2156a5;
+    text-decoration: none;
     border: none;
 }
 
 .clear {
     clear: both;
+}
+
+/* p */
+
+p {
+    font-family: 'Noto Serif', 'DejaVu Serif', serif;
+    font-size: 16px;
+}
+
+p strong {
+    font-weight: bold;
+}
+
+/* ul li */
+
+ul li {
+    font-family: 'Noto Serif', 'DejaVu Serif', serif;
+    font-size: 16px;
+}
+
+ul li strong {
+    font-weight: bold;
+}
+
+h2 {
+    font-weight: normal;
+    color: #ba3925;
+}
+
+/* pre */
+
+pre {
+    font-size: 14px;
+    background-color: #fefefe;
+    border: 1px solid #ccc;
+    border-left: 6px solid #ccc;
+    color: #666;
+    margin-bottom: 10px;
+    padding: 5px 8px;
 }

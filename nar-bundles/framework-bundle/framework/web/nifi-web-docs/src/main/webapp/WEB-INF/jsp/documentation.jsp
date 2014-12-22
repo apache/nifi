@@ -27,7 +27,7 @@
         <link href="css/main.css" rel="stylesheet" type="text/css" />
         <link href="css/component-usage.css" rel="stylesheet" type="text/css" />
     </head>
-    <body>
+    <body id="documentation-body">
         <div id="banner-header" class="main-banner-header"></div>
         <div id="banner-footer" class="main-banner-footer"></div>
         <span id="initial-selection" style="display: none;">${param.select}</span>
@@ -105,7 +105,6 @@
                 <div class="component-links">
                     <ul>
                         <li class="component-item"><a class="component-link rest-api" href="rest-api/index.html" target="component-usage">Rest Api</a></li>
-                        <li class="component-item"><a class="component-link" href="javascript:void(0);" target="component-usage">Developer Guide</a></li>
                     </ul>
                 </div>
             </div>
