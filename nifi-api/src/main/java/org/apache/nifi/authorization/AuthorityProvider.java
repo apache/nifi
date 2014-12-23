@@ -142,9 +142,10 @@ public interface AuthorityProvider {
      * Determines whether the user in the specified dnChain should be able to 
      * download the content for the flowfile with the specified attributes.
      * 
-     * The last dn in the chain is the end user that the request was issued on 
-     * behalf of. The previous dn's in the chain represent entities proxying the 
-     * user's request.
+     * The first dn in the chain is the end user that the request was issued on 
+     * behalf of. The subsequent dn's in the chain represent entities proxying
+     * the user's request with the last being the proxy that sent the current
+     * request.
      * 
      * @param dnChain
      * @param attributes

@@ -39,7 +39,7 @@ public class DownloadAuthorization {
      */
     private DownloadAuthorization(Result result, String explanation) {
         if (Result.Denied.equals(result) && explanation == null) {
-            throw new IllegalArgumentException("An explanation is request when the download request is denied.");
+            throw new IllegalArgumentException("An explanation is required when the download request is denied.");
         }
 
         this.result = result;
@@ -74,10 +74,11 @@ public class DownloadAuthorization {
     }
 
     /**
-     * Creates a new denied DownloadAuthorization with the specified exlanation.
+     * Creates a new denied DownloadAuthorization with the specified explanation.
      * 
      * @param explanation
      * @return 
+     * @throws IllegalArgumentException     if explanation is null
      */
     public static DownloadAuthorization denied(String explanation) {
         return new DownloadAuthorization(Result.Denied, explanation);

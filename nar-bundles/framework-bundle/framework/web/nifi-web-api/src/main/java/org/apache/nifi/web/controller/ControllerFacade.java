@@ -26,7 +26,6 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -796,13 +795,13 @@ public class ControllerFacade implements ControllerServiceProvider {
             final Map<String, String> attributes = event.getAttributes();
 
             // calculate the dn chain
-            final LinkedList<String> dnChain = new LinkedList<>();
+            final List<String> dnChain = new ArrayList<>();
 
             // build the dn chain
             NiFiUser chainedUser = user;
             do {
                 // add the entry for this user
-                dnChain.push(chainedUser.getDn());
+                dnChain.add(chainedUser.getDn());
 
                 // go to the next user in the chain
                 chainedUser = chainedUser.getChain();
