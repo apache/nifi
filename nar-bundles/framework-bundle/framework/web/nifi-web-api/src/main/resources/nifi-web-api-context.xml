@@ -80,6 +80,7 @@
         <property name="properties" ref="nifiProperties"/>
         <property name="flowController" ref="flowController"/>
         <property name="flowService" ref="flowService"/>
+        <property name="userService" ref="userService"/>
         <property name="dtoFactory" ref="dtoFactory"/>
     </bean>
     <bean id="serviceFacade" class="org.apache.nifi.web.StandardNiFiServiceFacade">

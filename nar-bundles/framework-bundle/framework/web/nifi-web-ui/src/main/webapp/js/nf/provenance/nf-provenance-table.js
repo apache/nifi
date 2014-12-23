@@ -84,17 +84,18 @@ nf.ProvenanceTable = (function () {
     var downloadContent = function (direction) {
         var eventId = $('#provenance-event-id').text();
 
-        // build the parameters
-        var parameters = {};
+        // build the url
+        var url = config.urls.provenance + '/events/' + encodeURIComponent(eventId) + '/content/' + encodeURIComponent(direction);
 
         // conditionally include the cluster node id
         var clusterNodeId = $('#provenance-event-cluster-node-id').text();
         if (!nf.Common.isBlank(clusterNodeId)) {
-            parameters['clusterNodeId'] = clusterNodeId;
+            window.open(url + '?' + $.param({
+                'clusterNodeId': clusterNodeId
+            }));
+        } else {
+            window.open(url);
         }
-
-        // get the content
-        nf.Common.submit('GET', config.urls.provenance + '/events/' + encodeURIComponent(eventId) + '/content/' + encodeURIComponent(direction), parameters);
     };
 
     /**
@@ -191,6 +192,29 @@ nf.ProvenanceTable = (function () {
             }
         });
 
+        // input download
+        $('#input-content-download').on('click', function () {
+            downloadContent('input');
+        });
+
+        // output download
+        $('#output-content-download').on('click', function () {
+            downloadContent('output');
+        });
+
+        // if a content viewer url is specified, use it
+        if (isContentViewConfigured()) {
+            // input view
+            $('#input-content-view').on('click', function () {
+                viewContent('input');
+            });
+
+            // output view
+            $('#output-content-view').on('click', function () {
+                viewContent('output');
+            });
+        }
+
         // handle the replay and downloading
         if (nf.Common.isDFM()) {
             // replay
@@ -219,29 +243,6 @@ nf.ProvenanceTable = (function () {
 
                 $('#event-details-dialog').modal('hide');
             });
-
-            // input download
-            $('#input-content-download').on('click', function () {
-                downloadContent('input');
-            });
-
-            // output download
-            $('#output-content-download').on('click', function () {
-                downloadContent('output');
-            });
-
-            // if a content viewer url is specified, use it
-            if (isContentViewConfigured()) {
-                // input view
-                $('#input-content-view').on('click', function () {
-                    viewContent('input');
-                });
-
-                // output view
-                $('#output-content-view').on('click', function () {
-                    viewContent('output');
-                });
-            }
 
             // show the replay panel
             $('#replay-details').show();
@@ -1281,19 +1282,17 @@ nf.ProvenanceTable = (function () {
 
                 $('#output-content-download').hide();
 
-                if (nf.Common.isDFM()) {
-                    if (event.inputContentAvailable === true) {
-                        $('#input-content-download').show();
+                if (event.inputContentAvailable === true) {
+                    $('#input-content-download').show();
 
-                        if (isContentViewConfigured()) {
-                            $('#input-content-view').show();
-                        } else {
-                            $('#input-content-view').hide();
-                        }
+                    if (isContentViewConfigured()) {
+                        $('#input-content-view').show();
                     } else {
-                        $('#input-content-download').hide();
                         $('#input-content-view').hide();
                     }
+                } else {
+                    $('#input-content-download').hide();
+                    $('#input-content-view').hide();
                 }
             } else {
                 $('#output-content-details').show();
@@ -1327,32 +1326,30 @@ nf.ProvenanceTable = (function () {
                     outputContentSize.attr('title', nf.Common.formatInteger(event.outputContentClaimFileSizeBytes) + ' bytes');
                 }
 
-                if (nf.Common.isDFM()) {
-                    if (event.inputContentAvailable === true) {
-                        $('#input-content-download').show();
+                if (event.inputContentAvailable === true) {
+                    $('#input-content-download').show();
 
-                        if (isContentViewConfigured()) {
-                            $('#input-content-view').show();
-                        } else {
-                            $('#input-content-view').hide();
-                        }
+                    if (isContentViewConfigured()) {
+                        $('#input-content-view').show();
                     } else {
-                        $('#input-content-download').hide();
                         $('#input-content-view').hide();
                     }
+                } else {
+                    $('#input-content-download').hide();
+                    $('#input-content-view').hide();
+                }
 
-                    if (event.outputContentAvailable === true) {
-                        $('#output-content-download').show();
+                if (event.outputContentAvailable === true) {
+                    $('#output-content-download').show();
 
-                        if (isContentViewConfigured()) {
-                            $('#output-content-view').show();
-                        } else {
-                            $('#output-content-view').hide();
-                        }
+                    if (isContentViewConfigured()) {
+                        $('#output-content-view').show();
                     } else {
-                        $('#output-content-download').hide();
                         $('#output-content-view').hide();
                     }
+                } else {
+                    $('#output-content-download').hide();
+                    $('#output-content-view').hide();
                 }
             }
 
