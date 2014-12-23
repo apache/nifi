@@ -166,7 +166,7 @@ public class ProvenanceResource extends ApplicationResource {
     public Response submitReplay(
             @Context HttpServletRequest httpServletRequest,
             @FormParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @QueryParam("clusterNodeId") String clusterNodeId,
+            @FormParam("clusterNodeId") String clusterNodeId,
             @FormParam("eventId") LongParameter eventId) {
 
         // ensure the event id is specified
@@ -190,7 +190,7 @@ public class ProvenanceResource extends ApplicationResource {
                 targetNodes.add(targetNode.getNodeId());
 
                 // replicate the request to the specific node
-                return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders(), targetNodes).getResponse();
+                return clusterManager.applyRequest(HttpMethod.POST, getAbsolutePath(), getRequestParameters(true), getHeaders(), targetNodes).getResponse();
             }
         }
 
