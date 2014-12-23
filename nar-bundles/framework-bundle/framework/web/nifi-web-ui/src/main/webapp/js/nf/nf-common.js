@@ -728,7 +728,7 @@ nf.Common = {
      */
     parseSize: function (rawSize) {
         var tokens = rawSize.split(/ /);
-        var size = parseFloat(tokens[0]);
+        var size = parseFloat(tokens[0].replace(/,/g, ''));
         var units = tokens[1];
 
         if (units === 'KB') {
