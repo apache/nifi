@@ -24,6 +24,7 @@ import java.lang.reflect.Method;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.xml.XMLConstants;
@@ -366,6 +367,11 @@ public class AuthorityProviderFactoryBean implements FactoryBean, ApplicationCon
             }
 
             @Override
+            public DownloadAuthorization authorizeDownload(List<String> dnChain, Map<String, String> attributes) throws UnknownIdentityException, AuthorityAccessException {
+                return DownloadAuthorization.approved();
+            }
+
+            @Override
             public void initialize(AuthorityProviderInitializationContext initializationContext) throws ProviderCreationException {
             }
 
@@ -462,6 +468,13 @@ public class AuthorityProviderFactoryBean implements FactoryBean, ApplicationCon
             public void ungroup(String group) throws AuthorityAccessException {
                 try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
                     baseProvider.ungroup(group);
+                }
+            }
+
+            @Override
+            public DownloadAuthorization authorizeDownload(List<String> dnChain, Map<String, String> attributes) throws UnknownIdentityException, AuthorityAccessException {
+                try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+                    return baseProvider.authorizeDownload(dnChain, attributes);
                 }
             }
 

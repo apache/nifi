@@ -17,8 +17,11 @@
 package org.apache.nifi.admin.service;
 
 import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.apache.nifi.authorization.Authority;
+import org.apache.nifi.authorization.DownloadAuthorization;
 import org.apache.nifi.user.NiFiUser;
 import org.apache.nifi.user.NiFiUserGroup;
 
@@ -43,6 +46,16 @@ public interface UserService {
      */
     Boolean hasPendingUserAccount();
 
+    /**
+     * Determines if the users in the dnChain are authorized to download content 
+     * with the specified attributes.
+     * 
+     * @param dnChain
+     * @param attributes
+     * @return 
+     */
+    DownloadAuthorization authorizeDownload(List<String> dnChain, Map<String, String> attributes);
+    
     /**
      * Updates a user group using the specified group comprised of the specified
      * users. Returns all the users that are currently in the specified group.
