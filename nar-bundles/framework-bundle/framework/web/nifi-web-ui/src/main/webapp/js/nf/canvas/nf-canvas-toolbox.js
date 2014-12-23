@@ -1136,14 +1136,14 @@ nf.CanvasToolbox = (function () {
                 });
             } else {
                 // add disabled icons
-                $('<div/>').attr('title', nf.Common.config.type.processor).addClass('processor-icon-disable').addClass('toolbox-icon').appendTo(toolbox);
-                $('<div/>').attr('title', nf.Common.config.type.inputPort).addClass('input-port-icon-disable').addClass('toolbox-icon').appendTo(toolbox);
-                $('<div/>').attr('title', nf.Common.config.type.outputPort).addClass('output-port-icon-disable').addClass('toolbox-icon').appendTo(toolbox);
-                $('<div/>').attr('title', nf.Common.config.type.processGroup).addClass('process-group-icon-disable').addClass('toolbox-icon').appendTo(toolbox);
-                $('<div/>').attr('title', nf.Common.config.type.remoteProcessGroup).addClass('remote-process-group-icon-disable').addClass('toolbox-icon').appendTo(toolbox);
-                $('<div/>').attr('title', nf.Common.config.type.funnel).addClass('funnel-icon-disable').addClass('toolbox-icon').appendTo(toolbox);
-                $('<div/>').attr('title', nf.Common.config.type.template).addClass('template-icon-disable').addClass('toolbox-icon').appendTo(toolbox);
-                $('<div/>').attr('title', nf.Common.config.type.label).addClass('label-icon-disable').addClass('toolbox-icon').appendTo(toolbox);
+                $('<div/>').attr('title', config.type.processor).addClass('processor-icon-disable').addClass('toolbox-icon').appendTo(toolbox);
+                $('<div/>').attr('title', config.type.inputPort).addClass('input-port-icon-disable').addClass('toolbox-icon').appendTo(toolbox);
+                $('<div/>').attr('title', config.type.outputPort).addClass('output-port-icon-disable').addClass('toolbox-icon').appendTo(toolbox);
+                $('<div/>').attr('title', config.type.processGroup).addClass('process-group-icon-disable').addClass('toolbox-icon').appendTo(toolbox);
+                $('<div/>').attr('title', config.type.remoteProcessGroup).addClass('remote-process-group-icon-disable').addClass('toolbox-icon').appendTo(toolbox);
+                $('<div/>').attr('title', config.type.funnel).addClass('funnel-icon-disable').addClass('toolbox-icon').appendTo(toolbox);
+                $('<div/>').attr('title', config.type.template).addClass('template-icon-disable').addClass('toolbox-icon').appendTo(toolbox);
+                $('<div/>').attr('title', config.type.label).addClass('label-icon-disable').addClass('toolbox-icon').appendTo(toolbox);
             }
         },
         
