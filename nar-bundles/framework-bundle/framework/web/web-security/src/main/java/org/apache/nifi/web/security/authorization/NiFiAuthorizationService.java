@@ -51,10 +51,12 @@ public class NiFiAuthorizationService implements UserDetailsService {
     private NiFiProperties properties;
 
     /**
-     * Loads the user details for the specified dn. Method must be synchronized
-     * since multiple requests from the same user may be sent simultaneously.
-     * Since we don't want to run the account verification process multiple for
-     * the same user, we treat each request atomically.
+     * Loads the user details for the specified dn. 
+     * 
+     * Synchronizing because we want each request to be authorized atomically since
+     * each may contain any number of DNs. We wanted an access decision made
+     * for each individual request as a whole (without other request potentially
+     * impacting it).
      *
      * @param rawProxyChain
      * @return
@@ -111,6 +113,12 @@ public class NiFiAuthorizationService implements UserDetailsService {
                             throw new UsernameNotFoundException(String.format("An account request was generated for the proxy '%s'.", dn));
                         } catch (AdministrationException ae) {
                             throw new AuthenticationServiceException(String.format("Unable to create an account request for '%s': %s", dn, ae.getMessage()), ae);
+                        } catch (IllegalArgumentException iae) {
+                            // check then modified... account didn't exist when getting the user details but did when
+                            // attempting to auto create the user account request
+                            final String message = String.format("Account request was already submitted for '%s'", dn);
+                            logger.warn(message);
+                            throw new AccountStatusException(message) {};
                         }
                     } else {
                         logger.warn(String.format("Untrusted proxy '%s' must be authorized with '%s' authority: %s", dn, Authority.ROLE_PROXY.toString(), unfe.getMessage()));
@@ -147,8 +155,7 @@ public class NiFiAuthorizationService implements UserDetailsService {
         } catch (AdministrationException ase) {
             throw new AuthenticationServiceException(String.format("An error occurred while accessing the user credentials for '%s': %s", dn, ase.getMessage()), ase);
         } catch (AccountDisabledException | AccountPendingException e) {
-            throw new AccountStatusException(e.getMessage(), e) {
-            };
+            throw new AccountStatusException(e.getMessage(), e) {};
         } catch (AccountNotFoundException anfe) {
             throw new UsernameNotFoundException(anfe.getMessage());
         }
