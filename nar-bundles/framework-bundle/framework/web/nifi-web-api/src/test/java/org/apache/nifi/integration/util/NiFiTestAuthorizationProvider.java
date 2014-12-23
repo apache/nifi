@@ -19,6 +19,7 @@ package org.apache.nifi.integration.util;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.nifi.authorization.Authority;
@@ -29,6 +30,7 @@ import org.apache.nifi.authorization.exception.AuthorityAccessException;
 import org.apache.nifi.authorization.exception.ProviderCreationException;
 import org.apache.nifi.authorization.exception.UnknownIdentityException;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.DownloadAuthorization;
 
 /**
  *
@@ -167,6 +169,11 @@ public class NiFiTestAuthorizationProvider implements AuthorityProvider {
 
     @Override
     public void ungroup(String group) throws UnknownIdentityException, AuthorityAccessException {
+    }
+
+    @Override
+    public DownloadAuthorization authorizeDownload(List<String> dnChain, Map<String, String> attributes) throws UnknownIdentityException, AuthorityAccessException {
+        return DownloadAuthorization.approved();
     }
 
 }
