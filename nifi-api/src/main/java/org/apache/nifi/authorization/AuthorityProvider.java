@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.authorization;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.apache.nifi.authorization.exception.AuthorityAccessException;
 import org.apache.nifi.authorization.exception.IdentityAlreadyExistsException;
@@ -136,6 +138,22 @@ public interface AuthorityProvider {
      */
     void ungroup(String group) throws AuthorityAccessException;
 
+    /**
+     * Determines whether the user in the specified dnChain should be able to 
+     * download the content for the flowfile with the specified attributes.
+     * 
+     * The last dn in the chain is the end user that the request was issued on 
+     * behalf of. The previous dn's in the chain represent entities proxying the 
+     * user's request.
+     * 
+     * @param dnChain
+     * @param attributes
+     * @return
+     * @throws UnknownIdentityException
+     * @throws AuthorityAccessException 
+     */
+    DownloadAuthorization authorizeDownload(List<String> dnChain, Map<String, String> attributes) throws UnknownIdentityException, AuthorityAccessException;
+    
     /**
      * Called immediately after instance creation for implementers to perform
      * additional setup
