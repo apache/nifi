@@ -72,6 +72,8 @@ public class NiFiAuthorizationService implements UserDetailsService {
             throw new UntrustedProxyException("Malformed proxy chain.");
         }
 
+        NiFiUser proxy = null;
+        
         // process each part of the proxy chain
         for (final Iterator<String> dnIter = dnList.iterator(); dnIter.hasNext();) {
             final String dn = dnIter.next();
@@ -88,6 +90,14 @@ public class NiFiAuthorizationService implements UserDetailsService {
                         logger.warn(String.format("Proxy '%s' must have '%s' authority. Current authorities: %s", dn, Authority.ROLE_PROXY.toString(), StringUtils.join(user.getAuthorities(), ", ")));
                         throw new UntrustedProxyException(String.format("Untrusted proxy '%s' must be authorized with '%s'.", dn, Authority.ROLE_PROXY.toString()));
                     }
+                    
+                    // if we've already encountered a proxy, update the chain
+                    if (proxy != null) {
+                        user.setChain(proxy);
+                    }
+                    
+                    // record this user as the proxy for the next user in the chain
+                    proxy = user;
                 } catch (UsernameNotFoundException unfe) {
                     // if this proxy is a new user, conditionally create a new account automatically
                     if (properties.getSupportNewAccountRequests()) {
@@ -112,6 +122,12 @@ public class NiFiAuthorizationService implements UserDetailsService {
                 }
             } else {
                 userDetails = getNiFiUserDetails(dn);
+                
+                // if we've already encountered a proxy, update the chain
+                if (proxy != null) {
+                    final NiFiUser user = userDetails.getNiFiUser();
+                    user.setChain(proxy);
+                }
             }
         }
 
