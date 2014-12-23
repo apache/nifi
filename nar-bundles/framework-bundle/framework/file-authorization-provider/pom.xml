@@ -23,7 +23,7 @@
 
     <artifactId>file-authorization-provider</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>Authorization Provider: File</name>
+    <name>NiFi File Authorization Provider</name>
 
     <build>
         <resources>
