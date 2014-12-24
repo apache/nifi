@@ -22,12 +22,15 @@ import org.apache.nifi.cluster.authorization.protocol.message.ProtocolMessage;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import org.apache.nifi.authorization.Authority;
 import org.apache.nifi.authorization.AuthorityProvider;
 import org.apache.nifi.authorization.AuthorityProviderConfigurationContext;
 import org.apache.nifi.authorization.AuthorityProviderInitializationContext;
+import org.apache.nifi.authorization.DownloadAuthorization;
 import org.apache.nifi.authorization.annotation.AuthorityProviderContext;
 import org.apache.nifi.authorization.exception.AuthorityAccessException;
 import org.apache.nifi.authorization.exception.IdentityAlreadyExistsException;
@@ -280,6 +283,11 @@ public class NodeAuthorizationProvider implements AuthorityProvider, Application
     @Override
     public void ungroup(String group) throws AuthorityAccessException {
         throw new AuthorityAccessException("Nodes are not allowed to ungroup.");
+    }
+
+    @Override
+    public DownloadAuthorization authorizeDownload(List<String> dnChain, Map<String, String> attributes) throws UnknownIdentityException, AuthorityAccessException {
+        return DownloadAuthorization.approved();
     }
 
     @Override

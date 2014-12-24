@@ -43,6 +43,8 @@ public class NiFiUser implements Serializable {
 
     private AccountStatus status;
     private EnumSet<Authority> authorities;
+    
+    private NiFiUser chain;
 
     /* getters / setters */
     public Date getCreation() {
@@ -115,6 +117,14 @@ public class NiFiUser implements Serializable {
 
     public void setLastAccessed(Date lastAccessed) {
         this.lastAccessed = lastAccessed;
+    }
+
+    public NiFiUser getChain() {
+        return chain;
+    }
+
+    public void setChain(NiFiUser chain) {
+        this.chain = chain;
     }
 
     public Set<Authority> getAuthorities() {

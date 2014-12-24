@@ -270,7 +270,7 @@ nf.TemplatesTable = (function () {
             if (nf.Common.isDefinedAndNotNull(grid)) {
                 var data = grid.getData();
                 var item = data.getItem(row);
-                nf.Common.submit('GET', config.urls.templates + '/' + encodeURIComponent(item.id));
+                window.open(config.urls.templates + '/' + encodeURIComponent(item.id));
             }
         },
         

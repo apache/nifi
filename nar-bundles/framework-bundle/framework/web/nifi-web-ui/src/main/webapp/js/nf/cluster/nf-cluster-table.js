@@ -30,6 +30,8 @@ nf.ClusterTable = (function () {
         }
     };
 
+    var prevColumn, count;
+
     /**
      * Sorts the specified data using the specified sort details.
      * 
@@ -44,9 +46,20 @@ nf.ClusterTable = (function () {
                 var bDate = nf.Common.parseDateTime(b[sortDetails.columnId]);
                 return aDate.getTime() - bDate.getTime();
             } else if (sortDetails.columnId === 'queued') {
-                var aCount = nf.Common.parseCount(a[sortDetails.columnId]);
-                var bCount = nf.Common.parseCount(b[sortDetails.columnId]);
-                return aCount - bCount;
+                var aSplit = a[sortDetails.columnId].split(/ \/ /);
+                var bSplit = b[sortDetails.columnId].split(/ \/ /);
+                var mod = count %4;
+                if (mod < 2) {
+                    $('#cluster-table span.queued-title').addClass('sorted');
+                    var aCount = nf.Common.parseCount(aSplit[0]);
+                    var bCount = nf.Common.parseCount(bSplit[0]);
+                    return aCount - bCount;
+                } else {
+                    $('#cluster-table span.queued-size-title').addClass('sorted');
+                    var aSize = nf.Common.parseSize(aSplit[1]);
+                    var bSize = nf.Common.parseSize(bSplit[1]);
+                    return aSize - bSize;
+                }                
             } else if (sortDetails.columnId === 'status') {
                 var aString = nf.Common.isDefinedAndNotNull(a[sortDetails.columnId]) ? a[sortDetails.columnId] : '';
                 if (a.primary === true) {
@@ -68,8 +81,22 @@ nf.ClusterTable = (function () {
             }
         };
 
+        // remove previous sort indicators
+        $('#cluster-table span.queued-title').removeClass('sorted');
+        $('#cluster-table span.queued-size-title').removeClass('sorted');
+
+        // update/reset the count as appropriate
+        if (prevColumn !== sortDetails.columnId) {
+            count = 0;
+        } else {
+            count++;
+        }
+
         // perform the sort
         data.sort(comparer, sortDetails.sortAsc);
+
+        // record the previous table and sorted column
+        prevColumn = sortDetails.columnId;
     };
 
     /**
@@ -291,7 +318,7 @@ nf.ClusterTable = (function () {
                 {id: 'moreDetails', name: '&nbsp;', sortable: false, resizable: false, formatter: moreDetailsFormatter, width: 50, maxWidth: 50},
                 {id: 'node', field: 'node', name: 'Node Address', formatter: nodeFormatter, resizable: true, sortable: true},
                 {id: 'activeThreadCount', field: 'activeThreadCount', name: 'Active Thread Count', resizable: true, sortable: true},
-                {id: 'queued', field: 'queued', name: 'Queued <span style="font-weight: normal; overflow: hidden;">(count / size)</span>', resizable: true, sortable: true},
+                {id: 'queued', field: 'queued', name: '<span class="queued-title">Queue</span>&nbsp;/&nbsp;<span class="queued-size-title">Size</span>', resizable: true, sortable: true},
                 {id: 'status', field: 'status', name: 'Status', formatter: statusFormatter, resizable: true, sortable: true},
                 {id: 'uptime', field: 'nodeStartTime', name: 'Uptime', formatter: valueFormatter, resizable: true, sortable: true},
                 {id: 'heartbeat', field: 'heartbeat', name: 'Last Heartbeat', formatter: valueFormatter, resizable: true, sortable: true}
