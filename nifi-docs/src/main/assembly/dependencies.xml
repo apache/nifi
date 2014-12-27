@@ -21,8 +21,8 @@
     <includeBaseDirectory>false</includeBaseDirectory>
     <fileSets>
         <fileSet>
-            <directory>${project.build.directory}/generated-docs</directory>
-            <outputDirectory>/user-guide/</outputDirectory>
-        </fileSet>
+            <directory>${project.build.directory}/generated-docs/</directory>
+            <outputDirectory>/html/</outputDirectory>
+        </fileSet>        
     </fileSets>
 </assembly>
