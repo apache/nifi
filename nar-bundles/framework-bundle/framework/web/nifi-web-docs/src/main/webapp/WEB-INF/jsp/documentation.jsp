@@ -42,7 +42,9 @@
                 <div class="header">General</div>
                 <div id="general-links" class="component-links">
                     <ul>
-                        <li class="component-item"><a class="component-link user-guide" href="user-guide/nifi-user-guide.html" target="component-usage">User Guide</a></li>
+                        <li class="component-item"><a class="component-link overview" href="html/overview.html" target="component-usage">Overview</a></li>
+                        <li class="component-item"><a class="component-link user-guide" href="html/user-guide.html" target="component-usage">User Guide</a></li>
+                        <li class="component-item"><a class="component-link admin-guide" href="html/administration-guide.html" target="component-usage">Admin Guide</a></li>
                     </ul>
                     <span class="no-matching no-components hidden">No matching guides</span>
                 </div>
@@ -106,6 +108,7 @@
                 <div id="developer-links" class="component-links">
                     <ul>
                         <li class="component-item"><a class="component-link rest-api" href="rest-api/index.html" target="component-usage">Rest Api</a></li>
+                        <li class="component-item"><a class="component-link developer-guide" href="html/developer-guide.html" target="component-usage">Developer Guide</a></li>
                     </ul>
                     <span class="no-matching no-components hidden">No matching developer guides</span>
                 </div>

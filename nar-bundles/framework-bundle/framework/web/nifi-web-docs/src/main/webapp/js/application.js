@@ -258,8 +258,8 @@ $(document).ready(function () {
             }
         });
         
-        // listen for on the rest api and user guide
-        $('a.rest-api, a.user-guide').on('click', function() {
+        // listen for on the rest api and user guide and developer guide and admin guide and overview
+        $('a.rest-api, a.user-guide, a.developer-guide, a.admin-guide, a.overview').on('click', function() {
             selectComponent($(this).text());
         });
 
