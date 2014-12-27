@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.security.cert.X509Certificate;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -56,7 +57,6 @@ import org.apache.nifi.util.FlowFileUnpackager;
 import org.apache.nifi.util.FlowFileUnpackagerV1;
 import org.apache.nifi.util.FlowFileUnpackagerV2;
 import org.apache.nifi.util.FlowFileUnpackagerV3;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -88,6 +88,7 @@ public class ListenHTTPServlet extends HttpServlet {
     private ProcessorLog logger;
     private AtomicReference<ProcessSessionFactory> sessionFactoryHolder;
     private Pattern authorizedPattern;
+    private Pattern headerPattern;
     private ConcurrentMap<String, FlowFileEntryTimeWrapper> flowFileMap;
     private StreamThrottler streamThrottler;
 
@@ -103,6 +104,7 @@ public class ListenHTTPServlet extends HttpServlet {
         this.logger = (ProcessorLog) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_LOGGER);
         this.sessionFactoryHolder = (AtomicReference<ProcessSessionFactory>) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_SESSION_FACTORY_HOLDER);
         this.authorizedPattern = (Pattern) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_AUTHORITY_PATTERN);
+        this.headerPattern = (Pattern) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_HEADER_PATTERN);
         this.flowFileMap = (ConcurrentMap<String, FlowFileEntryTimeWrapper>) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_FLOWFILE_MAP);
         this.streamThrottler = (StreamThrottler) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_STREAM_THROTTLER);
     }
@@ -241,6 +243,16 @@ public class ListenHTTPServlet extends HttpServlet {
                 final String nameVal = request.getHeader(CoreAttributes.FILENAME.key());
                 if (StringUtils.isNotBlank(nameVal)) {
                     attributes.put(CoreAttributes.FILENAME.key(), nameVal);
+                }
+                
+                // put arbitrary headers on flow file
+                for(Enumeration<String> headerEnum = request.getHeaderNames(); 
+                		headerEnum.hasMoreElements(); ) {
+                	String headerName = headerEnum.nextElement();
+                	if (headerPattern != null && headerPattern.matcher(headerName).matches()) {
+	                	String headerValue = request.getHeader(headerName);
+	                	attributes.put(headerName, headerValue);
+	                }
                 }
 
                 String sourceSystemFlowFileIdentifier = attributes.get(CoreAttributes.UUID.key());
