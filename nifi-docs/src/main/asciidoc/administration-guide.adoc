@@ -16,6 +16,8 @@
 //
 NiFi System Administrator's Guide
 =================================
+Apache NiFi Team <dev@nifi.incubator.apache.org>
+:homepage: http://nifi.incubator.apache.org
 
 How to install
 --------------
