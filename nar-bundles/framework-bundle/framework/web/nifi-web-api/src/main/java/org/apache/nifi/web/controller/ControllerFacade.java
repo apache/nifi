@@ -111,8 +111,11 @@ import org.apache.nifi.web.util.DownloadableContent;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.admin.service.UserService;
+import org.apache.nifi.authorization.DownloadAuthorization;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.access.AccessDeniedException;
 
 /**
  *
@@ -124,6 +127,7 @@ public class ControllerFacade implements ControllerServiceProvider {
     // nifi components
     private FlowController flowController;
     private FlowService flowService;
+    private UserService userService;
 
     // properties
     private NiFiProperties properties;
@@ -787,6 +791,28 @@ public class ControllerFacade implements ControllerServiceProvider {
                 throw new ResourceNotFoundException("Unable to find the specified event.");
             }
 
+            // get the flowfile attributes
+            final Map<String, String> attributes = event.getAttributes();
+
+            // calculate the dn chain
+            final List<String> dnChain = new ArrayList<>();
+
+            // build the dn chain
+            NiFiUser chainedUser = user;
+            do {
+                // add the entry for this user
+                dnChain.add(chainedUser.getDn());
+
+                // go to the next user in the chain
+                chainedUser = chainedUser.getChain();
+            } while (chainedUser != null);
+
+            // ensure the users in this chain are allowed to download this content
+            final DownloadAuthorization downloadAuthorization = userService.authorizeDownload(dnChain, attributes);
+            if (!downloadAuthorization.isApproved()) {
+                throw new AccessDeniedException(downloadAuthorization.getExplanation());
+            }
+            
             // get the filename and fall back to the idnetifier (should never happen)
             String filename = event.getAttributes().get(CoreAttributes.FILENAME.key());
             if (filename == null) {
@@ -1327,6 +1353,10 @@ public class ControllerFacade implements ControllerServiceProvider {
 
     public void setProperties(NiFiProperties properties) {
         this.properties = properties;
+    }
+
+    public void setUserService(UserService userService) {
+        this.userService = userService;
     }
 
     public void setFlowService(FlowService flowService) {

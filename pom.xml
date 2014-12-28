@@ -52,24 +52,29 @@
             <archive>http://mail-archives.apache.org/mod_mbox/incubator-nifi-commits</archive>
         </mailingList>
     </mailingLists>
+    <!--
+      ! This marked as deprecated for Maven 3.X. This is checked by maven-enforcer-plugin
+      ! http://jira.codehaus.org/browse/MNG-4840
+      ! http://jira.codehaus.org/browse/MNG-5297
+    -->
     <prerequisites>
-        <maven>${maven.min-version}</maven>
+      <maven>${maven.version}</maven>
     </prerequisites>
     <modules>
-        <module>commons</module>
         <!--
         ! Would prefer to have the nar-maven-plugin built as part of this parent.  However, Maven
         ! blocks building plugins with extensions in the same reactor as other components which want to use the plugin.
         ! See MNG-1911 and MNG-5572 for more details.
         -->
         <!--<module>nar-maven-plugin</module>-->
+        <module>commons</module>
         <module>nifi-api</module>
         <module>nifi-bootstrap</module>
         <module>nifi-mock</module>
         <module>nar-bundles</module>
         <module>assembly</module>
-    <module>nifi-docs</module>
-  </modules>
+        <module>nifi-docs</module>
+    </modules>
     <scm>
         <connection>scm:git:git://git.apache.org/incubator-nifi.git</connection>
         <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-nifi.git</developerConnection>
@@ -80,6 +85,9 @@
         <url>https://issues.apache.org/jira/browse/NIFI</url>
     </issueManagement>
     <properties>
+        <maven.compiler.source>1.7</maven.compiler.source>
+        <maven.compiler.target>1.7</maven.compiler.target>
+        <maven.version>3.0.5</maven.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <org.slf4j.version>1.7.8</org.slf4j.version>
@@ -132,27 +140,6 @@
                 <version>${org.slf4j.version}</version>
                 <scope>provided</scope>
             </dependency>
-            <dependency>
-                <groupId>org.apache.maven</groupId>
-                <artifactId>maven-plugin-api</artifactId>
-                <version>2.0.11</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-dependency-plugin</artifactId>
-                <version>2.9</version>
-                <type>maven-plugin</type>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <version>2.5</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.maven.plugin-tools</groupId>
-                <artifactId>maven-plugin-annotations</artifactId>
-                <version>3.3</version>
-            </dependency>            
             <dependency>
                 <groupId>junit</groupId>
                 <artifactId>junit</artifactId>
@@ -248,6 +235,16 @@
                 <groupId>org.quartz-scheduler</groupId>
                 <artifactId>quartz</artifactId>
                 <version>2.2.1</version>
+                <exclusions>
+                    <!-- 
+                    | Exclude the quartz 2.2.1 bundled version of c3p0 because it is lgpl licensed
+                    | We also don't use the JDBC related features of quartz for which the dependency would matter
+                    -->                    
+                    <exclusion>
+                        <groupId>c3p0</groupId>
+                        <artifactId>c3p0</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>com.sun.jersey.contribs</groupId>
@@ -647,11 +644,6 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-file-utils</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-expression-language</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -662,22 +654,7 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-core-flowfile-attributes</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
                 <artifactId>flowfile-packager</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>naive-search-ring-buffer</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-search-utils</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -703,6 +680,14 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-resources</artifactId>
+                <version>${project.version}</version>
+                <classifier>resources</classifier>
+                <scope>provided</scope> <!-- Provided - we don't want the zip in the libs -->
+                <type>zip</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-docs</artifactId>
                 <version>${project.version}</version>
                 <classifier>resources</classifier>
                 <scope>provided</scope> <!-- Provided - we don't want the zip in the libs -->
@@ -782,11 +767,6 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-stream-utils</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-properties</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -808,11 +788,6 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-processor-utils</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>remote-communications-utils</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -853,27 +828,16 @@
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>3.2</version>
                     <configuration>
-                        <source>1.7</source>
-                        <target>1.7</target>
                         <fork>true</fork>
                         <optimize>true</optimize>
-                        <encoding>UTF-8</encoding>
                         <showDeprecation>true</showDeprecation>
                         <showWarnings>true</showWarnings>
                     </configuration>
                 </plugin>
                 <plugin>
-                    <artifactId>maven-jar-plugin</artifactId>
-                    <version>2.5</version>
-                </plugin>
-                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-war-plugin</artifactId>
                     <version>2.5</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-plugin-plugin</artifactId>
-                    <version>3.3</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -901,11 +865,6 @@
                         <attach>false</attach>
                         <tarLongFileMode>gnu</tarLongFileMode>
                     </configuration>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-release-plugin</artifactId>
-                    <version>2.5.1</version>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
@@ -950,6 +909,32 @@
             </plugins>
         </pluginManagement>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>enforce-maven</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireSameVersions>
+                                    <plugins>
+                                        <plugin>org.apache.maven.plugins:maven-surefire-plugin</plugin>
+                                        <plugin>org.apache.maven.plugins:maven-failsafe-plugin</plugin>
+                                        <plugin>org.apache.maven.plugins:maven-surefire-report-plugin</plugin>
+                                    </plugins>
+                                </requireSameVersions>
+                                <requireMavenVersion>
+                                    <version>${maven.version}</version>
+                                </requireMavenVersion>
+                            </rules>    
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nar-maven-plugin</artifactId>

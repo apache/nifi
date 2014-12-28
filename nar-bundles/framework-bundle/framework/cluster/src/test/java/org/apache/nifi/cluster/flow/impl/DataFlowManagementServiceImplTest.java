@@ -74,8 +74,8 @@ public class DataFlowManagementServiceImplTest {
     @Before
     public void setup() throws IOException {
 
-        primaryLocation = new File(System.getProperty("java.io.tmpdir") + "/primary");
-        restoreLocation = new File(System.getProperty("java.io.tmpdir") + "/restore");
+        primaryLocation = new File(System.getProperty("java.io.tmpdir") + "/primary" + this.getClass().getSimpleName());
+        restoreLocation = new File(System.getProperty("java.io.tmpdir") + "/restore" + this.getClass().getSimpleName());
 
         FileUtils.deleteDirectory(primaryLocation);
         FileUtils.deleteDirectory(restoreLocation);
@@ -114,6 +114,8 @@ public class DataFlowManagementServiceImplTest {
                 ex.printStackTrace(System.out);
             }
         }
+        FileUtils.deleteDirectory(primaryLocation);
+        FileUtils.deleteDirectory(restoreLocation);
 
     }
 

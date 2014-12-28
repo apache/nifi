@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.io.StreamUtils;
+import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;

@@ -20,7 +20,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import org.apache.nifi.authorization.exception.ProviderCreationException;
-import org.apache.nifi.file.FileUtils;
+import org.apache.nifi.util.file.FileUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.After;
 import org.junit.Before;

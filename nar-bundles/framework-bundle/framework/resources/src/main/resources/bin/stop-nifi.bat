@@ -1,5 +1,4 @@
 @echo off
-
 rem
 rem    Licensed to the Apache Software Foundation (ASF) under one or more
 rem    contributor license agreements.  See the NOTICE file distributed with
@@ -20,8 +19,10 @@ rem
 rem Use JAVA_HOME if it's set; otherwise, just use java
 IF "%JAVA_HOME%"=="" (SET JAVA_EXE=java) ELSE (SET JAVA_EXE=%JAVA_HOME%\bin\java.exe)
 
-SET LIB_DIR=%~dp0..\lib\bootstrap
-SET CONF_DIR=%~dp0..\conf
+SET NIFI_ROOT=%~dp0..\
+CD /d "%NIFI_ROOT%"
+SET LIB_DIR=lib\bootstrap
+SET CONF_DIR=conf
 
 SET BOOTSTRAP_CONF_FILE=%CONF_DIR%\bootstrap.conf
 SET JAVA_ARGS=-Dorg.apache.nifi.bootstrap.config.file=%BOOTSTRAP_CONF_FILE%

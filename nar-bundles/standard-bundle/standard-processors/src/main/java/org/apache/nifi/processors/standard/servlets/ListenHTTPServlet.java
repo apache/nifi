@@ -44,8 +44,8 @@ import javax.ws.rs.core.MediaType;
 
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.io.BufferedOutputStream;
-import org.apache.nifi.io.StreamThrottler;
+import org.apache.nifi.stream.io.BufferedOutputStream;
+import org.apache.nifi.stream.io.StreamThrottler;
 import org.apache.nifi.logging.ProcessorLog;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;

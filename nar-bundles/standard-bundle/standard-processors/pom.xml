@@ -37,11 +37,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-stream-utils</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-core-flowfile-attributes</artifactId>
+            <artifactId>nifi-utils</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -50,14 +46,6 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>flowfile-packager</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>naive-search-ring-buffer</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-search-utils</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>

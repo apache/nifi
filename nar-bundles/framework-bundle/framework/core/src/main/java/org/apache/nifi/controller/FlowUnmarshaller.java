@@ -26,7 +26,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.nifi.encrypt.StringEncryptor;
-import org.apache.nifi.io.ByteArrayInputStream;
+import org.apache.nifi.stream.io.ByteArrayInputStream;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 

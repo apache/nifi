@@ -16,10 +16,9 @@
  */
 package org.apache.nifi.cluster.firewall.impl;
 
-import org.apache.nifi.cluster.firewall.impl.FileBasedClusterNodeFirewall;
 import java.io.File;
 import java.io.IOException;
-import org.apache.nifi.file.FileUtils;
+import org.apache.nifi.util.file.FileUtils;
 import org.junit.After;
 import org.junit.Before;
 import static org.junit.Assert.*;

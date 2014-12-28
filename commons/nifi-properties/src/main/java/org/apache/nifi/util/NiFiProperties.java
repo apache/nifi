@@ -374,20 +374,18 @@ public class NiFiProperties extends Properties {
         return getPropertyAsPort(REMOTE_INPUT_PORT, DEFAULT_REMOTE_INPUT_PORT);
     }
 
+    /**
+     * @return False if property value is 'false'; True otherwise.
+     */
     public Boolean isSiteToSiteSecure() {
-        final String secureVal = getProperty(SITE_TO_SITE_SECURE);
-        if (secureVal == null) {
-            return null;
-        }
+        final String secureVal = getProperty(SITE_TO_SITE_SECURE, "true");
 
-        if ("true".equalsIgnoreCase(secureVal)) {
-            return true;
-        }
         if ("false".equalsIgnoreCase(secureVal)) {
             return false;
+        }else{
+            return true;
         }
 
-        throw new IllegalStateException("Property value for " + SITE_TO_SITE_SECURE + " is " + secureVal + "; expected 'true' or 'false'");
     }
 
     /**

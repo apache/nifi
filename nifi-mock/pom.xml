@@ -41,10 +41,6 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-core-flowfile-attributes</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
             <artifactId>data-provenance-utils</artifactId>
         </dependency>
         <dependency>

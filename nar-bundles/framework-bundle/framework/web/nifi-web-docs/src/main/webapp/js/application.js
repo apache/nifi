@@ -95,12 +95,14 @@ $(document).ready(function () {
     };
 
     var applyFilter = function () {
+        var matchingGeneral = applyComponentFilter($('#general-links'));
         var matchingProcessors = applyComponentFilter($('#processor-links'));
         var matchingControllerServices = applyComponentFilter($('#controller-service-links'));
         var matchingReportingTasks = applyComponentFilter($('#reporting-task-links'));
+        var matchingDeveloper = applyComponentFilter($('#developer-links'));
 
         // update the rule count
-        $('#displayed-components').text(matchingProcessors + matchingControllerServices + matchingReportingTasks);
+        $('#displayed-components').text(matchingGeneral + matchingProcessors + matchingControllerServices + matchingReportingTasks + matchingDeveloper);
     };
 
     var selectComponent = function (componentName) {
@@ -199,9 +201,9 @@ $(document).ready(function () {
             }
         }).blur(function () {
             if ($(this).val() === '') {
-                $(this).addClass('component-filter-list').val('Filter components');
+                $(this).addClass('component-filter-list').val('Filter');
             }
-        }).addClass('component-filter-list').val('Filter components');
+        }).addClass('component-filter-list').val('Filter');
 
         // get the component usage container to install the window listener
         var componentUsageContainer = $('#component-usage-container');
@@ -255,12 +257,12 @@ $(document).ready(function () {
                 selectComponent(componentName);
             }
         });
+        
+        // listen for on the rest api and user guide and developer guide and admin guide and overview
+        $('a.rest-api, a.user-guide, a.developer-guide, a.admin-guide, a.overview').on('click', function() {
+            selectComponent($(this).text());
+        });
 
-	   // listen for on the rest api and user guide
-       $('a.rest-api a.user-guide').on('click', function() {
-           selectComponent($(this).text());
-       });
-       
         // get the initial selection
         var initialComponentLink = $('a.component-link:first');
         var initialSelection = $('#initial-selection').text();

@@ -28,7 +28,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.io.BufferedOutputStream;
+import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.apache.nifi.io.nio.BufferPool;
 import org.apache.nifi.io.nio.consumer.StreamConsumer;
 import org.apache.nifi.logging.ProcessorLog;

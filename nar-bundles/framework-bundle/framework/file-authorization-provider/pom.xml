@@ -23,7 +23,7 @@
 
     <artifactId>file-authorization-provider</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>Authorization Provider: File</name>
+    <name>NiFi File Authorization Provider</name>
 
     <build>
         <resources>
@@ -62,7 +62,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-file-utils</artifactId>
+            <artifactId>nifi-utils</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>

@@ -32,7 +32,7 @@
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>remote-communications-utils</artifactId>
+            <artifactId>nifi-utils</artifactId>
         </dependency>
     </dependencies>
 

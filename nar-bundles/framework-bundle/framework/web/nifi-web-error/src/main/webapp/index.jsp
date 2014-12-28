@@ -20,6 +20,7 @@
     <% String contextPath = "/".equals(request.getContextPath()) ? "" : request.getContextPath(); %>
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        <link rel="shortcut icon" href="../nifi/images/nifi16.ico"/>
         <title>NiFi</title>
         <link href="<%= contextPath %>/nifi/css/message-pane.css" rel="stylesheet" type="text/css" />
         <link href="<%= contextPath %>/nifi/css/message-page.css" rel="stylesheet" type="text/css" />

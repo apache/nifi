@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.nifi.processors.standard.MergeContent;
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
@@ -32,7 +31,7 @@ import java.util.Set;
 import java.util.zip.ZipInputStream;
 
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.io.ByteArrayInputStream;
+import org.apache.nifi.stream.io.ByteArrayInputStream;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;

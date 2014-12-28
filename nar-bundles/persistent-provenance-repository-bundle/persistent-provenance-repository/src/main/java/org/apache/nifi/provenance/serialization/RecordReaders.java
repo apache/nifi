@@ -26,7 +26,7 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.zip.GZIPInputStream;
 
-import org.apache.nifi.io.BufferedInputStream;
+import org.apache.nifi.stream.io.BufferedInputStream;
 import org.apache.nifi.provenance.StandardRecordReader;
 import org.apache.nifi.provenance.lucene.LuceneUtil;
 

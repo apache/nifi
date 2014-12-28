@@ -23,7 +23,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 public class JmsProperties {
 
     public static final String ACTIVEMQ_PROVIDER = "ActiveMQ";
-    public static final String HORNETQ_PROVIDER = "HornetQ";
 
     public static final String ACK_MODE_CLIENT = "Client Acknowledge";
     public static final String ACK_MODE_AUTO = "Auto Acknowledge";
@@ -41,7 +40,7 @@ public class JmsProperties {
             .name("JMS Provider")
             .description("The Provider used for the JMS Server")
             .required(true)
-            .allowableValues(ACTIVEMQ_PROVIDER, HORNETQ_PROVIDER)
+            .allowableValues(ACTIVEMQ_PROVIDER)
             .defaultValue(ACTIVEMQ_PROVIDER)
             .build();
     public static final PropertyDescriptor URL = new PropertyDescriptor.Builder()

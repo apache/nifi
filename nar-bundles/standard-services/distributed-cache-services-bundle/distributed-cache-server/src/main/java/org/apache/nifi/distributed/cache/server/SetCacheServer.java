@@ -29,7 +29,7 @@ import org.apache.nifi.distributed.cache.server.set.PersistentSetCache;
 import org.apache.nifi.distributed.cache.server.set.SetCache;
 import org.apache.nifi.distributed.cache.server.set.SetCacheResult;
 import org.apache.nifi.distributed.cache.server.set.SimpleSetCache;
-import org.apache.nifi.io.DataOutputStream;
+import org.apache.nifi.stream.io.DataOutputStream;
 
 public class SetCacheServer extends AbstractCacheServer {
 

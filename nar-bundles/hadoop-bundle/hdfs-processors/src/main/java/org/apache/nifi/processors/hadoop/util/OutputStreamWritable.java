@@ -21,8 +21,8 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.io.OutputStream;
 
-import org.apache.nifi.io.BufferedOutputStream;
-import org.apache.nifi.io.DataOutputStream;
+import org.apache.nifi.stream.io.BufferedOutputStream;
+import org.apache.nifi.stream.io.DataOutputStream;
 
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.Writable;

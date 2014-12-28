@@ -133,6 +133,10 @@ input.cluster-filter-list {
     overflow: hidden;
 }
 
+span.sorted {
+    text-decoration: underline;
+}
+
 /* user details dialog */
 
 #node-details-dialog {

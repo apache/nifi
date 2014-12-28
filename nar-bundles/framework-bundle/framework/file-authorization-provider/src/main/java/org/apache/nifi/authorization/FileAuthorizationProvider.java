@@ -21,6 +21,8 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import javax.xml.XMLConstants;
 import javax.xml.bind.JAXBContext;
@@ -36,7 +38,7 @@ import org.apache.nifi.authorization.exception.AuthorityAccessException;
 import org.apache.nifi.authorization.exception.IdentityAlreadyExistsException;
 import org.apache.nifi.authorization.exception.ProviderCreationException;
 import org.apache.nifi.authorization.exception.UnknownIdentityException;
-import org.apache.nifi.file.FileUtils;
+import org.apache.nifi.util.file.FileUtils;
 import org.apache.nifi.user.generated.ObjectFactory;
 import org.apache.nifi.user.generated.Role;
 import org.apache.nifi.user.generated.User;
@@ -490,6 +492,20 @@ public class FileAuthorizationProvider implements AuthorityProvider {
         } catch (Exception e) {
             throw new AuthorityAccessException(e.getMessage(), e);
         }
+    }
+
+    /**
+     * Grants access to download content regardless of FlowFile attributes.
+     * 
+     * @param dnChain
+     * @param attributes
+     * @return
+     * @throws UnknownIdentityException
+     * @throws AuthorityAccessException 
+     */
+    @Override
+    public DownloadAuthorization authorizeDownload(List<String> dnChain, Map<String, String> attributes) throws UnknownIdentityException, AuthorityAccessException {
+        return DownloadAuthorization.approved();
     }
 
     /**

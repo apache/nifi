@@ -28,7 +28,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.AttributeValueDecorator;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.io.StreamUtils;
+import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.logging.ProcessorLog;
 import org.apache.nifi.processor.annotation.CapabilityDescription;
 import org.apache.nifi.processor.annotation.EventDriven;
