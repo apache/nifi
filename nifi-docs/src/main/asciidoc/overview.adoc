@@ -14,18 +14,118 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-NiFi Overview
-=============
+Apache NiFi Overview
+====================
+Apache NiFi Team <dev@nifi.incubator.apache.org>
+:homepage: http://nifi.incubator.apache.org
 
-The problem NiFi solves
------------------------
-Dataflow at scale...
+What is Apache NiFi?
+--------------------
+Put simply NiFi was built to automate the flow of data between systems.  While
+the term 'dataflow' is used in a variety of contexts we'll use it here 
+to mean the automated and managed flow of information between systems.  This 
+problem space has been around ever since enterprises had more than one system 
+where some of the systems created data and some of the systems consumed data.
+The problems and solution patterns that emerged have been discussed and 
+articulated extensively.  A comprehensive and readily consumed form is found in
+the _Enterprise Integration Patterns_ <<eip>>.
 
-The design philosophy of NiFi
------------------------------
-FBP, ...
+Over the years dataflow has been one of those necessary evils in an 
+architecture.  Now though there are a number of active and rapidly evolving 
+movements making dataflow a lot more interesting and a lot more vital to the 
+success of a given enterprise.  These include things like; Service Oriented 
+Architecture <<soa>>, the rise of the API <<api>><<api2>>, Internet of Things <<iot>>,
+and Big Data <<bigdata>>.  In addition, the level of rigor necessary for 
+compliance, privacy, and security is constantly on the rise.  Even still with 
+all of these new concepts coming about the patterns and needs of dataflow is 
+still largely the same.  The primary differences then are the scope of
+complexity, the rate of change necessary to adapt, and that at scale  
+the edge case becomes common occurrence.  NiFi is built to help tackle these 
+modern dataflow challenges.
 
-Key Features
-------------
-UI, compponent-based, high performance, provenance
+The core concepts of NiFi
+-------------------------
 
+NiFi's fundamental design concepts closely relate to the main ideas of Flow Based
+Programming <<fbp>>.  Here are some of 
+the main NiFi concepts and how they map to FBP:
+[grid="rows"]
+[options="header",cols="3,3,10"]
+|===========================
+| NiFi Term | FBP Term| Description
+
+| FlowFile | Information Packet | 
+A FlowFile represents the objects moving through the system and for each one NiFi
+keeps track of a Map of key/value pair attribute strings and its associated 
+content zero or bytes.
+
+| FlowFile Processor | Black Box | 
+Processors are what actually performs work.  In <<eip>> terms a processor is 
+doing some combination of data Routing, Transformation, or mediation between
+systems.  Processors have access to attributes of a given flow file and its 
+content stream.  Processors can operate on zero or more FlowFiles in a given unit of work
+and either commit that work or rollback.
+
+| Connection | Bounded Buffer | 
+Connections provide the actual linkage between processors.  These act as queues
+and allow various processes to interact at differing rates.  These queues then 
+can be prioritized dynamically and can have upper bounds on load which enables
+back pressure.
+
+| Flow Controller | Scheduler | 
+The Flow Controller maintains the knowledge of how processes actually connect 
+and manages the threads and allocations thereof which all processes use.  The
+Flow Controller acts as the broker facilitating the exchange of FlowFiles 
+between processors.
+
+| Process Group | subnet | 
+A Process Group is a specific set of processes and their connections which can
+receive data via input ports and which can send data out via output ports.  In 
+this manner process groups allow creation of entirely new components simply by
+composition of other components.
+
+|===========================
+
+This design model, also similar to <<seda>>, provides many beneficial consequences which help NiFi 
+to be a very effective platform for building powerful and scalable dataflows.
+A few of these benefits include:
+
+* Lends well to visual creation and management of directed graphs of processors
+* Is inherently asynchronous which allows for very high throughput and natural buffering even as processing and flow rates fluctuate
+* Provides a highly concurrent model without a developer having to worry about the typical complexities of concurrency
+* Promotes the development of cohesive and loosely coupled components which can then be reused in other contexts and promotes testable units
+* The resource constrained connections make critical functions such as back-pressure and pressure release very natural and intuitive
+* Error handling becomes as natural as the happy-path rather than a coarse grained catch-all
+* The points at which data enters and exits the system as well as how it flows through are well understood and easily tracked
+
+Dataflow Challenges : NiFi Features
+-----------------------------------
+* Systems fail
+** Explanation: Networks fail, disks fail, software crashes, people make mistakes.
+** Features: Fault-tolerance, buffering, durability, flow-specific QoS, data provenance, recovery/go back in time, visual command and control
+* Data access exceeds capacity to consume
+** Explanation: Sometimes a given data source can outpace some part of the processing or delivery chain - it only takes one weak-link to have an issue.
+** Features: Prioritization, Back-pressure, congestion-avoidance, QoS (some things are critical and some are not)
+* Boundary conditions are mere suggestions
+** Explanation: You will get data that is too big, too small, too fast, too slow, corrupt, wrong, wrong format
+** Features: flow-specific latency vs throughput tradeoffs, flow specific loss tolerance vs guaranteed delivery, extensible transformations
+* What is noise one day becomes signal the next
+** Explanation: Priorities of an organization change - rapidly.  Enabling new flows and changing existing ones must be fast.
+** Features:  Dynamic prioritization of data.  Go back in time (rolling buffer of recorded history).  Real-time visual command and control.  Changes are immediate and fine-grained.
+* Compliance and security
+** Explanation: Laws and regulations change.  Business to business agreements change.  System to system and system to user interactions must be secure and trusted.
+** Features: 2-Way SSL.  Pluggable authentication and authorization.  Data provenance.
+* Continuous improvement occurs in production
+** Explanation: It is often not possible to come even close to replicating production environments in the lab.
+** Features: Flow-specific QoS.  Cheap copy-on-write.  Data provenance.  It is safe to tee a flow to an unreliable or non-production system.
+
+# References
+[bibliography]
+- [[[eip]]] Gregor Hohpe. Enterprise Integration Patterns [online].  Retrieved: 27 Dec 2014, from: http://www.enterpriseintegrationpatterns.com/
+- [[[soa]]] Wikipedia. Service Oriented Architecture [online]. Retrieved: 27 Dec 2014, from: http://en.wikipedia.org/wiki/Service-oriented_architecture
+- [[[api]]] Eric Savitz.  Welcome to the API Economy [online].  Forbes.com. Retrieved: 27 Dec 2014, from: http://www.forbes.com/sites/ciocentral/2012/08/29/welcome-to-the-api-economy/
+- [[[api2]]] Adam Duvander.  The rise of the API economy and consumer-led ecosystems [online]. thenextweb.com.  Retrieved: 27 Dec 2014, from: http://thenextweb.com/dd/2014/03/28/api-economy/
+- [[[iot]]] Wikipedia. Internet of Things [online]. Retrieved: 27 Dec 2014, from: http://en.wikipedia.org/wiki/Internet_of_Things
+- [[[bigdata]]] Wikipedia.  Big Data [online].  Retrieved: 27 Dec 2014, from: http://en.wikipedia.org/wiki/Big_data
+- [[[fbp]]] Wikipedia.  Flow Based Programming [online].  Retrieved: 28 Dec 2014, from: http://en.wikipedia.org/wiki/Flow-based_programming#Concepts
+- [[[seda]]] Matt Welsh.  Harvard.  SEDA: An Architecture for Highly Concurrent Server Applications [online].  Retrieved: 28 Dec 2014, from: http://www.eecs.harvard.edu/~mdw/proj/seda/

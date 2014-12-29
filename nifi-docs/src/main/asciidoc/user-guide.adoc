@@ -16,6 +16,8 @@
 //
 NiFi User Guide
 ===============
+Apache NiFi Team <dev@nifi.incubator.apache.org>
+:homepage: http://nifi.incubator.apache.org
 
 [template="glossary", id="terminology"]
 Terminology
