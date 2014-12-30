@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 /**
  * Adds a simple character counter functionality to the matched elements. The 
  * options are specified in the following format:
@@ -22,6 +23,11 @@
  *   charCountField: element or dom id for displaying the remaining characters (must support .text())
  *   maxLength: maxlength in case the matched element does not have a max length set
  * }
+ * 
+ * Implementation specifics suggested on StackOverflow.
+ * 
+ * @param {type} $
+ * @returns {undefined}
  */
 (function ($) {
 
@@ -38,14 +44,16 @@
     };
 
     var methods = {
+        
         /**
-         * Initializes the combo box.
+         * Initializes the count widget.
+         * 
+         * @param {type} options
          */
         init: function (options) {
             return this.each(function () {
                 // ensure the options have been properly specified
-                if (isDefinedAndNotNull(options) &&
-                        isDefinedAndNotNull(options.charCountField)) {
+                if (isDefinedAndNotNull(options) && isDefinedAndNotNull(options.charCountField)) {
 
                     // get the field
                     var field = $(this);
@@ -87,5 +95,5 @@
         } else {
             return methods.init.apply(this, arguments);
         }
-    }
+    };
 })(jQuery);
