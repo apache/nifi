@@ -235,7 +235,6 @@
         <nifi.flowfile.repository.always.sync>false</nifi.flowfile.repository.always.sync>
         <nifi.swap.manager.implementation>org.apache.nifi.controller.FileSystemSwapManager</nifi.swap.manager.implementation>
         <nifi.queue.swap.threshold>20000</nifi.queue.swap.threshold>
-        <nifi.swap.storage.directory>./flowfile_repository/swap</nifi.swap.storage.directory>
         <nifi.swap.in.period>5 sec</nifi.swap.in.period>
         <nifi.swap.in.threads>1</nifi.swap.in.threads>
         <nifi.swap.out.period>5 sec</nifi.swap.out.period>

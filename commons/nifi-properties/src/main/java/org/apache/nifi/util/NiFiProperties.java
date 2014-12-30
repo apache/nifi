@@ -84,7 +84,6 @@ public class NiFiProperties extends Properties {
     public static final String FLOWFILE_REPOSITORY_CHECKPOINT_INTERVAL = "nifi.flowfile.repository.checkpoint.interval";
     public static final String FLOWFILE_SWAP_MANAGER_IMPLEMENTATION = "nifi.swap.manager.implementation";
     public static final String QUEUE_SWAP_THRESHOLD = "nifi.queue.swap.threshold";
-    public static final String SWAP_STORAGE_LOCATION = "nifi.swap.storage.directory";
     public static final String SWAP_IN_THREADS = "nifi.swap.in.threads";
     public static final String SWAP_IN_PERIOD = "nifi.swap.in.period";
     public static final String SWAP_OUT_THREADS = "nifi.swap.out.threads";
@@ -311,15 +310,6 @@ public class NiFiProperties extends Properties {
             return Integer.parseInt(thresholdValue);
         } catch (final NumberFormatException e) {
             return DEFAULT_QUEUE_SWAP_THRESHOLD;
-        }
-    }
-
-    public File getSwapStorageLocation() {
-        final String location = getProperty(SWAP_STORAGE_LOCATION);
-        if (location == null) {
-            return new File(DEFAULT_SWAP_STORAGE_LOCATION);
-        } else {
-            return new File(location);
         }
     }
 

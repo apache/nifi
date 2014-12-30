@@ -28,6 +28,7 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -103,14 +104,16 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
     private static final Logger logger = LoggerFactory.getLogger(FileSystemSwapManager.class);
 
     public FileSystemSwapManager() {
-        this.storageDirectory = NiFiProperties.getInstance().getSwapStorageLocation();
+        final NiFiProperties properties = NiFiProperties.getInstance();
+        final Path flowFileRepoPath = properties.getFlowFileRepositoryPath();
+        
+        this.storageDirectory = flowFileRepoPath.resolve("swap").toFile();
         if (!storageDirectory.exists() && !storageDirectory.mkdirs()) {
             throw new RuntimeException("Cannot create Swap Storage directory " + storageDirectory.getAbsolutePath());
         }
 
         swapQueueIdentifierExecutor = new FlowEngine(1, "Identifies Queues for FlowFile Swapping");
 
-        final NiFiProperties properties = NiFiProperties.getInstance();
         swapInMillis = FormatUtils.getTimeDuration(properties.getSwapInPeriod(), TimeUnit.MILLISECONDS);
         swapOutMillis = FormatUtils.getTimeDuration(properties.getSwapOutPeriod(), TimeUnit.MILLISECONDS);
         swapOutThreadCount = properties.getSwapOutThreads();
