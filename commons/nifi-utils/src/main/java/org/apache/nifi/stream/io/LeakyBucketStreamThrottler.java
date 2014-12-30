@@ -112,6 +112,13 @@ public class LeakyBucketStreamThrottler implements StreamThrottler {
 
             @Override
             public int read(byte[] b, int off, int len) throws IOException {
+                if ( len < 0 ) {
+                    throw new IllegalArgumentException();
+                }
+                if ( len == 0 ) {
+                    return 0;
+                }
+                
                 baos.reset();
                 final int copied = (int) LeakyBucketStreamThrottler.this.copy(toWrap, baos, len);
                 if (copied == 0) {
