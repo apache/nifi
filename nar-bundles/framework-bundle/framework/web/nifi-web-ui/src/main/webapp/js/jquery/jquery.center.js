@@ -14,6 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/**
+ * Simple jQuery plugin to center any matched elements. Implementation
+ * specifics suggested on StackOverflow.
+ * 
+ * @param {type} $
+ * @returns {undefined}
+ */
 (function ($) {
     $.fn.center = function () {
         return this.each(function () {
@@ -23,5 +31,5 @@
                 'left': ($(window).width() - $(this).outerWidth()) / 2 + $(window).scrollLeft() + 'px'
             });
         });
-    }
+    };
 })(jQuery);

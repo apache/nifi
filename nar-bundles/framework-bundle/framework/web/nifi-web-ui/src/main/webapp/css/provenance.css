@@ -529,6 +529,16 @@ div.progress-label {
     margin-left: 10px;
 }
 
+#provenance-lineage-slider {
+    border-radius: 0;
+}
+
+#provenance-lineage-slider .ui-slider-handle {
+    border-radius: 0;
+    border: 1px solid #999;
+    outline: none;
+}
+
 #event-timeline {
     margin-top: 8px;
     color: #9F6000;
