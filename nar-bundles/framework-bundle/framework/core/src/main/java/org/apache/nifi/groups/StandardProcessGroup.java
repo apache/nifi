@@ -333,6 +333,10 @@ public final class StandardProcessGroup implements ProcessGroup {
             }
         }
 
+        for ( final RemoteProcessGroup rpg : procGroup.getRemoteProcessGroups() ) {
+            rpg.shutdown();
+        }
+        
         // Recursively shutdown child groups.
         for (final ProcessGroup group : procGroup.getProcessGroups()) {
             shutdown(group);

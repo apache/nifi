@@ -34,7 +34,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -80,6 +79,8 @@ public class RunNiFi {
 	private volatile boolean autoRestartNiFi = true;
 	private volatile int ccPort = -1;
 	private volatile long nifiPid = -1L;
+	private volatile String secretKey;
+	private volatile ShutdownHook shutdownHook;
 	
 	private final Lock lock = new ReentrantLock();
 	private final Condition startupCondition = lock.newCondition();
@@ -675,7 +676,7 @@ public class RunNiFi {
                 saveProperties(nifiProps);
             }
 			
-			ShutdownHook shutdownHook = new ShutdownHook(process, this, gracefulShutdownSeconds);
+			shutdownHook = new ShutdownHook(process, this, secretKey, gracefulShutdownSeconds);
 			final Runtime runtime = Runtime.getRuntime();
 			runtime.addShutdownHook(shutdownHook);
 			
@@ -706,7 +707,7 @@ public class RunNiFi {
 			                saveProperties(nifiProps);
 			            }
 						
-						shutdownHook = new ShutdownHook(process, this, gracefulShutdownSeconds);
+						shutdownHook = new ShutdownHook(process, this, secretKey, gracefulShutdownSeconds);
 						runtime.addShutdownHook(shutdownHook);
 						
 						final boolean started = waitForStart();
@@ -812,6 +813,12 @@ public class RunNiFi {
 	
 	void setNiFiCommandControlPort(final int port, final String secretKey) {
 		this.ccPort = port;
+		this.secretKey = secretKey;
+		
+		if ( shutdownHook != null ) {
+		    shutdownHook.setSecretKey(secretKey);
+		}
+		
 		final File statusFile = getStatusFile();
 		
 		final Properties nifiProps = new Properties();

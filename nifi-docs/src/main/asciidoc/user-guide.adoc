@@ -75,7 +75,7 @@ Terminology
 	These templates can also be exported as XML and imported into another NiFi instance, allowing these building blocks to be shared.
 
 
-
+[[User_Interface]]
 NiFi User Interface
 -------------------
 
@@ -101,7 +101,7 @@ components on the graph. Following the Actions Toolbar is the Search Toolbar. Th
 Search field that allows users to easily find components on the graph. Users are able to search by component name,
 type, identifier, and configuration properties.
 
-Finally, the Management Toolbar sits to the right-hand side of the screen. This toolbar consists of buttons that are
+The Management Toolbar sits to the right-hand side of the screen. This toolbar consists of buttons that are
 of use to DataFlow Managers to manage the flow as well as administrators who may use this section to manage user access
 and configure system properties, such as how many system resources should be provided to the application.
 
@@ -575,7 +575,7 @@ of the Processor configuration dialog or the configuration dialog for a Port.
 Only Ports and Processors can be enabled and disabled.
 
 
-
+[[Remote_Group_Transmission]]
 === Remote Process Group Transmission
 
 Remote Process Groups provide a mechanism for sending data to or retrieving data from a remote instance
@@ -593,7 +593,7 @@ image:iconAlert.png["Warning"]
 ) may instead be present in the top-left corner. Hovering over this Warning indicator with the mouse will provide
 more information about the problem.
 
-
+[[Remote_Port_Configuration]]
 ==== Individual Port Transmission
 
 There are times when the DFM may want to either enable or disable transmission for only a specific 
@@ -652,7 +652,7 @@ monitoring artifacts below.
 === Anatomy of a Processor
 
 NiFi provides a significant amount of information about each Processor on the canvas. The following diagram
-is the anatomy of a Processor:
+shows the anatomy of a Processor:
 
 image:processor-anatomy.png["Anatomy of a Processor"]
 
@@ -729,19 +729,307 @@ The image outlines the following elements:
 	
 		 
 
+
+
 [[process_group_anatomy]]
 === Anatomy of a Process Group
+
+The Process Group provides a mechanism for grouping components together into a logical construct in order
+to organize the DataFlow in a way that makes it more understandable from a higher level. 
+The following image highlights the different elements that make up the anatomy of a Process Group:
+
+image::process-group-anatomy.png["Anatomy of a Process Group"]
+
+The Process Group consists of the following elements:
+
+- *Name*: This is the user-defined name of the Process Group. This name is set when the Process Group
+	is added to the canvas. The name can later by changed by right-clicking on the Process Group and clicking
+	the ``Configure'' menu option. In this example, the name of the Process Group is ``Process Group ABC.''
+	
+- *Bulletin Indicator*: When a child component of a Process Group emits a bulletin, that bulletin is propagated to
+	the component's parent Process Group, as well. When any component has an active Bulletin, this indicator will appear,
+	allowing the user to hover over the icon with the mouse to see Bulletin.
+	
+- *Active Tasks*: The number of tasks that are currently executing by the components within this
+	Process Group. Here, we can see that the Process Group is currently performing one task. If the 
+	NiFi instance is clustered, this value represents the number of tasks that are currently executing 
+	across all nodes in the cluster.
+	
+- *Comments*: When the Process Group is added to the canvas, the user is given the option of specifying Comments in order
+	to provide information about the Process Group. The comments can later be changed by right-clicking on the Process
+	Group and clicking the ``Configure'' menu option. In this example, the Comments are set to ``Example Process Group.''
+
+- *Statistics*: Process Groups provide statics about the amount of data that has been processed by the Process Group in
+	the past 5 minutes as well as the amount of data currently enqueued within the Process Group. The following elements
+	comprise the ``Statics'' portion of a Process Group:
+	** *Queued*: The number of FlowFiles currently enqueued within the Process Group.
+		This field is represented as <count> / <size> where <count> is the number of FlowFiles that are
+		currently enqueued in the Process Group and <size> is the total size of those FlowFiles' content. In this example,
+		the Process Group currently has 1,738 FlowFiles enqueued; those FlowFiles have a total size of 350.03 megabytes (MB).
+ 	
+ 	** *In*: The number of FlowFiles that have been transferred into the Process Group through all of its Input Ports
+ 		over the past 5 minutes. This field is represented as <count> / <size> where <count> is the number of FlowFiles that
+		have entered the Process Group in the past 5 minutes and <size> is the total size of those FlowFiles' content. 
+		In this example, 686 FlowFiles have entered the Process Group and their total size is 214.01 MB.
+	
+	** *Read/Write*: The total size of the FlowFile content that the components within the Process Group have 
+		read from disk and written to disk. This provides valuable information about the I/O performance that this 
+		Process Group requires. In this example, we see that in the past five minutes, components within this 
+		Process Group have read 72.9 MB of the FlowFile content and have written 686.65 MB.
+		
+	** *Out*: The number of FlowFiles that have been transferred out of the Process Group through its Output Ports
+		over the past 5 minutes. This field is represented as <count> / <size> where <count> is the number of FlowFiles that
+		have exited the Process Group in the past 5 minutes and <size> is the total size of those FlowFiles' content.
+		In this example, 657 FlowFiles have exited the Process Group and their total size is 477.74 MB.
+ 
+- *Component Counts*: The Component Counts element provides information about how many components of each type exist
+	within the Process Group. The following provides information about each of these icons and their meanings:
+	
+	** image:iconInputPortSmall.png["Input Port", width=16]
+		*Input Ports*: The number of Input Ports that exist directly within this Process Group. This does not include any
+			Input Ports that exist within child Process Groups, as child groups' ports cannot be accessed directly.
+			
+	** image:iconOutputPortSmall.png["Output Port"]
+		*Output Ports*: The number of Output Ports that exist directly within this Process Group. This does not include any
+			 Output Ports that exist within child Process Group as child groups' ports cannot be accessed directly.
+			 
+	** image:iconTransmissionActive.png["Transmission Active"]
+		*Transmitting Ports*: The number of Remote Process Group Ports that currently are configured to transmit data to remote
+			instances of NiFi or pull data from remote instances of NiFi.
+			
+	** image:iconTransmissionInactive.png["Transmission Inactive"]
+		*Non-Transmitting Ports*: The number of Remote Process Group Ports that are currently connected to components within this
+			Process Group but currently have their transmission disabled.
+			
+	** image:iconRun.png["Running"]
+		*Running Components*: The number of Processors, Input Ports, and Output Ports that are currently running within this
+			Process Group.
+	
+	** image:iconStop.png["Stopped Components"]
+		*Stopped Components*: The number of Processors, Input Ports, and Output Ports that are currently not running but are
+			valid and enabled. These components are ready to be started.
+			
+	** image:iconAlert.png["Invalid Components"]
+		*Invalid Components*: The number of Processors, Input Ports, and Output Ports that are enabled but are currently 
+			not in a valid state. This may be due to misconfigured properties or not have all of the Relationships connected.
+		
+	** image:iconDisable.png["Disabled Components"]
+		*Disabled Components*: The number of Processors, Input Ports, and Output Ports that are currently disabled. These
+			components may or may not be valid. If the Process Group is started, these components will not cause any errors
+			but will not be started. 
+
+
+
 
 
 [[remote_group_anatomy]]
 === Anatomy of a Remote Process Group
 
+When creating a DataFlow, it is often necessary to transfer data from one instance of NiFi to another.
+In this case, the remote instance of NiFi can be thought of as a Process Group. For this reason, NiFi
+provides the concept of a Remote Process Group. From the User Interface, the Remote Process Group
+looks similar to the Process Group. However, rather than showing information about the inner workings
+and state of a Remote Process Group, such as queue sizes, the information rendered about a Remote
+Process Group is related to the interaction that occurs between this instance of NiFi and the remote
+instance.
 
+image::remote-group-anatomy.png["Anatomy of a Remote Process Group"]
+
+The image above shows the different elements that make up a Remote Process Group. Here, we provide an
+explanation of the icons and details about the information provided.
+
+- *Transmission Status*: The Transmission Status indicates whether or not data Transmission between this
+	instance of NiFi and the remote instance is currently enabled. The icon shown will be the
+	Transmission Enabled icon (
+image:iconTransmissionActive.png["Transmission Active"]
+	) if any of the Input Ports or Output Ports is currently configured to transmit or the Transmission 
+	Disabled icon (
+image:iconTransmissionInactive.png["Transmission Inactive"]
+	) if all of the Input Ports and Output Ports that are currently connected are stopped.
+
+- *Remote Instance Name*: This is the name of the NiFi instance that was reported by the remote instance.
+	When the Remote Process Group is first created, before this information has been obtained, the URL
+	of the remote instance will be shown here instead.
+
+- *Remote Instance URL*: This is the URL of the remote instance that the Remote Process Group points to.
+	This URL is entered when the Remote Process Group is added to the canvas and cannot be changed.
+	
+- *Secure Indicator*: This icon indicates whether or not communications with the remote NiFi instance are
+	secure. If communications with the remote instance are secure, this will be indicated by the ``locked''
+	icon (
+image:iconSecure.png["Secure"]
+	). If the communications are not secure, this will be indicated by the ``unlocked'' icon (
+image:iconNotSecure.png["Not Secure"]
+	). If the communications are secure, this instance of NiFi will not be able to communicate with the
+	remote instance until an administrator for the remote instance grants access. Whenever the Remote Process
+	Group is added to the canvas, this will automatically initiate a request to have a user created on the
+	remote instance. This instance will be unable to communicate with the remote instance until an administrator 
+	on the remote instance adds the user to the system and adds the ``NiFi'' role to the user.
+	In the event that communications are not secure, the Remote Process Group is able to receive data from anyone,
+	and the data is not encrypted as it is transferred between instances of NiFi.
+	
+- *Input Ports*: This section shows three different pieces of information:
+	** image:iconInputPortSmall.png["Input Ports"]
+		*Input Ports*: The number of Input Ports that are available to send data to on the remote instance of NiFi.
+			If the remote instance is secure, only the ports to which this instance of NiFi has been granted access
+			will be counted.
+			
+	** image:iconTransmissionActive.png["Transmitting"]
+		*Transmitting Ports*: The number of Input Ports to which this NiFi is connected and currently configured to
+			send data to. Ports can be turned on and off by enabling and disabling transmission on the Remote Process
+			Group (see <<Remote_Group_Transmission>>) or via the <<Remote_Port_Configuration>> dialog.
+	
+	** image:iconTransmissionInactive.png["Not Transmitting"]
+		*Non-Transmitting Ports*: The number of Input Ports to which this NiFi is connected but is not currently configured
+			to send data to. Ports can be turned on and off by enabling and disabling transmission on the Remote Process
+			Group (see <<Remote_Group_Transmission>>) or via the <<Remote_Port_Configuration>> dialog.
+
+- *Output Ports*: Similar to the ``Input Ports'' section above, this element shows three different pieces of information:
+	** image:iconOutputPortSmall.png["Output Ports"]
+		*Output Ports*: The number of Output Ports that are available to pull data from the remote instance of NiFi.
+			If the remote instance is secure, only the ports to which this instance of NiFi has been granted access
+			will be counted.
+			
+	** image:iconTransmissionActive.png["Transmitting"]
+		*Transmitting Ports*: The number of Output Ports from whcih this NiFi is connected and currently configured
+			to pull data from. Ports can be turned on and off by enabling and disabling transmission on the Remote Process
+			Group (see <<Remote_Group_Transmission>>) or via the <<Remote_Port_Configuration>> dialog.
+			
+	** image:iconTransmissionInactive.png["Not Transmitting"]
+		*Non-Transmitting Ports*: The number of Output Ports to which this NiFi is connected but is not currently configured
+			to pull data from. Ports can be turned on and off by enabling and disabling transmission on the Remote Process
+			Group (see <<Remote_Group_Transmission>>) or via the <<Remote_Port_Configuration>> dialog.
+			
+- *5-Minute Statistics*: Two statistics are shown for Remote Process Groups: *Sent* and *Received*. Both of these are
+	in the format <count> / <size> where <count> is the number of FlowFiles that have been sent or received in the previous
+	five minutes and <size> is the total size of those FlowFiles' content. 
+
+- *Comments*: The Comments that are provided for a Remote Process Group are not comments added by the users of this NiFi but
+	rather the Comments added by the administrators of the remote instance. These comments indicate the purpose of the NiFi
+	instance as a whole.
+
+- *Last Refreshed Time*: The information that is pulled from a remote instance and rendered on the Remote Process Group
+	in the User Interface is periodically refreshed in the background. This element indicates the time at which that refresh
+	last happened, or if the information has not been refreshed for a significant amount of time the value will change to
+	indicate _Remote flow not current_. NiFi can be triggered to initiate a refresh of this information by right-clicking
+	on the Remote Process Group and choosing the ``Refresh flow'' menu item.
+
+
+
+
+[[Summary_Page]]
 === Summary Page
 
+While the NiFi canvas is useful for understanding how the configured DataFlow is laid out, this view is not always optimal
+when trying to discern the status of the system. In order to help the user understand how the DataFlow is functioning
+at a higher level, NiFi provides a Summary page. This page is available in the Management Toolbar in the top-right corner
+of the User Interface. See the <<User_Interface>> section for more information about the location of this toolbar.
 
+The Summary Page is opened by clicking the Summary icon (
+image:iconSummary.png["Summary"]
+) from the Management Toolbar. This opens the Summary table dialog:
+
+image::summary-table.png["Summary Table"]
+
+This dialog provides a great deal of information about each of the components on the graph. Below, we have annotated
+the different elements within the dialog in order to make the discussion of the dialog easier.
+
+image::summary-annotated.png["Summary Table Annotated"]
+
+The Summary page consists mostly of a table that provides information about each of the components on the canvas. Above this
+table is a set of five tabs that can be used to view the different types of components. The information provided in the table
+is the same information that is provided for each component on the canvas. For more information, see the sections
+<<processor_anatomy>>, <<process_group_anatomy>>, and <<remote_group_anatomy>> above.
+
+The Summary page also includes the following elements:
+
+- *Bulletin Indicator*: As in other places throughout the application, when this icon is present, hovering over the icon will
+	provide information about the Bulletin that was generated, including the message, the severity level, the time at which
+	the Bulletin was generated, and (in a clustered environment) the node that generated the Bulletin.
+	
+- *Details*: Clicking the Details icon will provide the user with the details of the component. This dialog is the same as the
+	dialog provided when the user right-clicks on the component and chooses the ``View configuration'' menu item.
+	
+- *Go To*: Clicking this button will close the Summary page and take the user directly to the component on the NiFi canvas. This
+	may change the Process Group that the user is currently in. This icon is not available if the Summary page has been opened
+	in a new browser tab or window (by clicking the ``Pop Out'' button, as described below).
+	
+- *Stats History*: Clicking the Stats History icon will open a new dialog that shows a historical view of the statistics that
+	are rendered for this component. See the section <<Stats_History>> for more information.
+
+- *Refresh*: The Refresh button allows the user to refresh the information displayed without closing the dialog and opening it
+	again. The time at which the information was last refreshed is shown just to the right of the Refresh button. The information
+	on the page is not automatically refreshed.
+	
+- *Filter*: The Filter element allows users to filter the contents of the Summary table by typing in all or part of some criteria,
+	such as a Processor Type or Processor Name. The types of filters available differ according to the selected tab. For instance,
+	if viewing the Processor tab, the user is able to filter by name or by type. When changing to the Connections tab, the user
+	is able to filter by source name, destination name, or Connection name. The filter is automatically applied when the contents
+	of the text box are changed. Below the text box is an indicator of how many entries in the table match the filter and how many
+	entries exist in the table.
+
+- *Pop-Out*: When monitoring a flow, it is helpful to be able to open the Summary table in a separate browser tab or window. The
+	Pop-Out button, next to the Close button, will cause the entire Summary dialog to be opened in a new browser tab or window
+	(depending on the configuration of the browser). Once the page is ``popped out'', the dialog is closed in the original
+	browser tab/window. In the new tab/window, the Pop-Out button and the Go-To button will no longer be available.
+
+- *System Diagnostics*: The System Diagnostics tab provides information about how the system is performing with respect to
+	system resource utilization. While this is intended mostly for administrators, it is provided in this view because it
+	does provide a summary of the system. This dialog shows information such as CPU utilization, how full the disks are,
+	and Java-specific metrics, such as memory size and utilization, as well as Garbage Collection information.
+	
+
+
+
+<<Stats_History>
 === Historical Statics of a Component
 
+While the Summary table and the canvas show numeric statistics pertaining to the performance of a component over the
+past five minutes, it is often useful to have a view of historical statistics as well. This information is available
+by right-clicking on a component and choosing the ``Stats'' menu option or from the Summary page (see <<Summary_Page>>
+for more information).
+
+The amount of historical information that is stored is configurable in the NiFi properties but defaults to 24 hours.
+When the Stats dialog is opened, it provides a graph of historical statistics:
+
+image::process-history.png["Status History"]
+
+The left-hand side of the dialog provides information about the component that the stats are for, as well as a textual
+representation of the statistics being graphed. The following information is provided on the left-hand side:
+
+- *Id*: The ID of the component for which the stats are being shown.
+
+- *Group Id*: The ID of the Process Group in which the component resides.
+
+- *Name*: The Name of the Component for which the stats are being shown.
+
+- *Component-Specific Entries*: Information is shown for each different type of component. For example, for a Processor,
+	the type of Processor is displayed. For a Connection, the source and destination names and IDs are shown.
+
+- *Start*: The earliest time shown on the graph.
+
+- *End*: The latest time shown on the graph.
+
+- *Min/Max/Mean*: The minimum, maximum, and mean (arithmetic mean, or average) values are shown. These values are based
+	only on the range of time selected, if any time range is selected. If this instance of NiFi is clustered, these values
+	are shown for the cluster as a whole, as well as each individual node. In a clustered environment, each node is shown
+	in a different color. This also serves as the graph's legend, showing the color of each node that is shown in the graph.
+	Hovering over the Cluster or one of the nodes in the legend will also make the corresponding node bold in the graph.
+	
+
+The right-hand side of the dialog provides a drop-down list to choose which metric to render, as well as two graphs.
+The top graph is larger so as to provide an easier-to-read rendering of the information. In the bottom-right corner of
+this graph is a small handle (
+image:iconResize.png["Resize"]
+) that can be dragged to resize the graph. The blank area of the dialog above this graph can also be dragged around
+to move the entire dialog.
+
+The bottom graph is much shorter and provides the ability to select a time range. Selecting a time range here will 
+cause the top graph to redraw the graph, showing only the time range selected. Additionally, this will cause the 
+Min/Max/Mean values on the left-hand side to be recalculated. Once a selection has been created by dragging a 
+rectangle over the graph, double-clicking on the selected portion will cause the selection to fully expand in the 
+vertical direction. I.e., it will select all values in this time range. Clicking on the bottom graph without dragging 
+will remove the selection.
 
 
 

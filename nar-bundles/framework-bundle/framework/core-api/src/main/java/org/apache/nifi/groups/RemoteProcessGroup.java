@@ -47,6 +47,8 @@ public interface RemoteProcessGroup {
 
     void setComments(String comments);
 
+    void shutdown();
+    
     /**
      * Returns the name of this RemoteProcessGroup. The value returned will
      * never be null. If unable to communicate with the remote instance, the URI
