@@ -636,32 +636,7 @@ public class Query {
             throw new IllegalStateException("A Query cannot be evaluated more than once");
         }
 
-        Evaluator<?> chosenEvaluator = evaluator;
-        final Evaluator<?> rootEvaluator = getRootSubjectEvaluator(evaluator);
-        if (rootEvaluator != null) {
-            if (rootEvaluator instanceof MultiAttributeEvaluator) {
-                if (evaluator.getResultType() != ResultType.BOOLEAN) {
-                    throw new AttributeExpressionLanguageParsingException("Found Multi-Attribute function but return type is " + evaluator.getResultType() + ", not " + ResultType.BOOLEAN + ", for query: " + query);
-                }
-
-                final MultiAttributeEvaluator multiAttrEval = (MultiAttributeEvaluator) rootEvaluator;
-
-                switch (multiAttrEval.getEvaluationType()) {
-                    case ANY_ATTRIBUTE:
-                    case ANY_MATCHING_ATTRIBUTE:
-                    case ANY_DELINEATED_VALUE:
-                        chosenEvaluator = new AnyAttributeEvaluator((BooleanEvaluator) evaluator, multiAttrEval);
-                        break;
-                    case ALL_ATTRIBUTES:
-                    case ALL_MATCHING_ATTRIBUTES:
-                    case ALL_DELINEATED_VALUES:
-                        chosenEvaluator = new AllAttributesEvaluator((BooleanEvaluator) evaluator, multiAttrEval);
-                        break;
-                }
-            }
-        }
-
-        return chosenEvaluator.evaluate(attributes);
+        return evaluator.evaluate(attributes);
     }
 
     Tree getTree() {
@@ -843,8 +818,10 @@ public class Query {
         if (tree.getChildCount() == 0) {
             throw new AttributeExpressionLanguageParsingException("EXPRESSION tree node has no children");
         }
+        
+        final Evaluator<?> evaluator;
         if (tree.getChildCount() == 1) {
-            return buildEvaluator(tree.getChild(0));
+            evaluator = buildEvaluator(tree.getChild(0));
         } else {
             // we can chain together functions in the form of:
             // ${x:trim():substring(1,2):trim()}
@@ -852,8 +829,35 @@ public class Query {
             // subject is the function to its left (the first trim()), and its subject is the value of
             // the 'x' attribute. We accomplish this logic by iterating over all of the children of the
             // tree from the right-most child going left-ward.
-            return buildFunctionExpressionEvaluator(tree, 0);
+            evaluator = buildFunctionExpressionEvaluator(tree, 0);
         }
+        
+        Evaluator<?> chosenEvaluator = evaluator;
+        final Evaluator<?> rootEvaluator = getRootSubjectEvaluator(evaluator);
+        if (rootEvaluator != null) {
+            if (rootEvaluator instanceof MultiAttributeEvaluator) {
+                if (evaluator.getResultType() != ResultType.BOOLEAN) {
+                    throw new AttributeExpressionLanguageParsingException("Found Multi-Attribute function but return type is " + evaluator.getResultType() + ", not " + ResultType.BOOLEAN + ", for query: " + tree.getText());
+                }
+
+                final MultiAttributeEvaluator multiAttrEval = (MultiAttributeEvaluator) rootEvaluator;
+
+                switch (multiAttrEval.getEvaluationType()) {
+                    case ANY_ATTRIBUTE:
+                    case ANY_MATCHING_ATTRIBUTE:
+                    case ANY_DELINEATED_VALUE:
+                        chosenEvaluator = new AnyAttributeEvaluator((BooleanEvaluator) evaluator, multiAttrEval);
+                        break;
+                    case ALL_ATTRIBUTES:
+                    case ALL_MATCHING_ATTRIBUTES:
+                    case ALL_DELINEATED_VALUES:
+                        chosenEvaluator = new AllAttributesEvaluator((BooleanEvaluator) evaluator, multiAttrEval);
+                        break;
+                }
+            }
+        }
+        
+        return chosenEvaluator;
     }
 
     private static Evaluator<?> buildFunctionExpressionEvaluator(final Tree tree, final int offset) {
