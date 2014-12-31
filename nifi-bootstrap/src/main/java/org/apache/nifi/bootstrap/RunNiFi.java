@@ -294,25 +294,24 @@ public class RunNiFi {
 	        // We use the "ps" command to check if the process is still running.
 	        final ProcessBuilder builder = new ProcessBuilder();
 	        
-	        builder.command("ps", "-p", pid, "--no-headers");
+	        builder.command("ps", "-p", pid);
 	        final Process proc = builder.start();
 	        
-	        // Read how many lines are output by the 'ps' command
-	        int lineCount = 0;
+	        // Look for the pid in the output of the 'ps' command.
+	        boolean running = false;
 	        String line;
 	        try (final InputStream in = proc.getInputStream();
 	             final Reader streamReader = new InputStreamReader(in);
 	             final BufferedReader reader = new BufferedReader(streamReader)) {
 	            
 	            while ((line = reader.readLine()) != null) {
-	                if ( !line.trim().isEmpty() ) {
-	                    lineCount++;
-	                }
+                    if ( line.trim().startsWith(pid) ) {
+                        running = true;
+                    }
 	            }
 	        }
 	        
-	        // If anything was output, the process is running.
-	        final boolean running = lineCount > 0;
+	        // If output of the ps command had our PID, the process is running.
 	        if ( running ) {
 	            logger.fine("Process with PID " + pid + " is running");
 	        } else {
