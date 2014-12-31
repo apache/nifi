@@ -108,7 +108,7 @@ public class JettyServer implements NiFiServer {
      * @param props the configuration
      */
     public JettyServer(final NiFiProperties props) {
-        final QueuedThreadPool threadPool = new QueuedThreadPool();
+        final QueuedThreadPool threadPool = new QueuedThreadPool(props.getWebThreads());
         threadPool.setName("NiFi Web Server");
 
         // create the server

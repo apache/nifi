@@ -137,6 +137,7 @@ public class NiFiProperties extends Properties {
     public static final String WEB_HTTPS_PORT = "nifi.web.https.port";
     public static final String WEB_HTTPS_HOST = "nifi.web.https.host";
     public static final String WEB_WORKING_DIR = "nifi.web.jetty.working.directory";
+    public static final String WEB_THREADS = "nifi.web.jetty.threads";
 
     // ui properties
     public static final String UI_BANNER_TEXT = "nifi.ui.banner.text";
@@ -182,6 +183,7 @@ public class NiFiProperties extends Properties {
     public static final String DEFAULT_USER_CREDENTIAL_CACHE_DURATION = "24 hours";
     public static final Integer DEFAULT_REMOTE_INPUT_PORT = null;
     public static final Path DEFAULT_TEMPLATE_DIRECTORY = Paths.get("conf", "templates");
+    public static final int DEFAULT_WEB_THREADS = 200;
     public static final String DEFAULT_WEB_WORKING_DIR = "./work/jetty";
     public static final String DEFAULT_NAR_WORKING_DIR = "./work/nar";
     public static final String DEFAULT_COMPONENT_DOCS_DIRECTORY = "./work/docs/components";
@@ -499,6 +501,10 @@ public class NiFiProperties extends Properties {
         return sslPort;
     }
 
+    public int getWebThreads() {
+        return getIntegerProperty(WEB_THREADS, DEFAULT_WEB_THREADS);
+    }
+    
     public File getWebWorkingDirectory() {
         return new File(getProperty(WEB_WORKING_DIR, DEFAULT_WEB_WORKING_DIR));
     }

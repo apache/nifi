@@ -30,6 +30,29 @@ The problems and solution patterns that emerged have been discussed and
 articulated extensively.  A comprehensive and readily consumed form is found in
 the _Enterprise Integration Patterns_ <<eip>>.
 
+Some of the high-level challenges of dataflow include:
+
+Systems fail::
+Networks fail, disks fail, software crashes, people make mistakes.
+
+Data access exceeds capacity to consume::
+Sometimes a given data source can outpace some part of the processing or delivery chain - it only takes one weak-link to have an issue.
+
+Boundary conditions are mere suggestions::
+You will get data that is too big, too small, too fast, too slow, corrupt, wrong, wrong format
+
+What is noise one day becomes signal the next::
+Priorities of an organization change - rapidly.  Enabling new flows and changing existing ones must be fast.
+
+Systems evolve at different rates::
+The protocols and formats used by a given system can change anytime and often irrespective of the systems around them.  Dataflow exists to connect what is essentially a massively distributed system of components loosely or not-at-all designed to work together.
+
+Compliance and security::
+Laws, regulations, and policies change.  Business to business agreements change.  System to system and system to user interactions must be secure, trusted, accountable.
+
+Continuous improvement occurs in production::
+It is often not possible to come even close to replicating production environments in the lab.
+
 Over the years dataflow has been one of those necessary evils in an 
 architecture.  Now though there are a number of active and rapidly evolving 
 movements making dataflow a lot more interesting and a lot more vital to the 
@@ -57,7 +80,7 @@ the main NiFi concepts and how they map to FBP:
 | FlowFile | Information Packet | 
 A FlowFile represents the objects moving through the system and for each one NiFi
 keeps track of a Map of key/value pair attribute strings and its associated 
-content zero or bytes.
+content of zero or more bytes.
 
 | FlowFile Processor | Black Box | 
 Processors are what actually performs work.  In <<eip>> terms a processor is 
@@ -105,18 +128,23 @@ image::nifi-arch.png["NiFi Architecture Diagram"]
 NiFi executes within a JVM living within a host operating system.  The primary
 components of NiFi then living within the JVM are as follows:
 
-* Web Server
-** The purpose of the web server is to host NiFi's HTTP-based command and control API.
-* Flow Controller
-** The flow controller is the brains of the operation. It provides threads for extensions to run on and manages their schedule of when they'll receive resources to execute.
-* Extensions
-** There are various types of extensions for NiFi which will be described in other documents.  But the key point here is that extensions operate/execute within the JVM.
-* FlowFile Repository
-** The FlowFile Repository is where NiFi keeps track of the state of what it knows about a given FlowFile that is presently active in the flow.  The implementation of the repository is pluggable.  The default approach is a persistent Write-Ahead Log that lives on a specified disk partition. 
-* Content Repository
-** The Content Repository is where the actual content bytes of a given FlowFile live.  The implementation of the repository is pluggable.  The default approach is a fairly simple mechanism which stores blocks of data in the file system.   More than one file system storage location can be specified so as to get different physical partitions engaged to reduce contention on any single volume.
-* Provenance Repository
-** The Provenance Repository is where all provenance event data is stored.  The repository construct is pluggable with the default implementation being to use  one or more physical disk volumes.  Within each location event data is indexed  and searchable.
+Web Server::
+The purpose of the web server is to host NiFi's HTTP-based command and control API.
+
+Flow Controller::
+The flow controller is the brains of the operation. It provides threads for extensions to run on and manages their schedule of when they'll receive resources to execute.
+
+Extensions::
+There are various types of extensions for NiFi which will be described in other documents.  But the key point here is that extensions operate/execute within the JVM.
+
+FlowFile Repository::
+The FlowFile Repository is where NiFi keeps track of the state of what it knows about a given FlowFile that is presently active in the flow.  The implementation of the repository is pluggable.  The default approach is a persistent Write-Ahead Log that lives on a specified disk partition. 
+
+Content Repository::
+The Content Repository is where the actual content bytes of a given FlowFile live.  The implementation of the repository is pluggable.  The default approach is a fairly simple mechanism which stores blocks of data in the file system.   More than one file system storage location can be specified so as to get different physical partitions engaged to reduce contention on any single volume.
+
+Provenance Repository::
+The Provenance Repository is where all provenance event data is stored.  The repository construct is pluggable with the default implementation being to use  one or more physical disk volumes.  Within each location event data is indexed  and searchable.
 
 NiFi is also able to operate within a cluster.
 
@@ -140,70 +168,120 @@ its is operating on.  This maximization of resources is particularly strong with
 regard to CPU and disk.  Many more details will
 be provided on best practices and configuration tips in the Administration Guide. 
 
-- For IO:
+For IO::
 The throughput or latency
 one can expect to see will vary greatly on how the system is configured.  Given
 that there are pluggable approaches to most of the major NiFi subsystems the
-performance will vary greatly among them.  But, for something concrete and broadly
+performance will depend on the implementation.  But, for something concrete and broadly
 applicable lets consider the out of the box default implementations that are used.
 These are all persistent with guaranteed delivery and do so using local disk.  So 
-assume roughly 50 MB/s read/write rate on modest disks or RAID volumes 
-within a modest server.  NiFi for a large class of data flows then be able to 
+being conservative assume roughly 50 MB/s read/write rate on modest disks or RAID volumes 
+within a typical server.  NiFi for a large class of data flows then should be able to 
 efficiently reach one hundred or more MB/s of throughput.  That is because linear growth
-is expected for each physical parition and content repository added to NiFi up until
-the rate of data tracking imposed on the FlowFile repository and provenance repository
-starts to create bottlenecks.  We plan to provide a benchmarking/performance test template to 
+is expected for each physical parition and content repository added to NiFi.  This will 
+bottleneck at some point on the FlowFile repository and provenance repository.  
+We plan to provide a benchmarking/performance test template to 
 include in the build which will allow users to easily test their system and 
 to identify where bottlenecks are and at which point they might become a factor.  It 
 should also make it easy for system administrators to make changes and to verity the impact.
 
-- For CPU:
+For CPU::
 The FlowController acts as the engine dictating when a given processor will be
 given a thread to execute.  Processors should be written to return the thread
 as soon as they're done executing their task.  The FlowController can be given a 
 configuration value indicating how many threads there should be for the various
-thread pools it maintains.  What the ideal number to use will depend on the 
+thread pools it maintains.  The ideal number of threads to use will depend on the 
 resources of the host system in terms of numbers of cores, whether that system is
 running other services as well, and the nature of the processing in the flow.  For
 typical IO heavy flows though it would be quite reasonable to set many dozens of threads
 to be available if not more.
 
-- For RAM:
+For RAM::
 NiFi lives within the JVM and is thus generally limited to the memory space it 
 is afforded by the JVM.  Garbage collection of the JVM becomes a very important
 factor to both restricting the total practical size the heap can be as well as
-how well the application will run over time.  Processors built with no consideration
-for memory contention will certainly causes garbage collection issues.  If FlowFile
-attributes are used to store many large Strings and those then fill up the flow
-that can create challenges as well.  There though NiFi will swap-out FlowFiles
-sitting in queues that build up.  To do this it will write them out to disk.  This
-is a very powerful feature for cases where a particular downstream consumer system 
-is down for a period of time.  NiFi will safely swap out the FlowFile data from 
-the heap and onto disk.  Once the flow starts moving again NiFi will gradually 
-swap those items back in.  Within the framework great care is taken to be good
-stewards of the JVM GC process and provided the same care is taken for all processors
-and extensions in the flow then one can expect sustained efficient operation.
+how well the application will run over time.  
 
-Dataflow Challenges : NiFi Features
------------------------------------
-* Systems fail
-** Explanation: Networks fail, disks fail, software crashes, people make mistakes.
-** Features: Fault-tolerance, buffering, durability, flow-specific QoS, data provenance, recovery/go back in time, visual command and control
-* Data access exceeds capacity to consume
-** Explanation: Sometimes a given data source can outpace some part of the processing or delivery chain - it only takes one weak-link to have an issue.
-** Features: Prioritization, Back-pressure, congestion-avoidance, QoS (some things are critical and some are not)
-* Boundary conditions are mere suggestions
-** Explanation: You will get data that is too big, too small, too fast, too slow, corrupt, wrong, wrong format
-** Features: flow-specific latency vs throughput tradeoffs, flow specific loss tolerance vs guaranteed delivery, extensible transformations
-* What is noise one day becomes signal the next
-** Explanation: Priorities of an organization change - rapidly.  Enabling new flows and changing existing ones must be fast.
-** Features:  Dynamic prioritization of data.  Go back in time (rolling buffer of recorded history).  Real-time visual command and control.  Changes are immediate and fine-grained.
-* Compliance and security
-** Explanation: Laws and regulations change.  Business to business agreements change.  System to system and system to user interactions must be secure and trusted.
-** Features: 2-Way SSL.  Pluggable authentication and authorization.  Data provenance.
-* Continuous improvement occurs in production
-** Explanation: It is often not possible to come even close to replicating production environments in the lab.
-** Features: Flow-specific QoS.  Cheap copy-on-write.  Data provenance.  It is safe to tee a flow to an unreliable or non-production system.
+High Level Overview of Key NiFi Features
+----------------------------------------
+Guaranteed Delivery::
+A core philosophy of NiFi has been that even at very high scale guaranteed delivery
+is a must.  This is achieved through effective use of a purpose-built persistent 
+write-ahead log and content repository.  Together they are designed in such a way
+as to allow for very high transaction rates, effective load-spreading, copy-on-write,
+and play to the strengths of traditional disk read/writes.
+
+Data Buffering w/ Back Pressure and Pressure Release::
+NiFi supports buffering of all queued data as well as the ability to 
+provide back pressure as those queues reach specified limits or to age off data
+as it reaches a specified age (its value has perished).
+
+Prioritized Queuing::
+NiFi allows the setting of one or more prioritization schemes for how data is
+retrieved from a queue.  The default is oldest first but there are times when
+data should be pulled newest first, largest first, or some other custom scheme.
+
+Flow Specific QoS (latency v throughput, loss tolerance, etc..)::
+There are points of a dataflow where the data is absolutely critical and it is
+loss intolerant.  There are times when it must be processed and delivered within
+seconds to be of any value.  NiFi enables the fine-grained flow specific configuration
+of these concerns.
+
+Data Provenance::
+NiFi automatically records, indexes, and makes available provenance data as
+objects flow through the system even across fan-in, fan-out, transformations, and
+more.  This information becomes extremely critical in supporting compliance, 
+troubleshooting, optimization, and other scenarios.  
+
+Recovery / Recording a rolling buffer of fine-grained history::
+NiFi's content repository is designed to act as a rolling buffer of history.  Data
+is removed only as it ages off the content repository or as space is needed.  This
+combined with the data provenance capability makes for an incredibly useful basis
+to enable click-to-content, download of content, replay, and all at a specific 
+point in and objects lifecycle which can even span generations.
+
+Visual Command and Control::
+Dataflows can become quite complex.  Being able to visualize those flows and express
+them visually can help greatly to reduce that complexity and to identify areas which
+need to be simplified.  NiFi enables not only the visual establishment of dataflows but
+it does so in real-time.  Rather than being 'design and deploy' it is much more like
+molding clay.  If you make a change to the dataflow that change is taking effect.  Changes
+are fine-grained and isolated to the affected components.  You don't need to stop an entire
+flow or set of flows just to make some specific modification.  
+
+Flow Templates::
+Dataflows tend to be highly pattern oriented and while there are often many different
+ways to solve a problem it helps greatly to be able to share those best practices.  Templates
+allow subject matter experts to build and publish their flow designs and for others to benefit
+and collaborate on them.
+
+Security::
+    System to system;;
+        A dataflow is only as good as it is secure.  NiFi at every point in a dataflow offers secure
+        exchange through the use of protocols with encryption such as 2-way SSL.  In addition
+        NiFi enables the flow to encrypt and decrypt content and use shared-keys or other mechanisms on 
+        either side of the sender/recipient equation.
+    User to system;;
+        NiFi enables 2-Way SSL authentication and provides pluggable authorization so that it can properly control
+        a users access and at particular levels (read-only, dataflow manager, admin).  If a user enters a 
+        sensitive property like a password into the flow it is immediately encrypted server side and never again exposed
+        on the client side even in its encrypted form.
+
+Designed for Extension::
+    NiFi is at its core built for extension and as such it is a platform on which dataflow processes can execute and interact in a predictable and repeatable manner.
+    Points of extension;;
+        Processors, Controller Services, Reporting Tasks, Prioritizers, Customer User Interfaces
+    Classloader Isolation;;
+        For any component based system one problem that can quickly occur is dependency nightmares.  NiFi addresses this by providing a custom class loader model
+        ensuring that each extension bundle is exposed to a very limited set of dependencies.  As a result extensions can be built with little concern for whether 
+        they might conflict with another extension.  The concept of these extension bundles is called 'NiFi Archives' and will be discussed in greater detail 
+        in the developers guide.
+Clustering (scale-out)::
+    NiFi is designed to scale-out through the use of clustering many nodes together as described above.  If a single node is provisioned and configured
+    to handle hundreds of MB/s then a modest cluster could be configured to handle GB/s.  This then brings about interesting challenges of load balancing
+    and fail-over between NiFi and the systems from which it gets data.  Use of asynchronous queuing based protocols like messaging services, Kafka, etc.. can
+    help.  Use of NiFi's 'site-to-site' feature is also very effective as it is a protocol that allows NiFi and a client (could be another NiFi cluster) to talk to eachother, share information
+    about loading, and to exchange data on specific authorized ports.
 
 # References
 [bibliography]
