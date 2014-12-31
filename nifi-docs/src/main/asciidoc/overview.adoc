@@ -98,6 +98,92 @@ A few of these benefits include:
 * Error handling becomes as natural as the happy-path rather than a coarse grained catch-all
 * The points at which data enters and exits the system as well as how it flows through are well understood and easily tracked
 
+NiFi Architecture
+-----------------
+image::nifi-arch.png["NiFi Architecture Diagram"]
+
+NiFi executes within a JVM living within a host operating system.  The primary
+components of NiFi then living within the JVM are as follows:
+
+* Web Server
+** The purpose of the web server is to host NiFi's HTTP-based command and control API.
+* Flow Controller
+** The flow controller is the brains of the operation. It provides threads for extensions to run on and manages their schedule of when they'll receive resources to execute.
+* Extensions
+** There are various types of extensions for NiFi which will be described in other documents.  But the key point here is that extensions operate/execute within the JVM.
+* FlowFile Repository
+** The FlowFile Repository is where NiFi keeps track of the state of what it knows about a given FlowFile that is presently active in the flow.  The implementation of the repository is pluggable.  The default approach is a persistent Write-Ahead Log that lives on a specified disk partition. 
+* Content Repository
+** The Content Repository is where the actual content bytes of a given FlowFile live.  The implementation of the repository is pluggable.  The default approach is a fairly simple mechanism which stores blocks of data in the file system.   More than one file system storage location can be specified so as to get different physical partitions engaged to reduce contention on any single volume.
+* Provenance Repository
+** The Provenance Repository is where all provenance event data is stored.  The repository construct is pluggable with the default implementation being to use  one or more physical disk volumes.  Within each location event data is indexed  and searchable.
+
+NiFi is also able to operate within a cluster.
+
+image::nifi-arch-cluster.png["NiFi Cluster Architecture Diagram"]
+
+A NiFi cluster is comprised of one or more 'NiFi Nodes' (Node) controlled
+by a single NiFi Cluster Manager (NCM).  The design of clustering is a simple
+master/slave model where the NCM is the master and the Nodes are the slaves.
+The NCM's reason for existence is to keep track of which Nodes are in the flow,
+their status, and to replicate requests to modify or observe the 
+flow.  Fundamentally then the NCM keeps the state of the cluster consistent.  
+While the model is that of master and slave if the master dies the Nodes are all
+instructed to continue operating as they were to ensure the data flow remains live.
+The absence of the NCM simply means new nodes cannot come on-line and flow changes
+cannot occur until the NCM is restored.
+
+Performance Expections and Characteristics of NiFi
+--------------------------------------------------
+NiFi is designed to fully leverage the capabilities of the underlying host system
+its is operating on.  This maximization of resources is particularly strong with
+regard to CPU and disk.  Many more details will
+be provided on best practices and configuration tips in the Administration Guide. 
+
+- For IO:
+The throughput or latency
+one can expect to see will vary greatly on how the system is configured.  Given
+that there are pluggable approaches to most of the major NiFi subsystems the
+performance will vary greatly among them.  But, for something concrete and broadly
+applicable lets consider the out of the box default implementations that are used.
+These are all persistent with guaranteed delivery and do so using local disk.  So 
+assume roughly 50 MB/s read/write rate on modest disks or RAID volumes 
+within a modest server.  NiFi for a large class of data flows then be able to 
+efficiently reach one hundred or more MB/s of throughput.  That is because linear growth
+is expected for each physical parition and content repository added to NiFi up until
+the rate of data tracking imposed on the FlowFile repository and provenance repository
+starts to create bottlenecks.  We plan to provide a benchmarking/performance test template to 
+include in the build which will allow users to easily test their system and 
+to identify where bottlenecks are and at which point they might become a factor.  It 
+should also make it easy for system administrators to make changes and to verity the impact.
+
+- For CPU:
+The FlowController acts as the engine dictating when a given processor will be
+given a thread to execute.  Processors should be written to return the thread
+as soon as they're done executing their task.  The FlowController can be given a 
+configuration value indicating how many threads there should be for the various
+thread pools it maintains.  What the ideal number to use will depend on the 
+resources of the host system in terms of numbers of cores, whether that system is
+running other services as well, and the nature of the processing in the flow.  For
+typical IO heavy flows though it would be quite reasonable to set many dozens of threads
+to be available if not more.
+
+- For RAM:
+NiFi lives within the JVM and is thus generally limited to the memory space it 
+is afforded by the JVM.  Garbage collection of the JVM becomes a very important
+factor to both restricting the total practical size the heap can be as well as
+how well the application will run over time.  Processors built with no consideration
+for memory contention will certainly causes garbage collection issues.  If FlowFile
+attributes are used to store many large Strings and those then fill up the flow
+that can create challenges as well.  There though NiFi will swap-out FlowFiles
+sitting in queues that build up.  To do this it will write them out to disk.  This
+is a very powerful feature for cases where a particular downstream consumer system 
+is down for a period of time.  NiFi will safely swap out the FlowFile data from 
+the heap and onto disk.  Once the flow starts moving again NiFi will gradually 
+swap those items back in.  Within the framework great care is taken to be good
+stewards of the JVM GC process and provided the same care is taken for all processors
+and extensions in the flow then one can expect sustained efficient operation.
+
 Dataflow Challenges : NiFi Features
 -----------------------------------
 * Systems fail
