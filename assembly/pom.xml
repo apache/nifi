@@ -294,6 +294,7 @@
         <nifi.web.https.host />
         <nifi.web.https.port />
         <nifi.jetty.work.dir>./work/jetty</nifi.jetty.work.dir>
+        <nifi.web.jetty.threads>200</nifi.web.jetty.threads>
         
         <!-- nifi.properties: security properties -->
         <nifi.security.keystore />
