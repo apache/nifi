@@ -143,6 +143,7 @@ div.relationship-description {
 
 #run-duration-slider {
     margin-top: 5px;
+    border-radius: 0;
 }
 
 #run-duration-slider .ui-slider-handle {

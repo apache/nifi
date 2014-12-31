@@ -66,10 +66,11 @@ nf.CanvasToolbox = (function () {
         }, function () {
             $(this).removeClass(hoverCls).addClass(cls);
         }).draggable({
+            'zIndex': 1011,
             'helper': function () {
-                return $('<div class="toolbox-icon"></div>').addClass(dragCls);
+                return $('<div class="toolbox-icon"></div>').addClass(dragCls).appendTo('body');
             },
-            'containment': '#canvas-container',
+            'containment': 'body',
             'stop': function (e, ui) {
                 var translate = nf.Canvas.View.translate();
                 var scale = nf.Canvas.View.scale();
@@ -77,15 +78,17 @@ nf.CanvasToolbox = (function () {
                 var mouseX = e.originalEvent.pageX;
                 var mouseY = e.originalEvent.pageY - nf.Canvas.CANVAS_OFFSET;
 
-                // adjust the x and y coordinates accordingly
-                var x = (mouseX / scale) - (translate[0] / scale);
-                var y = (mouseY / scale) - (translate[1] / scale);
+                // invoke the drop handler if we're over the canvas
+                if (mouseX >= 0 && mouseY >= 0) {
+                    // adjust the x and y coordinates accordingly
+                    var x = (mouseX / scale) - (translate[0] / scale);
+                    var y = (mouseY / scale) - (translate[1] / scale);
 
-                // invoke the drop handler
-                dropHandler({
-                    x: x,
-                    y: y
-                });
+                    dropHandler({
+                        x: x,
+                        y: y
+                    });
+                } 
             }
         }).appendTo(toolbox);
     };

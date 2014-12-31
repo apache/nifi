@@ -30,21 +30,26 @@ import java.util.Map;
 import java.util.Set;
 import java.util.zip.ZipInputStream;
 
+import org.apache.commons.compress.archivers.ArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import org.apache.commons.io.IOUtils;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.stream.io.ByteArrayInputStream;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-
-import org.apache.commons.compress.archivers.ArchiveEntry;
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
-import org.apache.commons.io.IOUtils;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
 public class TestMergeContent {
 
+    @BeforeClass
+    public static void setup() {
+        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.processors.standard", "DEBUG");
+    }
+    
     @Test
     public void testSimpleBinaryConcat() throws IOException, InterruptedException {
         final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
@@ -263,6 +268,39 @@ public class TestMergeContent {
         final MockFlowFile assembled = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
         assembled.assertContentEquals("A Man A Plan A Canal Panama".getBytes("UTF-8"));
     }
+    
+    @Test
+    public void testDefragmentWithTooFewFragments() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
+        runner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_DEFRAGMENT);
+        runner.setProperty(MergeContent.MAX_BIN_AGE, "2 secs");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(MergeContent.FRAGMENT_ID_ATTRIBUTE, "1");
+        attributes.put(MergeContent.FRAGMENT_COUNT_ATTRIBUTE, "5");
+        attributes.put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "1");
+
+        runner.enqueue("A Man ".getBytes("UTF-8"), attributes);
+        attributes.put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "2");
+        runner.enqueue("A Plan ".getBytes("UTF-8"), attributes);
+        attributes.put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "3");
+        runner.enqueue("A Canal ".getBytes("UTF-8"), attributes);
+        attributes.put(MergeContent.FRAGMENT_INDEX_ATTRIBUTE, "4");
+        runner.enqueue("Panama".getBytes("UTF-8"), attributes);
+
+        runner.run(1, false);
+
+        while (true) {
+            try {
+                Thread.sleep(3000L);
+                break;
+            } catch (final InterruptedException ie) {}
+        }
+        runner.run(1);
+        
+        runner.assertTransferCount(MergeContent.REL_FAILURE, 4);
+    }
+    
 
     @Test
     public void testDefragmentOutOfOrder() throws IOException {

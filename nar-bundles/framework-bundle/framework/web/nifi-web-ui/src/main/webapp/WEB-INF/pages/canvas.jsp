@@ -84,7 +84,7 @@
         <jsp:include page="/WEB-INF/partials/canvas/fill-color-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/connections-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/flow-status.jsp"/>
-        <div id="canvas-container"><!-- inject canvas here --></div>
+        <div id="canvas-container" class="unselectable"></div>
         <div id="canvas-tooltips">
             <div id="processor-tooltips"></div>
             <div id="port-tooltips"></div>
@@ -111,6 +111,6 @@
         <jsp:include page="/WEB-INF/partials/connection-details.jsp"/>
         <div id="faded-background"></div>
         <div id="glass-pane"></div>
-        <div id="context-menu"></div>
+        <div id="context-menu" class="unselectable"></div>
     </body>
 </html>

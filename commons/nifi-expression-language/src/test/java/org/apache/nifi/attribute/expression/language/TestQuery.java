@@ -1047,6 +1047,16 @@ public class TestQuery {
         assertEquals(ResultType.NUMBER, Query.getResultType("${header.size:toNumber()}"));
     }
     
+    @Test
+    public void testAnyAttributeEmbedded() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("a1", "test1");
+        attributes.put("b2", "2test");
+        attributes.put("c3", "3test3");
+        
+        final String query = "${a1:equals('test1'):and( ${anyAttribute('a1','b2','c3'):contains('2')})}";
+        verifyEquals(query, attributes, true);
+    }
     
     private void verifyEquals(final String expression, final Map<String, String> attributes, final Object expectedResult) {
         Query.validateExpression(expression, false);

@@ -981,7 +981,7 @@ The Summary page also includes the following elements:
 
 
 
-<<Stats_History>
+[[Stats_History]]
 === Historical Statics of a Component
 
 While the Summary table and the canvas show numeric statistics pertaining to the performance of a component over the
@@ -992,7 +992,7 @@ for more information).
 The amount of historical information that is stored is configurable in the NiFi properties but defaults to 24 hours.
 When the Stats dialog is opened, it provides a graph of historical statistics:
 
-image::process-history.png["Status History"]
+image::stats-history.png["Stats History"]
 
 The left-hand side of the dialog provides information about the component that the stats are for, as well as a textual
 representation of the statistics being graphed. The following information is provided on the left-hand side:
@@ -1036,20 +1036,98 @@ will remove the selection.
 
 
 
-
-
+[[templates]]
 == Templates
+DataFlow Managers have the ability to build very large and complex DataFlows using Apache NiFi. This is achieved
+by using the basic components: Processor, Funnel, Input/Output Port, Process Group, and Remote Process Group. These
+can be thought of as the most basic building blocks for constructing a DataFlow. At times, though, using these
+small building blocks can become tedious if the same logic needs to be repeated several times.
 
+To solve this issue, NiFi provides the concept of a Template. A Template is a way of combining these basic building
+blocks into larger building blocks. Once a DataFlow has been created, parts of it can be formed into a Template.
+This Template can then be dragged onto the canvas, or can be exported as an XML file and shared with others. Templates
+received from others can then be imported into an instance of NiFi and dragged onto the canvas.
+
+[[Create_Template]]
 === Creating a Template
+To create a Template, select the components that are to be a part of the template, and then click the
+``Create Template'' (
+image:iconNewTemplate.png["Create Template"]
+) button in the Actions Toolbar (See <<User_Interface>> for more information on the Actions Toolbar).
+
+Clicking this button without selecting anything will create a Template that contains all of the contents of the 
+current Process Group. This means that creating a Template with nothing selected while on the Root Process Group
+will create a single Template that contains the entire flow.
+
+After clicking this button, the user is prompted to provide a name and an optional description for the template.
+Each template must have a unique name. After entering the name and optional description, clicking the Create button
+will generate the template and notify the user that the template was successfully created, or provide an appropriate
+error message if unable to create the template for some reason.
+
+.Note
+********************************************************************************************************************
+It is important to note that if any Processor that is Templated has a sensitive property, the value of that
+sensitive property is not included in the Template. As a result, when dragging the Template onto the graph, newly
+created Processors may not be valid if they are missing values for their sensitive properties. Additionally, any 
+Connection that was selected when making the Template is is not included in the Template if either the source or the 
+destination of the Connection is not included in the Template.
+********************************************************************************************************************
 
 === Instantiating a Template
 
+Once a Template has been created (see <<Create_Template>>) or imported (see <<Import_Template>>), it is ready to be
+instantiated, or added to the canvas. This is accomplished by dragging the Template icon (
+image:iconTemplate.png["Template"]
+) from the Components Toolbar (see <<User_Interface>>) onto the canvas.
+
+This will present a dialog to choose which Template to add to the canvas. After choosing the Template to add, simply
+click the ``Add'' button. The Template will be added to the canvas with the upper-right-hand side of the Template
+being placed wherever the user dropped the Template icon.
+
+This leaves the contents of the newly instantiated Template selected. If there was a mistake and this Template is no
+longer wanted, pressing the Delete key will remove the Template.
+ 
+
+[[Manage_Templates]]
 === Managing Templates
+
+One of the most powerful features of NiFi Templates is the ability to easily export a Template to an XML file
+and to import a Template that has already been exported. This provides a very simple mechanism for sharing parts
+of a DataFlow with others. The Management Toolbar (see <<User_Interface>>) has a button for managing Templates (
+image:iconTemplate.png["Manage Templates"]
+). Clicking this button opens a dialog that allows the user to see all of the Templates that are currently available,
+filter the templates to see only those of interest, and import, export, and delete Templates. 
+
+
+[[Import_Template]]
 ==== Importing a Template
+After receiving a Template that has been exported from another NiFi, the first step needed to use the template is to import
+the template into this instance of NiFi. From the Template Management dialog (see <<Manage_Templates>>), click the 
+``Browse'' button. This provides a File Selection dialog that allows the user to choose which template file to upload. 
+Select the file and click Open. The ``Browse'' button is replaced by an ``Import'' button and a ``Cancel'' button. 
+Clicking the ``Import'' button will attempt to import the Template into this instance of NiFi. If unable to import
+the Template, an error message will appear in red next to the ``Browse'' button. Otherwise, the Template will be
+added to the table and the ``Browse'' button will reappear. 
+
+
+[[Export_Template]]
 ==== Exporting a Template
+Once a Template has been created, it can be shared with others in the Template Management page (see <<Manage_Templates>>).
+To export a Template, locate the Template in the table of the Template Management page. The Filter in the top-right corner
+will help to find the appropriate Template if several are available. Then click the Export or Download button (
+image:iconExport.png["Export"]
+). This will download the template as an XML file to your computer. This XML file can then be sent to others and imported
+into other instances of NiFi (see <<Import_Template>>).
+
+
 ==== Removing a Template
 
-
+Once it is decided that a Template is no longer needed, it can be easily removed from the Template Management page
+(see <<Manage_Templates>>). To delete a Template, locate it in the table (the Filter in the top-right corner
+may help to find the appropriate Template if several are available) and click the Delete button (
+image:iconDelete.png["Delete"]
+). This will prompt for confirmation. After confirming the deletion, the Template will be removed from this table
+and will no longer be available to add to the canvas.
 
 
 

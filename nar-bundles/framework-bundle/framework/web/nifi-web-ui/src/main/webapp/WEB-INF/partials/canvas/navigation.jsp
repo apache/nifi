@@ -53,5 +53,5 @@
 </div>
 <div id="birdseye-collapse" class="birdseye-expanded"></div>
 <div id="birdseye-container">
-    <div id="birdseye"><!-- inject outline here --></div>
+    <div id="birdseye"></div>
 </div>

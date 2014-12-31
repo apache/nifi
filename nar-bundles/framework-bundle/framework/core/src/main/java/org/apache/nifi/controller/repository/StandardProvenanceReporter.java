@@ -159,14 +159,12 @@ public class StandardProvenanceReporter implements ProvenanceReporter {
         try {
             final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.SEND).setTransitUri(transitUri).setEventDuration(transmissionMillis).setDetails(details).build();
 
+            final ProvenanceEventRecord enriched = eventEnricher.enrich(record, flowFile);
+            
             if (force) {
-                if (eventEnricher == null) {
-                    repository.registerEvent(record);
-                } else {
-                    repository.registerEvent(eventEnricher.enrich(record, flowFile));
-                }
+                repository.registerEvent(enriched);
             } else {
-                events.add(record);
+                events.add(enriched);
             }
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event due to " + e);
