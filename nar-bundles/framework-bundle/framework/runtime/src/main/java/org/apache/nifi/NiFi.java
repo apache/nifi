@@ -26,6 +26,7 @@ import java.util.TimerTask;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -160,7 +161,19 @@ public class NiFi {
         final int minRequiredOccurrences = 25;
         final int maxOccurrencesOutOfRange = 15;
         final AtomicLong lastTriggerMillis = new AtomicLong(System.currentTimeMillis());
-        final ScheduledExecutorService service = Executors.newScheduledThreadPool(1);
+        
+        final ScheduledExecutorService service = Executors.newScheduledThreadPool(1, new ThreadFactory() {
+            private final ThreadFactory defaultFactory = Executors.defaultThreadFactory();
+            
+            @Override
+            public Thread newThread(final Runnable r) {
+                final Thread t = defaultFactory.newThread(r);
+                t.setDaemon(true);
+                t.setName("Detect Timing Issues");
+                return t;
+            }
+        });
+        
         final AtomicInteger occurrencesOutOfRange = new AtomicInteger(0);
         final AtomicInteger occurences = new AtomicInteger(0);
         final Runnable command = new Runnable() {
