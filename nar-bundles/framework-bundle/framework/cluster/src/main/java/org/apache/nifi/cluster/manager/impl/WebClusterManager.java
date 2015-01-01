@@ -512,6 +512,10 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                 servicesBroadcaster.stop();
             }
 
+            if ( processScheduler != null ) {
+                processScheduler.shutdown();
+            }
+            
             if (encounteredException) {
                 throw new IOException("Failed to shutdown Cluster Manager because one or more cluster services failed to shutdown.  Check the logs for details.");
             }
