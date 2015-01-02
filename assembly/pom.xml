@@ -203,6 +203,11 @@
             <artifactId>hadoop-nar</artifactId>
             <type>nar</type>
         </dependency>
+		<dependency>
+			<groupId>org.apache.nifi</groupId>
+			<artifactId>kafka-nar</artifactId>
+			<type>nar</type>
+		</dependency>
     </dependencies>
     
     <properties>        
