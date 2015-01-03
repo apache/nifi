@@ -54,7 +54,7 @@
                         <imagesdir>./images</imagesdir>
                         <icons>font</icons>
                         <toc>true</toc>
-                        <docVersion>${project.version}</docVersion>
+                        <docVersion>0.0.1-SNAPSHOT</docVersion>
                         <sectanchors>true</sectanchors>
                         <idprefix/>
                         <idseparator>-</idseparator>

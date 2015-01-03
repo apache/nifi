@@ -38,13 +38,13 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>monitor-threshold-processor</artifactId>
-                <version>${project.version}</version>
+                <version>0.0.1-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>monitor-threshold-ui</artifactId>
                 <type>war</type>
-                <version>${project.version}</version>
+                <version>0.0.1-SNAPSHOT</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
