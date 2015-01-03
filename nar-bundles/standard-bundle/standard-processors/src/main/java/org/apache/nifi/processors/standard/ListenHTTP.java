@@ -106,12 +106,19 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
             .required(false)
             .identifiesControllerService(SSLContextService.class)
             .build();
+    public static final PropertyDescriptor HEADERS_AS_ATTRIBUTES_REGEX = new PropertyDescriptor.Builder()
+		    .name("HTTP Headers to receive as Attributes (Regex)")
+		    .description("Specifies the Regular Expression that determines the names of HTTP Headers that should be passed along as FlowFile attributes")
+		    .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+		    .required(false)
+		    .build();
 
     public static final String URI = "/contentListener";
     public static final String CONTEXT_ATTRIBUTE_PROCESSOR = "processor";
     public static final String CONTEXT_ATTRIBUTE_LOGGER = "logger";
     public static final String CONTEXT_ATTRIBUTE_SESSION_FACTORY_HOLDER = "sessionFactoryHolder";
     public static final String CONTEXT_ATTRIBUTE_AUTHORITY_PATTERN = "authorityPattern";
+    public static final String CONTEXT_ATTRIBUTE_HEADER_PATTERN = "headerPattern";
     public static final String CONTEXT_ATTRIBUTE_FLOWFILE_MAP = "flowFileMap";
     public static final String CONTEXT_ATTRIBUTE_STREAM_THROTTLER = "streamThrottler";
 
@@ -131,6 +138,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         descriptors.add(SSL_CONTEXT_SERVICE);
         descriptors.add(AUTHORIZED_DN_PATTERN);
         descriptors.add(MAX_UNCONFIRMED_TIME);
+        descriptors.add(HEADERS_AS_ATTRIBUTES_REGEX);
         this.properties = Collections.unmodifiableList(descriptors);
     }
 
@@ -236,6 +244,9 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_AUTHORITY_PATTERN, Pattern.compile(context.getProperty(AUTHORIZED_DN_PATTERN).getValue()));
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_STREAM_THROTTLER, streamThrottler);
 
+        if (context.getProperty(HEADERS_AS_ATTRIBUTES_REGEX).isSet()) {
+        	contextHandler.setAttribute(CONTEXT_ATTRIBUTE_HEADER_PATTERN, Pattern.compile(context.getProperty(HEADERS_AS_ATTRIBUTES_REGEX).getValue()));
+        }
         server.start();
 
         this.server = server;
