@@ -62,7 +62,7 @@ Terminology
 	While NiFi provides many different mechanisms for transferring data from one system to another, Remote Process Groups are often the easiest way to accomplish
 	this if transferring data to another instance of NiFi.
 
-*Bulletin*: The NiFi User Interface provides a significant amount of monitoring and feedback about the current status of the application.
+*Bulletin*: The NiFi User Interface provides a significant amount of monitoring and feedback about the current application status.
 	In addition to rolling statistics and the current status that are provided for each component, components are able to report Bulletins.
 	Whenever a component reports a Bulletin, an icon is displayed on that component (or on the Status bar near the top of the page, for System-Level Bulletins).
 	Using the mouse to hover over that icon will provide a tool-tip that shows the time and severity (Debug, Info, Warning, Error) of the bulletin,
