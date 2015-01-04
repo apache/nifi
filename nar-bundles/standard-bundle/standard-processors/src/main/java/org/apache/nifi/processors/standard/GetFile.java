@@ -67,7 +67,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 @TriggerWhenEmpty
 @Tags({"local", "files", "filesystem", "ingest", "ingress", "get", "source", "input"})
-@CapabilityDescription("Creates FlowFiles from files in a directory")
+@CapabilityDescription("Creates FlowFiles from files in a directory.  NiFi will ignore files it doesn't have at least read permissions for.")
 public class GetFile extends AbstractProcessor {
 
     public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()
@@ -86,7 +86,10 @@ public class GetFile extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor KEEP_SOURCE_FILE = new PropertyDescriptor.Builder()
             .name("Keep Source File")
-            .description("If true, the file is not deleted after it has been copied to the Content Repository; this causes the file to be picked up continually and is useful for testing purposes")
+            .description("If true, the file is not deleted after it has been copied to the Content Repository; "
+                    + "this causes the file to be picked up continually and is useful for testing purposes.  "
+                    + "If not keeping original NiFi will need write permissions on the directory it is pulling "
+                    + "from otherwise it will ignore the file.")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
@@ -224,6 +227,7 @@ public class GetFile extends AbstractProcessor {
         final boolean recurseDirs = context.getProperty(RECURSE).asBoolean();
         final String pathPatternStr = context.getProperty(PATH_FILTER).getValue();
         final Pattern pathPattern = (!recurseDirs || pathPatternStr == null) ? null : Pattern.compile(pathPatternStr);
+        final boolean keepOriginal = context.getProperty(KEEP_SOURCE_FILE).asBoolean();
 
         return new FileFilter() {
             @Override
@@ -251,6 +255,15 @@ public class GetFile extends AbstractProcessor {
                             return false;
                         }
                     }
+                }
+                //Verify that we have at least read permissions on the file we're considering grabbing
+                if(!Files.isReadable(file.toPath())){
+                    return false;
+                }
+                
+                //Verify that if we're not keeping original that we have write permissions on the directory the file is in
+                if(keepOriginal == false && !Files.isWritable(file.toPath().getParent())){
+                    return false;
                 }
                 return filePattern.matcher(file.getName()).matches();
             }
@@ -375,12 +388,11 @@ public class GetFile extends AbstractProcessor {
         }
 
         final ListIterator<File> itr = files.listIterator();
-        File file = null;
         FlowFile flowFile = null;
         try {
             final Path directoryPath = directory.toPath();
             while (itr.hasNext()) {
-                file = itr.next();
+                final File file = itr.next();
                 final Path filePath = file.toPath();
                 final Path relativePath = directoryPath.relativize(filePath.getParent());
                 String relativePathString = relativePath.toString() + "/";

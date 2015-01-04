@@ -22,6 +22,7 @@
     </parent>
 
     <artifactId>nifi-standard-nar</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
     <name>NiFi Standard NAR</name>
     <packaging>nar</packaging>
     <description>NiFi Standard Extensions NAR</description>
@@ -35,27 +36,22 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>standard-processors</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>standard-prioritizers</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>standard-reporting-tasks</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>standard-ganglia-reporter</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>jms-processors</artifactId>
-            <version>${project.version}</version>
         </dependency>
     </dependencies>
 </project>

@@ -1,7 +1,10 @@
 target
 .project
 .settings
+.classpath
 nbactions.xml
+nb-configuration.xml
+.DS_Store
 
 # Intellij
 .idea/

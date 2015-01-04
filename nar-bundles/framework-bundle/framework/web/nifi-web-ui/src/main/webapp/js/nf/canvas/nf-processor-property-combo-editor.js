@@ -33,7 +33,10 @@ nf.ProcessorPropertyComboEditor = function (args) {
             'border': '3px solid #365C6A',
             'box-shadow': '4px 4px 6px rgba(0, 0, 0, 0.9)',
             'cursor': 'move'
-        }).draggable().appendTo(container);
+        }).draggable({
+            cancel: '.button, .combo',
+            containment: 'parent'
+        }).appendTo(container);
 
         // identify the property descriptor - property descriptor is never null/undefined here... in order
         // to use this editor, the property descriptor would have had to indicate a set of allowable values
@@ -51,13 +54,15 @@ nf.ProcessorPropertyComboEditor = function (args) {
                 optionClass: 'unset'
             });
         }
-        $.each(allowableValues, function (i, allowableValue) {
-            options.push({
-                text: allowableValue.displayName,
-                value: allowableValue.value,
-                description: nf.Common.escapeHtml(allowableValue.description)
+        if ($.isArray(allowableValues)) {
+            $.each(allowableValues, function (i, allowableValue) {
+                options.push({
+                    text: allowableValue.displayName,
+                    value: allowableValue.value,
+                    description: nf.Common.escapeHtml(allowableValue.description)
+                });
             });
-        });
+        }
 
         // ensure the options there is at least one option
         if (options.length === 0) {

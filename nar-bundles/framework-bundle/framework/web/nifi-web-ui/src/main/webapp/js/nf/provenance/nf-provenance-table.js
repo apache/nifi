@@ -49,15 +49,15 @@ nf.ProvenanceTable = (function () {
     var loadLineageCapabilities = function () {
         return $.Deferred(function (deferred) {
             if (nf.Common.SUPPORTS_SVG) {
-                nf.Common.cachedScript(config.urls.d3Script).then(function () {
-                    nf.Common.cachedScript(config.urls.lineageScript).then(function () {
+                nf.Common.cachedScript(config.urls.d3Script).done(function () {
+                    nf.Common.cachedScript(config.urls.lineageScript).done(function () {
                         // initialize the lineage graph
                         nf.ProvenanceLineage.init();
                         deferred.resolve();
-                    }, function () {
+                    }).fail(function () {
                         deferred.reject();
                     });
-                }, function () {
+                }).fail(function () {
                     deferred.reject();
                 });
             } else {
@@ -84,17 +84,18 @@ nf.ProvenanceTable = (function () {
     var downloadContent = function (direction) {
         var eventId = $('#provenance-event-id').text();
 
-        // build the parameters
-        var parameters = {};
+        // build the url
+        var url = config.urls.provenance + '/events/' + encodeURIComponent(eventId) + '/content/' + encodeURIComponent(direction);
 
         // conditionally include the cluster node id
         var clusterNodeId = $('#provenance-event-cluster-node-id').text();
         if (!nf.Common.isBlank(clusterNodeId)) {
-            parameters['clusterNodeId'] = clusterNodeId;
+            window.open(url + '?' + $.param({
+                'clusterNodeId': clusterNodeId
+            }));
+        } else {
+            window.open(url);
         }
-
-        // get the content
-        nf.Common.submit('GET', config.urls.provenance + '/events/' + encodeURIComponent(eventId) + '/content/' + encodeURIComponent(direction), parameters);
     };
 
     /**
@@ -191,6 +192,29 @@ nf.ProvenanceTable = (function () {
             }
         });
 
+        // input download
+        $('#input-content-download').on('click', function () {
+            downloadContent('input');
+        });
+
+        // output download
+        $('#output-content-download').on('click', function () {
+            downloadContent('output');
+        });
+
+        // if a content viewer url is specified, use it
+        if (isContentViewConfigured()) {
+            // input view
+            $('#input-content-view').on('click', function () {
+                viewContent('input');
+            });
+
+            // output view
+            $('#output-content-view').on('click', function () {
+                viewContent('output');
+            });
+        }
+
         // handle the replay and downloading
         if (nf.Common.isDFM()) {
             // replay
@@ -210,38 +234,15 @@ nf.ProvenanceTable = (function () {
                     url: config.urls.replays,
                     data: parameters,
                     dataType: 'json'
-                }).then(function (response) {
+                }).done(function (response) {
                     nf.Dialog.showOkDialog({
                         dialogContent: 'Successfully submitted replay request.',
                         overlayBackground: false
                     });
-                }, nf.Common.handleAjaxError);
+                }).fail(nf.Common.handleAjaxError);
 
                 $('#event-details-dialog').modal('hide');
             });
-
-            // input download
-            $('#input-content-download').on('click', function () {
-                downloadContent('input');
-            });
-
-            // output download
-            $('#output-content-download').on('click', function () {
-                downloadContent('output');
-            });
-
-            // if a content viewer url is specified, use it
-            if (isContentViewConfigured()) {
-                // input view
-                $('#input-content-view').on('click', function () {
-                    viewContent('input');
-                });
-
-                // output view
-                $('#output-content-view').on('click', function () {
-                    viewContent('output');
-                });
-            }
 
             // show the replay panel
             $('#replay-details').show();
@@ -294,7 +295,7 @@ nf.ProvenanceTable = (function () {
                 type: 'GET',
                 url: config.urls.cluster,
                 dataType: 'json'
-            }).then(function (response) {
+            }).done(function (response) {
                 var cluster = response.cluster;
                 var nodes = cluster.nodes;
 
@@ -323,7 +324,7 @@ nf.ProvenanceTable = (function () {
                 $('#provenance-search-location').combo({
                     options: searchableOptions
                 });
-            }, nf.Common.handleAjaxError);
+            }).fail(nf.Common.handleAjaxError);
 
             // show the node search combo
             $('#provenance-search-location-container').show();
@@ -888,23 +889,26 @@ nf.ProvenanceTable = (function () {
          * The max delay between requests.
          */
         MAX_DELAY: 4,
+        
         /**
          * The server time offset
          */
         serverTimeOffset: null,
+        
         /**
          * Initializes the provenance table. Returns a deferred that will indicate when/if the table has initialized successfully.
          * 
          * @param {boolean} isClustered     Whether or not this instance is clustered
          */
         init: function (isClustered) {
-            return loadLineageCapabilities().then(function () {
+            return loadLineageCapabilities().done(function () {
                 initDetailsDialog();
                 initProvenanceQueryDialog();
                 initSearchDialog(isClustered);
                 initProvenanceTable(isClustered);
-            }, nf.Common.handleAjaxError);
+            }).fail(nf.Common.handleAjaxError);
         },
+        
         /**
          * Goes to the specified component if possible.
          * 
@@ -929,6 +933,7 @@ nf.ProvenanceTable = (function () {
                 }
             }
         },
+        
         /**
          * Update the size of the grid based on its container's current size.
          */
@@ -938,6 +943,7 @@ nf.ProvenanceTable = (function () {
                 provenanceGrid.resizeCanvas();
             }
         },
+        
         /**
          * Updates the value of the specified progress bar.
          * 
@@ -953,6 +959,7 @@ nf.ProvenanceTable = (function () {
             var label = $('<div class="progress-label"></div>').text(value + '%');
             progressBar.progressbar('value', value).append(label);
         },
+        
         /**
          * Loads the provenance table with events according to the specified optional 
          * query. If not query is specified or it is empty, the most recent entries will
@@ -1025,13 +1032,13 @@ nf.ProvenanceTable = (function () {
             // polls the server for the status of the provenance, if the provenance is not
             // done wait nextDelay seconds before trying again
             var pollProvenance = function (nextDelay) {
-                getProvenance(provenance).then(function (response) {
+                getProvenance(provenance).done(function (response) {
                     // update the provenance
                     provenance = response.provenance;
 
                     // process the provenance
                     processProvenanceResponse(nextDelay);
-                }, closeDialog);
+                }).fail(closeDialog);
             };
 
             // processes the provenance, if the provenance is not done wait delay 
@@ -1079,14 +1086,15 @@ nf.ProvenanceTable = (function () {
             };
 
             // once the query is submitted wait until its finished
-            submitProvenance(query).then(function (response) {
+            submitProvenance(query).done(function (response) {
                 // update the provenance
                 provenance = response.provenance;
 
                 // process the results, if they are not done wait 1 second before trying again
                 processProvenanceResponse(1);
-            }, closeDialog);
+            }).fail(closeDialog);
         },
+        
         /**
          * Shows the lineage for the event in the specified row.
          * 
@@ -1100,6 +1108,7 @@ nf.ProvenanceTable = (function () {
                 nf.ProvenanceLineage.showLineage(item.flowFileUuid, item.eventId.toString(), item.clusterNodeId);
             }
         },
+        
         /**
          * Gets the event details and shows the details dialog.
          * 
@@ -1115,6 +1124,7 @@ nf.ProvenanceTable = (function () {
                 nf.ProvenanceTable.showEventDetails(event);
             }
         },
+        
         /**
          * Shows the details for the specified action.
          * 
@@ -1272,19 +1282,17 @@ nf.ProvenanceTable = (function () {
 
                 $('#output-content-download').hide();
 
-                if (nf.Common.isDFM()) {
-                    if (event.inputContentAvailable === true) {
-                        $('#input-content-download').show();
+                if (event.inputContentAvailable === true) {
+                    $('#input-content-download').show();
 
-                        if (isContentViewConfigured()) {
-                            $('#input-content-view').show();
-                        } else {
-                            $('#input-content-view').hide();
-                        }
+                    if (isContentViewConfigured()) {
+                        $('#input-content-view').show();
                     } else {
-                        $('#input-content-download').hide();
                         $('#input-content-view').hide();
                     }
+                } else {
+                    $('#input-content-download').hide();
+                    $('#input-content-view').hide();
                 }
             } else {
                 $('#output-content-details').show();
@@ -1318,32 +1326,30 @@ nf.ProvenanceTable = (function () {
                     outputContentSize.attr('title', nf.Common.formatInteger(event.outputContentClaimFileSizeBytes) + ' bytes');
                 }
 
-                if (nf.Common.isDFM()) {
-                    if (event.inputContentAvailable === true) {
-                        $('#input-content-download').show();
+                if (event.inputContentAvailable === true) {
+                    $('#input-content-download').show();
 
-                        if (isContentViewConfigured()) {
-                            $('#input-content-view').show();
-                        } else {
-                            $('#input-content-view').hide();
-                        }
+                    if (isContentViewConfigured()) {
+                        $('#input-content-view').show();
                     } else {
-                        $('#input-content-download').hide();
                         $('#input-content-view').hide();
                     }
+                } else {
+                    $('#input-content-download').hide();
+                    $('#input-content-view').hide();
+                }
 
-                    if (event.outputContentAvailable === true) {
-                        $('#output-content-download').show();
+                if (event.outputContentAvailable === true) {
+                    $('#output-content-download').show();
 
-                        if (isContentViewConfigured()) {
-                            $('#output-content-view').show();
-                        } else {
-                            $('#output-content-view').hide();
-                        }
+                    if (isContentViewConfigured()) {
+                        $('#output-content-view').show();
                     } else {
-                        $('#output-content-download').hide();
                         $('#output-content-view').hide();
                     }
+                } else {
+                    $('#output-content-download').hide();
+                    $('#output-content-view').hide();
                 }
             }
 

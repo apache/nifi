@@ -39,8 +39,12 @@ nf.PortDetails = (function () {
                         nf.Common.clearField('read-only-port-comments');
                     }
                 }
+            }).draggable({
+                containment: 'parent',
+                handle: '.dialog-header'
             });
         },
+        
         showDetails: function (selection) {
             // if the specified component is a processor, load its properties
             if (nf.CanvasUtils.isInputPort(selection) || nf.CanvasUtils.isOutputPort(selection)) {

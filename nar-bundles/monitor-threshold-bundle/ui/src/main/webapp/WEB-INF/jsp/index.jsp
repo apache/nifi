@@ -23,7 +23,7 @@
         <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7"/>
         <link rel="shortcut icon" href="images/nifi16.ico"/>
 
-        <link rel="stylesheet" href="../nifi/js/jquery/css/smoothness/jquery-ui-1.8.10.custom.css" type="text/css" />
+        <link rel="stylesheet" href="../nifi/js/jquery/ui-smoothness/jquery-ui-1.10.4.min.css" type="text/css" />
         <link rel="stylesheet" href="../nifi/js/jquery/modal/jquery.modal.css" type="text/css" />
 
         <link rel="stylesheet" href="js/jquery/jqgrid/css/ui.jqgrid.css" type="text/css" />
@@ -33,8 +33,8 @@
 
         <link rel="stylesheet" href="css/threshold_styles.css" type="text/css" />
 
-        <script type="text/javascript" src="../nifi/js/jquery/jquery-1.7.min.js"></script>
-        <script type="text/javascript" src="../nifi/js/jquery/jquery-ui-1.8.10.custom.min.js"></script>
+        <script type="text/javascript" src="../nifi/js/jquery/jquery-2.1.1.min.js"></script>
+        <script type="text/javascript" src="../nifi/js/jquery/ui-smoothness/jquery-ui-1.10.4.min.js"></script>
         <script type="text/javascript" src="../nifi/js/jquery/jquery.center.js"></script>
         <script type="text/javascript" src="../nifi/js/jquery/modal/jquery.modal.js"></script>
 

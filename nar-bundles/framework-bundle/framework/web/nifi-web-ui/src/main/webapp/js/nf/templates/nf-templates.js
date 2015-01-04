@@ -41,7 +41,7 @@ nf.Templates = (function () {
                 type: 'GET',
                 url: config.urls.authorities,
                 dataType: 'json'
-            }).then(function (response) {
+            }).done(function (response) {
                 if (nf.Common.isDefinedAndNotNull(response.authorities)) {
                     // record the users authorities
                     nf.Common.setAuthorities(response.authorities);
@@ -49,7 +49,7 @@ nf.Templates = (function () {
                 } else {
                     deferred.reject();
                 }
-            }, function (xhr, status, error) {
+            }).fail(function (xhr, status, error) {
                 nf.Common.handleAjaxError(xhr, status, error);
                 deferred.reject();
             });
@@ -154,7 +154,7 @@ nf.Templates = (function () {
                     type: 'GET',
                     url: config.urls.banners,
                     dataType: 'json'
-                }).then(function (response) {
+                }).done(function (response) {
                     // ensure the banners response is specified
                     if (nf.Common.isDefinedAndNotNull(response.banners)) {
                         if (nf.Common.isDefinedAndNotNull(response.banners.headerText) && response.banners.headerText !== '') {
@@ -186,7 +186,7 @@ nf.Templates = (function () {
                     }
 
                     deferred.resolve();
-                }, function (xhr, status, error) {
+                }).fail(function (xhr, status, error) {
                     nf.Common.handleAjaxError(xhr, status, error);
                     deferred.reject();
                 });
@@ -219,14 +219,14 @@ nf.Templates = (function () {
                             type: 'GET',
                             url: config.urls.controllerAbout,
                             dataType: 'json'
-                        }).then(function (response) {
+                        }).done(function (response) {
                             var aboutDetails = response.about;
                             var templatesTitle = aboutDetails.title + ' Templates';
 
                             // set the document title and the about title
                             document.title = templatesTitle;
                             $('#templates-header-text').text(templatesTitle);
-                        }, nf.Common.handleAjaxError);
+                        }).fail(nf.Common.handleAjaxError);
                     });
                 });
             });

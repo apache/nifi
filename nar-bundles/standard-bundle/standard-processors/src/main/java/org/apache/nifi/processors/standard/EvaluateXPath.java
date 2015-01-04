@@ -36,6 +36,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.xml.namespace.QName;
+import javax.xml.transform.ErrorListener;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Source;
 import javax.xml.transform.Transformer;
@@ -50,13 +51,14 @@ import javax.xml.xpath.XPathFactoryConfigurationException;
 
 import net.sf.saxon.lib.NamespaceConstant;
 import net.sf.saxon.xpath.XPathEvaluator;
+
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.io.BufferedInputStream;
-import org.apache.nifi.io.BufferedOutputStream;
+import org.apache.nifi.stream.io.BufferedInputStream;
+import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.apache.nifi.logging.ProcessorLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -73,7 +75,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.util.ObjectHolder;
-
 import org.xml.sax.InputSource;
 
 @EventDriven
@@ -356,8 +357,7 @@ public class EvaluateXPath extends AbstractProcessor {
                     session.getProvenanceReporter().modifyContent(flowFile);
                 }
             } else {
-                logger.error("Failed to write XPath result for {} due to {}; routing original to 'failure'", new Object[]{
-                    flowFile, error.get()});
+                logger.error("Failed to write XPath result for {} due to {}; routing original to 'failure'", new Object[]{flowFile, error.get()});
                 session.transfer(flowFile, REL_FAILURE);
             }
         }
@@ -377,7 +377,32 @@ public class EvaluateXPath extends AbstractProcessor {
         props.setProperty(OutputKeys.OMIT_XML_DECLARATION, "no");
         transformer.setOutputProperties(props);
 
+        final ProcessorLog logger = getLogger();
+        
+        final ObjectHolder<TransformerException> error = new ObjectHolder<>(null);
+        transformer.setErrorListener(new ErrorListener() {
+            @Override
+            public void warning(final TransformerException exception) throws TransformerException {
+                logger.warn("Encountered warning from XPath Engine: ", new Object[] {exception.toString(), exception});
+            }
+
+            @Override
+            public void error(final TransformerException exception) throws TransformerException {
+                logger.error("Encountered error from XPath Engine: ", new Object[] {exception.toString(), exception});
+                error.set(exception);
+            }
+
+            @Override
+            public void fatalError(final TransformerException exception) throws TransformerException {
+                logger.error("Encountered warning from XPath Engine: ", new Object[] {exception.toString(), exception});
+                error.set(exception);
+            }
+        });
+        
         transformer.transform(sourceNode, new StreamResult(out));
+        if ( error.get() != null ) {
+            throw error.get();
+        }
     }
 
     private static class XPathValidator implements Validator {

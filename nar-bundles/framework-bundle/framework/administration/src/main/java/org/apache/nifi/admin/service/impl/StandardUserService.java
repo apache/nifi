@@ -18,6 +18,8 @@ package org.apache.nifi.admin.service.impl;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -27,6 +29,7 @@ import org.apache.nifi.admin.service.AccountDisabledException;
 import org.apache.nifi.admin.service.AccountPendingException;
 import org.apache.nifi.admin.service.AdministrationException;
 import org.apache.nifi.admin.service.UserService;
+import org.apache.nifi.admin.service.action.AuthorizeDownloadAction;
 import org.apache.nifi.admin.service.action.AuthorizeUserAction;
 import org.apache.nifi.admin.service.action.DeleteUserAction;
 import org.apache.nifi.admin.service.action.DisableUserAction;
@@ -48,6 +51,7 @@ import org.apache.nifi.admin.service.transaction.Transaction;
 import org.apache.nifi.admin.service.transaction.TransactionBuilder;
 import org.apache.nifi.admin.service.transaction.TransactionException;
 import org.apache.nifi.authorization.Authority;
+import org.apache.nifi.authorization.DownloadAuthorization;
 import org.apache.nifi.user.NiFiUser;
 import org.apache.nifi.user.NiFiUserGroup;
 import org.apache.nifi.util.FormatUtils;
@@ -440,7 +444,7 @@ public class StandardUserService implements UserService {
      * modifying a user account. This method should only be invoked from within
      * a write lock.
      *
-     * @param id
+     * @param group
      */
     @Override
     public void invalidateUserGroupAccount(String group) {
@@ -500,6 +504,36 @@ public class StandardUserService implements UserService {
         }
     }
 
+    @Override
+    public DownloadAuthorization authorizeDownload(final List<String> dnChain, final Map<String, String> attributes) {
+        Transaction transaction = null;
+
+        readLock.lock();
+        try {
+            // start the transaction
+            transaction = transactionBuilder.start();
+
+            // authorize the download
+            AuthorizeDownloadAction authorizeDownload = new AuthorizeDownloadAction(dnChain, attributes);
+            DownloadAuthorization downloadAuthorization = transaction.execute(authorizeDownload);
+
+            // commit the transaction
+            transaction.commit();
+
+            // return the authorization
+            return downloadAuthorization;
+        } catch (TransactionException | DataAccessException te) {
+            rollback(transaction);
+            throw new AdministrationException(te);
+        } catch (Throwable t) {
+            rollback(transaction);
+            throw t;
+        } finally {
+            closeQuietly(transaction);
+            readLock.unlock();
+        }
+    }
+    
     @Override
     public Collection<NiFiUser> getUsers() {
         Transaction transaction = null;

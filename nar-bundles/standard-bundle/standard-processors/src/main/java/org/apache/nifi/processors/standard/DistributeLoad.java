@@ -51,7 +51,7 @@ import org.apache.nifi.processor.annotation.Tags;
 import org.apache.nifi.processor.annotation.TriggerWhenAnyDestinationAvailable;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 @EventDriven
 @SideEffectFree

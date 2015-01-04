@@ -148,24 +148,38 @@ nf.ProcessGroup = (function () {
 
         // always support selecting and navigation
         processGroup.on('dblclick', function (d) {
-            // enter this group on double click
-            nf.CanvasUtils.enterGroup(d.component.id);
-        })
+                    // enter this group on double click
+                    nf.CanvasUtils.enterGroup(d.component.id);
+                })
                 .call(nf.Selectable.activate).call(nf.ContextMenu.activate);
 
         // only support dragging, connection, and drag and drop if appropriate
         if (nf.Common.isDFM()) {
             processGroup
-                    //Using mouseover/out to workaround chrom issue #122746
+                    // Using mouseover/out to workaround chrome issue #122746
                     .on('mouseover.drop', function (d) {
+                        // get the target and ensure its not already been marked for drop
                         var target = d3.select(this);
-
-                        //mark that we are hovering over a drop area if appropriate 
-                        if (!target.classed('drop') && !d3.select('rect.drag-selection').empty()) {
-                            target.classed('drop', function () {
-                                //get the current selection and ensure its disconnected
-                                return nf.CanvasUtils.isDisconnected(nf.CanvasUtils.getSelection());
-                            });
+                        if (!target.classed('drop')) {
+                            var targetData = target.datum();
+                            
+                            // see if there is a selection being dragged
+                            var drag = d3.select('rect.drag-selection');
+                            if (!drag.empty()) {
+                                // filter the current selection by this group
+                                var selection = nf.CanvasUtils.getSelection().filter(function(d) {
+                                    return targetData.component.id === d.component.id;
+                                });
+                                
+                                // ensure this group isn't in the selection
+                                if (selection.empty()) {
+                                    // mark that we are hovering over a drop area if appropriate 
+                                    target.classed('drop', function () {
+                                        // get the current selection and ensure its disconnected
+                                        return nf.CanvasUtils.isDisconnected(nf.CanvasUtils.getSelection());
+                                    });
+                                }
+                            }
                         }
                     })
                     .on('mouseout.drop', function (d) {
@@ -877,6 +891,7 @@ nf.ProcessGroup = (function () {
                         'class': 'process-groups'
                     });
         },
+        
         /**
          * Populates the graph with the specified process groups.
          *
@@ -907,6 +922,7 @@ nf.ProcessGroup = (function () {
             // apply the selection and handle all new process group
             select().enter().call(renderProcessGroups, selectAll);
         },
+        
         /**
          * If the process group id is specified it is returned. If no process group id
          * specified, all process groups are returned.
@@ -920,6 +936,7 @@ nf.ProcessGroup = (function () {
                 return processGroupMap.get(id);
             }
         },
+        
         /**
          * If the process group id is specified it is refresh according to the current
          * state. If no process group id is specified, all process groups are refreshed.
@@ -933,12 +950,14 @@ nf.ProcessGroup = (function () {
                 d3.selectAll('g.process-group').call(updateProcessGroups);
             }
         },
+        
         /**
          * Refreshes the components necessary after a pan event.
          */
         pan: function () {
             d3.selectAll('g.process-group.entering, g.process-group.leaving').call(updateProcessGroups);
         },
+        
         /**
          * Reloads the process group state from the server and refreshes the UI.
          * If the process group is currently unknown, this function just returns.
@@ -956,6 +975,7 @@ nf.ProcessGroup = (function () {
                 });
             }
         },
+        
         /**
          * Positions the component.
          * 
@@ -964,6 +984,7 @@ nf.ProcessGroup = (function () {
         position: function (id) {
             d3.select('#id-' + id).call(nf.CanvasUtils.position);
         },
+        
         /**
          * Sets the specified process group(s). If the is an array, it
          * will set each process group. If it is not an array, it will
@@ -992,6 +1013,7 @@ nf.ProcessGroup = (function () {
                 set(processGroups);
             }
         },
+        
         /**
          * Sets the process group status using the specified status.
          * 
@@ -1013,6 +1035,7 @@ nf.ProcessGroup = (function () {
             // update the visible process groups
             d3.selectAll('g.process-group.visible').call(updateProcessGroupStatus);
         },
+        
         /**
          * Removes the specified process group.
          *
@@ -1030,6 +1053,7 @@ nf.ProcessGroup = (function () {
             // apply the selection and handle all removed process groups
             select().exit().call(removeProcessGroups);
         },
+        
         /**
          * Removes all process groups.
          */

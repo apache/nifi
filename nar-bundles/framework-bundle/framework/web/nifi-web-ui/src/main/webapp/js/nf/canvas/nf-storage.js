@@ -67,6 +67,7 @@ nf.Storage = (function () {
                 alternativeStorage = d3.map();
             }
         },
+        
         /**
          * Stores the specified item. If supported, will be persisted
          * in localStorage.
@@ -91,6 +92,7 @@ nf.Storage = (function () {
                 alternativeStorage.set(key, item);
             }
         },
+        
         /**
          * Gets the item with the specified key. If an item with this key does
          * not exist, null is returned. If an item exists but cannot be parsed
@@ -117,6 +119,7 @@ nf.Storage = (function () {
                 return alternativeStorage.get(key);
             }
         },
+        
         /**
          * Removes the item with the specified key.
          * 

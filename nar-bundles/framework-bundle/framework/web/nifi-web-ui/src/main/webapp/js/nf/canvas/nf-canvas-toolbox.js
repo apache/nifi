@@ -66,10 +66,11 @@ nf.CanvasToolbox = (function () {
         }, function () {
             $(this).removeClass(hoverCls).addClass(cls);
         }).draggable({
+            'zIndex': 1011,
             'helper': function () {
-                return $('<div class="toolbox-icon"></div>').addClass(dragCls);
+                return $('<div class="toolbox-icon"></div>').addClass(dragCls).appendTo('body');
             },
-            'containment': '#canvas-container',
+            'containment': 'body',
             'stop': function (e, ui) {
                 var translate = nf.Canvas.View.translate();
                 var scale = nf.Canvas.View.scale();
@@ -77,15 +78,17 @@ nf.CanvasToolbox = (function () {
                 var mouseX = e.originalEvent.pageX;
                 var mouseY = e.originalEvent.pageY - nf.Canvas.CANVAS_OFFSET;
 
-                // adjust the x and y coordinates accordingly
-                var x = (mouseX / scale) - (translate[0] / scale);
-                var y = (mouseY / scale) - (translate[1] / scale);
+                // invoke the drop handler if we're over the canvas
+                if (mouseX >= 0 && mouseY >= 0) {
+                    // adjust the x and y coordinates accordingly
+                    var x = (mouseX / scale) - (translate[0] / scale);
+                    var y = (mouseY / scale) - (translate[1] / scale);
 
-                // invoke the drop handler
-                dropHandler({
-                    x: x,
-                    y: y
-                });
+                    dropHandler({
+                        x: x,
+                        y: y
+                    });
+                } 
             }
         }).appendTo(toolbox);
     };
@@ -394,7 +397,7 @@ nf.CanvasToolbox = (function () {
                 y: pt.y
             },
             dataType: 'json'
-        }).then(function (response) {
+        }).done(function (response) {
             if (nf.Common.isDefinedAndNotNull(response.processor)) {
                 // update the revision
                 nf.Client.setRevision(response.revision);
@@ -410,7 +413,7 @@ nf.CanvasToolbox = (function () {
                 // update the birdseye
                 nf.Birdseye.refresh();
             }
-        }, nf.Common.handleAjaxError);
+        }).fail(nf.Common.handleAjaxError);
     };
 
     /**
@@ -481,7 +484,7 @@ nf.CanvasToolbox = (function () {
                 y: pt.y
             },
             dataType: 'json'
-        }).then(function (response) {
+        }).done(function (response) {
             if (nf.Common.isDefinedAndNotNull(response.inputPort)) {
                 // update the revision
                 nf.Client.setRevision(response.revision);
@@ -497,7 +500,7 @@ nf.CanvasToolbox = (function () {
                 // update the birdseye
                 nf.Birdseye.refresh();
             }
-        }, nf.Common.handleAjaxError);
+        }).fail(nf.Common.handleAjaxError);
     };
 
     /**
@@ -568,7 +571,7 @@ nf.CanvasToolbox = (function () {
                 y: pt.y
             },
             dataType: 'json'
-        }).then(function (response) {
+        }).done(function (response) {
             if (nf.Common.isDefinedAndNotNull(response.outputPort)) {
                 // update the revision
                 nf.Client.setRevision(response.revision);
@@ -584,7 +587,7 @@ nf.CanvasToolbox = (function () {
                 // update the birdseye
                 nf.Birdseye.refresh();
             }
-        }, nf.Common.handleAjaxError);
+        }).fail(nf.Common.handleAjaxError);
     };
 
     /**
@@ -608,7 +611,7 @@ nf.CanvasToolbox = (function () {
                 y: pt.y
             },
             dataType: 'json'
-        }).then(function (response) {
+        }).done(function (response) {
             if (nf.Common.isDefinedAndNotNull(response.processGroup)) {
                 // update the revision
                 nf.Client.setRevision(response.revision);
@@ -624,7 +627,7 @@ nf.CanvasToolbox = (function () {
                 // update the birdseye
                 nf.Birdseye.refresh();
             }
-        }, nf.Common.handleAjaxError);
+        }).fail(nf.Common.handleAjaxError);
     };
 
     /**
@@ -692,7 +695,7 @@ nf.CanvasToolbox = (function () {
                 y: pt.y
             },
             dataType: 'json'
-        }).then(function (response) {
+        }).done(function (response) {
             if (nf.Common.isDefinedAndNotNull(response.remoteProcessGroup)) {
                 // update the revision
                 nf.Client.setRevision(response.revision);
@@ -708,7 +711,7 @@ nf.CanvasToolbox = (function () {
                 // update the birdseye
                 nf.Birdseye.refresh();
             }
-        }, nf.Common.handleAjaxError);
+        }).fail(nf.Common.handleAjaxError);
     };
 
     /**
@@ -730,7 +733,7 @@ nf.CanvasToolbox = (function () {
                 y: pt.y
             },
             dataType: 'json'
-        }).then(function (response) {
+        }).done(function (response) {
             if (nf.Common.isDefinedAndNotNull(response.funnel)) {
                 // update the revision
                 nf.Client.setRevision(response.revision);
@@ -743,7 +746,7 @@ nf.CanvasToolbox = (function () {
                 // update the birdseye
                 nf.Birdseye.refresh();
             }
-        }, nf.Common.handleAjaxError);
+        }).fail(nf.Common.handleAjaxError);
     };
 
     /**
@@ -756,7 +759,7 @@ nf.CanvasToolbox = (function () {
             type: 'GET',
             url: config.urls.templates,
             dataType: 'json'
-        }).then(function (response) {
+        }).done(function (response) {
             var templates = response.templates;
             if (nf.Common.isDefinedAndNotNull(templates) && templates.length > 0) {
                 var options = [];
@@ -809,7 +812,7 @@ nf.CanvasToolbox = (function () {
                 });
             }
 
-        }, nf.Common.handleAjaxError);
+        }).fail(nf.Common.handleAjaxError);
     };
 
     /**
@@ -833,7 +836,7 @@ nf.CanvasToolbox = (function () {
                 originY: pt.y
             },
             dataType: 'json'
-        }).then(function (response) {
+        }).done(function (response) {
             // update the revision
             nf.Client.setRevision(response.revision);
 
@@ -845,7 +848,7 @@ nf.CanvasToolbox = (function () {
 
             // update the birdseye
             nf.Birdseye.refresh();
-        }, nf.Common.handleAjaxError);
+        }).fail(nf.Common.handleAjaxError);
     };
 
     /**
@@ -869,7 +872,7 @@ nf.CanvasToolbox = (function () {
                 height: nf.Label.config.height
             },
             dataType: 'json'
-        }).then(function (response) {
+        }).done(function (response) {
             if (nf.Common.isDefinedAndNotNull(response.label)) {
                 // update the revision
                 nf.Client.setRevision(response.revision);
@@ -880,7 +883,7 @@ nf.CanvasToolbox = (function () {
                 // update the birdseye
                 nf.Birdseye.refresh();
             }
-        }, nf.Common.handleAjaxError);
+        }).fail(nf.Common.handleAjaxError);
     };
 
     return {
@@ -987,7 +990,7 @@ nf.CanvasToolbox = (function () {
                     type: 'GET',
                     url: config.urls.processorTypes,
                     dataType: 'json'
-                }).then(function (response) {
+                }).done(function (response) {
                     var tagCloud = {};
                     var tags = [];
 
@@ -1090,7 +1093,7 @@ nf.CanvasToolbox = (function () {
                         processorTypesGrid.render();
                     });
                     processorTypesData.syncGridSelection(processorTypesGrid, false);
-                }, nf.Common.handleAjaxError);
+                }).fail(nf.Common.handleAjaxError);
 
                 // define the function for filtering the list
                 $('#processor-type-filter').keyup(function () {
@@ -1136,16 +1139,17 @@ nf.CanvasToolbox = (function () {
                 });
             } else {
                 // add disabled icons
-                $('<div/>').attr('title', nf.Common.config.type.processor).addClass('processor-icon-disable').addClass('toolbox-icon').appendTo(toolbox);
-                $('<div/>').attr('title', nf.Common.config.type.inputPort).addClass('input-port-icon-disable').addClass('toolbox-icon').appendTo(toolbox);
-                $('<div/>').attr('title', nf.Common.config.type.outputPort).addClass('output-port-icon-disable').addClass('toolbox-icon').appendTo(toolbox);
-                $('<div/>').attr('title', nf.Common.config.type.processGroup).addClass('process-group-icon-disable').addClass('toolbox-icon').appendTo(toolbox);
-                $('<div/>').attr('title', nf.Common.config.type.remoteProcessGroup).addClass('remote-process-group-icon-disable').addClass('toolbox-icon').appendTo(toolbox);
-                $('<div/>').attr('title', nf.Common.config.type.funnel).addClass('funnel-icon-disable').addClass('toolbox-icon').appendTo(toolbox);
-                $('<div/>').attr('title', nf.Common.config.type.template).addClass('template-icon-disable').addClass('toolbox-icon').appendTo(toolbox);
-                $('<div/>').attr('title', nf.Common.config.type.label).addClass('label-icon-disable').addClass('toolbox-icon').appendTo(toolbox);
+                $('<div/>').attr('title', config.type.processor).addClass('processor-icon-disable').addClass('toolbox-icon').appendTo(toolbox);
+                $('<div/>').attr('title', config.type.inputPort).addClass('input-port-icon-disable').addClass('toolbox-icon').appendTo(toolbox);
+                $('<div/>').attr('title', config.type.outputPort).addClass('output-port-icon-disable').addClass('toolbox-icon').appendTo(toolbox);
+                $('<div/>').attr('title', config.type.processGroup).addClass('process-group-icon-disable').addClass('toolbox-icon').appendTo(toolbox);
+                $('<div/>').attr('title', config.type.remoteProcessGroup).addClass('remote-process-group-icon-disable').addClass('toolbox-icon').appendTo(toolbox);
+                $('<div/>').attr('title', config.type.funnel).addClass('funnel-icon-disable').addClass('toolbox-icon').appendTo(toolbox);
+                $('<div/>').attr('title', config.type.template).addClass('template-icon-disable').addClass('toolbox-icon').appendTo(toolbox);
+                $('<div/>').attr('title', config.type.label).addClass('label-icon-disable').addClass('toolbox-icon').appendTo(toolbox);
             }
         },
+        
         /**
          * Prompts the user to enter the name for the group.
          * 
@@ -1162,9 +1166,9 @@ nf.CanvasToolbox = (function () {
                     $('#new-process-group-name').val('');
 
                     // create the group and resolve the deferred accordingly
-                    $.when(createGroup(groupName, pt)).then(function (response) {
+                    createGroup(groupName, pt).done(function (response) {
                         deferred.resolve(response.processGroup);
-                    }, function () {
+                    }).fail(function () {
                         deferred.reject();
                     });
                 };

@@ -16,11 +16,8 @@
  */
 package org.apache.nifi.web.controller;
 
-import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.nifi.attribute.expression.language.PreparedQuery;
-import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.controller.ControllerServiceLookup;
@@ -36,24 +33,11 @@ public class StandardSearchContext implements SearchContext {
     private final String searchTerm;
     private final ProcessorNode processorNode;
     private final ControllerServiceLookup controllerServiceLookup;
-    private final Map<PropertyDescriptor, PreparedQuery> preparedQueries;
 
     public StandardSearchContext(final String searchTerm, final ProcessorNode processorNode, final ControllerServiceLookup controllerServiceLookup) {
         this.searchTerm = searchTerm;
         this.processorNode = processorNode;
         this.controllerServiceLookup = controllerServiceLookup;
-
-        preparedQueries = new HashMap<>();
-        for (final Map.Entry<PropertyDescriptor, String> entry : processorNode.getProperties().entrySet()) {
-            final PropertyDescriptor desc = entry.getKey();
-            String value = entry.getValue();
-            if (value == null) {
-                value = desc.getDefaultValue();
-            }
-
-            final PreparedQuery pq = Query.prepare(value);
-            preparedQueries.put(desc, pq);
-        }
     }
 
     @Override
@@ -69,7 +53,7 @@ public class StandardSearchContext implements SearchContext {
     @Override
     public PropertyValue getProperty(PropertyDescriptor property) {
         final String configuredValue = processorNode.getProperty(property);
-        return new StandardPropertyValue(configuredValue == null ? property.getDefaultValue() : configuredValue, controllerServiceLookup, preparedQueries.get(property));
+        return new StandardPropertyValue(configuredValue == null ? property.getDefaultValue() : configuredValue, controllerServiceLookup, null);
     }
 
     @Override

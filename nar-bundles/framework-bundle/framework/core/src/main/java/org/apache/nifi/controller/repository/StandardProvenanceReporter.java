@@ -159,14 +159,12 @@ public class StandardProvenanceReporter implements ProvenanceReporter {
         try {
             final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.SEND).setTransitUri(transitUri).setEventDuration(transmissionMillis).setDetails(details).build();
 
+            final ProvenanceEventRecord enriched = eventEnricher.enrich(record, flowFile);
+            
             if (force) {
-                if (eventEnricher == null) {
-                    repository.registerEvent(record);
-                } else {
-                    repository.registerEvent(eventEnricher.enrich(record, flowFile));
-                }
+                repository.registerEvent(enriched);
             } else {
-                events.add(record);
+                events.add(enriched);
             }
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event due to " + e);
@@ -328,7 +326,7 @@ public class StandardProvenanceReporter implements ProvenanceReporter {
             }
         }
     }
-
+    
     @Override
     public void modifyContent(final FlowFile flowFile) {
         modifyContent(flowFile, null, -1L);
@@ -421,7 +419,7 @@ public class StandardProvenanceReporter implements ProvenanceReporter {
         }
     }
 
-    private ProvenanceEventBuilder build(final FlowFile flowFile, final ProvenanceEventType eventType) {
+    ProvenanceEventBuilder build(final FlowFile flowFile, final ProvenanceEventType eventType) {
         final ProvenanceEventBuilder builder = repository.eventBuilder();
         builder.setEventType(eventType);
         builder.fromFlowFile(flowFile);

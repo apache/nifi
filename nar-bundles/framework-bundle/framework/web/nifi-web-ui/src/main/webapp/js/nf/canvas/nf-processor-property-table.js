@@ -40,7 +40,7 @@ nf.ProcessorPropertyTable = (function () {
                     hidden: false,
                     property: propertyName,
                     displayName: propertyName,
-                    previousValue: undefined,
+                    previousValue: null,
                     value: propertyValue,
                     type: 'userDefined'
                 });
@@ -325,6 +325,7 @@ nf.ProcessorPropertyTable = (function () {
         config: {
             sensitiveText: 'Sensitive value set'
         },
+        
         /**
          * Initializes the property table.
          */
@@ -332,6 +333,7 @@ nf.ProcessorPropertyTable = (function () {
             initNewPropertyDialog();
             initProcessorPropertiesTable();
         },
+        
         /**
          * Determines if the specified property is sensitive.
          * 
@@ -344,6 +346,7 @@ nf.ProcessorPropertyTable = (function () {
                 return false;
             }
         },
+        
         /**
          * Determines if the specified property is required.
          * 
@@ -356,6 +359,7 @@ nf.ProcessorPropertyTable = (function () {
                 return false;
             }
         },
+        
         /**
          * Determines if the specified property is required.
          * 
@@ -368,6 +372,7 @@ nf.ProcessorPropertyTable = (function () {
                 return false;
             }
         },
+        
         /**
          * Gets the allowable values for the specified property.
          * 
@@ -377,9 +382,10 @@ nf.ProcessorPropertyTable = (function () {
             if (nf.Common.isDefinedAndNotNull(propertyDescriptor)) {
                 return propertyDescriptor.allowableValues;
             } else {
-                return undefined;
+                return null;
             }
         },
+        
         /**
          * Returns whether the specified property supports EL.
          * 
@@ -392,6 +398,7 @@ nf.ProcessorPropertyTable = (function () {
                 return false;
             }
         },
+        
         /**
          * Saves the last edited row in the specified grid.
          */
@@ -403,6 +410,7 @@ nf.ProcessorPropertyTable = (function () {
                 editController.commitCurrentEdit();
             }
         },
+        
         /**
          * Cancels the edit in the specified row.
          */
@@ -414,6 +422,7 @@ nf.ProcessorPropertyTable = (function () {
                 editController.cancelCurrentEdit();
             }
         },
+        
         /**
          * Deletes the property in the specified row.
          * 
@@ -432,6 +441,7 @@ nf.ProcessorPropertyTable = (function () {
                 propertyData.updateItem(property.id, property);
             }
         },
+        
         /**
          * Update the size of the grid based on its container's current size.
          */
@@ -441,6 +451,7 @@ nf.ProcessorPropertyTable = (function () {
                 propertyGrid.resizeCanvas();
             }
         },
+        
         /**
          * Loads the specified properties.
          * 
@@ -475,11 +486,11 @@ nf.ProcessorPropertyTable = (function () {
 
                         // use the display name if possible
                         displayName = descriptor.displayName;
-                    }
-
-                    // determine the value
-                    if (nf.Common.isUndefined(value) || nf.Common.isNull(value)) {
-                        value = descriptor.defaultValue;
+                        
+                        // determine the value
+                        if (nf.Common.isNull(value) && nf.Common.isDefinedAndNotNull(descriptor.defaultValue)) {
+                            value = descriptor.defaultValue;
+                        }
                     }
 
                     // add the row
@@ -497,6 +508,7 @@ nf.ProcessorPropertyTable = (function () {
                 propertyData.endUpdate();
             }
         },
+        
         /**
          * Determines if a save is required.
          */
@@ -515,6 +527,7 @@ nf.ProcessorPropertyTable = (function () {
             });
             return isSaveRequired;
         },
+        
         /**
          * Marshal's the properties to send to the server.
          */
@@ -535,6 +548,7 @@ nf.ProcessorPropertyTable = (function () {
 
             return properties;
         },
+        
         /**
          * Clears the property table.
          */

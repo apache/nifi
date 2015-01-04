@@ -20,8 +20,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.channels.SocketChannel;
 
-import org.apache.nifi.io.BufferedOutputStream;
-import org.apache.nifi.io.ByteCountingOutputStream;
+import org.apache.nifi.stream.io.BufferedOutputStream;
+import org.apache.nifi.stream.io.ByteCountingOutputStream;
 import org.apache.nifi.remote.io.InterruptableOutputStream;
 import org.apache.nifi.remote.protocol.CommunicationsOutput;
 

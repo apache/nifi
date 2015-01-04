@@ -102,13 +102,27 @@ nf.ClusterSearch = (function () {
 
             // configure the cluster auto complete
             $.widget('nf.clusterSearchAutocomplete', $.ui.autocomplete, {
-                _normalize: function (content) {
-                    return $.map(content, function (item, i) {
-                        return $.extend({
-                            label: item.address,
-                            value: item.address
-                        }, item);
+                _normalize: function(searchResults) {
+                    var items = [];
+                    items.push(searchResults);
+                    return items;
+                },
+                _renderMenu: function(ul, items) {
+                    // results are normalized into a single element array
+                    var searchResults = items[0];
+                    
+                    var self = this;
+                    $.each(searchResults.nodeResults, function(_, node) {
+                        self._renderItemData(ul, {
+                            label: node.address,
+                            value: node.address
+                        });
                     });
+                    
+                    // ensure there were some results
+                    if (ul.children().length === 0) {
+                        ul.append('<li class="unset search-no-matches">No nodes matched the search terms</li>');
+                    }
                 },
                 _resizeMenu: function () {
                     var ul = this.menu.element;
@@ -119,6 +133,7 @@ nf.ClusterSearch = (function () {
             // configure the autocomplete field
             $('#cluster-search-field').clusterSearchAutocomplete({
                 minLength: 0,
+                appendTo: '#search-cluster-results',
                 position: {
                     my: 'left top',
                     at: 'left bottom',
@@ -134,7 +149,7 @@ nf.ClusterSearch = (function () {
                         dataType: 'json',
                         url: config.urls.clusterSearch
                     }).done(function (searchResponse) {
-                        response(searchResponse.nodeResults);
+                        response(searchResponse);
                     });
                 }
             }).focus(function () {

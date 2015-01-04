@@ -38,8 +38,12 @@ nf.ProcessGroupDetails = (function () {
                         nf.Common.clearField('read-only-process-group-comments');
                     }
                 }
+            }).draggable({
+                containment: 'parent',
+                handle: '.dialog-header'
             });
         },
+        
         showDetails: function (selection) {
             // if the specified selection is a process group
             if (nf.CanvasUtils.isProcessGroup(selection)) {

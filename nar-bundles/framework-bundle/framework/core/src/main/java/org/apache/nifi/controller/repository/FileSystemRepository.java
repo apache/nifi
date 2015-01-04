@@ -65,8 +65,8 @@ import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ContentClaimManager;
 import org.apache.nifi.controller.repository.io.SyncOnCloseOutputStream;
 import org.apache.nifi.engine.FlowEngine;
-import org.apache.nifi.file.FileUtils;
-import org.apache.nifi.io.StreamUtils;
+import org.apache.nifi.util.file.FileUtils;
+import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.LongHolder;
 import org.apache.nifi.util.NiFiProperties;
@@ -92,7 +92,7 @@ public class FileSystemRepository implements ContentRepository {
     private final List<String> containerNames;
     private final AtomicLong index;
 
-    private final ScheduledExecutorService executor = new FlowEngine(4, "FileSystemRepository Workers");
+    private final ScheduledExecutorService executor = new FlowEngine(4, "FileSystemRepository Workers", true);
     private final ConcurrentMap<String, BlockingQueue<ContentClaim>> reclaimable = new ConcurrentHashMap<>();
     private final Map<String, ContainerState> containerStateMap = new HashMap<>();
 
@@ -209,7 +209,7 @@ public class FileSystemRepository implements ContentRepository {
             }
         }
 
-        containerCleanupExecutor = new FlowEngine(containers.size(), "Cleanup FileSystemRepository Container");
+        containerCleanupExecutor = new FlowEngine(containers.size(), "Cleanup FileSystemRepository Container", true);
         for (final Map.Entry<String, Path> containerEntry : containers.entrySet()) {
             final String containerName = containerEntry.getKey();
             final Path containerPath = containerEntry.getValue();
@@ -223,6 +223,12 @@ public class FileSystemRepository implements ContentRepository {
         this.contentClaimManager = claimManager;
     }
 
+    @Override
+    public void shutdown() {
+        executor.shutdown();
+        containerCleanupExecutor.shutdown();
+    }
+    
     private static double getRatio(final String value) {
         final String trimmed = value.trim();
         final String percentage = trimmed.substring(0, trimmed.length() - 1);

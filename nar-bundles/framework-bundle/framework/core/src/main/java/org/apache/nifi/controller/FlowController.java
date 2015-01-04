@@ -125,7 +125,7 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroupPortDescriptor;
 import org.apache.nifi.groups.StandardProcessGroup;
-import org.apache.nifi.io.StreamUtils;
+import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.logging.LogRepository;
 import org.apache.nifi.logging.LogRepositoryFactory;
@@ -388,13 +388,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, H
 
         try {
             this.provenanceEventRepository = createProvenanceRepository(properties);
-            this.provenanceEventRepository.initialize(new EventReporter() {
-                @Override
-                public void reportEvent(final Severity severity, final String category, final String message) {
-                    final Bulletin bulletin = BulletinFactory.createBulletin(category, severity.name(), message);
-                    bulletinRepository.addBulletin(bulletin);
-                }
-            });
+            this.provenanceEventRepository.initialize(createEventReporter(bulletinRepository));
 
             this.contentRepository = createContentRepository(properties);
         } catch (final Exception e) {
@@ -453,10 +447,11 @@ public class FlowController implements EventAccess, ControllerServiceProvider, H
         rootGroup.setName(DEFAULT_ROOT_GROUP_NAME);
         instanceId = UUID.randomUUID().toString();
 
-        if (Boolean.TRUE.equals(isSiteToSiteSecure) && sslContext == null) {
-            LOG.error("Unable to create Secure Site-to-Site Listener because not all required Keystore/Truststore Properties are set. Site-to-Site functionality will be disabled until this problem is has been fixed.");
+        if (remoteInputSocketPort == null){
+            LOG.info("Not enabling Site-to-Site functionality because nifi.remote.input.socket.port is not set");
             externalSiteListener = null;
-        } else if (remoteInputSocketPort == null) {
+        } else if (isSiteToSiteSecure && sslContext == null) {
+            LOG.error("Unable to create Secure Site-to-Site Listener because not all required Keystore/Truststore Properties are set. Site-to-Site functionality will be disabled until this problem is has been fixed.");
             externalSiteListener = null;
         } else {
             // Register the SocketFlowFileServerProtocol as the appropriate resource for site-to-site Server Protocol
@@ -516,6 +511,16 @@ public class FlowController implements EventAccess, ControllerServiceProvider, H
         }
     }
 
+    private static EventReporter createEventReporter(final BulletinRepository bulletinRepository) {
+        return new EventReporter() {
+            @Override
+            public void reportEvent(final Severity severity, final String category, final String message) {
+                final Bulletin bulletin = BulletinFactory.createBulletin(category, severity.name(), message);
+                bulletinRepository.addBulletin(bulletin);
+            }
+        };
+    }
+    
     public void initializeFlow() throws IOException {
         writeLock.lock();
         try {
@@ -537,7 +542,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, H
             contentRepository.cleanup();
 
             if (flowFileSwapManager != null) {
-                flowFileSwapManager.start(flowFileRepository, this, contentClaimManager);
+                flowFileSwapManager.start(flowFileRepository, this, contentClaimManager, createEventReporter(bulletinRepository));
             }
 
             if (externalSiteListener != null) {
@@ -1044,6 +1049,25 @@ public class FlowController implements EventAccess, ControllerServiceProvider, H
 
             if (flowFileSwapManager != null) {
                 flowFileSwapManager.shutdown();
+            }
+            
+            if ( processScheduler != null ) {
+            	processScheduler.shutdown();
+            }
+            
+            if ( contentRepository != null ) {
+                contentRepository.shutdown();
+            }
+            
+            if ( provenanceEventRepository != null ) {
+            	try {
+            		provenanceEventRepository.close();
+            	} catch (final IOException ioe) {
+            		LOG.warn("There was a problem shutting down the Provenance Repository: " + ioe.toString());
+            		if ( LOG.isDebugEnabled() ) {
+            			LOG.warn("", ioe);
+            		}
+            	}
             }
         } finally {
             writeLock.unlock();

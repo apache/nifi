@@ -28,16 +28,16 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.io.BufferedOutputStream;
+import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.apache.nifi.io.nio.BufferPool;
 import org.apache.nifi.io.nio.consumer.StreamConsumer;
 import org.apache.nifi.logging.ProcessorLog;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 
-import org.apache.commons.lang.builder.EqualsBuilder;
-import org.apache.commons.lang.builder.HashCodeBuilder;
-import org.apache.commons.lang.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  *

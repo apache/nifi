@@ -46,10 +46,10 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.io.BufferedInputStream;
-import org.apache.nifi.io.BufferedOutputStream;
-import org.apache.nifi.io.NonCloseableOutputStream;
-import org.apache.nifi.io.StreamUtils;
+import org.apache.nifi.stream.io.BufferedInputStream;
+import org.apache.nifi.stream.io.BufferedOutputStream;
+import org.apache.nifi.stream.io.NonCloseableOutputStream;
+import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.logging.ProcessorLog;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.DataUnit;
@@ -76,7 +76,6 @@ import org.apache.nifi.util.FlowFilePackagerV1;
 import org.apache.nifi.util.FlowFilePackagerV2;
 import org.apache.nifi.util.FlowFilePackagerV3;
 import org.apache.nifi.util.ObjectHolder;
-
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
 
@@ -317,9 +316,12 @@ public class MergeContent extends AbstractSessionFactoryProcessor {
         return Files.readAllBytes(Paths.get(filename));
     }
 
+    
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
         int binsAdded = binFlowFiles(context, sessionFactory);
+        getLogger().debug("Binned {} FlowFiles", new Object[] {binsAdded});
+        
         if (!isScheduled()) {
             return;
         }
@@ -331,6 +333,7 @@ public class MergeContent extends AbstractSessionFactoryProcessor {
             context.yield();
         }
     }
+    
 
     private int migrateBins(final ProcessContext context) {
         int added = 0;
@@ -401,6 +404,8 @@ public class MergeContent extends AbstractSessionFactoryProcessor {
         final ProcessorLog logger = getLogger();
         final ProcessSession session = sessionFactory.createSession();
 
+        final Set<Bin> committedBins = new HashSet<>();
+        
         for (final Bin unmodifiableBin : bins) {
             final List<FlowFileSessionWrapper> binCopy = new ArrayList<>(unmodifiableBin.getContents());
 
@@ -409,6 +414,12 @@ public class MergeContent extends AbstractSessionFactoryProcessor {
                 if (error != null) {
                     final String binDescription = binCopy.size() <= 10 ? binCopy.toString() : binCopy.size() + " FlowFiles";
                     logger.error(error + "; routing {} to failure", new Object[]{binDescription});
+                    for ( final FlowFileSessionWrapper wrapper : binCopy ) {
+                        wrapper.getSession().transfer(wrapper.getFlowFile(), REL_FAILURE);
+                        wrapper.getSession().commit();
+                        committedBins.add(unmodifiableBin);
+                    }
+                    
                     continue;
                 }
 
@@ -452,6 +463,11 @@ public class MergeContent extends AbstractSessionFactoryProcessor {
         // across multiple sessions, we cannot guarantee atomicity across the sessions
         session.commit();
         for (final Bin unmodifiableBin : bins) {
+            // If this bin's session has been committed, move on.
+            if ( committedBins.contains(unmodifiableBin) ) {
+                continue;
+            }
+            
             for (final FlowFileSessionWrapper wrapper : unmodifiableBin.getContents()) {
                 wrapper.getSession().transfer(wrapper.getFlowFile(), REL_ORIGINAL);
                 wrapper.getSession().commit();
@@ -515,6 +531,7 @@ public class MergeContent extends AbstractSessionFactoryProcessor {
 
         // If we are defragmenting, all fragments must have the appropriate attributes.
         String decidedFragmentCount = null;
+        String fragmentIdentifier = null;
         for (final FlowFileSessionWrapper flowFileWrapper : bin) {
             final FlowFile flowFile = flowFileWrapper.getFlowFile();
 
@@ -522,6 +539,8 @@ public class MergeContent extends AbstractSessionFactoryProcessor {
             if (!isNumber(fragmentIndex)) {
                 return "Cannot Defragment " + flowFile + " because it does not have an integer value for the " + FRAGMENT_INDEX_ATTRIBUTE + " attribute";
             }
+            
+            fragmentIdentifier = flowFile.getAttribute(FRAGMENT_ID_ATTRIBUTE);
 
             final String fragmentCount = flowFile.getAttribute(FRAGMENT_COUNT_ATTRIBUTE);
             if (!isNumber(fragmentCount)) {
@@ -531,6 +550,21 @@ public class MergeContent extends AbstractSessionFactoryProcessor {
             } else if (!decidedFragmentCount.equals(fragmentCount)) {
                 return "Cannot Defragment " + flowFile + " because it is grouped with another FlowFile, and the two have differing values for the " + FRAGMENT_COUNT_ATTRIBUTE + " attribute: " + decidedFragmentCount + " and " + fragmentCount;
             }
+        }
+        
+        final int numericFragmentCount;
+        try {
+            numericFragmentCount = Integer.parseInt(decidedFragmentCount);
+        } catch (final NumberFormatException nfe) {
+            return "Cannot Defragment FlowFiles with Fragment Identifier " + fragmentIdentifier + " because the " + FRAGMENT_COUNT_ATTRIBUTE + " has a non-integer value of " + decidedFragmentCount;
+        }
+        
+        if ( bin.size() < numericFragmentCount ) {
+            return "Cannot Defragment FlowFiles with Fragment Identifier " + fragmentIdentifier + " because the expected number of fragments is " + decidedFragmentCount + " but found only " + bin.size() + " fragments";
+        }
+        
+        if ( bin.size() > numericFragmentCount ) {
+            return "Cannot Defragment FlowFiles with Fragment Identifier " + fragmentIdentifier + " because the expected number of fragments is " + decidedFragmentCount + " but found " + bin.size() + " fragments for this identifier";
         }
 
         return null;
@@ -548,20 +582,27 @@ public class MergeContent extends AbstractSessionFactoryProcessor {
     public void onScheduled(final ProcessContext context) throws IOException {
         binManager.setMinimumSize(context.getProperty(MIN_SIZE).asDataSize(DataUnit.B).longValue());
 
-        if (context.getProperty(MAX_BIN_AGE).getValue() != null) {
+        if (context.getProperty(MAX_BIN_AGE).isSet() ) {
             binManager.setMaxBinAge(context.getProperty(MAX_BIN_AGE).asTimePeriod(TimeUnit.SECONDS).intValue());
+        } else {
+            binManager.setMaxBinAge(Integer.MAX_VALUE);
         }
-
-        if (context.getProperty(MAX_SIZE).getValue() != null) {
+        
+        if ( context.getProperty(MAX_SIZE).isSet() ) {
             binManager.setMaximumSize(context.getProperty(MAX_SIZE).asDataSize(DataUnit.B).longValue());
+        } else {
+            binManager.setMaximumSize(Long.MAX_VALUE);
         }
-
+        
         if (MERGE_STRATEGY_DEFRAGMENT.equals(context.getProperty(MERGE_STRATEGY).getValue())) {
             binManager.setFileCountAttribute(FRAGMENT_COUNT_ATTRIBUTE);
         } else {
             binManager.setMinimumEntries(context.getProperty(MIN_ENTRIES).asInteger());
-            if (context.getProperty(MAX_ENTRIES).getValue() != null) {
-                binManager.setMaximumEntries(context.getProperty(MAX_ENTRIES).asInteger());
+
+            if ( context.getProperty(MAX_ENTRIES).isSet() ) {
+                binManager.setMaximumEntries(context.getProperty(MAX_ENTRIES).asInteger().intValue());
+            } else {
+                binManager.setMaximumEntries(Integer.MAX_VALUE);
             }
         }
 

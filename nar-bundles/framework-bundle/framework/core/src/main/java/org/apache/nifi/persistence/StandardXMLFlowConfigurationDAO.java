@@ -57,7 +57,7 @@ import org.apache.nifi.controller.reporting.StandardReportingInitializationConte
 import org.apache.nifi.controller.service.ControllerServiceLoader;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.encrypt.StringEncryptor;
-import org.apache.nifi.file.FileUtils;
+import org.apache.nifi.util.file.FileUtils;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingInitializationContext;

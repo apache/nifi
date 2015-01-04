@@ -37,7 +37,7 @@
             </div>
         </div>
         <div id="processor-types-container">
-            <div id="processor-types-table"></div>
+            <div id="processor-types-table" class="unselectable"></div>
             <div id="processor-description-container">
                 <div id="processor-type-name" class="ellipsis"></div>
                 <div id="processor-type-description" class="ellipsis multiline"></div>

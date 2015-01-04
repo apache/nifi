@@ -23,7 +23,7 @@
     <body>
         <!-- Processor Documentation ================================================== -->
         <h2>Description:</h2>
-        <p>This processor obtains FlowFiles from a local directory.</p>
+        <p>This processor obtains FlowFiles from a local directory.  NiFi will need at least read permissions on the files it will pull otherwise it will ignore them.</p>
 
         <p>
             <strong>Modifies Attributes:</strong>
@@ -105,7 +105,9 @@
                     <li>A Boolean value (true/false), indicating whether to leave a
                         copy of the file in the input directory after retrieving it; this
                         causes the file to be picked up continually and is useful for
-                        testing purposes.</li>
+                        testing purposes.  If not keeping source file NiFi will need 
+                        at least write permissions to the directory it is pulling from
+                        otherwise it will ignore the file.</li>
                     <li>Default value: false</li>
                     <li>Supports expression language: false</li>
                 </ul></li>

@@ -54,7 +54,7 @@ nf.Settings = (function () {
                         clientId: revision.clientId
                     },
                     dataType: 'json'
-                }).then(function (response) {
+                }).done(function (response) {
                     // update the revision
                     nf.Client.setRevision(response.revision);
 
@@ -63,7 +63,7 @@ nf.Settings = (function () {
                         dialogContent: 'A new flow archive was successfully created.',
                         overlayBackground: false
                     });
-                }, function (xhr, status, error) {
+                }).fail(function (xhr, status, error) {
                     // close the details panel
                     $('#settings-cancel').click();
 
@@ -87,7 +87,7 @@ nf.Settings = (function () {
                     url: config.urls.controllerConfig,
                     data: configuration,
                     dataType: 'json'
-                }).then(function (response) {
+                }).done(function (response) {
                     // update the revision
                     nf.Client.setRevision(response.revision);
 
@@ -99,7 +99,7 @@ nf.Settings = (function () {
 
                     // close the settings dialog
                     $('#shell-close-button').click();
-                }, function (xhr, status, error) {
+                }).fail(function (xhr, status, error) {
                     // close the details panel
                     $('#settings-cancel').click();
 
@@ -113,6 +113,7 @@ nf.Settings = (function () {
                 $('#shell-close-button').click();
             });
         },
+        
         /**
          * Shows the settings dialog.
          */
@@ -121,7 +122,7 @@ nf.Settings = (function () {
                 type: 'GET',
                 url: config.urls.controllerConfig,
                 dataType: 'json'
-            }).then(function (response) {
+            }).done(function (response) {
                 // ensure the config is present
                 if (nf.Common.isDefinedAndNotNull(response.config)) {
                     // set the header
@@ -139,7 +140,7 @@ nf.Settings = (function () {
                     // reset button state
                     $('#settings-save, #settings-cancel').mouseout();
                 });
-            }, nf.Common.handleAjaxError);
+            }).fail(nf.Common.handleAjaxError);
         }
     };
 }());

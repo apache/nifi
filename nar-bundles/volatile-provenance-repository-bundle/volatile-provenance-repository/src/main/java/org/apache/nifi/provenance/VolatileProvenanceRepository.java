@@ -169,6 +169,8 @@ public class VolatileProvenanceRepository implements ProvenanceEventRepository {
 
     @Override
     public void close() throws IOException {
+        queryExecService.shutdownNow();
+        scheduledExecService.shutdown();
     }
 
     @Override

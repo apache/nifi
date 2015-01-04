@@ -44,8 +44,8 @@ import org.apache.nifi.controller.repository.claim.StandardContentClaim;
 import org.apache.nifi.controller.repository.io.ArrayManagedOutputStream;
 import org.apache.nifi.controller.repository.io.MemoryManager;
 import org.apache.nifi.engine.FlowEngine;
-import org.apache.nifi.io.ByteArrayInputStream;
-import org.apache.nifi.io.StreamUtils;
+import org.apache.nifi.stream.io.ByteArrayInputStream;
+import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.util.NiFiProperties;
 
@@ -92,7 +92,7 @@ public class VolatileContentRepository implements ContentRepository {
     public static final String MAX_SIZE_PROPERTY = "nifi.volatile.content.repository.max.size";
     public static final String BLOCK_SIZE_PROPERTY = "nifi.volatile.content.repository.block.size";
 
-    private final ScheduledExecutorService executor = new FlowEngine(3, "VolatileContentRepository Workers");
+    private final ScheduledExecutorService executor = new FlowEngine(3, "VolatileContentRepository Workers", true);
     private final ConcurrentMap<ContentClaim, ContentBlock> claimMap = new ConcurrentHashMap<>(256);
     private final AtomicLong repoSize = new AtomicLong(0L);
 
@@ -136,6 +136,11 @@ public class VolatileContentRepository implements ContentRepository {
     @Override
     public void initialize(final ContentClaimManager claimManager) {
         this.claimManager = claimManager;
+    }
+    
+    @Override
+    public void shutdown() {
+        executor.shutdown();
     }
 
     /**

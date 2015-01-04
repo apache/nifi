@@ -31,12 +31,12 @@ public class ScheduleState {
     private final AtomicBoolean mustCallOnStoppedMethods = new AtomicBoolean(false);
     private volatile long lastStopTime = -1;
 
-    public void incrementActiveThreadCount() {
-        activeThreadCount.incrementAndGet();
+    public int incrementActiveThreadCount() {
+        return activeThreadCount.incrementAndGet();
     }
 
-    public void decrementActiveThreadCount() {
-        activeThreadCount.decrementAndGet();
+    public int decrementActiveThreadCount() {
+        return activeThreadCount.decrementAndGet();
     }
 
     public int getActiveThreadCount() {

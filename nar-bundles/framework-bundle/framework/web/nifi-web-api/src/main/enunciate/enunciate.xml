@@ -29,6 +29,8 @@
         <xfire-client disabled="true"/>
         <rest disabled="true"/>
         <jersey useSubcontext="false" usePathBasedConneg="false"/>
-        <docs splashPackage="org.apache.nifi.web.api" includeDefaultDownloads="false" css="default.css"/>
+        <docs splashPackage="org.apache.nifi.web.api" includeDefaultDownloads="false">
+            <additional-css file="override.css"/>
+        </docs>
     </modules>
 </enunciate>

@@ -21,6 +21,10 @@ import com.sun.jersey.multipart.BodyPart;
 import com.sun.jersey.multipart.FormDataBodyPart;
 import com.sun.jersey.multipart.FormDataMultiPart;
 import java.io.File;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -81,6 +85,7 @@ public class DfmAccessControlTest {
     private static final String CLIENT_ID = "dfm-client-id";
     private static final String CONTEXT_PATH = "/nifi-api";
     private static final String FLOW_XML_PATH = "target/test-classes/access-control/flow-dfm.xml";
+    private static final String FLOW_TEMPLATES_PATH = "target/test-classes/access-control/templates";
 
     private static NiFiTestServer SERVER;
     private static NiFiTestUser DFM_USER;
@@ -88,6 +93,20 @@ public class DfmAccessControlTest {
 
     @BeforeClass
     public static void setup() throws Exception {
+        // look for the flow.xml and toss it
+        File flow = new File(FLOW_XML_PATH);
+        if (flow.exists()) {
+            flow.delete();
+        }
+        // look for templates and toss them
+        final Path templatePath = Paths.get(FLOW_TEMPLATES_PATH);
+        if (Files.exists(templatePath)) {
+            final DirectoryStream<Path> dirStream = Files.newDirectoryStream(Paths.get(FLOW_TEMPLATES_PATH), "*.template");
+            for (final Path path : dirStream) {
+                Files.delete(path);
+            }
+        }
+
         // configure the location of the nifi properties
         File nifiPropertiesFile = new File("src/test/resources/access-control/nifi.properties");
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, nifiPropertiesFile.getAbsolutePath());
@@ -1377,10 +1396,15 @@ public class DfmAccessControlTest {
         SERVER.shutdownServer();
         SERVER = null;
 
-        // look for the flow.xml
+        // look for the flow.xml and toss it
         File flow = new File(FLOW_XML_PATH);
         if (flow.exists()) {
             flow.delete();
+        }
+        // look for templates and toss them
+        final DirectoryStream<Path> dirStream = Files.newDirectoryStream(Paths.get(FLOW_TEMPLATES_PATH), "*.template");
+        for (final Path path : dirStream) {
+            Files.delete(path);
         }
     }
 }

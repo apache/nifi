@@ -42,7 +42,7 @@ nf.History = (function () {
                 type: 'GET',
                 url: config.urls.authorities,
                 dataType: 'json'
-            }).then(function (response) {
+            }).done(function (response) {
                 if (nf.Common.isDefinedAndNotNull(response.authorities)) {
                     // record the users authorities
                     nf.Common.setAuthorities(response.authorities);
@@ -50,7 +50,7 @@ nf.History = (function () {
                 } else {
                     deferred.reject();
                 }
-            }, function (xhr, status, error) {
+            }).fail(function (xhr, status, error) {
                 nf.Common.handleAjaxError(xhr, status, error);
                 deferred.reject();
             });
@@ -74,7 +74,7 @@ nf.History = (function () {
                     type: 'GET',
                     url: config.urls.banners,
                     dataType: 'json'
-                }).then(function (response) {
+                }).done(function (response) {
                     // ensure the banners response is specified
                     if (nf.Common.isDefinedAndNotNull(response.banners)) {
                         if (nf.Common.isDefinedAndNotNull(response.banners.headerText) && response.banners.headerText !== '') {
@@ -106,7 +106,7 @@ nf.History = (function () {
                     }
 
                     deferred.resolve();
-                }, function (xhr, status, error) {
+                }).fail(function (xhr, status, error) {
                     nf.Common.handleAjaxError(xhr, status, error);
                     deferred.reject();
                 });
@@ -139,14 +139,14 @@ nf.History = (function () {
                         type: 'GET',
                         url: config.urls.controllerAbout,
                         dataType: 'json'
-                    }).then(function (response) {
+                    }).done(function (response) {
                         var aboutDetails = response.about;
                         var historyTitle = aboutDetails.title + ' History';
 
                         // set the document title and the about title
                         document.title = historyTitle;
                         $('#history-header-text').text(historyTitle);
-                    }, nf.Common.handleAjaxError);
+                    }).fail(nf.Common.handleAjaxError);
                 });
             });
         }

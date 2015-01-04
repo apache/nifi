@@ -864,12 +864,12 @@ nf.ProvenanceLineage = (function () {
 
                                 // polls for the event lineage
                                 var pollLineage = function (nextDelay) {
-                                    getLineage(lineage).then(function (response) {
+                                    getLineage(lineage).done(function (response) {
                                         lineage = response.lineage;
 
                                         // process the lineage, if its not done computing wait delay seconds before checking again
                                         processLineage(nextDelay);
-                                    }, closeDialog);
+                                    }).fail(closeDialog);
                                 };
 
                                 // processes the event lineage
@@ -929,12 +929,12 @@ nf.ProvenanceLineage = (function () {
                                 };
 
                                 // once the query is submitted wait until its finished
-                                submitLineage(lineageRequest).then(function (response) {
+                                submitLineage(lineageRequest).done(function (response) {
                                     lineage = response.lineage;
 
                                     // process the lineage, if its not done computing wait 1 second before checking again
                                     processLineage(1);
-                                }, closeDialog);
+                                }).fail(closeDialog);
                             };
 
                             // handles updating the lineage graph
@@ -1284,6 +1284,7 @@ nf.ProvenanceLineage = (function () {
 
             initLineageQueryDialog();
         },
+        
         /**
          * Shows the lineage for the specified flowfile uuid.
          * 
@@ -1347,12 +1348,12 @@ nf.ProvenanceLineage = (function () {
             // polls the server for the status of the lineage, if the lineage is not
             // done wait nextDelay seconds before trying again
             var pollLineage = function (nextDelay) {
-                getLineage(lineage).then(function (response) {
+                getLineage(lineage).done(function (response) {
                     lineage = response.lineage;
 
                     // process the lineage, if its not done computing wait delay seconds before checking again
                     processLineage(nextDelay);
-                }, closeDialog);
+                }).fail(closeDialog);
             };
 
             var processLineage = function (delay) {
@@ -1401,12 +1402,12 @@ nf.ProvenanceLineage = (function () {
             };
 
             // once the query is submitted wait until its finished
-            submitLineage(lineageRequest).then(function (response) {
+            submitLineage(lineageRequest).done(function (response) {
                 lineage = response.lineage;
 
                 // process the results, if they are not done wait 1 second before trying again
                 processLineage(1);
-            }, closeDialog);
+            }).fail(closeDialog);
         }
     };
 }());

@@ -14,6 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/**
+ * Plugin to provide support for generating ellipsis. This plugin comprises
+ * a number of suggested techniques found on StackOverflow.
+ * 
+ * @param {type} $
+ * @returns {undefined}
+ */
 (function ($) {
 
     var entityMap = {
@@ -40,6 +48,8 @@
      * white-space: nowrap;
      * 
      * If multiline is desired, add a 'multiline' class to the element.
+     * 
+     * @param {type} addTooltip
      */
     $.fn.ellipsis = function (addTooltip) {
         addTooltip = (typeof addTooltip === 'undefined' || addTooltip === null) ? true : addTooltip;
@@ -50,7 +60,6 @@
             return ('textOverflow' in s || 'OTextOverflow' in s);
         }
 
-        // function to performing a binary search - this approach was found on stackoverflow
         function binarySearch(length, funct) {
             var low = 0;
             var high = length - 1;

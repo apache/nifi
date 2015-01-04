@@ -42,19 +42,11 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-file-utils</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-properties</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>site-to-site</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-core-flowfile-attributes</artifactId>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
@@ -117,9 +109,8 @@
             <artifactId>data-provenance-utils</artifactId>
         </dependency>
         <dependency>
-            <groupId>wali</groupId>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>wali</artifactId>
-            <version>3.0.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>

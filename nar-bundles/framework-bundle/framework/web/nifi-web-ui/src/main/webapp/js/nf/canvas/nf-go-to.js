@@ -336,6 +336,7 @@ nf.GoTo = (function () {
                 }
             });
         },
+        
         /**
          * Shows components downstream from a processor.
          * 
@@ -348,7 +349,7 @@ nf.GoTo = (function () {
                 type: 'GET',
                 url: config.urls.controller + '/process-groups/' + encodeURIComponent(selectionData.component.parentGroupId) + '/connections',
                 dataType: 'json'
-            }).then(function (response) {
+            }).done(function (response) {
                 var connections = response.connections;
 
                 // populate the downstream dialog
@@ -372,8 +373,9 @@ nf.GoTo = (function () {
 
                 // show the downstream dialog
                 $('#connections-dialog').modal('setHeaderText', 'Downstream Connections').modal('show');
-            }, nf.Common.handleAjaxError);
+            }).fail(nf.Common.handleAjaxError);
         },
+        
         /**
          * Shows components upstream from a processor.
          * 
@@ -386,7 +388,7 @@ nf.GoTo = (function () {
                 type: 'GET',
                 url: config.urls.controller + '/process-groups/' + encodeURIComponent(selectionData.component.parentGroupId) + '/connections',
                 dataType: 'json'
-            }).then(function (response) {
+            }).done(function (response) {
                 var connections = response.connections;
 
                 // populate the upstream dialog
@@ -410,8 +412,9 @@ nf.GoTo = (function () {
 
                 // show the upstream dialog
                 $('#connections-dialog').modal('setHeaderText', 'Upstream Connections').modal('show');
-            }, nf.Common.handleAjaxError);
+            }).fail(nf.Common.handleAjaxError);
         },
+        
         /**
          * Shows components downstream from a process group or a remote process group.
          * 
@@ -424,7 +427,7 @@ nf.GoTo = (function () {
                 type: 'GET',
                 url: config.urls.controller + '/process-groups/' + encodeURIComponent(selectionData.component.parentGroupId) + '/connections',
                 dataType: 'json'
-            }).then(function (response) {
+            }).done(function (response) {
                 var connections = response.connections;
 
                 // populate the downstream dialog
@@ -448,8 +451,9 @@ nf.GoTo = (function () {
 
                 // show the downstream dialog
                 $('#connections-dialog').modal('setHeaderText', 'Downstream Connections').modal('show');
-            }, nf.Common.handleAjaxError);
+            }).fail(nf.Common.handleAjaxError);
         },
+        
         /**
          * Shows components upstream from a process group or a remote process group.
          * 
@@ -462,7 +466,7 @@ nf.GoTo = (function () {
                 type: 'GET',
                 url: config.urls.controller + '/process-groups/' + encodeURIComponent(selectionData.component.parentGroupId) + '/connections',
                 dataType: 'json'
-            }).then(function (response) {
+            }).done(function (response) {
                 var connections = response.connections;
 
                 // populate the upstream dialog
@@ -486,8 +490,9 @@ nf.GoTo = (function () {
 
                 // show the dialog
                 $('#connections-dialog').modal('setHeaderText', 'Downstream Connections').modal('show');
-            }, nf.Common.handleAjaxError);
+            }).fail(nf.Common.handleAjaxError);
         },
+        
         /**
          * Shows components downstream from an input port.
          * 
@@ -500,7 +505,7 @@ nf.GoTo = (function () {
                 type: 'GET',
                 url: config.urls.controller + '/process-groups/' + encodeURIComponent(selectionData.component.parentGroupId) + '/connections',
                 dataType: 'json'
-            }).then(function (response) {
+            }).done(function (response) {
                 var connections = response.connections;
 
                 // populate the downstream dialog
@@ -524,8 +529,9 @@ nf.GoTo = (function () {
 
                 // show the downstream dialog
                 $('#connections-dialog').modal('setHeaderText', 'Downstream Connections').modal('show');
-            }, nf.Common.handleAjaxError);
+            }).fail(nf.Common.handleAjaxError);
         },
+        
         /**
          * Shows components upstream from an input port.
          * 
@@ -538,7 +544,7 @@ nf.GoTo = (function () {
                 type: 'GET',
                 url: config.urls.controller + '/process-groups/' + encodeURIComponent(nf.Canvas.getParentGroupId()) + '/connections',
                 dataType: 'json'
-            }).then(function (response) {
+            }).done(function (response) {
                 var connections = response.connections;
 
                 // populate the upstream dialog
@@ -565,8 +571,9 @@ nf.GoTo = (function () {
 
                 // show the upstream dialog
                 $('#connections-dialog').modal('setHeaderText', 'Upstream Connections').modal('show');
-            }, nf.Common.handleAjaxError);
+            }).fail(nf.Common.handleAjaxError);
         },
+        
         /**
          * Shows components downstream from an output port.
          * 
@@ -579,7 +586,7 @@ nf.GoTo = (function () {
                 type: 'GET',
                 url: config.urls.controller + '/process-groups/' + encodeURIComponent(nf.Canvas.getParentGroupId()) + '/connections',
                 dataType: 'json'
-            }).then(function (response) {
+            }).done(function (response) {
                 var connections = response.connections;
 
                 // populate the downstream dialog
@@ -606,8 +613,9 @@ nf.GoTo = (function () {
 
                 // show the downstream dialog
                 $('#connections-dialog').modal('setHeaderText', 'Downstream Connections').modal('show');
-            }, nf.Common.handleAjaxError);
+            }).fail(nf.Common.handleAjaxError);
         },
+        
         /**
          * Shows components upstream from an output port.
          * 
@@ -620,7 +628,7 @@ nf.GoTo = (function () {
                 type: 'GET',
                 url: config.urls.controller + '/process-groups/' + encodeURIComponent(selectionData.component.parentGroupId) + '/connections',
                 dataType: 'json'
-            }).then(function (response) {
+            }).done(function (response) {
                 var connections = response.connections;
 
                 // populate the upstream dialog
@@ -644,8 +652,9 @@ nf.GoTo = (function () {
 
                 // show the upstream dialog
                 $('#connections-dialog').modal('setHeaderText', 'Upstream Connections').modal('show');
-            }, nf.Common.handleAjaxError);
+            }).fail(nf.Common.handleAjaxError);
         },
+        
         /**
          * Shows components downstream from a funnel.
          * 
@@ -658,7 +667,7 @@ nf.GoTo = (function () {
                 type: 'GET',
                 url: config.urls.controller + '/process-groups/' + encodeURIComponent(selectionData.component.parentGroupId) + '/connections',
                 dataType: 'json'
-            }).then(function (response) {
+            }).done(function (response) {
                 var connections = response.connections;
 
                 // populate the downstream dialog
@@ -679,8 +688,9 @@ nf.GoTo = (function () {
 
                 // show the downstream dialog
                 $('#connections-dialog').modal('setHeaderText', 'Downstream Connections').modal('show');
-            }, nf.Common.handleAjaxError);
+            }).fail(nf.Common.handleAjaxError);
         },
+        
         /**
          * Shows components upstream from a funnel.
          * 
@@ -693,7 +703,7 @@ nf.GoTo = (function () {
                 type: 'GET',
                 url: config.urls.controller + '/process-groups/' + encodeURIComponent(selectionData.component.parentGroupId) + '/connections',
                 dataType: 'json'
-            }).then(function (response) {
+            }).done(function (response) {
                 var connections = response.connections;
 
                 // populate the upstream dialog
@@ -714,7 +724,7 @@ nf.GoTo = (function () {
 
                 // show the upstream dialog
                 $('#connections-dialog').modal('setHeaderText', 'Upstream Connections').modal('show');
-            }, nf.Common.handleAjaxError);
+            }).fail(nf.Common.handleAjaxError);
         }
     };
 }());

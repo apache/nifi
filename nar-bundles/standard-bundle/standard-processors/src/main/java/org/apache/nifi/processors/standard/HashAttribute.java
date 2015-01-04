@@ -45,7 +45,7 @@ import org.apache.nifi.processor.annotation.Tags;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * <p>

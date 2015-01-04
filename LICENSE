@@ -200,3 +200,387 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
+
+APACHE NIFI SUBCOMPONENTS:
+
+The Apache NiFi project contains subcomponents with separate copyright
+notices and license terms. Your use of the source code for the these
+subcomponents is subject to the terms and conditions of the following
+licenses. 
+
+The binary distribution of this product bundles 'Antlr 3' which is available
+under a "3-clause BSD" license.  For details see http://www.antlr3.org/license.html
+
+    Copyright (c) 2010 Terence Parr
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without 
+    modification, are permitted provided that the following conditions are met:
+
+    Redistributions of source code must retain the above copyright notice, this 
+    list of conditions and the following disclaimer.
+    Redistributions in binary form must reproduce the above copyright notice, 
+    this list of conditions and the following disclaimer in the documentation 
+    and/or other materials provided with the distribution.
+    Neither the name of the author nor the names of its contributors may be used 
+    to endorse or promote products derived from this software without specific 
+    prior written permission.
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+    AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+    IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+    ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
+    LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
+    CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
+    SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
+    INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
+    CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
+    ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF 
+    THE POSSIBILITY OF SUCH DAMAGE.
+
+The binary distribution of this product bundles 'Paranamer Core' which is 
+available under a "3-clause BSD" license.  
+For details see http://paranamer.codehaus.org/paranamer
+
+    Copyright (c) 2006 Paul Hammant & ThoughtWorks Inc
+    All rights reserved.
+
+     Redistribution and use in source and binary forms, with or without
+     modification, are permitted provided that the following conditions
+     are met:
+     1. Redistributions of source code must retain the above copyright
+        notice, this list of conditions and the following disclaimer.
+     2. Redistributions in binary form must reproduce the above copyright
+        notice, this list of conditions and the following disclaimer in the
+        documentation and/or other materials provided with the distribution.
+     3. Neither the name of the copyright holders nor the names of its
+        contributors may be used to endorse or promote products derived from
+        this software without specific prior written permission.
+
+     THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+     AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+     IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+     ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+     LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+     CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+     SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+     INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+     CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+     ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+     THE POSSIBILITY OF SUCH DAMAGE.
+
+The binary distribution of this product bundles 'xmlenc Library' which is 
+available under The BSD 2-Clause license found here:
+http://www.opensource.org/licenses/bsd-license.php
+For details http://xmlenc.sourceforge.net
+
+The binary distribution of this product bundles 'Protocol Buffer Java API' 
+which is available under The BSD 2-Clause license found here:
+http://www.opensource.org/licenses/bsd-license.php  
+For details http://code.google.com/p/protobuf
+
+The binary distribution of this product bundles 'JZlib' which is 
+available under a "3-clause BSD" license.  
+For details see http://www.jcraft.com/jzlib/
+
+    Copyright (c) 2000-2011 ymnk, JCraft,Inc. All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are met:
+
+      1. Redistributions of source code must retain the above copyright notice,
+         this list of conditions and the following disclaimer.
+
+      2. Redistributions in binary form must reproduce the above copyright 
+         notice, this list of conditions and the following disclaimer in 
+         the documentation and/or other materials provided with the distribution.
+
+      3. The names of the authors may not be used to endorse or promote products
+         derived from this software without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED WARRANTIES,
+    INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+    FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL JCRAFT,
+    INC. OR ANY CONTRIBUTORS TO THIS SOFTWARE BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA,
+    OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+    EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+The binary distribution of this product bundles 'JSch' which is 
+available under a "3-clause BSD" license.  
+For details see http://www.jcraft.com/jsch/
+
+    Copyright (c) 2002-2014 Atsuhiko Yamanaka, JCraft,Inc. 
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are met:
+
+      1. Redistributions of source code must retain the above copyright notice,
+         this list of conditions and the following disclaimer.
+
+      2. Redistributions in binary form must reproduce the above copyright 
+         notice, this list of conditions and the following disclaimer in 
+         the documentation and/or other materials provided with the distribution.
+
+      3. The names of the authors may not be used to endorse or promote products
+         derived from this software without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED ``AS IS'' AND ANY EXPRESSED OR IMPLIED WARRANTIES,
+    INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+    FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL JCRAFT,
+    INC. OR ANY CONTRIBUTORS TO THIS SOFTWARE BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA,
+    OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+    LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+    EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+This product bundles 'Javascript D3 Library' which is available under a 
+"3-clause BSD" license.  For details see http://d3js.org/
+
+    Copyright (c) 2010-2014, Michael Bostock
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright notice, this
+      list of conditions and the following disclaimer.
+
+    * Redistributions in binary form must reproduce the above copyright notice,
+      this list of conditions and the following disclaimer in the documentation
+      and/or other materials provided with the distribution.
+
+    * The name Michael Bostock may not be used to endorse or promote products
+      derived from this software without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+    AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+    IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+    DISCLAIMED. IN NO EVENT SHALL MICHAEL BOSTOCK BE LIABLE FOR ANY DIRECT,
+    INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+    OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+    NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+    EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+The binary distribution of this product bundles 'BouncyCastle Provider' 
+which is available under an MIT style license.  
+For details see http://www.bouncycastle.org/java.html
+
+    Copyright (c) 2000 - 2013 The Legion of the Bouncy Castle Inc. (http://www.bouncycastle.org)
+
+    Permission is hereby granted, free of charge, to any person obtaining 
+    a copy of this software and associated documentation files (the "Software"), 
+    to deal in the Software without restriction, including without limitation the 
+    rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+     sell copies of the Software, and to permit persons to whom the Software is
+     furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in
+     all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+     AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING 
+    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+     IN THE SOFTWARE.
+
+The binary distribution of this product bundles 'SLF4J' which is available 
+under an MIT style license.  
+For details see http://www.qos.ch
+
+    Copyright (c) 2004-2013 QOS.ch
+    All rights reserved.
+
+    Permission is hereby granted, free  of charge, to any person obtaining
+    a  copy  of this  software  and  associated  documentation files  (the
+    "Software"), to  deal in  the Software without  restriction, including
+    without limitation  the rights to  use, copy, modify,  merge, publish,
+    distribute,  sublicense, and/or sell  copies of  the Software,  and to
+    permit persons to whom the Software  is furnished to do so, subject to
+    the following conditions:
+
+    The  above  copyright  notice  and  this permission  notice  shall  be
+    included in all copies or substantial portions of the Software.
+
+    THE  SOFTWARE IS  PROVIDED  "AS  IS", WITHOUT  WARRANTY  OF ANY  KIND,
+    EXPRESS OR  IMPLIED, INCLUDING  BUT NOT LIMITED  TO THE  WARRANTIES OF
+    MERCHANTABILITY,    FITNESS    FOR    A   PARTICULAR    PURPOSE    AND
+    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+    LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+    OF CONTRACT, TORT OR OTHERWISE,  ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+This product bundles 'jQuery Grid' which is available under the MIT License.
+http://www.opensource.org/licenses/mit-license.php
+For details see http://jqgrid.com/
+    Copyright (c) 2008, Tony Tomov, tony@trirand.com
+
+This product bundles 'CodeMirror' which is available under an MIT style license.
+For details see http://codemirror.net/doc/compress.html
+
+    Copyright (C) 2014 by Marijn Haverbeke <marijnh@gmail.com> and others
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in
+    all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+    THE SOFTWARE.
+
+This product bundles 'jQuery UI' which is available under an MIT style license.
+For details see http://jqueryui.com
+
+    Copyright 2014 jQuery Foundation and other contributors,
+    http://jqueryui.com/
+
+    This software consists of voluntary contributions made by many
+    individuals (AUTHORS.txt, http://jqueryui.com/about) For exact
+    contribution history, see the revision history and logs, available
+    at http://jquery-ui.googlecode.com/svn/
+
+    Permission is hereby granted, free of charge, to any person obtaining
+    a copy of this software and associated documentation files (the
+    "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish,
+    distribute, sublicense, and/or sell copies of the Software, and to
+    permit persons to whom the Software is furnished to do so, subject to
+    the following conditions:
+
+    The above copyright notice and this permission notice shall be
+    included in all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+    LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+    OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+This product bundles 'SLICKGRID' which is available under an MIT style license.
+For details see http://github.com/mleibman/slickgrid
+    Copyright (c) 2010 Michael Leibman, http://github.com/mleibman/slickgrid
+
+    Permission is hereby granted, free of charge, to any person obtaining
+    a copy of this software and associated documentation files (the
+    "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish,
+    distribute, sublicense, and/or sell copies of the Software, and to
+    permit persons to whom the Software is furnished to do so, subject to
+    the following conditions:
+
+    The above copyright notice and this permission notice shall be
+    included in all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+    LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+    OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+    WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+This product bundles 'qTip2' which is available under an MIT style license.
+For details see http://qtip2.com
+
+    Copyright (c) 2012 Craig Michael Thompson
+
+    Permission is hereby granted, free of charge, to any person
+    obtaining a copy of this software and associated documentation
+    files (the "Software"), to deal in the Software without
+    restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the
+    Software is furnished to do so, subject to the following
+    conditions:
+
+    The above copyright notice and this permission notice shall be
+    included in all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+    OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+    HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+    OTHER DEALINGS IN THE SOFTWARE.
+
+This product bundles 'jQuery MiniColors' which is available under the MIT License.
+http://opensource.org/licenses/MIT
+For details see http://www.abeautifulsite.net/
+    Copyright Cory LaViska for A Beautiful Site, LLC. (http://www.abeautifulsite.net/)
+
+The binary distribution of this product bundles the following libraries:
+    Expression Languagee 3.0 API, JavaServer Pages(TM) API,
+    JavaServer Pages(TM) Standard Tag Library API, Expression Language 3.0,
+    JSP implementation, JavaServer Pages (TM) TagLib Implementation,
+    Java Servlet API
+which are all available under the CDDL 1.0 License.
+https://glassfish.dev.java.net/nonav/public/CDDL+GPL.html
+For details see https://glassfish.java.net/
+    Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
+
+The binary distribution of this product bundles the following libraries:
+    jersey-core, jersey-json, jersey-server, jersey-servlet, jersey-multipart,
+    jersey-spring, JAXB RI, JAXB API bundle for GlassFish V3, 
+    MIME streaming extension, JavaMail API (compat)
+which are all available under the CDDL 1.1 License.
+http://glassfish.java.net/public/CDDL+GPL_1_1.html
+For details see https://glassfish.java.net/
+    Copyright (c) 2010-2014 Oracle and/or its affiliates. All rights reserved.
+
+The binary distribution of this product bundles 'H2 Database' which is available 
+under the MPL 2.0 license.
+http://www.h2database.com/html/license.html#mpl2
+For details see http://www.h2database.com
+    This software contains unmodified binary redistributions for H2 database 
+    engine (http://www.h2database.com/), which is dual licensed and available 
+    under the MPL 2.0 (Mozilla Public License) or under the 
+    EPL 1.0 (Eclipse Public License).
+    An original copy of the license agreement can be found 
+    at: http://www.h2database.com/html/license.html	
+
+The binary distribution of this product bundles 'Saxon-HE' which is available 
+under the MPL 2.0 license http://www.mozilla.org/MPL/2.0/
+For details see http://saxonica.com/download/opensource.xml
+
+The binary distribution of this product bundles 'AspectJ Weaver' which is 
+available under the EPL 1.0 license http://www.eclipse.org/legal/epl-v10.html
+For details see http://www.aspectj.org
+
+The binary distribution of this product bundles 'Logback' which is available 
+under the EPL 1.0 license http://www.eclipse.org/legal/epl-v10.html
+For details see http://logback.qos.ch
+    Copyright (C) 1999-2012, QOS.ch. All rights reserved.
+
+The binary distribution of this product bundles 'XZ for Java' which is available
+in the 'public domain'.  For details see http://tukaani.org/xz/java.html
+
+The binary distribution of this product bundles 'AOP Alliance' which is 
+available in the 'public domain'.  
+For details see http://aopalliance.sourceforge.net
+
+This product bundles 'json2.js' which is available in the 'public domain'.  
+For details see https://github.com/douglascrockford/JSON-js
+

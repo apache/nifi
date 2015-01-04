@@ -17,7 +17,7 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nar-container-common</artifactId>
+        <artifactId>nar-bundle-parent</artifactId>
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
@@ -25,7 +25,6 @@
     <version>0.0.1-SNAPSHOT</version>
     <name>Update Attribute Bundle</name>
     <packaging>pom</packaging>
-
 
     <modules>
         <module>model</module>
@@ -38,31 +37,19 @@
         <dependencies>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-processor-utils</artifactId>
+                <artifactId>update-attribute-model</artifactId>
                 <version>0.0.1-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-expression-language</artifactId>
+                <artifactId>update-attribute-processor</artifactId>
                 <version>0.0.1-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-core-flowfile-attributes</artifactId>
+                <artifactId>update-attribute-ui</artifactId>
+                <type>war</type>
                 <version>0.0.1-SNAPSHOT</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>custom-ui-utilities</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
-            </dependency>
-
-
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-mock</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
-                <scope>test</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>

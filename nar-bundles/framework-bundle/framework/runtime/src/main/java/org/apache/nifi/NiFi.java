@@ -26,6 +26,7 @@ import java.util.TimerTask;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -36,7 +37,6 @@ import org.apache.nifi.nar.NarClassLoaders;
 import org.apache.nifi.nar.NarUnpacker;
 import org.apache.nifi.util.FileUtils;
 import org.apache.nifi.util.NiFiProperties;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.bridge.SLF4JBridgeHandler;
@@ -45,6 +45,10 @@ public class NiFi {
 
     private static final Logger logger = LoggerFactory.getLogger(NiFi.class);
     private final NiFiServer nifiServer;
+    private final BootstrapListener bootstrapListener;
+    
+    public static final String BOOTSTRAP_PORT_PROPERTY = "nifi.bootstrap.listen.port";
+    private volatile boolean shutdown = false;
 
     public NiFi(final NiFiProperties properties) throws ClassNotFoundException, IOException, NoSuchMethodException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
         Thread.setDefaultUncaughtExceptionHandler(new UncaughtExceptionHandler() {
@@ -57,7 +61,6 @@ public class NiFi {
 
         // register the shutdown hook
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-
             @Override
             public void run() {
                 // shutdown the jetty server
@@ -65,6 +68,25 @@ public class NiFi {
             }
         }));
 
+        final String bootstrapPort = System.getProperty(BOOTSTRAP_PORT_PROPERTY);
+        if ( bootstrapPort != null ) {
+        	try {
+        		final int port = Integer.parseInt(bootstrapPort);
+        		
+        		if (port < 1 || port > 65535) {
+        			throw new RuntimeException("Failed to start NiFi because system property '" + BOOTSTRAP_PORT_PROPERTY + "' is not a valid integer in the range 1 - 65535");
+        		}
+        		
+        		bootstrapListener = new BootstrapListener(this, port);
+        		bootstrapListener.start();
+        	} catch (final NumberFormatException nfe) {
+        		throw new RuntimeException("Failed to start NiFi because system property '" + BOOTSTRAP_PORT_PROPERTY + "' is not a valid integer in the range 1 - 65535");
+        	}
+        } else {
+        	logger.info("NiFi started without Bootstrap Port information provided; will not listen for requests from Bootstrap");
+        	bootstrapListener = null;
+        }
+        
         // delete the web working dir - if the application does not start successfully
         // the web app directories might be in an invalid state. when this happens
         // jetty will not attempt to re-extract the war into the directory. by removing
@@ -104,16 +126,27 @@ public class NiFi {
         final long startTime = System.nanoTime();
         nifiServer = (NiFiServer) jettyConstructor.newInstance(properties);
         nifiServer.setExtensionMapping(extensionMapping);
-        nifiServer.start();
-        final long endTime = System.nanoTime();
-        logger.info("Controller initialization took " + (endTime - startTime) + " nanoseconds.");
+        
+        if ( shutdown ) {
+        	logger.info("NiFi has been shutdown via NiFi Bootstrap. Will not start Controller");
+        } else {
+	        nifiServer.start();
+	        
+	        final long endTime = System.nanoTime();
+	        logger.info("Controller initialization took " + (endTime - startTime) + " nanoseconds.");
+        }
     }
 
     protected void shutdownHook() {
         try {
+        	this.shutdown = true;
+        	
             logger.info("Initiating shutdown of Jetty web server...");
             if (nifiServer != null) {
                 nifiServer.stop();
+            }
+            if (bootstrapListener != null) {
+            	bootstrapListener.stop();
             }
             logger.info("Jetty web server shutdown completed (nicely or otherwise).");
         } catch (final Throwable t) {
@@ -128,7 +161,19 @@ public class NiFi {
         final int minRequiredOccurrences = 25;
         final int maxOccurrencesOutOfRange = 15;
         final AtomicLong lastTriggerMillis = new AtomicLong(System.currentTimeMillis());
-        final ScheduledExecutorService service = Executors.newScheduledThreadPool(1);
+        
+        final ScheduledExecutorService service = Executors.newScheduledThreadPool(1, new ThreadFactory() {
+            private final ThreadFactory defaultFactory = Executors.defaultThreadFactory();
+            
+            @Override
+            public Thread newThread(final Runnable r) {
+                final Thread t = defaultFactory.newThread(r);
+                t.setDaemon(true);
+                t.setName("Detect Timing Issues");
+                return t;
+            }
+        });
+        
         final AtomicInteger occurrencesOutOfRange = new AtomicInteger(0);
         final AtomicInteger occurences = new AtomicInteger(0);
         final Runnable command = new Runnable() {

@@ -84,7 +84,6 @@ public class NiFiProperties extends Properties {
     public static final String FLOWFILE_REPOSITORY_CHECKPOINT_INTERVAL = "nifi.flowfile.repository.checkpoint.interval";
     public static final String FLOWFILE_SWAP_MANAGER_IMPLEMENTATION = "nifi.swap.manager.implementation";
     public static final String QUEUE_SWAP_THRESHOLD = "nifi.queue.swap.threshold";
-    public static final String SWAP_STORAGE_LOCATION = "nifi.swap.storage.directory";
     public static final String SWAP_IN_THREADS = "nifi.swap.in.threads";
     public static final String SWAP_IN_PERIOD = "nifi.swap.in.period";
     public static final String SWAP_OUT_THREADS = "nifi.swap.out.threads";
@@ -138,6 +137,7 @@ public class NiFiProperties extends Properties {
     public static final String WEB_HTTPS_PORT = "nifi.web.https.port";
     public static final String WEB_HTTPS_HOST = "nifi.web.https.host";
     public static final String WEB_WORKING_DIR = "nifi.web.jetty.working.directory";
+    public static final String WEB_THREADS = "nifi.web.jetty.threads";
 
     // ui properties
     public static final String UI_BANNER_TEXT = "nifi.ui.banner.text";
@@ -183,6 +183,7 @@ public class NiFiProperties extends Properties {
     public static final String DEFAULT_USER_CREDENTIAL_CACHE_DURATION = "24 hours";
     public static final Integer DEFAULT_REMOTE_INPUT_PORT = null;
     public static final Path DEFAULT_TEMPLATE_DIRECTORY = Paths.get("conf", "templates");
+    public static final int DEFAULT_WEB_THREADS = 200;
     public static final String DEFAULT_WEB_WORKING_DIR = "./work/jetty";
     public static final String DEFAULT_NAR_WORKING_DIR = "./work/nar";
     public static final String DEFAULT_COMPONENT_DOCS_DIRECTORY = "./work/docs/components";
@@ -314,15 +315,6 @@ public class NiFiProperties extends Properties {
         }
     }
 
-    public File getSwapStorageLocation() {
-        final String location = getProperty(SWAP_STORAGE_LOCATION);
-        if (location == null) {
-            return new File(DEFAULT_SWAP_STORAGE_LOCATION);
-        } else {
-            return new File(location);
-        }
-    }
-
     public Integer getIntegerProperty(final String propertyName, final Integer defaultValue) {
         final String value = getProperty(propertyName);
         if (value == null) {
@@ -374,20 +366,18 @@ public class NiFiProperties extends Properties {
         return getPropertyAsPort(REMOTE_INPUT_PORT, DEFAULT_REMOTE_INPUT_PORT);
     }
 
+    /**
+     * @return False if property value is 'false'; True otherwise.
+     */
     public Boolean isSiteToSiteSecure() {
-        final String secureVal = getProperty(SITE_TO_SITE_SECURE);
-        if (secureVal == null) {
-            return null;
-        }
+        final String secureVal = getProperty(SITE_TO_SITE_SECURE, "true");
 
-        if ("true".equalsIgnoreCase(secureVal)) {
-            return true;
-        }
         if ("false".equalsIgnoreCase(secureVal)) {
             return false;
+        }else{
+            return true;
         }
 
-        throw new IllegalStateException("Property value for " + SITE_TO_SITE_SECURE + " is " + secureVal + "; expected 'true' or 'false'");
     }
 
     /**
@@ -511,6 +501,10 @@ public class NiFiProperties extends Properties {
         return sslPort;
     }
 
+    public int getWebThreads() {
+        return getIntegerProperty(WEB_THREADS, DEFAULT_WEB_THREADS);
+    }
+    
     public File getWebWorkingDirectory() {
         return new File(getProperty(WEB_WORKING_DIR, DEFAULT_WEB_WORKING_DIR));
     }

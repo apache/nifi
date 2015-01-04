@@ -17,7 +17,7 @@
 
     <parent>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>standard-services-api-bundle</artifactId>
+        <artifactId>nar-bundle-parent</artifactId>
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
@@ -29,32 +29,8 @@
     <name>Hadoop Libraries Bundle</name>
     <description>A bundle which provides the Hadoop libraries</description>
 
-    
-
     <modules>
         <module>nar</module>
     </modules>
 
-    <!-- When changing Hadoop version, be sure to include the proper dependencies both here and in child POM's -->
-    <dependencyManagement>
-        <dependencies>
-            <!--            <dependency>
-                <groupId>org.apache.hadoop</groupId>
-                <artifactId>hadoop-core</artifactId>
-                <version>${project.version}</version>
-            </dependency>-->
-
-            <dependency>
-                <groupId>org.apache.hadoop</groupId>
-                <artifactId>hadoop-common</artifactId>
-                <version>2.5.2</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.hadoop</groupId>
-                <artifactId>hadoop-hdfs</artifactId>
-                <version>2.5.2</version>
-            </dependency>
-
-        </dependencies>
-    </dependencyManagement>
 </project>

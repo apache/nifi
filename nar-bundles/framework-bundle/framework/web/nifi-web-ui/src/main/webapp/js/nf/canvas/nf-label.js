@@ -283,6 +283,7 @@ nf.Label = (function () {
             width: dimensions.width,
             height: dimensions.height
         },
+        
         /**
          * Initializes of the Processor handler.
          */
@@ -342,13 +343,13 @@ nf.Label = (function () {
                                     'height': labelData.dimensions.height
                                 },
                                 dataType: 'json'
-                            }).then(function (response) {
+                            }).done(function (response) {
                                 // update the revision
                                 nf.Client.setRevision(response.revision);
 
                                 // request was successful, update the entry
                                 nf.Label.set(response.label);
-                            }, function () {
+                            }).fail(function () {
                                 // determine the previous width
                                 var width = dimensions.width;
                                 if (nf.Common.isDefinedAndNotNull(labelData.component.width)) {
@@ -376,6 +377,7 @@ nf.Label = (function () {
                         d3.event.sourceEvent.stopPropagation();
                     });
         },
+        
         /**
          * Populates the graph with the specified labels.
          * 
@@ -421,6 +423,7 @@ nf.Label = (function () {
             // apply the selection and handle all new labels
             select().enter().call(renderLabels, selectAll);
         },
+        
         /**
          * If the label id is specified it is returned. If no label id
          * specified, all labels are returned.
@@ -434,6 +437,7 @@ nf.Label = (function () {
                 return labelMap.get(id);
             }
         },
+        
         /**
          * If the label id is specified it is refresh according to the current 
          * state. If not label id is specified, all labels are refreshed.
@@ -447,6 +451,7 @@ nf.Label = (function () {
                 d3.selectAll('g.label').call(updateLabels);
             }
         },
+        
         /**
          * Reloads the label state from the server and refreshes the UI.
          * If the label is currently unknown, this function just returns.
@@ -464,6 +469,7 @@ nf.Label = (function () {
                 });
             }
         },
+        
         /**
          * Positions the component.
          * 
@@ -472,6 +478,7 @@ nf.Label = (function () {
         position: function (id) {
             d3.select('#id-' + id).call(position);
         },
+        
         /**
          * Sets the specified label(s). If the is an array, it 
          * will set each label. If it is not an array, it will 
@@ -516,6 +523,7 @@ nf.Label = (function () {
                 set(labels);
             }
         },
+        
         /**
          * Removes the specified label.
          * 
@@ -533,12 +541,14 @@ nf.Label = (function () {
             // apply the selection and handle all removed labels
             select().exit().call(removeLabels);
         },
+        
         /**
          * Removes all label.
          */
         removeAll: function () {
             nf.Label.remove(labelMap.keys());
         },
+        
         /**
          * Returns the default color that should be used when drawing a label.
          */

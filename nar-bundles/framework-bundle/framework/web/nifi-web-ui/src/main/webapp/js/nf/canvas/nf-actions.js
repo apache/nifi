@@ -40,10 +40,10 @@ nf.Actions = (function () {
             url: uri,
             data: data,
             dataType: 'json'
-        }).then(function (response) {
+        }).done(function (response) {
             // update the revision
             nf.Client.setRevision(response.revision);
-        }, function (xhr, status, error) {
+        }).fail(function (xhr, status, error) {
             if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
                 nf.Dialog.showOkDialog({
                     dialogContent: nf.Common.escapeHtml(xhr.responseText),
@@ -86,12 +86,14 @@ nf.Actions = (function () {
                 nf.CanvasUtils.enterGroup(selectionData.component.id);
             }
         },
+        
         /**
          * Exits the current process group but entering the parent group.
          */
         leaveGroup: function () {
             nf.CanvasUtils.enterGroup(nf.Canvas.getParentGroupId());
         },
+        
         /**
          * Refresh the flow of the remote process group in the specified selection.
          * 
@@ -153,6 +155,7 @@ nf.Actions = (function () {
                 poll(1);
             }
         },
+        
         /**
          * Opens the remote process group in the specified selection.
          * 
@@ -172,6 +175,7 @@ nf.Actions = (function () {
                 }
             }
         },
+        
         /**
          * Shows and selects the source of the connection in the specified selection.
          * 
@@ -190,6 +194,7 @@ nf.Actions = (function () {
                 }
             }
         },
+        
         /**
          * Shows and selects the destination of the connection in the specified selection.
          * 
@@ -208,6 +213,7 @@ nf.Actions = (function () {
                 }
             }
         },
+        
         /**
          * Shows the downstream components from the specified selection.
          * 
@@ -230,6 +236,7 @@ nf.Actions = (function () {
                 }
             }
         },
+        
         /**
          * Shows the upstream components from the specified selection.
          * 
@@ -252,6 +259,7 @@ nf.Actions = (function () {
                 }
             }
         },
+        
         /**
          * Shows and selects the component in the specified selection.
          * 
@@ -268,6 +276,7 @@ nf.Actions = (function () {
                 nf.Actions.center(selection);
             }
         },
+        
         /**
          * Selects all components in the specified selection.
          * 
@@ -276,12 +285,14 @@ nf.Actions = (function () {
         select: function (selection) {
             selection.classed('selected', true);
         },
+        
         /**
          * Selects all components.
          */
         selectAll: function () {
             nf.Actions.select(d3.selectAll('g.component, g.connection'));
         },
+        
         /**
          * Centers the component in the specified selection.
          * 
@@ -331,6 +342,7 @@ nf.Actions = (function () {
                 });
             }
         },
+        
         /**
          * Enables all eligible selected components.
          */
@@ -360,6 +372,7 @@ nf.Actions = (function () {
                 });
             }
         },
+        
         /**
          * Disables all eligible selected components.
          */
@@ -389,6 +402,7 @@ nf.Actions = (function () {
                 });
             }
         },
+        
         /**
          * Starts the components in the specified selection.
          * 
@@ -443,6 +457,7 @@ nf.Actions = (function () {
                 }
             }
         },
+        
         /**
          * Stops the components in the specified selection.
          * 
@@ -496,6 +511,7 @@ nf.Actions = (function () {
                 }
             }
         },
+        
         /**
          * Enables transmission for the components in the specified selection.
          * 
@@ -513,6 +529,7 @@ nf.Actions = (function () {
                 });
             });
         },
+        
         /**
          * Disables transmission for the components in the specified selection.
          * 
@@ -530,6 +547,7 @@ nf.Actions = (function () {
                 });
             });
         },
+        
         /**
          * Shows the configuration dialog for the specified selection.
          * 
@@ -557,6 +575,7 @@ nf.Actions = (function () {
                 }
             }
         },
+        
         // Defines an action for showing component details (like configuration but read only).
         showDetails: function (selection) {
             if (selection.size() === 1) {
@@ -579,6 +598,7 @@ nf.Actions = (function () {
                 }
             }
         },
+        
         /**
          * Shows the usage documentation for the component in the specified selection.
          * 
@@ -592,6 +612,7 @@ nf.Actions = (function () {
                 }));
             }
         },
+        
         /**
          * Shows the stats for the specified selection.
          * 
@@ -623,6 +644,7 @@ nf.Actions = (function () {
                 }
             }
         },
+        
         /**
          * Opens the remote ports dialog for the remote process group in the specified selection.
          * 
@@ -633,6 +655,7 @@ nf.Actions = (function () {
                 nf.RemoteProcessGroupPorts.showPorts(selection);
             }
         },
+        
         /**
          * Hides and open cancellable dialogs.
          */
@@ -646,12 +669,14 @@ nf.Actions = (function () {
                 }
             });
         },
+        
         /**
          * Reloads the status for the entire canvas (components and flow.)
          */
         reloadStatus: function () {
             nf.Canvas.reloadStatus();
         },
+        
         /**
          * Deletes the component in the specified selection.
          * 
@@ -675,7 +700,7 @@ nf.Actions = (function () {
                             clientId: revision.clientId
                         }),
                         dataType: 'json'
-                    }).then(function (response) {
+                    }).done(function (response) {
                         // update the revision
                         nf.Client.setRevision(response.revision);
 
@@ -723,15 +748,15 @@ nf.Actions = (function () {
                         // refresh the birdseye/toolbar
                         nf.Birdseye.refresh();
                         nf.CanvasToolbar.refresh();
-                    }, nf.Common.handleAjaxError);
+                    }).fail(nf.Common.handleAjaxError);
                 } else {
                     // create a snippet for the specified component and link to the data flow
                     var snippetDetails = nf.Snippet.marshal(selection, true);
-                    nf.Snippet.create(snippetDetails).then(function (response) {
+                    nf.Snippet.create(snippetDetails).done(function (response) {
                         var snippet = response.snippet;
 
                         // remove the snippet, effectively removing the components
-                        nf.Snippet.remove(snippet.id).then(function () {
+                        nf.Snippet.remove(snippet.id).done(function () {
                             var components = d3.map();
 
                             // add the id to the type's array
@@ -797,7 +822,7 @@ nf.Actions = (function () {
                             // refresh the birdseye/toolbar
                             nf.Birdseye.refresh();
                             nf.CanvasToolbar.refresh();
-                        }, function (xhr, status, error) {
+                        }).fail(function (xhr, status, error) {
                             // unable to acutally remove the components so attempt to
                             // unlink and remove just the snippet - if unlinking fails
                             // just ignore
@@ -807,10 +832,11 @@ nf.Actions = (function () {
 
                             nf.Common.handleAjaxError(xhr, status, error);
                         });
-                    }, nf.Common.handleAjaxError);
+                    }).fail(nf.Common.handleAjaxError);
                 }
             }
         },
+        
         /**
          * Opens the fill color dialog for the component in the specified selection.
          * 
@@ -842,6 +868,7 @@ nf.Actions = (function () {
                 $('#fill-color-dialog').modal('show');
             }
         },
+        
         /**
          * Groups the currently selected components into a new group.
          */
@@ -865,6 +892,7 @@ nf.Actions = (function () {
                 });
             });
         },
+        
         /**
          * Creates a new template based off the currently selected components. If no components
          * are selected, a template of the entire canvas is made.
@@ -914,7 +942,7 @@ nf.Actions = (function () {
                             var snippetDetails = nf.Snippet.marshal(selection, false);
 
                             // create the snippet
-                            nf.Snippet.create(snippetDetails).then(function (response) {
+                            nf.Snippet.create(snippetDetails).done(function (response) {
                                 var snippet = response.snippet;
 
                                 // create the template
@@ -927,21 +955,21 @@ nf.Actions = (function () {
                                         snippetId: snippet.id
                                     },
                                     dataType: 'json'
-                                }).then(function () {
+                                }).done(function () {
                                     // show the confirmation dialog
                                     nf.Dialog.showOkDialog({
                                         dialogContent: "Template '" + nf.Common.escapeHtml(templateName) + "' was successfully created.",
                                         overlayBackground: false
                                     });
-                                }, nf.Common.handleAjaxError).always(function () {
+                                }).always(function () {
                                     // remove the snippet
                                     nf.Snippet.remove(snippet.id);
 
                                     // clear the template dialog fields
                                     $('#new-template-name').val('');
                                     $('#new-template-description').val('');
-                                });
-                            }, nf.Common.handleAjaxError);
+                                }).fail(nf.Common.handleAjaxError);
+                            }).fail(nf.Common.handleAjaxError);
                         }
                     }
                 }, {
@@ -956,6 +984,7 @@ nf.Actions = (function () {
             // auto focus on the template name
             $('#new-template-name').focus();
         },
+        
         /**
          * Copies the component in the specified selection.
          * 
@@ -975,6 +1004,7 @@ nf.Actions = (function () {
                 origin: origin
             });
         },
+        
         /**
          * Pastes the currently copied selection.
          * 
@@ -1009,7 +1039,7 @@ nf.Actions = (function () {
                     };
 
                     // create a snippet from the details
-                    nf.Snippet.create(data['snippet']).then(function (createResponse) {
+                    nf.Snippet.create(data['snippet']).done(function (createResponse) {
                         var snippet = createResponse.snippet;
 
                         // determine the origin of the bounding box of the copy
@@ -1024,7 +1054,7 @@ nf.Actions = (function () {
                         }
 
                         // copy the snippet to the new location
-                        nf.Snippet.copy(snippet.id, nf.Canvas.getGroupId(), origin).then(function (copyResponse) {
+                        nf.Snippet.copy(snippet.id, nf.Canvas.getGroupId(), origin).done(function (copyResponse) {
                             var snippetContents = copyResponse.contents;
 
                             // update the graph accordingly
@@ -1039,7 +1069,7 @@ nf.Actions = (function () {
 
                             // remove the original snippet
                             nf.Snippet.remove(snippet.id).fail(reject);
-                        }, function () {
+                        }).fail(function () {
                             // an error occured while performing the copy operation, reload the
                             // graph in case it was a partial success
                             nf.Canvas.reload().done(function () {
@@ -1054,7 +1084,7 @@ nf.Actions = (function () {
                             // reject the deferred
                             reject();
                         });
-                    }, reject);
+                    }).fail(reject);
                 }).promise();
 
                 // show the appropriate message is the copy fails
@@ -1067,6 +1097,7 @@ nf.Actions = (function () {
                 });
             });
         },
+        
         /**
          * Moves the connection in the specified selection to the front.
          * 

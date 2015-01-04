@@ -53,7 +53,7 @@ nf.Registration = (function () {
                     data: {
                         'justification': justification
                     }
-                }).then(function (response) {
+                }).done(function (response) {
                     // hide the registration pane
                     $('#registration-pane').hide();
 
@@ -61,7 +61,7 @@ nf.Registration = (function () {
                     $('#message-pane').show();
                     $('#message-title').text('Thanks');
                     $('#message-content').text('Your request will be processed shortly.');
-                }, nf.Common.handleAjaxError);
+                }).fail(nf.Common.handleAjaxError);
             });
         }
     };

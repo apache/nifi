@@ -25,7 +25,7 @@ nf.Draggable = (function () {
      */
     var updateComponentsPosition = function (dragSelection) {
         var revision = nf.Client.getRevision();
-        var updates = [];
+        var updates = d3.map();
 
         // determine the drag delta
         var dragData = dragSelection.datum();
@@ -38,16 +38,15 @@ nf.Draggable = (function () {
         if (delta.x === 0 && delta.y === 0) {
             return;
         }
-
-        // go through each selected component
-        d3.selectAll('g.component.selected').each(function (d) {
+        
+        var updateComponentPosition = function(d) {
             var newPosition = {
                 x: d.component.position.x + delta.x,
                 y: d.component.position.y + delta.y
             };
 
             // update the component positioning
-            updates.push($.Deferred(function (deferred) {
+            return $.Deferred(function (deferred) {
                 $.ajax({
                     type: 'PUT',
                     url: d.component.uri,
@@ -58,7 +57,7 @@ nf.Draggable = (function () {
                         y: newPosition.y
                     },
                     dataType: 'json'
-                }).then(function (response) {
+                }).done(function (response) {
                     // update the revision
                     nf.Client.setRevision(response.revision);
 
@@ -70,7 +69,7 @@ nf.Draggable = (function () {
                         type: d.type,
                         id: d.component.id
                     });
-                }, function (xhr, status, error) {
+                }).fail(function (xhr, status, error) {
                     if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
                         nf.Dialog.showOkDialog({
                             dialogContent: nf.Common.escapeHtml(xhr.responseText),
@@ -82,11 +81,10 @@ nf.Draggable = (function () {
 
                     deferred.reject();
                 });
-            }).promise());
-        });
-
-        // go through each selected connection
-        d3.selectAll('g.connection.selected').each(function (d) {
+            }).promise();
+        };
+        
+        var updateConnectionPosition = function(d) {
             // only update if necessary
             if (d.component.bends.length === 0) {
                 return;
@@ -109,14 +107,14 @@ nf.Draggable = (function () {
             };
 
             // update the component positioning
-            updates.push($.Deferred(function (deferred) {
+            return $.Deferred(function (deferred) {
                 $.ajax({
                     type: 'PUT',
                     url: d.component.uri,
                     data: JSON.stringify(entity),
                     dataType: 'json',
                     contentType: 'application/json'
-                }).then(function (response) {
+                }).done(function (response) {
                     // update the revision
                     nf.Client.setRevision(response.revision);
 
@@ -134,7 +132,7 @@ nf.Draggable = (function () {
                         type: d.type,
                         id: d.component.id
                     });
-                }, function (xhr, status, error) {
+                }).fail(function (xhr, status, error) {
                     if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
                         nf.Dialog.showOkDialog({
                             dialogContent: nf.Common.escapeHtml(xhr.responseText),
@@ -146,11 +144,30 @@ nf.Draggable = (function () {
 
                     deferred.reject();
                 });
-            }).promise());
+            }).promise();
+        };
+
+        // go through each selected connection
+        d3.selectAll('g.connection.selected').each(function (d) {
+            updates.set(d.component.id, updateConnectionPosition(d));
+        });
+        
+        // go through each selected component
+        d3.selectAll('g.component.selected').each(function (d) {
+            // consider any self looping connections
+            var connections = nf.Connection.getComponentConnections(d.component.id);
+            $.each(connections, function(_, connection) {
+                if (!updates.has(connection.id) && nf.CanvasUtils.getConnectionSourceComponentId(connection) === nf.CanvasUtils.getConnectionDestinationComponentId(connection)) {
+                    updates.set(connection.id, updateConnectionPosition(nf.Connection.get(connection.id)));
+                }
+            });
+            
+            // consider the component itself
+            updates.set(d.component.id, updateComponentPosition(d));
         });
 
         // wait for all updates to complete
-        $.when.apply(window, updates).done(function () {
+        $.when.apply(window, updates.values()).done(function () {
             var dragged = $.makeArray(arguments);
             var connections = d3.set();
 
@@ -251,9 +268,9 @@ nf.Draggable = (function () {
                         } else {
                             // update the position of the drag selection
                             dragSelection.attr('x', function (d) {
-                                d.x += d3.event.dx;
-                                return d.x;
-                            })
+                                        d.x += d3.event.dx;
+                                        return d.x;
+                                    })
                                     .attr('y', function (d) {
                                         d.y += d3.event.dy;
                                         return d.y;
@@ -283,6 +300,7 @@ nf.Draggable = (function () {
                         dragSelection.remove();
                     });
         },
+        
         /**
          * Activates the drag behavior for the components in the specified selection.
          * 

@@ -17,7 +17,7 @@
 
     <parent>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-parent</artifactId>
+        <artifactId>nifi-commons-parent</artifactId>
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
@@ -32,7 +32,6 @@
             <plugin>
                 <groupId>org.antlr</groupId>
                 <artifactId>antlr3-maven-plugin</artifactId>
-                <version>3.5.2</version>
                 <executions>
                     <execution>
                         <goals>
@@ -48,12 +47,10 @@
         <dependency>
             <groupId>org.antlr</groupId>
             <artifactId>antlr-runtime</artifactId>
-            <version>3.5.2</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
-            <version>[0.0.1-SNAPSHOT, 1.0.0-SNAPSHOT)</version>
         </dependency>
     </dependencies>
 </project>

@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.nio.channels.ServerSocketChannel;
@@ -43,7 +44,6 @@ import org.apache.nifi.remote.io.socket.ssl.SSLSocketChannelCommunicationsSessio
 import org.apache.nifi.remote.protocol.CommunicationsSession;
 import org.apache.nifi.remote.protocol.RequestType;
 import org.apache.nifi.remote.protocol.ServerProtocol;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -99,11 +99,20 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                         continue;
                     }
                     
+                    
                     LOG.trace("Accepting Connection...");
-                    final SocketChannel socketChannel;
+                    Socket acceptedSocket = null;
                     try {
-                        serverSocketChannel.socket().setSoTimeout(5000);
-                        socketChannel = serverSocketChannel.accept();
+                        serverSocketChannel.configureBlocking(false);
+                        final ServerSocket serverSocket = serverSocketChannel.socket();
+                        serverSocket.setSoTimeout(2000);
+                        while ( !stopped.get() && acceptedSocket == null ) {
+                            try {
+                                acceptedSocket = serverSocket.accept();
+                            } catch (final SocketTimeoutException ste) {
+                                continue;
+                            }
+                        }
                     } catch (final IOException e) {
                         LOG.error("RemoteSiteListener Unable to accept connection due to {}", e.toString());
                         if ( LOG.isDebugEnabled() ) {
@@ -113,12 +122,11 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                     }
                     LOG.trace("Got connection");
                     
-                    
+                    final Socket socket = acceptedSocket;
+                    final SocketChannel socketChannel = socket.getChannel();
                     final Thread thread = new Thread(new Runnable() {
                         @Override
                         public void run() {
-                            final Socket socket = socketChannel.socket();
-                            
                             String hostname = socket.getInetAddress().getHostName();
                             final int slashIndex = hostname.indexOf("/");
                             if ( slashIndex == 0 ) {
