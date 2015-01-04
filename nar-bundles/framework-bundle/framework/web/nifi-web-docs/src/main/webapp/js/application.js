@@ -259,7 +259,7 @@ $(document).ready(function () {
         });
         
         // listen for on the rest api and user guide and developer guide and admin guide and overview
-        $('a.rest-api, a.user-guide, a.developer-guide, a.admin-guide, a.overview').on('click', function() {
+        $('a.rest-api, a.user-guide, a.developer-guide, a.admin-guide, a.overview, a.expression-language-guide').on('click', function() {
             selectComponent($(this).text());
         });
 
