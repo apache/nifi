@@ -1011,6 +1011,9 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
             if (record == null || record.isPenalized()) {
                 // not enough unpenalized records to pull. Put all records back and return
                 activeQueue.addAll(buffer);
+                if ( record != null ) {
+                    activeQueue.add(record);
+                }
                 return;
             } else {
                 buffer.add(record);
