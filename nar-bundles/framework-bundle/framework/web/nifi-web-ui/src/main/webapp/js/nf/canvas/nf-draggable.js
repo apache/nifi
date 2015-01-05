@@ -87,7 +87,7 @@ nf.Draggable = (function () {
         var updateConnectionPosition = function(d) {
             // only update if necessary
             if (d.component.bends.length === 0) {
-                return;
+                return null;
             }
 
             // calculate the new bend points
@@ -149,7 +149,10 @@ nf.Draggable = (function () {
 
         // go through each selected connection
         d3.selectAll('g.connection.selected').each(function (d) {
-            updates.set(d.component.id, updateConnectionPosition(d));
+            var connectionUpdate = updateConnectionPosition(d);
+            if (connectionUpdate !== null) {
+                updates.set(d.component.id, connectionUpdate);
+            }
         });
         
         // go through each selected component
@@ -158,7 +161,10 @@ nf.Draggable = (function () {
             var connections = nf.Connection.getComponentConnections(d.component.id);
             $.each(connections, function(_, connection) {
                 if (!updates.has(connection.id) && nf.CanvasUtils.getConnectionSourceComponentId(connection) === nf.CanvasUtils.getConnectionDestinationComponentId(connection)) {
-                    updates.set(connection.id, updateConnectionPosition(nf.Connection.get(connection.id)));
+                    var connectionUpdate = updateConnectionPosition(nf.Connection.get(connection.id));
+                    if (connectionUpdate !== null) {
+                        updates.set(connection.id, connectionUpdate);
+                    }
                 }
             });
             
