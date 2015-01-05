@@ -18,6 +18,7 @@ Apache NiFi Expression Language Guide
 =====================================
 Apache NiFi Team <dev@nifi.incubator.apache.org>
 :homepage: http://nifi.incubator.apache.org
+:linkcss:
 
 [[overview]]
 Overview
@@ -213,47 +214,58 @@ functions are used for performing boolean logic, such as comparing two values.
 Each of these functions returns a value of type Boolean.
 
 
-=== *isNull*
-*Description*: The `isNull` function returns `true` if the subject is null, `false` otherwise. This is typically used to determine
-	if an attribute exists. 
+[.function]
+=== isNull
+*Description*: [.description]#The `isNull` function returns `true` if the subject is null, `false` otherwise. This is typically used to determine
+if an attribute exists.#
 
-*Subject Type*: Any
+*Subject Type*: [.subject]#Any#
 
 *Arguments*: No arguments
 
-*Return Type*: Boolean
+*Return Type*: [.returnType]#Boolean#
 
 *Examples*:	`${filename:isNull()}` returns `true` if the "filename" attribute does not exist. 
 	It returns `true` if the attribute exists.
 
 
 
-=== *notNull*
-*Description*:The `notNull` function returns the opposite value of the `isNull` function. That is, it will return `true` if the
-	subject exists and `false` otherwise.
+[.function]
+=== notNull
+*Description*: [.description]#The `notNull` function returns the opposite value of the `isNull` function. That is, it will return `true` if the
+subject exists and `false` otherwise.#
 	
-*Subject Type*: Any
+*Subject Type*: [.subject]#Any#
 
 *Arguments*: No arguments
 
-*Return Type*: Boolean
+*Return Type*: [.returnType]#Boolean#
 
 *Examples*: `${filename:notNull()}` returns `true` if the "filename" attribute exists. It returns "false" if the attribute
 	does not exist.
 
 
 
-=== *equals*
-*Description*: The `equals` function is very widely used and determines if its subject is equal to another String value.
+[.function]
+=== equals
+
+[.description]
+*Description*: [.description]#The `equals` function is very widely used and determines if its subject is equal to another String value.
 	Note that the `equals` function performs a direct comparison of two String values. Take care not to confuse this
-	function with the <<matches>> function, which evaluates its subject against a Regular Expression.
+	function with the <<matches>> function, which evaluates its subject against a Regular Expression.#
+
+[.subject]	
+*Subject Type*: [.subject]#Any#
+
+[.arguments]
+*Arguments*:
 	
-*Subject Type*: Any
+	- [.argName]#_value_# : [.argDesc]#The value to compare the Subject to. Must be same type as the Subject.#
 
-*Arguments*: The equals function takes a single argument. It is expected to be of the same type as the Subject.
+[.returnType]
+*Return Type*: [.returnType]#Boolean#
 
-*Return Type*: Boolean
-
+[.examples]
 *Examples*:
 We can check if the filename of a FlowFile is "hello.txt" by using the expression `${filename:equals('hello.txt')}`,
 or we could check if the value of the attribute `hello` is equal to the value of the `filename` attribute:
@@ -261,15 +273,18 @@ or we could check if the value of the attribute `hello` is equal to the value of
 
 
 
-=== *equalsIgnoreCase*
-*Description*: Similar to the `equals` function, the `equalsIgnoreCase` function compares its subject against a String value but returns
-`true` if the two values differ only by case (upper case vs. lower case).
+[.function]
+=== equalsIgnoreCase
+*Description*: [.description]#Similar to the `equals` function, the `equalsIgnoreCase` function compares its subject against a String value but returns
+`true` if the two values differ only by case (upper case vs. lower case).#
 
-*Subject Type*: String
+*Subject Type*: [.subject]#String#
 
-*Arguments*: 1: String
+*Arguments*:
 
-*Return Type*: Boolean
+	- [.argName]#_value_# : [.argDesc]#The value to compare the Subject to.#
+
+*Return Type*: [.returnType]#Boolean#
 
 *Examples*: `${filename:equalsIgnoreCase('hello.txt')}` will evaluate to `true` if filename is equal to "hello.txt" 
 	or "HELLO.TXT" or "HeLLo.TxT".
@@ -277,16 +292,19 @@ or we could check if the value of the attribute `hello` is equal to the value of
 
 
 
-=== *gt*
-*Description*: The `gt` function is used for numeric comparison and returns `true` if the subject is Greater Than 
+[.function]
+=== gt
+*Description*: [.description]#The `gt` function is used for numeric comparison and returns `true` if the subject is Greater Than 
 	its argument. If either the subject or the argument cannot be coerced into a Number, 
-	this function returns `false`.
+	this function returns `false`.#
 
-*Subject Type*: Number
+*Subject Type*: [.subject]#Number#
 
-*Arguments*: 1: Number
+*Arguments*:
 
-*Return Type*: Boolean
+	- [.argName]#_value_# : [.argDesc]#The number to compare the Subject to.#
+
+*Return Type*: [.returnType]#Boolean#
 
 *Examples*: `${fileSize:gt( 1024 )}` will return `true` if the size of the FlowFile's content is more than 1 kilobyte
 	(1024 bytes). Otherwise, it will return `false`.
@@ -294,31 +312,38 @@ or we could check if the value of the attribute `hello` is equal to the value of
 
 
 
-=== *ge*
-*Description*: The `ge` function is used for numeric comparison and returns `true` if the subject is Greater Than 
+[.function]
+=== ge
+*Description*: [.description]#The `ge` function is used for numeric comparison and returns `true` if the subject is Greater Than 
 	Or Equal To its argument. If either the subject or the argument cannot be coerced into a Number, 
-	this function returns `false`.
+	this function returns `false`.#
 
-*Subject Type*: Number
+*Subject Type*: [.subject]#Number#
 
-*Arguments*: 1: Number
+*Arguments*:
 
-*Return Type*: Boolean
+	- [.argName]#_value_# : [.argDesc]#The number to compare the Subject to.#
+
+*Return Type*: [.returnType]#Boolean#
 
 *Examples*: `${fileSize:ge( 1024 )}` will return `true` if the size of the FlowFile's content is at least (
 	is greater than or equal to) 1 kilobyte (1024 bytes). Otherwise, it will return `false`.
 
 
-=== *lt*
-*Description*: The `lt` function is used for numeric comparison and returns `true` if the subject is Less Than 
+
+[.function]
+=== lt
+*Description*: [.description]#The `lt` function is used for numeric comparison and returns `true` if the subject is Less Than 
 	its argument. If either the subject or the argument cannot be coerced into a Number, 
-	this function returns `false`.
+	this function returns `false`.#
 
-*Subject Type*: Number
+*Subject Type*: [.subject]#Number#
 
-*Arguments*: 1: Number
+*Arguments*:
 
-*Return Type*: Boolean
+	- [.argName]#_value_# : [.argDesc]#The number to compare the Subject to.#
+
+*Return Type*: [.returnType]#Boolean#
 
 *Examples*: `${fileSize:lt( 1048576 )}` will return `true` if the size of the FlowFile's content is less than
 	1 megabyte (1048576 bytes). Otherwise, it will return `false`.
@@ -326,16 +351,19 @@ or we could check if the value of the attribute `hello` is equal to the value of
 
 
 
-=== *le*
-*Description*: The `le` function is used for numeric comparison and returns `true` if the subject is Less Than 
+[.function]
+=== le
+*Description*: [.description]#The `le` function is used for numeric comparison and returns `true` if the subject is Less Than 
 	Or Equal To its argument. If either the subject or the argument cannot be coerced into a Number, 
-	this function returns `false`.
+	this function returns `false`.#
 
-*Subject Type*: Number
+*Subject Type*: [.subject]#Number#
 
-*Arguments*: 1: Number
+*Arguments*:
 
-*Return Type*: Boolean
+	- [.argName]#_value_# : [.argDesc]#The number to compare the Subject to.#
+
+*Return Type*: [.returnType]#Boolean#
 
 *Examples*: `${fileSize:le( 1048576 )}` will return `true` if the size of the FlowFile's content is at most
 	(less than or equal to) 1 megabyte (1048576 bytes). Otherwise, it will return `false`.
@@ -345,16 +373,20 @@ or we could check if the value of the attribute `hello` is equal to the value of
 
 
 
-=== *and*
-*Description*: The `and` function takes as a single argument a Boolean value and returns `true` if both the Subject
+[.function]
+=== and
+*Description*: [.description]#The `and` function takes as a single argument a Boolean value and returns `true` if both the Subject
 	and the argument are `true`. If either the subject or the argument is `false` or cannot be coerced into a Boolean,
-	the function returns `false`. Typically, this is used with an embedded Expression as the argument.
+	the function returns `false`. Typically, this is used with an embedded Expression as the argument.#
 
-*Subject Type*: Boolean
+*Subject Type*: [.subject]#Boolean#
 
-*Arguments*: 1: Boolean
+*Arguments*:
 
-*Return Type*: Boolean
+	- [.argName]#_condition_# : [.argDesc]#The right-hand-side of the 'and' Expression#
+
+
+*Return Type*: [.returnType]#Boolean#
 
 *Examples*: We can check if the filename is both all lower-case and has at least 5 characters by using the Expression
 -----------------------------------------------
@@ -367,17 +399,20 @@ ${filename:toLower():equals( ${filename} ):and(
 
 
 
-=== *or*
+[.function]
+=== or
 
-*Description*: The `or` function takes as a single argument a Boolean value and returns `true` if either the Subject
+*Description*: [.description]#The `or` function takes as a single argument a Boolean value and returns `true` if either the Subject
 	or the argument is `true`. If both the subject and the argument are `false`, the function returns `false`. If
-	either the Subject or the argument cannot be coerced into a Boolean value, this function will return `false`.
+	either the Subject or the argument cannot be coerced into a Boolean value, this function will return `false`.#
 
-*Subject Type*: Boolean
+*Subject Type*: [.subject]#Boolean#
 
-*Arguments*: 1: Boolean
+*Arguments*:
 
-*Return Type*: Boolean
+	- [.argName]#_condition_# : [.argDesc]#The right-hand-side of the 'and' Expression#
+
+*Return Type*: [.returnType]#Boolean#
 
 *Examples*: The following example will return `true` if either the filename has exactly 5 characters or if
 	the filename is all lower-case.
@@ -389,17 +424,22 @@ ${filename:toLower():equals( ${filename} ):or(
 
 
 
+[.function]
+=== not
 
-=== *not*
+[.description]
+*Description*: [.description]#The `not` function returns the negation of the Boolean value of the subject.#
 
-*Description*: The `not` function returns the negation of the Boolean value of the subject.
+[.subject]
+*Subject Type*: [.subject]#Boolean#
 
-*Subject Type*: Boolean
-
+[.arguments]
 *Arguments*: No arguments
 
-*Return Type*: Boolean
+[.returnType]
+*Return Type*: [.returnType]#Boolean#
 
+[.examples]
 *Examples*: We can invert the value of another function by using the `not` function, as 
 	`${filename:equals('hello.txt'):not()}`. This will return `true` if the filename is NOT equal to
 	"hello.txt" and will return `false` if the filename is "hello.txt."
@@ -418,16 +458,17 @@ Each of the following functions manipulates a String in some way.
 
 
 
-=== *toUpper*
+[.function]
+=== toUpper
 
-*Description*: This function converts the Subject into an all upper-case String. Said another way, it
-	replaces any lowercase letter with the uppercase equivalent.
+*Description*: [.description]#This function converts the Subject into an all upper-case String. Said another way, it
+	replaces any lowercase letter with the uppercase equivalent.#
 
-*Subject Type*: String
+*Subject Type*: [.subject]#String#
 
 *Arguments*: No arguments
 
-*Return Type*: String
+*Return Type*: [.returnType]#String#
 
 *Examples*: If the "filename" attribute is "abc123.txt", then the Expression `${filename:toUpper()}` 
 	will return "ABC123.TXT"
@@ -436,16 +477,17 @@ Each of the following functions manipulates a String in some way.
 
 
 
-=== *toLower*
+[.function]
+=== toLower
 
-*Description*: This function converts the Subject into an all lower-case String. Said another way,
-	it replaces any uppercase letter with the lowercase equivalent.
+*Description*: [.description]#This function converts the Subject into an all lower-case String. Said another way,
+	it replaces any uppercase letter with the lowercase equivalent.#
 
-*Subject Type*: String
+*Subject Type*: [.subject]#String#
 
 *Arguments*: No arguments
 
-*Return Type*: String
+*Return Type*: [.returnType]#String#
 
 *Examples*: If the "filename" attribute is "ABC123.TXT", then the Expression `${filename:toLower()}`
 	will return "abc123.txt"
@@ -454,15 +496,16 @@ Each of the following functions manipulates a String in some way.
 
 
 
-=== *trim*
+[.function]
+=== trim
 
-*Description*: The `trim` function will remove any leading or trailing white space from its subject.
+*Description*: [.description]#The `trim` function will remove any leading or trailing white space from its subject.#
 
-*Subject Type*: String
+*Subject Type*: [.subject]#String#
 
 *Arguments*: No arguments
 
-*Return Type*: String
+*Return Type*: [.returnType]#String#
 
 *Examples*: If the attribute `attr` has the value "     1 2 3     ", then the Expression `${attr:trim()}` will
 	return the value "1 2 3".
@@ -471,16 +514,17 @@ Each of the following functions manipulates a String in some way.
 
 
 
-=== *urlEncode*
+[.function]
+=== urlEncode
 
-*Description*: Returns a URL-friendly version of the Subject. This is useful, for instance, when using an
-	attribute value to indicate the URL of a website.
+*Description*: [.description]#Returns a URL-friendly version of the Subject. This is useful, for instance, when using an
+	attribute value to indicate the URL of a website.#
 
-*Subject Type*: String
+*Subject Type*: [.subject]#String#
 
 *Arguments*: No arguments
 
-*Return Type*: String
+*Return Type*: [.returnType]#String#
 
 *Examples*: We can URL-Encode an attribute named "url" by using the Expression `${url:urlEncode()}`. If
 	the value of the "url" attribute is "https://nifi.incubator.apache.org/some value with spaces", this
@@ -489,15 +533,16 @@ Each of the following functions manipulates a String in some way.
 
 
 
-=== *urlDecode*
+[.function]
+=== urlDecode
 
-*Description*: Converts a URL-friendly version of the Subject into a human-readable form.
+*Description*: [.description]#Converts a URL-friendly version of the Subject into a human-readable form.#
 
-*Subject Type*: String
+*Subject Type*: [.subject]#String#
 
 *Arguments*: No arguments
 
-*Return Type*: String
+*Return Type*: [.returnType]#String#
 
 *Examples*: If we have a URL-Encoded attribute named "url" with the value 
 	"https://nifi.incubator.apache.org/some%20value%20with%20spaces", then the Expression
@@ -507,34 +552,34 @@ Each of the following functions manipulates a String in some way.
 
 
 
-=== *substring*
+[.function]
+=== substring
 
 *Description*: 
-	Returns a portion of the Subject, given a _starting index_ and an optional _ending index_.
+[.description]#Returns a portion of the Subject, given a _starting index_ and an optional _ending index_.
 	If the _ending index_ is not supplied, it will return the portion of the Subject starting at the given
-	'start index' and ending at the end of the Subject value.
-	
-	
-The _starting index_ and _ending index_ are zero-based. That is, the first character is referenced by using
-	the value `0`, not `1`.
+	'start index' and ending at the end of the Subject value.#
 
-If either the _starting index_ is or the _ending index_ is not a number, this function call will result
-	in an error.
+[.description]#The _starting index_ and _ending index_ are zero-based. That is, the first character is referenced by using
+	the value `0`, not `1`.#
 
-If the _starting index_ is larger than the _ending index_, this function call will result in an error.
+[.description]#If either the _starting index_ is or the _ending index_ is not a number, this function call will result
+	in an error.#
 
-If the _starting index_ or the _ending index_ is greater than the length of the Subject or has a value
-	less than 0, this function call will result in an error.
+[.description]#If the _starting index_ is larger than the _ending index_, this function call will result in an error.#
+
+[.description]#If the _starting index_ or the _ending index_ is greater than the length of the Subject or has a value
+	less than 0, this function call will result in an error.#
 
 
-*Subject Type*: String
+*Subject Type*: [.subject]#String#
 
 *Arguments*: 
 
-	- _starting index_ : Number
-	- _ending index_ : Number
+	- [.argName]#_starting index_# : [.argDesc]#The 0-based index of the first character to capture (inclusive)#
+	- [.argName]#_ending index_# : [.argDesc]#The 0-based index of the last character to capture (exclusive)#
 
-*Return Type*: String
+*Return Type*: [.returnType]#String#
 
 *Examples*: 
 
@@ -553,17 +598,20 @@ then the following Expressions will result in the following values:
 
 
 
-=== *substringBefore*
+[.function]
+=== substringBefore
 
-*Description*: Returns a portion of the Subject, starting with the first character of the Subject
+*Description*: [.description]#Returns a portion of the Subject, starting with the first character of the Subject
 	and ending with the character immediately before the first occurrence of the argument. If
-	the argument is not present in the Subject, the entire Subject will be returned.
+	the argument is not present in the Subject, the entire Subject will be returned.#
 
-*Subject Type*: String
+*Subject Type*: [.subject]#String#
 
-*Arguments*: 1: String: The String to search for in the Subject
+*Arguments*:
 
-*Return Type*: String
+	- [.argName]#_value_# : [.argDesc]#The String to search for in the Subject#
+
+*Return Type*: [.returnType]#String#
 
 *Examples*: If the "filename" attribute has the value "a brand new filename.txt",
 	then the following Expressions will result in the following values:
@@ -581,17 +629,20 @@ then the following Expressions will result in the following values:
 
 
 
-=== *substringBeforeLast*
+[.function]
+=== substringBeforeLast
 
-*Description*: Returns a portion of the Subject, starting with the first character of the Subject
+*Description*: [.description]#Returns a portion of the Subject, starting with the first character of the Subject
 	and ending with the character immediately before the last occurrence of the argument. If
-	the argument is not present in the Subject, the entire Subject will be returned.
+	the argument is not present in the Subject, the entire Subject will be returned.#
 
-*Subject Type*: String
+*Subject Type*: [.subject]#String#
 
-*Arguments*: 1: String: The String to search for in the Subject
+*Arguments*:
 
-*Return Type*: String
+	- [.argName]#_value_# : [.argDesc]#The String to search for in the Subject#
+
+*Return Type*: [.returnType]#String3
 
 *Examples*: If the "filename" attribute has the value "a brand new filename.txt",
 	then the following Expressions will result in the following values:
@@ -610,17 +661,20 @@ then the following Expressions will result in the following values:
 
 
 
-=== *substringAfter*
+[.function]
+=== substringAfter
 
-*Description*: Returns a portion of the Subject, starting with the character immediately after
+*Description*: [.description]#Returns a portion of the Subject, starting with the character immediately after
 	the first occurrence of the argument and extending to the end of the Subject. If
-	the argument is not present in the Subject, the entire Subject will be returned.
+	the argument is not present in the Subject, the entire Subject will be returned.#
 
-*Subject Type*: String
+*Subject Type*: [.subject]#String#
 
-*Arguments*: 1: String: The String to search for in the Subject
+*Arguments*:
 
-*Return Type*: String
+	- [.argName]#_value_# : [.argDesc]#The String to search for in the Subject#
+
+*Return Type*: [.returnType]#String#
 
 *Examples*: If the "filename" attribute has the value "a brand new filename.txt",
 	then the following Expressions will result in the following values:
@@ -638,17 +692,20 @@ then the following Expressions will result in the following values:
 
 
 
-=== *substringAfterLast*
+[.function]
+=== substringAfterLast
 
-*Description*: Returns a portion of the Subject, starting with the character immediately after
+*Description*: [.description]#Returns a portion of the Subject, starting with the character immediately after
 	the last occurrence of the argument and extending to the end of the Subject. If
-	the argument is not present in the Subject, the entire Subject will be returned.
+	the argument is not present in the Subject, the entire Subject will be returned.#
 
-*Subject Type*: String
+*Subject Type*: [.subject]#String#
 
-*Arguments*: 1: String: The String to search for in the Subject
+*Arguments*:
 
-*Return Type*: String
+	- [.argName]#_value_# : [.argDesc]#The String to search for in the Subject#
+
+*Return Type*: [.returnType]#String#
 
 *Examples*: If the "filename" attribute has the value "a brand new filename.txt",
 	then the following Expressions will result in the following values:
@@ -668,16 +725,19 @@ then the following Expressions will result in the following values:
 
 
 
-=== *append*
+[.function]
+=== append
 
-*Description*: The `append` function returns the result of appending the argument to the value of
-	the Subject. If the Subject is null, returns the argument itself.
+*Description*: [.description]#The `append` function returns the result of appending the argument to the value of
+	the Subject. If the Subject is null, returns the argument itself.#
 
-*Subject Type*: String
+*Subject Type*: [.subject]#String#
 
-*Arguments*: 1: String
+*Arguments*:
 
-*Return Type*: String
+	- [.argName]#_value_# : [.argDesc]#The String to append to the end of the Subject#
+
+*Return Type*: [.returnType]#String#
 
 *Examples*: If the "filename" attribute has the value "a brand new filename.txt", then the Expression
 	`${filename:append('.gz')}` will return "a brand new filename.txt.gz".
@@ -686,16 +746,20 @@ then the following Expressions will result in the following values:
 
 
 
-=== *prepend*
+[.function]
+=== prepend
 
-*Description*: The `prepend` function returns the result of prepending the argument to the value of
-	the Subject. If the subject is null, returns the argument itself.
+*Description*: [.description]#The `prepend` function returns the result of prepending the argument to the value of
+	the Subject. If the subject is null, returns the argument itself.#
 
-*Subject Type*: String
+*Subject Type*: [.subject]#String#
 
-*Arguments*: 1: String
+*Arguments*:
 
-*Return Type*: String
+	- [.argName]#_value_# : [.argDesc]#The String to prepend to the beginning of the Subject#
+
+
+*Return Type*: [.returnType]#String#
 
 *Examples*: If the "filename" attribute has the value "filename.txt", then the Expression
 	`${filename:prepend('a brand new ')}` will return "a brand new filename.txt".
@@ -704,18 +768,19 @@ then the following Expressions will result in the following values:
 
 
 
-=== *replace*
+[.function]
+=== replace
 
-*Description*: Replaces occurrences of one String within the Subject with another String.
+*Description*: [.description]#Replaces occurrences of one String within the Subject with another String.#
 
-*Subject Type*: String
+*Subject Type*: [.subject]#String#
 
-*Arguments*: 2
+*Arguments*:
 
-	_Search String_: The String to find within the Subject
-	_Replacement_: The value to replace _Search String_ with
+	- [.argName]#_Search String_# : [.argDesc]#The String to find within the Subject#
+	- [.argName]#_Replacement_# : [.argDesc]#The value to replace _Search String_ with#
 
-*Return Type*: String
+*Return Type*: [.returnType]#String#
 
 *Examples*: If the "filename" attribute has the value "a brand new filename.txt", then the following
 Expressions will provide the following results:
@@ -735,28 +800,31 @@ Expressions will provide the following results:
 
 
 
-=== *replaceAll*
+[.function]
+=== replaceAll
 
-*Description*: The `replaceAll` function takes two String arguments: a Regular Expression (NiFi uses the Java Pattern
+*Description*: [.description]#The `replaceAll` function takes two String arguments: a Regular Expression (NiFi uses the Java Pattern
 	syntax), and a replacement string. The return value is the result of substituting the replacement string for
-	all patterns within the Subject that match the Regular Expression.
+	all patterns within the Subject that match the Regular Expression.#
 
-*Subject Type*: String
+*Subject Type*: [.subject]#String#
 
-*Arguments*: 2
+*Arguments*:
 
-	_regular expression_: the Regular Expression (in Java syntax) to match in the Subject
-	_replacement_: The value to use for replacing matches in the Subject. If the _regular expression_
-		argument uses Capturing Groups, back references are allowed in the _replacement_.
+*Arguments*:
 
-*Return Type*: String
+	- [.argName]#_Regex_# : [.argDesc]#he Regular Expression (in Java syntax) to match in the Subject#
+	- [.argName]#_Replacement_# : [.argDesc]#The value to use for replacing matches in the Subject. If the _regular expression_
+		argument uses Capturing Groups, back references are allowed in the _replacement_.#
+
+*Return Type*: [.returnType]#String#
 
 *Examples*: If the "filename" attribute has the value "a brand new filename.txt", then the following
 Expressions will provide the following results:
 
 
 
-.ReplaceAll Examples
+.replaceAll Examples
 |=======================================================================================
 | Expression | Value
 | `${filename:replaceAll('\..*', '')}` | `a brand new filename`
@@ -770,16 +838,19 @@ Expressions will provide the following results:
 
 
 
-=== *replaceNull*
+[.function]
+=== replaceNull
 
-*Description*: The `replaceNull` function returns the argument if the Subject is null. Otherwise,
-	returns the Subject.
+*Description*: [.description]#The `replaceNull` function returns the argument if the Subject is null. Otherwise,
+	returns the Subject.#
 
-*Subject Type*: Any
+*Subject Type*: [.subject]#Any#
 
-*Arguments*: 1: Any Type
+*Arguments*:
 
-*Return Type*: Type of Subject if Subject is not null; else, type of Argument
+	- [.argName]#_Replacement_# : [.argDesc]#The value to return if the Subject is null.#
+
+*Return Type*: [.returnType]#Type of Subject if Subject is not null; else, type of Argument#
 
 *Examples*: If the attribute "filename" has the value "a brand new filename.txt" and the attribute
 	"hello" does not exist, then the Expression `${filename:replaceNull('abc')}` will return 
@@ -789,15 +860,16 @@ Expressions will provide the following results:
 
 
 
-=== *length*
+[.function]
+=== length
 
-*Description*: Returns the length of the Subject
+*Description*: [.description]#Returns the length of the Subject#
 
-*Subject Type*: String
+*Subject Type*: [.subject]#String#
 
 *Arguments*: No arguments
 
-*Return Type*: Number
+*Return Type*: [.returnType]#Number#
 
 *Examples*: If the attribute "filename" has a value of "a brand new filename.txt" and the attribute
 	"hello" does not exist, then the Expression `${filename:length()}` will return 24. `${hello:length()}`
@@ -816,16 +888,20 @@ Expressions will provide the following results:
 Each of the following functions is used to search its subject for some value.
 
 
-=== *startsWith*
+[.function]
+=== startsWith
 
-*Description*: Returns `true` if the Subject starts with the String provided as the argument,
-	`false` otherwise.
+*Description*: [.description]#Returns `true` if the Subject starts with the String provided as the argument,
+	`false` otherwise.#
 
-*Subject Type*: String
+*Subject Type*: [.subject]#String#
 
-*Arguments*: 1: String
+*Arguments*:
 
-*Return Type*: Boolean
+	- [.argName]#_value_# : [.argDesc]#The value to search for#
+
+
+*Return Type*: [.returnType]#Boolean#
 
 *Examples*: If the "filename" attribute has the value "a brand new filename.txt", then the Expression
 	`${filename:startsWith('a brand')}` will return `true`. `${filename:startsWith('A BRAND')}` will
@@ -835,16 +911,19 @@ Each of the following functions is used to search its subject for some value.
 
 
 
-=== *endsWith*
+[.function]
+=== endsWith
 
-*Description*: Returns `true` if the Subject ends with the String provided as the argument,
-	`false` otherwise.
+*Description*: [.description]#Returns `true` if the Subject ends with the String provided as the argument,
+	`false` otherwise.#
 
-*Subject Type*: String
+*Subject Type*: [.subject]#String#
 
-*Arguments*: 1: String
+*Arguments*:
 
-*Return Type*: Boolean
+	- [.argName]#_value_# : [.argDesc]#The value to search for#
+
+*Return Type*: [.returnType]#Boolean#
 
 *Examples*: If the "filename" attribute has the value "a brand new filename.txt", then the Expression
 	`${filename:endsWith('txt')}` will return `true`. `${filename:endsWith('TXT')}` will
@@ -854,16 +933,18 @@ Each of the following functions is used to search its subject for some value.
 
 
 
-=== *contains*
+[.function]
+=== contains
 
-*Description*: Returns `true` if the Subject contains the value of the argument anywhere in the
-	value.
+*Description*: [.description]#Returns `true` if the Subject contains the value of the argument anywhere in the value.#
 
-*Subject Type*: String
+*Subject Type*: [.subject]#String#
 
-*Arguments*: 1: String
+*Arguments*:
 
-*Return Type*: Boolean
+	- [.argName]#_value_# : [.argDesc]#The value to search for#
+
+*Return Type*: [.returnType]#Boolean#
 
 *Examples*: If the "filename" attribute has the value "a brand new filename.txt", then the Expression
 	`${filename:contains('new')}` will return `true`. `${filename:contains('NEW')}` will
@@ -873,16 +954,19 @@ Each of the following functions is used to search its subject for some value.
 
 
 
-=== *find*
+[.function]
+=== find
 
-*Description*: Returns `true` if the Subject contains any sequence of characters that matches the
-	Regular Expression provided by the argument.
+*Description*: [.description]#Returns `true` if the Subject contains any sequence of characters that matches the
+	Regular Expression provided by the argument.#
 
-*Subject Type*: String
+*Subject Type*: [.subject]#String#
 
-*Arguments*: 1: String: a Regular Expression (in the Java Pattern syntax) to search for in the Subject.
+*Arguments*:
 
-*Return Type*: Boolean
+	- [.argName]#_Regex_# : [.argDesc]#The Regular Expression (in the Java Pattern syntax) to match against the Subject#
+
+*Return Type*: [.returnType]#Boolean#
 
 *Examples*: 
 
@@ -902,15 +986,18 @@ Expressions will provide the following results:
 
 
 
-=== *matches*
+[.function]
+=== matches
 
-*Description*: Returns `true` if the Subject exactly matches the Regular Expression provided by the argument.
+*Description*: [.description]#Returns `true` if the Subject exactly matches the Regular Expression provided by the argument.#
 
-*Subject Type*: String
+*Subject Type*: [.subject]#String#
 
-*Arguments*: 1: String: a Regular Expression (in the Java Pattern syntax) to match against the Subject.
+*Arguments*: 
 
-*Return Type*: Boolean
+	- [.argName]#_Regex_# : [.argDesc]#The Regular Expression (in the Java Pattern syntax) to match against the Subject#
+
+*Return Type*: [.returnType]#Boolean#
 
 *Examples*: 
 
@@ -929,19 +1016,22 @@ Expressions will provide the following results:
 
 
 
-=== *indexOf*
+[.function]
+=== indexOf
 
-*Description*: Returns the index of the first character in the Subject that matches the String value provided
+*Description*: [.description]#Returns the index of the first character in the Subject that matches the String value provided
 	as an argument. If the argument is found multiple times within the Subject, the value returned is the
 	starting index of the *first* occurrence.
 	If the argument cannot be found in the Subject, returns `-1`. The index is zero-based. This means that if
-	the search string is found at the beginning of the Subject, the value returned will be `0`, not `1`.
+	the search string is found at the beginning of the Subject, the value returned will be `0`, not `1`.#
 
-*Subject Type*: String
+*Subject Type*: [.subject]#String#
 
-*Arguments*: String
+*Arguments*:
 
-*Return Type*: Number
+	- [.argName]#_value_# : [.argDesc]#The value to search for in the Subject#
+
+*Return Type*: [.returnType]#Number#
 
 *Examples*: If the "filename" attribute has the value "a brand new filename.txt", then the following
 Expressions will provide the following results:
@@ -949,30 +1039,33 @@ Expressions will provide the following results:
 
 
 .indexOf Examples
-|=======================================================================================
+|===============================================
 | Expression | Value
 | `${filename:indexOf('a.*txt')}` | `-1`
 | `${filename:indexOf('.')}` | `20`
 | `${filename:indexOf('a')}` | `0`
 | `${filename:indexOf(' ')}` | `1`
-|=======================================================================================
+|===============================================
 
 
 
 
-=== *lastIndexOf*
+[.function]
+=== lastIndexOf
 
-*Description*: Returns the index of the first character in the Subject that matches the String value provided
+*Description*: [.description]#Returns the index of the first character in the Subject that matches the String value provided
 	as an argument. If the argument is found multiple times within the Subject, the value returned is the
 	starting index of the *last* occurrence.
 	If the argument cannot be found in the Subject, returns `-1`. The index is zero-based. This means that if
-	the search string is found at the beginning of the Subject, the value returned will be `0`, not `1`.
+	the search string is found at the beginning of the Subject, the value returned will be `0`, not `1`.#
 
-*Subject Type*: String
+*Subject Type*: [.subject]#String#
 
-*Arguments*: String
+*Arguments*:
 
-*Return Type*: Number
+	- [.argName]#_value_# : [.argDesc]#The value to search for in the Subject#
+
+*Return Type*: [.returnType]#Number#
 
 *Examples*: If the "filename" attribute has the value "a brand new filename.txt", then the following
 Expressions will provide the following results:
@@ -993,16 +1086,19 @@ Expressions will provide the following results:
 == Mathematical Operations and Numeric Manipulation
 
 
-=== *plus*
+[.function]
+=== plus
 
-*Description*: Adds a numeric value to the Subject. If either the argument or the Subject cannot be
-	coerced into a Number, returns `null`.
+*Description*: [.description]#Adds a numeric value to the Subject. If either the argument or the Subject cannot be
+	coerced into a Number, returns `null`.#
 
-*Subject Type*: Number
+*Subject Type*: [.subject]#Number#
 
-*Arguments*: 1: Number
+*Arguments*:
 
-*Return Type*: Number
+	- [.argName]#_Operand_# : [.argDesc]#The value to add to the Subject#
+
+*Return Type*: [.returnType]#Number#
 
 *Examples*: If the "fileSize" attribute has a value of 100, then the Expression `${fileSize:plus(1000)}`
 	will return the value `1100`.
@@ -1011,15 +1107,18 @@ Expressions will provide the following results:
 
 
 
-=== *minus*
+[.function]
+=== minus
 
-*Description*: Subtracts a numeric value from the Subject.
+*Description*: [.description]#Subtracts a numeric value from the Subject.#
 
-*Subject Type*: Number
+*Subject Type*: [.subject]#Number#
 
-*Arguments*: Number
+*Arguments*:
 
-*Return Type*: Number
+	- [.argName]#_Operand_# : [.argDesc]#The value to subtract from the Subject#
+
+*Return Type*: [.returnType]#Number#
 
 *Examples*: If the "fileSize" attribute has a value of 100, then the Expression `${fileSize:minus(100)}`
 	will return the value `0`.
@@ -1028,15 +1127,18 @@ Expressions will provide the following results:
 
 
 
-=== *multiply*
+[.function]
+=== multiply
 
-*Description*: Multiplies a numeric value by the Subject and returns the product.
+*Description*: [.description]#Multiplies a numeric value by the Subject and returns the product.#
 
-*Subject Type*: Number
+*Subject Type*: [.subject]#Number#
 
-*Arguments*: Number
+*Arguments*:
 
-*Return Type*: Number
+	- [.argName]#_Operand_# : [.argDesc]#The value to multiple the Subject by#
+
+*Return Type*: [.returnType]#Number#
 
 *Examples*: If the "fileSize" attribute has a value of 100, then the Expression `${fileSize:multiply(1024)}`
 	will return the value `102400`.
@@ -1044,15 +1146,18 @@ Expressions will provide the following results:
 
 
 
-=== *divide*
+[.function]
+=== divide
 
-*Description*: Divides a numeric value by the Subject and returns the result, rounded down to the nearest integer.
+*Description*: [.description]#Divides a numeric value by the Subject and returns the result, rounded down to the nearest integer.#
 
-*Subject Type*: Number
+*Subject Type*: [.subject]#Number#
 
-*Arguments*: Number
+*Arguments*:
 
-*Return Type*: Number
+	- [.argName]#_Operand_# : [.argDesc]#The value to add divide the Subject by#
+
+*Return Type*: [.returnType]#Number#
 
 *Examples*: If the "fileSize" attribute has a value of 100, then the Expression `${fileSize:divide(12)}`
 	will return the value `8`.
@@ -1060,16 +1165,19 @@ Expressions will provide the following results:
 
 
 
-=== *mod*
+[.function]
+=== mod
 
-*Description*: Performs a modular division of the Subject by the argument. That is, this function will divide
-	the Subject by the value of the argument and return not the quotient but rather the remainder.
+*Description*: [.description]#Performs a modular division of the Subject by the argument. That is, this function will divide
+	the Subject by the value of the argument and return not the quotient but rather the remainder.#
 
-*Subject Type*: Number
+*Subject Type*: [.subject]#Number#
 
-*Arguments*: Number
+*Arguments*:
 
-*Return Type*: Number
+	- [.argName]#_Operand_# : [.argDesc]#The value to divide the Subject by#
+
+*Return Type*: [.returnType]#Number#
 
 *Examples*: If the "fileSize" attribute has a value of 100, then the Expression `${fileSize:mod(12)}`
 	will return the value `4`.
@@ -1078,20 +1186,21 @@ Expressions will provide the following results:
 
 
 
-=== *toRadix*
+[.function]
+=== toRadix
 
-*Description*: Converts the Subject from a Base 10 number to a different Radix (or number base). An optional
+*Description*: [.description]#Converts the Subject from a Base 10 number to a different Radix (or number base). An optional
 	second argument can be used to indicate the minimum number of characters to be used. If the converted value
-	has fewer than this number of characters, the number will be padded with leading zeroes.
+	has fewer than this number of characters, the number will be padded with leading zeroes.#
 
-*Subject Type*: Number
+*Subject Type*: [.subject]#Number#
 
-*Arguments*: 2
+*Arguments*:
 
-	_Desired Base_: A Number between 2 and 36 (inclusive)
-	_Padding_: Optional argument that specifies the minimum number of characters in the converted output
+	- [.argName]#_Desired Base_# : [.argDesc]#A Number between 2 and 36 (inclusive)#
+	- [.argName]#_Padding_# : [.argDesc]#Optional argument that specifies the minimum number of characters in the converted output#
 
-*Return Type*: String
+*Return Type*: [.returnType]#String#
 
 *Examples*: If the "fileSize" attributes has a value of 1024, then the following Expressions will yield
 	the following results:
@@ -1118,17 +1227,20 @@ Expressions will provide the following results:
 
 
 [[format]]
-=== *format*
+[.function]
+=== format
 
-*Description*: Formats a number as a date/time according to the format specified by the argument. The argument
+*Description*: [.description]#Formats a number as a date/time according to the format specified by the argument. The argument
 	must be a String that is a valid Java SimpleDateFormat format. The Subject is expected to be a Number that
-	represents the number of milliseconds since Midnight GMT January 1, 1970.
+	represents the number of milliseconds since Midnight GMT January 1, 1970.#
 
-*Subject Type*: Number
+*Subject Type*: [.subject]#Number#
 
-*Arguments*: 1: String: The format to output the date in.
+*Arguments*:
 
-*Return Type*: String
+	- [.argName]#_format_# : [.argDesc]#The format to use in the Java SimpleDateFormat syntax#
+
+*Return Type*: [.returnType]#String#
 
 *Examples*: If the attribute "time" has the value "1420058163264", then the following Expressions will yield
 	the following results:
@@ -1146,18 +1258,22 @@ Expressions will provide the following results:
 
 
 
-=== *toDate*
+[.function]
+=== toDate
 
-*Description*: Converts a String into a Number, based on the format specified by the argument. The argument
-	must be a String that is a valid Java SimpleDateFormat format. The Subject is expected to be a String
+*Description*: [.description]#Converts a String into a Number, based on the format specified by the argument. The argument
+	must be a String that is a valid Java SimpleDateFormat syntax. The Subject is expected to be a String
 	that is formatted according the argument. The return value is the numbr of milliseconds since 
-	Midnight GMT January 1, 1979.
+	Midnight GMT January 1, 1979.#
 
-*Subject Type*: String
+*Subject Type*: [.subject]#String#
 
-*Arguments*: String
+*Arguments*:
+	
+		- [.argName]#_format_# : [.argDesc]#The current format to use when parsing the Subject, in the Java SimpleDateFormat syntax.#
 
-*Return Type*: Number
+
+*Return Type*: [.returnType]#Number#
 
 *Examples*: If the attribute "year" has the value "2014" and the attribute "time" has the value "2014/12/31 15:36:03.264Z",
 	then the Expression `${year:toDate('yyyy')}` will return the number of milliseconds between Midnight GMT on January 1, 1970
@@ -1171,16 +1287,17 @@ Expressions will provide the following results:
 
 
 
-=== *now*
+[.function]
+=== now
 
-*Description*: The `now` function returns the current date and time as the number of milliseconds since Midnight GMT on
-	January 1, 1970.
+*Description*: [.description]#The `now` function returns the current date and time as the number of milliseconds since Midnight GMT on
+	January 1, 1970.#
 
-*Subject Type*: No Subject
+*Subject Type*: [.subject]#No Subject#
 
 *Arguments*: No arguments
 
-*Return Type*: Number
+*Return Type*: [.returnType]#Number#
 
 *Examples*: We can format the current date and time by using the `now` function in conjunction with the <<format>> function:
 	`${now():format('yyyy/MM/dd HH:mm:ss')}`.
@@ -1192,15 +1309,16 @@ Expressions will provide the following results:
 [[type_cast]]
 == Type Coercion
 
-=== *toString*
+[.function]
+=== toString
 
-*Description*: Coerces the Subject into a String
+*Description*: [.description]#Coerces the Subject into a String#
 
-*Subject Type*: Any type
+*Subject Type*: [.subject]#Any type#
 
 *Arguments*: No arguments
 
-*Return Type*: String
+*Return Type*: [.returnType]#String#
 
 *Examples*: The Expression `${fileSize:toNumber():toString()}` converts the value of "fileSize" attribute to a number and
 	back to a String.
@@ -1209,15 +1327,16 @@ Expressions will provide the following results:
 
 
 
-=== *toNumber*
+[.function]
+=== toNumber
 
-*Description*: Coerces the Subject into a Number
+*Description*: [.description]#Coerces the Subject into a Number#
 
-*Subject Type*: String
+*Subject Type*: [.subject]#String#
 
 *Arguments*: No arguments
 
-*Return Type*: Number
+*Return Type*: [.returnType]#Number#
 
 *Examples*: The Expression `${fileSize:toNumber()}` converts the String attribute value of "fileSize" to a number.
 
@@ -1229,69 +1348,89 @@ Expressions will provide the following results:
 [[subjectless]]
 == Subjectless Functions
 
-=== *ip*
+While the majority of functions in the Expression Language are called by using the syntax
+`${attributeName:function()}`, there exist a few functions that are not expected to have subjects.
+In this case, the attribute name is not present. For example, the IP address of the machine can
+be obtained by using the Expression `${ip()}`. All of the functions in this section are to be called
+without a subject. Attempting to call a subjectless function and provide it a subject will result in
+an error when validating the function.
 
-*Description*: Returns the IP address of the machine.
 
-*Subject Type*: No subject
+[.function]
+=== ip
+
+*Description*: [.description]#Returns the IP address of the machine.#
+
+*Subject Type*: [.subjectless]#No subject#
 
 *Arguments*: No arguments
 
-*Return Type*: String
+*Return Type*: [.returnType]#String#
 
-*Examples*: ${ip()}
-
-
+*Examples*: The IP address of the machine can be obtained by using the Expresison `${ip()}`.
 
 
 
-=== *hostname*
 
-*Description*: Returns the Hostname of the machine. An optional argument of type Boolean can be provided
+
+[.function]
+=== hostname
+
+*Description*: [.description]#Returns the Hostname of the machine. An optional argument of type Boolean can be provided
 	to specify whether or not the Fully Qualified Domain Name should be used. If `false`, or not specified,
 	the hostname will not be fully qualified. If the argument is `true` but the fully qualified hostname
-	cannot be resolved, the simple hostname will be returned.
+	cannot be resolved, the simple hostname will be returned.#
 
-*Subject Type*: No subject
+*Subject Type*: [.subjectless]#No subject#
 
-*Arguments*: 1: Boolean: Optionally specify whether or not the hostname to return should be fully qualified,
-	if not specified, defaults to `false`.
+*Arguments*:
 
-*Return Type*: String
+	- [.argName]#_Fully Qualified_# : [.argDesc]#Optional parameter that specifies whether or not the hostname should be
+		fully qualified. If not specified, defaults to false.#
 
-*Examples*: ${hostname(true)}
+*Return Type*: [.returnType]#String#
 
-
-
-
-
-=== *UUID*
-
-*Description*: 
-
-*Subject Type*: 
-
-*Arguments*: 
-
-*Return Type*: 
-
-*Examples*: 
+*Examples*: The fully qualified hostname of the machine can be obtained by using the Expression `${hostname(true)}`,
+	while the simple hostname can be obtained by using either `${hostname(false)}` or simply `${hostname()}`.
 
 
 
 
 
-=== *nextInt*
+[.function]
+=== UUID
 
-*Description*: 
+*Description*: [.description]#Returns a randomly generated UUID.#
 
-*Subject Type*: 
+*Subject Type*: [.subjectless]#No Subject#
 
-*Arguments*: 
+*Arguments*: No arguments
 
-*Return Type*: 
+*Return Type*: [.returnType]#String#
 
-*Examples*: 
+*Examples*: ${UUID()} returns a value similar to de305d54-75b4-431b-adb2-eb6b9e546013
+
+
+
+
+
+[.function]
+=== nextInt
+
+*Description*: [.description]#Returns a one-up value (starting at 0) and increasing over the lifetime of the running instance of NiFi. 
+	This value is not persisted across restarts and is not guaranteed to be unique across a cluster. 
+	This value is considered "one-up" in that if called multiple times across the NiFi instance, the values will be sequential. 
+	However, this counter is shared across all NiFi components, so calling this function multiple times from one Processor will 
+	not guarantee sequential values within the context of a particular Processor.#
+
+*Subject Type*: [.subjectless]#No Subject#
+
+*Arguments*: No arguments
+
+*Return Type*: [.returnType]#Number#
+
+*Examples*: If the previous value returned by `nextInt` was `5`, the Expression `${nextInt():divide(2)}` obtains the next available 
+	integer (6) and divides the result by 2, returning a value of `3`.
 
 
 
@@ -1301,101 +1440,251 @@ Expressions will provide the following results:
 [[multi]]
 == Evaluating Multiple Attributes
 
-=== *anyAttribute*
-
-*Description*: 
-
-*Subject Type*: 
-
-*Arguments*: 
-
-*Return Type*: 
-
-*Examples*: 
+When it becomes necessary to evaluate the same conditions against multiple attributes, this can be accomplished by means of the 
+`and` and `or` functions. However, this quickly becomes tedious, error-prone, and difficult to maintain. For this reason, NiFi
+provides several functions for evaluating the same conditions against groups of attributes at the same time.
 
 
 
 
+[.function]
+=== anyAttribute
+  
+*Description*: [.description]#Checks to see if any of the given attributes, match the given condition. This function has no subject and takes one or more
+	arguments that are the names of attributes to which the remainder of the Expression is to be applied. If any of the attributes specified,
+	when evaluated against the rest of the Expression, returns a value of `true`, then this function will return `true`. Otherwise, this function
+	will return `false`.#
 
-=== *allAttributes*
+*Subject Type*: [.subjectless]#No Subject#
 
-*Description*: 
+*Arguments*:
 
-*Subject Type*: 
-
-*Arguments*: 
-
-*Return Type*: 
-
-*Examples*: 
-
-
-
+	- [.argName]#_Attribute Names_# : [.argDesc]#One or more attribute names to evaluate#
 
 
-=== *anyMatchingAttribute*
+*Return Type*: [.returnType]#Boolean#
 
-*Description*: 
+*Examples*: Given that the "abc" attribute contains the value "hello world", "xyz" contains "good bye world", 
+	and "filename" contains "file.txt" consider the following examples:
 
-*Subject Type*: 
-
-*Arguments*: 
-
-*Return Type*: 
-
-*Examples*: 
+.anyAttribute Examples
+|=======================================================================
+| Expression | Value
+| `${anyAttribute("abc", "xyz"):contains("bye")}` | `true`
+| `${anyAttribute("filename","xyz"):toUpper():contains("e")}` | `false`
+|=======================================================================
 
 
 
 
+[.function]
+=== allAttributes
 
-=== *allMatchingAttributes*
+*Description*: [.description]#Checks to see if any of the given attributes, match the given condition. This function has no subject and takes one or more
+	arguments that are the names of attributes to which the remainder of the Expression is to be applied. If all of the attributes specified,
+	when evaluated against the rest of the Expression, returns a value of `true`, then this function will return `true`. Otherwise, this function
+	will return `false`.#
 
-*Description*: 
-
-*Subject Type*: 
+*Subject Type*: [.subjectless]#No Subject#
 
 *Arguments*: 
 
-*Return Type*: 
+	- [.argName]#_Attribute Names_# : [.argDesc]#One or more attribute names to evaluate#
 
-*Examples*: 
+*Return Type*: [.returnType]#Boolean#
 
+*Examples*: Given that the "abc" attribute contains the value "hello world", "xyz" contains "good bye world", 
+	and "filename" contains "file.txt" consider the following examples:
 
-
-
-
-=== *anyDelineatedValue*
-
-*Description*: 
-
-*Subject Type*: 
-
-*Arguments*: 
-
-*Return Type*: 
-
-*Examples*: 
+.allAttributes Example
+|=============================================================================
+| Expression | Value
+| `${allAttributes("abc", "xyz"):contains("world")}` | `true`
+| `${allAttributes("abc", "filename","xyz"):toUpper():contains("e")}` | `false`
+|=============================================================================
 
 
 
 
 
-=== *allDelineatedValues*
+[.function]
+=== anyMatchingAttribute
 
-*Description*: 
+*Description*: [.description]# Checks to see if any of the given attributes, match the given condition. This function has no subject and takes one or more
+	arguments that are Regular Expressions to match against attribute names. Any attribute whose name matches one of the supplied
+	Regular Expressions will be evaluated against the rest of the Expression. If any of the attributes specified,
+	when evaluated against the rest of the Expression, returns a value of `true`, then this function will return `true`. Otherwise, this function
+	will return `false`.#
 
-*Subject Type*: 
+*Subject Type*: [.subjectless]#No Subject#
 
-*Arguments*: 
+*Arguments*:
 
-*Return Type*: 
-
-*Examples*: 
-
-
-
-
+	- [.argName]#_Regex_# : [.argDesc]#One or more Regular Expressions (in the Java Pattern syntax) to evaluate against attribute names#
 
 
+*Return Type*: [.returnType]#Boolean#
+
+*Examples*: Given that the "abc" attribute contains the value "hello world", "xyz" contains "good bye world", 
+	and "filename" contains "file.txt" consider the following examples:
+
+.anyMatchingAttribute Example
+|==============================================================
+| Expression | Value
+| `${anyMatchingAttribute("[ax].*"):contains('bye')}` | `true`
+| `${anyMatchingAttribute(".*"):isNull()}` | `false`
+|==============================================================
+
+
+
+
+
+[.function]
+=== allMatchingAttributes
+
+*Description*: [.description]# Checks to see if any of the given attributes, match the given condition. This function has no subject and takes one or more
+	arguments that are Regular Expressions to match against attribute names. Any attribute whose name matches one of the supplied
+	Regular Expressions will be evaluated against the rest of the Expression. If all of the attributes specified,
+	when evaluated against the rest of the Expression, return a value of `true`, then this function will return `true`. Otherwise, this function
+	will return `false`.#
+
+*Subject Type*: [.subjectless]#No Subject#
+
+	- [.argName]#_Regex_# : [.argDesc]#One or more Regular Expressions (in the Java Pattern syntax) to evaluate against attribute names#
+
+*Return Type*: [.returnType]#Boolean#
+
+*Examples*: Given that the "abc" attribute contains the value "hello world", "xyz" contains "good bye world", 
+	and "filename" contains "file.txt" consider the following examples:
+
+.anyMatchingAttributes Examples
+|==============================================================
+| Expression | Value
+| `${allMatchingAttributes("[ax].*"):contains("world")}` | `true`
+| `${allMatchingAttributes(".*"):isNull()}` | `false`
+| `${allMatchingAttributes("f.*"):count()}` | `1`
+|==============================================================
+
+
+
+
+
+[.function]
+=== anyDelineatedValue
+
+*Description*: [.description]#Splits a String apart according to a delimiter that is provided, and then evaluates each of the values against
+	the rest of the Expression. If the Expression, when evaluated against any of the individual values, returns `true`, this
+	function returns `true`. Otherwise, the function returns `false`.#
+
+*Subject Type*: [.subjectless]#No Subject#
+
+*Arguments*:
+
+	- [.argName]#_Delineated Value_# : [.argDesc]#The value that is delineated. This is generally an embedded Expression, 
+		though it does not have to be.#
+	- [.argName]#_Delimiter_# : [.argDesc]#The value to use to split apart the _delineatedValue_ argument.#
+
+*Return Type*: [.returnType]#Boolean#
+
+*Examples*: Given that the "number_list" attribute contains the value "1,2,3,4,5", and the "word_list" attribute contains the value "the,and,or,not", 
+	consider the following examples:
+
+.anyDelineatedValue Examples
+|===============================================================================
+| Expression | Value
+| `${anyDelineatedValue("${number_list}", ","):contains("5")}` | `true`
+| `${anyDelineatedValue("this that and", ","):equals("${word_list}")}` | `false`
+|===============================================================================
+
+
+
+[.function]
+=== allDelineatedValues
+
+*Description*: [.description]#Splits a String apart according to a delimiter that is provided, and then evaluates each of the values against
+	the rest of the Expression. If the Expression, when evaluated against all of the individual values, returns `true` in each
+	case, then this function returns `true`. Otherwise, the function returns `false`.#
+
+*Subject Type*: [.subjectless]#No Subject#
+
+*Arguments*:
+
+	- [.argName]#_Delineated Value_# : [.argDesc]#The value that is delineated. This is generally 
+		an embedded Expression, though it does not have to be.#
+
+	- [.argName]#_Delimiter_# : [.argDesc]#The value to use to split apart the _delineatedValue_ argument.#
+
+*Return Type*: [.returnType]#Boolean#
+
+*Examples*: Given that the "number_list" attribute contains the value "1,2,3,4,5", and the "word_list" attribute contains the value "those,known,or,not", 
+	consider the following examples:
+
+.allDelineatedValues Examples
+|===============================================================================
+| Expression | Value
+| `${allDelineatedValues("${word_list}", ","):contains("o")}` | `true`
+| `${allDelineatedValues("${number_list}", ","):count()}` | `4`
+| `${allDelineatedValues("${number_list}", ","):matches("[0-9]+")}` | `true`
+| `${allDelineatedValues("${word_list}", ","):matches('e')}` | `false`
+|===============================================================================
+
+
+
+
+[.function]
+=== join
+
+*Description*: [.description]#Aggregate function that concatenates multiple values with the specified delimiter. This function 
+	may be used only in conjunction with the `allAttributes`, `allMatchingAttributes`, and `allDelineatedValues`
+	functions.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*:
+
+	- [.argName]#_Delimiter_# : [.argDesc]#The String delimiter to use when joining values#
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: Given that the "abc" attribute contains the value "hello world", "xyz" contains "good bye world", 
+	and "filename" contains "file.txt" consider the following examples:
+
+.join Examples
+|=======================================================================================
+| Expression | Value
+| `${allMatchingAttributes("[ax].*"):substringBefore(" "):join("-")}` | `hello-good`
+| `${allAttributes("abc", "xyz"):join(" now")}` | `hello world nowgood bye world now`
+|=======================================================================================
+
+
+
+
+
+
+[.function]
+=== count
+
+*Description*: [.description]#Aggregate function that counts the number of non-null, non-false values returned by the 
+	`allAttributes`, `allMatchingAttributes`, and `allDelineatedValues`. This function 
+	may be used only in conjunction with the `allAttributes`, `allMatchingAttributes`, and `allDelineatedValues`
+	functions.#
+
+*Subject Type*: [.subject]#Any#
+
+*Arguments*: No arguments
+
+*Return Type*: [.returnType]#Number#
+
+*Examples*: Given that the "abc" attribute contains the value "hello world", "xyz" contains "good bye world", 
+	and "number_list" contains "1,2,3,4,5" consider the following examples:
+
+.count Examples
+|===========================================================================
+| Expression | Value
+| `${allMatchingAttributes("[ax].*"):substringBefore(" "):count()}` | `2`
+| `${allAttributes("abc", "xyz"):contains("world"):count()}` | `1`
+| `${allDelineatedValues(${number_list}, ","):count()}` | `5`
+| `${allAttributes("abc", "non-existent-attr", "xyz"):count()}` | `2`
+| `${allMatchingAttributes(".*"):length():gt(10):count()}` | `2`
+|===========================================================================
 
