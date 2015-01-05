@@ -54,21 +54,23 @@
             </thead>
             <tbody>
                 <tr>
-                    <td>kafka.key</td>
-                    <td>The key of the Kafka message, if it exists. If the message does not have a key,
-                    this attribute will not be added.</td>
-                </tr>
-                <tr>
                 	<td>kafka.topic</td>
                 	<td>The name of the Kafka Topic from which the message was received</td>
                 </tr>
                 <tr>
+                    <td>kafka.key</td>
+                    <td>The key of the Kafka message, if it exists and batch size is 1. If the message does not have a key,
+                    	or if the batch size is greater than 1, this attribute will not be added.</td>
+                </tr>
+                <tr>
                 	<td>kafka.partition</td>
-                	<td>The partition of the Kafka Topic from which the message was received</td>
+                	<td>The partition of the Kafka Topic from which the message was received. This attribute is added only
+                		if the batch size is 1.</td>
                 </tr>
                 <tr>
                 	<td>kafka.offset</td>
-                	<td>The offset of the message within the Kafka partition</td>
+                	<td>The offset of the message within the Kafka partition. This attribute is added only
+                		if the batch size is 1.</td>
                 </tr>
             </tbody>
         </table>
@@ -120,6 +122,30 @@
                 <ul>
                     <li>The amount of time to wait for a response from Kafka before determining that there is a communications error</li>
                     <li>Default value: 30 secs</li>
+                    <li>Supports expression language: false</li>
+                </ul>
+            </li>
+            
+            <li><strong>Batch Size</strong>
+                <ul>
+                    <li>Specifies the maximum number of messages to combine into a single FlowFile. 
+                    	These messages will be concatenated together with the &lt;Message Demarcator&gt; 
+                    	string placed between the content of each message. If the messages from Kafka 
+                    	should not be concatenated together, leave this value at 1.</li>
+                    <li>Default value: 1</li>
+                    <li>Supports expression language: false</li>
+                </ul>
+            </li>
+            
+            <li><strong>Message Demarcator</strong>
+                <ul>
+                    <li>Specifies the characters to use in order to demarcate multiple messages from Kafka. 
+                    	If the &lt;Batch Size&gt; property is set to 1, this value is ignored. Otherwise, for each two 
+                    	subsequent messages in the batch, this value will be placed in between them. This property will
+                    	treat "\n" as a new-line, "\r" as a carriage return and "\t" as a tab character. All other
+                    	characters are treated as literal characters.
+                    </li>
+                    <li>Default value: \n</li>
                     <li>Supports expression language: false</li>
                 </ul>
             </li>

@@ -31,6 +31,16 @@
         	&lt;Kafka Key&gt; Property.
         </p>
 
+		<p>
+			The Processor allows the user to configure an optional Message Delimiter that
+			can be used to send many messages per FlowFile. For example, a \n could be used
+			to indicate that the contents of the FlowFile should be used to send one message
+			per line of text. If the property is not set, the entire contents of the FlowFile
+			will be sent as a single message. When using the delimiter, if some messages are
+			successfully sent but other messages fail to send, the FlowFile will be FORKed into
+			two child FlowFiles, with the successfully sent messages being routed to 'success'
+			and the messages that could not be sent going to 'failure'.
+		</p>
 
         <p>
             <strong>Properties:</strong>
@@ -45,7 +55,7 @@
                 <ul>
                     <li>
                     	A comma-separated list of known Kafka Brokers in the format 
-                    	&lgt;host&gt;:&lt;port&gt;. This list does not need to be
+                    	&lt;host&gt;:&lt;port&gt;. This list does not need to be
                     	exhaustive but provides a mechanism for determining which
                     	other nodes belong to the Kafka cluster.
                     </li>
@@ -106,6 +116,18 @@
                     <li>Supports expression language: false</li>
                 </ul>
             </li>
+            <li>Message Delimiter
+                <ul>
+                    <li>
+                    	Specifies the delimiter to use for splitting apart multiple messages within a single FlowFile. 
+                    	If not specified, the entire content of the FlowFile will be used as a single message.
+                    	If specified, the contents of the FlowFile will be split on this delimiter and each section 
+						sent as a separate Kafka message.
+                    </li>
+                    <li>Default value: no default</li>
+                    <li>Supports expression language: true</li>
+                </ul>
+            </li>
             <li><strong>Communications Timeout</strong>
                 <ul>
                     <li>
@@ -116,16 +138,10 @@
                     <li>Supports expression language: false</li>
                 </ul>
             </li>
-            <li><strong>Max FlowFile Size</strong>
+            <li><strong>Max Buffer Size</strong>
                 <ul>
                     <li>
-                    	Specifies the amount of data that can be buffered to send to Kafka. Because
-                    	the contents of the FlowFile must be buffered into memory before they can
-                    	be sent to Kafka, attempting to send a very large FlowFile can cause
-                    	problems by causing the machine to run out of memory.
-                    	This helps to prevent the system from running out of memory, the PutKafka
-                    	Processor exposes a property for specifying the maximum size of a FlowFile.
-                    	If the size of a FlowFile is larger than this, that FlowFile will be routed to 'reject'.
+                    	The maximum amount of data to buffer in memory before sending to Kafka
                     </li>
                     <li>Default value: 1 MB</li>
                     <li>Supports expression language: false</li>
@@ -148,25 +164,21 @@
             <li>success
                 <ul>
                     <li>All FlowFiles that are successfully sent to Kafka are routed 
-                    	to this relationship.
-                    </li>
-                </ul>
-            </li>
-            
-            <li>reject
-                <ul>
-                    <li>Any FlowFile whose content size exceeds the configured value for 
-                    	the &lt;Max FlowFile Size&gt; property will be routed to this 
-                    	relationship.
+                    	to this relationship. If using the &lt;Message Delimiter&gt; property,
+                    	it's possible for some messages to be sent while others fail. In this
+                    	case, only the messages that are successfully sent will be routed to
+                    	this Relationship while the other messages will be routed to the
+                    	'failure' relationship.
                     </li>
                 </ul>
             </li>
             
             <li>failure
                 <ul>
-                    <li>All FlowFiles that cannot be sent to Kafka for any reason other 
-                    	than their content size exceeding the value of the &lt;Max FlowFile 
-                    	Size&gt; property will be routed to this relationship.
+                    <li>All FlowFiles that cannot be sent to Kafka for any reason be routed 
+                    	to this relationship. If a portion of a FlowFile is successfully sent
+                    	to Kafka but not all, only those messages that cannot be sent to Kafka
+                    	will be routed to this Relationship.
                     </li>
                 </ul>
             </li>
