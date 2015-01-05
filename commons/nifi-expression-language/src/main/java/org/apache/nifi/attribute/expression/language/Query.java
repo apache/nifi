@@ -16,69 +16,7 @@
  */
 package org.apache.nifi.attribute.expression.language;
 
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ALL_ATTRIBUTES;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ALL_DELINEATED_VALUES;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ALL_MATCHING_ATTRIBUTES;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.AND;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ANY_ATTRIBUTE;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ANY_DELINEATED_VALUE;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ANY_MATCHING_ATTRIBUTE;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.APPEND;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ATTRIBUTE_REFERENCE;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ATTR_NAME;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.CONTAINS;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.DIVIDE;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ENDS_WITH;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.EQUALS;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.EQUALS_IGNORE_CASE;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.EXPRESSION;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.FALSE;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.FIND;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.FORMAT;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.GREATER_THAN;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.GREATER_THAN_OR_EQUAL;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.HOSTNAME;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.INDEX_OF;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.IP;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.IS_NULL;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.LAST_INDEX_OF;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.LENGTH;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.LESS_THAN;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.LESS_THAN_OR_EQUAL;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.MATCHES;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.MINUS;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.MOD;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.MULTIPLY;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.MULTI_ATTRIBUTE_REFERENCE;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.NEXT_INT;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.NOT;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.NOT_NULL;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.NOW;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.NUMBER;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.OR;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.PLUS;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.PREPEND;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.REPLACE;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.REPLACE_ALL;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.REPLACE_NULL;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.STARTS_WITH;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.STRING_LITERAL;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.SUBSTRING;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.SUBSTRING_AFTER;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.SUBSTRING_AFTER_LAST;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.SUBSTRING_BEFORE;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.SUBSTRING_BEFORE_LAST;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TO_DATE;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TO_LOWER;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TO_NUMBER;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TO_RADIX;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TO_STRING;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TO_UPPER;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TRIM;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TRUE;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.URL_DECODE;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.URL_ENCODE;
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.UUID;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.*;
 
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -118,6 +56,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.Greate
 import org.apache.nifi.attribute.expression.language.evaluation.functions.HostnameEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.IPEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.IndexOfEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.IsEmptyEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.IsNullEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.LastIndexOfEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.LengthEvaluator;
@@ -136,6 +75,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.OrEval
 import org.apache.nifi.attribute.expression.language.evaluation.functions.PlusEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.PrependEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ReplaceAllEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.ReplaceEmptyEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ReplaceEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ReplaceNullEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.StartsWithEvaluator;
@@ -157,6 +97,9 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.UuidEv
 import org.apache.nifi.attribute.expression.language.evaluation.literals.BooleanLiteralEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.literals.NumberLiteralEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.literals.StringLiteralEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.reduce.CountEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.reduce.JoinEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.reduce.ReduceEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.selection.AllAttributesEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.selection.AnyAttributeEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.selection.DelineatedAttributeEvaluator;
@@ -169,7 +112,6 @@ import org.apache.nifi.expression.AttributeExpression.ResultType;
 import org.apache.nifi.expression.AttributeValueDecorator;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.exception.ProcessException;
-
 import org.antlr.runtime.ANTLRStringStream;
 import org.antlr.runtime.CharStream;
 import org.antlr.runtime.CommonTokenStream;
@@ -549,7 +491,8 @@ public class Query {
             final Tree tree = ast.getChild(0);
 
             // ensure that we are able to build the evaluators, so that we validate syntax
-            buildEvaluator(tree);
+            final Evaluator<?> evaluator = buildEvaluator(tree);
+            verifyMappingEvaluatorReduced(evaluator);
             return tree;
         } catch (final AttributeExpressionLanguageParsingException e) {
             throw e;
@@ -605,7 +548,10 @@ public class Query {
             final Tree ast = (Tree) parser.query().getTree();
             final Tree tree = ast.getChild(0);
 
-            return new Query(query, tree, buildEvaluator(tree));
+            final Evaluator<?> evaluator = buildEvaluator(tree);
+            verifyMappingEvaluatorReduced(evaluator);
+            
+            return new Query(query, tree, evaluator);
         } catch (final AttributeExpressionLanguageParsingException e) {
             throw e;
         } catch (final Exception e) {
@@ -613,6 +559,33 @@ public class Query {
         }
     }
 
+    
+    private static void verifyMappingEvaluatorReduced(final Evaluator<?> evaluator) {
+        // if the result type of the evaluator is BOOLEAN, then it will always
+        // be reduced when evaluator.
+        final ResultType resultType = evaluator.getResultType();
+        if (resultType == ResultType.BOOLEAN) {
+            return;
+        }
+
+        final Evaluator<?> rootEvaluator = getRootSubjectEvaluator(evaluator);
+        if (rootEvaluator != null && rootEvaluator instanceof MultiAttributeEvaluator) {
+            final MultiAttributeEvaluator multiAttrEval = (MultiAttributeEvaluator) rootEvaluator;
+            switch (multiAttrEval.getEvaluationType()) {
+            case ALL_ATTRIBUTES:
+            case ALL_MATCHING_ATTRIBUTES:
+            case ALL_DELINEATED_VALUES: {
+                if (!(evaluator instanceof ReduceEvaluator)) {
+                    throw new AttributeExpressionLanguageParsingException("Cannot evaluate expression because it attempts to reference multiple attributes but does not use a reducing function");
+                }
+                break;
+            }
+            default:
+                throw new AttributeExpressionLanguageParsingException("Cannot evaluate expression because it attempts to reference multiple attributes but does not use a reducing function");
+            }
+        }
+    }
+    
     private static CommonTokenStream createTokenStream(final String expression) throws AttributeExpressionLanguageParsingException {
         final CharStream input = new ANTLRStringStream(expression);
         final AttributeExpressionLexer lexer = new AttributeExpressionLexer(input);
@@ -836,10 +809,6 @@ public class Query {
         final Evaluator<?> rootEvaluator = getRootSubjectEvaluator(evaluator);
         if (rootEvaluator != null) {
             if (rootEvaluator instanceof MultiAttributeEvaluator) {
-                if (evaluator.getResultType() != ResultType.BOOLEAN) {
-                    throw new AttributeExpressionLanguageParsingException("Found Multi-Attribute function but return type is " + evaluator.getResultType() + ", not " + ResultType.BOOLEAN + ", for query: " + tree.getText());
-                }
-
                 final MultiAttributeEvaluator multiAttrEval = (MultiAttributeEvaluator) rootEvaluator;
 
                 switch (multiAttrEval.getEvaluationType()) {
@@ -926,6 +895,8 @@ public class Query {
                 return (NumberEvaluator) evaluator;
             case STRING:
                 return new NumberCastEvaluator((StringEvaluator) evaluator);
+            case DATE:
+                return new DateToNumberEvaluator((DateEvaluator) evaluator);
             default:
                 throw new AttributeExpressionLanguageParsingException("Cannot implicitly convert Data Type " + evaluator.getResultType() + " to " + ResultType.NUMBER
                         + (location == null ? "" : " at location [" + location + "]"));
@@ -995,6 +966,10 @@ public class Query {
                 return new ReplaceNullEvaluator(toStringEvaluator(subjectEvaluator),
                         toStringEvaluator(argEvaluators.get(0), "first argument to replaceNull"));
             }
+            case REPLACE_EMPTY: {
+                verifyArgCount(argEvaluators, 1, "replaceEmtpy");
+                return new ReplaceEmptyEvaluator(toStringEvaluator(subjectEvaluator), toStringEvaluator(argEvaluators.get(0), "first argumen to replaceEmpty"));
+            }
             case REPLACE: {
                 verifyArgCount(argEvaluators, 2, "replace");
                 return new ReplaceEvaluator(toStringEvaluator(subjectEvaluator),
@@ -1030,9 +1005,21 @@ public class Query {
                     throw new AttributeExpressionLanguageParsingException("substring() function can take either 1 or 2 arguments but cannot take " + numArgs + " arguments");
                 }
             }
+            case JOIN: {
+                verifyArgCount(argEvaluators, 1, "join");
+                return new JoinEvaluator(toStringEvaluator(subjectEvaluator), toStringEvaluator(argEvaluators.get(0)));
+            }
+            case COUNT: {
+                verifyArgCount(argEvaluators, 0, "count");
+                return new CountEvaluator(subjectEvaluator);
+            }
             case IS_NULL: {
                 verifyArgCount(argEvaluators, 0, "isNull");
                 return new IsNullEvaluator(toStringEvaluator(subjectEvaluator));
+            }
+            case IS_EMPTY: {
+                verifyArgCount(argEvaluators, 0, "isNull");
+                return new IsEmptyEvaluator(toStringEvaluator(subjectEvaluator));
             }
             case NOT_NULL: {
                 verifyArgCount(argEvaluators, 0, "notNull");
