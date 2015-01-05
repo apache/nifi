@@ -1164,9 +1164,9 @@ nf.ConnectionConfiguration = (function () {
 
             // add the description if applicable
             if (nf.Common.isDefinedAndNotNull(prioritizerType.description)) {
-                $('<img class="icon-info" style="float: right; margin-right: 5px;" src="images/iconInfo.png"></img>').appendTo(prioritizer).qtip($.extend(nf.Common.config.tooltipConfig, {
+                $('<img class="icon-info" style="float: right; margin-right: 5px;" src="images/iconInfo.png"></img>').appendTo(prioritizer).qtip($.extend({
                     content: nf.Common.escapeHtml(prioritizerType.description)
-                }));
+                }, nf.Common.config.tooltipConfig));
             }
         },
         

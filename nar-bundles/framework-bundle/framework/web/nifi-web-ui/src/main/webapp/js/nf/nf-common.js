@@ -57,7 +57,7 @@ nf.Common = {
     config: {
         tooltipConfig: {
             style: {
-                classes: 'ui-tooltip-tipped ui-tooltip-shadow'
+                classes: 'nifi-tooltip'
             },
             show: {
                 solo: true,

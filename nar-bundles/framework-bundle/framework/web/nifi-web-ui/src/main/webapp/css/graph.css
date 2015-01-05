@@ -30,13 +30,10 @@
 }
 
 .tooltip {
+    padding: 10px;
     display: none;
     position: absolute;
-    padding: 10px;
     z-index: 1000;
-    border: 3px solid #959FA9;
-    background-color: #F9F9F9;
-    color: #454545;
 }
 
 /* svg styles */

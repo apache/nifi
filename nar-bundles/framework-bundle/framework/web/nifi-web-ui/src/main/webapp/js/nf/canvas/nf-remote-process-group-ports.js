@@ -231,9 +231,9 @@ nf.RemoteProcessGroupPorts = (function () {
                     editRemotePort.show();
                 }
             } else if (port.exists === false) {
-                $('<div class="remote-port-removed"/>').appendTo(portContainerEditContainer).qtip($.extend(nf.Common.config.tooltipConfig, {
+                $('<div class="remote-port-removed"/>').appendTo(portContainerEditContainer).qtip($.extend({
                     content: 'This port has been removed.'
-                }));
+                }, nf.Common.config.tooltipConfig));
             }
 
             // only allow modifications to transmission when the swtich is defined
@@ -364,13 +364,13 @@ nf.RemoteProcessGroupPorts = (function () {
 
         // add this ports concurrent tasks
         $('<div>' +
-                '<div class="setting-name">' +
+            '<div class="setting-name">' +
                 'Concurrent tasks' +
                 '<img class="processor-setting concurrent-tasks-info" src="images/iconInfo.png" alt="Info"/>' +
-                '</div>' +
-                '</div>').append(concurrentTasks).appendTo(concurrentTasksContainer).find('img.concurrent-tasks-info').qtip($.extend(nf.Common.config.tooltipConfig, {
+            '</div>' +
+        '</div>').append(concurrentTasks).appendTo(concurrentTasksContainer).find('img.concurrent-tasks-info').qtip($.extend({
             content: 'The number of tasks that should be concurrently scheduled for this port.'
-        }));
+        }, nf.Common.config.tooltipConfig));
 
         var compressionContainer = $('<div class="compression-container"></div>').appendTo(portContainerDetailsContainer);
 

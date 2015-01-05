@@ -111,6 +111,12 @@ div.context-menu-item-text {
     font-weight: bold !important;
 }
 
+div.nifi-tooltip {
+    border: 1px solid #454545;
+    background-color: #FFFFA3;
+    color: #454545;
+}
+
 .ellipsis {
     white-space: nowrap;
     overflow: hidden;

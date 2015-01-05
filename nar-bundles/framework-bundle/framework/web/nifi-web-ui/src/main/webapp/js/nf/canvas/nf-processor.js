@@ -437,7 +437,7 @@ nf.Processor = (function () {
                                         .attr('id', function () {
                                             return 'run-status-tip-' + d.component.id;
                                         })
-                                        .attr('class', 'tooltip')
+                                        .attr('class', 'tooltip nifi-tooltip')
                                         .html(function () {
                                             var list = nf.Common.formatUnorderedList(d.component.validationErrors);
                                             if (list === null || list.length === 0) {

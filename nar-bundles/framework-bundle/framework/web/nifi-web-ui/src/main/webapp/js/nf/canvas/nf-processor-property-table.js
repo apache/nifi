@@ -302,9 +302,9 @@ nf.ProcessorPropertyTable = (function () {
                 var tooltip = nf.Common.formatPropertyTooltip(propertyDescriptor, propertyHistory);
 
                 if (nf.Common.isDefinedAndNotNull(tooltip)) {
-                    infoIcon.qtip($.extend(nf.Common.config.tooltipConfig, {
+                    infoIcon.qtip($.extend({
                         content: tooltip
-                    }));
+                    }, nf.Common.config.tooltipConfig));
                 }
             }
         });
