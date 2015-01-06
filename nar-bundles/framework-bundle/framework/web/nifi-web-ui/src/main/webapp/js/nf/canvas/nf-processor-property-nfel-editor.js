@@ -41,7 +41,7 @@ nf.ProcessorPropertyNfelEditor = function (args) {
 
         // create the wrapper
         wrapper = $('<div></div>').addClass('slickgrid-nfel-editor').css({
-            'z-index': 100000,
+            'z-index': 14000,
             'position': 'absolute',
             'background': 'white',
             'padding': '5px',

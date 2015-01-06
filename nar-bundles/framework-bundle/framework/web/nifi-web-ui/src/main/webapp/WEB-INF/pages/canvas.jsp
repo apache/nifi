@@ -25,6 +25,7 @@
         <link rel="stylesheet" href="js/codemirror/lib/codemirror.css" type="text/css" />
         <link rel="stylesheet" href="js/codemirror/addon/hint/show-hint.css" type="text/css" />
         <link rel="stylesheet" href="js/jquery/nfeditor/jquery.nfeditor.css?${project.version}" type="text/css" />
+        <link rel="stylesheet" href="js/jquery/nfeditor/languages/nfel.css?${project.version}" type="text/css" />
         <link rel="stylesheet" href="js/jquery/tabbs/jquery.tabbs.css?${project.version}" type="text/css" />
         <link rel="stylesheet" href="js/jquery/combo/jquery.combo.css?${project.version}" type="text/css" />
         <link rel="stylesheet" href="js/jquery/modal/jquery.modal.css?${project.version}" type="text/css" />
