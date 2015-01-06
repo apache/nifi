@@ -40,6 +40,7 @@
         <module>standard-services</module>
         <module>update-attribute-bundle</module>
         <module>volatile-provenance-repository-bundle</module>
+		<module>kafka-bundle</module>
     </modules>
     <dependencyManagement>
         <dependencies>
@@ -86,7 +87,17 @@
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>ssl-context-service</artifactId>
                 <version>${project.version}</version>
-            </dependency>                      
+            </dependency>
+            <dependency>
+            	<groupId>org.apache.nifi</groupId>
+            	<artifactId>http-context-map-api</artifactId>
+            	<version>${project.version}</version>
+            </dependency>
+            <dependency>
+            	<groupId>org.apache.nifi</groupId>
+            	<artifactId>http-context-map</artifactId>
+            	<version>${project.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>volatile-provenance-repository</artifactId>
