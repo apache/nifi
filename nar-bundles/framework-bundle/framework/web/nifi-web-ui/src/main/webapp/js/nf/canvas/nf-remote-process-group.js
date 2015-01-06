@@ -568,7 +568,7 @@ nf.RemoteProcessGroup = (function () {
                                         .attr('id', function () {
                                             return 'authorization-issues-' + d.component.id;
                                         })
-                                        .attr('class', 'tooltip')
+                                        .attr('class', 'tooltip nifi-tooltip')
                                         .html(function () {
                                             var list = nf.Common.formatUnorderedList(d.status.authorizationIssues);
                                             if (list === null || list.length === 0) {
@@ -605,7 +605,7 @@ nf.RemoteProcessGroup = (function () {
                                     .attr('id', function () {
                                         return 'transmission-secure-' + d.component.id;
                                     })
-                                    .attr('class', 'tooltip')
+                                    .attr('class', 'tooltip nifi-tooltip')
                                     .text(function () {
                                         if (d.component.targetSecure === true) {
                                             return 'Site-to-Site is secure.';

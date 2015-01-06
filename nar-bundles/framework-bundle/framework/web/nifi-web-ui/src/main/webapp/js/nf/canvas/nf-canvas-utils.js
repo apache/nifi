@@ -50,30 +50,9 @@ nf.CanvasUtils = (function () {
 
     return {
         config: {
-            cellTooltipConfig: {
-                style: {
-                    classes: 'ui-tooltip-tipped ui-tooltip-shadow'
-                },
-                show: {
-                    solo: true,
-                    effect: false
-                },
-                hide: {
-                    effect: false
-                },
-                position: {
-                    target: 'mouse',
-                    viewport: $(window),
-                    adjust: {
-                        x: 8,
-                        y: 8,
-                        method: 'flipinvert flipinvert'
-                    }
-                }
-            },
             systemTooltipConfig: {
                 style: {
-                    classes: 'ui-tooltip-tipped ui-tooltip-shadow'
+                    classes: 'nifi-tooltip'
                 },
                 show: {
                     solo: true,
@@ -444,7 +423,7 @@ nf.CanvasUtils = (function () {
                                     .attr('id', function () {
                                         return 'bulletin-tip-' + d.component.id;
                                     })
-                                    .attr('class', 'tooltip')
+                                    .attr('class', 'tooltip nifi-tooltip')
                                     .html(function () {
                                         // format the bulletins
                                         var bulletins = nf.Common.getFormattedBulletins(d.status.bulletins);
@@ -476,12 +455,12 @@ nf.CanvasUtils = (function () {
             target.on('mouseenter', function () {
                 tip.style('top', (d3.event.pageY + 15) + 'px').style('left', (d3.event.pageX + 15) + 'px').style('display', 'block');
             })
-                    .on('mousemove', function () {
-                        tip.style('top', (d3.event.pageY + 15) + 'px').style('left', (d3.event.pageX + 15) + 'px');
-                    })
-                    .on('mouseleave', function () {
-                        tip.style('display', 'none');
-                    });
+            .on('mousemove', function () {
+                tip.style('top', (d3.event.pageY + 15) + 'px').style('left', (d3.event.pageX + 15) + 'px');
+            })
+            .on('mouseleave', function () {
+                tip.style('display', 'none');
+            });
         },
         
         /**

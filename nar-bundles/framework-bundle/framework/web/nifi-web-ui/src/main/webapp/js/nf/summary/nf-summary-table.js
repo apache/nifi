@@ -424,7 +424,7 @@ nf.SummaryTable = (function () {
 
                 // show the tooltip
                 if (nf.Common.isDefinedAndNotNull(tooltip)) {
-                    bulletinIcon.qtip($.extend(nf.Common.config.tooltipConfig, {
+                    bulletinIcon.qtip($.extend({
                         content: tooltip,
                         position: {
                             target: 'mouse',
@@ -435,7 +435,7 @@ nf.SummaryTable = (function () {
                                 method: 'flipinvert flipinvert'
                             }
                         }
-                    }));
+                    }, nf.Common.config.tooltipConfig));
                 }
             }
         });
@@ -817,7 +817,7 @@ nf.SummaryTable = (function () {
 
                 // show the tooltip
                 if (nf.Common.isDefinedAndNotNull(tooltip)) {
-                    bulletinIcon.qtip($.extend(nf.Common.config.tooltipConfig, {
+                    bulletinIcon.qtip($.extend({
                         content: tooltip,
                         position: {
                             target: 'mouse',
@@ -828,7 +828,7 @@ nf.SummaryTable = (function () {
                                 method: 'flipinvert flipinvert'
                             }
                         }
-                    }));
+                    }, nf.Common.config.tooltipConfig));
                 }
             }
         });
@@ -1010,7 +1010,7 @@ nf.SummaryTable = (function () {
 
                 // show the tooltip
                 if (nf.Common.isDefinedAndNotNull(tooltip)) {
-                    bulletinIcon.qtip($.extend(nf.Common.config.tooltipConfig, {
+                    bulletinIcon.qtip($.extend({
                         content: tooltip,
                         position: {
                             target: 'mouse',
@@ -1021,7 +1021,7 @@ nf.SummaryTable = (function () {
                                 method: 'flipinvert flipinvert'
                             }
                         }
-                    }));
+                    }, nf.Common.config.tooltipConfig));
                 }
             }
         });
@@ -1243,7 +1243,7 @@ nf.SummaryTable = (function () {
 
                 // show the tooltip
                 if (nf.Common.isDefinedAndNotNull(tooltip)) {
-                    bulletinIcon.qtip($.extend(nf.Common.config.tooltipConfig, {
+                    bulletinIcon.qtip($.extend({
                         content: tooltip,
                         position: {
                             target: 'mouse',
@@ -1254,7 +1254,7 @@ nf.SummaryTable = (function () {
                                 method: 'flipinvert flipinvert'
                             }
                         }
-                    }));
+                    }, nf.Common.config.tooltipConfig));
                 }
             }
         });

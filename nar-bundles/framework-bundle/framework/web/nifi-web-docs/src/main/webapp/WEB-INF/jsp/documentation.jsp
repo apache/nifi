@@ -44,6 +44,7 @@
                     <ul>
                         <li class="component-item"><a class="component-link overview" href="html/overview.html" target="component-usage">Overview</a></li>
                         <li class="component-item"><a class="component-link user-guide" href="html/user-guide.html" target="component-usage">User Guide</a></li>
+                        <li class="component-item"><a class="component-link expression-language-guide" href="html/expression-language-guide.html" target="component-usage">Expression Language Guide</a></li>
                         <li class="component-item"><a class="component-link admin-guide" href="html/administration-guide.html" target="component-usage">Admin Guide</a></li>
                     </ul>
                     <span class="no-matching no-components hidden">No matching guides</span>
