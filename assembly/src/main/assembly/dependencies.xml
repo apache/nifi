@@ -17,94 +17,97 @@
     <id>bin</id>
     <formats>
         <format>dir</format>
+        <format>zip</format>
         <format>tar.gz</format>
     </formats>
     <includeBaseDirectory>true</includeBaseDirectory>
     <baseDirectory>${project.artifactId}-${project.version}</baseDirectory>
 
     <dependencySets>
+        <!-- Write out all dependency artifacts to lib directory -->
         <dependencySet>
             <scope>runtime</scope>
             <useProjectArtifact>false</useProjectArtifact>
             <outputDirectory>lib</outputDirectory>
+            <directoryMode>0750</directoryMode>
+            <fileMode>0640</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <excludes>
             	<exclude>nifi-bootstrap</exclude>
+                <exclude>nifi-resources</exclude>
+                <exclude>nifi-docs</exclude>
             </excludes>
         </dependencySet>
         
+        <!-- Write out the bootstrap lib component to its own dir -->
         <dependencySet>
             <scope>runtime</scope>
             <useProjectArtifact>false</useProjectArtifact>
             <outputDirectory>lib/bootstrap</outputDirectory>
+            <directoryMode>0750</directoryMode>
+            <fileMode>0640</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <includes>
             	<include>nifi-bootstrap</include>
             </includes>
         </dependencySet>
+        
+        <!-- Write out the conf directory contents -->
+        <dependencySet>
+            <scope>runtime</scope>
+            <useProjectArtifact>false</useProjectArtifact>
+            <outputDirectory>./</outputDirectory>
+            <directoryMode>0750</directoryMode>
+            <fileMode>0640</fileMode>
+            <useTransitiveFiltering>true</useTransitiveFiltering>
+            <includes>
+            	<include>nifi-resources</include>
+            </includes>
+            <unpack>true</unpack>
+            <unpackOptions>
+                <filtered>true</filtered>
+                <includes>
+                    <include>conf/*</include>
+                </includes>
+            </unpackOptions>
+        </dependencySet>
+
+        <!-- Write out the bin directory contents -->
+        <dependencySet>
+            <scope>runtime</scope>
+            <useProjectArtifact>false</useProjectArtifact>
+            <outputDirectory>./</outputDirectory>
+            <directoryMode>0750</directoryMode>
+            <fileMode>0750</fileMode>
+            <useTransitiveFiltering>true</useTransitiveFiltering>
+            <includes>
+            	<include>nifi-resources</include>
+            </includes>
+            <unpack>true</unpack>
+            <unpackOptions>
+                <filtered>true</filtered>
+                <includes>
+                    <include>bin/*</include>
+                </includes>
+            </unpackOptions>
+        </dependencySet>
+        
+        <!-- Writes out the docs directory contents -->
+        <dependencySet>
+            <scope>runtime</scope>
+            <useProjectArtifact>false</useProjectArtifact>
+            <outputDirectory>docs/</outputDirectory>
+            <useTransitiveFiltering>true</useTransitiveFiltering>
+            <includes>
+            	<include>nifi-docs</include>
+            </includes>
+            <unpack>true</unpack>
+            <unpackOptions>
+                <filtered>false</filtered>
+            </unpackOptions>
+        </dependencySet>                
     </dependencySets>
-
-    <fileSets>
-        <fileSet>
-            <directory>${project.build.directory}/generated-resources/bin</directory>
-            <outputDirectory>bin</outputDirectory>
-            <directoryMode>0750</directoryMode>
-            <fileMode>0750</fileMode>
-            <filtered>false</filtered>
-        </fileSet>
-        <fileSet>
-            <directory>${project.build.directory}/generated-resources/conf</directory>
-            <outputDirectory>conf</outputDirectory>
-            <excludes>
-                <exclude>nifi.properties</exclude>
-            </excludes>
-            <directoryMode>0750</directoryMode>
-            <fileMode>0640</fileMode>
-            <filtered>true</filtered>
-        </fileSet>
-        <fileSet>
-            <directory>${project.build.directory}/generated-resources/lib</directory>
-            <outputDirectory>lib</outputDirectory>
-            <directoryMode>0750</directoryMode>
-            <fileMode>0640</fileMode>
-        </fileSet>
-        <fileSet>
-            <directory>${project.build.directory}/generated-resources/logs</directory>
-            <outputDirectory>logs</outputDirectory>
-            <directoryMode>0750</directoryMode>
-            <fileMode>0640</fileMode>
-        </fileSet>
-        <fileSet>
-            <directory>${project.build.directory}/generated-resources/docs</directory>
-            <outputDirectory>docs</outputDirectory>
-            <directoryMode>0750</directoryMode>
-            <fileMode>0640</fileMode>
-            <filtered>false</filtered>
-        </fileSet>
-        <fileSet>
-            <directory>${project.build.directory}/generated-docs/</directory>
-            <outputDirectory>docs</outputDirectory>
-            <directoryMode>0750</directoryMode>
-            <fileMode>0640</fileMode>
-            <filtered>false</filtered>
-        </fileSet>
-    </fileSets>
-
     <files>
-        <file>
-            <source>${project.build.directory}/generated-resources/conf/nifi.properties</source>
-            <outputDirectory>conf</outputDirectory>
-            <destName>${project.artifactId}.properties</destName>
-            <fileMode>0640</fileMode>
-            <filtered>true</filtered>
-        </file>
-        <file>
-            <source>${project.build.directory}/generated-resources/bin/nifi.sh</source>
-            <outputDirectory>bin</outputDirectory>
-            <destName>nifi.sh</destName>
-            <fileMode>0750</fileMode>
-            <filtered>true</filtered>
-        </file>
         <file>
             <source>../README.md</source>
             <outputDirectory>./</outputDirectory>

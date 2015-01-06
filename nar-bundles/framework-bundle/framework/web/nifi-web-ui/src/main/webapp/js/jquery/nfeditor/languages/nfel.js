@@ -14,38 +14,115 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-nf.nfel = {
-    subjectlessFunctionRegex: null,
-    subjectlessFunctions: ['anyAttribute', 'anyMatchingAttribute', 'allAttributes', 'allMatchingAttributes', 'allDelineatedValues',
-        'anyDelineatedValue', 'nextInt', 'ip', 'UUID', 'hostname', 'now'],
-    functionRegex: null,
-    functions: ['toUpper', 'toLower', 'toString', 'length', 'trim', 'isNull', 'notNull', 'toNumber', 'urlEncode', 'urlDecode',
-        'not', 'substringAfterLast', 'substringBeforeLast', 'substringAfter', 'substringBefore', 'substring', 'startsWith',
-        'endsWith', 'contains', 'prepend', 'append', 'indexOf', 'lastIndexOf', 'replaceNull', 'find', 'matches', 'equalsIgnoreCase',
-        'equals', 'gt', 'lt', 'ge', 'le', 'format', 'toDate', 'mod', 'plus', 'minus', 'multiply', 'divide', 'toRadix', 'or', 'and',
-        'replaceAll', 'replace'],
-    // valid context states
-    SUBJECT: 'subject',
-    FUNCTION: 'function',
-    SUBJECT_OR_FUNCTION: 'subject-or-function',
-    EXPRESSION: 'expression',
-    ARGUMENTS: 'arguments',
-    ARGUMENT: 'argument',
-    INVALID: 'invalid',
+nf.nfel = (function() {
+    
     /**
-     * Initializes the function regular expressions. 
+     * Formats the specified arguments for the EL function tooltip.
+     * 
+     * @param {type} args
+     * @returns {String}
      */
-    init: function () {
-        nf.nfel.subjectlessFunctionRegex = new RegExp('^((' + nf.nfel.subjectlessFunctions.join(')|(') + '))$');
-        nf.nfel.functionRegex = new RegExp('^((' + nf.nfel.functions.join(')|(') + '))$');
-    },
+    var formatArguments = function(args) {
+        if ($.isEmptyObject(args)) {
+            return '<span class="unset">None</span>';
+        } else {
+            var formatted = '<div class="clear"></div><ul class="el-arguments">';
+            $.each(args, function(key, value) {
+                formatted += (
+                    '<li>' +
+                        '<span class="el-argument-name">' + key + '</span> - ' +
+                        value +
+                    '</li>'
+                );
+            });
+            formatted += '</ul>';
+            return formatted;
+        }
+    };
+    
+    var subjectlessFunctions = [];
+    var functions = [];
+    
+    var subjectlessFunctionRegex = new RegExp('^$');
+    var functionRegex = new RegExp('^$');
+    
+    var functionDetails = {};
+    
+    $.ajax({
+        type: 'GET',
+        url: '../nifi-docs/html/expression-language-guide.html',
+        dataType: 'html'
+    }).done(function(response) {
+        $(response).find('div.function').each(function() {
+            var elFunction = $(this);
+            
+            var name = elFunction.find('h3').text();
+            var description = elFunction.find('span.description').text();
+            var returnType = elFunction.find('span.returnType').text();
+            
+            var subject;
+            var subjectless = elFunction.find('span.subjectless');
+            
+            // determine if this function is subjectless
+            if (subjectless.length) {
+                subjectlessFunctions.push(name);
+                subject = '<span class="unset">None</span>';
+            } else {
+                functions.push(name);
+                subject = elFunction.find('span.subject').text();
+            }
+
+            // find the arguments
+            var args = {};
+            elFunction.find('span.argName').each(function() {
+                var argName = $(this);
+                var argDescription = argName.next('span.argDesc');
+                args[argName.text()] = argDescription.text(); 
+            });
+            
+            // format the function tooltip
+            functionDetails[name] = 
+                '<div>' + 
+                    '<div class="el-name el-section">' + name + '</div>' +
+                    '<div class="el-section">' + description + '</div>' +
+                    '<div class="el-section">' + 
+                        '<div class="el-header">Arguments</div>' +
+                        formatArguments(args) + 
+                    '</div>' +
+                    '<div class="el-section">' + 
+                        '<div class="el-header">Subject</div>' +
+                        '<p>' + subject + '</p>' + 
+                        '<div class="clear"></div>' +
+                    '</div>' +
+                    '<div class="el-section">' + 
+                        '<div class="el-header">Returns</div>' +
+                        '<p>' + returnType + '</p>' +
+                        '<div class="clear"></div>' +
+                    '</div>' +
+                '</div>';
+        });
+    }).always(function() {
+        // build the regex for all functions discovered
+        subjectlessFunctionRegex = new RegExp('^((' + subjectlessFunctions.join(')|(') + '))$');
+        functionRegex = new RegExp('^((' + functions.join(')|(') + '))$');
+    });
+    
+    // valid context states
+    var SUBJECT = 'subject';
+    var FUNCTION = 'function';
+    var SUBJECT_OR_FUNCTION = 'subject-or-function';
+    var EXPRESSION = 'expression';
+    var ARGUMENTS = 'arguments';
+    var ARGUMENT = 'argument';
+    var INVALID = 'invalid';
+    
     /**
      * Handles dollars identifies on the stream.
      * 
      * @param {object} stream   The character stream
      * @param {object} states    The states
      */
-    handleDollar: function (stream, states) {
+    var handleDollar = function (stream, states) {
         // determine the number of sequential dollars
         var dollarCount = 0;
         stream.eatWhile(function (ch) {
@@ -78,22 +155,26 @@ nf.nfel = {
 
             // new expression start
             states.push({
-                context: nf.nfel.EXPRESSION
+                context: EXPRESSION
             });
+
+            // consume any addition whitespace
+            stream.eatSpace();
 
             return 'bracket';
         } else {
             // not a valid start sequence
             return null;
         }
-    },
+    };
+
     /**
      * Handles dollars identifies on the stream.
      * 
      * @param {object} stream   The character stream
      * @param {object} state    The current state
      */
-    handleStringLiteral: function (stream, state) {
+    var handleStringLiteral = function (stream, state) {
         var current = stream.next();
         var foundTrailing = false;
         var foundEscapeChar = false;
@@ -130,501 +211,621 @@ nf.nfel = {
         }
 
         // there is no trailing delimitor... clear the current context
-        state.context = nf.nfel.INVALID;
+        state.context = INVALID;
         stream.skipToEnd();
         return null;
-    },
+    };
+    
+    // the api for the currently selected completion
+    var currentApi = null;
+    
+    // the identifier to cancel showing the tip for the next completion
+    var showTip = null;
+    
+    // the apis of every completion rendered
+    var apis = [];
+    
     /**
-     * Returns an object that provides syntax highlighting for NiFi expression language.
+     * Listens for select event on the auto complete.
+     * 
+     * @param {type} completion
+     * @param {type} element
+     * @returns {undefined}
      */
-    color: function () {
-        // builds the states based off the specified initial value
-        var buildStates = function (initialStates) {
-            // each state has a context
-            var states = initialStates;
+    var select = function(completion, element) {
+        hide();
+
+        currentApi = $(element).qtip('api');
+        showTip = setTimeout(function() {
+            currentApi.show();
+        }, 500);
+    };
+    
+    /**
+     * Cancels the next tip to show, if applicable. Hides the currently
+     * visible tip, if applicable.
+     * 
+     * @returns {undefined}
+     */
+    var hide = function() {
+        if (showTip !== null) {
+            clearInterval(showTip);
+            showTip = null;
+        }
+        
+        if (currentApi !== null) {
+            currentApi.hide();  
+        }
+    };
+
+    /**
+     * Listens for close events for the auto complete.
+     * 
+     * @returns {undefined}
+     */
+    var close = function() {
+        if (showTip !== null) {
+            clearInterval(showTip);
+            showTip = null;
+        }
+        
+        // clear the current api (since its in the apis array)
+        currentApi = null;
+        
+        // destroy the tip from every applicable function
+        $.each(apis, function(_, api) {
+            api.destroy(true);
+        });
+        
+        // reset the apis
+        apis = [];
+    };
+
+    /**
+     * Renders an auto complete item.
+     * 
+     * @param {type} element
+     * @param {type} self
+     * @param {type} data
+     * @returns {undefined}
+     */
+    var renderer = function(element, self, data) {
+        var item = $('<div></div>').text(data.text);
+        var li = $(element).qtip({
+            content: functionDetails[data.text],
+            style: {
+                classes: 'nifi-tooltip nfel-tooltip',
+                tip: false,
+                width: 350
+            },
+            show: {
+                event: false,
+                effect: false
+            },
+            hide: {
+                event: false,
+                effect: false
+            },
+            position: {
+                at: 'bottom right',
+                my: 'bottom left',
+                adjust: {
+                    x: 20
+                }
+            }
+        }).append(item);
+        
+        // record the api for destruction later
+        apis.push(li.qtip('api'));
+    };
+    
+    return {
+
+        /**
+         * Returns an object that provides syntax highlighting for NiFi expression language.
+         */
+        color: function () {
+            // builds the states based off the specified initial value
+            var buildStates = function (initialStates) {
+                // each state has a context
+                var states = initialStates;
+
+                return {
+                    copy: function () {
+                        var copy = [];
+                        for (var i = 0; i < states.length; i++) {
+                            copy.push({
+                                context: states[i].context
+                            });
+                        }
+                        return copy;
+                    },
+                    get: function () {
+                        if (states.length === 0) {
+                            return {
+                                context: null
+                            };
+                        } else {
+                            return states[states.length - 1];
+                        }
+                    },
+                    push: function (state) {
+                        return states.push(state);
+                    },
+                    pop: function () {
+                        return states.pop();
+                    }
+                };
+            };
 
             return {
-                copy: function () {
-                    var copy = [];
-                    for (var i = 0; i < states.length; i++) {
-                        copy.push({
-                            context: states[i].context
-                        });
+                startState: function () {
+                    // build states with an empty array
+                    return buildStates([]);
+                },
+
+                copyState: function (state) {
+                    // build states with 
+                    return buildStates(state.copy());
+                },
+
+                token: function (stream, states) {
+                    // consume any whitespace
+                    if (stream.eatSpace()) {
+                        return null;
                     }
-                    return copy;
-                },
-                get: function () {
-                    if (states.length === 0) {
-                        return {
-                            context: null
-                        };
-                    } else {
-                        return states[states.length - 1];
+
+                    // if we've hit the end of the line
+                    if (stream.eol()) {
+                        return null;
                     }
-                },
-                push: function (state) {
-                    return states.push(state);
-                },
-                pop: function () {
-                    return states.pop();
-                }
-            };
-        };
 
-        return {
-            startState: function () {
-                // build states with an empty array
-                return buildStates([]);
-            },
-            copyState: function (state) {
-                // build states with 
-                return buildStates(state.copy());
-            },
-            token: function (stream, states) {
-                // consume any whitespace
-                if (stream.eatSpace()) {
-                    return null;
-                }
+                    // get the current character
+                    var current = stream.peek();
 
-                // if we've hit the end of the line
-                if (stream.eol()) {
-                    return null;
-                }
+                    // if we've hit some comments... will consume the remainder of the line
+                    if (current === '#') {
+                        stream.skipToEnd();
+                        return 'comment';
+                    }
 
-                // get the current character
-                var current = stream.peek();
+                    // get the current state
+                    var state = states.get();
 
-                // if we've hit some comments... will consume the remainder of the line
-                if (current === '#') {
-                    stream.skipToEnd();
-                    return 'comment';
-                }
+                    // the current input is invalid
+                    if (state.context === INVALID) {
+                        stream.skipToEnd();
+                        return null;
+                    }
 
-                // get the current state
-                var state = states.get();
+                    // within an expression
+                    if (state.context === EXPRESSION) {
+                        var attributeOrSubjectlessFunctionExpression = /^[^'"#${}()[\],:;\/*\\\s\t\r\n0-9][^'"#${}()[\],:;\/*\\\s\t\r\n]*/;
 
-                // the current input is invalid
-                if (state.context === nf.nfel.INVALID) {
-                    stream.skipToEnd();
-                    return null;
-                }
-
-                // within an expression
-                if (state.context === nf.nfel.EXPRESSION) {
-                    var attributeOrSubjectlessFunctionExpression = /^[^'"#${}()[\],:;\/*\\\s\t\r\n0-9][^'"#${}()[\],:;\/*\\\s\t\r\n]*/;
-
-                    // attempt to extract a function name
-                    var attributeOrSubjectlessFunctionName = stream.match(attributeOrSubjectlessFunctionExpression, false);
-
-                    // if the result returned a match
-                    if (attributeOrSubjectlessFunctionName !== null && attributeOrSubjectlessFunctionName.length === 1) {
-                        // consume the entire token to better support suggest below
-                        stream.match(attributeOrSubjectlessFunctionExpression);
+                        // attempt to extract a function name
+                        var attributeOrSubjectlessFunctionName = stream.match(attributeOrSubjectlessFunctionExpression, false);
 
                         // if the result returned a match
-                        if (nf.nfel.subjectlessFunctionRegex.test(attributeOrSubjectlessFunctionName)) {
-                            // --------------------
-                            // subjectless function
-                            // --------------------
+                        if (attributeOrSubjectlessFunctionName !== null && attributeOrSubjectlessFunctionName.length === 1) {
+                            // consume the entire token to better support suggest below
+                            stream.match(attributeOrSubjectlessFunctionExpression);
 
-                            // context change to function
-                            state.context = nf.nfel.ARGUMENTS;
+                            // if the result returned a match
+                            if (subjectlessFunctionRegex.test(attributeOrSubjectlessFunctionName)) {
+                                // --------------------
+                                // subjectless function
+                                // --------------------
 
-                            // style for function
-                            return 'builtin';
+                                // context change to function
+                                state.context = ARGUMENTS;
+
+                                // style for function
+                                return 'builtin';
+                            } else {
+                                // ---------------------
+                                // attribute or function
+                                // ---------------------
+
+                                // context change to function or subject... not sure yet
+                                state.context = SUBJECT_OR_FUNCTION;
+
+                                // this could be an attribute or a partial function name... style as attribute until we know
+                                return 'variable-2';
+                            }
+                        } else if (current === '\'' || current === '"') {
+                            // --------------
+                            // string literal
+                            // --------------
+
+                            // handle the string literal
+                            var expressionStringResult = handleStringLiteral(stream, state);
+
+                            // considered a quoted variable
+                            if (expressionStringResult !== null) {
+                                // context change to function
+                                state.context = SUBJECT;
+                            }
+
+                            return expressionStringResult;
+                        } else if (current === '$') {
+                            // -----------------
+                            // nested expression
+                            // -----------------
+
+                            var expressionDollarResult = handleDollar(stream, states);
+
+                            // if we've found an embedded expression we need to...
+                            if (expressionDollarResult !== null) {
+                                // transition back to subject when this expression completes
+                                state.context = SUBJECT;
+                            }
+
+                            return expressionDollarResult;
+                        } else if (current === '}') {
+                            // -----------------
+                            // end of expression
+                            // -----------------
+
+                            // consume the close
+                            stream.next();
+
+                            // signifies the end of an expression
+                            if (typeof states.pop() === 'undefined') {
+                                return null;
+                            } else {
+                                // style as expression
+                                return 'bracket';
+                            }
                         } else {
-                            // ---------------------
-                            // attribute or function
-                            // ---------------------
+                            // ----------
+                            // unexpected
+                            // ----------
 
-                            // context change to function or subject... not sure yet
-                            state.context = nf.nfel.SUBJECT_OR_FUNCTION;
+                            // consume to move along
+                            stream.skipToEnd();
+                            state.context = INVALID;
 
-                            // this could be an attribute or a partial function name... style as attribute until we know
-                            return 'variable-2';
-                        }
-                    } else if (current === '\'' || current === '"') {
-                        // --------------
-                        // string literal
-                        // --------------
-
-                        // handle the string literal
-                        var expressionStringResult = nf.nfel.handleStringLiteral(stream, state);
-
-                        // considered a quoted variable
-                        if (expressionStringResult !== null) {
-                            // context change to function
-                            state.context = nf.nfel.SUBJECT;
-                        }
-
-                        return expressionStringResult;
-                    } else if (current === '$') {
-                        // -----------------
-                        // nested expression
-                        // -----------------
-
-                        var expressionDollarResult = nf.nfel.handleDollar(stream, states);
-
-                        // if we've found an embedded expression we need to...
-                        if (expressionDollarResult !== null) {
-                            // transition back to subject when this expression completes
-                            state.context = nf.nfel.SUBJECT;
-                        }
-
-                        return expressionDollarResult;
-                    } else if (current === '}') {
-                        // -----------------
-                        // end of expression
-                        // -----------------
-
-                        // consume the close
-                        stream.next();
-
-                        // signifies the end of an expression
-                        if (typeof states.pop() === 'undefined') {
-                            return null;
-                        } else {
-                            // style as expression
-                            return 'bracket';
-                        }
-                    } else {
-                        // ----------
-                        // unexpected
-                        // ----------
-
-                        // consume to move along
-                        stream.skipToEnd();
-                        state.context = nf.nfel.INVALID;
-
-                        // unexpected...
-                        return null;
-                    }
-                }
-
-                // within a subject
-                if (state.context === nf.nfel.SUBJECT || state.context === nf.nfel.SUBJECT_OR_FUNCTION) {
-                    // if the next character indicates the start of a function call
-                    if (current === ':') {
-                        // -------------------------
-                        // trigger for function name
-                        // -------------------------
-
-                        // consume the colon and update the context
-                        stream.next();
-                        state.context = nf.nfel.FUNCTION;
-
-                        // don't style
-                        return null;
-                    } else if (current === '}') {
-                        // -----------------
-                        // end of expression
-                        // -----------------
-
-                        // consume the close
-                        stream.next();
-
-                        // signifies the end of an expression
-                        if (typeof states.pop() === 'undefined') {
-                            return null;
-                        } else {
-                            // style as expression
-                            return 'bracket';
-                        }
-                    } else {
-                        // ----------
-                        // unexpected
-                        // ----------
-
-                        // consume to move along
-                        stream.skipToEnd();
-                        state.context = nf.nfel.INVALID;
-
-                        // unexpected...
-                        return null;
-                    }
-                }
-
-                // within a function
-                if (state.context === nf.nfel.FUNCTION) {
-                    // attempt to extract a function name
-                    var functionName = stream.match(/^[a-zA-Z]+/, false);
-
-                    // if the result returned a match
-                    if (functionName !== null && functionName.length === 1) {
-                        // consume the entire token to ensure the whole function
-                        // name is matched. this is an issue with functions like
-                        // substring and substringAfter since 'substringA' would
-                        // match the former and when we really want to autocomplete
-                        // against the latter.
-                        stream.match(/^[a-zA-Z]+/);
-
-                        // see if this matches a known function
-                        if (nf.nfel.functionRegex.test(functionName)) {
-                            // --------
-                            // function
-                            // --------
-
-                            // change context to arugments
-                            state.context = nf.nfel.ARGUMENTS;
-
-                            // style for function
-                            return 'builtin';
-                        } else {
-                            // ------------------------------
-                            // maybe function... not sure yet
-                            // ------------------------------
-
-                            // not sure yet... 
+                            // unexpected...
                             return null;
                         }
-                    } else {
-                        // ----------
-                        // unexpected
-                        // ----------
-
-                        // consume and move along
-                        stream.skipToEnd();
-                        state.context = nf.nfel.INVALID;
-
-                        // unexpected...
-                        return null;
                     }
-                }
 
-                // within arguments
-                if (state.context === nf.nfel.ARGUMENTS) {
-                    if (current === '(') {
-                        // --------------
-                        // argument start
-                        // --------------
+                    // within a subject
+                    if (state.context === SUBJECT || state.context === SUBJECT_OR_FUNCTION) {
+                        // if the next character indicates the start of a function call
+                        if (current === ':') {
+                            // -------------------------
+                            // trigger for function name
+                            // -------------------------
 
-                        // consume the open paranthesis
-                        stream.next();
+                            // consume the colon and update the context
+                            stream.next();
+                            state.context = FUNCTION;
 
-                        // change context to handle an argument
-                        state.context = nf.nfel.ARGUMENT;
+                            // consume any addition whitespace
+                            stream.eatSpace();
 
-                        // start of arguments
-                        return null;
-                    } else if (current === ')') {
-                        // --------------
-                        // argument close
-                        // --------------
+                            // don't style
+                            return null;
+                        } else if (current === '}') {
+                            // -----------------
+                            // end of expression
+                            // -----------------
 
-                        // consume the close paranthesis
-                        stream.next();
+                            // consume the close
+                            stream.next();
 
-                        // change context to subject for potential chaining
-                        state.context = nf.nfel.SUBJECT;
+                            // signifies the end of an expression
+                            if (typeof states.pop() === 'undefined') {
+                                return null;
+                            } else {
+                                // style as expression
+                                return 'bracket';
+                            }
+                        } else {
+                            // ----------
+                            // unexpected
+                            // ----------
 
-                        // end of arguments
-                        return null;
-                    } else if (current === ',') {
-                        // ------------------
-                        // argument separator
-                        // ------------------
+                            // consume to move along
+                            stream.skipToEnd();
+                            state.context = INVALID;
 
-                        // consume the comma
-                        stream.next();
-
-                        // change context back to argument
-                        state.context = nf.nfel.ARGUMENT;
-
-                        // argument separator
-                        return null;
-                    } else {
-                        // ----------
-                        // unexpected
-                        // ----------
-
-                        // consume and move along
-                        stream.skipToEnd();
-                        state.context = nf.nfel.INVALID;
-
-                        // unexpected...
-                        return null;
+                            // unexpected...
+                            return null;
+                        }
                     }
-                }
 
-                // within a specific argument
-                if (state.context === nf.nfel.ARGUMENT) {
-                    if (current === '\'' || current === '"') {
-                        // --------------
-                        // string literal
-                        // --------------
+                    // within a function
+                    if (state.context === FUNCTION) {
+                        // attempt to extract a function name
+                        var functionName = stream.match(/^[a-zA-Z]+/, false);
 
-                        // handle the string literal
-                        var argumentStringResult = nf.nfel.handleStringLiteral(stream, state);
+                        // if the result returned a match
+                        if (functionName !== null && functionName.length === 1) {
+                            // consume the entire token to ensure the whole function
+                            // name is matched. this is an issue with functions like
+                            // substring and substringAfter since 'substringA' would
+                            // match the former and when we really want to autocomplete
+                            // against the latter.
+                            stream.match(/^[a-zA-Z]+/);
 
-                        // successfully processed a string literal... 
-                        if (argumentStringResult !== null) {
+                            // see if this matches a known function
+                            if (functionRegex.test(functionName)) {
+                                // --------
+                                // function
+                                // --------
+
+                                // change context to arugments
+                                state.context = ARGUMENTS;
+
+                                // style for function
+                                return 'builtin';
+                            } else {
+                                // ------------------------------
+                                // maybe function... not sure yet
+                                // ------------------------------
+
+                                // not sure yet... 
+                                return null;
+                            }
+                        } else {
+                            // ----------
+                            // unexpected
+                            // ----------
+
+                            // consume and move along
+                            stream.skipToEnd();
+                            state.context = INVALID;
+
+                            // unexpected...
+                            return null;
+                        }
+                    }
+
+                    // within arguments
+                    if (state.context === ARGUMENTS) {
+                        if (current === '(') {
+                            // --------------
+                            // argument start
+                            // --------------
+
+                            // consume the open paranthesis
+                            stream.next();
+
+                            // change context to handle an argument
+                            state.context = ARGUMENT;
+
+                            // start of arguments
+                            return null;
+                        } else if (current === ')') {
+                            // --------------
+                            // argument close
+                            // --------------
+
+                            // consume the close paranthesis
+                            stream.next();
+
+                            // change context to subject for potential chaining
+                            state.context = SUBJECT;
+
+                            // end of arguments
+                            return null;
+                        } else if (current === ',') {
+                            // ------------------
+                            // argument separator
+                            // ------------------
+
+                            // consume the comma
+                            stream.next();
+
+                            // change context back to argument
+                            state.context = ARGUMENT;
+
+                            // argument separator
+                            return null;
+                        } else {
+                            // ----------
+                            // unexpected
+                            // ----------
+
+                            // consume and move along
+                            stream.skipToEnd();
+                            state.context = INVALID;
+
+                            // unexpected...
+                            return null;
+                        }
+                    }
+
+                    // within a specific argument
+                    if (state.context === ARGUMENT) {
+                        if (current === '\'' || current === '"') {
+                            // --------------
+                            // string literal
+                            // --------------
+
+                            // handle the string literal
+                            var argumentStringResult = handleStringLiteral(stream, state);
+
+                            // successfully processed a string literal... 
+                            if (argumentStringResult !== null) {
+                                // change context back to arguments
+                                state.context = ARGUMENTS;
+                            }
+
+                            return argumentStringResult;
+                        } else if (stream.match(/^[0-9]+/)) {
+                            // -------------
+                            // integer value
+                            // -------------
+
                             // change context back to arguments
-                            state.context = nf.nfel.ARGUMENTS;
+                            state.context = ARGUMENTS;
+
+                            // style for integers
+                            return 'number';
+                        } else if (stream.match(/^((true)|(false))/)) {
+                            // -------------
+                            // boolean value
+                            // -------------
+
+                            // change context back to arguments
+                            state.context = ARGUMENTS;
+
+                            // style for boolean (use same as number)
+                            return 'number';
+                        } else if (current === ')') {
+                            // ----------------------------------
+                            // argument close (zero arg function)
+                            // ----------------------------------
+
+                            // consume the close paranthesis
+                            stream.next();
+
+                            // change context to subject for potential chaining
+                            state.context = SUBJECT;
+
+                            // end of arguments
+                            return null;
+                        } else if (current === '$') {
+                            // -----------------
+                            // nested expression
+                            // -----------------
+
+                            // handle the nested expression
+                            var argumentDollarResult = handleDollar(stream, states);
+
+                            // if we've found an embedded expression we need to...
+                            if (argumentDollarResult !== null) {
+                                // transition back to arguments when then expression completes
+                                state.context = ARGUMENTS;
+                            }
+
+                            return argumentDollarResult;
+                        } else {
+                            // ----------
+                            // unexpected
+                            // ----------
+
+                            // consume and move along
+                            stream.skipToEnd();
+                            state.context = INVALID;
+
+                            // unexpected...
+                            return null;
                         }
+                    }
 
-                        return argumentStringResult;
-                    } else if (stream.match(/^[0-9]+/)) {
-                        // -------------
-                        // integer value
-                        // -------------
+                    // signifies the potential start of an expression
+                    if (current === '$') {
+                        return handleDollar(stream, states);
+                    }
 
-                        // change context back to arguments
-                        state.context = nf.nfel.ARGUMENTS;
-
-                        // style for integers
-                        return 'number';
-                    } else if (stream.match(/^((true)|(false))/)) {
-                        // -------------
-                        // boolean value
-                        // -------------
-
-                        // change context back to arguments
-                        state.context = nf.nfel.ARGUMENTS;
-
-                        // style for boolean (use same as number)
-                        return 'number';
-                    } else if (current === ')') {
-                        // ----------------------------------
-                        // argument close (zero arg function)
-                        // ----------------------------------
-
-                        // consume the close paranthesis
+                    // signifies the end of an expression
+                    if (current === '}') {
                         stream.next();
-
-                        // change context to subject for potential chaining
-                        state.context = nf.nfel.SUBJECT;
-
-                        // end of arguments
-                        return null;
-                    } else if (current === '$') {
-                        // -----------------
-                        // nested expression
-                        // -----------------
-
-                        // handle the nested expression
-                        var argumentDollarResult = nf.nfel.handleDollar(stream, states);
-
-                        // if we've found an embedded expression we need to...
-                        if (argumentDollarResult !== null) {
-                            // transition back to arguments when then expression completes
-                            state.context = nf.nfel.ARGUMENTS;
+                        if (typeof states.pop() === 'undefined') {
+                            return null;
+                        } else {
+                            return 'bracket';
                         }
-
-                        return argumentDollarResult;
-                    } else {
-                        // ----------
-                        // unexpected
-                        // ----------
-
-                        // consume and move along
-                        stream.skipToEnd();
-                        state.context = nf.nfel.INVALID;
-
-                        // unexpected...
-                        return null;
                     }
-                }
 
-                // signifies the potential start of an expression
-                if (current === '$') {
-                    return nf.nfel.handleDollar(stream, states);
-                }
+                    // ----------------------------------------------------------
+                    // extra characters that are around expression[s] end up here
+                    // ----------------------------------------------------------
 
-                // signifies the end of an expression
-                if (current === '}') {
+                    // consume the character to keep things moving along
                     stream.next();
-                    if (typeof states.pop() === 'undefined') {
-                        return null;
-                    } else {
-                        return 'bracket';
-                    }
+                    return;
                 }
+            };
+        },
 
-                // ----------------------------------------------------------
-                // extra characters that are around expression[s] end up here
-                // ----------------------------------------------------------
+        /**
+         * Returns the suggestions for the content at the current cursor.
+         * 
+         * @param {type} editor
+         */
+        suggest: function (editor) {
+            // Find the token at the cursor
+            var cursor = editor.getCursor();
+            var token = editor.getTokenAt(cursor);
+            var includeAll = false;
+            var state = token.state.get();
 
-                // consume the character to keep things moving along
-                stream.next();
-                return;
+            // whether or not the current context is within a function
+            var isFunction = function (context) {
+                // attempting to match a function name or already successfully matched a function name
+                return context === FUNCTION || context === ARGUMENTS;
+            };
+
+            // whether or not the current context is within a subject-less funciton
+            var isSubjectlessFunction = function (context) {
+                // within an expression when no characters are found or when the string may be an attribute or a function
+                return context === EXPRESSION || context === SUBJECT_OR_FUNCTION;
+            };
+
+            // only support suggestion in certain cases
+            var context = state.context;
+            if (!isSubjectlessFunction(context) && !isFunction(context)) {
+                return null;
             }
-        };
-    },
-    /**
-     * Returns the suggestions for the content at the current cursor.
-     * 
-     * @param {type} editor
-     */
-    suggest: function (editor) {
-        // Find the token at the cursor
-        var cursor = editor.getCursor();
-        var token = editor.getTokenAt(cursor);
-        var includeAll = false;
-        var state = token.state.get();
 
-        // whether or not the current context is within a function
-        var isFunction = function (context) {
-            // attempting to match a function name or already successfully matched a function name
-            return context === nf.nfel.FUNCTION || context === nf.nfel.ARGUMENTS;
-        };
+            // lower case for case insensitive comparison
+            var value = token.string.toLowerCase();
 
-        // whether or not the current context is within a subject-less funciton
-        var isSubjectlessFunction = function (context) {
-            // within an expression when no characters are found or when the string may be an attribute or a function
-            return context === nf.nfel.EXPRESSION || context === nf.nfel.SUBJECT_OR_FUNCTION;
-        };
+            // trim to ignore extra whitespace
+            var trimmed = $.trim(value);
 
-        // only support suggestion in certain cases
-        var context = state.context;
-        if (!isSubjectlessFunction(context) && !isFunction(context)) {
-            return null;
-        }
+            // identify potential patterns and increment the start location appropriately
+            if (trimmed === '${' || trimmed === ':') {
+                includeAll = true;
+                token.start += value.length;
+            }
 
-        // lower case for case insensitive comparison
-        var value = token.string.toLowerCase();
+            var getCompletions = function(functions) {
+                var found = [];
 
-        // identify potential patterns and increment the start location appropriately
-        if (value === '${' || value === ':' || value === '') {
-            includeAll = true;
-            token.start += value.length;
-        }
-
-        function getCompletions(functions) {
-            var found = [];
-
-            $.each(functions, function (i, funct) {
-                if ($.inArray(funct, found) === -1) {
-                    if (includeAll || funct.toLowerCase().indexOf(value) === 0) {
-                        found.push(funct);
+                $.each(functions, function (i, funct) {
+                    if ($.inArray(funct, found) === -1) {
+                        if (includeAll || funct.toLowerCase().indexOf(value) === 0) {
+                            found.push({
+                                text: funct,
+                                render: renderer
+                            });
+                        }
                     }
-                }
+                });
+
+                return found;
+            };
+
+            // get the suggestions for the current context
+            var completionList = getCompletions(isSubjectlessFunction(context) ? subjectlessFunctions : functions);
+            completionList = completionList.sort(function (a, b) {
+                var aLower = a.text.toLowerCase();
+                var bLower = b.text.toLowerCase();
+                return aLower === bLower ? 0 : aLower > bLower ? 1 : -1;
             });
 
-            return found;
+            var completions = {
+                list: completionList,
+                from: {
+                    line: cursor.line,
+                    ch: token.start
+                },
+                to: {
+                    line: cursor.line,
+                    ch: token.end
+                }
+            };
+
+            CodeMirror.on(completions, 'select', select);
+            CodeMirror.on(completions, 'close', close);
+
+            return completions;
         }
-
-        // get the suggestions for the current context
-        var completionList = getCompletions(isSubjectlessFunction(context) ? nf.nfel.subjectlessFunctions : nf.nfel.functions);
-        completionList = completionList.sort(function (a, b) {
-            var aLower = a.toLowerCase();
-            var bLower = b.toLowerCase();
-            return aLower === bLower ? 0 : aLower > bLower ? 1 : -1;
-        });
-
-        return {
-            list: completionList,
-            from: {
-                line: cursor.line,
-                ch: token.start
-            },
-            to: {
-                line: cursor.line,
-                ch: token.end
-            }
-        };
-    }
-};
-
-(function () {
-    nf.nfel.init();
-})();
+    };
+}());

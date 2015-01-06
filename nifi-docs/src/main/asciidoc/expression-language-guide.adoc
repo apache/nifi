@@ -18,7 +18,6 @@ Apache NiFi Expression Language Guide
 =====================================
 Apache NiFi Team <dev@nifi.incubator.apache.org>
 :homepage: http://nifi.incubator.apache.org
-:linkcss:
 
 [[overview]]
 Overview

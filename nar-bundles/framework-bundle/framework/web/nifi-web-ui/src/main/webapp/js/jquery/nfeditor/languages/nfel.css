@@ -14,31 +14,38 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-.message-pane {
-    position: absolute;
-    top: 0px;
-    left: 0px;
-    bottom: 0px;
-    right: 0px;
-    background: #d1dee5 url(../images/bg-error.png) left top no-repeat;
-    font-family: Verdana, Geneva, sans-serif;
-    color: #191919;
-    z-index: 999999;
+
+ul.CodeMirror-hints {
+    overflow-y: scroll;
 }
 
-.message-pane-content {
-    font-size: 11px;
-    color: #191919;
-    line-height: normal;
+div.el-section {
+    margin: 5px 0;
 }
 
-.message-pane-message-box {
-    margin-top: 100px;
-    padding-left: 100px;
+div.el-name {
+    font-weight: bold;
+    font-family: monospace;
+    font-size: 16px;
+    margin-bottom: 10px;
 }
 
-.message-pane-title {
-    font-size: 18px;
-    color: #294c58;
-    margin-bottom: 16px;
+div.el-header {
+    float: left;
+    width: 75px;
+    font-weight: bold;
+}
+
+ul.el-arguments {
+    margin-top: 5px;
+    list-style-type: disc;
+    list-style-position: inside;
+}
+
+span.el-argument-name {
+    font-family: monospace;
+}
+
+div.nfel-tooltip {
+    max-width: 350px;
 }
