@@ -28,68 +28,26 @@
     <build>
         <plugins>
             <plugin>
-                <artifactId>maven-dependency-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>unpack-shared-resources</id>
-                        <goals>
-                            <goal>unpack-dependencies</goal>
-                        </goals>
-                        <phase>generate-resources</phase>
-                        <configuration>
-                            <outputDirectory>${project.build.directory}/generated-resources</outputDirectory>
-                            <includeArtifactIds>nifi-resources</includeArtifactIds>
-                            <includeGroupIds>org.apache.nifi</includeGroupIds>
-                            <excludeTransitive>false</excludeTransitive>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>unpack-docs</id>
-                        <goals>
-                            <goal>unpack-dependencies</goal>
-                        </goals>
-                        <phase>generate-resources</phase>
-                        <configuration>
-                            <outputDirectory>${project.build.directory}/generated-docs</outputDirectory>
-                            <includeArtifactIds>nifi-docs</includeArtifactIds>
-                            <includeGroupIds>org.apache.nifi</includeGroupIds>
-                            <excludeTransitive>false</excludeTransitive>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <configuration>
-                    <descriptors>
-                        <descriptor>src/main/assembly/dependencies.xml</descriptor>
-                    </descriptors>
+                    <attach>true</attach>
                 </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
                 <executions>
                     <execution>
+                        <id>make shared resource</id>
                         <goals>
-                            <goal>exec</goal>
+                            <goal>single</goal>
                         </goals>
+                        <phase>package</phase>
+                        <configuration>
+                            <descriptors>
+                                <descriptor>src/main/assembly/dependencies.xml</descriptor>
+                            </descriptors>
+                        </configuration>
                     </execution>
-                </executions>
-                <configuration>
-                    <executable>${project.build.directory}/${project.artifactId}-${project.version}-${nifi.assembly.id}.dir/${nifi.executable}</executable>
-                </configuration>
+                </executions>    
             </plugin>
         </plugins>
-        <resources>
-            <resource>
-                <directory>${basedir}/src/main/resources</directory>
-            </resource>
-            <resource>
-                <directory>${project.build.directory}/generated-resources</directory>
-                <filtering>true</filtering>
-            </resource>
-        </resources>
     </build>
     <dependencies>
         <dependency>
@@ -133,14 +91,14 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-resources</artifactId>
             <classifier>resources</classifier>
-            <scope>provided</scope> <!-- Provided - we don't want the zip in the libs -->
+            <scope>runtime</scope>
             <type>zip</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-docs</artifactId>
             <classifier>resources</classifier>
-            <scope>provided</scope> <!-- Provided - we don't want the zip in the libs -->
+            <scope>runtime</scope>
             <type>zip</type>
         </dependency>
         <dependency>
@@ -203,11 +161,11 @@
             <artifactId>hadoop-nar</artifactId>
             <type>nar</type>
         </dependency>
-		<dependency>
-			<groupId>org.apache.nifi</groupId>
-			<artifactId>kafka-nar</artifactId>
-			<type>nar</type>
-		</dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>kafka-nar</artifactId>
+            <type>nar</type>
+        </dependency>
     </dependencies>
     
     <properties>        
@@ -360,6 +318,37 @@
             <build>
                 <plugins>
                     <plugin>
+                        <artifactId>maven-dependency-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>unpack-shared-resources</id>
+                                <goals>
+                                    <goal>unpack-dependencies</goal>
+                                </goals>
+                                <phase>generate-resources</phase>
+                                <configuration>
+                                    <outputDirectory>${project.build.directory}/generated-resources</outputDirectory>
+                                    <includeArtifactIds>nifi-resources</includeArtifactIds>
+                                    <includeGroupIds>org.apache.nifi</includeGroupIds>
+                                    <excludeTransitive>false</excludeTransitive>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>unpack-docs</id>
+                                <goals>
+                                    <goal>unpack-dependencies</goal>
+                                </goals>
+                                <phase>generate-resources</phase>
+                                <configuration>
+                                    <outputDirectory>${project.build.directory}/generated-docs</outputDirectory>
+                                    <includeArtifactIds>nifi-docs</includeArtifactIds>
+                                    <includeGroupIds>org.apache.nifi</includeGroupIds>
+                                    <excludeTransitive>false</excludeTransitive>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>                    
+                    <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>rpm-maven-plugin</artifactId>
                         <configuration>
@@ -402,6 +391,9 @@
                                                     <location>../NOTICE</location>
                                                 </source>
                                                 <source>
+                                                    <location>../DISCLAIMER</location>
+                                                </source>
+                                                <source>
                                                     <location>../README.md</location>
                                                     <destination>README</destination>
                                                 </source>
@@ -433,6 +425,8 @@
                                             <dependency>
                                                 <excludes>
                                                     <exclude>org.apache.nifi:nifi-bootstrap</exclude>
+                                                    <exclude>org.apache.nifi:nifi-resources</exclude>
+                                                    <exclude>org.apache.nifi:nifi-docs</exclude>
                                                 </excludes>
                                             </dependency>
                                         </mapping>
@@ -440,7 +434,7 @@
                                             <directory>/opt/nifi/nifi-${project.version}/lib/bootstrap</directory>
                                             <dependency>
                                                 <includes>
-						    <include>org.apache.nifi:nifi-bootstrap</include>
+                                                    <include>org.apache.nifi:nifi-bootstrap</include>
                                                 </includes>
                                             </dependency>
                                         </mapping>
