@@ -72,7 +72,8 @@ public class DateCastEvaluator extends DateEvaluator {
                         final Date date = sdf.parse(value);
                         return new DateQueryResult(date);
                     } catch (final ParseException pe) {
-                        throw new AttributeExpressionLanguageException("Could not parse input as date", pe);
+                        final String details = "Format: '" + DATE_TO_STRING_FORMAT + "' Value: '" + value + "'";
+                        throw new AttributeExpressionLanguageException("Could not parse date using " + details, pe);
                     }
                 } else if (NUMBER_PATTERN.matcher(value).matches()) {
                     return new DateQueryResult(new Date(Long.valueOf(value)));
