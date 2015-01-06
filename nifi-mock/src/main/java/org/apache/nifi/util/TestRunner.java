@@ -79,11 +79,20 @@ public interface TestRunner {
     void run(int iterations);
 
     /**
+     * performs the same operation as calling {@link #run(int, boolean, int)} with a value
+     * of {@code iterations}, {@code stopOnFinish}, {@code true}
+     * 
+     * @param iterations
+     * @param stopOnFinish
+     */
+    void run(int iterations, boolean stopOnFinish);
+    
+    /**
      * This method runs the {@link Processor} <code>iterations</code> times,
      * using the sequence of steps below:
      * <ul>
      * <li>
-     * Run all methods on the Processor that are annotated with the
+     * If {@code initialize} is true, run all methods on the Processor that are annotated with the
      * {@link nifi.processor.annotation.OnScheduled @OnScheduled} annotation. If
      * any of these methods throws an Exception, the Unit Test will fail.
      * </li>
@@ -117,8 +126,10 @@ public interface TestRunner {
      * @param stopOnFinish whether or not to run the Processor methods that are
      * annotated with {@link nifi.processor.annotation.OnStopped @OnStopped}
      */
-    void run(int iterations, boolean stopOnFinish);
+    void run(int iterations, boolean stopOnFinish, final boolean initialize);
 
+    
+    
     /**
      * Invokes all methods on the Processor that are annotated with the
      * {@link nifi.processor.annotation.OnShutdown @OnShutdown} annotation. If

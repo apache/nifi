@@ -121,6 +121,11 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public void run(final int iterations, final boolean stopOnFinish) {
+        run(iterations, stopOnFinish, true);
+    }
+    
+    @Override
+    public void run(final int iterations, final boolean stopOnFinish, final boolean initialize) {
         if (iterations < 1) {
             throw new IllegalArgumentException();
         }
@@ -128,11 +133,13 @@ public class StandardProcessorTestRunner implements TestRunner {
         context.assertValid();
         context.enableExpressionValidation();
         try {
-            try {
-                ReflectionUtils.invokeMethodsWithAnnotation(OnScheduled.class, processor, context);
-            } catch (Exception e) {
-                e.printStackTrace();
-                Assert.fail("Could not invoke methods annotated with @OnScheduled annotation due to: " + e);
+            if ( initialize ) {
+                try {
+                    ReflectionUtils.invokeMethodsWithAnnotation(OnScheduled.class, processor, context);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    Assert.fail("Could not invoke methods annotated with @OnScheduled annotation due to: " + e);
+                }
             }
 
             final ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
