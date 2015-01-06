@@ -1,0 +1,2 @@
+org.apache.nifi.processors.kafka.GetKafka
+org.apache.nifi.processors.kafka.PutKafka
