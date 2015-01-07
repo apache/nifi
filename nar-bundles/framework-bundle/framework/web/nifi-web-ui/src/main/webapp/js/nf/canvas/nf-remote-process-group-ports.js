@@ -161,6 +161,11 @@ nf.RemoteProcessGroupPorts = (function () {
                     $('#remote-process-group-ports-id').text('');
                     $('#remote-process-group-ports-name').text('');
                     $('#remote-process-group-ports-url').text('');
+                    
+                    // clear any tooltips
+                    var dialog = $('#remote-process-group-ports');
+                    nf.Common.cleanUpTooltips(dialog, 'div.remote-port-removed');
+                    nf.Common.cleanUpTooltips(dialog, 'img.concurrent-tasks-info');
 
                     // clear the input and output ports
                     $('#remote-process-group-input-ports-container').empty();

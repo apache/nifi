@@ -102,6 +102,10 @@
                                 <div type="text" id="scheduling-strategy-combo"></div>
                             </div>
                         </div>
+                        <div id="event-driven-warning" class="hidden">
+                            <div id="event-driven-warning-icon"></div>
+                            This strategy is experimental
+                        </div>
                         <div class="clear"></div>
                     </div>
                     <div id="timer-driven-options" class="setting">

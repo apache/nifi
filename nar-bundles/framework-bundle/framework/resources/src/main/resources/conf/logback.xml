@@ -82,25 +82,16 @@
         log events to the root logger. These messages are only sent to the
         user-log appender.
     -->
-    <logger name="org.apache.nifi.security.authentication.NiFiAuthenticationEntryPoint" level="INFO" additivity="false">
+    <logger name="org.apache.nifi.web.security" level="INFO" additivity="false">
         <appender-ref ref="USER_FILE"/>
     </logger>
-    <logger name="org.apache.nifi.security.authorization" level="INFO" additivity="false">
-        <appender-ref ref="USER_FILE"/>
-    </logger>
-    <logger name="org.apache.nifi.security.x509" level="INFO" additivity="false">
-        <appender-ref ref="USER_FILE"/>
-    </logger>
-    <logger name="org.apache.nifi.web.api.config.AccessDeniedExceptionMapper" level="INFO" additivity="false">
+    <logger name="org.apache.nifi.web.api.config" level="INFO" additivity="false">
         <appender-ref ref="USER_FILE"/>
     </logger>
     <logger name="org.apache.nifi.authorization" level="INFO" additivity="false">
         <appender-ref ref="USER_FILE"/>
     </logger>
     <logger name="org.apache.nifi.cluster.authorization" level="INFO" additivity="false">
-        <appender-ref ref="USER_FILE"/>
-    </logger>
-    <logger name="org.apache.nifi.web.api.config" level="INFO" additivity="false">
         <appender-ref ref="USER_FILE"/>
     </logger>
     <logger name="org.apache.nifi.web.filter.RequestLogger" level="INFO" additivity="false">

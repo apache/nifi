@@ -553,7 +553,13 @@ nf.ProcessorPropertyTable = (function () {
          * Clears the property table.
          */
         clear: function () {
-            var propertyGrid = $('#processor-properties').data('gridInstance');
+            var propertyGridElement = $('#processor-properties');
+            
+            // clean up any tooltips that may have been generated
+            nf.Common.cleanUpTooltips(propertyGridElement, 'img.icon-info');
+            
+            // clear the data in the grid
+            var propertyGrid = propertyGridElement.data('gridInstance');
             var propertyData = propertyGrid.getData();
             propertyData.setItems([]);
         }
