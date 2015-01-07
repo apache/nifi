@@ -55,6 +55,7 @@
     };
 
     var methods = {
+        
         /**
          * Initializes the nf editor.
          * 
@@ -118,7 +119,7 @@
                             }
                         }
                     });
-
+                    
                     // set the size
                     var width = null;
                     if (isDefinedAndNotNull(options.width)) {
@@ -183,6 +184,7 @@
                 }
             });
         },
+        
         /**
          * Refreshes the editor.
          */
@@ -196,6 +198,7 @@
                 }
             });
         },
+        
         /**
          * Sets the size of the editor.
          * 
@@ -212,6 +215,7 @@
                 }
             });
         },
+        
         /**
          * Gets the value of the editor in the first matching selector.
          */
@@ -231,6 +235,7 @@
 
             return value;
         },
+        
         /**
          * Sets the value of the editor.
          * 
@@ -249,6 +254,7 @@
                 }
             });
         },
+        
         /**
          * Sets the focus.
          */
@@ -262,6 +268,7 @@
                 }
             });
         },
+        
         /**
          * Sets the focus.
          */
@@ -275,6 +282,7 @@
                 }
             });
         },
+        
         /**
          * Gets whether the value of the editor in the first matching selector has been modified.
          */
@@ -288,6 +296,7 @@
 
             return modified;
         },
+        
         /**
          * Destroys the editor.
          */

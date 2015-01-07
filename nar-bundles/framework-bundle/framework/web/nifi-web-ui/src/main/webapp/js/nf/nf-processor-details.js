@@ -59,6 +59,8 @@ nf.ProcessorDetails = (function () {
                     'left': offset.left - 5
                 }).appendTo('body');
 
+                var editor = null;
+
                 // so the nfel editor is appropriate
                 if (supportsEl(propertyDescriptor)) {
                     var languageId = 'nfel';
@@ -71,7 +73,7 @@ nf.ProcessorDetails = (function () {
                     });
 
                     // create the editor
-                    $('<div></div>').addClass(editorClass).appendTo(wrapper).nfeditor({
+                    editor = $('<div></div>').addClass(editorClass).appendTo(wrapper).nfeditor({
                         languageId: languageId,
                         width: cellNode.width(),
                         content: property.value,
@@ -101,6 +103,12 @@ nf.ProcessorDetails = (function () {
 
                 // add an ok button that will remove the entire pop up
                 var ok = $('<div class="button button-normal">Ok</div>').on('click', function () {
+                    // clean up the editor
+                    if (editor !== null) {
+                        editor.nfeditor('destroy');
+                    }
+                    
+                    // clean up the rest
                     wrapper.hide().remove();
                 });
                 $('<div></div>').css({
