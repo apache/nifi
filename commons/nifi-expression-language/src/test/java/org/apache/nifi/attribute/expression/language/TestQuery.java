@@ -30,6 +30,7 @@ import java.util.Map;
 
 import org.apache.nifi.attribute.expression.language.Query.Range;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
+import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageException;
 import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageParsingException;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
 import org.apache.nifi.flowfile.FlowFile;
@@ -192,9 +193,11 @@ public class TestQuery {
         attributes.put("dateTime", "2013/11/18 10:22:27.678");
 
         verifyEquals("${dateTime:toDate('yyyy/MM/dd HH:mm:ss.SSS'):toNumber():plus(86400000):toDate():format('yyyy/MM/dd HH:mm:ss.SSS')}", attributes, "2013/11/19 10:22:27.678");
+        verifyEquals("${dateTime:toDate('yyyy/MM/dd HH:mm:ss.SSS'):plus(86400000):format('yyyy/MM/dd HH:mm:ss.SSS')}", attributes, "2013/11/19 10:22:27.678");
     }
 
     @Test
+    @Ignore("Requires specific locale")
     public void implicitDateConversion() {
         final Date date = new Date();
         final Query query = Query.compile("${dateTime:format('yyyy/MM/dd HH:mm:ss.SSS')}");
@@ -227,6 +230,68 @@ public class TestQuery {
         
         Query.validateExpression("${x:equals(\"${a}\")}", false);
         assertEquals("true", Query.evaluateExpressions("${x:equals(\"${a}\")}", attributes, null));
+    }
+    
+    @Test
+    public void testJoin() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("a.a", "a");
+        attributes.put("a.b", "b");
+        attributes.put("a.c", "c");
+        verifyEquals("${allAttributes( 'a.a', 'a.b', 'a.c' ):join(', ')}", attributes, "a, b, c");
+        verifyEquals("${x:join(', ')}", attributes, "");
+        verifyEquals("${a.a:join(', ')}", attributes, "a");
+        verifyEquals("${allAttributes( 'x', 'y' ):join(',')}", attributes, ",");
+    }
+    
+    @Test(expected=AttributeExpressionLanguageException.class)
+    public void testCannotCombineWithNonReducingFunction() {
+        Query.compileTree("${allAttributes( 'a.1' ):plus(1)}");
+    }
+
+
+    @Test
+    public void testIsEmpty() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("a", "a");
+        attributes.put("b", "");
+        attributes.put("c", "        \n");
+
+        verifyEquals("${a:isEmpty()}", attributes, false);
+        verifyEquals("${b:isEmpty()}", attributes, true);
+        verifyEquals("${c:isEmpty()}", attributes, true);
+        verifyEquals("${d:isEmpty()}", attributes, true);
+    }
+
+
+    @Test
+    public void testReplaceEmpty() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("a", "a");
+        attributes.put("b", "");
+        attributes.put("c", "        \n");
+            
+        verifyEquals("${a:replaceEmpty('c')}", attributes, "a");
+        verifyEquals("${b:replaceEmpty('c')}", attributes, "c");
+        verifyEquals("${c:replaceEmpty('c')}", attributes, "c");
+        verifyEquals("${d:replaceEmpty('c')}", attributes, "c");
+    }
+
+
+
+    @Test
+    public void testCount() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("a", "a");
+        attributes.put("b", "abc");
+        attributes.put("c", "        \n");
+        attributes.put("n1", "111");
+        attributes.put("n2", "222");
+        attributes.put("n3", "333333");
+
+        verifyEquals("${allMatchingAttributes( '.*' ):count()}", attributes, 6L);
+        verifyEquals("${allMatchingAttributes( '.*' ):length():gt(2):count()}", attributes, 5L);
+        verifyEquals("${allMatchingAttributes( 'n.*' ):plus(1):count()}", attributes, 3L );
     }
     
     

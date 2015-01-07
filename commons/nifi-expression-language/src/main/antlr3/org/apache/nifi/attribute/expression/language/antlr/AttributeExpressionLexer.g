@@ -109,11 +109,13 @@ TO_STRING : 'toString';
 LENGTH : 'length';
 TRIM	: 'trim';
 IS_NULL	: 'isNull';
+IS_EMPTY : 'isEmpty';
 NOT_NULL : 'notNull';
 TO_NUMBER : 'toNumber';
 URL_ENCODE : 'urlEncode';
 URL_DECODE : 'urlDecode';
 NOT : 'not';
+COUNT : 'count';
 
 // 1 arg functions
 SUBSTRING_AFTER	: 'substringAfter';
@@ -128,6 +130,7 @@ APPEND	: 'append';
 INDEX_OF : 'indexOf';
 LAST_INDEX_OF : 'lastIndexOf';
 REPLACE_NULL : 'replaceNull';
+REPLACE_EMPTY : 'replaceEmpty';
 FIND	: 'find';	// regex
 MATCHES : 'matches';	// regex
 EQUALS	: 'equals';
@@ -146,7 +149,7 @@ DIVIDE : 'divide';
 TO_RADIX : 'toRadix';
 OR : 'or';
 AND : 'and';
-
+JOIN : 'join';
 
 // 2 arg functions
 SUBSTRING	: 'substring';
