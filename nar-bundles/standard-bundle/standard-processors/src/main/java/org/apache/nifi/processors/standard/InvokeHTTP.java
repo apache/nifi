@@ -34,6 +34,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -61,7 +62,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.SSLContextService.ClientAuth;
-
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
@@ -314,7 +314,7 @@ public final class InvokeHTTP extends AbstractProcessor {
          * requires it to be in GMT (preferring the literal 'GMT' string).
          */
         private static final String rfc1123 = "EEE, dd MMM yyyy HH:mm:ss 'GMT'";
-        private static final DateTimeFormatter dateFormat = DateTimeFormat.forPattern(rfc1123).withZoneUTC();
+        private static final DateTimeFormatter dateFormat = DateTimeFormat.forPattern(rfc1123).withLocale(Locale.US).withZoneUTC();
 
         /**
          * Every request/response cycle from this client has a unique
