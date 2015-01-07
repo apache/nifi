@@ -37,14 +37,14 @@ nf.ProcessorConfiguration = (function () {
             strategies.push({
                 text: 'Event driven',
                 value: 'EVENT_DRIVEN',
-                description: 'Processor will be scheduled to run when triggered by an event (e.g. a FlowFile enters an incoming queue).'
+                description: 'Processor will be scheduled to run when triggered by an event (e.g. a FlowFile enters an incoming queue). This scheduling strategy is experimental.'
             });
         } else if (processor.config['schedulingStrategy'] === 'EVENT_DRIVEN') {
             // the processor was once configured for event driven but no longer supports it
             strategies.push({
                 text: 'Event driven',
                 value: 'EVENT_DRIVEN',
-                description: 'Processor will be scheduled to run when triggered by an event (e.g. a FlowFile enters an incoming queue).',
+                description: 'Processor will be scheduled to run when triggered by an event (e.g. a FlowFile enters an incoming queue). This scheduling strategy is experimental.',
                 disabled: true
             });
         }
@@ -506,17 +506,23 @@ nf.ProcessorConfiguration = (function () {
                     select: function (selectedOption) {
                         // show the appropriate panel
                         if (selectedOption.value === 'EVENT_DRIVEN') {
+                            $('#event-driven-warning').show();
+                            
                             $('#timer-driven-options').hide();
                             $('#event-driven-options').show();
                             $('#cron-driven-options').hide();
-                        } else if (selectedOption.value === 'CRON_DRIVEN') {
-                            $('#timer-driven-options').hide();
-                            $('#event-driven-options').hide();
-                            $('#cron-driven-options').show();
                         } else {
-                            $('#timer-driven-options').show();
-                            $('#event-driven-options').hide();
-                            $('#cron-driven-options').hide();
+                            $('#event-driven-warning').hide();
+                            
+                            if (selectedOption.value === 'CRON_DRIVEN') {
+                                $('#timer-driven-options').hide();
+                                $('#event-driven-options').hide();
+                                $('#cron-driven-options').show();
+                            } else {
+                                $('#timer-driven-options').show();
+                                $('#event-driven-options').hide();
+                                $('#cron-driven-options').hide();
+                            }
                         }
                     }
                 });

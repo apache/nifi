@@ -111,6 +111,21 @@ div.processor-enabled-container {
     line-height: 18px;
 }
 
+#event-driven-warning {
+    padding-top: 22px;
+    color: #f00;
+}
+
+#event-driven-warning-icon {
+    float: left;
+    margin-top: -2px;
+    margin-right: 5px;
+    margin-left: 5px;
+    width: 18px;
+    height: 16px;
+    background-image: url(../images/iconAlert.png);
+}
+
 #auto-terminate-relationship-names {
     border: 0 solid #CCCCCC;
     height: 280px;
