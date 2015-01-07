@@ -246,6 +246,23 @@ subject exists and `false` otherwise.#
 
 
 [.function]
+=== isEmpty
+*Description*: [.description]#The `isEmpty` function returns `true` if the Subject is null or contains only white-space
+	(new line, carriage return, space, tab), `false` otherwise.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*: No arguments
+
+*Return Type*: [.returnType]#Boolean#
+
+*Examples*: `${filename:isEmpty()}` returns `true` if the "filename" attribute does not exist or contains only
+	white space.
+	
+	
+
+
+[.function]
 === equals
 
 [.description]
@@ -855,6 +872,27 @@ Expressions will provide the following results:
 	"hello" does not exist, then the Expression `${filename:replaceNull('abc')}` will return 
 	"a brand new filename.txt", while `${hello:replaceNull('abc')}` will return "abc".
 
+
+
+
+[.function]
+=== replaceEmpty
+
+*Description*: [.description]#The `replaceEmpty` function returns the argument if the Subject is null or
+	if the Subject consists only of white space (new line, carriage return, tab, space). Otherwise,
+	returns the Subject.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*:
+
+	- [.argName]#_Replacement_# : [.argDesc]#The value to return if the Subject is null or empty.#
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: If the attribute "filename" has the value "a brand new filename.txt" and the attribute
+	"hello" has the value "  ", then the Expression `${filename:replaceEmpty('abc')}` will return 
+	"a brand new filename.txt", while `${hello:replaceEmpty('abc')}` will return "abc".
 
 
 
