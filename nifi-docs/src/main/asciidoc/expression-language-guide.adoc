@@ -1547,7 +1547,7 @@ provides several functions for evaluating the same conditions against groups of 
 [.function]
 === anyMatchingAttribute
 
-*Description*: [.description]# Checks to see if any of the given attributes, match the given condition. This function has no subject and takes one or more
+*Description*: [.description]#Checks to see if any of the given attributes, match the given condition. This function has no subject and takes one or more
 	arguments that are Regular Expressions to match against attribute names. Any attribute whose name matches one of the supplied
 	Regular Expressions will be evaluated against the rest of the Expression. If any of the attributes specified,
 	when evaluated against the rest of the Expression, returns a value of `true`, then this function will return `true`. Otherwise, this function
@@ -1579,7 +1579,7 @@ provides several functions for evaluating the same conditions against groups of 
 [.function]
 === allMatchingAttributes
 
-*Description*: [.description]# Checks to see if any of the given attributes, match the given condition. This function has no subject and takes one or more
+*Description*: [.description]#Checks to see if any of the given attributes, match the given condition. This function has no subject and takes one or more
 	arguments that are Regular Expressions to match against attribute names. Any attribute whose name matches one of the supplied
 	Regular Expressions will be evaluated against the rest of the Expression. If all of the attributes specified,
 	when evaluated against the rest of the Expression, return a value of `true`, then this function will return `true`. Otherwise, this function
