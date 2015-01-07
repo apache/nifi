@@ -296,6 +296,22 @@ nf.Common = {
     },
     
     /**
+     * Cleans up any tooltips that have been created for the specified container.
+     * 
+     * @param {jQuery} container
+     * @param {string} tooltipTarget
+     */
+    cleanUpTooltips: function(container, tooltipTarget) {
+        container.find(tooltipTarget).each(function () {
+            var tip = $(this);
+            if (tip.data('qtip')) {
+                var api = tip.qtip('api');
+                api.destroy(true);
+            }
+        });
+    },
+    
+    /**
      * Formats the tooltip for the specified property.
      * 
      * @param {object} propertyDescriptor      The property descriptor

@@ -1959,7 +1959,7 @@ nf.SummaryTable = (function () {
             }
         }).fail(nf.Common.handleAjaxError);
     };
-
+    
     return {
         /**
          * URL for loading system diagnostics.
@@ -2040,19 +2040,40 @@ nf.SummaryTable = (function () {
                 var processGroupStatus = response.processGroupStatus;
 
                 if (nf.Common.isDefinedAndNotNull(processGroupStatus)) {
-                    var processorsGrid = $('#processor-summary-table').data('gridInstance');
+                    // remove any tooltips from the processor table
+                    var processorsGridElement = $('#processor-summary-table');
+                    nf.Common.cleanUpTooltips(processorsGridElement, 'img.has-bulletins');
+                    
+                    // get the processor grid/data
+                    var processorsGrid = processorsGridElement.data('gridInstance');
                     var processorsData = processorsGrid.getData();
 
+                    // get the connections grid/data (do not render bulletins)
                     var connectionsGrid = $('#connection-summary-table').data('gridInstance');
                     var connectionsData = connectionsGrid.getData();
 
-                    var inputPortsGrid = $('#input-port-summary-table').data('gridInstance');
+                    // remove any tooltips from the input port table
+                    var inputPortsGridElement = $('#input-port-summary-table');
+                    nf.Common.cleanUpTooltips(inputPortsGridElement, 'img.has-bulletins');
+
+                    // get the input ports grid/data
+                    var inputPortsGrid = inputPortsGridElement.data('gridInstance');
                     var inputPortsData = inputPortsGrid.getData();
 
-                    var outputPortsGrid = $('#output-port-summary-table').data('gridInstance');
+                    // remove any tooltips from the output port table
+                    var outputPortsGridElement = $('#output-port-summary-table');
+                    nf.Common.cleanUpTooltips(outputPortsGridElement, 'img.has-bulletins');
+
+                    // get the output ports grid/data
+                    var outputPortsGrid = outputPortsGridElement.data('gridInstance');
                     var outputPortsData = outputPortsGrid.getData();
 
-                    var remoteProcessGroupsGrid = $('#remote-process-group-summary-table').data('gridInstance');
+                    // remove any tooltips from the remote process group table
+                    var remoteProcessGroupsGridElement = $('#remote-process-group-summary-table');
+                    nf.Common.cleanUpTooltips(remoteProcessGroupsGridElement, 'img.has-bulletins');
+
+                    // get the remote process groups grid
+                    var remoteProcessGroupsGrid = remoteProcessGroupsGridElement.data('gridInstance');
                     var remoteProcessGroupsData = remoteProcessGroupsGrid.getData();
 
                     var processorItems = [];

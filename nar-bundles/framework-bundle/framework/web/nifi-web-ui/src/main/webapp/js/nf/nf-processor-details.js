@@ -230,8 +230,14 @@ nf.ProcessorDetails = (function () {
                         // empty the relationship list
                         $('#read-only-auto-terminate-relationship-names').css('border-width', '0').empty();
 
-                        // clear the grid
-                        var propertyGrid = $('#read-only-processor-properties').data('gridInstance');
+                        // get the property grid element
+                        var propertyGridElement = $('#read-only-processor-properties');
+            
+                        // clean up any tooltips that may have been generated
+                        nf.Common.cleanUpTooltips(propertyGridElement, 'img.icon-info');
+
+                        // clear the data in the grid
+                        var propertyGrid = propertyGridElement.data('gridInstance');
                         var propertyData = propertyGrid.getData();
                         propertyData.setItems([]);
 
