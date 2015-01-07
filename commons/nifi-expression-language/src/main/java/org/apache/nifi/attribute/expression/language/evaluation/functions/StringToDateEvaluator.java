@@ -19,6 +19,7 @@ package org.apache.nifi.attribute.expression.language.evaluation.functions;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 import java.util.Map;
 
 import org.apache.nifi.attribute.expression.language.evaluation.DateEvaluator;
@@ -47,7 +48,7 @@ public class StringToDateEvaluator extends DateEvaluator {
         }
 
         try {
-            return new DateQueryResult(new SimpleDateFormat(formatValue).parse(subjectValue));
+            return new DateQueryResult(new SimpleDateFormat(formatValue, Locale.US).parse(subjectValue));
         } catch (final ParseException e) {
             throw new IllegalAttributeException("Cannot parse attribute value as a date; date format: "
                     + formatValue + "; attribute value: " + subjectValue);

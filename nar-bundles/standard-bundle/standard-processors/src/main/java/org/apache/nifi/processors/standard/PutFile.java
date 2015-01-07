@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
@@ -226,7 +227,7 @@ public class PutFile extends AbstractProcessor {
             final String lastModifiedTime = context.getProperty(CHANGE_LAST_MODIFIED_TIME).evaluateAttributeExpressions(flowFile).getValue();
             if (lastModifiedTime != null && !lastModifiedTime.trim().isEmpty()) {
                 try {
-                    final DateFormat formatter = new SimpleDateFormat(FILE_MODIFY_DATE_ATTR_FORMAT);
+                    final DateFormat formatter = new SimpleDateFormat(FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
                     final Date fileModifyTime = formatter.parse(lastModifiedTime);
                     dotCopyFile.toFile().setLastModified(fileModifyTime.getTime());
                 } catch (Exception e) {

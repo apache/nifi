@@ -162,7 +162,7 @@ public class LocalPort extends AbstractPort {
 
     @Override
     public SchedulingStrategy getSchedulingStrategy() {
-        return SchedulingStrategy.EVENT_DRIVEN;
+        return SchedulingStrategy.TIMER_DRIVEN;
     }
 
     @Override

@@ -27,6 +27,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -257,7 +258,7 @@ public abstract class GetFileTransfer extends AbstractProcessor {
     protected Map<String, String> getAttributesFromFile(FileInfo info) {
         Map<String, String> attributes = new HashMap<>();
         if (info != null) {
-            final DateFormat formatter = new SimpleDateFormat(FILE_MODIFY_DATE_ATTR_FORMAT);
+            final DateFormat formatter = new SimpleDateFormat(FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
             attributes.put(FILE_LAST_MODIFY_TIME_ATTRIBUTE, formatter.format(new Date(info.getLastModifiedTime())));
             attributes.put(FILE_PERMISSIONS_ATTRIBUTE, info.getPermissions());
             attributes.put(FILE_OWNER_ATTRIBUTE, info.getOwner());

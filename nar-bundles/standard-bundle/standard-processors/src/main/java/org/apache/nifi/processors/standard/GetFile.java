@@ -37,6 +37,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -304,7 +305,7 @@ public class GetFile extends AbstractProcessor {
             FileStore store = Files.getFileStore(file);
             if (store.supportsFileAttributeView("basic")) {
                 try {
-                    final DateFormat formatter = new SimpleDateFormat(FILE_MODIFY_DATE_ATTR_FORMAT);
+                    final DateFormat formatter = new SimpleDateFormat(FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
                     BasicFileAttributeView view = Files.getFileAttributeView(file, BasicFileAttributeView.class);
                     BasicFileAttributes attrs = view.readAttributes();
                     attributes.put(FILE_LAST_MODIFY_TIME_ATTRIBUTE, formatter.format(new Date(attrs.lastModifiedTime().toMillis())));

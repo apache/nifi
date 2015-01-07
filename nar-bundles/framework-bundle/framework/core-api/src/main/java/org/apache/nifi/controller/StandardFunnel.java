@@ -536,6 +536,6 @@ public class StandardFunnel implements Funnel {
 
     @Override
     public SchedulingStrategy getSchedulingStrategy() {
-        return SchedulingStrategy.EVENT_DRIVEN;
+        return SchedulingStrategy.TIMER_DRIVEN;
     }
 }

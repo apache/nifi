@@ -18,7 +18,9 @@ package org.apache.nifi.web.api.dto.util;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 import java.util.TimeZone;
+
 import javax.xml.bind.annotation.adapters.XmlAdapter;
 
 /**
@@ -30,14 +32,14 @@ public class DateTimeAdapter extends XmlAdapter<String, Date> {
 
     @Override
     public String marshal(Date date) throws Exception {
-        final SimpleDateFormat formatter = new SimpleDateFormat(DEFAULT_DATE_TIME_FORMAT);
+        final SimpleDateFormat formatter = new SimpleDateFormat(DEFAULT_DATE_TIME_FORMAT, Locale.US);
         formatter.setTimeZone(TimeZone.getDefault());
         return formatter.format(date);
     }
 
     @Override
     public Date unmarshal(String date) throws Exception {
-        final SimpleDateFormat parser = new SimpleDateFormat(DEFAULT_DATE_TIME_FORMAT);
+        final SimpleDateFormat parser = new SimpleDateFormat(DEFAULT_DATE_TIME_FORMAT, Locale.US);
         parser.setTimeZone(TimeZone.getDefault());
         return parser.parse(date);
     }

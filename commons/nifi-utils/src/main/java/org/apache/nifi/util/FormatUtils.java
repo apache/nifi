@@ -19,6 +19,7 @@ package org.apache.nifi.util;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -64,7 +65,7 @@ public class FormatUtils {
      */
     public static String formatMinutesSeconds(final long sourceDuration, final TimeUnit sourceUnit) {
         final long millis = TimeUnit.MILLISECONDS.convert(sourceDuration, sourceUnit);
-        final SimpleDateFormat formatter = new SimpleDateFormat("mm:ss.SSS");
+        final SimpleDateFormat formatter = new SimpleDateFormat("mm:ss.SSS", Locale.US);
         return formatter.format(new Date(millis));
     }
 
@@ -81,7 +82,7 @@ public class FormatUtils {
         final int hours = (int) (millis / millisInHour);
         final long whatsLeft = millis - hours * millisInHour;
 
-        return pad(hours) + ":" + new SimpleDateFormat("mm:ss.SSS").format(new Date(whatsLeft));
+        return pad(hours) + ":" + new SimpleDateFormat("mm:ss.SSS", Locale.US).format(new Date(whatsLeft));
     }
 
     private static String pad(final int val) {

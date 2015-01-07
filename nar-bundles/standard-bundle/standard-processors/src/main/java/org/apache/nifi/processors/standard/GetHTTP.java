@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TimeZone;
@@ -61,7 +62,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.SSLContextService.ClientAuth;
 import org.apache.nifi.util.StopWatch;
-
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
 import org.apache.http.auth.AuthScope;
@@ -173,7 +173,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
     static final String LAST_MODIFIED = "LastModified";
 
     static {
-        SimpleDateFormat sdf = new SimpleDateFormat(LAST_MODIFIED_DATE_PATTERN_RFC1123);
+        SimpleDateFormat sdf = new SimpleDateFormat(LAST_MODIFIED_DATE_PATTERN_RFC1123, Locale.US);
         sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
         UNINITIALIZED_LAST_MODIFIED_VALUE = sdf.format(new Date(1L));
     }

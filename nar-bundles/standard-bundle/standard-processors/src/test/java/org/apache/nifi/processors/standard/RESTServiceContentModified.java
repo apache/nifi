@@ -18,6 +18,7 @@ package org.apache.nifi.processors.standard;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.Locale;
 import java.util.TimeZone;
 
 import javax.servlet.http.HttpServlet;
@@ -42,7 +43,7 @@ public class RESTServiceContentModified extends HttpServlet {
         String ifModifiedSince = request.getHeader("If-Modified-Since");
         String ifNoneMatch = request.getHeader("If-None-Match");
 
-        final SimpleDateFormat dateFormat = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz");
+        final SimpleDateFormat dateFormat = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz", Locale.US);
         dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
 
         response.setContentType("application/json");

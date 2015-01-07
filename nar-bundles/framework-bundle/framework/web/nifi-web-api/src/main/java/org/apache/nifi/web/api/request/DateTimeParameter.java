@@ -19,6 +19,7 @@ package org.apache.nifi.web.api.request;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 
 /**
  * Class for parsing integer parameters and providing a user friendly error
@@ -45,7 +46,7 @@ public class DateTimeParameter {
     }
 
     public static String format(final Date date) {
-        SimpleDateFormat parser = new SimpleDateFormat(DATE_TIME_FORMAT);
+        SimpleDateFormat parser = new SimpleDateFormat(DATE_TIME_FORMAT, Locale.US);
         parser.setLenient(false);
         return parser.format(date);
     }
@@ -55,7 +56,7 @@ public class DateTimeParameter {
     }
 
     public static Date parse(final String str) throws ParseException {
-        SimpleDateFormat parser = new SimpleDateFormat(DATE_TIME_FORMAT);
+        SimpleDateFormat parser = new SimpleDateFormat(DATE_TIME_FORMAT, Locale.US);
         parser.setLenient(false);
         return parser.parse(str);
     }

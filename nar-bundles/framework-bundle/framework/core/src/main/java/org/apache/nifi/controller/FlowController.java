@@ -31,6 +31,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -181,7 +182,6 @@ import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
-
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -3209,7 +3209,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, H
     private class BulletinsTask implements Runnable {
 
         private final NodeProtocolSender protocolSender;
-        private final DateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss,SSS");
+        private final DateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss,SSS", Locale.US);
 
         public BulletinsTask(NodeProtocolSender protocolSender) {
             if (protocolSender == null) {
@@ -3315,7 +3315,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, H
     private class HeartbeatSendTask implements Runnable {
 
         private final NodeProtocolSender protocolSender;
-        private final DateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss,SSS");
+        private final DateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss,SSS", Locale.US);
 
         public HeartbeatSendTask(final NodeProtocolSender protocolSender) {
             if (protocolSender == null) {

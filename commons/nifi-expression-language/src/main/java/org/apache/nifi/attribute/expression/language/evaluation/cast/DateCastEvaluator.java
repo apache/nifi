@@ -19,6 +19,7 @@ package org.apache.nifi.attribute.expression.language.evaluation.cast;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -66,7 +67,7 @@ public class DateCastEvaluator extends DateEvaluator {
             case STRING:
                 final String value = ((StringQueryResult) result).getValue().trim();
                 if (DATE_TO_STRING_PATTERN.matcher(value).matches()) {
-                    final SimpleDateFormat sdf = new SimpleDateFormat(DATE_TO_STRING_FORMAT);
+                    final SimpleDateFormat sdf = new SimpleDateFormat(DATE_TO_STRING_FORMAT, Locale.US);
 
                     try {
                         final Date date = sdf.parse(value);
@@ -89,7 +90,7 @@ public class DateCastEvaluator extends DateEvaluator {
                             format = ALTERNATE_FORMAT_WITH_MILLIS;
                         }
 
-                        final SimpleDateFormat sdf = new SimpleDateFormat(format);
+                        final SimpleDateFormat sdf = new SimpleDateFormat(format, Locale.US);
 
                         try {
                             final Date date = sdf.parse(value);

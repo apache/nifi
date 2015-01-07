@@ -25,6 +25,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.apache.nifi.attribute.expression.language.Query.Range;
@@ -32,7 +33,6 @@ import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageParsingException;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
 import org.apache.nifi.flowfile.FlowFile;
-
 import org.antlr.runtime.tree.Tree;
 import org.junit.Assert;
 import org.junit.Ignore;
@@ -203,7 +203,7 @@ public class TestQuery {
         
         // the date.toString() above will end up truncating the milliseconds. So remove millis from the Date before
         // formatting it
-        final SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
+        final SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS", Locale.US);
         final long millis = date.getTime() % 1000L;
         final Date roundedToNearestSecond = new Date(date.getTime() - millis);
         final String formatted = sdf.format(roundedToNearestSecond);
@@ -458,7 +458,7 @@ public class TestQuery {
         final String query = "startDateTime=\"${date:toNumber():toDate():format(\"" + format + "\")}\"";
         final String result = Query.evaluateExpressions(query, attributes, null);
         
-        final String expectedTime = new SimpleDateFormat(format).format(timestamp);
+        final String expectedTime = new SimpleDateFormat(format, Locale.US).format(timestamp);
         assertEquals("startDateTime=\"" + expectedTime + "\"", result);
         
         final List<Range> ranges = Query.extractExpressionRanges(query);

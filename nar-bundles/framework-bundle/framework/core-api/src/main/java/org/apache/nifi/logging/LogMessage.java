@@ -21,6 +21,7 @@ import java.io.StringWriter;
 import java.sql.Date;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.Locale;
 
 public class LogMessage {
 
@@ -57,7 +58,7 @@ public class LogMessage {
 
     @Override
     public String toString() {
-        final DateFormat dateFormat = new SimpleDateFormat(DATE_TIME_FORMAT);
+        final DateFormat dateFormat = new SimpleDateFormat(DATE_TIME_FORMAT, Locale.US);
         final String formattedTime = dateFormat.format(new Date(time));
 
         String formattedMsg = String.format(TO_STRING_FORMAT, formattedTime, level.toString(), message);

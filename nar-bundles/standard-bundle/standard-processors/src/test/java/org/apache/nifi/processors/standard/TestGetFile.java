@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.processors.standard.GetFile;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -31,12 +32,12 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-
 import org.junit.Test;
 
 public class TestGetFile {
@@ -83,7 +84,7 @@ public class TestGetFile {
 
     @Test
     public void testTodaysFilesPickedUp() throws IOException {
-        final SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd");
+        final SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd", Locale.US);
         final String dirStruc = sdf.format(new Date());
 
         final File directory = new File("target/test/data/in/" + dirStruc);
@@ -107,7 +108,7 @@ public class TestGetFile {
 
     @Test
     public void testPath() throws IOException {
-        final SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd/");
+        final SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd/", Locale.US);
         final String dirStruc = sdf.format(new Date());
 
         final File directory = new File("target/test/data/in/" + dirStruc);
@@ -171,7 +172,7 @@ public class TestGetFile {
 
         if (verifyLastModified) {
             try {
-                final DateFormat formatter = new SimpleDateFormat(GetFile.FILE_MODIFY_DATE_ATTR_FORMAT);
+                final DateFormat formatter = new SimpleDateFormat(GetFile.FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
                 final Date fileModifyTime = formatter.parse(successFiles.get(0).getAttribute("file.lastModifiedTime"));
                 assertEquals(new Date(1000000000), fileModifyTime);
             } catch (ParseException e) {

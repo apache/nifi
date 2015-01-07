@@ -17,12 +17,14 @@
 package org.apache.nifi.cluster.manager.impl;
 
 import org.apache.nifi.cluster.manager.impl.WebClusterManager;
+
 import static org.junit.Assert.assertEquals;
 
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 
 import org.junit.Test;
 
@@ -30,7 +32,7 @@ public class TestWebClusterManager {
 
     @Test
     public void testNormalizedStatusSnapshotDate() throws ParseException {
-        final DateFormat df = new SimpleDateFormat("yyyy/MM/dd HH:mm:SS.SSS");
+        final DateFormat df = new SimpleDateFormat("yyyy/MM/dd HH:mm:SS.SSS", Locale.US);
         final Date date1 = df.parse("2014/01/01 00:00:00.000");
         final Date date2 = df.parse("2014/01/01 00:04:59.999");
         final Date date3 = df.parse("2014/01/01 00:05:00.000");

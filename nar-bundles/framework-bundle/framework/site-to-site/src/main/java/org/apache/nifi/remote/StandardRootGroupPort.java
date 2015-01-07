@@ -619,7 +619,7 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
     
     @Override
     public SchedulingStrategy getSchedulingStrategy() {
-        return SchedulingStrategy.EVENT_DRIVEN;
+        return SchedulingStrategy.TIMER_DRIVEN;
     }
     
     @Override

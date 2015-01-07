@@ -23,8 +23,10 @@ import java.net.InetSocketAddress;
 import java.net.MulticastSocket;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
+
 import org.apache.nifi.cluster.protocol.ProtocolContext;
 import org.apache.nifi.cluster.protocol.ProtocolException;
 import org.apache.nifi.cluster.protocol.ProtocolHandler;
@@ -85,7 +87,7 @@ public class MulticastTestClient {
             @Override
             public ProtocolMessage handle(ProtocolMessage msg) throws ProtocolException {
                 final PingMessage pingMsg = (PingMessage) msg;
-                final SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+                final SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss", Locale.US);
                 logger.info("Pinged at: " + sdf.format(pingMsg.getDate()));
                 return null;
             }

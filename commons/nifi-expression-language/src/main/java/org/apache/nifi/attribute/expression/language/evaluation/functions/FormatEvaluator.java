@@ -18,6 +18,7 @@ package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 import java.util.Map;
 
 import org.apache.nifi.attribute.expression.language.evaluation.DateEvaluator;
@@ -49,7 +50,7 @@ public class FormatEvaluator extends StringEvaluator {
             return null;
         }
 
-        return new StringQueryResult(new SimpleDateFormat(format).format(subjectValue));
+        return new StringQueryResult(new SimpleDateFormat(format, Locale.US).format(subjectValue));
     }
 
     @Override
