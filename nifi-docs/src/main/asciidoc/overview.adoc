@@ -283,7 +283,8 @@ Clustering (scale-out)::
     help.  Use of NiFi's 'site-to-site' feature is also very effective as it is a protocol that allows NiFi and a client (could be another NiFi cluster) to talk to each other, share information
     about loading, and to exchange data on specific authorized ports.
 
-# References
+References
+----------
 [bibliography]
 - [[[eip]]] Gregor Hohpe. Enterprise Integration Patterns [online].  Retrieved: 27 Dec 2014, from: http://www.enterpriseintegrationpatterns.com/
 - [[[soa]]] Wikipedia. Service Oriented Architecture [online]. Retrieved: 27 Dec 2014, from: http://en.wikipedia.org/wiki/Service-oriented_architecture
