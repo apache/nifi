@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -41,7 +42,6 @@ import org.apache.nifi.user.NiFiUser;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.dao.ProcessorDAO;
-
 import org.apache.commons.lang3.StringUtils;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -357,7 +357,7 @@ public class ProcessorAuditor extends NiFiAuditor {
                 }
 
                 // sort them and include in the configuration
-                Collections.sort(autoTerminatedRelationshipNames, Collator.getInstance());
+                Collections.sort(autoTerminatedRelationshipNames, Collator.getInstance(Locale.US));
                 values.put(AUTO_TERMINATED_RELATIONSHIPS, StringUtils.join(autoTerminatedRelationshipNames, ", "));
             }
             if (newConfig.getProperties() != null) {

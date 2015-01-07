@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -133,7 +134,7 @@ public final class DtoFactory {
     private final static Comparator<Class> CLASS_NAME_COMPARATOR = new Comparator<Class>() {
         @Override
         public int compare(Class class1, Class class2) {
-            return Collator.getInstance().compare(class1.getSimpleName(), class2.getSimpleName());
+            return Collator.getInstance(Locale.US).compare(class1.getSimpleName(), class2.getSimpleName());
         }
     };
 
@@ -330,7 +331,7 @@ public final class DtoFactory {
         for (final Relationship selectedRelationship : connection.getRelationships()) {
             if (!Relationship.ANONYMOUS.equals(selectedRelationship)) {
                 if (dto.getSelectedRelationships() == null) {
-                    dto.setSelectedRelationships(new TreeSet<String>(Collator.getInstance()));
+                    dto.setSelectedRelationships(new TreeSet<String>(Collator.getInstance(Locale.US)));
                 }
 
                 dto.getSelectedRelationships().add(selectedRelationship.getName());
@@ -341,7 +342,7 @@ public final class DtoFactory {
         for (final Relationship availableRelationship : connection.getSource().getRelationships()) {
             if (!Relationship.ANONYMOUS.equals(availableRelationship)) {
                 if (dto.getAvailableRelationships() == null) {
-                    dto.setAvailableRelationships(new TreeSet<String>(Collator.getInstance()));
+                    dto.setAvailableRelationships(new TreeSet<String>(Collator.getInstance(Locale.US)));
                 }
 
                 dto.getAvailableRelationships().add(availableRelationship.getName());
@@ -1163,7 +1164,7 @@ public final class DtoFactory {
         Collections.sort(relationships, new Comparator<RelationshipDTO>() {
             @Override
             public int compare(RelationshipDTO r1, RelationshipDTO r2) {
-                return Collator.getInstance().compare(r1.getName(), r2.getName());
+                return Collator.getInstance(Locale.US).compare(r1.getName(), r2.getName());
             }
         });
 
@@ -1492,7 +1493,7 @@ public final class DtoFactory {
         final Map<PropertyDescriptor, String> sortedProperties = new TreeMap<>(new Comparator<PropertyDescriptor>() {
             @Override
             public int compare(PropertyDescriptor o1, PropertyDescriptor o2) {
-                return Collator.getInstance().compare(o1.getName(), o2.getName());
+                return Collator.getInstance(Locale.US).compare(o1.getName(), o2.getName());
             }
         });
         sortedProperties.putAll(procNode.getProperties());
@@ -1989,7 +1990,7 @@ public final class DtoFactory {
             } else if (name1 == null) {
                 return 1;
             } else {
-                int compareResult = Collator.getInstance().compare(name2, name2);
+                int compareResult = Collator.getInstance(Locale.US).compare(name2, name2);
 
                 // if the names are same, use the id
                 if (compareResult == 0) {

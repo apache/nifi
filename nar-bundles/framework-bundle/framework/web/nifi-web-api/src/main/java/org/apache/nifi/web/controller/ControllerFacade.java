@@ -27,6 +27,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
@@ -108,7 +109,6 @@ import org.apache.nifi.web.api.dto.status.ControllerStatusDTO;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.util.DownloadableContent;
-
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.admin.service.UserService;
@@ -893,7 +893,7 @@ public class ControllerFacade implements ControllerServiceProvider {
         final Comparator<AttributeDTO> attributeComparator = new Comparator<AttributeDTO>() {
             @Override
             public int compare(AttributeDTO a1, AttributeDTO a2) {
-                return Collator.getInstance().compare(a1.getName(), a2.getName());
+                return Collator.getInstance(Locale.US).compare(a1.getName(), a2.getName());
             }
         };
 
@@ -987,12 +987,12 @@ public class ControllerFacade implements ControllerServiceProvider {
 
         // parent uuids
         final List<String> parentUuids = new ArrayList<>(event.getParentUuids());
-        Collections.sort(parentUuids, Collator.getInstance());
+        Collections.sort(parentUuids, Collator.getInstance(Locale.US));
         dto.setParentUuids(parentUuids);
 
         // child uuids
         final List<String> childUuids = new ArrayList<>(event.getChildUuids());
-        Collections.sort(childUuids, Collator.getInstance());
+        Collections.sort(childUuids, Collator.getInstance(Locale.US));
         dto.setChildUuids(childUuids);
 
         return dto;

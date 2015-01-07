@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 
@@ -63,10 +64,10 @@ import org.apache.nifi.web.NiFiWebContext;
 import org.apache.nifi.web.NiFiWebContextConfig;
 import org.apache.nifi.web.ProcessorInfo;
 import org.apache.nifi.web.Revision;
-
 import org.apache.commons.lang3.StringUtils;
 
 import com.sun.jersey.api.NotFoundException;
+
 import org.apache.nifi.update.attributes.FlowFilePolicy;
 import org.apache.nifi.update.attributes.entity.EvaluationContextEntity;
 
@@ -443,7 +444,7 @@ public class RuleResource {
         Collections.sort(ruleDtos, new Comparator<RuleDTO>() {
             @Override
             public int compare(RuleDTO r1, RuleDTO r2) {
-                final Collator collator = Collator.getInstance();
+                final Collator collator = Collator.getInstance(Locale.US);
                 return collator.compare(r1.getName(), r2.getName());
             }
         });

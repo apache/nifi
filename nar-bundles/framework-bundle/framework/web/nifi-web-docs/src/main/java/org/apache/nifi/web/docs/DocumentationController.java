@@ -18,8 +18,10 @@ package org.apache.nifi.web.docs;
 
 import java.io.IOException;
 import java.text.Collator;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
+
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
@@ -27,6 +29,7 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import org.apache.nifi.nar.ExtensionMapping;
 import org.apache.commons.lang3.StringUtils;
 
@@ -55,7 +58,7 @@ public class DocumentationController extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         final ExtensionMapping extensionMappings = (ExtensionMapping) servletContext.getAttribute("nifi-extension-mapping");
-        final Collator collator = Collator.getInstance();
+        final Collator collator = Collator.getInstance(Locale.US);
 
         // create the processors lookup
         final Map<String, String> processors = new TreeMap<>(collator);

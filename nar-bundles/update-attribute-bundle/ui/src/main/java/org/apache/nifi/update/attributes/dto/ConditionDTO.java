@@ -17,6 +17,8 @@
 package org.apache.nifi.update.attributes.dto;
 
 import java.text.Collator;
+import java.util.Locale;
+
 import javax.xml.bind.annotation.XmlType;
 
 /**
@@ -49,7 +51,7 @@ public class ConditionDTO implements Comparable<ConditionDTO> {
         // including the id in the comparison so that the TreeSet that this
         // is stored in does not discard any entries just because their expressions
         // are equal
-        final Collator collator = Collator.getInstance();
+        final Collator collator = Collator.getInstance(Locale.US);
         final String thisCmpStr = getExpression() + "_" + getId();
         final String thatCmpStr = that.getExpression() + "_" + that.getId();
         return collator.compare(thisCmpStr, thatCmpStr);
