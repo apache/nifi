@@ -116,6 +116,7 @@ import org.antlr.runtime.ANTLRStringStream;
 import org.antlr.runtime.CharStream;
 import org.antlr.runtime.CommonTokenStream;
 import org.antlr.runtime.tree.Tree;
+import org.apache.nifi.attribute.expression.language.evaluation.selection.MappingEvaluator;
 
 /**
  * Class used for creating and evaluating NiFi Expression Language. Once a Query
@@ -515,26 +516,26 @@ public class Query {
         try {
             final List<String> substrings = new ArrayList<>();
             final Map<String, Tree> trees = new HashMap<>();
-    
+
             int lastIndex = 0;
             for (final Range range : ranges) {
                 if (range.getStart() > lastIndex) {
                     substrings.add(query.substring(lastIndex, range.getStart()).replace("$$", "$"));
                     lastIndex = range.getEnd() + 1;
                 }
-    
+
                 final String treeText = query.substring(range.getStart(), range.getEnd() + 1).replace("$$", "$");
                 substrings.add(treeText);
                 trees.put(treeText, Query.compileTree(treeText));
                 lastIndex = range.getEnd() + 1;
             }
-    
+
             final Range lastRange = ranges.get(ranges.size() - 1);
             if (lastRange.getEnd() + 1 < query.length()) {
                 final String treeText = query.substring(lastRange.getEnd() + 1).replace("$$", "$");
                 substrings.add(treeText);
             }
-    
+
             return new StandardPreparedQuery(substrings, trees);
         } catch (final AttributeExpressionLanguageParsingException e) {
             return new InvalidPreparedQuery(query, e.getMessage());
@@ -550,7 +551,7 @@ public class Query {
 
             final Evaluator<?> evaluator = buildEvaluator(tree);
             verifyMappingEvaluatorReduced(evaluator);
-            
+
             return new Query(query, tree, evaluator);
         } catch (final AttributeExpressionLanguageParsingException e) {
             throw e;
@@ -559,7 +560,6 @@ public class Query {
         }
     }
 
-    
     private static void verifyMappingEvaluatorReduced(final Evaluator<?> evaluator) {
         // if the result type of the evaluator is BOOLEAN, then it will always
         // be reduced when evaluator.
@@ -572,20 +572,20 @@ public class Query {
         if (rootEvaluator != null && rootEvaluator instanceof MultiAttributeEvaluator) {
             final MultiAttributeEvaluator multiAttrEval = (MultiAttributeEvaluator) rootEvaluator;
             switch (multiAttrEval.getEvaluationType()) {
-            case ALL_ATTRIBUTES:
-            case ALL_MATCHING_ATTRIBUTES:
-            case ALL_DELINEATED_VALUES: {
-                if (!(evaluator instanceof ReduceEvaluator)) {
-                    throw new AttributeExpressionLanguageParsingException("Cannot evaluate expression because it attempts to reference multiple attributes but does not use a reducing function");
+                case ALL_ATTRIBUTES:
+                case ALL_MATCHING_ATTRIBUTES:
+                case ALL_DELINEATED_VALUES: {
+                    if (!(evaluator instanceof ReduceEvaluator)) {
+                        throw new AttributeExpressionLanguageParsingException("Cannot evaluate expression because it attempts to reference multiple attributes but does not use a reducing function");
+                    }
+                    break;
                 }
-                break;
-            }
-            default:
-                throw new AttributeExpressionLanguageParsingException("Cannot evaluate expression because it attempts to reference multiple attributes but does not use a reducing function");
+                default:
+                    throw new AttributeExpressionLanguageParsingException("Cannot evaluate expression because it attempts to reference multiple attributes but does not use a reducing function");
             }
         }
     }
-    
+
     private static CommonTokenStream createTokenStream(final String expression) throws AttributeExpressionLanguageParsingException {
         final CharStream input = new ANTLRStringStream(expression);
         final AttributeExpressionLexer lexer = new AttributeExpressionLexer(input);
@@ -791,7 +791,7 @@ public class Query {
         if (tree.getChildCount() == 0) {
             throw new AttributeExpressionLanguageParsingException("EXPRESSION tree node has no children");
         }
-        
+
         final Evaluator<?> evaluator;
         if (tree.getChildCount() == 1) {
             evaluator = buildEvaluator(tree.getChild(0));
@@ -804,7 +804,7 @@ public class Query {
             // tree from the right-most child going left-ward.
             evaluator = buildFunctionExpressionEvaluator(tree, 0);
         }
-        
+
         Evaluator<?> chosenEvaluator = evaluator;
         final Evaluator<?> rootEvaluator = getRootSubjectEvaluator(evaluator);
         if (rootEvaluator != null) {
@@ -819,13 +819,21 @@ public class Query {
                         break;
                     case ALL_ATTRIBUTES:
                     case ALL_MATCHING_ATTRIBUTES:
-                    case ALL_DELINEATED_VALUES:
-                        chosenEvaluator = new AllAttributesEvaluator((BooleanEvaluator) evaluator, multiAttrEval);
+                    case ALL_DELINEATED_VALUES: {
+                        final ResultType resultType = evaluator.getResultType();
+                        if (resultType == ResultType.BOOLEAN) {
+                            chosenEvaluator = new AllAttributesEvaluator((BooleanEvaluator) evaluator, multiAttrEval);
+                        } else if (evaluator instanceof ReduceEvaluator) {
+                            chosenEvaluator = new MappingEvaluator((ReduceEvaluator) evaluator, multiAttrEval);
+                        } else {
+                            throw new AttributeExpressionLanguageException("Cannot evaluate Expression because it attempts to reference multiple attributes but does not use a reducing function");
+                        }
                         break;
+                    }
                 }
             }
         }
-        
+
         return chosenEvaluator;
     }
 

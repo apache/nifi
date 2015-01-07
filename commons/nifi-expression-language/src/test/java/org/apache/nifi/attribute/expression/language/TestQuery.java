@@ -235,8 +235,8 @@ public class TestQuery {
     public void testJoin() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("a.a", "a");
-        attributes.put("b.b", "b");
-        attributes.put("c.c", "c");
+        attributes.put("a.b", "b");
+        attributes.put("a.c", "c");
         verifyEquals("${allAttributes( 'a.a', 'a.b', 'a.c' ):join(', ')}", attributes, "a, b, c");
         verifyEquals("${x:join(', ')}", attributes, "");
         verifyEquals("${a.a:join(', ')}", attributes, "a");
@@ -282,7 +282,7 @@ public class TestQuery {
     public void testCount() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("a", "a");
-        attributes.put("b", "");
+        attributes.put("b", "abc");
         attributes.put("c", "        \n");
         attributes.put("n1", "111");
         attributes.put("n2", "222");

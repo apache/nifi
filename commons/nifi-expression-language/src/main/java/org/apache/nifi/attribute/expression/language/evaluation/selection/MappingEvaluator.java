@@ -55,7 +55,7 @@ public class MappingEvaluator<T> implements Evaluator<T> {
 
     @Override
     public Evaluator<?> getSubjectEvaluator() {
-        return mappingEvaluator;
+        return null;
     }
 
 }

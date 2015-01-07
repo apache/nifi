@@ -37,9 +37,9 @@ public class JoinEvaluator extends StringEvaluator implements ReduceEvaluator<St
     
     @Override
     public QueryResult<String> evaluate(final Map<String, String> attributes) {
-        final String subject = subjectEvaluator.evaluate(attributes).getValue();
+        String subject = subjectEvaluator.evaluate(attributes).getValue();
         if ( subject == null ) {
-            return new StringQueryResult("");
+            subject = "";
         }
         
         final String delimiter = delimiterEvaluator.evaluate(attributes).getValue();
