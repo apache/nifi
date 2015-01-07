@@ -46,6 +46,13 @@
  * The optionClass option supports specifying a class to apply to the 
  * option element.
  */
+
+/**
+ * jQuery plugin for a NiFi style combo box.
+ * 
+ * @param {type} $
+ * @returns {undefined}
+ */
 (function ($) {
 
     var isUndefined = function (obj) {
@@ -93,7 +100,7 @@
 
         // ensure we found the selected option
         if (isDefinedAndNotNull(selectedOption)) {
-            $(comboText).removeClass('selected-disabled-option').attr('title', selectedOption.text).text(selectedOption.text).data('text', selectedOption.text).width(combo.outerWidth() - 25);
+            comboText.removeClass('selected-disabled-option').attr('title', selectedOption.text).text(selectedOption.text).data('text', selectedOption.text).width(combo.outerWidth() - 25);
 
             // if the selected option is disabled show it
             if (selectedOption.disabled === true) {
@@ -112,6 +119,7 @@
     };
 
     var methods = {
+        
         /**
          * Initializes the combo box.
          * 
@@ -130,24 +138,24 @@
                     combo.empty().unbind().data('options', options);
 
                     // add a div to hold the text
-                    var comboText = $('<div class="combo-text"></div>').appendTo(combo);
+                    $('<div class="combo-text"></div>').appendTo(combo);
 
                     // add hover effect and handle a combo click
                     combo.addClass('button-normal pointer combo').hover(function () {
-                        $(combo).removeClass('button-normal').addClass('button-over');
+                        combo.removeClass('button-normal').addClass('button-over');
                     }, function () {
-                        $(combo).removeClass('button-over').addClass('button-normal');
+                        combo.removeClass('button-over').addClass('button-normal');
                     }).click(function (event) {
 
                         // determine the position of the element in question
-                        var position = $(combo).offset();
+                        var position = combo.offset();
 
                         // create the combo box options beneath it
                         var comboOptions = $('<div></div>').addClass('combo-options').css({
                             'position': 'absolute',
                             'left': position.left + 'px',
-                            'top': (position.top + $(combo).outerHeight() + 1) + 'px',
-                            'width': ($(combo).outerWidth() - 10) + 'px',
+                            'top': (position.top + combo.outerHeight() + 1) + 'px',
+                            'width': (combo.outerWidth() - 10) + 'px',
                             'overflow-y': 'auto'
                         });
 
@@ -195,7 +203,7 @@
                                 $('<img style="float: left; margin-left: 5px; margin-top: 3px;" src="images/iconInfo.png"></img>').appendTo(optionElement).qtip({
                                     content: option.description,
                                     style: {
-                                        classes: 'ui-tooltip-tipped ui-tooltip-shadow'
+                                        classes: 'nifi-tooltip'
                                     },
                                     show: {
                                         solo: true,
@@ -224,14 +232,26 @@
                             if (maxHeight > 0 && actualHeight > maxHeight) {
                                 offset += 20;
                             }
-                            comboOptionText.width($(combo).outerWidth() - offset);
+                            comboOptionText.width(combo.outerWidth() - offset);
                         });
 
                         // show the glass pane to catch the click events
                         var comboGlassPane = $('<div class="combo-glass-pane"></div>').one('click', function () {
-                            if ($(comboOptions).length !== 0) {
-                                $(comboOptions).remove();
+                            if (comboOptions.length !== 0) {
+                                // clean up tooltips
+                                comboOptions.find('img').each(function () {
+                                    var tip = $(this);
+                                    if (tip.data('qtip')) {
+                                        var api = tip.qtip('api');
+                                        api.destroy(true);
+                                    }
+                                });
+                                
+                                // remove the options
+                                comboOptions.remove();
                             }
+                            
+                            // remove the glass pane
                             $(this).remove();
                         });
 
@@ -254,6 +274,7 @@
                 }
             });
         },
+        
         /**
          * Returns the selected option of the first matching element.
          */
@@ -267,6 +288,7 @@
 
             return value;
         },
+        
         /**
          * Sets the selected option.
          * 
