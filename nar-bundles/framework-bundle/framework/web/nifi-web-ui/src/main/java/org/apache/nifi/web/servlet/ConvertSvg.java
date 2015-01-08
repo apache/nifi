@@ -81,6 +81,8 @@ public class ConvertSvg extends HttpServlet {
             String filename = request.getParameter("filename");
             if (filename == null) {
                 filename = "image.png";
+            } else if (!filename.endsWith(".png")) {
+                filename += ".png";
             }
 
             final StringReader reader = new StringReader(svg);
