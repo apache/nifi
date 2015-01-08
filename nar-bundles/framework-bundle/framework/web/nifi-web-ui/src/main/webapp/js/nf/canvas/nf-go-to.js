@@ -489,7 +489,7 @@ nf.GoTo = (function () {
                 }
 
                 // show the dialog
-                $('#connections-dialog').modal('setHeaderText', 'Downstream Connections').modal('show');
+                $('#connections-dialog').modal('setHeaderText', 'Upstream Connections').modal('show');
             }).fail(nf.Common.handleAjaxError);
         },
         
