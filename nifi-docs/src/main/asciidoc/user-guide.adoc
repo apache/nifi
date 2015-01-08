@@ -20,8 +20,8 @@ Apache NiFi Team <dev@nifi.incubator.apache.org>
 :homepage: http://nifi.incubator.apache.org
 
 
-Overview
---------
+Introduction
+------------
 Apache NiFi (Incubating) is a dataflow system based on the concepts of flow-based programming. It supports
 powerful and scalable directed graphs of data routing, transformation, and system mediation logic. NiFi has
 a web-based user interface for design, control, feedback, and monitoring of dataflows. It is highly configurable
@@ -144,15 +144,14 @@ image::status-bar.png["NiFi Status Bar"]
 Building a DataFlow
 -------------------
 
-A DataFlow Manager (DFM) is able to build an automated dataflow using the NiFi User Interface (UI). This is accomplished
-by dragging components from the toolbar to the canvas, configuring the components to meet specific needs, and connecting
+A DataFlow Manager (DFM) is able to build an automated dataflow using the NiFi User Interface (UI). Simply drag components from the toolbar to the canvas, configure the components to meet specific needs, and connect
 the components together.
 
 
 === Adding Components to the Canvas
 
-In the User Interface section above, we outlined the different segments of the UI and pointed out a Components Toolbar.
-Here, we will look at each of the Components in that toolbar:
+In the User Interface section above outlined the different segments of the UI and pointed out a Components Toolbar.
+This section looks at each of the Components in that toolbar:
 
 image::components.png["Components"]
 
@@ -176,13 +175,13 @@ image::add-processor-with-tag-cloud.png["Add Processor with Tag Cloud"]
 Clicking the `Add` button or double-clicking on a Processor Type will add the selected Processor to the canvas at the
 location that it was dropped.
 
-
+*Note*: For any component added to the graph, it is possible to select it with the mouse and move it anywhere on the graph. Also, it is possible to select multiple items at once by either holding down the Shift key and selecting each item or by holding down the Shift key and dragging a selection box around the desired components. 
 
 image:iconInputPort.png["Input Port", width=32]
 *Input Port*: Input Ports provide a mechanism for transferring data into a Process Group. When an Input Port is dragged
 onto the canvas, the DFM is prompted to name the Port. All Ports within a Process Group must have unique names.
 
-All components exist only within a Process Group. When a user navigates to the NiFi page, the user is placed in the
+All components exist only within a Process Group. When a user initially navigates to the NiFi page, the user is placed in the
 Root Process Group. If the Input Port is dragged onto the Root Process Group, the Input Port provides a mechanism
 to receive data from remote instances of NiFi. In this case, the Input Port can be configured to restrict access to
 appropriate users.
@@ -204,7 +203,7 @@ that data is removed from the queues of the incoming Connections.
 image:iconProcessGroup.png["Process Group", width=32]
 *Process Group*: Process Groups can be used to logically group a set of components so that the dataflow is easier to understand
 and maintain. When a Process Group is dragged onto the canvas, the DFM is prompted to name the Process Group. All Process
-Groups within the same parent group must have unique names.
+Groups within the same parent group must have unique names. The Process Group will then be nested within that parent group.
 
 
 
@@ -322,7 +321,7 @@ The first configuration option is the Scheduling Strategy. There are three optio
 - *Timer driven*: This is the default mode. The Processor will be scheduled to run on a regular interval. The interval
 	at which the Processor is run is defined by the `Run schedule' option (see below).
 - *Event driven*: When this mode is selected, the Processor will be triggered to run by an event, and that event occurs when FlowFiles enter Connections
-	that have this Processor as their destination. This mode is not supported by all Processors. When this mode is
+	feeding this Processor. This mode is currently considered experimental and is not supported by all Processors. When this mode is
 	selected, the `Run schedule' option is not configurable, as the Processor is not triggered to run periodically but
         as the result of an event. Additionally, this is the only mode for which the `Concurrent tasks'
 	option can be set to 0. In this case, the number of threads is limited only by the size of the Event-Driven Thread Pool that
@@ -408,7 +407,7 @@ Note that after a User-Defined property has been added, an icon will appear on t
 image:iconDelete.png["Delete Icon"]
 ). Clicking this button will remove the User-Defined property from the Processor.
 
-
+Some processors also have an Advanced User Interface (UI) built into them. For example, the UpdateAttribute processor has an Advanced UI. To access the Advanced UI, click the `Advanced` button that appears at the bottom of the Configure Processor window. Only processors that have an Advanced UI will have this button. 
 
 ==== Comments Tab
 
@@ -428,7 +427,7 @@ for all the Processors that are available. Clicking on the desired Processor in 
 
 === Connecting Components
 
-Once processors have been added to the graph and configured, the next step is to connect them
+Once processors and other components have been added to the graph and configured, the next step is to connect them
 to one another so that NiFi knows what to do with each FlowFile after it has been processed. This is accomplished by creating a
 Connection between each component. When the user hovers the mouse over the center of a component, a new Connection icon (
 image:addConnect.png["Connection Bubble"]
@@ -437,11 +436,14 @@ image:addConnect.png["Connection Bubble"]
 image:processor-connection-bubble.png["Processor with Connection Bubble"]
 
 The user drags the Connection bubble from one component to another until the second component is highlighted. When the user
-releases the mouse, a `Create Connection' dialog appears. This dialog consists of two tabs: `Details' and `Settings'.
+releases the mouse, a `Create Connection' dialog appears. This dialog consists of two tabs: `Details' and `Settings'. They are
+discussed in detail below. Note that it is possible to draw a connection so that it loops back on the same processor. This can be 
+useful if the DFM wants the processor to try to re-process FlowFiles if they go down a failure Relationship. To create this type of looping
+connection, simply drag the connection bubble away and then back to the same processor until it is highlighted. Then release the mouse and the same 'Create Connection' dialog appears. 
 
 ==== Details Tab
 
-The Details Tab provides information about the source and destination components, including the component name, the
+The Details Tab of the 'Create Connection' dialog provides information about the source and destination components, including the component name, the
 component type, and the Process Group in which the component lives:
 
 image::create-connection.png["Create Connection"]
@@ -485,7 +487,14 @@ priority. If two FlowFiles have the same value according to this prioritizer, th
 FlowFile to process first, and so on. If a prioritizer is no longer desired, it can then be dragged from the `Selected
 prioritizers' list to the `Available prioritizers' list.
 
+The following prioritizers are available:
 
+- *FirstInFirstOutPrioritizer*: Given two FlowFiles, the on that reached the connection first will be processed first.
+- *NewestFlowFileFirstPrioritizer*: Given two FlowFiles, the one that is newest in the dataflow will be processed first.
+- *OldestFlowFileFirstPrioritizer*: Given two FlowFiles, the on that is oldest in the dataflow will be processed first. This is the default scheme that is used if no prioritizers are selected.
+- *PriorityAttributePrioritizer*: Given two FlowFiles that both have a "priority" attribute, the one that has the highest priority value will be prprocessed first. Note that an UpdateAttribute processor should be used to add the "priority" attribute to the FlowFiles before they reach a connection that has this prioritizer set. Values for the "priority" attribute may be alphanumeric, where "a" is a higher priority than "z", and "1" is a higher priority than "9", for example.
+
+*Note*: After a connection has been drawn between two components, the connection's configuration may be changed, and the connection may be moved to a new destination; however, the processors on either side of the connection must be stopped before a configuration or destination change may be made.
 
 === Processor Validation
 
@@ -501,6 +510,28 @@ to a Stop icon, indicating that the Processor is valid and ready to be started b
 
 image::valid-processor.png["Valid Processor"]
 
+=== Example Dataflow
+
+This section has described the steps required to build a dataflow. Now, to put it all together. The following example dataflow 
+consists of just two processors: GenerateFlowFile and LogAttribute. These processors are normally used for testing, but they can also be used
+to build a quick flow for demonstration purposes and see NiFi in action.
+
+After you drag the GenerateFlowFile and LogAttribute processors to the graph and connect them (using the guidelines provided above), configure them as follows:
+
+* Generate FlowFile
+** On the Scheduling tab, set Run schedule to: 5 sec. Note that the GenerateFlowFile processor can create many FlowFiles very quickly; that's why setting the Run schedule is important so that this flow does not overwhelm the system NiFi is running on.
+** On the Properties tab, set File Size to: 10 kb
+
+* Log Attribute
+** On the Settings tab, under Auto-terminate relationships, select the checkbox next to Success. This will terminate FlowFiles after this processor has successfully processed them.
+** Also on the Settings tab, set the Bulletin level to Info. This way, when the dataflow is running, this processor will display the bulletin icon (see <<processor_anatomy>>), and the user may hover over it with the mouse to see the attributes that the processor is logging.
+
+The dataflow should look like the following:
+
+image::simple-flow.png["Simple Flow", width=900]
+
+
+Now see the following section on how to start and stop the dataflow. When the dataflow is running, be sure to note the statistical information that is displayed on the face of each processor (see <<processor_anatomy>>).
 
 
 
@@ -640,7 +671,11 @@ or not compression should be used when transmitting data to or from this Port.
 
 
 
+[[navigating]]
+== Navigating within a DataFlow
 
+NiFi provides various mechanisms for getting around a dataflow. The <<User_Interface>> section discussed various ways to navigate around
+the NiFi graph; however, once a flow exists on the graph, there are additional ways to get from one component to another. The <<User Interface>> section showed that when multiple Process Groups exist in a flow, breadcrumbs appear under the toolbar, providing a way to navigate between them. In addition, to enter a Process Group that is currently visible on the graph, simply double-click it, thereby "drilling down" into it. Connections also provide a way to jump from one location to another within the flow. Right-click on a connection and select "Go to source" or "Go to destination" in order to jump to one end of the connection or another. This can be very useful in large, complex dataflows, where the connection lines may be long and span large areas of the graph. Finally, all components provide the ability to jump forward or backward within the flow. Right-click any component (e.g., a processor, process group, port, etc.) and select either "Upstream connections" or "Downstream connections". A dialog window will open, showing the available upstream or downstream connections that the user may jump to. This can be especially useful when trying to follow a dataflow in a backward direction. It is typically easy to follow the path of a dataflow from start to finish, drilling down into nested process groups; however, it can be more difficult to follow the dataflow in the other direction.
 
 
 
@@ -1043,10 +1078,7 @@ Min/Max/Mean values on the left-hand side to be recalculated. Once a selection h
 rectangle over the graph, double-clicking on the selected portion will cause the selection to fully expand in the 
 vertical direction. I.e., it will select all values in this time range. Clicking on the bottom graph without dragging 
 will remove the selection.
-
-
-
-
+ 
 
 
 [[templates]]
@@ -1238,5 +1270,17 @@ image:expand-event.png["Expand Event", width=250]
 Once "Expand" is selected, the graph is re-drawn to show the children and their lineage.
 
 image:expanded-events.png["Expanded Events", width=300]
+
+
+[[other_management_features]]
+Other Management Features
+-------------------------
+
+In addition to the Summary Page, Data Provenance Page, Template Management Page, and Bulletin Board Page, there are other tools in the Management Toolbar (See <<User_Interface>>) that are useful to the Dataflow Manager. The Flow Configuration History, which is available by clicking on the clock icon ( image:iconFlowHistory.png["Flow History", width=28] ) in the Management Toolbar, shows all the changes that have been made to the dataflow graph. The history can aid in troubleshooting if a recent change to the dataflow has caused a problem and needs to be fixed. While NiFi does not have an "undo" feature, the DataFlow Manager can make new changes to the dataflow that will fix the problem.
+
+Two other tools in the Management Toolbar are used primarily by Administrators. These are the Flow Settings page ( image:iconSettings.png["Flow Settings", width=28] ) and the Users page ( image:iconUsers.png["Users", width=28] ). The Flow Settings page provides the ability to change the name of the NiFi instance, add comments describing the NiFi instance, set the maximum number of threads that are available to the application, and create a back-up copy of the dataflow(s) currently on the graph. The Users page is used to manage user access, which is described in the Admin Guide. 
+
+
+
 
 
