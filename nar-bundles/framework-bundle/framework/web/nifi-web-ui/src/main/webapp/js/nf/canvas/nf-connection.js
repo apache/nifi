@@ -186,6 +186,24 @@ nf.Connection = (function () {
     var isGroup = function (terminal) {
         return terminal.groupId !== nf.Canvas.getGroupId() && (isInputPortType(terminal.type) || isOutputPortType(terminal.type));
     };
+    
+    /**
+     * Determines whether expiration is configured for the specified connection.
+     * 
+     * @param {object} connection 
+     * @return {boolean} Whether expiration is configured
+     */
+    var isExpirationConfigured = function (connection) {
+        if (nf.Common.isDefinedAndNotNull(connection.flowFileExpiration)) {
+            var match = connection.flowFileExpiration.match(/^(\d+).*/);
+            if (match !== null && match.length > 0) {
+                if (parseInt(match[0], 10) > 0) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    };
 
     /**
      * Sorts the specified connections according to the z index.
@@ -325,16 +343,16 @@ nf.Connection = (function () {
 
                 return grouped;
             })
-                    .classed('ghost', function (d) {
-                        var ghost = false;
+            .classed('ghost', function (d) {
+                var ghost = false;
 
-                        // if the connection has a relationship that is unavailable, mark it a ghost relationship
-                        if (hasUnavailableRelationship(d)) {
-                            ghost = true;
-                        }
+                // if the connection has a relationship that is unavailable, mark it a ghost relationship
+                if (hasUnavailableRelationship(d)) {
+                    ghost = true;
+                }
 
-                        return ghost;
-                    });
+                return ghost;
+            });
         }
 
         updated.each(function (d) {
@@ -669,7 +687,7 @@ nf.Connection = (function () {
 
                         // update the label text
                         connectionFrom.select('text.connection-from')
-                                .each(function (d) {
+                                .each(function () {
                                     var connectionFromLabel = d3.select(this);
 
                                     // reset the label name to handle any previous state
@@ -677,9 +695,9 @@ nf.Connection = (function () {
 
                                     // apply ellipsis to the label as necessary
                                     nf.CanvasUtils.ellipsis(connectionFromLabel, d.component.source.name);
-                                }).append('title').text(function (d) {
-                            return d.component.source.name;
-                        });
+                                }).append('title').text(function () {
+                                    return d.component.source.name;
+                                });
 
                         // update the label run status
                         connectionFrom.select('image.connection-from-run-status').attr('xlink:href', function () {
@@ -758,8 +776,8 @@ nf.Connection = (function () {
                                     // apply ellipsis to the label as necessary
                                     nf.CanvasUtils.ellipsis(connectionToLabel, d.component.destination.name);
                                 }).append('title').text(function (d) {
-                            return d.component.destination.name;
-                        });
+                                    return d.component.destination.name;
+                                });
 
                         // update the label run status
                         connectionTo.select('image.connection-to-run-status').attr('xlink:href', function () {
@@ -821,7 +839,7 @@ nf.Connection = (function () {
 
                         // update the connection name
                         connectionName.select('text.connection-name')
-                                .each(function (d) {
+                                .each(function () {
                                     var connectionToLabel = d3.select(this);
 
                                     // reset the label name to handle any previous state
@@ -829,9 +847,9 @@ nf.Connection = (function () {
 
                                     // apply ellipsis to the label as necessary
                                     nf.CanvasUtils.ellipsis(connectionToLabel, connectionNameValue);
-                                }).append('title').text(function (d) {
-                            return connectionNameValue;
-                        });
+                                }).append('title').text(function () {
+                                    return connectionNameValue;
+                                });
                     } else {
                         // there is no connection name, but check if the name was previous
                         // rendered so it can be removed
@@ -861,11 +879,49 @@ nf.Connection = (function () {
                                 .text('Queued');
 
                         queued.append('text')
+                            .attr({
+                                'class': 'connection-stats-value queued',
+                                'x': 46,
+                                'y': 10
+                            });
+                                
+                        var expiration = queued.append('g')
                                 .attr({
-                                    'class': 'connection-stats-value queued',
-                                    'x': 46,
-                                    'y': 10
+                                    'class': 'expiration-icon',
+                                    'transform': 'translate(167, 2)'
                                 });
+                                
+                        expiration.append('circle')
+                                .attr({
+                                    'cx': 5,
+                                    'cy': 5,
+                                    'r': 4.75,
+                                    'stroke-width': 0.5,
+                                    'stroke': '#87888a',
+                                    'fill': 'url(#expiration)'
+                                });
+                                
+                        expiration.append('line')
+                                .attr({
+                                    'x1': 6,
+                                    'y1': 5,
+                                    'x2': 3,
+                                    'y2': 4,
+                                    'stroke': '#fff',
+                                    'stroke-width': 1
+                                });
+                                
+                        expiration.append('line')
+                                .attr({
+                                    'x1': 6,
+                                    'y1': 5,
+                                    'x2': 3,
+                                    'y2': 7,
+                                    'stroke': '#fff',
+                                    'stroke-width': 1
+                                });
+                                
+                        expiration.append('title');
                     }
 
                     // update the queued vertical positioning as necessary
@@ -878,6 +934,15 @@ nf.Connection = (function () {
                     connectionLabelContainer.select('rect.connection-label')
                             .attr('height', function () {
                                 return 5 + (15 * labelCount) + 3;
+                            });
+                            
+                    // determine whether or not to show the expiration icon
+                    connectionLabelContainer.select('g.expiration-icon')
+                            .classed('hidden', function () {
+                                return !isExpirationConfigured(d.component);
+                            })
+                            .select('title').text(function () {
+                                return 'Expires FlowFiles older than ' + d.component.flowFileExpiration;
                             });
 
                     if (nf.Common.isDFM()) {

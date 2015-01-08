@@ -75,7 +75,7 @@
                     </div>
                     <div class="setting">
                         <div class="setting-name">
-                            File expiration
+                            FlowFile expiration
                             <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="The maximum amount of time an object may be in the flow before it will be automatically aged out of the flow."/>
                         </div>
                         <div class="setting-field">
