@@ -19,18 +19,79 @@ NiFi System Administrator's Guide
 Apache NiFi Team <dev@nifi.incubator.apache.org>
 :homepage: http://nifi.incubator.apache.org
 
-How to install
---------------
-Installation instructions...
+How to install and start NiFi
+-----------------------------
+NOTE: This section is incomplete.
+
+* Linux
+** Decompress and untar into desired installation directory.
+** Make any desired edits in files found under <installdir>/conf
+** Execute the following commands
+*** start: starts NiFi in the background
+*** stop: stops NiFi that is running in the background
+*** status: provides the current status of NiFi
+*** run: runs NiFi in the foreground and waits for a Ctl-C to initiate shutdown of NiFi
+*** intall: installs NiFi as a service that can then be controlled via
+**** service nifi start
+**** service nifi stop
+**** service nifi status
 
 Best Practice Configuration
 ---------------------------
-The following are things which are good to check...
+NOTE: Typical Linux defaults are not necessarily well tuned for the needs of an IO intensive application like
+NiFi.  For all of these areas your distributions requirements may vary.  Use these sections as advice but
+consult your distribution specific documentation for how best to achieve these recommendations.
+
+Maximum File Handles::
+NiFi will at any one time potentially have a very large number of file handles open.  Increase the limits by
+editing '/etc/security/limits.conf' to add
+something like
+----
+*  hard  nofile  50000
+*  soft  nofile  50000
+----
+Maximum Forked Processes::
+NiFi may be configured to generate a significant number of threads.  To increase the allowable number edit '/etc/security/limits.conf'
+----
+*  hard  nproc  10000
+*  soft  nproc  10000
+----
+And your distribution may require an edit to /etc/security/limits.d/90-nproc.conf by adding
+----
+*  soft  nproc  10000
+----
+
+Increase the number of TCP socket ports available::
+This is particularly important if your flow will be setting up and tearing 
+down a large number of sockets in small period of time.
+----
+sudo sysctl -w net.ipv4.ip_local_port_range="10000 65000"
+----
+
+Set how long sockets stay in a TIMED_WAIT state when closed::
+You don't want your sockets to sit and linger too long given that you want to be 
+able to quickly setup and teardown new sockets.  It is a good idea to read more about
+it but to adjust do something like
+----
+sudo sysctl -w net.ipv4.netfilter.ip_conntrack_tcp_timeout_time_wait="1"
+----
+
+Tell linux you never want NiFi to swap::
+Swapping is fantastic for some applications.  It isn't good for something like
+NiFi that always wants to be running.  To tell linux you'd like swapping off you
+can edit '/etc/sysctl.conf' to add the following line
+----
+vm.swappiness = 0
+----
+For the partions handling the various NiFi repos turn off things like 'atime'.
+Doing so can cause a surprising bump in throughput.  Edit the '/etc/fstab' file
+and for the partition(s) of interest add the 'noatime' option.
 
 Security Configuration
 ----------------------
-Two-way SSL...
+NOTE: This section is incomplete.
+
 
 Controlling Levels of Access
 ----------------------------
-Within the web-ui ....
+NOTE: This section is incomplete.
