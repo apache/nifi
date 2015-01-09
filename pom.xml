@@ -950,4 +950,93 @@
             </plugin>
         </plugins>
     </build>
+    <profiles>
+        <profile>
+            <id>apache-release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.apache.apache.resources</groupId>
+                                <artifactId>apache-source-release-assembly-descriptor</artifactId>
+                                <version>1.0.4</version>
+                            </dependency>
+                        </dependencies>
+                        <executions>
+                            <execution>
+                                <id>source-release-assembly</id>
+                                <goals>
+                                    <goal>single</goal>
+                                </goals>
+                                <phase>validate</phase>
+                                <configuration>
+                                    <runOnlyAtExecutionRoot>true</runOnlyAtExecutionRoot>
+                                    <finalName>nifi-${project.version}</finalName>
+                                    <descriptorRefs>
+                                        <descriptorRef>source-release-zip-tar</descriptorRef>
+                                    </descriptorRefs>
+                                    <tarLongFileFormat>gnu</tarLongFileFormat>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>rename-source-release-assembly</id>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <phase>validate</phase>
+                                <configuration>
+                                    <executable>mv</executable>
+                                    <workingDirectory>${project.build.directory}</workingDirectory>
+                                    <commandlineArgs>-n nifi-${project.version}-source-release.tar.gz nifi-${project.version}-src.tar.gz</commandlineArgs>
+                                    <successCodes>
+                                        <successCode>0</successCode>
+                                        <successCode>1</successCode>
+                                    </successCodes>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <!-- Seal jars and skip tests when the
+            apache-release profile is activated. -->
+            <id>seal-jars</id>
+            <properties>
+                <sealJars>true</sealJars>
+                <skipTests>true</skipTests>
+            </properties>
+        </profile>
+        <profile>
+            <!-- Automatically check for licenses.
+            Activate with -P check-licenses -->
+            <id>check-licenses</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.rat</groupId>
+                        <artifactId>apache-rat-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                                <phase>verify</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
