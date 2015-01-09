@@ -284,7 +284,7 @@ public class SplitXml extends AbstractProcessor {
                 int attCount = atts.getLength();
                 for (int i = 0; i < attCount; i++) {
                     String attName = atts.getQName(i);
-                    String attValue = StringEscapeUtils.escapeXml(atts.getValue(i));
+                    String attValue = StringEscapeUtils.escapeXml10(atts.getValue(i));
                     sb.append(" ").append(attName).append("=").append("\"").append(attValue).append("\"");
                 }
 
