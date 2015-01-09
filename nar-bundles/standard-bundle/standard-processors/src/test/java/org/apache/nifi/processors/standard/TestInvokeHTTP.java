@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.nifi.processors.standard.InvokeHTTP;
 
 import static org.junit.Assert.*;
 
@@ -42,11 +41,7 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Request;
-import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.handler.AbstractHandler;
-import org.eclipse.jetty.server.handler.HandlerCollection;
-import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -57,7 +52,7 @@ import org.junit.Test;
 public class TestInvokeHTTP {
 
     private static Map<String, String> sslProperties;
-    private static Server server;
+    private static TestServer server;
     private static String url;
 
     private TestRunner runner;
@@ -74,19 +69,15 @@ public class TestInvokeHTTP {
 
         // create a Jetty server on a random port
         server = createServer();
-        server.start();
-
-        // we need the port to construct the base url
-        int port = ((ServerConnector) server.getConnectors()[0]).getLocalPort();
+        server.startServer();
 
         // this is the base url with the random port
-        url = "https://localhost:" + port;
-
+        url = server.getSecureUrl();
     }
 
     @AfterClass
     public static void afterClass() throws Exception {
-        server.stop();
+        server.shutdownServer();
     }
 
     @Before
@@ -95,13 +86,7 @@ public class TestInvokeHTTP {
         runner.addControllerService("ssl-context", new StandardSSLContextService(), sslProperties);
         runner.setProperty(Config.PROP_SSL_CONTEXT_SERVICE, "ssl-context");
 
-        HandlerCollection hc = (HandlerCollection) server.getHandler();
-        Handler[] ha = hc.getHandlers();
-        if (ha != null) {
-            for (Handler h : ha) {
-                hc.removeHandler(h);
-            }
-        }
+        server.clearHandlers();
     }
 
     @After
@@ -110,7 +95,7 @@ public class TestInvokeHTTP {
     }
 
     private void addHandler(Handler handler) {
-        ((HandlerCollection) server.getHandler()).addHandler(handler);
+        server.addHandler(handler);
     }
 
     @Test
@@ -537,23 +522,8 @@ public class TestInvokeHTTP {
         return map;
     }
 
-    private static Server createServer() throws IOException {
-        SslContextFactory ssl = new SslContextFactory();
-        ssl.setKeyStorePath(sslProperties.get(StandardSSLContextService.KEYSTORE.getName()));
-        ssl.setKeyStorePassword(sslProperties.get(StandardSSLContextService.KEYSTORE_PASSWORD.getName()));
-        ssl.setKeyStoreType(sslProperties.get(StandardSSLContextService.KEYSTORE_TYPE.getName()));
-        ssl.setTrustStorePath(sslProperties.get(StandardSSLContextService.TRUSTSTORE.getName()));
-        ssl.setTrustStorePassword(sslProperties.get(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName()));
-        ssl.setTrustStoreType(sslProperties.get(StandardSSLContextService.TRUSTSTORE_TYPE.getName()));
-
-        ssl.setNeedClientAuth(true);
-
-        Server server = new Server();
-
-        server.addConnector(new ServerConnector(server, ssl));
-        server.setHandler(new HandlerCollection(true));
-
-        return server;
+    private static TestServer createServer() throws IOException {
+        return new TestServer(sslProperties);
     }
 
     private static void createFlowFiles(final TestRunner testRunner) throws UnsupportedEncodingException {

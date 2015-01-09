@@ -20,8 +20,15 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -42,6 +49,24 @@ import java.util.regex.Pattern;
 
 import javax.net.ssl.SSLContext;
 
+import org.apache.http.Header;
+import org.apache.http.HttpResponse;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.config.Registry;
+import org.apache.http.config.RegistryBuilder;
+import org.apache.http.conn.HttpClientConnectionManager;
+import org.apache.http.conn.socket.ConnectionSocketFactory;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.conn.ssl.SSLContexts;
+import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.conn.BasicHttpClientConnectionManager;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -62,21 +87,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.SSLContextService.ClientAuth;
 import org.apache.nifi.util.StopWatch;
-import org.apache.http.Header;
-import org.apache.http.HttpResponse;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.params.ClientPNames;
-import org.apache.http.conn.ClientConnectionManager;
-import org.apache.http.conn.scheme.Scheme;
-import org.apache.http.conn.ssl.SSLSocketFactory;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.impl.conn.BasicClientConnectionManager;
-import org.apache.http.params.BasicHttpParams;
-import org.apache.http.params.HttpConnectionParams;
-import org.apache.http.params.HttpParams;
 
 @Tags({"get", "fetch", "poll", "http", "https", "ingest", "source", "input"})
 @CapabilityDescription("Fetches a file via HTTP")
@@ -263,6 +273,28 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
         return results;
     }
 
+    
+    private SSLContext createSSLContext(final SSLContextService service) throws KeyStoreException, IOException, NoSuchAlgorithmException, 
+        CertificateException, KeyManagementException, UnrecoverableKeyException 
+    {
+        final KeyStore truststore  = KeyStore.getInstance(service.getTrustStoreType());
+        try (final InputStream in = new FileInputStream(new File(service.getTrustStoreFile()))) {
+            truststore.load(in, service.getTrustStorePassword().toCharArray());
+        }
+        
+        final KeyStore keystore  = KeyStore.getInstance(service.getKeyStoreType());
+        try (final InputStream in = new FileInputStream(new File(service.getKeyStoreFile()))) {
+            keystore.load(in, service.getKeyStorePassword().toCharArray());
+        }
+        
+        SSLContext sslContext = SSLContexts.custom()
+                .loadTrustMaterial(truststore, new TrustSelfSignedStrategy())
+                .loadKeyMaterial(keystore, service.getKeyStorePassword().toCharArray())
+                .build();
+        
+        return sslContext;
+    }
+    
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
         final ProcessorLog logger = getLogger();
@@ -274,6 +306,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
             logger.warn("found FlowFile {} in input queue; transferring to success", new Object[]{incomingFlowFile});
         }
 
+        // get the URL
         final String url = context.getProperty(URL).getValue();
         final URI uri;
         String source = url;
@@ -283,32 +316,75 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
         } catch (URISyntaxException swallow) {
             // this won't happen as the url has already been validated
         }
-        final ClientConnectionManager conMan = createConnectionManager(context);
+        
+        // get the ssl context service
+        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+        
+        // create the connection manager
+        final HttpClientConnectionManager conMan;
+        if ( sslContextService == null ) {
+            conMan = new BasicHttpClientConnectionManager();
+        } else {
+            final SSLContext sslContext;
+            try {
+                sslContext = createSSLContext(sslContextService);
+            } catch (final Exception e) {
+                throw new ProcessException(e);
+            }
+            
+            final SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext, new String[] { "TLSv1" }, null,
+                    SSLConnectionSocketFactory.BROWSER_COMPATIBLE_HOSTNAME_VERIFIER);
+    
+            final Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory>create()
+                    .register("https", sslsf).build();
+    
+            conMan = new BasicHttpClientConnectionManager(socketFactoryRegistry);
+        }
+        
         try {
-            final HttpParams httpParams = new BasicHttpParams();
-            HttpConnectionParams.setConnectionTimeout(httpParams, context.getProperty(CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS)
-                    .intValue());
-            HttpConnectionParams.setSoTimeout(httpParams, context.getProperty(DATA_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
-            httpParams.setBooleanParameter(ClientPNames.HANDLE_REDIRECTS, context.getProperty(FOLLOW_REDIRECTS).asBoolean());
+            // build the request configuration
+            final RequestConfig.Builder requestConfigBuilder = RequestConfig.custom();
+            requestConfigBuilder.setConnectionRequestTimeout(context.getProperty(DATA_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
+            requestConfigBuilder.setConnectTimeout(context.getProperty(CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
+            requestConfigBuilder.setRedirectsEnabled(false);
+            requestConfigBuilder.setSocketTimeout(context.getProperty(DATA_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
+            requestConfigBuilder.setRedirectsEnabled(context.getProperty(FOLLOW_REDIRECTS).asBoolean());
+            
+            // build the http client
+            final HttpClientBuilder clientBuilder = HttpClientBuilder.create();
+            clientBuilder.setConnectionManager(conMan);
+            
+            // include the user agent
             final String userAgent = context.getProperty(USER_AGENT).getValue();
             if (userAgent != null) {
-                httpParams.setParameter("http.useragent", userAgent);
+                clientBuilder.setUserAgent(userAgent);
             }
-
-            final HttpClient client = new DefaultHttpClient(conMan, httpParams);
-
+            
+            // set the ssl context if necessary
+            if (sslContextService != null) {
+                clientBuilder.setSslcontext(sslContextService.createSSLContext(ClientAuth.REQUIRED));
+            }
+            
             final String username = context.getProperty(USERNAME).getValue();
             final String password = context.getProperty(PASSWORD).getValue();
+            
+            // set the credentials if appropriate
             if (username != null) {
+                final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
                 if (password == null) {
-                    ((DefaultHttpClient) client).getCredentialsProvider().setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(username));
+                    credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(username));
                 } else {
-                    ((DefaultHttpClient) client).getCredentialsProvider().setCredentials(AuthScope.ANY,
-                            new UsernamePasswordCredentials(username, password));
+                    credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(username, password));
                 }
+                clientBuilder.setDefaultCredentialsProvider(credentialsProvider);
             }
 
+            // create the http client
+            final HttpClient client = clientBuilder.build();
+            
+            // create request
             final HttpGet get = new HttpGet(url);
+            get.setConfig(requestConfigBuilder.build());
 
             get.addHeader(HEADER_IF_MODIFIED_SINCE, lastModifiedRef.get());
             get.addHeader(HEADER_IF_NONE_MATCH, entityTagRef.get());
@@ -400,48 +476,5 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
         } finally {
             conMan.shutdown();
         }
-    }
-
-    private ClientConnectionManager createConnectionManager(final ProcessContext processContext) {
-        final String url = processContext.getProperty(URL).getValue();
-        final boolean secure = (url.toLowerCase().startsWith("https"));
-        URI uriObject;
-        try {
-            uriObject = new URI(url);
-        } catch (URISyntaxException e) {
-            throw new ProcessException(e); // will not happen because of our validators
-        }
-        int port = uriObject.getPort();
-        if (port == -1) {
-            port = 443;
-        }
-
-        final ClientConnectionManager conMan = new BasicClientConnectionManager();
-        if (secure) {
-            try {
-                final SSLContext context = createSslContext(processContext);
-                final SSLSocketFactory sslSocketFactory = new SSLSocketFactory(context);
-                final Scheme sslScheme = new Scheme("https", port, sslSocketFactory);
-                conMan.getSchemeRegistry().register(sslScheme);
-            } catch (final Exception e) {
-                getLogger().error("Unable to setup SSL connection due to ", e);
-                return null;
-            }
-        }
-
-        return conMan;
-    }
-
-    /**
-     * Creates a SSL context based on the processor's optional properties.
-     * <p/>
-     *
-     * @return a SSLContext instance
-     * <p/>
-     * @throws ProcessingException if the context could not be created
-     */
-    private SSLContext createSslContext(final ProcessContext context) {
-        final SSLContextService service = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        return (service == null) ? null : service.createSSLContext(ClientAuth.REQUIRED);
     }
 }
