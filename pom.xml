@@ -97,6 +97,7 @@
         <spring.version>4.1.2.RELEASE</spring.version>
         <spring.security.version>3.2.5.RELEASE</spring.security.version>
         <jersey.version>1.18.3</jersey.version>
+        <sealJars>false</sealJars>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -895,12 +896,44 @@
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <configuration>
+                        <archive>
+                            <manifestEntries>
+                                <Sealed>${sealJars}</Sealed>
+                                <Implementation-Build>${mvngit.commit.id}</Implementation-Build>
+                            </manifestEntries>
+                        </archive>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-javadoc-plugin</artifactId>
                     <version>2.10.1</version>
                     <configuration>
                         <failOnError>false</failOnError>
                         <quiet>true</quiet>
                         <show>private</show>
+                        <encoding>UTF-8</encoding>
+                        <quiet>true</quiet>
+                        <javadocVersion>1.7</javadocVersion>
+                        <additionalJOption>-J-Xmx512m</additionalJOption>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-release-plugin</artifactId>
+                    <version>2.5.1</version>
+                    <configuration>
+                        <arguments>-P apache-release,check-licenses</arguments>
+                        <autoVersionSubmodules>true</autoVersionSubmodules>
+                        <goals>clean compile javadoc:aggregate deploy</goals>
+                        <preparationGoals>clean compile javadoc:aggregate verify</preparationGoals>
+                        <tagNameFormat>@{project.version}</tagNameFormat>
+                        <releaseProfiles>seal-jars</releaseProfiles>
+                        <useReleaseProfile>false</useReleaseProfile>
+                        <pushChanges>false</pushChanges>
+                        <localCheckout>true</localCheckout>
                     </configuration>
                 </plugin>
                 <plugin>
