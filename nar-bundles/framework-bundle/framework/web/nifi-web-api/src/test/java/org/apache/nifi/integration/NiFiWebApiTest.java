@@ -78,7 +78,7 @@ public class NiFiWebApiTest {
         ClientResponse response = dfm.testPost(baseUrl + "/controller/process-groups/root/processors", processorEntity);
 
         // ensure a successful response
-        if (!Status.CREATED.equals(response.getClientResponseStatus())) {
+        if (Status.CREATED.getStatusCode() != response.getStatusInfo().getStatusCode()) {
             // since it was unable to create the component attempt to extract an
             // error message from the response body
             final String responseEntity = response.getEntity(String.class);
@@ -107,7 +107,7 @@ public class NiFiWebApiTest {
         response = dfm.testPost(baseUrl + "/controller/process-groups/root/processors", processorEntity);
 
         // ensure a successful response
-        if (!Status.CREATED.equals(response.getClientResponseStatus())) {
+        if (Status.CREATED.getStatusCode() != response.getStatusInfo().getStatusCode()) {
             // since it was unable to create the component attempt to extract an
             // error message from the response body
             final String responseEntity = response.getEntity(String.class);
@@ -149,7 +149,7 @@ public class NiFiWebApiTest {
         response = dfm.testPost(baseUrl + "/controller/process-groups/root/connections", connectionEntity);
 
         // ensure a successful response
-        if (!Status.CREATED.equals(response.getClientResponseStatus())) {
+        if (Status.CREATED.getStatusCode() != response.getStatusInfo().getStatusCode()) {
             // since it was unable to create the component attempt to extract an
             // error message from the response body
             final String responseEntity = response.getEntity(String.class);
@@ -172,7 +172,7 @@ public class NiFiWebApiTest {
         response = dfm.testPost(baseUrl + "/controller/process-groups/root/labels", labelEntity);
 
         // ensure a successful response
-        if (!Status.CREATED.equals(response.getClientResponseStatus())) {
+        if (Status.CREATED.getStatusCode() != response.getStatusInfo().getStatusCode()) {
             // since it was unable to create the component attempt to extract an
             // error message from the response body
             final String responseEntity = response.getEntity(String.class);
@@ -195,7 +195,7 @@ public class NiFiWebApiTest {
         response = dfm.testPost(baseUrl + "/controller/process-groups/root/process-group-references", processGroupEntity);
 
         // ensure a successful response
-        if (!Status.CREATED.equals(response.getClientResponseStatus())) {
+        if (Status.CREATED.getStatusCode() != response.getStatusInfo().getStatusCode()) {
             // since it was unable to create the component attempt to extract an
             // error message from the response body
             final String responseEntity = response.getEntity(String.class);
@@ -218,7 +218,7 @@ public class NiFiWebApiTest {
         response = dfm.testPost(baseUrl + "/controller/process-groups/root/input-ports", inputPortEntity);
 
         // ensure a successful response
-        if (!Status.CREATED.equals(response.getClientResponseStatus())) {
+        if (Status.CREATED.getStatusCode() != response.getStatusInfo().getStatusCode()) {
             // since it was unable to create the component attempt to extract an
             // error message from the response body
             final String responseEntity = response.getEntity(String.class);
@@ -241,7 +241,7 @@ public class NiFiWebApiTest {
         response = dfm.testPost(baseUrl + "/controller/process-groups/root/output-ports", outputPortEntity);
 
         // ensure a successful response
-        if (!Status.CREATED.equals(response.getClientResponseStatus())) {
+        if (Status.CREATED.getStatusCode() != response.getStatusInfo().getStatusCode()) {
             // since it was unable to create the component attempt to extract an
             // error message from the response body
             final String responseEntity = response.getEntity(String.class);
@@ -266,7 +266,7 @@ public class NiFiWebApiTest {
 //        response = dfm.testPost(baseUrl + "/controller/process-groups/root/remote-process-groups", remoteProcessGroupEntity);
 //        
 //        // ensure a successful response
-//        if (!Status.CREATED.equals(response.getClientResponseStatus())) {
+//        if (Status.CREATED.getStatusCode() != response.getStatusInfo().getStatusCode()) {
 //            throw new Exception("Unable to populate initial flow.");
 //        }
     }

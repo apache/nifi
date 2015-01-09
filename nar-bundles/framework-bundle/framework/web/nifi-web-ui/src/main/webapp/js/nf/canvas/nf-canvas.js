@@ -311,6 +311,28 @@ nf.Canvas = (function () {
                     'offset': '100%',
                     'stop-color': '#ffffff'
                 });
+                
+        // define the gradient for the expiration icon
+        var expirationBackground = defs.append('linearGradient')
+                .attr({
+                    'id': 'expiration',
+                    'x1': '0%',
+                    'y1': '0%',
+                    'x2': '0%',
+                    'y2': '100%'
+                });
+                
+        expirationBackground.append('stop')
+                .attr({
+                    'offset': '0%',
+                    'stop-color': '#aeafb1'
+                });
+
+        expirationBackground.append('stop')
+                .attr({
+                    'offset': '100%',
+                    'stop-color': '#87888a'
+                });
 
         // create the canvas element
         canvas = svg.append('g')
@@ -322,134 +344,134 @@ nf.Canvas = (function () {
 
         // handle canvas events
         svg.on('mousedown.selection', function () {
-                    canvasClicked = true;
+            canvasClicked = true;
 
-                    if (d3.event.button !== 0) {
-                        // prevent further propagation (to parents and others handlers 
-                        // on the same element to prevent zoom behavior)
-                        d3.event.stopImmediatePropagation();
-                        return;
+            if (d3.event.button !== 0) {
+                // prevent further propagation (to parents and others handlers 
+                // on the same element to prevent zoom behavior)
+                d3.event.stopImmediatePropagation();
+                return;
+            }
+
+            // show selection box if shift is held down
+            if (d3.event.shiftKey) {
+                var position = d3.mouse(canvas.node());
+                canvas.append('rect')
+                        .attr('rx', 6)
+                        .attr('ry', 6)
+                        .attr('x', position[0])
+                        .attr('y', position[1])
+                        .attr('class', 'selection')
+                        .attr('width', 0)
+                        .attr('height', 0)
+                        .attr('stroke-width', function () {
+                            return 1 / nf.Canvas.View.scale();
+                        })
+                        .attr('stroke-dasharray', function () {
+                            return 4 / nf.Canvas.View.scale();
+                        })
+                        .datum(position);
+
+                // prevent further propagation (to parents)
+                d3.event.stopPropagation();
+            }
+        })
+        .on('mousemove.selection', function () {
+            // update selection box if shift is held down
+            if (d3.event.shiftKey) {
+                // get the selection box
+                var selectionBox = d3.select('rect.selection');
+                if (!selectionBox.empty()) {
+                    // get the original position
+                    var originalPosition = selectionBox.datum();
+                    var position = d3.mouse(canvas.node());
+
+                    var d = {};
+                    if (originalPosition[0] < position[0]) {
+                        d.x = originalPosition[0];
+                        d.width = position[0] - originalPosition[0];
+                    } else {
+                        d.x = position[0];
+                        d.width = originalPosition[0] - position[0];
                     }
 
-                    // show selection box if shift is held down
-                    if (d3.event.shiftKey) {
-                        var position = d3.mouse(canvas.node());
-                        canvas.append('rect')
-                                .attr('rx', 6)
-                                .attr('ry', 6)
-                                .attr('x', position[0])
-                                .attr('y', position[1])
-                                .attr('class', 'selection')
-                                .attr('width', 0)
-                                .attr('height', 0)
-                                .attr('stroke-width', function () {
-                                    return 1 / nf.Canvas.View.scale();
-                                })
-                                .attr('stroke-dasharray', function () {
-                                    return 4 / nf.Canvas.View.scale();
-                                })
-                                .datum(position);
-
-                        // prevent further propagation (to parents)
-                        d3.event.stopPropagation();
-                    }
-                })
-                .on('mousemove.selection', function () {
-                    // update selection box if shift is held down
-                    if (d3.event.shiftKey) {
-                        // get the selection box
-                        var selectionBox = d3.select('rect.selection');
-                        if (!selectionBox.empty()) {
-                            // get the original position
-                            var originalPosition = selectionBox.datum();
-                            var position = d3.mouse(canvas.node());
-
-                            var d = {};
-                            if (originalPosition[0] < position[0]) {
-                                d.x = originalPosition[0];
-                                d.width = position[0] - originalPosition[0];
-                            } else {
-                                d.x = position[0];
-                                d.width = originalPosition[0] - position[0];
-                            }
-
-                            if (originalPosition[1] < position[1]) {
-                                d.y = originalPosition[1];
-                                d.height = position[1] - originalPosition[1];
-                            } else {
-                                d.y = position[1];
-                                d.height = originalPosition[1] - position[1];
-                            }
-
-                            // update the selection box
-                            selectionBox.attr(d);
-                        }
-
-                        d3.event.stopPropagation();
-                    }
-                })
-                .on('mouseup.selection', function () {
-                    // ensure this originated from clicking the canvas, not a component.
-                    // when clicking on a component, the event propagation is stopped so
-                    // it never reaches the canvas. we cannot do this however on up events
-                    // since the drag events break down
-                    if (canvasClicked === false) {
-                        return;
+                    if (originalPosition[1] < position[1]) {
+                        d.y = originalPosition[1];
+                        d.height = position[1] - originalPosition[1];
+                    } else {
+                        d.y = position[1];
+                        d.height = originalPosition[1] - position[1];
                     }
 
-                    // reset the canvas click flag
-                    canvasClicked = false;
+                    // update the selection box
+                    selectionBox.attr(d);
+                }
 
-                    // hide the context menu if necessary
-                    nf.ContextMenu.hide();
+                d3.event.stopPropagation();
+            }
+        })
+        .on('mouseup.selection', function () {
+            // ensure this originated from clicking the canvas, not a component.
+            // when clicking on a component, the event propagation is stopped so
+            // it never reaches the canvas. we cannot do this however on up events
+            // since the drag events break down
+            if (canvasClicked === false) {
+                return;
+            }
 
-                    // get the selection box 
-                    var selectionBox = d3.select('rect.selection');
-                    if (!selectionBox.empty()) {
-                        var selectionBoundingBox = {
-                            x: parseInt(selectionBox.attr('x'), 10),
-                            y: parseInt(selectionBox.attr('y'), 10),
-                            width: parseInt(selectionBox.attr('width'), 10),
-                            height: parseInt(selectionBox.attr('height'), 10)
-                        };
+            // reset the canvas click flag
+            canvasClicked = false;
 
-                        // see if a component should be selected or not
-                        d3.selectAll('g.component').classed('selected', function (d) {
-                            // consider it selected if its already selected or enclosed in the bounding box
-                            return d3.select(this).classed('selected') ||
-                                    d.component.position.x >= selectionBoundingBox.x && (d.component.position.x + d.dimensions.width) <= (selectionBoundingBox.x + selectionBoundingBox.width) &&
-                                    d.component.position.y >= selectionBoundingBox.y && (d.component.position.y + d.dimensions.height) <= (selectionBoundingBox.y + selectionBoundingBox.height);
-                        });
+            // hide the context menu if necessary
+            nf.ContextMenu.hide();
 
-                        // see if a connection should be selected or not
-                        d3.selectAll('g.connection').classed('selected', function (d) {
-                            // consider all points
-                            var points = [d.start].concat(d.bends, [d.end]);
+            // get the selection box 
+            var selectionBox = d3.select('rect.selection');
+            if (!selectionBox.empty()) {
+                var selectionBoundingBox = {
+                    x: parseInt(selectionBox.attr('x'), 10),
+                    y: parseInt(selectionBox.attr('y'), 10),
+                    width: parseInt(selectionBox.attr('width'), 10),
+                    height: parseInt(selectionBox.attr('height'), 10)
+                };
 
-                            // determine the bounding box
-                            var x = d3.extent(points, function (pt) {
-                                return pt.x;
-                            });
-                            var y = d3.extent(points, function (pt) {
-                                return pt.y;
-                            });
-
-                            // consider it selected if its already selected or enclosed in the bounding box
-                            return d3.select(this).classed('selected') ||
-                                    x[0] >= selectionBoundingBox.x && x[1] <= (selectionBoundingBox.x + selectionBoundingBox.width) &&
-                                    y[0] >= selectionBoundingBox.y && y[1] <= (selectionBoundingBox.y + selectionBoundingBox.height);
-                        });
-
-                        // remove the selection box
-                        selectionBox.remove();
-                    } else if (panning === false) {
-                        // deselect as necessary if we are not panning
-                        nf.CanvasUtils.getSelection().classed('selected', false);
-                    }
-
-                    // update the toolbar
-                    nf.CanvasToolbar.refresh();
+                // see if a component should be selected or not
+                d3.selectAll('g.component').classed('selected', function (d) {
+                    // consider it selected if its already selected or enclosed in the bounding box
+                    return d3.select(this).classed('selected') ||
+                            d.component.position.x >= selectionBoundingBox.x && (d.component.position.x + d.dimensions.width) <= (selectionBoundingBox.x + selectionBoundingBox.width) &&
+                            d.component.position.y >= selectionBoundingBox.y && (d.component.position.y + d.dimensions.height) <= (selectionBoundingBox.y + selectionBoundingBox.height);
                 });
+
+                // see if a connection should be selected or not
+                d3.selectAll('g.connection').classed('selected', function (d) {
+                    // consider all points
+                    var points = [d.start].concat(d.bends, [d.end]);
+
+                    // determine the bounding box
+                    var x = d3.extent(points, function (pt) {
+                        return pt.x;
+                    });
+                    var y = d3.extent(points, function (pt) {
+                        return pt.y;
+                    });
+
+                    // consider it selected if its already selected or enclosed in the bounding box
+                    return d3.select(this).classed('selected') ||
+                            x[0] >= selectionBoundingBox.x && x[1] <= (selectionBoundingBox.x + selectionBoundingBox.width) &&
+                            y[0] >= selectionBoundingBox.y && y[1] <= (selectionBoundingBox.y + selectionBoundingBox.height);
+                });
+
+                // remove the selection box
+                selectionBox.remove();
+            } else if (panning === false) {
+                // deselect as necessary if we are not panning
+                nf.CanvasUtils.getSelection().classed('selected', false);
+            }
+
+            // update the toolbar
+            nf.CanvasToolbar.refresh();
+        });
 
         // define a function for update the graph dimensions
         var updateGraphSize = function () {
@@ -802,17 +824,21 @@ nf.Canvas = (function () {
     };
 
     return {
+        
         CANVAS_OFFSET: 0,
+        
         /**
          * Determines if the current broswer supports SVG.
          */
         SUPPORTS_SVG: !!document.createElementNS && !!document.createElementNS('http://www.w3.org/2000/svg', 'svg').createSVGRect,
+        
         /**
          * Hides the splash that is displayed while the application is loading.
          */
         hideSplash: function () {
             $('#splash').fadeOut();
         },
+        
         /**
          * Stop polling for revision.
          */
@@ -820,6 +846,7 @@ nf.Canvas = (function () {
             // set polling flag
             revisionPolling = false;
         },
+        
         /**
          * Remove the status poller.
          */
@@ -827,6 +854,7 @@ nf.Canvas = (function () {
             // set polling flag
             statusPolling = false;
         },
+        
         /**
          * Reloads the flow from the server based on the currently specified group id.
          * To load another group, update nf.Canvas.setGroupId and call nf.Canvas.reload.
@@ -865,6 +893,7 @@ nf.Canvas = (function () {
                 });
             }).promise();
         },
+        
         /**
          * Reloads the status.
          */
@@ -878,6 +907,7 @@ nf.Canvas = (function () {
                 });
             }).promise();
         },
+        
         /**
          * Initialize NiFi.
          */
@@ -999,6 +1029,7 @@ nf.Canvas = (function () {
                 }).fail(nf.Common.handleAjaxError);
             }).fail(nf.Common.handleAjaxError);
         },
+        
         /**
          * Defines the gradient colors used to render processors.
          * 
@@ -1007,6 +1038,7 @@ nf.Canvas = (function () {
         defineProcessorColors: function (colors) {
             setColors(colors, 'processor');
         },
+        
         /**
          * Defines the gradient colors used to render label.
          * 
@@ -1015,6 +1047,7 @@ nf.Canvas = (function () {
         defineLabelColors: function (colors) {
             setColors(colors, 'label');
         },
+        
         /**
          * Return whether this instance of NiFi is clustered.
          * 
@@ -1023,12 +1056,14 @@ nf.Canvas = (function () {
         isClustered: function () {
             return clustered === true;
         },
+        
         /**
          * Returns whether site to site communications is secure.
          */
         isSecureSiteToSite: function () {
             return secureSiteToSite;
         },
+        
         /**
          * Set the group id.
          * 
@@ -1043,6 +1078,7 @@ nf.Canvas = (function () {
         getGroupId: function () {
             return groupId;
         },
+        
         /**
          * Set the group name.
          * 
@@ -1051,12 +1087,14 @@ nf.Canvas = (function () {
         setGroupName: function (gn) {
             groupName = gn;
         },
+        
         /**
          * Get the group name.
          */
         getGroupName: function () {
             return groupName;
         },
+        
         /**
          * Set the parent group id.
          * 
@@ -1065,13 +1103,16 @@ nf.Canvas = (function () {
         setParentGroupId: function (pgi) {
             parentGroupId = pgi;
         },
+        
         /**
          * Get the parent group id.
          */
         getParentGroupId: function () {
             return parentGroupId;
         },
+        
         View: (function () {
+            
             /**
              * Updates component visibility based on their proximity to the screen's viewport.
              */
@@ -1138,8 +1179,8 @@ nf.Canvas = (function () {
                             .classed('entering', function () {
                                 return visible && !wasVisible;
                             }).classed('leaving', function () {
-                        return !visible && wasVisible;
-                    });
+                                return !visible && wasVisible;
+                            });
                 };
 
                 // get the all components

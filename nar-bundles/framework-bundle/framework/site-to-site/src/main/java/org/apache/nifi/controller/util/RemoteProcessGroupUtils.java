@@ -185,12 +185,12 @@ public class RemoteProcessGroupUtils {
     private ControllerDTO getController(final URI uri, final int timeoutMillis) throws IOException {
         final ClientResponse response = get(uri, timeoutMillis);
         
-        if (Status.OK.equals(response.getClientResponseStatus())) {
+        if (Status.OK.getStatusCode() == response.getStatusInfo().getStatusCode()) {
             final ControllerEntity entity = response.getEntity(ControllerEntity.class);
             return entity.getController();
         } else {
             final String responseMessage = response.getEntity(String.class);
-            throw new IOException("Got HTTP response Code " + response.getClientResponseStatus().getStatusCode() + ": " + response.getClientResponseStatus().getReasonPhrase() + " with explanation: " + responseMessage);
+            throw new IOException("Got HTTP response Code " + response.getStatusInfo().getStatusCode() + ": " + response.getStatusInfo().getReasonPhrase() + " with explanation: " + responseMessage);
         }
     }
     

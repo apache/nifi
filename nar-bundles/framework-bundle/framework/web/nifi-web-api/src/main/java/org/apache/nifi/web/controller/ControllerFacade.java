@@ -113,6 +113,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.admin.service.UserService;
 import org.apache.nifi.authorization.DownloadAuthorization;
+import org.apache.nifi.processor.DataUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
@@ -1253,6 +1254,28 @@ public class ControllerFacade implements ControllerServiceProvider {
         final FlowFileQueue queue = connection.getFlowFileQueue();
         for (final FlowFilePrioritizer comparator : queue.getPriorities()) {
             addIfAppropriate(searchStr, comparator.getClass().getName(), "Prioritizer", matches);
+        }
+        
+        // search expiration
+        if (StringUtils.containsIgnoreCase("expires", searchStr) || StringUtils.containsIgnoreCase("expiration", searchStr)) {
+            final int expirationMillis = connection.getFlowFileQueue().getFlowFileExpiration(TimeUnit.MILLISECONDS);
+            if (expirationMillis > 0) {
+                matches.add("FlowFile expiration: " + connection.getFlowFileQueue().getFlowFileExpiration());
+            }
+        }
+        
+        // search back pressure
+        if (StringUtils.containsIgnoreCase("back pressure", searchStr) || StringUtils.containsIgnoreCase("pressure", searchStr)) {
+            final String backPressureDataSize = connection.getFlowFileQueue().getBackPressureDataSizeThreshold();
+            final Double backPressureBytes = DataUnit.parseDataSize(backPressureDataSize, DataUnit.B);
+            if (backPressureBytes > 0) {
+                matches.add("Back pressure data size: " + backPressureDataSize);
+            }
+
+            final long backPressureCount = connection.getFlowFileQueue().getBackPressureObjectThreshold();
+            if (backPressureCount > 0) {
+                matches.add("Back pressure count: " + backPressureCount);
+            }
         }
 
         // search the source

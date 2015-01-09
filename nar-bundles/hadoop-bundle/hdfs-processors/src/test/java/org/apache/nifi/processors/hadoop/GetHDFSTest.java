@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.processors.hadoop;
 
-import org.apache.nifi.processors.hadoop.GetHDFS;
-import org.apache.nifi.processors.hadoop.PutHDFS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -25,7 +23,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 
-import junit.framework.Assert;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
@@ -35,6 +32,7 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 
 import org.apache.hadoop.fs.Path;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class GetHDFSTest {
