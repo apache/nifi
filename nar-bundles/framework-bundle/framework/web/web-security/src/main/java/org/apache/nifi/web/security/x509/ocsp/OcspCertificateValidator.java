@@ -302,7 +302,7 @@ public class OcspCertificateValidator {
             final ClientResponse response = resource.header(CONTENT_TYPE_HEADER, OCSP_REQUEST_CONTENT_TYPE).post(ClientResponse.class, ocspRequest.getEncoded());
 
             // ensure the request was completed successfully
-            if (!ClientResponse.Status.OK.equals(response.getClientResponseStatus())) {
+            if (ClientResponse.Status.OK.getStatusCode() != response.getStatusInfo().getStatusCode()) {
                 logger.warn(String.format("OCSP request was unsuccessful (%s).", response.getStatus()));
                 return ocspStatus;
             }

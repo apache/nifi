@@ -20,7 +20,6 @@ import com.sun.jersey.api.client.ClientResponse;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
-import junit.framework.Assert;
 import org.apache.nifi.integration.NiFiWebApiTest;
 import org.apache.nifi.integration.util.NiFiTestServer;
 import org.apache.nifi.integration.util.NiFiTestUser;
@@ -52,6 +51,7 @@ import org.apache.nifi.web.api.entity.UserEntity;
 import org.apache.nifi.web.api.entity.UsersEntity;
 import org.apache.commons.collections4.CollectionUtils;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 

@@ -16,10 +16,8 @@
  */
 package org.apache.nifi.prioritizer;
 
-import org.apache.nifi.prioritizer.OldestFlowFileFirstPrioritizer;
 import java.util.concurrent.atomic.AtomicLong;
 
-import junit.framework.Assert;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -28,6 +26,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessSession;
 import org.apache.nifi.util.SharedSessionState;
+import org.junit.Assert;
 
 import org.junit.Test;
 
