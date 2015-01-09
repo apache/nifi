@@ -76,7 +76,7 @@ public class DeleteIndexAction implements ExpirationAction {
         final List<File> indexDirs = indexConfiguration.getIndexDirectories(expiredFile);
         for (final File indexingDirectory : indexDirs) {
             try (final Directory directory = FSDirectory.open(indexingDirectory);
-                    final Analyzer analyzer = new StandardAnalyzer(LuceneUtil.LUCENE_VERSION)) {
+                    final Analyzer analyzer = new StandardAnalyzer()) {
                 IndexWriterConfig config = new IndexWriterConfig(LuceneUtil.LUCENE_VERSION, analyzer);
                 config.setWriteLockTimeout(300000L);
 

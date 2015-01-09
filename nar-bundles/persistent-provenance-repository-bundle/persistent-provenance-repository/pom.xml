@@ -22,7 +22,6 @@
     </parent>
 
     <artifactId>persistent-provenance-repository</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
     <name>Persistent Provenance Repository</name>
     <packaging>jar</packaging>
 

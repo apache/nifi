@@ -41,7 +41,7 @@ import org.apache.lucene.util.Version;
 
 public class LuceneUtil {
 
-    public static final Version LUCENE_VERSION = Version.LUCENE_43;
+    public static final Version LUCENE_VERSION = Version.LATEST;
 
     public static String substringBefore(final String value, final String searchValue) {
         final int index = value.indexOf(searchValue);

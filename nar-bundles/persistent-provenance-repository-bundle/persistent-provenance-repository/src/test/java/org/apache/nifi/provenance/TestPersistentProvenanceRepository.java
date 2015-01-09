@@ -16,15 +16,6 @@
  */
 package org.apache.nifi.provenance;
 
-import org.apache.nifi.provenance.PersistentProvenanceRepository;
-import org.apache.nifi.provenance.RepositoryConfiguration;
-import org.apache.nifi.provenance.IndexConfiguration;
-import org.apache.nifi.provenance.AsyncLineageSubmission;
-import org.apache.nifi.provenance.SearchableFields;
-import org.apache.nifi.provenance.StandardProvenanceEventRecord;
-import org.apache.nifi.provenance.ProvenanceEventType;
-import org.apache.nifi.provenance.ProvenanceEventRecord;
-import org.apache.nifi.provenance.ProvenanceEventBuilder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -43,6 +34,16 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.core.SimpleAnalyzer;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.queryparser.classic.ParseException;
+import org.apache.lucene.queryparser.classic.QueryParser;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.store.FSDirectory;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.provenance.lineage.EventNode;
@@ -58,18 +59,6 @@ import org.apache.nifi.provenance.search.SearchableField;
 import org.apache.nifi.provenance.serialization.RecordReader;
 import org.apache.nifi.provenance.serialization.RecordReaders;
 import org.apache.nifi.reporting.Severity;
-
-import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.core.SimpleAnalyzer;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.queryparser.classic.ParseException;
-import org.apache.lucene.queryparser.classic.QueryParser;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.TopDocs;
-import org.apache.lucene.store.FSDirectory;
-import org.apache.lucene.util.Version;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -1058,8 +1047,8 @@ public class TestPersistentProvenanceRepository {
         try (final DirectoryReader directoryReader = DirectoryReader.open(FSDirectory.open(indexDirectory))) {
             final IndexSearcher searcher = new IndexSearcher(directoryReader);
 
-            final Analyzer analyzer = new SimpleAnalyzer(Version.LUCENE_43);
-            final org.apache.lucene.search.Query luceneQuery = new QueryParser(Version.LUCENE_43, "uuid", analyzer).parse(query);
+            final Analyzer analyzer = new SimpleAnalyzer();
+            final org.apache.lucene.search.Query luceneQuery = new QueryParser("uuid", analyzer).parse(query);
 
             final Query q = new Query("");
             q.setMaxResults(1000);
