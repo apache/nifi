@@ -987,6 +987,7 @@
                         <exclude>src/main/webapp/css/reset.css</exclude>
                         <exclude>src/test/resources/</exclude> <!-- Test datasets -->
                         <exclude>nb-configuration.xml</exclude>
+                        <exclude>nbactions.xml</exclude>
                         <exclude>nar-maven-plugin/</exclude>
                     </excludes>
                 </configuration>
