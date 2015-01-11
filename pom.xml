@@ -976,6 +976,22 @@
                 </executions>
             </plugin>
             <plugin>
+                <groupId>org.apache.rat</groupId>
+                <artifactId>apache-rat-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>src/main/webapp/js/json2.js</exclude>
+                        <exclude>src/main/webapp/js/jquery/</exclude>
+                        <exclude>src/main/webapp/js/d3/d3.min.js</exclude>
+                        <exclude>src/main/webapp/js/codemirror/</exclude>
+                        <exclude>src/main/webapp/css/reset.css</exclude>
+                        <exclude>src/test/resources/</exclude> <!-- Test datasets -->
+                        <exclude>nb-configuration.xml</exclude>
+                        <exclude>nar-maven-plugin/</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nar-maven-plugin</artifactId>
                 <version>0.0.1-SNAPSHOT</version>
