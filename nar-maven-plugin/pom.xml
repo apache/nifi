@@ -163,17 +163,24 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-release-plugin</artifactId>
                     <version>2.5.1</version>
-                    <configuration>
-                        <arguments>-P apache-release,check-licenses</arguments>
-                        <autoVersionSubmodules>true</autoVersionSubmodules>
-                        <goals>clean compile javadoc:aggregate deploy</goals>
-                        <preparationGoals>clean compile javadoc:aggregate verify</preparationGoals>
-                        <tagNameFormat>@{project.version}</tagNameFormat>
-                        <releaseProfiles>seal-jars</releaseProfiles>
-                        <useReleaseProfile>false</useReleaseProfile>
-                        <pushChanges>false</pushChanges>
-                        <localCheckout>true</localCheckout>
-                    </configuration>
+                    <executions>
+                      <execution>
+                        <id>default</id>
+                        <goals>
+                          <goal>prepare</goal>
+                          <goal>perform</goal>
+                        </goals>
+                        <configuration>
+                          <pomFileName>platform/pom.xml</pomFileName>
+                          <arguments>-P apache-release,check-licenses</arguments>
+                          <autoVersionSubmodules>true</autoVersionSubmodules>
+                          <goals>deploy</goals>
+                          <tagNameFormat>@{project.version}</tagNameFormat>
+                          <pushChanges>false</pushChanges>
+                          <localCheckout>true</localCheckout>
+                        </configuration>
+                      </execution>
+                    </executions>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
