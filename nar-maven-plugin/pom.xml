@@ -176,7 +176,7 @@
                           <autoVersionSubmodules>true</autoVersionSubmodules>
                           <releaseProfiles>apache-release</releaseProfiles>
                           <goals>deploy</goals>
-                          <tagNameFormat>@{project.version}</tagNameFormat>
+                          <tagNameFormat>nar-maven-plugin-@{project.version}</tagNameFormat>
                           <pushChanges>false</pushChanges>
                           <localCheckout>true</localCheckout>
                         </configuration>
