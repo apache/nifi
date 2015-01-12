@@ -1210,6 +1210,7 @@ nf.Canvas = (function () {
             return {
                 init: function () {
                     var refreshed;
+                    var zoomed = false;
 
                     // define the behavior
                     behavior = d3.behavior.zoom()
@@ -1217,7 +1218,13 @@ nf.Canvas = (function () {
                             .translate(TRANSLATE)
                             .scale(SCALE)
                             .on('zoom', function () {
-                                panning = true;
+                                // if we have zoomed, indicate that we are panning
+                                // to prevent deselection elsewhere
+                                if (zoomed) {
+                                    panning = true;
+                                } else {
+                                    zoomed = true;
+                                }
 
                                 // see if the scale has changed during this zoom event,
                                 // we want to only transition when zooming in/out as running
@@ -1250,6 +1257,7 @@ nf.Canvas = (function () {
                                 }
 
                                 panning = false;
+                                zoomed = false;
                             });
 
                     // add the behavior to the canvas and disable dbl click zoom
