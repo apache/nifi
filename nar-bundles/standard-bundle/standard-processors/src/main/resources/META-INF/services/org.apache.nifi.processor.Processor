@@ -30,6 +30,7 @@ org.apache.nifi.processors.standard.GetHTTP
 org.apache.nifi.processors.standard.GetSFTP
 org.apache.nifi.processors.standard.HashAttribute
 org.apache.nifi.processors.standard.HashContent
+org.apache.nifi.processors.standard.HoldFile
 org.apache.nifi.processors.standard.IdentifyMimeType
 org.apache.nifi.processors.standard.InvokeHTTP
 org.apache.nifi.processors.standard.ListenHTTP

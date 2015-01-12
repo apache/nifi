@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8" />
+        <title>HoldFile</title>
+
+
+        <link rel="stylesheet" href="../../css/component-usage.css" type="text/css" />
+    </head>
+
+    <body>
+
+        <!-- Processor Documentation ================================================== -->
+        <h2>Description:</h2>
+        <p>This processor holds incoming flow files until a matching signal 
+        flow file enters the processor.  Incoming files are classified as either 
+        held files or signals.  Held files are routed to the Held relationship 
+        until a matching signal has been received.
+        </p>
+
+		<p>This processor primarily supports the following use case:
+		<ul>
+			<li>A file in format A needs to be sent to Endpoint A</li>
+			<li>The same file in format B needs to be sent to Endpoint B, 
+				but should not proceed until A has reached Endpoint A.  
+				This restriction is most common when Endpoint B 
+				requires some output of Endpoint A.</li>
+		</ul>
+		</p>
+		<p>Signal files are distinguished from held files by the presence of the 
+		"flow.file.release.value" attribute on the signal files.  When a signal
+		file enters, its value is cached in the processor.  The processor is also
+		configured with a "Release Signal Attribute".  Held files with this 
+		attribute whose value matches a received signal value will be released.</p>
+
+		<p>An example:  HoldFile is configured with Release Signal Attribute = "myId".  
+		Its 'hold' relationship routes back onto itself.
+		<ol>
+			<li>flowFile 1 { myId : "123" } enters HoldFile.  It is routed to the 'hold' relationship.</li>
+			<li>flowFile 2 { flow.file.release.value : "123" } enters HoldFile.  
+			Flowfile 1 is then routed to 'release'.</li>
+		</ol>
+
+		<p>Signal flow files will also copy their attributes to matching held files, 
+		unless otherwise indicated.  This is what allows the output of 
+		Endpoint A to pass to Endpoint B, above.
+		</p>
+        <p>
+            <strong>Uses Attributes:</strong>
+        </p>
+        <table border="1">
+            <thead>
+                <tr>
+                    <th>Attribute Name</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>flow.file.release.value</td>
+                    <td>Files with this attribute are considered signals.  The attribute
+                    value is stored in a cache in the processor, and any held flow files
+                    are released if their Release Signal Attribute (configured in the processor)
+                    matches this value.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p>
+            <strong>Properties:</strong>
+        </p>
+        <p>In the list below, the names of required properties appear
+            in bold. Any other properties (not in bold) are considered optional.
+            If a property has a default value, it is indicated. If a property
+            supports the use of the NiFi Expression Language (or simply,
+            "expression language"), that is also indicated.</p>
+        <ul>
+            <li><strong>Release Signal Attribute</strong>
+                <ul>
+                    <li>The flow file attribute name on held files that will be checked against the signal cache.</li>
+                    <li>Default value: none</li>
+                    <li>Supports expression language: false</li>
+                </ul>
+            </li>
+            <li><strong>Max Signal Age</strong>
+                <ul>
+                    <li>The maximum age of a signal that will trigger a file to be released.
+                    Signals are expired from the cache after this duration, and
+                    any matching held files will be routed to the 'expired' relationship.
+					Expected format is <duration> <time unit> where <duration> is a positive 
+					integer and <time unit> is one of seconds, minutes, hours</li>
+                    <li>Default value: 24 hours</li>
+                    <li>Supports expression language: false</li>
+                </ul></li>
+            <li><strong>Copy Signal Attributes?</strong>
+                <ul>
+                    <li>If true, a signal's flow file attributes will be copied to its matching held files, 
+					with the exception of flow.file.release.value and the configured Signal Failure Attribute.</li>
+                    <li>Default value: true</li>
+                    <li>Supports expression language: false</li>
+                </ul>
+            </li>
+            <li>Signal Failure Attribute
+                <ul>
+                    <li>Signals that have this attribute set to 'true' 
+					will cause matching held flow files to route to Failure.  If this attribute 
+					is not populated, it is assumed that the flow file succeeds.  This allows
+					upstream failures to propagate to held files.</li>
+                    <li>Default value: no default</li>
+                    <li>Supports expression language: false</li>
+                </ul>
+            </li>
+        </ul>
+
+        <p>
+            <strong>Relationships:</strong>
+        </p>
+        <ul>
+            <li>hold
+                <ul>
+                    <li>Held files whose signals have not been received are routed here.  The most common pattern is to
+                    route this relationship back into the processor, and set it on a timer.</li>
+                </ul>
+            </li>
+            <li>release
+                <ul>
+                    <li>Held files whose signals have been received are routed here.</li>
+                </ul>
+            </li>
+            <li>failure
+                <ul>
+                    <li>Held files whose signal contains the Signal Failure Attribute are 
+                    routed here, indicating a processing failure upstream.</li>
+                </ul>
+            </li>
+            <li>expired
+                <ul>
+                    <li>Held files that expire are routed here.</li>
+                </ul>
+            </li>
+        </ul>
+
+    </body>
+</html>
