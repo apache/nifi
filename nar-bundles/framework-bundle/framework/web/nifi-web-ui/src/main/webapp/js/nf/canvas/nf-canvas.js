@@ -372,8 +372,12 @@ nf.Canvas = (function () {
                         })
                         .datum(position);
 
-                // prevent further propagation (to parents)
-                d3.event.stopPropagation();
+                // prevent further propagation (to parents and others handlers 
+                // on the same element to prevent zoom behavior)
+                d3.event.stopImmediatePropagation();
+                
+                // prevents the browser from changing to a text selection cursor
+                d3.event.preventDefault();
             }
         })
         .on('mousemove.selection', function () {
@@ -385,7 +389,7 @@ nf.Canvas = (function () {
                     // get the original position
                     var originalPosition = selectionBox.datum();
                     var position = d3.mouse(canvas.node());
-
+                    
                     var d = {};
                     if (originalPosition[0] < position[0]) {
                         d.x = originalPosition[0];
@@ -407,6 +411,7 @@ nf.Canvas = (function () {
                     selectionBox.attr(d);
                 }
 
+                // prevent further propagation (to parents)
                 d3.event.stopPropagation();
             }
         })
