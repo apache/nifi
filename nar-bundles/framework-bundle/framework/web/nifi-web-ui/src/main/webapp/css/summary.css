@@ -313,6 +313,7 @@ span.storage-usage-details {
 div.storage-usage-progressbar {
     height: 20px;
     border: 1px solid #aaaaaa;
+    border-radius: 0;
 }
 
 div.storage-usage-progressbar div.ui-progressbar-value {
@@ -321,6 +322,7 @@ div.storage-usage-progressbar div.ui-progressbar-value {
     line-height: 20px;
     display: block;
     text-align: center;
+    border-radius: 0;
 }
 
 /* summary tabs */
