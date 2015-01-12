@@ -95,3 +95,66 @@ NOTE: This section is incomplete.
 Controlling Levels of Access
 ----------------------------
 NOTE: This section is incomplete.
+
+Once NiFi is configured to run securely as discussed in the previous section, it is necessary
+to manually designate an ADMIN user in the authorized-users.xml file, which is located in the
+root installation's conf directory. After this ADMIN user has been added, s/he may grant access
+to other users, systems, and other instances of NiFi, through the User Interface (UI) without having to manually edit the authorized-users.xml
+file. If you are the administrator, you would add yourself as the ADMIN user in this file.
+
+Open the authorized-users.xml file in a text editor. You will notice that it includes a template
+to guide you, with example entries that are commented out.
+
+It is only necessary to manually add one user, the ADMIN user,
+to this file.
+So, at a minimum, the following example entry should be included and contain the user Distinguished Name (dn)
+in place of "user dn - read only and admin":
+
+----
+<users>
+    <user dn="[user dn - read only and admin]">
+        <role name="ROLE_ADMIN"/>
+    </user>
+</users>
+----
+
+Here is an example entry using the name John Smith:
+
+----
+<users>
+    <user dn="[cn=John Smith,ou=people,dc=example,dc=com]">
+        <role name="ROLE_ADMIN"/>
+    </user>
+</users>
+----
+
+After the authorized-users.xml file has been edited and saved, restart NiFi.
+Once the application starts, the ADMIN user is
+able to access the UI at the https URL that is configured in the nifi.properties file.
+
+From the UI, click on the Users icon ( image:iconUsers.png["Users", width=32] ) in the
+Management Toolbar (upper-right corner of the UI), and the User Management Page opens.
+
+The ADMIN user should be listed. Click on the pencil icon to see this user's role(s). You may edit the
+roles by selecting the appropriate checkboxes.
+
+When other users want access to the NiFi UI, they navigate to the configured URL and are
+prompted to request access. When someone has requested access, the ADMIN user sees a star
+on the Users icon in the Management Toolbar, alerting the ADMIN to the fact that a request is
+pending. Upon opening the User Management Page, the pending request is visible, and the ADMIN
+can grant access and click on the pencil icon to set the user's roles appropriately.
+
+The ADMIN may also select multiple users and add them to a "Group". Hold down the Shift key and select
+multiple users, then click the `Group` button in the upper-right corner of the User Management Page.
+Then, provide a name for the group.
+
+The group feature is especially useful when a remote NiFi cluster is connecting to this NiFi using
+a Remote Process Group. In that scenario, all the nodes
+in the remote cluster can be included in the same group. When the ADMIN wants to grant port access to the remote
+cluster, s/he can grant it to the group and avoid having to grant it individually to each node in the cluster.
+
+
+
+
+
+

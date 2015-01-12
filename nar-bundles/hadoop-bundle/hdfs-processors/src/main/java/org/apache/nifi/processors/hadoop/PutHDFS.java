@@ -47,7 +47,6 @@ import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.Tuple;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -322,7 +321,9 @@ public class PutHDFS extends AbstractHadoopProcessor {
             getLogger().info("copied {} to HDFS at {} in {} milliseconds at a rate of {}",
                     new Object[]{flowFile, copyFile, millis, dataRate});
 
-            session.getProvenanceReporter().send(flowFile, copyFile.toString());
+            final String filename = copyFile.toString();
+            final String transitUri = (filename.startsWith("/")) ? "hdfs:/" + filename : "hdfs://" + filename;
+            session.getProvenanceReporter().send(flowFile, transitUri);
             session.transfer(flowFile, REL_SUCCESS);
 
         } catch (final Throwable t) {

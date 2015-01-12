@@ -363,7 +363,8 @@ public class GetHDFS extends AbstractHadoopProcessor {
                     continue;
                 }
 
-                session.getProvenanceReporter().receive(flowFile, file.toString());
+                final String transitUri = (filename.startsWith("/")) ? "hdfs:/" + filename : "hdfs://" + filename;
+                session.getProvenanceReporter().receive(flowFile, transitUri);
                 session.transfer(flowFile, REL_SUCCESS);
                 getLogger().info("retrieved {} from HDFS {} in {} milliseconds at a rate of {}",
                         new Object[]{flowFile, file, millis, dataRate});
