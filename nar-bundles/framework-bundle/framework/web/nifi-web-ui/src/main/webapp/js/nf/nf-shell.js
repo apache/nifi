@@ -53,6 +53,11 @@ nf.Shell = (function () {
          * @argument {boolean} canUndock        Whether or not the shell is undockable
          */
         showPage: function (uri, canUndock) {
+            // if the context menu is on this page, attempt to close
+            if (nf.Common.isDefinedAndNotNull(nf.ContextMenu)) {
+                nf.ContextMenu.hide();
+            }
+            
             return $.Deferred(function (deferred) {
                 var shell = $('#shell');
 
@@ -108,6 +113,11 @@ nf.Shell = (function () {
          * @argument {string} domId             The id of the element to show in the shell
          */
         showContent: function (domId) {
+            // if the context menu is on this page, attempt to close
+            if (nf.Common.isDefinedAndNotNull(nf.ContextMenu)) {
+                nf.ContextMenu.hide();
+            }
+            
             return $.Deferred(function (deferred) {
                 var content = $(domId);
                 if (content.length) {
