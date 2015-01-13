@@ -372,8 +372,12 @@ nf.Canvas = (function () {
                         })
                         .datum(position);
 
-                // prevent further propagation (to parents)
-                d3.event.stopPropagation();
+                // prevent further propagation (to parents and others handlers 
+                // on the same element to prevent zoom behavior)
+                d3.event.stopImmediatePropagation();
+                
+                // prevents the browser from changing to a text selection cursor
+                d3.event.preventDefault();
             }
         })
         .on('mousemove.selection', function () {
@@ -385,7 +389,7 @@ nf.Canvas = (function () {
                     // get the original position
                     var originalPosition = selectionBox.datum();
                     var position = d3.mouse(canvas.node());
-
+                    
                     var d = {};
                     if (originalPosition[0] < position[0]) {
                         d.x = originalPosition[0];
@@ -407,6 +411,7 @@ nf.Canvas = (function () {
                     selectionBox.attr(d);
                 }
 
+                // prevent further propagation (to parents)
                 d3.event.stopPropagation();
             }
         })
@@ -1210,6 +1215,7 @@ nf.Canvas = (function () {
             return {
                 init: function () {
                     var refreshed;
+                    var zoomed = false;
 
                     // define the behavior
                     behavior = d3.behavior.zoom()
@@ -1217,7 +1223,13 @@ nf.Canvas = (function () {
                             .translate(TRANSLATE)
                             .scale(SCALE)
                             .on('zoom', function () {
-                                panning = true;
+                                // if we have zoomed, indicate that we are panning
+                                // to prevent deselection elsewhere
+                                if (zoomed) {
+                                    panning = true;
+                                } else {
+                                    zoomed = true;
+                                }
 
                                 // see if the scale has changed during this zoom event,
                                 // we want to only transition when zooming in/out as running
@@ -1250,6 +1262,7 @@ nf.Canvas = (function () {
                                 }
 
                                 panning = false;
+                                zoomed = false;
                             });
 
                     // add the behavior to the canvas and disable dbl click zoom
