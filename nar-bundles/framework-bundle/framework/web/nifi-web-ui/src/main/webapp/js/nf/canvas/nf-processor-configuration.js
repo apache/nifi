@@ -363,6 +363,20 @@ nf.ProcessorConfiguration = (function () {
             return true;
         }
     };
+    
+    /**
+     * Reloads the outgoing connections for the specified processor.
+     * 
+     * @param {object} processor
+     */
+    var reloadProcessorConnections = function (processor) {
+        var connections = nf.Connection.getComponentConnections(processor.id);
+        $.each(connections, function (_, connection) {
+            if (connection.source.id === processor.id) {
+                nf.Connection.reload(connection);
+            }
+        });
+    };
 
     return {
         /**
@@ -601,8 +615,11 @@ nf.ProcessorConfiguration = (function () {
                                             // update the revision
                                             nf.Client.setRevision(response.revision);
 
-                                            // set the new processor state
+                                            // set the new processor state based on the response
                                             nf.Processor.set(response.processor);
+                                            
+                                            // reload the processor's outgoing connections
+                                            reloadProcessorConnections(processor);
 
                                             // close the details panel
                                             $('#processor-configuration').modal('hide');
@@ -632,7 +649,11 @@ nf.ProcessorConfiguration = (function () {
 
                                     // show the custom ui
                                     nf.CustomProcessorUi.showCustomUi($('#processor-id').text(), processor.config.customUiUrl, true).done(function () {
+                                        // once the custom ui is closed, reload the processor
                                         nf.Processor.reload(processor);
+                                        
+                                        // and reload the processor's outgoing connections
+                                        reloadProcessorConnections(processor);
                                     });
                                 };
 
