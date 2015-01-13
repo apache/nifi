@@ -756,7 +756,9 @@ public class FlowController implements EventAccess, ControllerServiceProvider, H
 
     /**
      * <p>
-     * Creates a new ProcessorNode with the given type and identifier.</p>
+     * Creates a new ProcessorNode with the given type and identifier and initializes it invoking the
+     * methods annotated with {@link OnAdded}.
+     * </p>
      *
      * @param type
      * @param id
@@ -766,6 +768,24 @@ public class FlowController implements EventAccess, ControllerServiceProvider, H
      * instantiated for any reason
      */
     public ProcessorNode createProcessor(final String type, String id) throws ProcessorInstantiationException {
+        return createProcessor(type, id, true);
+    }
+    
+    /**
+     * <p>
+     * Creates a new ProcessorNode with the given type and identifier and optionally initializes it.
+     * </p>
+     *
+     * @param type the fully qualified Processor class name
+     * @param id the unique ID of the Processor
+     * @param firstTimeAdded whether or not this is the first time this Processor is added to the graph. If {@code true},
+     *                       will invoke methods annotated with the {@link OnAdded} annotation.
+     * @return
+     * @throws NullPointerException if either arg is null
+     * @throws ProcessorInstantiationException if the processor cannot be
+     * instantiated for any reason
+     */
+    public ProcessorNode createProcessor(final String type, String id, final boolean firstTimeAdded) throws ProcessorInstantiationException {
         id = id.intern();
         final Processor processor = instantiateProcessor(type, id);
         final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(controllerServiceProvider);
@@ -774,12 +794,13 @@ public class FlowController implements EventAccess, ControllerServiceProvider, H
         final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
         logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, LogLevel.WARN, new ProcessorLogObserver(getBulletinRepository(), procNode));
 
-        // TODO: We should only call this the first time that it is added to the graph....
-        try (final NarCloseable x = NarCloseable.withNarLoader()) {
-            ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, processor);
-        } catch (final Exception e) {
-            logRepository.removeObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID);
-            throw new ProcessorLifeCycleException("Failed to invoke @OnAdded methods of " + procNode.getProcessor(), e);
+        if ( firstTimeAdded ) {
+            try (final NarCloseable x = NarCloseable.withNarLoader()) {
+                ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, processor);
+            } catch (final Exception e) {
+                logRepository.removeObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID);
+                throw new ProcessorLifeCycleException("Failed to invoke @OnAdded methods of " + procNode.getProcessor(), e);
+            }
         }
 
         return procNode;

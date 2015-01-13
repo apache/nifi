@@ -594,7 +594,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         final List<Element> processorNodeList = getChildrenByTagName(processGroupElement, "processor");
         for (final Element processorElement : processorNodeList) {
             final ProcessorDTO processorDTO = FlowFromDOMFactory.getProcessor(processorElement, encryptor);
-            final ProcessorNode procNode = controller.createProcessor(processorDTO.getType(), processorDTO.getId());
+            final ProcessorNode procNode = controller.createProcessor(processorDTO.getType(), processorDTO.getId(), false);
             processGroup.addProcessor(procNode);
             updateProcessor(procNode, processorDTO, processGroup, controller);
         }

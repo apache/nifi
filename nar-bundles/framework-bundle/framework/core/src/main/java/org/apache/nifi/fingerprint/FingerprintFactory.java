@@ -467,7 +467,7 @@ public final class FingerprintFactory {
         Processor processor = null;
         try {
             if (controller != null) {
-                processor = controller.createProcessor(className, UUID.randomUUID().toString()).getProcessor();
+                processor = controller.createProcessor(className, UUID.randomUUID().toString(), false).getProcessor();
             }
         } catch (ProcessorInstantiationException e) {
             logger.warn("Unable to create Processor of type {} due to {}; its default properties will be fingerprinted instead of being ignored.", className, e.toString());
