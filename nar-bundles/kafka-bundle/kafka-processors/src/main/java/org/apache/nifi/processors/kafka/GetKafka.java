@@ -302,7 +302,7 @@ public class GetKafka extends AbstractProcessor {
     		} else {
         		flowFile = session.putAllAttributes(flowFile, attributes);
         		final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
-        		session.getProvenanceReporter().receive(flowFile, "kafka://" + topic, millis);
+        		session.getProvenanceReporter().receive(flowFile, "kafka://" + topic, "Received " + numMessages + " Kafka messages", millis);
         		getLogger().info("Successfully received {} from Kafka with {} messages in {} millis", new Object[] {flowFile, numMessages, millis});
         		session.transfer(flowFile, REL_SUCCESS);
     		}
