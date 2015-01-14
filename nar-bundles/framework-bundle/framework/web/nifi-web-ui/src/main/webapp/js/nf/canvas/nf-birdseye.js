@@ -272,6 +272,10 @@ nf.Birdseye = (function () {
                             y: d.y
                         };
                     })
+                    .on('dragstart', function () {
+                        // hide the context menu
+                        nf.ContextMenu.hide();
+                    })
                     .on('drag', function (d) {
                         d.x += d3.event.dx;
                         d.y += d3.event.dy;

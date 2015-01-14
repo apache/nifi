@@ -166,6 +166,9 @@ nf.Search = (function () {
                     $('div.search-glass-pane').remove();
                 }
             }).focus(function () {
+                // hide the context menu if necessary
+                nf.ContextMenu.hide();
+                
                 // clear the text for the user to type
                 $(this).val('').removeClass('search-flow');
             }).blur(function () {

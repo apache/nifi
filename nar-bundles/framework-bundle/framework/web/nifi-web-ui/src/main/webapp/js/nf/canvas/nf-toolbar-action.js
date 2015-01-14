@@ -62,6 +62,10 @@ nf.ToolbarAction.prototype.initAction = function () {
         }
     }).click(function () {
         if (!$(this).hasClass(self.disableCls)) {
+            // hide the context menu
+            nf.ContextMenu.hide();
+            
+            // execute the action
             nf.Actions[self.action](nf.CanvasUtils.getSelection());
         }
     }).appendTo(this.container);
