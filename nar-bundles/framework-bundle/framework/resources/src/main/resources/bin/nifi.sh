@@ -172,10 +172,10 @@ case "$1" in
     install)
         install "$@"
         ;;
-    start|stop|run|status)
+    start|stop|run|restart|status|dump)
         main "$@"
         ;;
     *)
-        echo "Usage nifi {start|stop|run|status|install}"
+        echo "Usage nifi {start|stop|run|restart|status|dump|install}"
         ;;
 esac

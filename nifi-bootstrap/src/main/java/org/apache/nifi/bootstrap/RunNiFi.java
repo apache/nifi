@@ -34,6 +34,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -75,6 +76,7 @@ public class RunNiFi {
 	
 	public static final String SHUTDOWN_CMD = "SHUTDOWN";
 	public static final String PING_CMD = "PING";
+	public static final String DUMP_CMD = "DUMP";
 	
 	private volatile boolean autoRestartNiFi = true;
 	private volatile int ccPort = -1;
@@ -105,41 +107,52 @@ public class RunNiFi {
 	private static void printUsage() {
 		System.out.println("Usage:");
 		System.out.println();
-		System.out.println("java org.apache.nifi.bootstrap.RunNiFi [<-verbose>] <command>");
+		System.out.println("java org.apache.nifi.bootstrap.RunNiFi [<-verbose>] <command> [options]");
 		System.out.println();
 		System.out.println("Valid commands include:");
 		System.out.println("");
 		System.out.println("Start : Start a new instance of Apache NiFi");
 		System.out.println("Stop : Stop a running instance of Apache NiFi");
+		System.out.println("Restart : Stop Apache NiFi, if it is running, and then start a new instance");
 		System.out.println("Status : Determine if there is a running instance of Apache NiFi");
+		System.out.println("Dump : Write a Thread Dump to the file specified by [options], or to the log if no file is given");
 		System.out.println("Run : Start a new instance of Apache NiFi and monitor the Process, restarting if the instance dies");
 		System.out.println();
 	}
 
+	private static String[] shift(final String[] orig) {
+	    return Arrays.copyOfRange(orig, 1, orig.length);
+	}
 	
-	public static void main(final String[] args) throws IOException, InterruptedException {
-		if ( args.length < 1 || args.length > 2 ) {
+	public static void main(String[] args) throws IOException, InterruptedException {
+		if ( args.length < 1 || args.length > 3 ) {
 			printUsage();
 			return;
 		}
 		
+		File dumpFile = null;
 		boolean verbose = false;
-		if ( args.length == 2 ) {
-		    if ( args[0].equals("-verbose") ) {
-		        verbose = true;
-		    } else {
-		        printUsage();
-		        return;
-		    }
+		if ( args[0].equals("-verbose") ) {
+		    verbose = true;
+		    args = shift(args);
 		}
 		
-		final String cmd = args.length == 1 ? args[0] : args[1];
+		final String cmd = args[0];
+	    if (cmd.equals("dump") ) {
+	        if ( args.length > 1 ) {
+	            dumpFile = new File(args[1]);
+	        } else {
+	            dumpFile = null;
+	        }
+	    }
 		
 		switch (cmd.toLowerCase()) {
 			case "start":
 			case "run":
 			case "stop":
 			case "status":
+			case "dump":
+			case "restart":
 				break;
 			default:
 				printUsage();
@@ -178,6 +191,13 @@ public class RunNiFi {
 			case "status":
 				runNiFi.status();
 				break;
+			case "restart":
+			    runNiFi.stop();
+			    runNiFi.start(false);
+			    break;
+			case "dump":
+			    runNiFi.dump(dumpFile);
+			    break;
 		}
 	}
 	
@@ -390,6 +410,53 @@ public class RunNiFi {
 	    }
 	}
 	
+	
+	/**
+	 * Writes a NiFi thread dump to the given file; if file is null, logs at INFO level instead.
+	 * @param dumpFile
+	 * @return
+	 * @throws IOException
+	 */
+	public void dump(final File dumpFile) throws IOException {
+	    final Integer port = getCurrentPort();
+        if ( port == null ) {
+            System.out.println("Apache NiFi is not currently running");
+        }
+        
+        final Properties nifiProps = loadProperties();
+        final String secretKey = nifiProps.getProperty("secret.key");
+
+        final StringBuilder sb = new StringBuilder();
+	    try (final Socket socket = new Socket()) {
+            logger.fine("Connecting to NiFi instance");
+            socket.setSoTimeout(60000);
+            socket.connect(new InetSocketAddress("localhost", port));
+            logger.fine("Established connection to NiFi instance.");
+            socket.setSoTimeout(60000);
+            
+            logger.fine("Sending DUMP Command to port " + port);
+            final OutputStream out = socket.getOutputStream();
+            out.write((DUMP_CMD + " " + secretKey + "\n").getBytes(StandardCharsets.UTF_8));
+            out.flush();
+            
+            final InputStream in = socket.getInputStream();
+            final BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+            String line;
+            while ((line = reader.readLine()) != null ) {
+                sb.append(line).append("\n");
+            }
+        }
+	    
+	    final String dump = sb.toString();
+	    if ( dumpFile == null ) {
+	        logger.info(dump);
+	    } else {
+	        try (final FileOutputStream fos = new FileOutputStream(dumpFile)) {
+	            fos.write(dump.getBytes(StandardCharsets.UTF_8));
+	        }
+	        logger.info("Successfully wrote thread dump to " + dumpFile.getAbsolutePath());
+	    }
+	}
 	
 	public void stop() throws IOException {
 		final Integer port = getCurrentPort();

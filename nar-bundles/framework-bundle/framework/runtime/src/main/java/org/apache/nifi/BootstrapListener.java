@@ -17,16 +17,27 @@
 package org.apache.nifi;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.lang.management.LockInfo;
+import java.lang.management.ManagementFactory;
+import java.lang.management.MonitorInfo;
+import java.lang.management.ThreadInfo;
+import java.lang.management.ThreadMXBean;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -162,6 +173,10 @@ public class BootstrapListener {
 										echoShutdown(socket.getOutputStream());
 										nifi.shutdownHook();
 										return;
+									case DUMP:
+									    logger.info("Received DUMP request from Bootstrap");
+									    writeDump(socket.getOutputStream());
+									    break;
 								}
 							} catch (final Throwable t) {
 								logger.error("Failed to process request from Bootstrap due to " + t.toString(), t);
@@ -181,6 +196,110 @@ public class BootstrapListener {
 		}
 	}
 	
+	
+	private static void writeDump(final OutputStream out) throws IOException {
+        final ThreadMXBean mbean = ManagementFactory.getThreadMXBean();
+        final BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(out));
+        
+        final ThreadInfo[] infos = mbean.dumpAllThreads(true, true);
+        final long[] deadlockedThreadIds = mbean.findDeadlockedThreads();
+        final long[] monitorDeadlockThreadIds = mbean.findMonitorDeadlockedThreads();
+        
+        final List<ThreadInfo> sortedInfos = new ArrayList<>(infos.length);
+        for ( final ThreadInfo info : infos ) {
+            sortedInfos.add(info);
+        }
+        Collections.sort(sortedInfos, new Comparator<ThreadInfo>() {
+            @Override
+            public int compare(ThreadInfo o1, ThreadInfo o2) {
+                return o1.getThreadName().toLowerCase().compareTo(o2.getThreadName().toLowerCase());
+            }
+        });
+        
+        final StringBuilder sb = new StringBuilder();
+        for ( final ThreadInfo info : sortedInfos ) {
+            sb.append("\n");
+            sb.append("\"").append(info.getThreadName()).append("\" Id=");
+            sb.append(info.getThreadId()).append(" ");
+            sb.append(info.getThreadState().toString()).append(" ");
+            
+            switch (info.getThreadState()) {
+                case BLOCKED:
+                case TIMED_WAITING:
+                case WAITING:
+                    sb.append(" on ");
+                    sb.append(info.getLockInfo());
+                    break;
+                default:
+                    break;
+            }
+            
+            if (info.isSuspended()) {
+                sb.append(" (suspended)");
+            }
+            if ( info.isInNative() ) {
+                sb.append(" (in native code)");
+            }
+            
+            if ( deadlockedThreadIds != null && deadlockedThreadIds.length > 0 ) {
+                for ( final long id : deadlockedThreadIds ) {
+                    if ( id == info.getThreadId() ) {
+                        sb.append(" ** DEADLOCKED THREAD **");
+                    }
+                }
+            }
+
+           if ( monitorDeadlockThreadIds != null && monitorDeadlockThreadIds.length > 0 ) {
+                for ( final long id : monitorDeadlockThreadIds ) {
+                    if ( id == info.getThreadId() ) {
+                        sb.append(" ** MONITOR-DEADLOCKED THREAD **");
+                    }
+                }
+            }
+
+            final StackTraceElement[] stackTraces = info.getStackTrace();
+            for ( final StackTraceElement element : stackTraces ) {
+                sb.append("\n\tat ").append(element);
+                
+                final MonitorInfo[] monitors = info.getLockedMonitors();
+                for ( final MonitorInfo monitor : monitors ) {
+                    if ( monitor.getLockedStackFrame().equals(element) ) {
+                        sb.append("\n\t- waiting on ").append(monitor);
+                    }
+                }
+            }
+            
+            final LockInfo[] lockInfos = info.getLockedSynchronizers();
+            if ( lockInfos.length > 0 ) {
+                sb.append("\n\t");
+                sb.append("Number of Locked Synchronizers: ").append(lockInfos.length);
+                for ( final LockInfo lockInfo : lockInfos ) {
+                    sb.append("\n\t- ").append(lockInfo.toString());
+                }
+            }
+            
+            sb.append("\n");
+        }
+        
+        if (deadlockedThreadIds != null && deadlockedThreadIds.length > 0) {
+            sb.append("\n\nDEADLOCK DETECTED!");
+            sb.append("\nThe following thread IDs are deadlocked:");
+            for ( final long id : deadlockedThreadIds ) {
+                sb.append("\n").append(id);
+            }
+        }
+
+       if (monitorDeadlockThreadIds != null && monitorDeadlockThreadIds.length > 0) {
+            sb.append("\n\nMONITOR DEADLOCK DETECTED!");
+            sb.append("\nThe following thread IDs are deadlocked:");
+            for ( final long id : monitorDeadlockThreadIds ) {
+                sb.append("\n").append(id);
+            }
+        }
+
+        writer.write(sb.toString());
+        writer.flush();
+    }
 	
 	private void echoPing(final OutputStream out) throws IOException {
 		out.write("PING\n".getBytes(StandardCharsets.UTF_8));
@@ -205,7 +324,7 @@ public class BootstrapListener {
 		
 		final String line = reader.readLine();
 		final String[] splits = line.split(" ");
-		if ( splits.length < 0 ) {
+		if ( splits.length < 1 ) {
 			throw new IOException("Received invalid request from Bootstrap: " + line);
 		}
 		
@@ -235,6 +354,7 @@ public class BootstrapListener {
 	private static class BootstrapRequest {
 		public static enum RequestType {
 			SHUTDOWN,
+			DUMP,
 			PING;
 		}
 		
