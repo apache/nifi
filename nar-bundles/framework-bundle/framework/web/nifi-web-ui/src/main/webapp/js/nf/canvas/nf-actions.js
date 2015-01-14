@@ -167,7 +167,7 @@ nf.Actions = (function () {
                 var uri = selectionData.component.targetUri;
 
                 if (!nf.Common.isBlank(uri)) {
-                    window.open(encodeURI(uri + '/nifi'));
+                    window.open(encodeURI(uri));
                 } else {
                     nf.Dialog.showOkDialog({
                         dialogContent: 'No target URI defined.'
