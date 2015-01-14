@@ -110,7 +110,7 @@ public abstract class AbstractSessionFactoryProcessor extends AbstractConfigurab
     }
 
     @Override
-    public String getIdentifier() {
+    public final String getIdentifier() {
         return identifier;
     }
 
