@@ -29,6 +29,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.UUID;
 
 import javax.xml.XMLConstants;
@@ -57,7 +59,6 @@ import org.apache.nifi.web.api.dto.RemoteProcessGroupContentsDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.apache.nifi.web.api.dto.TemplateDTO;
-
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -510,7 +511,8 @@ public final class FingerprintFactory {
         if (config.getProperties() == null) {
             builder.append("NO_PROPERTIES");
         } else {
-            for (final Map.Entry<String, String> entry : config.getProperties().entrySet()) {
+            final SortedMap<String, String> sortedProps = new TreeMap<>(config.getProperties());
+            for (final Map.Entry<String, String> entry : sortedProps.entrySet()) {
                 final String propName = entry.getKey();
                 final String propValue = entry.getValue();
                 if (propValue == null) {
