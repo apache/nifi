@@ -71,6 +71,10 @@ nf.CanvasToolbox = (function () {
                 return $('<div class="toolbox-icon"></div>').addClass(dragCls).appendTo('body');
             },
             'containment': 'body',
+            'start': function(e, ui) {
+                // hide the context menu if necessary
+                nf.ContextMenu.hide();
+            },
             'stop': function (e, ui) {
                 var translate = nf.Canvas.View.translate();
                 var scale = nf.Canvas.View.scale();

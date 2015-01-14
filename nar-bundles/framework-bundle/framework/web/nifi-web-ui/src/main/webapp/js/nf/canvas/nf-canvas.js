@@ -427,9 +427,6 @@ nf.Canvas = (function () {
             // reset the canvas click flag
             canvasClicked = false;
 
-            // hide the context menu if necessary
-            nf.ContextMenu.hide();
-
             // get the selection box 
             var selectionBox = d3.select('rect.selection');
             if (!selectionBox.empty()) {
@@ -866,6 +863,9 @@ nf.Canvas = (function () {
          */
         reload: function () {
             return $.Deferred(function (deferred) {
+                // hide the context menu
+                nf.ContextMenu.hide();
+                
                 // get the process group to refresh everything
                 var processGroupXhr = reloadProcessGroup(nf.Canvas.getGroupId());
                 var statusXhr = reloadFlowStatus();
@@ -983,6 +983,7 @@ nf.Canvas = (function () {
                         // initialize the application
                         initCanvas();
                         nf.Canvas.View.init();
+                        nf.ContextMenu.init();
                         nf.CanvasHeader.init();
                         nf.CanvasToolbox.init();
                         nf.CanvasToolbar.init();
@@ -1077,6 +1078,7 @@ nf.Canvas = (function () {
         setGroupId: function (gi) {
             groupId = gi;
         },
+        
         /**
          * Get the group id.
          */
@@ -1222,6 +1224,10 @@ nf.Canvas = (function () {
                             .scaleExtent([MIN_SCALE, MAX_SCALE])
                             .translate(TRANSLATE)
                             .scale(SCALE)
+                            .on('zoomstart', function () {
+                                // hide the context menu
+                                nf.ContextMenu.hide();
+                            })
                             .on('zoom', function () {
                                 // if we have zoomed, indicate that we are panning
                                 // to prevent deselection elsewhere

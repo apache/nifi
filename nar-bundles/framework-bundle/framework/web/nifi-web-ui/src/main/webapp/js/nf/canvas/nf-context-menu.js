@@ -382,6 +382,14 @@ nf.ContextMenu = (function () {
     };
 
     return {
+        init: function () {
+            $('#context-menu').on('contextmenu', function(evt) {
+                // stop propagation and prevent default
+                evt.preventDefault();
+                evt.stopPropagation();
+            });
+        },
+        
         /**
          * Shows the context menu. 
          */
