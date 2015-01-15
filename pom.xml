@@ -770,7 +770,7 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>kafka-nar</artifactId>
-                <version>${project.version}</version>
+                <version>0.0.1-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
