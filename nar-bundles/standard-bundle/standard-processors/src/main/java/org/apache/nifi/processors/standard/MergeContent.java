@@ -641,6 +641,11 @@ public class MergeContent extends AbstractSessionFactoryProcessor {
 
         @Override
         public FlowFile merge(final ProcessContext context, final ProcessSession session, final List<FlowFileSessionWrapper> wrappers) {
+            if(wrappers.size() == 1){
+                FlowFileSessionWrapper wrapper = wrappers.get(0);
+                return wrapper.getSession().clone(wrapper.getFlowFile());
+            }
+
             final Set<FlowFile> parentFlowFiles = new HashSet<>();
             for (final FlowFileSessionWrapper wrapper : wrappers) {
                 parentFlowFiles.add(wrapper.getFlowFile());
