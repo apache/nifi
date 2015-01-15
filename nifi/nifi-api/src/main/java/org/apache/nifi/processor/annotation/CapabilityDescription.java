@@ -28,11 +28,14 @@ import java.lang.annotation.Target;
  * provided. This description can be provided to a user in logs, UI, etc.
  *
  * @author none
+ * @deprecated This Annotation has been replaced by the {@link org.apache.nifi.annotation.documentation.CapabilityDescription}
+ * annotation.
  */
 @Documented
 @Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited
+@Deprecated
 public @interface CapabilityDescription {
 
     String value();

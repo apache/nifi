@@ -16,9 +16,17 @@
  */
 package org.apache.nifi.controller;
 
+import org.apache.nifi.annotation.behavior.EventDriven;
+import org.apache.nifi.annotation.behavior.SideEffectFree;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.TriggerSerially;
+import org.apache.nifi.annotation.behavior.TriggerWhenAnyDestinationAvailable;
+import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ValidationContextFactory;
 import org.apache.nifi.controller.ProcessorNode;
+
 import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
@@ -53,16 +61,8 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.annotation.CapabilityDescription;
-import org.apache.nifi.processor.annotation.EventDriven;
-import org.apache.nifi.processor.annotation.SideEffectFree;
-import org.apache.nifi.processor.annotation.SupportsBatching;
-import org.apache.nifi.processor.annotation.TriggerSerially;
-import org.apache.nifi.processor.annotation.TriggerWhenAnyDestinationAvailable;
-import org.apache.nifi.processor.annotation.TriggerWhenEmpty;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.FormatUtils;
-
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.quartz.CronExpression;
@@ -119,6 +119,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
     private SchedulingStrategy schedulingStrategy;  // guarded by read/write lock
 
+    @SuppressWarnings("deprecation")
     StandardProcessorNode(final Processor processor, final String uuid, final ValidationContextFactory validationContextFactory,
             final ProcessScheduler scheduler, final ControllerServiceProvider controllerServiceProvider) {
         super(processor, uuid, validationContextFactory, controllerServiceProvider);
@@ -150,13 +151,14 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         isolated = new AtomicBoolean(false);
         penalizationPeriod = new AtomicReference<>(DEFAULT_PENALIZATION_PERIOD);
 
-        triggerWhenEmpty = processor.getClass().isAnnotationPresent(TriggerWhenEmpty.class);
-        sideEffectFree = processor.getClass().isAnnotationPresent(SideEffectFree.class);
-        batchSupported = processor.getClass().isAnnotationPresent(SupportsBatching.class);
-        triggeredSerially = processor.getClass().isAnnotationPresent(TriggerSerially.class);
-        triggerWhenAnyDestinationAvailable = processor.getClass().isAnnotationPresent(TriggerWhenAnyDestinationAvailable.class);
+        final Class<?> procClass = processor.getClass();
+        triggerWhenEmpty = procClass.isAnnotationPresent(TriggerWhenEmpty.class) || procClass.isAnnotationPresent(org.apache.nifi.processor.annotation.TriggerWhenEmpty.class);
+        sideEffectFree = procClass.isAnnotationPresent(SideEffectFree.class) || procClass.isAnnotationPresent(org.apache.nifi.processor.annotation.SideEffectFree.class);
+        batchSupported = procClass.isAnnotationPresent(SupportsBatching.class) || procClass.isAnnotationPresent(org.apache.nifi.processor.annotation.SupportsBatching.class);
+        triggeredSerially = procClass.isAnnotationPresent(TriggerSerially.class) || procClass.isAnnotationPresent(org.apache.nifi.processor.annotation.TriggerSerially.class);
+        triggerWhenAnyDestinationAvailable = procClass.isAnnotationPresent(TriggerWhenAnyDestinationAvailable.class) || procClass.isAnnotationPresent(org.apache.nifi.processor.annotation.TriggerWhenAnyDestinationAvailable.class);
         this.validationContextFactory = validationContextFactory;
-        eventDrivenSupported = processor.getClass().isAnnotationPresent(EventDriven.class) && !triggeredSerially && !triggerWhenEmpty;
+        eventDrivenSupported = (procClass.isAnnotationPresent(EventDriven.class) || procClass.isAnnotationPresent(org.apache.nifi.processor.annotation.EventDriven.class) )&& !triggeredSerially && !triggerWhenEmpty;
         schedulingStrategy = SchedulingStrategy.TIMER_DRIVEN;
     }
 
@@ -354,9 +356,21 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
      * @return the value of the processor's {@link CapabilityDescription}
      * annotation, if one exists, else <code>null</code>.
      */
+    @SuppressWarnings("deprecation")
     public String getProcessorDescription() {
-        final CapabilityDescription capDesc = processor.getClass().getAnnotation(CapabilityDescription.class);
-        return (capDesc == null) ? null : capDesc.value();
+        CapabilityDescription capDesc = processor.getClass().getAnnotation(CapabilityDescription.class);
+        String description = null;
+        if ( capDesc != null ) {
+            description = capDesc.value();
+        } else {
+            final org.apache.nifi.processor.annotation.CapabilityDescription deprecatedCapDesc = 
+                    processor.getClass().getAnnotation(org.apache.nifi.processor.annotation.CapabilityDescription.class);
+            if ( deprecatedCapDesc != null ) {
+                description = deprecatedCapDesc.value();
+            }
+        }
+        
+        return description;
     }
 
     @Override

@@ -30,11 +30,13 @@ import java.lang.annotation.Target;
  * destinations report that they have available space.
  *
  * @author none
+ * @deprecated This Annotation has been replaced by the {@link org.apache.nifi.annotation.behavior.TriggerWhenAnyDestinationAvailable} annotation.
  */
 @Documented
 @Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited
+@Deprecated
 public @interface TriggerWhenAnyDestinationAvailable {
 
 }

@@ -48,7 +48,7 @@ import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.annotation.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.processor.exception.FlowFileAccessException;
 import org.apache.nifi.processors.standard.util.FileInfo;
 import org.apache.nifi.processors.standard.util.FileTransfer;

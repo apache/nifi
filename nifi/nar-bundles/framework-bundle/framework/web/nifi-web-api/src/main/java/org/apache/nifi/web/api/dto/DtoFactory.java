@@ -46,6 +46,8 @@ import org.apache.nifi.action.details.ConfigureDetails;
 import org.apache.nifi.action.details.ConnectDetails;
 import org.apache.nifi.action.details.MoveDetails;
 import org.apache.nifi.action.details.PurgeDetails;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.authorization.Authority;
 import org.apache.nifi.cluster.HeartbeatPayload;
 import org.apache.nifi.cluster.event.Event;
@@ -82,8 +84,6 @@ import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.history.History;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.annotation.CapabilityDescription;
-import org.apache.nifi.processor.annotation.Tags;
 import org.apache.nifi.provenance.lineage.ComputeLineageResult;
 import org.apache.nifi.provenance.lineage.ComputeLineageSubmission;
 import org.apache.nifi.provenance.lineage.LineageEdge;
@@ -140,7 +140,6 @@ public final class DtoFactory {
 
     final int MAX_BULLETINS_PER_COMPONENT = 5;
 
-    private NiFiProperties properties;
     private ControllerServiceLookup controllerServiceLookup;
 
     /**
@@ -1083,9 +1082,17 @@ public final class DtoFactory {
      * @param cls
      * @return
      */
+    @SuppressWarnings("deprecation")
     private String getCapabilityDescription(final Class<?> cls) {
-        final CapabilityDescription description = cls.getAnnotation(CapabilityDescription.class);
-        return (description == null) ? null : description.value();
+        final CapabilityDescription capabilityDesc = cls.getAnnotation(CapabilityDescription.class);
+        if ( capabilityDesc != null ) {
+            return capabilityDesc.value();
+        }
+        
+        final org.apache.nifi.processor.annotation.CapabilityDescription deprecatedCapabilityDesc =
+                cls.getAnnotation(org.apache.nifi.processor.annotation.CapabilityDescription.class);
+        
+        return (deprecatedCapabilityDesc == null) ? null : deprecatedCapabilityDesc.value();
     }
 
     /**
@@ -1094,12 +1101,20 @@ public final class DtoFactory {
      * @param cls
      * @return
      */
+    @SuppressWarnings("deprecation")
     private Set<String> getTags(final Class<?> cls) {
         final Set<String> tags = new HashSet<>();
         final Tags tagsAnnotation = cls.getAnnotation(Tags.class);
         if (tagsAnnotation != null) {
             for (final String tag : tagsAnnotation.value()) {
                 tags.add(tag);
+            }
+        } else {
+            final org.apache.nifi.processor.annotation.Tags deprecatedTagsAnnotation = cls.getAnnotation(org.apache.nifi.processor.annotation.Tags.class);
+            if ( deprecatedTagsAnnotation != null ) {
+                for ( final String tag : deprecatedTagsAnnotation.value() ) {
+                    tags.add(tag);
+                }
             }
         }
 
@@ -2132,7 +2147,6 @@ public final class DtoFactory {
 
     /* setters */
     public void setProperties(NiFiProperties properties) {
-        this.properties = properties;
     }
 
     public void setControllerServiceLookup(ControllerServiceLookup lookup) {

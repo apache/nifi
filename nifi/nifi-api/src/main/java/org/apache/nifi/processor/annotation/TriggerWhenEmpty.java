@@ -32,10 +32,12 @@ import java.lang.annotation.Target;
  * their queue or they present this annotation.
  *
  * @author none
+ * @deprecated This Annotation has been replaced by the {@link org.apache.nifi.annotation.behavior.TriggerWhenEmpty} annotation.
  */
 @Documented
 @Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited
+@Deprecated
 public @interface TriggerWhenEmpty {
 }

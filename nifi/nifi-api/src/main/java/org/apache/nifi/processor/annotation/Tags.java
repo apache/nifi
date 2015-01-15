@@ -30,11 +30,14 @@ import java.lang.annotation.Target;
  * Processors.
  *
  * @author none
+ * @deprecated This Annotation has been replaced by the {@link org.apache.nifi.annotation.documentation.Tags}
+ * annotation.
  */
 @Documented
 @Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited
+@Deprecated
 public @interface Tags {
 
     /**

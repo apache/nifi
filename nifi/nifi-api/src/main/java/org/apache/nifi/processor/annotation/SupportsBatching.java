@@ -41,11 +41,13 @@ import java.lang.annotation.Target;
  * from a remote source.
  *
  * @author none
+ * @deprecated This Annotation has been replaced by the {@link org.apache.nifi.annotation.behavior.SupportsBatching} annotation.
  */
 @Documented
 @Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited
+@Deprecated
 public @interface SupportsBatching {
 
 }

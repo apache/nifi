@@ -16,12 +16,11 @@
  */
 package org.apache.nifi.controller.tasks;
 
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.scheduling.ScheduleState;
 import org.apache.nifi.nar.NarCloseable;
-import org.apache.nifi.processor.annotation.OnStopped;
 import org.apache.nifi.util.ReflectionUtils;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,6 +36,7 @@ public class ReportingTaskWrapper implements Runnable {
         this.scheduleState = scheduleState;
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public synchronized void run() {
         scheduleState.incrementActiveThreadCount();
@@ -52,7 +52,7 @@ public class ReportingTaskWrapper implements Runnable {
             // invoke the OnStopped methods
             if (!scheduleState.isScheduled() && scheduleState.getActiveThreadCount() == 1 && scheduleState.mustCallOnStoppedMethods()) {
                 try (final NarCloseable x = NarCloseable.withNarLoader()) {
-                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, taskNode.getReportingTask(), taskNode.getReportingContext());
+                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, org.apache.nifi.processor.annotation.OnStopped.class, taskNode.getReportingTask(), taskNode.getReportingContext());
                 }
             }
 

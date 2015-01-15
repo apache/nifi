@@ -18,6 +18,7 @@ package org.apache.nifi.controller.tasks;
 
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.controller.repository.StandardProcessSessionFactory;
 import org.apache.nifi.controller.scheduling.ConnectableProcessContext;
@@ -26,11 +27,9 @@ import org.apache.nifi.controller.scheduling.ScheduleState;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.ProcessSessionFactory;
-import org.apache.nifi.processor.annotation.OnStopped;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.Connectables;
 import org.apache.nifi.util.ReflectionUtils;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,6 +49,7 @@ public class ContinuallyRunConnectableTask implements Runnable {
         this.processContext = new ConnectableProcessContext(connectable, encryptor);
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void run() {
         if (!scheduleState.isScheduled()) {
@@ -86,7 +86,7 @@ public class ContinuallyRunConnectableTask implements Runnable {
             } finally {
                 if (!scheduleState.isScheduled() && scheduleState.getActiveThreadCount() == 1 && scheduleState.mustCallOnStoppedMethods()) {
                     try (final NarCloseable x = NarCloseable.withNarLoader()) {
-                        ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, connectable, processContext);
+                        ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, org.apache.nifi.processor.annotation.OnStopped.class, connectable, processContext);
                     }
                 }
 

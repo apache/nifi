@@ -21,13 +21,13 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import javax.jms.JMSException;
 
+import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.logging.ProcessorLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.annotation.CapabilityDescription;
-import org.apache.nifi.processor.annotation.OnStopped;
-import org.apache.nifi.processor.annotation.Tags;
-import org.apache.nifi.processor.annotation.TriggerWhenEmpty;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.jms.util.JmsFactory;
 import org.apache.nifi.processors.jms.util.WrappedMessageConsumer;

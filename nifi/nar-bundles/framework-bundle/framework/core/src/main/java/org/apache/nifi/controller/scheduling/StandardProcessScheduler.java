@@ -27,6 +27,9 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
@@ -47,15 +50,11 @@ import org.apache.nifi.processor.SchedulingContext;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.processor.StandardProcessContext;
 import org.apache.nifi.processor.StandardSchedulingContext;
-import org.apache.nifi.processor.annotation.OnScheduled;
-import org.apache.nifi.processor.annotation.OnStopped;
-import org.apache.nifi.processor.annotation.OnUnscheduled;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -209,6 +208,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         scheduleState.setScheduled(false);
 
         final Runnable unscheduleReportingTaskRunnable = new Runnable() {
+            @SuppressWarnings("deprecation")
             @Override
             public void run() {
                 final ConfigurationContext configurationContext = taskNode.getConfigurationContext();
@@ -216,7 +216,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                 while (true) {
                     try {
                         try (final NarCloseable x = NarCloseable.withNarLoader()) {
-                            ReflectionUtils.invokeMethodsWithAnnotation(OnUnscheduled.class, reportingTask, configurationContext);
+                            ReflectionUtils.invokeMethodsWithAnnotation(OnUnscheduled.class, org.apache.nifi.processor.annotation.OnUnscheduled.class, reportingTask, configurationContext);
                         }
                         break;
                     } catch (final InvocationTargetException ite) {
@@ -241,7 +241,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                 agent.unschedule(taskNode, scheduleState);
 
                 if (scheduleState.getActiveThreadCount() == 0) {
-                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, reportingTask, configurationContext);
+                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, org.apache.nifi.processor.annotation.OnStopped.class, reportingTask, configurationContext);
                 }
             }
         };
@@ -276,6 +276,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         }
 
         final Runnable startProcRunnable = new Runnable() {
+            @SuppressWarnings("deprecation")
             @Override
             public void run() {
                 try (final NarCloseable x = NarCloseable.withNarLoader()) {
@@ -297,7 +298,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                                 }
 
                                 final SchedulingContext schedulingContext = new StandardSchedulingContext(processContext, controllerServiceProvider, procNode);
-                                ReflectionUtils.invokeMethodsWithAnnotation(OnScheduled.class, procNode.getProcessor(), schedulingContext);
+                                ReflectionUtils.invokeMethodsWithAnnotation(OnScheduled.class, org.apache.nifi.processor.annotation.OnScheduled.class, procNode.getProcessor(), schedulingContext);
 
                                 getSchedulingAgent(procNode).schedule(procNode, scheduleState);
 

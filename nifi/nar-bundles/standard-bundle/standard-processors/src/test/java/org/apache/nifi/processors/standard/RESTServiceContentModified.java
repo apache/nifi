@@ -35,7 +35,7 @@ public class RESTServiceContentModified extends HttpServlet {
     public static boolean IGNORE_LAST_MODIFIED = false;
 
     public RESTServiceContentModified() {
-        this.ETAG = this.hashCode();
+        ETAG = this.hashCode();
     }
 
     @Override
