@@ -80,3 +80,9 @@ div.selected-disabled-option {
     bottom: 0px;
     z-index: 1999;
 }
+
+div.combo-nifi-tooltip {
+    border: 1px solid #454545;
+    background-color: #FFFFA3;
+    color: #454545;
+}

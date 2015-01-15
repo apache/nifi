@@ -203,7 +203,7 @@
                                 $('<img style="float: left; margin-left: 5px; margin-top: 3px;" src="images/iconInfo.png"></img>').appendTo(optionElement).qtip({
                                     content: option.description,
                                     style: {
-                                        classes: 'nifi-tooltip'
+                                        classes: 'combo-nifi-tooltip'
                                     },
                                     show: {
                                         solo: true,
