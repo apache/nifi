@@ -786,7 +786,6 @@ public class MockProcessSession implements ProcessSession {
      * @param sources
      */
     private FlowFile inheritAttributes(final Collection<FlowFile> sources, final FlowFile destination) {
-        final String uuid = destination.getAttribute(CoreAttributes.UUID.key());
         final StringBuilder parentUuidBuilder = new StringBuilder();
         int uuidsCaptured = 0;
         for (final FlowFile source : sources) {

@@ -21,7 +21,9 @@ import static java.util.Objects.requireNonNull;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -39,6 +41,12 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.nifi.annotation.behavior.TriggerSerially;
+import org.apache.nifi.annotation.lifecycle.OnAdded;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnShutdown;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
@@ -50,15 +58,8 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.QueueSize;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.annotation.OnAdded;
-import org.apache.nifi.processor.annotation.OnScheduled;
-import org.apache.nifi.processor.annotation.OnShutdown;
-import org.apache.nifi.processor.annotation.OnStopped;
-import org.apache.nifi.processor.annotation.OnUnscheduled;
-import org.apache.nifi.processor.annotation.TriggerSerially;
 import org.apache.nifi.provenance.ProvenanceReporter;
 import org.apache.nifi.reporting.InitializationException;
-
 import org.junit.Assert;
 
 public class StandardProcessorTestRunner implements TestRunner {
@@ -74,6 +75,16 @@ public class StandardProcessorTestRunner implements TestRunner {
     private int numThreads = 1;
     private final AtomicInteger invocations = new AtomicInteger(0);
 
+    private static final Set<Class<? extends Annotation>> deprecatedTypeAnnotations = new HashSet<>();
+    private static final Set<Class<? extends Annotation>> deprecatedMethodAnnotations = new HashSet<>();
+    
+    static {
+        // do this in a separate method, just so that we can add a @SuppressWarnings annotation
+        // because we want to indicate explicitly that we know that we are using deprecated
+        // classes here.
+        populateDeprecatedMethods();
+    }
+    
     StandardProcessorTestRunner(final Processor processor) {
         this.processor = processor;
         this.idGenerator = new AtomicLong(0L);
@@ -82,6 +93,8 @@ public class StandardProcessorTestRunner implements TestRunner {
         this.sessionFactory = new MockSessionFactory(sharedState);
         this.context = new MockProcessContext(processor);
 
+        detectDeprecatedAnnotations(processor);
+        
         final MockProcessorInitializationContext mockInitContext = new MockProcessorInitializationContext(processor, context);
         processor.initialize(mockInitContext);
 
@@ -94,6 +107,42 @@ public class StandardProcessorTestRunner implements TestRunner {
         triggerSerially = null != processor.getClass().getAnnotation(TriggerSerially.class);
     }
 
+    @SuppressWarnings("deprecation")
+    private static void populateDeprecatedMethods() {
+        deprecatedTypeAnnotations.add(org.apache.nifi.processor.annotation.CapabilityDescription.class);
+        deprecatedTypeAnnotations.add(org.apache.nifi.processor.annotation.EventDriven.class);
+        deprecatedTypeAnnotations.add(org.apache.nifi.processor.annotation.SideEffectFree.class);
+        deprecatedTypeAnnotations.add(org.apache.nifi.processor.annotation.SupportsBatching.class);
+        deprecatedTypeAnnotations.add(org.apache.nifi.processor.annotation.Tags.class);
+        deprecatedTypeAnnotations.add(org.apache.nifi.processor.annotation.TriggerWhenEmpty.class);
+        deprecatedTypeAnnotations.add(org.apache.nifi.processor.annotation.TriggerWhenAnyDestinationAvailable.class);
+        deprecatedTypeAnnotations.add(org.apache.nifi.processor.annotation.TriggerSerially.class);
+        
+        deprecatedMethodAnnotations.add(org.apache.nifi.processor.annotation.OnRemoved.class);
+        deprecatedMethodAnnotations.add(org.apache.nifi.processor.annotation.OnAdded.class);
+        deprecatedMethodAnnotations.add(org.apache.nifi.processor.annotation.OnScheduled.class);
+        deprecatedMethodAnnotations.add(org.apache.nifi.processor.annotation.OnShutdown.class);
+        deprecatedMethodAnnotations.add(org.apache.nifi.processor.annotation.OnStopped.class);
+        deprecatedMethodAnnotations.add(org.apache.nifi.processor.annotation.OnUnscheduled.class);
+    }
+    
+    private static void detectDeprecatedAnnotations(final Processor processor) {
+        for ( final Class<? extends Annotation> annotationClass : deprecatedTypeAnnotations ) {
+            if ( processor.getClass().isAnnotationPresent(annotationClass) ) {
+                Assert.fail("Processor is using deprecated Annotation " + annotationClass.getCanonicalName());
+            }
+        }
+        
+        for ( final Class<? extends Annotation> annotationClass : deprecatedMethodAnnotations ) {
+            for ( final Method method : processor.getClass().getMethods() ) {
+                if ( method.isAnnotationPresent(annotationClass) ) {
+                    Assert.fail("Processor is using deprecated Annotation " + annotationClass.getCanonicalName() + " for method " + method);
+                }
+            }
+        }
+        
+    }
+    
     @Override
     public void setValidateExpressionUsage(final boolean validate) {
         context.setValidateExpressionUsage(validate);
