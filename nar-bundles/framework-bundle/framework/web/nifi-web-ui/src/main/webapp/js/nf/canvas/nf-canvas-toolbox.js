@@ -914,7 +914,7 @@ nf.CanvasToolbox = (function () {
                 $('#processor-type-filter-options').combo({
                     options: [{
                             text: 'by type',
-                            value: 'type'
+                            value: 'label'
                         }, {
                             text: 'by tag',
                             value: 'tags'
