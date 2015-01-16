@@ -24,7 +24,7 @@
     </parent>
     <groupId>org.apache.nifi</groupId>
     <artifactId>maven-plugins</artifactId>
-    <version>0.0.1-test-incubating</version>
+    <version>0.0.2-test-incubating-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Apache NiFi Maven Plugins</name>
     <description>Apache NiFi Maven Plugins. It is currently a part of the Apache Incubator.</description>
@@ -65,7 +65,7 @@
         <connection>scm:git:git://git.apache.org/incubator-nifi.git</connection>
         <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-nifi.git</developerConnection>
         <url>https://git-wip-us.apache.org/repos/asf?p=incubator-nifi.git</url>
-      <tag>maven-plugins-0.0.1-test-incubating</tag>
+      <tag>HEAD</tag>
   </scm>
     <issueManagement>
         <system>JIRA</system>

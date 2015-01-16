@@ -19,10 +19,10 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>maven-plugins</artifactId>
-        <version>0.0.1-test-incubating</version>
+        <version>0.0.2-test-incubating-SNAPSHOT</version>
     </parent>
     <artifactId>nar-maven-plugin</artifactId>
-    <version>0.0.1-test-incubating</version>
+    <version>0.0.2-test-incubating-SNAPSHOT</version>
     <packaging>maven-plugin</packaging>
     <name>Apache NiFi NAR Plugin</name>
     <description>Apache NiFi Nar Plugin. It is currently a part of the Apache Incubator.</description>
