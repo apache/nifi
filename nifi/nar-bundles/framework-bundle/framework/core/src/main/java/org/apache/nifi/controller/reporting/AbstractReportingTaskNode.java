@@ -19,18 +19,25 @@ package org.apache.nifi.controller.reporting;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.nifi.annotation.lifecycle.OnAdded;
 import org.apache.nifi.controller.AbstractConfiguredComponent;
 import org.apache.nifi.controller.Availability;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ReportingTaskNode;
+import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.controller.StandardProcessorNode;
 import org.apache.nifi.controller.ValidationContextFactory;
+import org.apache.nifi.controller.annotation.OnConfigured;
+import org.apache.nifi.controller.exception.ProcessorLifeCycleException;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
+import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.ReflectionUtils;
 
 public abstract class AbstractReportingTaskNode extends AbstractConfiguredComponent implements ReportingTaskNode {
 
@@ -42,6 +49,8 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
     private final AtomicReference<String> schedulingPeriod = new AtomicReference<>("5 mins");
     private final AtomicReference<Availability> availability = new AtomicReference<>(Availability.NODE_ONLY);
 
+    private volatile ScheduledState scheduledState = ScheduledState.STOPPED;
+    
     public AbstractReportingTaskNode(final ReportingTask reportingTask, final String id,
             final ControllerServiceProvider controllerServiceProvider, final ProcessScheduler processScheduler,
             final ValidationContextFactory validationContextFactory) {
@@ -108,4 +117,46 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
         }
     }
 
+    @Override
+    public ScheduledState getScheduledState() {
+        return scheduledState;
+    }
+    
+    @Override
+    public void setScheduledState(final ScheduledState state) {
+        this.scheduledState = state;
+    }
+    
+    @Override
+    public void setProperty(final String name, final String value) {
+        super.setProperty(name, value);
+        
+        onConfigured();
+    }
+    
+    @Override
+    public boolean removeProperty(String name) {
+        final boolean removed = super.removeProperty(name);
+        if ( removed ) {
+            onConfigured();
+        }
+        
+        return removed;
+    }
+    
+    private void onConfigured() {
+        try (final NarCloseable x = NarCloseable.withNarLoader()) {
+            final ConfigurationContext configContext = new StandardConfigurationContext(this, serviceLookup);
+            ReflectionUtils.invokeMethodsWithAnnotation(OnConfigured.class, reportingTask, configContext);
+        } catch (final Exception e) {
+            throw new ProcessorLifeCycleException("Failed to invoke On-Configured Lifecycle methods of " + reportingTask, e);
+        }
+    }
+    
+    @Override
+    public void verifyCanDelete() {
+        if (isRunning()) {
+            throw new IllegalStateException(this + " is running");
+        }
+    }
 }

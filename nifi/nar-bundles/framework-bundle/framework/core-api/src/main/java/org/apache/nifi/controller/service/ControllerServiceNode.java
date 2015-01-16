@@ -22,7 +22,9 @@ import org.apache.nifi.controller.ControllerService;
 
 public interface ControllerServiceNode extends ConfiguredComponent {
 
-    ControllerService getControllerService();
+    ControllerService getProxiedControllerService();
+    
+    ControllerService getControllerServiceImplementation();
 
     Availability getAvailability();
 
@@ -37,4 +39,6 @@ public interface ControllerServiceNode extends ConfiguredComponent {
     void addReference(ConfiguredComponent referringComponent);
 
     void removeReference(ConfiguredComponent referringComponent);
+    
+    void verifyCanDelete();
 }

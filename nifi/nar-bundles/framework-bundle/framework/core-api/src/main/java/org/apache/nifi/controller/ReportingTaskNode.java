@@ -53,4 +53,20 @@ public interface ReportingTaskNode extends ConfiguredComponent {
     ConfigurationContext getConfigurationContext();
 
     boolean isRunning();
+    
+    /**
+     * Indicates the {@link ScheduledState} of this <code>ReportingTask</code>. A
+     * value of stopped does NOT indicate that the <code>ReportingTask</code> has
+     * no active threads, only that it is not currently scheduled to be given
+     * any more threads. To determine whether or not the
+     * <code>ReportingTask</code> has any active threads, see
+     * {@link ProcessScheduler#getActiveThreadCount(ReportingTask)}.
+     *
+     * @return
+     */
+    ScheduledState getScheduledState();
+    
+    void setScheduledState(ScheduledState state);
+    
+    void verifyCanDelete();
 }

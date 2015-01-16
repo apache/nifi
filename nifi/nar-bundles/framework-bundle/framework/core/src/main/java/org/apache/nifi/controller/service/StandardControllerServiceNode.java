@@ -26,13 +26,20 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.nifi.controller.AbstractConfiguredComponent;
 import org.apache.nifi.controller.Availability;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ValidationContextFactory;
+import org.apache.nifi.controller.annotation.OnConfigured;
+import org.apache.nifi.controller.exception.ProcessorLifeCycleException;
+import org.apache.nifi.nar.NarCloseable;
+import org.apache.nifi.util.ReflectionUtils;
 
 public class StandardControllerServiceNode extends AbstractConfiguredComponent implements ControllerServiceNode {
 
-    private final ControllerService controllerService;
+    private final ControllerService proxedControllerService;
+    private final ControllerService implementation;
+    private final ControllerServiceProvider serviceProvider;
 
     private final AtomicReference<Availability> availability = new AtomicReference<>(Availability.NODE_ONLY);
     private final AtomicBoolean disabled = new AtomicBoolean(true);
@@ -43,10 +50,12 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
 
     private final Set<ConfiguredComponent> referencingComponents = new HashSet<>();
 
-    public StandardControllerServiceNode(final ControllerService controllerService, final String id,
+    public StandardControllerServiceNode(final ControllerService proxiedControllerService, final ControllerService implementation, final String id,
             final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider) {
-        super(controllerService, id, validationContextFactory, serviceProvider);
-        this.controllerService = controllerService;
+        super(proxiedControllerService, id, validationContextFactory, serviceProvider);
+        this.proxedControllerService = proxiedControllerService;
+        this.implementation = implementation;
+        this.serviceProvider = serviceProvider;
     }
 
     @Override
@@ -57,7 +66,7 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
     @Override
     public void setDisabled(final boolean disabled) {
         if (!disabled && !isValid()) {
-            throw new IllegalStateException("Cannot enable Controller Service " + controllerService + " because it is not valid");
+            throw new IllegalStateException("Cannot enable Controller Service " + implementation + " because it is not valid");
         }
 
         if (disabled) {
@@ -82,8 +91,13 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
     }
 
     @Override
-    public ControllerService getControllerService() {
-        return controllerService;
+    public ControllerService getProxiedControllerService() {
+        return proxedControllerService;
+    }
+    
+    @Override
+    public ControllerService getControllerServiceImplementation() {
+        return implementation;
     }
 
     @Override
@@ -120,6 +134,39 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
     public void verifyModifiable() throws IllegalStateException {
         if (!isDisabled()) {
             throw new IllegalStateException("Cannot modify Controller Service configuration because it is currently enabled. Please disable the Controller Service first.");
+        }
+    }
+    
+    @Override
+    public void setProperty(final String name, final String value) {
+        super.setProperty(name, value);
+        
+        onConfigured();
+    }
+    
+    @Override
+    public boolean removeProperty(String name) {
+        final boolean removed = super.removeProperty(name);
+        if ( removed ) {
+            onConfigured();
+        }
+        
+        return removed;
+    }
+    
+    private void onConfigured() {
+        try (final NarCloseable x = NarCloseable.withNarLoader()) {
+            final ConfigurationContext configContext = new StandardConfigurationContext(this, serviceProvider);
+            ReflectionUtils.invokeMethodsWithAnnotation(OnConfigured.class, implementation, configContext);
+        } catch (final Exception e) {
+            throw new ProcessorLifeCycleException("Failed to invoke On-Configured Lifecycle methods of " + implementation, e);
+        }
+    }
+    
+    @Override
+    public void verifyCanDelete() {
+        if ( !isDisabled() ) {
+            throw new IllegalStateException(this + " cannot be deleted because it has not been disabled");
         }
     }
 }
