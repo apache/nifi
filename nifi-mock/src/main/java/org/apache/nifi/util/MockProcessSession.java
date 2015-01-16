@@ -329,10 +329,6 @@ public class MockProcessSession implements ProcessSession {
         return newFlowFile;
     }
 
-    @Override
-    public Set<Relationship> getAvailableRelationships() {
-        return sharedState.getAvailableRelationships();
-    }
 
     @Override
     public MockFlowFile merge(final Collection<FlowFile> sources, final FlowFile destination) {

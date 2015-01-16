@@ -348,7 +348,7 @@ public class StandardFunnel implements Funnel {
     private void onTrigger(final ProcessContext context, final ProcessSession session) {
         readLock.lock();
         try {
-            Set<Relationship> available = session.getAvailableRelationships();
+            Set<Relationship> available = context.getAvailableRelationships();
             int transferred = 0;
             while (!available.isEmpty()) {
                 final List<FlowFile> flowFiles = session.get(10);
@@ -359,7 +359,7 @@ public class StandardFunnel implements Funnel {
                 transferred += flowFiles.size();
                 session.transfer(flowFiles, Relationship.ANONYMOUS);
                 session.commit();
-                available = session.getAvailableRelationships();
+                available = context.getAvailableRelationships();
             }
 
             if (transferred == 0) {

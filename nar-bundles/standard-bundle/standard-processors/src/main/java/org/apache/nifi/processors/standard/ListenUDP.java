@@ -377,7 +377,7 @@ public class ListenUDP extends AbstractSessionFactoryProcessor {
                                     // this will throttle the processing of the received datagrams. If there are no more
                                     // buffers to read into because none have been returned to the pool via consumer.process(),
                                     // then the desired back pressure on the channel is created.
-                                    if (session.getAvailableRelationships().size() > 0) {
+                                    if (context.getAvailableRelationships().size() > 0) {
                                         consumer.process();
                                         if (flowFileCount == newFlowFiles.size()) {
                                             // no new datagrams received, need to throttle this thread back so it does

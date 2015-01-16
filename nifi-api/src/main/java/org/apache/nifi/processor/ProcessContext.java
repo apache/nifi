@@ -17,6 +17,7 @@
 package org.apache.nifi.processor;
 
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -121,4 +122,11 @@ public interface ProcessContext {
      * @return
      */
     ControllerServiceLookup getControllerServiceLookup();
+    
+    /**
+     * @return the set of all relationships for which space is available to
+     * receive new objects
+     */
+    Set<Relationship> getAvailableRelationships();
+
 }

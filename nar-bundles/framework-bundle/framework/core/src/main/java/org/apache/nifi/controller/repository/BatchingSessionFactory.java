@@ -98,11 +98,6 @@ public class BatchingSessionFactory implements ProcessSessionFactory {
         }
 
         @Override
-        public Set<Relationship> getAvailableRelationships() {
-            return session.getAvailableRelationships();
-        }
-
-        @Override
         public FlowFile create() {
             return session.create();
         }

@@ -17,6 +17,7 @@
 package org.apache.nifi.processor;
 
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -103,5 +104,10 @@ public class StandardSchedulingContext implements SchedulingContext {
     @Override
     public ControllerServiceLookup getControllerServiceLookup() {
         return processContext.getControllerServiceLookup();
+    }
+
+    @Override
+    public Set<Relationship> getAvailableRelationships() {
+        return processContext.getAvailableRelationships();
     }
 }

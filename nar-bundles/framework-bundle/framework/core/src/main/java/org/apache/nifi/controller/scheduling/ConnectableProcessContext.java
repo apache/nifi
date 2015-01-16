@@ -16,13 +16,18 @@
  */
 package org.apache.nifi.controller.scheduling;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.connectable.Connectable;
+import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.encrypt.StringEncryptor;
@@ -30,6 +35,7 @@ import org.apache.nifi.expression.AttributeValueDecorator;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 
 /**
@@ -169,5 +175,20 @@ public class ConnectableProcessContext implements ProcessContext {
     @Override
     public ControllerServiceLookup getControllerServiceLookup() {
         return null;
+    }
+
+    @Override
+    public Set<Relationship> getAvailableRelationships() {
+        for ( final Connection connection : connectable.getConnections() ) {
+            if ( connection.getFlowFileQueue().isFull() ) {
+                return Collections.emptySet();
+            }
+        }
+        
+        final Collection<Relationship> relationships = connectable.getRelationships();
+        if ( relationships instanceof Set ) {
+            return (Set<Relationship>) relationships;
+        }
+        return new HashSet<>(connectable.getRelationships());
     }
 }

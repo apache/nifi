@@ -166,12 +166,6 @@ public interface ProcessSession {
     QueueSize getQueueSize();
 
     /**
-     * @return the set of all relationships for which space is available to
-     * receive new objects
-     */
-    Set<Relationship> getAvailableRelationships();
-
-    /**
      * Creates a new FlowFile in the repository with no content and without any
      * linkage to a parent FlowFile. This method is appropriate only when data
      * is received or created from an external system. Otherwise, this method

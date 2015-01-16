@@ -1237,11 +1237,6 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     @Override
-    public Set<Relationship> getAvailableRelationships() {
-        return context.getAvailableRelationships();
-    }
-
-    @Override
     public FlowFile create() {
         final Map<String, String> attrs = new HashMap<>();
         attrs.put(CoreAttributes.FILENAME.key(), String.valueOf(System.nanoTime()));

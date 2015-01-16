@@ -16,47 +16,28 @@
  */
 package org.apache.nifi.util;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.nifi.processor.Processor;
-import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceReporter;
 
 public class SharedSessionState {
 
     private final MockFlowFileQueue flowFileQueue;
     private final ProvenanceReporter provenanceReporter;
+    @SuppressWarnings("unused")
     private final Processor processor;
     private final AtomicLong flowFileIdGenerator;
     private final ConcurrentMap<String, AtomicLong> counterMap = new ConcurrentHashMap<>();
 
-    private volatile Set<Relationship> unavailableRelationships;
 
     public SharedSessionState(final Processor processor, final AtomicLong flowFileIdGenerator) {
         flowFileQueue = new MockFlowFileQueue();
         provenanceReporter = new MockProvenanceReporter();
-        unavailableRelationships = new HashSet<>();
         this.flowFileIdGenerator = flowFileIdGenerator;
         this.processor = processor;
-    }
-
-    public Set<Relationship> getAvailableRelationships() {
-        final Set<Relationship> relationships = new HashSet<>(processor.getRelationships());
-        relationships.removeAll(unavailableRelationships);
-        return relationships;
-    }
-
-    public void setUnavailableRelationships(final Set<Relationship> relationships) {
-        this.unavailableRelationships = Collections.unmodifiableSet(new HashSet<>(relationships));
-    }
-
-    public Set<Relationship> getUnavailableRelationships() {
-        return unavailableRelationships;
     }
 
     public MockFlowFileQueue getFlowFileQueue() {

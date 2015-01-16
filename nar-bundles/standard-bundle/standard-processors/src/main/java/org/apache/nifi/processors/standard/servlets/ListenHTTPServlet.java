@@ -48,6 +48,7 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.apache.nifi.stream.io.StreamThrottler;
 import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.io.OutputStreamCallback;
@@ -87,6 +88,7 @@ public class ListenHTTPServlet extends HttpServlet {
 
     private ProcessorLog logger;
     private AtomicReference<ProcessSessionFactory> sessionFactoryHolder;
+    private volatile ProcessContext processContext;
     private Pattern authorizedPattern;
     private Pattern headerPattern;
     private ConcurrentMap<String, FlowFileEntryTimeWrapper> flowFileMap;
@@ -103,6 +105,7 @@ public class ListenHTTPServlet extends HttpServlet {
         final ServletContext context = config.getServletContext();
         this.logger = (ProcessorLog) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_LOGGER);
         this.sessionFactoryHolder = (AtomicReference<ProcessSessionFactory>) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_SESSION_FACTORY_HOLDER);
+        this.processContext = (ProcessContext) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_PROCESS_CONTEXT_HOLDER);
         this.authorizedPattern = (Pattern) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_AUTHORITY_PATTERN);
         this.headerPattern = (Pattern) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_HEADER_PATTERN);
         this.flowFileMap = (ConcurrentMap<String, FlowFileEntryTimeWrapper>) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_FLOWFILE_MAP);
@@ -118,6 +121,8 @@ public class ListenHTTPServlet extends HttpServlet {
 
     @Override
     protected void doPost(final HttpServletRequest request, final HttpServletResponse response) throws ServletException, IOException {
+        final ProcessContext context = processContext;
+        
         ProcessSessionFactory sessionFactory;
         do {
             sessionFactory = sessionFactoryHolder.get();
@@ -136,7 +141,7 @@ public class ListenHTTPServlet extends HttpServlet {
         try {
             final long n = filesReceived.getAndIncrement() % FILES_BEFORE_CHECKING_DESTINATION_SPACE;
             if (n == 0 || !spaceAvailable.get()) {
-                if (session.getAvailableRelationships().isEmpty()) {
+                if (context.getAvailableRelationships().isEmpty()) {
                     spaceAvailable.set(false);
                     if (logger.isDebugEnabled()) {
                         logger.debug("Received request from " + request.getRemoteHost() + " but no space available; Indicating Service Unavailable");

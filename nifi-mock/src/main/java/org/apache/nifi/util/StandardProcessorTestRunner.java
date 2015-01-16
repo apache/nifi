@@ -426,9 +426,9 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public void setRelationshipAvailable(final Relationship relationship) {
-        final Set<Relationship> unavailable = new HashSet<>(sharedState.getUnavailableRelationships());
+        final Set<Relationship> unavailable = new HashSet<>(context.getUnavailableRelationships());
         unavailable.remove(relationship);
-        sharedState.setUnavailableRelationships(unavailable);
+        context.setUnavailableRelationships(unavailable);
     }
 
     @Override
@@ -438,9 +438,9 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public void setRelationshipUnavailable(final Relationship relationship) {
-        final Set<Relationship> unavailable = new HashSet<>(sharedState.getUnavailableRelationships());
+        final Set<Relationship> unavailable = new HashSet<>(context.getUnavailableRelationships());
         unavailable.add(relationship);
-        sharedState.setUnavailableRelationships(unavailable);
+        context.setUnavailableRelationships(unavailable);
     }
 
     @Override

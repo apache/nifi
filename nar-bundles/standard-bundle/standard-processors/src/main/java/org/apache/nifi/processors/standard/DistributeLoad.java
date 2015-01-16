@@ -354,14 +354,14 @@ public class DistributeLoad extends AbstractProcessor {
         }
 
         final DistributionStrategy strategy = strategyRef.get();
-        final Set<Relationship> available = session.getAvailableRelationships();
+        final Set<Relationship> available = context.getAvailableRelationships();
         final int numRelationships = context.getProperty(NUM_RELATIONSHIPS).asInteger();
         final boolean allDestinationsAvailable = (available.size() == numRelationships);
         if (!allDestinationsAvailable && strategy.requiresAllDestinationsAvailable()) {
             return;
         }
 
-        final Relationship relationship = strategy.mapToRelationship(session, flowFile);
+        final Relationship relationship = strategy.mapToRelationship(context, flowFile);
         if (relationship == null) {
             // can't transfer the FlowFiles. Roll back and yield
             session.rollback();
@@ -403,7 +403,7 @@ public class DistributeLoad extends AbstractProcessor {
          * @param flowFiles
          * @return
          */
-        Relationship mapToRelationship(ProcessSession session, FlowFile flowFile);
+        Relationship mapToRelationship(ProcessContext context, FlowFile flowFile);
 
         boolean requiresAllDestinationsAvailable();
     }
@@ -413,7 +413,7 @@ public class DistributeLoad extends AbstractProcessor {
         private final AtomicLong counter = new AtomicLong(0L);
 
         @Override
-        public Relationship mapToRelationship(final ProcessSession session, final FlowFile flowFile) {
+        public Relationship mapToRelationship(final ProcessContext context, final FlowFile flowFile) {
             final List<Relationship> relationshipList = DistributeLoad.this.weightedRelationshipListRef.get();
             final int numRelationships = relationshipList.size();
 
@@ -427,7 +427,7 @@ public class DistributeLoad extends AbstractProcessor {
                 final long counterValue = counter.getAndIncrement();
                 final int idx = (int) (counterValue % numRelationships);
                 relationship = relationshipList.get(idx);
-                foundFreeRelationship = session.getAvailableRelationships().contains(relationship);
+                foundFreeRelationship = context.getAvailableRelationships().contains(relationship);
                 if (++attempts % numRelationships == 0 && !foundFreeRelationship) {
                     return null;
                 }
@@ -448,7 +448,7 @@ public class DistributeLoad extends AbstractProcessor {
         private final AtomicLong counter = new AtomicLong(0L);
 
         @Override
-        public Relationship mapToRelationship(final ProcessSession session, final FlowFile flowFile) {
+        public Relationship mapToRelationship(final ProcessContext context, final FlowFile flowFile) {
             final List<Relationship> relationshipList = DistributeLoad.this.weightedRelationshipListRef.get();
             final long counterValue = counter.getAndIncrement();
             final int idx = (int) (counterValue % relationshipList.size());
@@ -467,7 +467,7 @@ public class DistributeLoad extends AbstractProcessor {
         private final AtomicLong counter = new AtomicLong(0L);
 
         @Override
-        public Relationship mapToRelationship(final ProcessSession session, final FlowFile flowFile) {
+        public Relationship mapToRelationship(final ProcessContext context, final FlowFile flowFile) {
             final List<Relationship> relationshipList = DistributeLoad.this.weightedRelationshipListRef.get();
             final int numRelationships = relationshipList.size();
 
@@ -481,7 +481,7 @@ public class DistributeLoad extends AbstractProcessor {
                 final long counterValue = counter.getAndIncrement();
                 final int idx = (int) (counterValue % numRelationships);
                 relationship = relationshipList.get(idx);
-                foundFreeRelationship = session.getAvailableRelationships().contains(relationship);
+                foundFreeRelationship = context.getAvailableRelationships().contains(relationship);
                 if (++attempts % numRelationships == 0 && !foundFreeRelationship) {
                     return null;
                 }

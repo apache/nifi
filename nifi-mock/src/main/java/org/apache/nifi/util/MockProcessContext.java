@@ -21,10 +21,12 @@ import static java.util.Objects.requireNonNull;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -32,6 +34,8 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.processor.Processor;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.SchedulingContext;
 import org.junit.Assert;
 
@@ -44,6 +48,8 @@ public class MockProcessContext extends MockControllerServiceLookup implements S
     private boolean yieldCalled = false;
     private boolean enableExpressionValidation = false;
     private boolean allowExpressionValidation = true;
+
+    private volatile Set<Relationship> unavailableRelationships = new HashSet<>();
 
     /**
      * Creates a new MockProcessContext for the given Processor
@@ -258,4 +264,21 @@ public class MockProcessContext extends MockControllerServiceLookup implements S
     public void leaseControllerService(final String identifier) {
     }
 
+    public Set<Relationship> getAvailableRelationships() {
+        if ( !(component instanceof Processor) ) {
+            return Collections.emptySet();
+        }
+        
+        final Set<Relationship> relationships = new HashSet<>(((Processor) component).getRelationships());
+        relationships.removeAll(unavailableRelationships);
+        return relationships;
+    }
+
+    public void setUnavailableRelationships(final Set<Relationship> relationships) {
+        this.unavailableRelationships = Collections.unmodifiableSet(new HashSet<>(relationships));
+    }
+
+    public Set<Relationship> getUnavailableRelationships() {
+        return unavailableRelationships;
+    }
 }

@@ -148,7 +148,7 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
 
                 session.transfer(flowFile, conflictResult.getRelationship());
                 session.commit();
-            } while (isScheduled() && (getRelationships().size() == session.getAvailableRelationships().size()) && (++fileCount < maxNumberOfFiles) && ((flowFile = session.get()) != null));
+            } while (isScheduled() && (getRelationships().size() == context.getAvailableRelationships().size()) && (++fileCount < maxNumberOfFiles) && ((flowFile = session.get()) != null));
         } catch (final IOException e) {
             context.yield();
             logger.error("Unable to transfer {} to remote host {} due to {}", new Object[]{flowFile, hostname, e});

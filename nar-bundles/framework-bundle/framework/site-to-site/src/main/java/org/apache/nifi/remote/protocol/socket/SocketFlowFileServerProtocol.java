@@ -482,7 +482,7 @@ public class SocketFlowFileServerProtocol implements ServerProtocol {
         // Commit the session so that we have persisted the data
         session.commit();
         
-        if ( session.getAvailableRelationships().isEmpty() ) {
+        if ( context.getAvailableRelationships().isEmpty() ) {
             // Confirm that we received the data and the peer can now discard it but that the peer should not
             // send any more data for a bit
             logger.debug("{} Sending TRANSACTION_FINISHED_BUT_DESTINATION_FULL to {}", this, peer);

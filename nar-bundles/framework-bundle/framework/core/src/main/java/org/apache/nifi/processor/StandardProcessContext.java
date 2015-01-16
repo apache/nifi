@@ -16,7 +16,9 @@
  */
 package org.apache.nifi.processor;
 
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -24,6 +26,7 @@ import org.apache.nifi.attribute.expression.language.PreparedQuery;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.ProcessorNode;
@@ -142,4 +145,29 @@ public class StandardProcessContext implements ProcessContext, ControllerService
     public ControllerServiceLookup getControllerServiceLookup() {
         return this;
     }
+
+    @Override
+    public Set<Relationship> getAvailableRelationships() {
+        final Set<Relationship> set = new HashSet<>();
+        for (final Relationship relationship : procNode.getRelationships()) {
+            final Collection<Connection> connections = procNode.getConnections(relationship);
+            if (connections.isEmpty()) {
+                set.add(relationship);
+            } else {
+                boolean available = true;
+                for (final Connection connection : connections) {
+                    if (connection.getFlowFileQueue().isFull()) {
+                        available = false;
+                    }
+                }
+
+                if (available) {
+                    set.add(relationship);
+                }
+            }
+        }
+
+        return set;
+    }
+    
 }
