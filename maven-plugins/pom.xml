@@ -23,11 +23,11 @@
         <relativePath/>
     </parent>
     <groupId>org.apache.nifi</groupId>
-    <artifactId>nar-maven-plugin</artifactId>
+    <artifactId>maven-plugins</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <packaging>maven-plugin</packaging>
-    <name>Apache NiFi NAR Plugin</name>
-    <description>Apache NiFi is a dataflow system based on the concepts of flow-based programming. It is currently a part of the Apache Incubator.</description>
+    <packaging>pom</packaging>
+    <name>Apache NiFi Maven Plugins</name>
+    <description>Apache NiFi Maven Plugins. It is currently a part of the Apache Incubator.</description>
     <url>http://nifi.incubator.apache.org/maven-site/</url>
     <organization>
         <name>Apache NiFi (incubating) Project</name>
@@ -58,6 +58,9 @@
     <prerequisites>
         <maven>${maven.min-version}</maven>
     </prerequisites>
+    <modules>
+        <module>nar-maven-plugin</module>
+    </modules>
     <scm>
         <connection>scm:git:git://git.apache.org/incubator-nifi.git</connection>
         <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-nifi.git</developerConnection>
@@ -164,23 +167,23 @@
                     <artifactId>maven-release-plugin</artifactId>
                     <version>2.5.1</version>
                     <executions>
-                      <execution>
-                        <id>default</id>
-                        <goals>
-                          <goal>prepare</goal>
-                          <goal>perform</goal>
-                        </goals>
-                        <configuration>
-                          <pomFileName>platform/pom.xml</pomFileName>
-                          <arguments>-P apache-release,check-licenses</arguments>
-                          <autoVersionSubmodules>true</autoVersionSubmodules>
-                          <releaseProfiles>apache-release</releaseProfiles>
-                          <goals>deploy</goals>
-                          <tagNameFormat>nar-maven-plugin-@{project.version}</tagNameFormat>
-                          <pushChanges>false</pushChanges>
-                          <localCheckout>true</localCheckout>
-                        </configuration>
-                      </execution>
+                        <execution>
+                            <id>default</id>
+                            <goals>
+                                <goal>prepare</goal>
+                                <goal>perform</goal>
+                            </goals>
+                            <configuration>
+                                <pomFileName>platform/pom.xml</pomFileName>
+                                <arguments>-P apache-release,check-licenses</arguments>
+                                <autoVersionSubmodules>true</autoVersionSubmodules>
+                                <releaseProfiles>apache-release</releaseProfiles>
+                                <goals>deploy</goals>
+                                <tagNameFormat>@{project.artifactId}-@{project.version}</tagNameFormat>
+                                <pushChanges>false</pushChanges>
+                                <localCheckout>true</localCheckout>
+                            </configuration>
+                        </execution>
                     </executions>
                 </plugin>
                 <plugin>
@@ -198,26 +201,6 @@
             </plugins>
         </pluginManagement>       
         <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-plugin-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>default-descriptor</id>
-                        <goals>
-                            <goal>descriptor</goal>
-                        </goals>
-                        <phase>process-classes</phase>
-                    </execution>
-                    <execution>
-                        <id>help-descriptor</id>
-                        <goals>
-                            <goal>helpmojo</goal>
-                        </goals>
-                        <phase>process-classes</phase>
-                    </execution>
-                </executions>
-            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
@@ -271,28 +254,6 @@
             </dependency>                        
         </dependencies>
     </dependencyManagement>
-    <dependencies>                    
-        <dependency>          
-            <groupId>org.apache.maven</groupId>
-            <artifactId>maven-plugin-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-dependency-plugin</artifactId>
-            <type>maven-plugin</type>
-        </dependency>
-        <dependency>
-            <!-- No code from maven-jar-plugin is actually used; it's included
-            just to simplify the dependencies list.                     -->
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-jar-plugin</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.maven.plugin-tools</groupId>
-            <artifactId>maven-plugin-annotations</artifactId>
-            <scope>provided</scope>
-        </dependency>
-    </dependencies>
     <profiles>
         <profile>
             <id>apache-release</id>
@@ -317,7 +278,7 @@
                                 <phase>validate</phase>
                                 <configuration>
                                     <runOnlyAtExecutionRoot>true</runOnlyAtExecutionRoot>
-                                    <finalName>nifi-${project.version}</finalName>
+                                    <finalName>nifi-${project.artifactId}-${project.version}</finalName>
                                     <descriptorRefs>
                                         <descriptorRef>source-release-zip-tar</descriptorRef>
                                     </descriptorRefs>
@@ -339,7 +300,7 @@
                                 <configuration>
                                     <executable>mv</executable>
                                     <workingDirectory>${project.build.directory}</workingDirectory>
-                                    <commandlineArgs>-n nifi-${project.version}-source-release.tar.gz nifi-${project.version}-src.tar.gz</commandlineArgs>
+                                    <commandlineArgs>-n nifi-${project.artifactId}-${project.version}-source-release.tar.gz nifi-${project.artifactId}-${project.version}-src.tar.gz</commandlineArgs>
                                     <successCodes>
                                         <successCode>0</successCode>
                                         <successCode>1</successCode>

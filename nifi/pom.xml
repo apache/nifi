@@ -62,12 +62,6 @@
         <maven>${maven.version}</maven>
     </prerequisites>
     <modules>
-        <!--
-        ! Would prefer to have the nar-maven-plugin built as part of this parent.  However, Maven
-        ! blocks building plugins with extensions in the same reactor as other components which want to use the plugin.
-        ! See MNG-1911 and MNG-5572 for more details.
-        -->
-        <!--<module>nar-maven-plugin</module>-->
         <module>commons</module>
         <module>nifi-api</module>
         <module>nifi-bootstrap</module>
@@ -684,7 +678,7 @@
                 <artifactId>nifi-resources</artifactId>
                 <version>0.0.1-SNAPSHOT</version>
                 <classifier>resources</classifier>
-                <scope>provided</scope> <!-- Provided - we don't want the zip in the libs -->
+                <scope>runtime</scope>
                 <type>zip</type>
             </dependency>
             <dependency>
@@ -692,7 +686,7 @@
                 <artifactId>nifi-docs</artifactId>
                 <version>0.0.1-SNAPSHOT</version>
                 <classifier>resources</classifier>
-                <scope>provided</scope> <!-- Provided - we don't want the zip in the libs -->
+                <scope>runtime</scope>
                 <type>zip</type>
             </dependency>
             <dependency>
@@ -988,7 +982,6 @@
                         <exclude>src/test/resources/</exclude> <!-- Test datasets -->
                         <exclude>nb-configuration.xml</exclude>
                         <exclude>nbactions.xml</exclude>
-                        <exclude>nar-maven-plugin/</exclude>
                     </excludes>
                 </configuration>
             </plugin>
