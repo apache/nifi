@@ -1002,7 +1002,7 @@
             <plugin>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nar-maven-plugin</artifactId>
-                <version>0.0.3-test-incubating</version>
+                <version>0.0.1-incubating-SNAPSHOT</version>
                 <extensions>true</extensions>
             </plugin>
         </plugins>
