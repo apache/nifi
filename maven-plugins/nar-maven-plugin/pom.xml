@@ -59,8 +59,8 @@
         <connection>scm:git:git://git.apache.org/incubator-nifi.git</connection>
         <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-nifi.git</developerConnection>
         <url>https://git-wip-us.apache.org/repos/asf?p=incubator-nifi.git</url>
-      <tag>HEAD</tag>
-  </scm>
+        <tag>HEAD</tag>
+    </scm>
     <issueManagement>
         <system>JIRA</system>
         <url>https://issues.apache.org/jira/browse/NIFI</url>
@@ -68,7 +68,7 @@
     <properties>
         <maven.compiler.source>1.7</maven.compiler.source>
         <maven.compiler.target>1.7</maven.compiler.target>
-        <maven.version>3.0.5</maven.version>
+        <maven.min-version>3.0.5</maven.min-version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     </properties>
@@ -144,24 +144,24 @@
                     <artifactId>maven-release-plugin</artifactId>
                     <version>2.5.1</version>
                     <configuration>
-                      <useReleaseProfile>true</useReleaseProfile>
-                      <releaseProfiles>apache-release</releaseProfiles>
-                      <autoVersionSubmodules>true</autoVersionSubmodules>
-                      <goals>deploy</goals>
-                      <tagNameFormat>@{project.artifactId}-@{project.version}</tagNameFormat>
-                      <pushChanges>false</pushChanges>
-                      <localCheckout>true</localCheckout>
+                        <useReleaseProfile>true</useReleaseProfile>
+                        <releaseProfiles>apache-release</releaseProfiles>
+                        <autoVersionSubmodules>true</autoVersionSubmodules>
+                        <goals>deploy</goals>
+                        <tagNameFormat>@{project.artifactId}-@{project.version}</tagNameFormat>
+                        <pushChanges>false</pushChanges>
+                        <localCheckout>true</localCheckout>
                     </configuration>
                     <executions>
-                      <execution>
-                        <id>default</id>
-                        <goals>
-                          <goal>perform</goal>
-                        </goals>
-                        <configuration>
-                          <pomFileName>maven-plugins/nar-maven-plugin/pom.xml</pomFileName>
-                        </configuration>
-                      </execution>
+                        <execution>
+                            <id>default</id>
+                            <goals>
+                                <goal>perform</goal>
+                            </goals>
+                            <configuration>
+                                <pomFileName>maven-plugins/nar-maven-plugin/pom.xml</pomFileName>
+                            </configuration>
+                        </execution>
                     </executions>
                 </plugin>
                 <plugin>
@@ -179,16 +179,16 @@
             </plugins>
         </pluginManagement>       
         <plugins>
-           <plugin>
-             <groupId>org.sonatype.plugins</groupId>
-             <artifactId>nexus-staging-maven-plugin</artifactId>
-             <version>1.6.5</version>
-             <extensions>true</extensions>
-             <configuration>
-               <serverId>repository.apache.org</serverId>
-               <nexusUrl>https://repository.apache.org/</nexusUrl>
-             </configuration>
-           </plugin>
+            <plugin>
+                <groupId>org.sonatype.plugins</groupId>
+                <artifactId>nexus-staging-maven-plugin</artifactId>
+                <version>1.6.5</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <serverId>repository.apache.org</serverId>
+                    <nexusUrl>https://repository.apache.org/</nexusUrl>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-plugin-plugin</artifactId>
@@ -208,6 +208,16 @@
                         <phase>process-classes</phase>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.rat</groupId>
+                <artifactId>apache-rat-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>nb-configuration.xml</exclude>
+                        <exclude>nbactions.xml</exclude>
+                    </excludes>
+                </configuration>
             </plugin>
         </plugins>
     </build>
@@ -237,4 +247,27 @@
             <version>3.3</version>
         </dependency>
     </dependencies>
+    <profiles>
+        <profile>
+            <!-- Automatically check for licenses.
+            Activate with -P check-licenses -->
+            <id>check-licenses</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.rat</groupId>
+                        <artifactId>apache-rat-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                                <phase>verify</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
