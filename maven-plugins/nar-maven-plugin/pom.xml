@@ -22,7 +22,7 @@
         <version>16</version>
         <relativePath />
     </parent>
-
+    <groupId>org.apache.nifi</groupId>
     <artifactId>nar-maven-plugin</artifactId>
     <version>0.0.2-test-incubating-SNAPSHOT</version>
     <packaging>maven-plugin</packaging>
