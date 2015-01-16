@@ -145,7 +145,7 @@
                     <version>2.5.1</version>
                     <configuration>
                       <useReleaseProfile>true</useReleaseProfile>
-                      <releaseProfiles>apache-release,check-licenses</releaseProfiles>
+                      <releaseProfiles>apache-release</releaseProfiles>
                       <autoVersionSubmodules>true</autoVersionSubmodules>
                       <goals>deploy</goals>
                       <tagNameFormat>@{project.artifactId}-@{project.version}</tagNameFormat>
