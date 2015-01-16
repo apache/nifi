@@ -161,18 +161,21 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         scheduleState.setScheduled(true);
 
         final Runnable startReportingTaskRunnable = new Runnable() {
+            @SuppressWarnings("deprecation")
             @Override
             public void run() {
+                // Continually attempt to start the Reporting Task, and if we fail sleep for a bit each time.
                 while (true) {
                     final ReportingTask reportingTask = taskNode.getReportingTask();
 
                     try {
                         try (final NarCloseable x = NarCloseable.withNarLoader()) {
-                            ReflectionUtils.invokeMethodsWithAnnotation(OnConfigured.class, reportingTask, taskNode.getConfigurationContext());
+                            ReflectionUtils.invokeMethodsWithAnnotation(OnConfigured.class, OnScheduled.class, reportingTask, taskNode.getConfigurationContext());
                         }
+                        
                         break;
                     } catch (final InvocationTargetException ite) {
-                        LOG.error("Failed to invoke the @OnConfigured methods of {} due to {}; administratively yielding this ReportingTask and will attempt to schedule it again after {}",
+                        LOG.error("Failed to invoke the On-Scheduled Lifecycle methods of {} due to {}; administratively yielding this ReportingTask and will attempt to schedule it again after {}",
                                 new Object[]{reportingTask, ite.getTargetException(), administrativeYieldDuration});
                         LOG.error("", ite.getTargetException());
 
@@ -181,7 +184,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                         } catch (final InterruptedException ie) {
                         }
                     } catch (final Exception e) {
-                        LOG.error("Failed to invoke the @OnConfigured methods of {} due to {}; administratively yielding this ReportingTask and will attempt to schedule it again after {}",
+                        LOG.error("Failed to invoke the On-Scheduled Lifecycle methods of {} due to {}; administratively yielding this ReportingTask and will attempt to schedule it again after {}",
                                 new Object[]{reportingTask, e.toString(), administrativeYieldDuration}, e);
                         try {
                             Thread.sleep(administrativeYieldMillis);
@@ -213,34 +216,31 @@ public final class StandardProcessScheduler implements ProcessScheduler {
             public void run() {
                 final ConfigurationContext configurationContext = taskNode.getConfigurationContext();
 
-                while (true) {
-                    try {
-                        try (final NarCloseable x = NarCloseable.withNarLoader()) {
-                            ReflectionUtils.invokeMethodsWithAnnotation(OnUnscheduled.class, org.apache.nifi.processor.annotation.OnUnscheduled.class, reportingTask, configurationContext);
-                        }
-                        break;
-                    } catch (final InvocationTargetException ite) {
-                        LOG.error("Failed to invoke the @OnConfigured methods of {} due to {}; administratively yielding this ReportingTask and will attempt to schedule it again after {}",
-                                new Object[]{reportingTask, ite.getTargetException(), administrativeYieldDuration});
-                        LOG.error("", ite.getTargetException());
+                try {
+                    try (final NarCloseable x = NarCloseable.withNarLoader()) {
+                        ReflectionUtils.invokeMethodsWithAnnotation(OnUnscheduled.class, org.apache.nifi.processor.annotation.OnUnscheduled.class, reportingTask, configurationContext);
+                    }
+                } catch (final InvocationTargetException ite) {
+                    LOG.error("Failed to invoke the @OnConfigured methods of {} due to {}; administratively yielding this ReportingTask and will attempt to schedule it again after {}",
+                            new Object[]{reportingTask, ite.getTargetException(), administrativeYieldDuration});
+                    LOG.error("", ite.getTargetException());
 
-                        try {
-                            Thread.sleep(administrativeYieldMillis);
-                        } catch (final InterruptedException ie) {
-                        }
-                    } catch (final Exception e) {
-                        LOG.error("Failed to invoke the @OnConfigured methods of {} due to {}; administratively yielding this ReportingTask and will attempt to schedule it again after {}",
-                                new Object[]{reportingTask, e.toString(), administrativeYieldDuration}, e);
-                        try {
-                            Thread.sleep(administrativeYieldMillis);
-                        } catch (final InterruptedException ie) {
-                        }
+                    try {
+                        Thread.sleep(administrativeYieldMillis);
+                    } catch (final InterruptedException ie) {
+                    }
+                } catch (final Exception e) {
+                    LOG.error("Failed to invoke the @OnConfigured methods of {} due to {}; administratively yielding this ReportingTask and will attempt to schedule it again after {}",
+                            new Object[]{reportingTask, e.toString(), administrativeYieldDuration}, e);
+                    try {
+                        Thread.sleep(administrativeYieldMillis);
+                    } catch (final InterruptedException ie) {
                     }
                 }
 
                 agent.unschedule(taskNode, scheduleState);
 
-                if (scheduleState.getActiveThreadCount() == 0) {
+                if (scheduleState.getActiveThreadCount() == 0 && scheduleState.mustCallOnStoppedMethods()) {
                     ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, org.apache.nifi.processor.annotation.OnStopped.class, reportingTask, configurationContext);
                 }
             }

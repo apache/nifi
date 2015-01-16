@@ -33,6 +33,20 @@ import java.lang.annotation.Target;
  * threads are potentially running. To invoke a method after all threads have
  * finished processing, see the {@link OnStopped} annotation.
  * </p>
+ * 
+ * <p>
+ * Methods using this annotation must take either 0 arguments or a single argument.
+ * </p>
+ * 
+ * <p>
+ * If using 1 argument and the component using the annotation is a Processor, that argument must
+ * be of type {@link org.apache.nifi.processor.ProcessContext ProcessContext}.
+ * </p>
+ * 
+ * <p>
+ * If using 1 argument and the component using the annotation is a Reporting Task, that argument must
+ * be of type {@link org.apache.nifi.controller.ConfigurationContext ConfigurationContext}.
+ * </p>
  *
  * @author none
  */

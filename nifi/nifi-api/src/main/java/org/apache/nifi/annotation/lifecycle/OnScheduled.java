@@ -41,7 +41,7 @@ import java.lang.annotation.Target;
  * 
  * <p>
  * If using 1 argument and the component using the annotation is a Reporting Task, that argument must
- * be of type {@link org.apache.nifi.reporting.ReportingContext ReportingContext}.
+ * be of type {@link org.apache.nifi.controller.ConfigurationContext ConfigurationContext}.
  * </p>
  *
  * If any method annotated with this annotation throws any Throwable, the framework will wait a while
