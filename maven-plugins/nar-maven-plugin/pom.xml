@@ -179,6 +179,16 @@
             </plugins>
         </pluginManagement>       
         <plugins>
+           <plugin>
+             <groupId>org.sonatype.plugins</groupId>
+             <artifactId>nexus-staging-maven-plugin</artifactId>
+             <version>1.6.5</version>
+             <extensions>true</extensions>
+             <configuration>
+               <serverId>repository.apache.org</serverId>
+               <nexusUrl>https://repository.apache.org/</nexusUrl>
+             </configuration>
+           </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-plugin-plugin</artifactId>
