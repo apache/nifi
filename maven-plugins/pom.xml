@@ -24,7 +24,7 @@
     </parent>
     <groupId>org.apache.nifi</groupId>
     <artifactId>maven-plugins</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.1-incubating-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Apache NiFi Maven Plugins</name>
     <description>Apache NiFi Maven Plugins. It is currently a part of the Apache Incubator.</description>
@@ -166,24 +166,25 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-release-plugin</artifactId>
                     <version>2.5.1</version>
+                    <configuration>
+                      <useReleaseProfile>true</useReleaseProfile>
+                      <releaseProfiles>apache-release,check-licenses</releaseProfiles>
+                      <autoVersionSubmodules>true</autoVersionSubmodules>
+                      <goals>deploy</goals>
+                      <tagNameFormat>@{project.artifactId}-@{project.version}</tagNameFormat>
+                      <pushChanges>false</pushChanges>
+                      <localCheckout>true</localCheckout>
+                    </configuration>
                     <executions>
-                        <execution>
-                            <id>default</id>
-                            <goals>
-                                <goal>prepare</goal>
-                                <goal>perform</goal>
-                            </goals>
-                            <configuration>
-                                <pomFileName>platform/pom.xml</pomFileName>
-                                <arguments>-P apache-release,check-licenses</arguments>
-                                <autoVersionSubmodules>true</autoVersionSubmodules>
-                                <releaseProfiles>apache-release</releaseProfiles>
-                                <goals>deploy</goals>
-                                <tagNameFormat>@{project.artifactId}-@{project.version}</tagNameFormat>
-                                <pushChanges>false</pushChanges>
-                                <localCheckout>true</localCheckout>
-                            </configuration>
-                        </execution>
+                      <execution>
+                        <id>default</id>
+                        <goals>
+                          <goal>perform</goal>
+                        </goals>
+                        <configuration>
+                          <pomFileName>maven-plugins/pom.xml</pomFileName>
+                        </configuration>
+                      </execution>
                     </executions>
                 </plugin>
                 <plugin>
@@ -201,6 +202,16 @@
             </plugins>
         </pluginManagement>       
         <plugins>
+          <plugin>
+            <groupId>org.sonatype.plugins</groupId>
+            <artifactId>nexus-staging-maven-plugin</artifactId>
+            <version>1.6.3</version>
+            <extensions>true</extensions>
+            <configuration>
+              <serverId>repository.apache.org</serverId>
+              <nexusUrl>https://repository.apache.org/</nexusUrl>
+            </configuration>
+          </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
