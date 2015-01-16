@@ -988,7 +988,7 @@
             <plugin>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nar-maven-plugin</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <version>0.0.2-test-incubating-SNAPSHOT</version>
                 <extensions>true</extensions>
             </plugin>
         </plugins>
