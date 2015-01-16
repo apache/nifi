@@ -27,6 +27,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.nifi.annotation.lifecycle.OnDisabled;
+import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
@@ -41,6 +43,7 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.annotation.OnConfigured;
+import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.engine.FlowEngine;
@@ -514,14 +517,6 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     }
 
     @Override
-    public synchronized void disableProcessor(final ProcessorNode procNode) {
-        if (procNode.getScheduledState() != ScheduledState.STOPPED) {
-            throw new IllegalStateException("Processor cannot be disabled because its state is set to " + procNode.getScheduledState());
-        }
-        procNode.setScheduledState(ScheduledState.DISABLED);
-    }
-
-    @Override
     public synchronized void enablePort(final Port port) {
         if (port.getScheduledState() != ScheduledState.DISABLED) {
             throw new IllegalStateException("Funnel cannot be enabled because it is not disabled");
@@ -539,9 +534,84 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         if (procNode.getScheduledState() != ScheduledState.DISABLED) {
             throw new IllegalStateException("Processor cannot be enabled because it is not disabled");
         }
+        
         procNode.setScheduledState(ScheduledState.STOPPED);
+        
+        try (final NarCloseable x = NarCloseable.withNarLoader()) {
+            final ProcessorLog processorLog = new SimpleProcessLogger(procNode.getIdentifier(), procNode.getProcessor());
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnEnabled.class, procNode.getProcessor(), processorLog);
+        }
     }
 
+    @Override
+    public synchronized void disableProcessor(final ProcessorNode procNode) {
+        if (procNode.getScheduledState() != ScheduledState.STOPPED) {
+            throw new IllegalStateException("Processor cannot be disabled because its state is set to " + procNode.getScheduledState());
+        }
+        
+        procNode.setScheduledState(ScheduledState.DISABLED);
+        
+        try (final NarCloseable x = NarCloseable.withNarLoader()) {
+            final ProcessorLog processorLog = new SimpleProcessLogger(procNode.getIdentifier(), procNode.getProcessor());
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnDisabled.class, procNode.getProcessor(), processorLog);
+        }
+    }
+
+    public synchronized void enableReportingTask(final ReportingTaskNode taskNode) {
+        if ( taskNode.getScheduledState() != ScheduledState.DISABLED ) {
+            throw new IllegalStateException("Reporting Task cannot be enabled because it is not disabled");
+        }
+
+        taskNode.setScheduledState(ScheduledState.STOPPED);
+        
+        try (final NarCloseable x = NarCloseable.withNarLoader()) {
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnEnabled.class, taskNode.getReportingTask());
+        }
+    }
+    
+    public synchronized void disableReportingTask(final ReportingTaskNode taskNode) {
+        if ( taskNode.getScheduledState() != ScheduledState.STOPPED ) {
+            throw new IllegalStateException("Reporting Task cannot be disabled because its state is set to " + taskNode.getScheduledState() + " but transition to DISABLED state is allowed only from the STOPPED state");
+        }
+
+        taskNode.setScheduledState(ScheduledState.DISABLED);
+        
+        try (final NarCloseable x = NarCloseable.withNarLoader()) {
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnDisabled.class, taskNode.getReportingTask());
+        }
+    }
+
+    public synchronized void enableControllerService(final ControllerServiceNode serviceNode) {
+        if ( !serviceNode.isDisabled() ) {
+            throw new IllegalStateException("Controller Service cannot be enabled because it is not disabled");
+        }
+
+        // we set the service to enabled before invoking the @OnEnabled methods. We do this because it must be
+        // done in this order for disabling (serviceNode.setDisabled(true) will throw Exceptions if the service
+        // is currently known to be in use) and we want to be consistent with the ordering of calling setDisabled
+        // before annotated methods.
+        serviceNode.setDisabled(false);
+        
+        try (final NarCloseable x = NarCloseable.withNarLoader()) {
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnEnabled.class, serviceNode.getControllerServiceImplementation());
+        }
+    }
+    
+    public synchronized void disableControllerService(final ControllerServiceNode serviceNode) {
+        if ( serviceNode.isDisabled() ) {
+            throw new IllegalStateException("Controller Service cannot be disabled because it is already disabled");
+        }
+
+        // We must set the service to disabled before we invoke the OnDisabled methods because the service node
+        // can throw Exceptions if we attempt to disable the service while it's known to be in use.
+        serviceNode.setDisabled(true);
+        
+        try (final NarCloseable x = NarCloseable.withNarLoader()) {
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnDisabled.class, serviceNode.getControllerServiceImplementation());
+        }
+    }
+    
+    
     @Override
     public boolean isScheduled(final Object scheduled) {
         final ScheduleState scheduleState = scheduleStates.get(scheduled);
@@ -549,7 +619,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     }
 
     /**
-     * Returns the ScheduleState that is registered for the given ProcessorNode;
+     * Returns the ScheduleState that is registered for the given component;
      * if no ScheduleState current is registered, one is created and registered
      * atomically, and then that value is returned.
      *

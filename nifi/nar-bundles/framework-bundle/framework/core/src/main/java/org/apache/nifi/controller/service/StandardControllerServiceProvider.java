@@ -30,17 +30,20 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.nifi.annotation.lifecycle.OnAdded;
+import org.apache.nifi.annotation.lifecycle.OnRemoved;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ValidationContextFactory;
-import org.apache.nifi.controller.annotation.OnConfigured;
 import org.apache.nifi.controller.exception.ControllerServiceAlreadyExistsException;
 import org.apache.nifi.controller.exception.ControllerServiceNotFoundException;
+import org.apache.nifi.controller.exception.ProcessorLifeCycleException;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.StandardValidationContextFactory;
 import org.apache.nifi.util.ObjectHolder;
 import org.apache.nifi.util.ReflectionUtils;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -93,7 +96,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     }
 
     @Override
-    public ControllerServiceNode createControllerService(final String type, final String id, final Map<String, String> properties) {
+    public ControllerServiceNode createControllerService(final String type, final String id, final boolean firstTimeAdded) {
         if (type == null || id == null) {
             throw new NullPointerException();
         }
@@ -139,15 +142,18 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
             final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(this);
 
-            final ControllerServiceNode serviceNode = new StandardControllerServiceNode(proxiedService, id, validationContextFactory, this);
+            final ControllerServiceNode serviceNode = new StandardControllerServiceNode(proxiedService, originalService, id, validationContextFactory, this);
             serviceNodeHolder.set(serviceNode);
             serviceNode.setAnnotationData(null);
             serviceNode.setName(id);
-            for (final Map.Entry<String, String> entry : properties.entrySet()) {
-                serviceNode.setProperty(entry.getKey(), entry.getValue());
+            
+            if ( firstTimeAdded ) {
+                try (final NarCloseable x = NarCloseable.withNarLoader()) {
+                    ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, originalService);
+                } catch (final Exception e) {
+                    throw new ProcessorLifeCycleException("Failed to invoke On-Added Lifecycle methods of " + originalService, e);
+                }
             }
-            final StandardConfigurationContext configurationContext = new StandardConfigurationContext(serviceNode, this);
-            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigured.class, originalService, configurationContext);
 
             this.controllerServices.put(id, serviceNode);
             return serviceNode;
@@ -163,7 +169,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     @Override
     public ControllerService getControllerService(final String serviceIdentifier) {
         final ControllerServiceNode node = controllerServices.get(serviceIdentifier);
-        return (node == null) ? null : node.getControllerService();
+        return (node == null) ? null : node.getProxiedControllerService();
     }
 
     @Override
@@ -186,11 +192,28 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType) {
         final Set<String> identifiers = new HashSet<>();
         for (final Map.Entry<String, ControllerServiceNode> entry : controllerServices.entrySet()) {
-            if (requireNonNull(serviceType).isAssignableFrom(entry.getValue().getControllerService().getClass())) {
+            if (requireNonNull(serviceType).isAssignableFrom(entry.getValue().getProxiedControllerService().getClass())) {
                 identifiers.add(entry.getKey());
             }
         }
 
         return identifiers;
+    }
+    
+    @Override
+    public void removeControllerService(final ControllerServiceNode serviceNode) {
+        final ControllerServiceNode existing = controllerServices.get(serviceNode.getIdentifier());
+        if ( existing == null || existing != serviceNode ) {
+            throw new IllegalStateException("Controller Service " + serviceNode + " does not exist in this Flow");
+        }
+        
+        serviceNode.verifyCanDelete();
+        
+        try (final NarCloseable x = NarCloseable.withNarLoader()) {
+            final ConfigurationContext configurationContext = new StandardConfigurationContext(serviceNode, this);
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, serviceNode.getControllerServiceImplementation(), configurationContext);
+        }
+        
+        controllerServices.remove(serviceNode.getIdentifier());
     }
 }

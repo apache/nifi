@@ -16,8 +16,7 @@
  */
 package org.apache.nifi.controller.service;
 
-import java.util.Map;
-
+import org.apache.nifi.annotation.lifecycle.OnAdded;
 import org.apache.nifi.controller.ControllerServiceLookup;
 
 /**
@@ -26,15 +25,15 @@ import org.apache.nifi.controller.ControllerServiceLookup;
 public interface ControllerServiceProvider extends ControllerServiceLookup {
 
     /**
-     * Gets the controller service for the specified identifier. Returns null if
-     * the identifier does not match a known service.
+     * Creates a new Controller Service of the given type and assigns it the given id. If <code>firstTimeadded</code>
+     * is true, calls any methods that are annotated with {@link OnAdded}
      *
      * @param type
      * @param id
-     * @param properties
+     * @param firstTimeAdded
      * @return
      */
-    ControllerServiceNode createControllerService(String type, String id, Map<String, String> properties);
+    ControllerServiceNode createControllerService(String type, String id, boolean firstTimeAdded);
 
     /**
      * Gets the controller service node for the specified identifier. Returns
@@ -44,4 +43,14 @@ public interface ControllerServiceProvider extends ControllerServiceLookup {
      * @return
      */
     ControllerServiceNode getControllerServiceNode(String id);
+    
+    /**
+     * Removes the given Controller Service from the flow. This will call all appropriate methods
+     * that have the @OnRemoved annotation.
+     * 
+     * @param serviceNode the controller service to remove
+     * 
+     * @throws IllegalStateException if the controller service is not disabled or is not a part of this flow
+     */
+    void removeControllerService(ControllerServiceNode serviceNode);
 }

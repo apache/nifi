@@ -50,6 +50,7 @@ import javax.net.ssl.SSLContext;
 
 import org.apache.nifi.admin.service.UserService;
 import org.apache.nifi.annotation.lifecycle.OnAdded;
+import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.cluster.BulletinsPayload;
 import org.apache.nifi.cluster.HeartbeatPayload;
 import org.apache.nifi.cluster.protocol.DataFlow;
@@ -134,6 +135,7 @@ import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.logging.ProcessorLog;
 import org.apache.nifi.logging.ProcessorLogObserver;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.NarClassLoader;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.nar.NarThreadContextClassLoader;
 import org.apache.nifi.processor.Processor;
@@ -2463,6 +2465,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, H
     }
 
     public ReportingTaskNode createReportingTask(final String type, String id) throws ReportingTaskInstantiationException {
+        return createReportingTask(type, id, true);
+    }
+    
+    public ReportingTaskNode createReportingTask(final String type, String id, final boolean firstTimeAdded) throws ReportingTaskInstantiationException {
         if (type == null) {
             throw new NullPointerException();
         }
@@ -2484,7 +2490,6 @@ public class FlowController implements EventAccess, ControllerServiceProvider, H
             final Class<? extends ReportingTask> reportingTaskClass = rawClass.asSubclass(ReportingTask.class);
             final Object reportingTaskObj = reportingTaskClass.newInstance();
             task = reportingTaskClass.cast(reportingTaskObj);
-
         } catch (final ClassNotFoundException | SecurityException | InstantiationException | IllegalAccessException | IllegalArgumentException t) {
             throw new ReportingTaskInstantiationException(type, t);
         } finally {
@@ -2495,6 +2500,15 @@ public class FlowController implements EventAccess, ControllerServiceProvider, H
 
         final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(controllerServiceProvider);
         final ReportingTaskNode taskNode = new StandardReportingTaskNode(task, id, this, processScheduler, validationContextFactory);
+        
+        if ( firstTimeAdded ) {
+            try (final NarCloseable x = NarCloseable.withNarLoader()) {
+                ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, task);
+            } catch (final Exception e) {
+                throw new ProcessorLifeCycleException("Failed to invoke On-Added Lifecycle methods of " + task, e);
+            }
+        }
+        
         reportingTasks.put(id, taskNode);
         return taskNode;
     }
@@ -2519,13 +2533,45 @@ public class FlowController implements EventAccess, ControllerServiceProvider, H
         processScheduler.unschedule(reportingTaskNode);
     }
 
+    public void removeReportingTask(final ReportingTaskNode reportingTaskNode) {
+        final ReportingTaskNode existing = reportingTasks.get(reportingTaskNode.getIdentifier());
+        if ( existing == null || existing != reportingTaskNode ) {
+            throw new IllegalStateException("Reporting Task " + reportingTaskNode + " does not exist in this Flow");
+        }
+        
+        reportingTaskNode.verifyCanDelete();
+        
+        try (final NarCloseable x = NarCloseable.withNarLoader()) {
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, reportingTaskNode.getReportingTask(), reportingTaskNode.getConfigurationContext());
+        }
+        
+        reportingTasks.remove(reportingTaskNode.getIdentifier());
+    }
+    
     Collection<ReportingTaskNode> getReportingTasks() {
         return reportingTasks.values();
     }
 
+
+    public void enableReportingTask(final ReportingTaskNode reportingTaskNode) {
+        processScheduler.enableReportingTask(reportingTaskNode);
+    }
+    
+    public void disableReportingTask(final ReportingTaskNode reportingTaskNode) {
+        processScheduler.disableReportingTask(reportingTaskNode);
+    }
+    
+    public void enableControllerService(final ControllerServiceNode serviceNode) {
+        processScheduler.enableControllerService(serviceNode);
+    }
+    
+    public void disableControllerService(final ControllerServiceNode serviceNode) {
+        processScheduler.disableControllerService(serviceNode);
+    }
+
     @Override
-    public ControllerServiceNode createControllerService(final String type, final String id, final Map<String, String> properties) {
-        return controllerServiceProvider.createControllerService(type, id.intern(), properties);
+    public ControllerServiceNode createControllerService(final String type, final String id, final boolean firstTimeAdded) {
+        return controllerServiceProvider.createControllerService(type, id.intern(), firstTimeAdded);
     }
 
     @Override
@@ -2548,6 +2594,11 @@ public class FlowController implements EventAccess, ControllerServiceProvider, H
         return controllerServiceProvider.isControllerServiceEnabled(serviceIdentifier);
     }
 
+    @Override
+    public void removeControllerService(final ControllerServiceNode serviceNode) {
+        controllerServiceProvider.removeControllerService(serviceNode);
+    }
+    
     //
     // Counters
     //
