@@ -17,11 +17,11 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nar-bundle-parent</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
+        <version>0.0.1-incubating-SNAPSHOT</version>
     </parent>
 
     <artifactId>monitor-threshold-bundle</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.1-incubating-SNAPSHOT</version>
     <name>MonitorThreshold-Bundle</name>
     <packaging>pom</packaging>
 
@@ -38,13 +38,13 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>monitor-threshold-processor</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <version>0.0.1-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>monitor-threshold-ui</artifactId>
                 <type>war</type>
-                <version>0.0.1-SNAPSHOT</version>
+                <version>0.0.1-incubating-SNAPSHOT</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

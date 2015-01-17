@@ -18,11 +18,11 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nar-bundle-parent</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
+        <version>0.0.1-incubating-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-standard-bundle</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.1-incubating-SNAPSHOT</version>
     <name>NiFi Standard Bundle</name>
     <packaging>pom</packaging>
     <description>NiFi Standard Extensions Bundle</description>
@@ -42,27 +42,27 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>standard-processors</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <version>0.0.1-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>standard-prioritizers</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <version>0.0.1-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>standard-reporting-tasks</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <version>0.0.1-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>standard-ganglia-reporter</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <version>0.0.1-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>jms-processors</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <version>0.0.1-incubating-SNAPSHOT</version>
             </dependency>            
         </dependencies>
     </dependencyManagement>

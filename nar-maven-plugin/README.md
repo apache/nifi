@@ -1,18 +1,29 @@
-# Apache NiFi
+# Apache NiFi NAR Maven Plugin
 
-Apache NiFi is a dataflow system based on the concepts of flow-based programming. It is currently apart of the Apache Incubator.
+Apache NiFi NAR Maven Plugin helps to build NiFi Archive bundles to support the classloader isolation model of NiFi.
 
 ## Table of Contents
 
 - [Getting Started](#getting-started)
+- [Getting Help](#getting-help)
+- [Requirements](#requirements)
 - [License](#license)
 - [Disclaimer](#disclaimer)
 
 ## Getting Started
 
-- Build the nar-maven-plugin.  Change directory to 'nar-maven-plugin' and 
-follow the directions found there.
-- Build nifi.  Change directory to 'nifi' and follow the directions found there.
+To Build:
+- Executed 'mvn clean install'
+
+## Getting Help
+If you have questions, you can reach out to our mailing list: dev@nifi.incubator.apache.org
+([archive](http://mail-archives.apache.org/mod_mbox/incubator-nifi-dev)).
+We're also often available in IRC: #nifi on
+[irc.freenode.net](http://webchat.freenode.net/?channels=#nifi).
+
+
+## Requirements
+* JDK 1.7 or higher
 
 ## License
 

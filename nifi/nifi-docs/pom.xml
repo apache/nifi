@@ -4,7 +4,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-parent</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
+        <version>0.0.1-incubating-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-docs</artifactId>
@@ -54,7 +54,7 @@
                         <imagesdir>./images</imagesdir>
                         <icons>font</icons>
                         <toc>true</toc>
-                        <docVersion>0.0.1-SNAPSHOT</docVersion>
+                        <docVersion>${project.version}</docVersion>
                         <sectanchors>true</sectanchors>
                         <idprefix/>
                         <idseparator>-</idseparator>

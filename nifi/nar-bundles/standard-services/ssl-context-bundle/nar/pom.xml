@@ -17,11 +17,11 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>ssl-context-bundle</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
+        <version>0.0.1-incubating-SNAPSHOT</version>
     </parent>
 	
     <artifactId>ssl-context-service-nar</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.1-incubating-SNAPSHOT</version>
     <name>SSL Context Services Nar</name>
     <packaging>nar</packaging>
 	

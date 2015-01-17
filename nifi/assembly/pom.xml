@@ -18,10 +18,10 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-parent</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
+        <version>0.0.1-incubating-SNAPSHOT</version>
     </parent>
     <artifactId>nifi</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.1-incubating-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>NiFi Release</name>
     <description>This is the assembly Apache NiFi (incubating)</description>
@@ -385,16 +385,16 @@
                                             <directory>/opt/nifi/nifi-${project.version}</directory>
                                             <sources>
                                                 <source>
-                                                    <location>../../LICENSE</location>
+                                                    <location>../LICENSE</location>
                                                 </source>
                                                 <source>
-                                                    <location>../../NOTICE</location>
+                                                    <location>../NOTICE</location>
                                                 </source>
                                                 <source>
-                                                    <location>../../DISCLAIMER</location>
+                                                    <location>../DISCLAIMER</location>
                                                 </source>
                                                 <source>
-                                                    <location>../../README.md</location>
+                                                    <location>../README.md</location>
                                                     <destination>README</destination>
                                                 </source>
                                             </sources>

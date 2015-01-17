@@ -18,11 +18,11 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nar-bundle-parent</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
+        <version>0.0.1-incubating-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-framework-bundle</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.1-incubating-SNAPSHOT</version>
     <name>NiFi Framework Bundle</name>
     <packaging>pom</packaging>
     <description>NiFi: Framework Bundle</description>
@@ -37,77 +37,77 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>framework-cluster-protocol</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <version>0.0.1-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>framework-cluster-web</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <version>0.0.1-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>file-authorization-provider</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <version>0.0.1-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>cluster-authorization-provider</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <version>0.0.1-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>framework-cluster</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <version>0.0.1-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-runtime</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <version>0.0.1-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>client-dto</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <version>0.0.1-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-security</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <version>0.0.1-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>core-api</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <version>0.0.1-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>site-to-site</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <version>0.0.1-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>framework-core</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <version>0.0.1-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-user-actions</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <version>0.0.1-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-administration</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <version>0.0.1-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-jetty</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <version>0.0.1-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>web-optimistic-locking</artifactId>
-                <version>0.0.1-SNAPSHOT</version>
+                <version>0.0.1-incubating-SNAPSHOT</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

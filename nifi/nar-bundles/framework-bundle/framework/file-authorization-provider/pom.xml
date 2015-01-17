@@ -18,11 +18,11 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-framework-parent</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
+        <version>0.0.1-incubating-SNAPSHOT</version>
     </parent>
 
     <artifactId>file-authorization-provider</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.1-incubating-SNAPSHOT</version>
     <name>NiFi File Authorization Provider</name>
 
     <build>

@@ -17,11 +17,11 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>update-attribute-bundle</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
+        <version>0.0.1-incubating-SNAPSHOT</version>
     </parent>
     
     <artifactId>update-attribute-nar</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.1-incubating-SNAPSHOT</version>
     
     <name>Update Attribute Nar</name>
     <packaging>nar</packaging>

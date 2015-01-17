@@ -17,11 +17,11 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>monitor-threshold-bundle</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
+        <version>0.0.1-incubating-SNAPSHOT</version>
     </parent>
     
     <artifactId>monitor-threshold-nar</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.1-incubating-SNAPSHOT</version>
     <name>MonitorThreshold-NAR</name>
     <packaging>nar</packaging>
     

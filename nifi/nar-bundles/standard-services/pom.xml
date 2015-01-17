@@ -18,11 +18,11 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nar-bundle-parent</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
+        <version>0.0.1-incubating-SNAPSHOT</version>
     </parent>
 
     <artifactId>standard-services-parent</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.1-incubating-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>Standard Services Parent</name>

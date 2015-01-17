@@ -18,12 +18,12 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>hadoop-libraries-bundle</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
+        <version>0.0.1-incubating-SNAPSHOT</version>
     </parent>
 
     <artifactId>hadoop-libraries-nar</artifactId>
     <packaging>nar</packaging>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.1-incubating-SNAPSHOT</version>
 
     <name>Hadoop Libraries NAR</name>
 
