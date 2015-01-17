@@ -46,12 +46,6 @@
         <dependencies>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>load-distribution-service</artifactId>
-                <version>0.0.1-incubating-SNAPSHOT</version>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
                 <artifactId>distributed-cache-client-service</artifactId>
                 <version>0.0.1-incubating-SNAPSHOT</version>
             </dependency>
@@ -88,16 +82,6 @@
                 <artifactId>ssl-context-service</artifactId>
                 <version>0.0.1-incubating-SNAPSHOT</version>
             </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>http-context-map-api</artifactId>
-                <version>0.0.1-incubating-SNAPSHOT</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>http-context-map</artifactId>
-                <version>0.0.1-incubating-SNAPSHOT</version>
-            </dependency>                      
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>volatile-provenance-repository</artifactId>

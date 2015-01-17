@@ -159,7 +159,7 @@
                                 <goal>perform</goal>
                             </goals>
                             <configuration>
-                                <pomFileName>maven-plugins/nar-maven-plugin/pom.xml</pomFileName>
+                                <pomFileName>nar-maven-plugin/pom.xml</pomFileName>
                             </configuration>
                         </execution>
                     </executions>
