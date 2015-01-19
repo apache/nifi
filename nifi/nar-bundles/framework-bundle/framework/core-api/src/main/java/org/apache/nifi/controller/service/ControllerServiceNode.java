@@ -40,5 +40,7 @@ public interface ControllerServiceNode extends ConfiguredComponent {
 
     void removeReference(ConfiguredComponent referringComponent);
     
+    void verifyCanEnable();
+    void verifyCanDisable();
     void verifyCanDelete();
 }

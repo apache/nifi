@@ -2522,6 +2522,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, H
             throw new IllegalStateException("Cannot start reporting task " + reportingTaskNode + " because the controller is terminated");
         }
 
+        reportingTaskNode.verifyCanStart();
+        
         processScheduler.schedule(reportingTaskNode);
     }
 
@@ -2530,6 +2532,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, H
             return;
         }
 
+        reportingTaskNode.verifyCanStop();
+        
         processScheduler.unschedule(reportingTaskNode);
     }
 
@@ -2554,18 +2558,26 @@ public class FlowController implements EventAccess, ControllerServiceProvider, H
 
 
     public void enableReportingTask(final ReportingTaskNode reportingTaskNode) {
+        reportingTaskNode.verifyCanEnable();
+        
         processScheduler.enableReportingTask(reportingTaskNode);
     }
     
     public void disableReportingTask(final ReportingTaskNode reportingTaskNode) {
+        reportingTaskNode.verifyCanDisable();
+        
         processScheduler.disableReportingTask(reportingTaskNode);
     }
     
     public void enableControllerService(final ControllerServiceNode serviceNode) {
+        serviceNode.verifyCanEnable();
+        
         processScheduler.enableControllerService(serviceNode);
     }
     
     public void disableControllerService(final ControllerServiceNode serviceNode) {
+        serviceNode.verifyCanDisable();
+        
         processScheduler.disableControllerService(serviceNode);
     }
 

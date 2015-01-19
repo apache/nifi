@@ -68,5 +68,9 @@ public interface ReportingTaskNode extends ConfiguredComponent {
     
     void setScheduledState(ScheduledState state);
     
+    void verifyCanStart();
+    void verifyCanStop();
+    void verifyCanDisable();
+    void verifyCanEnable();
     void verifyCanDelete();
 }

@@ -159,4 +159,5 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
             throw new IllegalStateException(this + " is running");
         }
     }
+    
 }
