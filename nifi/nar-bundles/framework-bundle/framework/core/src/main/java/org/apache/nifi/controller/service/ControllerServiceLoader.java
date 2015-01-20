@@ -123,23 +123,21 @@ public class ControllerServiceLoader {
 
                 final List<Element> serviceNodes = DomUtils.getChildElementsByTagName(servicesElement, "service");
                 for (final Element serviceElement : serviceNodes) {
-                    //add global properties common to all tasks
-                    Map<String, String> properties = new HashMap<>();
-
                     //get properties for the specific controller task - id, name, class,
                     //and schedulingPeriod must be set
                     final String serviceId = DomUtils.getChild(serviceElement, "identifier").getTextContent().trim();
                     final String serviceClass = DomUtils.getChild(serviceElement, "class").getTextContent().trim();
 
+                    //set the class to be used for the configured controller task
+                    final ControllerServiceNode serviceNode = provider.createControllerService(serviceClass, serviceId, false);
+
                     //optional task-specific properties
                     for (final Element optionalProperty : DomUtils.getChildElementsByTagName(serviceElement, "property")) {
                         final String name = optionalProperty.getAttribute("name").trim();
                         final String value = optionalProperty.getTextContent().trim();
-                        properties.put(name, value);
+                        serviceNode.setProperty(name, value);
                     }
 
-                    //set the class to be used for the configured controller task
-                    final ControllerServiceNode serviceNode = provider.createControllerService(serviceClass, serviceId, properties);
                     services.add(serviceNode);
                     serviceNode.setDisabled(false);
                 }

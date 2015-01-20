@@ -43,4 +43,5 @@ public interface ControllerServiceNode extends ConfiguredComponent {
     void verifyCanEnable();
     void verifyCanDisable();
     void verifyCanDelete();
+    void verifyCanUpdate();
 }

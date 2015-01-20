@@ -117,6 +117,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
                 public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
                     final ControllerServiceNode node = serviceNodeHolder.get();
                     if (node.isDisabled() && !validDisabledMethods.contains(method)) {
+                        // Use nar class loader here because we are implicitly calling toString() on the original implementation.
                         try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
                             throw new IllegalStateException("Cannot invoke method " + method + " on Controller Service " + originalService + " because the Controller Service is disabled");
                         } catch (final Throwable e) {

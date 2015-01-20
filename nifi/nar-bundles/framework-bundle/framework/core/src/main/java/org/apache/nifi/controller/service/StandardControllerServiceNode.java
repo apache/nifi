@@ -166,7 +166,30 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
     @Override
     public void verifyCanDelete() {
         if ( !isDisabled() ) {
-            throw new IllegalStateException(this + " cannot be deleted because it has not been disabled");
+            throw new IllegalStateException(implementation + " cannot be deleted because it is not disabled");
+        }
+    }
+    
+    @Override
+    public void verifyCanDisable() {
+        final ControllerServiceReference references = getReferences();
+        final int numRunning = references.getRunningReferences().size();
+        if ( numRunning > 0 ) {
+            throw new IllegalStateException(implementation + " cannot be disabled because it is referenced by " + numRunning + " components that are currently running");
+        }
+    }
+    
+    @Override
+    public void verifyCanEnable() {
+        if ( !isDisabled() ) {
+            throw new IllegalStateException(implementation + " cannot be enabled because it is not disabled");
+        }
+    }
+    
+    @Override
+    public void verifyCanUpdate() {
+        if ( !isDisabled() ) {
+            throw new IllegalStateException(implementation + " cannot be updated because it is not disabled");
         }
     }
 }

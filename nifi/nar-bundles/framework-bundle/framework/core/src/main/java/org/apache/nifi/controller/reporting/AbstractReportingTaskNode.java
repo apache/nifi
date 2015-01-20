@@ -19,7 +19,6 @@ package org.apache.nifi.controller.reporting;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.nifi.annotation.lifecycle.OnAdded;
 import org.apache.nifi.controller.AbstractConfiguredComponent;
 import org.apache.nifi.controller.Availability;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -27,7 +26,6 @@ import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
-import org.apache.nifi.controller.StandardProcessorNode;
 import org.apache.nifi.controller.ValidationContextFactory;
 import org.apache.nifi.controller.annotation.OnConfigured;
 import org.apache.nifi.controller.exception.ProcessorLifeCycleException;
@@ -145,6 +143,8 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
     }
     
     private void onConfigured() {
+        // We need to invoke any method annotation with the OnConfigured annotation in order to
+        // maintain backward compatibility. This will be removed when we remove the old, deprecated annotations.
         try (final NarCloseable x = NarCloseable.withNarLoader()) {
             final ConfigurationContext configContext = new StandardConfigurationContext(this, serviceLookup);
             ReflectionUtils.invokeMethodsWithAnnotation(OnConfigured.class, reportingTask, configContext);
@@ -153,11 +153,58 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
         }
     }
     
+    public boolean isDisabled() {
+        return scheduledState == ScheduledState.DISABLED;
+    }
+    
     @Override
     public void verifyCanDelete() {
         if (isRunning()) {
-            throw new IllegalStateException(this + " is running");
+            throw new IllegalStateException("Cannot delete " + reportingTask + " because it is currently running");
         }
     }
     
+    @Override
+    public void verifyCanDisable() {
+        if ( isRunning() ) {
+            throw new IllegalStateException("Cannot disable " + reportingTask + " because it is currently running");
+        }
+        
+        if ( isDisabled() ) {
+            throw new IllegalStateException("Cannot disable " + reportingTask + " because it is already disabled");
+        }
+    }
+    
+    
+    @Override
+    public void verifyCanEnable() {
+        if ( !isDisabled() ) {
+            throw new IllegalStateException("Cannot enable " + reportingTask + " because it is not disabled");
+        }
+    }
+    
+    @Override
+    public void verifyCanStart() {
+        if ( isDisabled() ) {
+            throw new IllegalStateException("Cannot start " + reportingTask + " because it is currently disabled");
+        }
+        
+        if ( isRunning() ) {
+            throw new IllegalStateException("Cannot start " + reportingTask + " because it is already running");
+        }
+    }
+    
+    @Override
+    public void verifyCanStop() {
+        if ( !isRunning() ) {
+            throw new IllegalStateException("Cannot stop " + reportingTask + " because it is not running");
+        }
+    }
+    
+    @Override
+    public void verifyCanUpdate() {
+        if ( isRunning() ) {
+            throw new IllegalStateException("Cannot update " + reportingTask + " because it is currently running");
+        }
+    }
 }

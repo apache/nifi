@@ -191,7 +191,6 @@ import org.apache.nifi.web.api.entity.ProvenanceEventEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupsEntity;
 import org.apache.nifi.web.util.WebUtils;
-
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1290,18 +1289,6 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         }
     }
 
-    /**
-     * Adds an instance of a specified controller service.
-     *
-     * @param type
-     * @param id
-     * @param properties
-     * @return
-     */
-    @Override
-    public ControllerServiceNode createControllerService(String type, String id, Map<String, String> properties) {
-        return controllerServiceProvider.createControllerService(type, id, properties);
-    }
 
     @Override
     public ControllerService getControllerService(String serviceIdentifier) {
@@ -1323,6 +1310,16 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         return controllerServiceProvider.isControllerServiceEnabled(serviceIdentifier);
     }
 
+    @Override
+    public ControllerServiceNode createControllerService(final String type, final String id, final boolean firstTimeAdded) {
+        return controllerServiceProvider.createControllerService(type, id, firstTimeAdded);
+    }
+    
+    @Override
+    public void removeControllerService(final ControllerServiceNode serviceNode) {
+        controllerServiceProvider.removeControllerService(serviceNode);
+    }
+    
     /**
      * Handle a bulletins message.
      *

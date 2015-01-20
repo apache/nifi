@@ -73,4 +73,5 @@ public interface ReportingTaskNode extends ConfiguredComponent {
     void verifyCanDisable();
     void verifyCanEnable();
     void verifyCanDelete();
+    void verifyCanUpdate();
 }
