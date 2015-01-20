@@ -26,13 +26,13 @@ import java.util.Map;
 
 import javax.net.ssl.SSLContext;
 
+import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.controller.annotation.OnConfigured;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
@@ -104,7 +104,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
     }
     private ConfigurationContext configContext;
 
-    @OnConfigured
+    @OnEnabled
     public void onConfigured(final ConfigurationContext context) throws InitializationException {
         configContext = context;
 
