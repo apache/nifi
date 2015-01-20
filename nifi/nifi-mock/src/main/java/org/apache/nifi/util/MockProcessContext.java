@@ -152,6 +152,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements S
         config.setProperties(properties);
         config.setAnnotationData(annotationData);
     }
+    
 
     @Override
     public int getMaxConcurrentTasks() {

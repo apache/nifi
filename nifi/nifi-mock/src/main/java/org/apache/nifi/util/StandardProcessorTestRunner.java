@@ -27,6 +27,7 @@ import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -43,15 +44,19 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.lifecycle.OnAdded;
+import org.apache.nifi.annotation.lifecycle.OnDisabled;
+import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerService;
-import org.apache.nifi.controller.annotation.OnConfigured;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessSessionFactory;
@@ -504,6 +509,12 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public void addControllerService(final String identifier, final ControllerService service, final Map<String, String> properties) throws InitializationException {
+//        for ( final Method method : service.getClass().getMethods() ) {
+//            if ( method.isAnnotationPresent(org.apache.nifi.controller.annotation.OnConfigured.class) ) {
+//                Assert.fail("Controller Service " + service + " is using deprecated Annotation " + org.apache.nifi.controller.annotation.OnConfigured.class + " for method " + method);
+//            }
+//        }
+        
         final MockControllerServiceInitializationContext initContext = new MockControllerServiceInitializationContext(requireNonNull(service), requireNonNull(identifier));
         service.initialize(initContext);
 
@@ -512,9 +523,8 @@ public class StandardProcessorTestRunner implements TestRunner {
             resolvedProps.put(service.getPropertyDescriptor(entry.getKey()), entry.getValue());
         }
 
-        final MockConfigurationContext configurationContext = new MockConfigurationContext(resolvedProps, context);
         try {
-            ReflectionUtils.invokeMethodsWithAnnotation(OnConfigured.class, service, configurationContext);
+            ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, service);
         } catch (final InvocationTargetException | IllegalAccessException | IllegalArgumentException e) {
             throw new InitializationException(e);
         }
@@ -522,6 +532,158 @@ public class StandardProcessorTestRunner implements TestRunner {
         context.addControllerService(identifier, service, resolvedProps, null);
     }
 
+    
+    @Override
+    public void assertNotValid(final ControllerService service) {
+        final ValidationContext validationContext = new MockValidationContext(context).getControllerServiceValidationContext(service);
+        final Collection<ValidationResult> results = context.getControllerService(service.getIdentifier()).validate(validationContext);
+        
+        for ( final ValidationResult result : results ) {
+            if ( !result.isValid() ) {
+                return;
+            }
+        }
+        
+        Assert.fail("Expected Controller Service " + service + " to be invalid but it is valid");
+    }
+    
+    @Override
+    public void assertValid(final ControllerService service) {
+        final ValidationContext validationContext = new MockValidationContext(context).getControllerServiceValidationContext(service);
+        final Collection<ValidationResult> results = context.getControllerService(service.getIdentifier()).validate(validationContext);
+        
+        for ( final ValidationResult result : results ) {
+            if ( !result.isValid() ) {
+                Assert.fail("Expected Controller Service to be valid but it is invalid due to: " + result.toString());
+            }
+        }
+    }
+    
+    
+    @Override
+    public void disableControllerService(final ControllerService service) {
+        final ControllerServiceConfiguration configuration = context.getConfiguration(service.getIdentifier());
+        if ( configuration == null ) {
+            throw new IllegalArgumentException("Controller Service " + service + " is not known");
+        }
+        
+        if ( !configuration.isEnabled() ) {
+            throw new IllegalStateException("Controller service " + service + " cannot be disabled because it is not enabled");
+        }
+        
+        try {
+            ReflectionUtils.invokeMethodsWithAnnotation(OnDisabled.class, service);
+        } catch (final Exception e) {
+            e.printStackTrace();
+            Assert.fail("Failed to disable Controller Service " + service + " due to " + e);
+        }
+        
+        configuration.setEnabled(false);
+    }
+    
+    @Override
+    public void enableControllerService(final ControllerService service) {
+        final ControllerServiceConfiguration configuration = context.getConfiguration(service.getIdentifier());
+        if ( configuration == null ) {
+            throw new IllegalArgumentException("Controller Service " + service + " is not known");
+        }
+        
+        if ( configuration.isEnabled() ) {
+            throw new IllegalStateException("Cannot enable Controller Service " + service + " because it is not disabled");
+        }
+        
+        try {
+            final ConfigurationContext configContext = new MockConfigurationContext(configuration.getProperties(), context);
+            ReflectionUtils.invokeMethodsWithAnnotation(OnEnabled.class, service, configContext);
+        } catch (final InvocationTargetException ite) {
+            ite.getCause().printStackTrace();
+            Assert.fail("Failed to enable Controller Service " + service + " due to " + ite.getCause());
+        } catch (final Exception e) {
+            e.printStackTrace();
+            Assert.fail("Failed to enable Controller Service " + service + " due to " + e);
+        }
+
+        configuration.setEnabled(true);        
+    }
+    
+    @Override
+    public boolean isControllerServiceEnabled(final ControllerService service) {
+        final ControllerServiceConfiguration configuration = context.getConfiguration(service.getIdentifier());
+        if ( configuration == null ) {
+            throw new IllegalArgumentException("Controller Service " + service + " is not known");
+        }
+
+        return configuration.isEnabled();
+    }
+    
+    @Override
+    public void removeControllerService(final ControllerService service) {
+        disableControllerService(service);
+        
+        try {
+            ReflectionUtils.invokeMethodsWithAnnotation(OnRemoved.class, service);
+        } catch (final Exception e) {
+            e.printStackTrace();
+            Assert.fail("Failed to remove Controller Service " + service + " due to " + e);
+        }
+        
+        context.removeControllerService(service);
+    }
+    
+    @Override
+    public void setAnnotationData(final ControllerService service, final String annotationData) {
+        final ControllerServiceConfiguration configuration = getConfigToUpdate(service);
+        configuration.setAnnotationData(annotationData);
+    }
+    
+    private ControllerServiceConfiguration getConfigToUpdate(final ControllerService service) {
+        final ControllerServiceConfiguration configuration = context.getConfiguration(service.getIdentifier());
+        if ( configuration == null ) {
+            throw new IllegalArgumentException("Controller Service " + service + " is not known");
+        }
+        
+        if ( configuration.isEnabled() ) {
+            throw new IllegalStateException("Controller service " + service + " cannot be modified because it is not disabled");
+        }
+        
+        return configuration;
+    }
+    
+    @Override
+    public ValidationResult setProperty(final ControllerService service, final PropertyDescriptor property, final AllowableValue value) {
+        return setProperty(service, property, value.getValue());
+    }
+    
+    @Override
+    public ValidationResult setProperty(final ControllerService service, final PropertyDescriptor property, final String value) {
+        final ControllerServiceConfiguration configuration = getConfigToUpdate(service);
+        final Map<PropertyDescriptor, String> curProps = configuration.getProperties();
+        final Map<PropertyDescriptor, String> updatedProps = new HashMap<>(curProps);
+        
+        final ValidationContext validationContext = new MockValidationContext(context).getControllerServiceValidationContext(service);
+        final ValidationResult validationResult = property.validate(value, validationContext);
+        
+        updatedProps.put(property, value);
+        configuration.setProperties(updatedProps);
+        
+        return validationResult;
+    }
+    
+    @Override
+    public ValidationResult setProperty(final ControllerService service, final String propertyName, final String value) {
+        final PropertyDescriptor descriptor = service.getPropertyDescriptor(propertyName);
+        if ( descriptor == null ) {
+            return new ValidationResult.Builder()
+                .input(propertyName)
+                .explanation(propertyName + " is not a known Property for Controller Service " + service)
+                .subject("Invalid property")
+                .valid(false)
+                .build();
+        }
+        return setProperty(service, descriptor, value);
+    }
+    
+    
     @Override
     public ControllerService getControllerService(final String identifier) {
         return context.getControllerService(identifier);

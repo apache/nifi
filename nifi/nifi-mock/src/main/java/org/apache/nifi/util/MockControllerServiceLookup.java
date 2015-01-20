@@ -38,6 +38,16 @@ public abstract class MockControllerServiceLookup implements ControllerServiceLo
         return addControllerService(service, service.getIdentifier());
     }
 
+    public void removeControllerService(ControllerService service) {
+        final ControllerService canonical = getControllerService(service.getIdentifier());
+        if ( canonical == null || canonical != service ) {
+            throw new IllegalArgumentException("Controller Service " + service + " is not known");
+        }
+        
+        controllerServiceMap.remove(service.getIdentifier());
+    }
+
+    
     protected ControllerServiceConfiguration getConfiguration(final String identifier) {
         return controllerServiceMap.get(identifier);
     }

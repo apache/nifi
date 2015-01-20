@@ -27,7 +27,7 @@ import org.apache.nifi.controller.ControllerService;
 public class ControllerServiceConfiguration {
 
     private final ControllerService service;
-    private final AtomicBoolean enabled = new AtomicBoolean(true);
+    private final AtomicBoolean enabled = new AtomicBoolean(false);
     private String annotationData;
     private Map<PropertyDescriptor, String> properties = new HashMap<>();
 
