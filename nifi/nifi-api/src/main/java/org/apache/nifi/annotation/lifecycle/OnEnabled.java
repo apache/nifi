@@ -30,9 +30,22 @@ import java.lang.annotation.Target;
  * can use to indicate a method should be called whenever the component is enabled. 
  *
  * <p>
- * Methods using this annotation must take no arguments. If a method with this annotation
- * throws a Throwable, a log message and bulletin will be issued for the component, but
- * the component will still be enabled.
+ * Methods using this annotation must take either 0 arguments or a single argument.
+ * </p>
+ * 
+ * <p>
+ * If using 1 argument and the component using the annotation is a Processor, that argument must
+ * be of type {@link org.apache.nifi.processor.ProcessContext ProcessContext}.
+ * </p>
+ * 
+ * <p>
+ * If using 1 argument and the component using the annotation is a Reporting Task or Controller Service, 
+ * that argument must be of type {@link org.apache.nifi.controller.ConfigurationContext ConfigurationContext}.
+ * </p>
+ * 
+ * <p>
+ * If a method with this annotation throws a Throwable, a log message and bulletin will be issued 
+ * for the component, but the component will still be enabled.
  * </p>
  *
  * @author none
