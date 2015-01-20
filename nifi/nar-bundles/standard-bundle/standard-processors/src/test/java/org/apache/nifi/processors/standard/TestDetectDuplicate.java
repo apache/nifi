@@ -55,7 +55,6 @@ public class TestDetectDuplicate {
 
     @Test
     public void testDuplicate() throws InitializationException {
-
         TestRunner runner = TestRunners.newTestRunner(DetectDuplicate.class);
         final DistributedMapCacheClientImpl client = createClient();
         final Map<String, String> clientProperties = new HashMap<>();
@@ -67,6 +66,8 @@ public class TestDetectDuplicate {
         Map<String, String> props = new HashMap<>();
         props.put("hash.value", "1000");
         runner.enqueue(new byte[]{}, props);
+        runner.enableControllerService(client);
+        
         runner.run();
         runner.assertAllFlowFilesTransferred(DetectDuplicate.REL_NON_DUPLICATE, 1);
         runner.clearTransferState();
@@ -89,9 +90,12 @@ public class TestDetectDuplicate {
         runner.setProperty(DetectDuplicate.DISTRIBUTED_CACHE_SERVICE, "client");
         runner.setProperty(DetectDuplicate.FLOWFILE_DESCRIPTION, "The original flow file");
         runner.setProperty(DetectDuplicate.AGE_OFF_DURATION, "2 secs");
+        runner.enableControllerService(client);
+        
         Map<String, String> props = new HashMap<>();
         props.put("hash.value", "1000");
         runner.enqueue(new byte[]{}, props);
+        
         runner.run();
         runner.assertAllFlowFilesTransferred(DetectDuplicate.REL_NON_DUPLICATE, 1);
         runner.clearTransferState();

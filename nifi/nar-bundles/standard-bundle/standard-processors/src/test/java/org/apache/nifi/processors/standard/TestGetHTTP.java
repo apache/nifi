@@ -40,8 +40,6 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * @author unattributed
@@ -49,7 +47,6 @@ import org.slf4j.LoggerFactory;
  */
 public class TestGetHTTP {
 
-    private static Logger LOGGER;
     private TestRunner controller;
     
     @BeforeClass
@@ -58,7 +55,6 @@ public class TestGetHTTP {
         System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
         System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.GetHTTP", "debug");
         System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.TestGetHTTP", "debug");
-        LOGGER = LoggerFactory.getLogger(TestGetHTTP.class);
         File confDir = new File("conf");
         if (!confDir.exists()) {
             confDir.mkdir();
@@ -77,16 +73,6 @@ public class TestGetHTTP {
         assertTrue(confDir.delete());
     }
 
-    private static Map<String, String> createSslProperties() {
-        Map<String, String> map = new HashMap<String, String>();
-        map.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/localhost-ks.jks");
-        map.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "localtest");
-        map.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), "JKS");
-        map.put(StandardSSLContextService.TRUSTSTORE.getName(), "src/test/resources/localhost-ts.jks");
-        map.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "localtest");
-        map.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), "JKS");
-        return map;
-    }
 
     @Test
     public final void testContentModified() throws Exception {
@@ -308,6 +294,7 @@ public class TestGetHTTP {
         final SSLContextService service = new StandardSSLContextService();
         try {
             controller.addControllerService("ssl-service", service, getSslProperties());
+            controller.enableControllerService(service);
         } catch (InitializationException ex) {
             ex.printStackTrace();
             Assert.fail("Could not create SSL Context Service");

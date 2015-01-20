@@ -83,7 +83,9 @@ public class TestInvokeHTTP {
     @Before
     public void before() throws Exception {
         runner = TestRunners.newTestRunner(InvokeHTTP.class);
-        runner.addControllerService("ssl-context", new StandardSSLContextService(), sslProperties);
+        final StandardSSLContextService sslService = new StandardSSLContextService();
+        runner.addControllerService("ssl-context", sslService, sslProperties);
+        runner.enableControllerService(sslService);
         runner.setProperty(Config.PROP_SSL_CONTEXT_SERVICE, "ssl-context");
 
         server.clearHandlers();
