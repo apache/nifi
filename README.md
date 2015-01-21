@@ -10,7 +10,7 @@ Apache NiFi is a dataflow system based on the concepts of flow-based programming
 
 ## Getting Started
 
-- Build the nar-maven-plugin.  Change directory to 'nar-maven-plugin' and 
+- Build the nifi-nar-maven-plugin.  Change directory to 'nifi-nar-maven-plugin' and 
 follow the directions found there.
 - Build nifi.  Change directory to 'nifi' and follow the directions found there.
 

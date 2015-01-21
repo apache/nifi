@@ -22,10 +22,9 @@
         <relativePath />
     </parent>
     <groupId>org.apache.nifi</groupId>
-    <artifactId>nifi-parent</artifactId>
+    <artifactId>nifi</artifactId>
     <version>0.0.1-incubating-SNAPSHOT</version>
     <packaging>pom</packaging>
-    <name>Apache NiFi (incubating) Parent</name>
     <description>Apache NiFi is a dataflow system based on the concepts of flow-based programming. It is currently a part of the Apache Incubator.</description>
     <url>http://nifi.incubator.apache.org/maven-site/</url>
     <organization>
@@ -58,12 +57,12 @@
         <maven>${maven.min-version}</maven>
     </prerequisites>
     <modules>
-        <module>commons</module>
+        <module>nifi-commons</module>
         <module>nifi-api</module>
         <module>nifi-bootstrap</module>
         <module>nifi-mock</module>
-        <module>nar-bundles</module>
-        <module>assembly</module>
+        <module>nifi-nar-bundles</module>
+        <module>nifi-assembly</module>
         <module>nifi-docs</module>
     </modules>
     <scm>
@@ -636,12 +635,12 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>custom-ui-utilities</artifactId>
+                <artifactId>nifi-custom-ui-utilities</artifactId>
                 <version>0.0.1-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>flowfile-packager</artifactId>
+                <artifactId>nifi-flowfile-packager</artifactId>
                 <version>0.0.1-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
@@ -651,7 +650,7 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>data-provenance-utils</artifactId>
+                <artifactId>nifi-data-provenance-utils</artifactId>
                 <version>0.0.1-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
@@ -688,31 +687,25 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>volatile-provenance-repository-nar</artifactId>
+                <artifactId>nifi-provenance-repository-nar</artifactId>
                 <version>0.0.1-incubating-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>persistent-provenance-repository-nar</artifactId>
+                <artifactId>nifi-standard-services-api-nar</artifactId>
                 <version>0.0.1-incubating-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>standard-services-api-nar</artifactId>
+                <artifactId>nifi-ssl-context-service-nar</artifactId>
                 <version>0.0.1-incubating-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>ssl-context-service-nar</artifactId>
-                <version>0.0.1-incubating-SNAPSHOT</version>
-                <type>nar</type>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>distributed-cache-services-nar</artifactId>
+                <artifactId>nifi-distributed-cache-services-nar</artifactId>
                 <version>0.0.1-incubating-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
@@ -730,31 +723,25 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>update-attribute-nar</artifactId>
+                <artifactId>nifi-update-attribute-nar</artifactId>
                 <version>0.0.1-incubating-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>monitor-threshold-nar</artifactId>
+                <artifactId>nifi-hadoop-libraries-nar</artifactId>
                 <version>0.0.1-incubating-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>hadoop-libraries-nar</artifactId>
+                <artifactId>nifi-hadoop-nar</artifactId>
                 <version>0.0.1-incubating-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>hadoop-nar</artifactId>
-                <version>0.0.1-incubating-SNAPSHOT</version>
-                <type>nar</type>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>kafka-nar</artifactId>
+                <artifactId>nifi-kafka-nar</artifactId>
                 <version>0.0.1-incubating-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
@@ -775,7 +762,7 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-nar</artifactId>
+                <artifactId>nifi-nar-utils</artifactId>
                 <version>0.0.1-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
@@ -791,7 +778,7 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>wali</artifactId>
+                <artifactId>nifi-write-ahead-log</artifactId>
                 <version>0.0.1-incubating-SNAPSHOT</version>
             </dependency>
         </dependencies>
@@ -984,8 +971,8 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>nar-maven-plugin</artifactId>
-                <version>0.0.1-incubating-SNAPSHOT</version>
+                <artifactId>nifi-nar-maven-plugin</artifactId>
+                <version>1.0.0-incubating-SNAPSHOT</version>
                 <extensions>true</extensions>
             </plugin>
         </plugins>

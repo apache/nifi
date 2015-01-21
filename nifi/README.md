@@ -27,7 +27,7 @@ To build:
 - Execute 'mvn clean install' or for parallel build execute 'mvn -T 2.0C clean install'
 
 To start NiFi:
-- Change directory to 'assembly'.  In the target directory there should be a build of nifi.
+- Change directory to 'nifi-assembly'.  In the target directory there should be a build of nifi.
 - Unpack the build wherever you like or use the already unpacked build.  '<install_location>/bin/nifi.sh start'
 - Direct your browser to http://localhost:8080/nifi/
 

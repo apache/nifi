@@ -15,17 +15,13 @@
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-	
     <parent>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-parent</artifactId>
+        <artifactId>nifi</artifactId>
         <version>0.0.1-incubating-SNAPSHOT</version>
     </parent>
-
     <artifactId>nifi-mock</artifactId>
     <version>0.0.1-incubating-SNAPSHOT</version>
-    <name>NiFi Mock</name>
-
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -41,7 +37,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>data-provenance-utils</artifactId>
+            <artifactId>nifi-data-provenance-utils</artifactId>
         </dependency>
         <dependency>
             <!-- Dependency marked as provided, not test, because we have assertion 
