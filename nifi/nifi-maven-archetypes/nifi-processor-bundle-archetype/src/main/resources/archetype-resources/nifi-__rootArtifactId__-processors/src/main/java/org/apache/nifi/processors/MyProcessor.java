@@ -18,6 +18,7 @@ package org.apache.nifi.processors;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.*;
 import org.apache.nifi.processor.annotation.CapabilityDescription;
 import org.apache.nifi.processor.annotation.OnScheduled;
@@ -48,7 +49,7 @@ public class MyProcessor extends AbstractProcessor {
     private Set<Relationship> relationships;
 
     @Override
-    protected void init(ProcessorInitializationContext context) {
+    protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> descriptors = new ArrayList<PropertyDescriptor>();
         descriptors.add(MY_PROPERTY);
         this.descriptors = Collections.unmodifiableList(descriptors);
@@ -74,9 +75,14 @@ public class MyProcessor extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        PropertyValue propertyValue = context.getProperty(MY_PROPERTY);
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+		FlowFile flowFile = session.get();
+		if ( flowFile == null ) {
+			return;
+		}
+		
         // TODO implement
+		
     }
 
 }

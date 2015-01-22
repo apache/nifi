@@ -27,13 +27,6 @@
     <version>${version}</version>
     <packaging>pom</packaging>
 
-    <name>nifi-${artifactId}-bundle</name>
-    <url>http://maven.apache.org</url>
-
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
-
     <modules>
         <module>nifi-${rootArtifactId}-processors</module>
         <module>nifi-${rootArtifactId}-nar</module>

@@ -26,8 +26,6 @@
     <version>${version}</version>
     <packaging>nar</packaging>
 
-    <name>${artifactId}</name>
-
     <dependencies>
         <dependency>
             <groupId>${groupId}</groupId>
