@@ -24,10 +24,15 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
+ * <p>
  * Marker annotation a {@link org.apache.nifi.processor.Processor Processor},
  * {@link org.apache.nifi.controller.ControllerService ControllerService} or 
  * {@link org.apache.nifi.reporting.ReportingTask ReportingTask}  
- * can use to indicate a method should be called whenever the component is enabled. 
+ * can use to indicate a method should be called whenever the component is enabled.
+ * Any method that has this annotation will be called every time a user enables the component.
+ * Additionally, each time that NiFi is restarted, if NiFi is configured to "auto-resume state"
+ * and the component is enabled (whether stopped or running), the method will be invoked.
+ * </p>
  *
  * <p>
  * Methods using this annotation must take either 0 arguments or a single argument.

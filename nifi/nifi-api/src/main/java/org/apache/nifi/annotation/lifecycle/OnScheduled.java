@@ -24,11 +24,15 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
+ * <p>
  * Marker annotation a {@link org.apache.nifi.processor.Processor Processor} or 
  * {@link org.apache.nifi.reporting.ReportingTask ReportingTask} implementation 
  * can use to indicate a method should be called whenever the component is scheduled 
  * to run. This will be called before any call to 'onTrigger' and will be called once each time
- * a Processor or Reporting Task is scheduled to run. 
+ * a Processor or Reporting Task is scheduled to run. This occurs in one of two ways: either
+ * a user clicks to schedule the component to run, or NiFi is restarted with the "auto-resume state"
+ * configuration set to true (the default value) and the component is already running.
+ * </p> 
  * 
  * <p>
  * Methods using this annotation must take either 0 arguments or a single argument.
