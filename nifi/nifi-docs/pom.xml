@@ -3,14 +3,10 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-parent</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
+        <artifactId>nifi</artifactId>
+        <version>0.0.1-incubating-SNAPSHOT</version>
     </parent>
-
     <artifactId>nifi-docs</artifactId>
-
-    <name>nifi-docs</name>
-  
     <build>
         <plugins>
             <plugin>
@@ -54,7 +50,7 @@
                         <imagesdir>./images</imagesdir>
                         <icons>font</icons>
                         <toc>true</toc>
-                        <docVersion>0.0.1-SNAPSHOT</docVersion>
+                        <docVersion>${project.version}</docVersion>
                         <sectanchors>true</sectanchors>
                         <idprefix/>
                         <idseparator>-</idseparator>
@@ -105,7 +101,6 @@ $1
                     </value>
                 </configuration>
             </plugin>
-
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <configuration>

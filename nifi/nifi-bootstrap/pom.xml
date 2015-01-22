@@ -14,16 +14,11 @@
       limitations under the License.
     -->
     <modelVersion>4.0.0</modelVersion>
-
     <parent>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-parent</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
+        <artifactId>nifi</artifactId>
+        <version>0.0.1-incubating-SNAPSHOT</version>
     </parent>
-
     <artifactId>nifi-bootstrap</artifactId>
     <packaging>jar</packaging>
-
-    <name>nifi-bootstrap</name>
-
 </project>
