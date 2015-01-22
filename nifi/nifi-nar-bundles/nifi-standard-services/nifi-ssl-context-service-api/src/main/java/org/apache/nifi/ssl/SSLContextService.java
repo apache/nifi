@@ -18,6 +18,8 @@ package org.apache.nifi.ssl;
 
 import javax.net.ssl.SSLContext;
 
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.processor.exception.ProcessException;
 
@@ -25,6 +27,9 @@ import org.apache.nifi.processor.exception.ProcessException;
  * Definition for SSLContextService.
  *
  */
+@Tags({"ssl", "secure", "certificate", "keystore", "truststore", "jks", "p12", "pkcs12", "pkcs"})
+@CapabilityDescription("Provides the ability to configure keystore and/or truststore properties once and reuse "
+        + "that configuration throughout the application")
 public interface SSLContextService extends ControllerService {
 
     public static enum ClientAuth {

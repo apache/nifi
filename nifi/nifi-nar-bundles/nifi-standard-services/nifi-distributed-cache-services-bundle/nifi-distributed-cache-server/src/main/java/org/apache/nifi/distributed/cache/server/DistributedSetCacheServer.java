@@ -20,10 +20,14 @@ import java.io.File;
 
 import javax.net.ssl.SSLContext;
 
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.SSLContextService.ClientAuth;
-
+@Tags({"distributed", "set", "distinct", "cache", "server"})
+@CapabilityDescription("Provides a set (collection of unique values) cache that can be accessed over a socket. "
+        + "Interaction with this service is typically accomplished via a DistributedSetCacheClient service.")
 public class DistributedSetCacheServer extends DistributedCacheServer {
 
     @Override

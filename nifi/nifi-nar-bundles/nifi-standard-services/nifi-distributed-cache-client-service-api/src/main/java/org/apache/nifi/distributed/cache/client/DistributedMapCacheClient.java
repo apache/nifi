@@ -18,6 +18,8 @@ package org.apache.nifi.distributed.cache.client;
 
 import java.io.IOException;
 
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.controller.ControllerService;
 
 /**
@@ -25,6 +27,9 @@ import org.apache.nifi.controller.ControllerService;
  * Distributed Cache that functions similarly to a {@link java.util.Map Map}.
  *
  */
+@Tags({"distributed", "client", "cluster", "map", "cache"})
+@CapabilityDescription("Provides the ability to communicate with a DistributedMapCacheServer. This allows "
+        + "multiple nodes to coordinate state with a single remote entity.")
 public interface DistributedMapCacheClient extends ControllerService {
 
     /**

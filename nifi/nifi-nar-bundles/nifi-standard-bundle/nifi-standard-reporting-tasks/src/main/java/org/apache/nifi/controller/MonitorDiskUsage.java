@@ -24,6 +24,8 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.AbstractReportingTask;
@@ -32,10 +34,13 @@ import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Tags({"disk", "storage", "warning", "monitoring", "repo"})
+@CapabilityDescription("Checks the amount of storage space available for the Content Repository and FlowFile Repository"
+        + " and warns (via a log message and a System-Level Bulletin) if the partition on which either repository exceeds"
+        + " some configurable threshold of storage space")
 public class MonitorDiskUsage extends AbstractReportingTask {
 
     private static final Logger logger = LoggerFactory.getLogger(MonitorDiskUsage.class);

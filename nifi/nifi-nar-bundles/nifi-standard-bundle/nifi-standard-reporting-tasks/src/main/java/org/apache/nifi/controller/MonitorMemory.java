@@ -16,7 +16,10 @@
  */
 package org.apache.nifi.controller;
 
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.controller.ConfigurationContext;
+
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryPoolMXBean;
@@ -40,7 +43,6 @@ import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.FormatUtils;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,6 +88,10 @@ import org.slf4j.LoggerFactory;
  * </li>
  * </ul>
  */
+@Tags({"monitor", "memory", "heap", "jvm", "gc", "garbage collection", "warning"})
+@CapabilityDescription("Checks the amount of Java Heap available in the JVM for a particular JVM Memory Pool. If the"
+        + " amount of space used exceeds some configurable threshold, will warn (via a log message and System-Level Bulletin)"
+        + " that the memory pool is exceeding this threshold.")
 public class MonitorMemory extends AbstractReportingTask {
 
     public static final PropertyDescriptor MEMORY_POOL_PROPERTY = new PropertyDescriptor.Builder()

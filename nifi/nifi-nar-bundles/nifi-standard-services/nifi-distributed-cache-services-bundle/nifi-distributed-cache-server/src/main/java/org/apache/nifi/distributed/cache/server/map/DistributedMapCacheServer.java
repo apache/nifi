@@ -20,6 +20,8 @@ import java.io.File;
 
 import javax.net.ssl.SSLContext;
 
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.distributed.cache.server.CacheServer;
 import org.apache.nifi.distributed.cache.server.DistributedCacheServer;
@@ -27,6 +29,9 @@ import org.apache.nifi.distributed.cache.server.EvictionPolicy;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.SSLContextService.ClientAuth;
 
+@Tags({"distributed", "cluster", "map", "cache", "server", "key/value"})
+@CapabilityDescription("Provides a map (key/value) cache that can be accessed over a socket. Interaction with this service"
+        + " is typically accomplished via a DistributedMapCacheClient service.")
 public class DistributedMapCacheServer extends DistributedCacheServer {
 
     @Override

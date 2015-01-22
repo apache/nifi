@@ -26,6 +26,8 @@ import java.util.Map;
 
 import javax.net.ssl.SSLContext;
 
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -40,6 +42,9 @@ import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.security.util.SslContextFactory;
 
+@Tags({"ssl", "secure", "certificate", "keystore", "truststore", "jks", "p12", "pkcs12", "pkcs"})
+@CapabilityDescription("Standard implementation of the SSLContextService. Provides the ability to configure "
+        + "keystore and/or truststore properties once and reuse that configuration throughout the application")
 public class StandardSSLContextService extends AbstractControllerService implements SSLContextService {
 
     public static final String STORE_TYPE_JKS = "JKS";

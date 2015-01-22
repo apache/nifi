@@ -18,12 +18,17 @@ package org.apache.nifi.distributed.cache.client;
 
 import java.io.IOException;
 
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.controller.ControllerService;
 
 /**
  * This interface defines an API that can be used for interacting with a
  * Distributed Cache that functions similarly to a {@link java.util.Set Set}.
  */
+@Tags({"distributed", "client", "cluster", "set", "cache"})
+@CapabilityDescription("Provides the ability to communicate with a DistributedSetCacheServer. This allows "
+        + "multiple nodes to coordinate state with a single remote entity.")
 public interface DistributedSetCacheClient extends ControllerService {
 
     /**
