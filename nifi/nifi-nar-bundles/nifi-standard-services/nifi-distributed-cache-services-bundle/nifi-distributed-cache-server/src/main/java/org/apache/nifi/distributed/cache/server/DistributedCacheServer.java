@@ -20,11 +20,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.controller.annotation.OnConfigured;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
 
@@ -82,7 +82,7 @@ public abstract class DistributedCacheServer extends AbstractControllerService {
         return properties;
     }
 
-    @OnConfigured
+    @OnEnabled
     public void startServer(final ConfigurationContext context) throws IOException {
         if (cacheServer == null) {
             cacheServer = createCacheServer(context);
