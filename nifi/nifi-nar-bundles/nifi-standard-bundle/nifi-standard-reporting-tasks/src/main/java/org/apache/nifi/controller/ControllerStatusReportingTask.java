@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
@@ -80,7 +80,7 @@ public class ControllerStatusReportingTask extends AbstractReportingTask {
         return descriptors;
     }
 
-    @OnEnabled
+    @OnScheduled
     public void onConfigured(final ConfigurationContext context) {
         connectionLineFormat = context.getProperty(SHOW_DELTAS).asBoolean() ? CONNECTION_LINE_FORMAT_WITH_DELTA : CONNECTION_LINE_FORMAT_NO_DELTA;
         connectionHeader = String.format(connectionLineFormat, "Connection ID", "Source", "Connection Name", "Destination", "Flow Files In", "Flow Files Out", "FlowFiles Queued");

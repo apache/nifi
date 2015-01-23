@@ -27,7 +27,7 @@ import java.util.regex.Pattern;
 
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -147,7 +147,7 @@ public class MonitorMemory extends AbstractReportingTask {
         return descriptors;
     }
 
-    @OnEnabled
+    @OnScheduled
     public void onConfigured(final ConfigurationContext config) throws InitializationException {
         final String desiredMemoryPoolName = config.getProperty(MEMORY_POOL_PROPERTY).getValue();
         final String thresholdValue = config.getProperty(THRESHOLD_PROPERTY).getValue().trim();

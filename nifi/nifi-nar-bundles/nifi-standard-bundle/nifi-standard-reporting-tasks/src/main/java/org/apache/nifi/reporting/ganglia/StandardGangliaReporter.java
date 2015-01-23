@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
@@ -92,7 +92,7 @@ public class StandardGangliaReporter extends AbstractReportingTask {
         return properties;
     }
 
-    @OnEnabled
+    @OnScheduled
     public void onConfigure(final ConfigurationContext config) throws InitializationException {
         metricsRegistry = new MetricsRegistry();
 
