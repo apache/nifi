@@ -64,6 +64,7 @@
         <module>nifi-nar-bundles</module>
         <module>nifi-assembly</module>
         <module>nifi-docs</module>
+        <module>nifi-maven-archetypes</module>
     </modules>
     <scm>
         <connection>scm:git:git://git.apache.org/incubator-nifi.git</connection>
