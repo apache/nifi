@@ -71,6 +71,27 @@
 			</ul></li>
 	</ul>
 
+	<p>
+		Below is an example of how to create a distributed map cache server for clients to connect to.
+		Note that the identifier in this example is <code>cache-server</code>. If you are using this template
+		to create your own DistributedMapCache server, replace the values in this template with values that are
+		suitable for your system. Possible options for <code>Port</code>, <code>Maximum Cache Entries</code>,
+		<code>Eviction Strategy</code>, <span style="font-style: italic;">SSL Context Service</span>, and
+		<span style="font-style: italic;">Persistence Directory</span>
+	</p>
+
+	<pre>
+&lt;?xml version="1.0" encoding="UTF-8" ?&gt;
+&lt;services&gt;
+    &lt;service&gt;
+        &lt;identifier&gt;cache-server&lt;/identifier&gt;
+        &lt;class&gt;org.apache.nifi.distributed.cache.client.DistributedMapCacheServer&lt;/class&gt;
+        &lt;property name="Port"&gt;4557&lt;/property&gt;
+        &lt;property name="Maximum Cache Entries"&gt;10000&lt;/property&gt;
+        &lt;property name="Eviction Strategy"&gt;Least Recently Used&lt;/property&gt;
+    &lt;/service&gt;
+&lt;/services&gt;
+	</pre>
 
 	<i>See Also:</i>
 	<ul>
