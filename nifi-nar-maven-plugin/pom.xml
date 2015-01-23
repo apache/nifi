@@ -29,8 +29,8 @@
     <description>Apache NiFi Nar Plugin. It is currently a part of the Apache Incubator.</description>
     <url>http://nifi.incubator.apache.org/maven-site/</url>
     <organization>
-        <name>Apache NiFi (incubating) Project</name>
-        <url>http://nifi.incubating.apache.org/</url>
+        <name>Apache NiFi (incubating)</name>
+        <url>http://nifi.incubator.apache.org/</url>
     </organization>
     <licenses>
         <license>
@@ -208,6 +208,7 @@
                     <excludes>
                         <exclude>nb-configuration.xml</exclude>
                         <exclude>nbactions.xml</exclude>
+                        <exclude>DEPENDENCIES</exclude>
                     </excludes>
                 </configuration>
             </plugin>
