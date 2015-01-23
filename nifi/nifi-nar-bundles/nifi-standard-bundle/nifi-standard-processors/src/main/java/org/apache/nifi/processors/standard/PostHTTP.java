@@ -319,21 +319,27 @@ public class PostHTTP extends AbstractProcessor {
             return config;
         }
 
+        final PoolingHttpClientConnectionManager conMan;
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        final SSLContext sslContext;
-        try {
-            sslContext = createSSLContext(sslContextService);
-        } catch (final Exception e) {
-            throw new ProcessException(e);
+        if ( sslContextService == null ) {
+            conMan = new PoolingHttpClientConnectionManager();
+        } else {
+            final SSLContext sslContext;
+            try {
+                sslContext = createSSLContext(sslContextService);
+            } catch (final Exception e) {
+                throw new ProcessException(e);
+            }
+            
+            final SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext, new String[] { "TLSv1" }, null,
+                    SSLConnectionSocketFactory.BROWSER_COMPATIBLE_HOSTNAME_VERIFIER);
+    
+            final Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory>create()
+                    .register("https", sslsf).build();
+            
+            conMan = new PoolingHttpClientConnectionManager(socketFactoryRegistry);
         }
         
-        final SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext, new String[] { "TLSv1" }, null,
-                SSLConnectionSocketFactory.BROWSER_COMPATIBLE_HOSTNAME_VERIFIER);
-
-        final Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory>create()
-                .register("https", sslsf).build();
-        
-        final PoolingHttpClientConnectionManager conMan = new PoolingHttpClientConnectionManager(socketFactoryRegistry);
         conMan.setDefaultMaxPerRoute(context.getMaxConcurrentTasks());
         conMan.setMaxTotal(context.getMaxConcurrentTasks());
         config = new Config(conMan);
@@ -428,6 +434,10 @@ public class PostHTTP extends AbstractProcessor {
                     public void process(final HttpResponse response, final HttpContext httpContext) throws HttpException, IOException {
                         HttpCoreContext coreContext = HttpCoreContext.adapt(httpContext);
                         ManagedHttpClientConnection conn = coreContext.getConnection(ManagedHttpClientConnection.class);
+                        if ( !conn.isOpen() ) {
+                            return;
+                        }
+                        
                         SSLSession sslSession = conn.getSSLSession();
                         
                         if ( sslSession != null ) {
