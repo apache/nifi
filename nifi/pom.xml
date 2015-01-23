@@ -973,7 +973,7 @@
             <plugin>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-nar-maven-plugin</artifactId>
-                <version>1.0.0-incubating-SNAPSHOT</version>
+                <version>1.0.0-incubating</version>
                 <extensions>true</extensions>
             </plugin>
         </plugins>
