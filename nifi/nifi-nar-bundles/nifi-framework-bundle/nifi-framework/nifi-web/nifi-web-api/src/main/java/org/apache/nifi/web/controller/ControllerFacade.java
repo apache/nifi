@@ -412,6 +412,16 @@ public class ControllerFacade implements ControllerServiceProvider {
         return flowController.isControllerServiceEnabled(serviceIdentifier);
     }
 
+    @Override
+    public void enableControllerService(final ControllerServiceNode serviceNode) {
+        flowController.enableControllerService(serviceNode);
+    }
+    
+    @Override
+    public void disableControllerService(ControllerServiceNode serviceNode) {
+        flowController.disableControllerService(serviceNode);
+    }
+    
     /**
      * Gets the status of this controller.
      *

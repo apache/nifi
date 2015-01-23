@@ -25,9 +25,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
@@ -36,11 +34,10 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 
-import org.apache.nifi.util.file.FileUtils;
-import org.apache.nifi.util.DomUtils;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.nifi.util.DomUtils;
+import org.apache.nifi.util.file.FileUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -139,7 +136,7 @@ public class ControllerServiceLoader {
                     }
 
                     services.add(serviceNode);
-                    serviceNode.setDisabled(false);
+                    provider.enableControllerService(serviceNode);
                 }
             }
         } catch (SAXException | ParserConfigurationException sxe) {

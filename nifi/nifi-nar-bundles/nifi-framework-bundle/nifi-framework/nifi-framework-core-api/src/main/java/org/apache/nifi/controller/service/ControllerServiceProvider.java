@@ -53,4 +53,17 @@ public interface ControllerServiceProvider extends ControllerServiceLookup {
      * @throws IllegalStateException if the controller service is not disabled or is not a part of this flow
      */
     void removeControllerService(ControllerServiceNode serviceNode);
+    
+    /**
+     * Enables the given controller service that it can be used by other components
+     * @param serviceNode
+     */
+    void enableControllerService(ControllerServiceNode serviceNode);
+    
+    /**
+     * Disables the given controller service so that it cannot be used by other components. This allows
+     * configuration to be updated or allows service to be removed.
+     * @param serviceNode
+     */
+    void disableControllerService(ControllerServiceNode serviceNode);
 }

@@ -31,6 +31,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.nifi.annotation.lifecycle.OnAdded;
+import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerService;
@@ -163,6 +165,31 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             if (currentContextClassLoader != null) {
                 Thread.currentThread().setContextClassLoader(currentContextClassLoader);
             }
+        }
+    }
+    
+    @Override
+    public void enableControllerService(final ControllerServiceNode serviceNode) {
+        serviceNode.verifyCanEnable();
+        
+        try (final NarCloseable x = NarCloseable.withNarLoader()) {
+            final ConfigurationContext configContext = new StandardConfigurationContext(serviceNode, this);
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnEnabled.class, serviceNode.getControllerServiceImplementation(), configContext);
+        }
+        
+        serviceNode.setDisabled(false);
+    }
+    
+    @Override
+    public void disableControllerService(final ControllerServiceNode serviceNode) {
+        serviceNode.verifyCanDisable();
+
+        // We must set the service to disabled before we invoke the OnDisabled methods because the service node
+        // can throw Exceptions if we attempt to disable the service while it's known to be in use.
+        serviceNode.setDisabled(true);
+        
+        try (final NarCloseable x = NarCloseable.withNarLoader()) {
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnDisabled.class, serviceNode.getControllerServiceImplementation());
         }
     }
 

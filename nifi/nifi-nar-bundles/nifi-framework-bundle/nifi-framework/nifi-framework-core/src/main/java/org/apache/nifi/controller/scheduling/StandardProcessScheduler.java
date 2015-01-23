@@ -581,37 +581,6 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         }
     }
 
-    public synchronized void enableControllerService(final ControllerServiceNode serviceNode) {
-        if ( !serviceNode.isDisabled() ) {
-            throw new IllegalStateException("Controller Service cannot be enabled because it is not disabled");
-        }
-
-        // we set the service to enabled before invoking the @OnEnabled methods. We do this because it must be
-        // done in this order for disabling (serviceNode.setDisabled(true) will throw Exceptions if the service
-        // is currently known to be in use) and we want to be consistent with the ordering of calling setDisabled
-        // before annotated methods.
-        serviceNode.setDisabled(false);
-        
-        try (final NarCloseable x = NarCloseable.withNarLoader()) {
-            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnEnabled.class, serviceNode.getControllerServiceImplementation());
-        }
-    }
-    
-    public synchronized void disableControllerService(final ControllerServiceNode serviceNode) {
-        if ( serviceNode.isDisabled() ) {
-            throw new IllegalStateException("Controller Service cannot be disabled because it is already disabled");
-        }
-
-        // We must set the service to disabled before we invoke the OnDisabled methods because the service node
-        // can throw Exceptions if we attempt to disable the service while it's known to be in use.
-        serviceNode.setDisabled(true);
-        
-        try (final NarCloseable x = NarCloseable.withNarLoader()) {
-            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnDisabled.class, serviceNode.getControllerServiceImplementation());
-        }
-    }
-    
-    
     @Override
     public boolean isScheduled(final Object scheduled) {
         final ScheduleState scheduleState = scheduleStates.get(scheduled);

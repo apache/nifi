@@ -154,6 +154,7 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
         return removed;
     }
     
+    @SuppressWarnings("deprecation")
     private void onConfigured() {
         try (final NarCloseable x = NarCloseable.withNarLoader()) {
             final ConfigurationContext configContext = new StandardConfigurationContext(this, serviceProvider);

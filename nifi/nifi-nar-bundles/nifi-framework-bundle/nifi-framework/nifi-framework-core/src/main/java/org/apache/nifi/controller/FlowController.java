@@ -2569,16 +2569,16 @@ public class FlowController implements EventAccess, ControllerServiceProvider, H
         processScheduler.disableReportingTask(reportingTaskNode);
     }
     
+    @Override
     public void enableControllerService(final ControllerServiceNode serviceNode) {
         serviceNode.verifyCanEnable();
-        
-        processScheduler.enableControllerService(serviceNode);
+        controllerServiceProvider.enableControllerService(serviceNode);
     }
     
+    @Override
     public void disableControllerService(final ControllerServiceNode serviceNode) {
         serviceNode.verifyCanDisable();
-        
-        processScheduler.disableControllerService(serviceNode);
+        controllerServiceProvider.disableControllerService(serviceNode);
     }
 
     @Override

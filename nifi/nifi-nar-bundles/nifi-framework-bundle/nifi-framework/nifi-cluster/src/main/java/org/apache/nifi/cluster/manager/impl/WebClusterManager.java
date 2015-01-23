@@ -1320,6 +1320,18 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         controllerServiceProvider.removeControllerService(serviceNode);
     }
     
+
+    @Override
+    public void enableControllerService(final ControllerServiceNode serviceNode) {
+        controllerServiceProvider.enableControllerService(serviceNode);
+    }
+    
+    @Override
+    public void disableControllerService(final ControllerServiceNode serviceNode) {
+        controllerServiceProvider.disableControllerService(serviceNode);
+    }
+    
+    
     /**
      * Handle a bulletins message.
      *
