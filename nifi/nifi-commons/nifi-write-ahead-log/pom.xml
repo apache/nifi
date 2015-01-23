@@ -18,10 +18,10 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-commons</artifactId>
-        <version>0.0.1-incubating-SNAPSHOT</version>
+        <version>0.0.1-incubating</version>
     </parent>
     <artifactId>nifi-write-ahead-log</artifactId>
-    <version>0.0.1-incubating-SNAPSHOT</version>
+    <version>0.0.1-incubating</version>
     <packaging>jar</packaging>
     <dependencies>
         <dependency>

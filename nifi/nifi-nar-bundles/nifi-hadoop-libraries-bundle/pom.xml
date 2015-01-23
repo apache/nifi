@@ -17,11 +17,11 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>0.0.1-incubating-SNAPSHOT</version>
+        <version>0.0.1-incubating</version>
     </parent>
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-hadoop-libraries-bundle</artifactId>
-    <version>0.0.1-incubating-SNAPSHOT</version>
+    <version>0.0.1-incubating</version>
     <packaging>pom</packaging>
     <description>A bundle which provides the Hadoop libraries</description>
     <modules>
