@@ -19,6 +19,9 @@
     <requiredProperty key="nifiVersion" >
         <defaultValue>0.0.1-incubating-SNAPSHOT</defaultValue>
     </requiredProperty>
+	<requiredProperty key="package">
+		<defaultValue>${groupId}.processors.${artifactBaseName}</defaultValue>
+	</requiredProperty>
   </requiredProperties>
   <fileSets>
     <fileSet filtered="true" packaged="false" encoding="UTF-8">
