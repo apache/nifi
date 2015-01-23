@@ -18,18 +18,18 @@
 
     <parent>
         <groupId>${groupId}</groupId>
-        <artifactId>nifi-${rootArtifactId}-bundle</artifactId>
+        <artifactId>${rootArtifactId}</artifactId>
         <version>${version}</version>
     </parent>
 
-    <artifactId>${artifactId}</artifactId>
+    <artifactId>nifi-${artifactBaseName}-nar</artifactId>
     <version>${version}</version>
     <packaging>nar</packaging>
 
     <dependencies>
         <dependency>
             <groupId>${groupId}</groupId>
-            <artifactId>nifi-${rootArtifactId}-processors</artifactId>
+            <artifactId>nifi-${artifactBaseName}-processors</artifactId>
             <version>${version}</version>
         </dependency>
     </dependencies>

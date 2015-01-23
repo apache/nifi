@@ -13,42 +13,28 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<archetype-descriptor name="nifi-${artifactId}-bundle">
+<archetype-descriptor name="${artifactId}">
   <requiredProperties>
-        <requiredProperty key="nifiVersion" >
+    <requiredProperty key="artifactBaseName" />
+    <requiredProperty key="nifiVersion" >
         <defaultValue>0.0.1-incubating-SNAPSHOT</defaultValue>
     </requiredProperty>
   </requiredProperties>
-  <modules>
-    <module id="nifi-${rootArtifactId}-processors" dir="nifi-__rootArtifactId__-processors" name="nifi-${rootArtifactId}-processors">
-      <fileSets>
-        <fileSet filtered="true" packaged="false" encoding="UTF-8">
-          <directory>src/main/java</directory>
-          <includes>
-            <include>**/*.java</include>
-          </includes>
-        </fileSet>
-        <fileSet encoding="UTF-8">
-          <directory>src/main/resources</directory>
-          <includes>
-            <include>**/*.Processor</include>
-            <include>**/index.html</include>
-          </includes>
-        </fileSet>
-        <fileSet filtered="true" packaged="false" encoding="UTF-8">
-          <directory>src/test/java</directory>
-          <includes>
-            <include>**/*.java</include>
-          </includes>
-        </fileSet>
-      </fileSets>
-    </module>
-    <module id="nifi-${rootArtifactId}-nar" dir="nifi-__rootArtifactId__-nar" name="nifi-${rootArtifactId}-nar">
-      <fileSets>
-        <fileSet encoding="UTF-8">
-          <directory></directory>
-        </fileSet>
-      </fileSets>
-    </module>
-  </modules>
+  <fileSets>
+    <fileSet filtered="true" packaged="false" encoding="UTF-8">
+        <directory>nifi-__artifactBaseName__-processors</directory>
+        <excludes>
+            <exclude>**/*.java</exclude>
+        </excludes>
+    </fileSet>
+    <fileSet filtered="true" packaged="true" encoding="UTF-8">
+        <directory>nifi-__artifactBaseName__-processors/src/main/java</directory>
+    </fileSet>
+    <fileSet filtered="true" packaged="true" encoding="UTF-8">
+        <directory>nifi-__artifactBaseName__-processors/src/test/java</directory>
+    </fileSet>
+    <fileSet filtered="true" packaged="false" encoding="UTF-8">
+        <directory>nifi-__artifactBaseName__-nar</directory>
+    </fileSet>
+  </fileSets>
 </archetype-descriptor>

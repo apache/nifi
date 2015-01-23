@@ -23,13 +23,13 @@
     </parent>
 
     <groupId>${groupId}</groupId>
-    <artifactId>nifi-${artifactId}-bundle</artifactId>
+    <artifactId>${artifactId}</artifactId>
     <version>${version}</version>
     <packaging>pom</packaging>
 
     <modules>
-        <module>nifi-${rootArtifactId}-processors</module>
-        <module>nifi-${rootArtifactId}-nar</module>
+        <module>nifi-${artifactBaseName}-processors</module>
+        <module>nifi-${artifactBaseName}-nar</module>
     </modules>
 
 </project>
