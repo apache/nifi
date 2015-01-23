@@ -18,14 +18,14 @@
 
     <parent>
         <groupId>${groupId}</groupId>
-        <artifactId>nifi-${rootArtifactId}-bundle</artifactId>
+        <artifactId>${rootArtifactId}</artifactId>
         <version>${version}</version>
     </parent>
 
-    <artifactId>${artifactId}</artifactId>
+    <artifactId>nifi-${artifactBaseName}-processors</artifactId>
     <packaging>jar</packaging>
 
-    <name>${artifactId}</name>
+    <name>nifi-${artifactBaseName}-processors</name>
     <url>http://maven.apache.org</url>
 
     <properties>

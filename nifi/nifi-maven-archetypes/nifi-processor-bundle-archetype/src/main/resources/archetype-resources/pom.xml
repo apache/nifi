@@ -23,11 +23,11 @@
     </parent>
 
     <groupId>${groupId}</groupId>
-    <artifactId>nifi-${artifactId}-bundle</artifactId>
+    <artifactId>${artifactId}</artifactId>
     <version>${version}</version>
     <packaging>pom</packaging>
 
-    <name>nifi-${artifactId}-bundle</name>
+    <name>${artifactId}</name>
     <url>http://maven.apache.org</url>
 
     <properties>
@@ -35,8 +35,8 @@
     </properties>
 
     <modules>
-        <module>nifi-${rootArtifactId}-processors</module>
-        <module>nifi-${rootArtifactId}-nar</module>
+        <module>nifi-${artifactBaseName}-processors</module>
+        <module>nifi-${artifactBaseName}-nar</module>
     </modules>
 
 </project>
