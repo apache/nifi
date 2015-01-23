@@ -18,10 +18,10 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi</artifactId>
-        <version>0.0.1-incubating</version>
+        <version>0.0.2-incubating-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-mock</artifactId>
-    <version>0.0.1-incubating</version>
+    <version>0.0.2-incubating-SNAPSHOT</version>
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>

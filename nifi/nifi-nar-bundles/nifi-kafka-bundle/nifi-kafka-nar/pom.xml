@@ -17,10 +17,10 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-kafka-bundle</artifactId>
-        <version>0.0.1-incubating</version>
+        <version>0.0.2-incubating-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-kafka-nar</artifactId>
-    <version>0.0.1-incubating</version>
+    <version>0.0.2-incubating-SNAPSHOT</version>
     <packaging>nar</packaging>
     <description>NiFi NAR for interacting with Apache Kafka</description>
     <dependencies>

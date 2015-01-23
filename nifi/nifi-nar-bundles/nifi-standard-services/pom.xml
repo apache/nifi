@@ -18,10 +18,10 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>0.0.1-incubating</version>
+        <version>0.0.2-incubating-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-standard-services</artifactId>
-    <version>0.0.1-incubating</version>
+    <version>0.0.2-incubating-SNAPSHOT</version>
     <packaging>pom</packaging>
     <modules>
         <module>nifi-distributed-cache-client-service-api</module>
