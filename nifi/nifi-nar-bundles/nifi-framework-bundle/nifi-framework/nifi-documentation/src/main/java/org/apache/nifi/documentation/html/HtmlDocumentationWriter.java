@@ -69,6 +69,8 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 			throws XMLStreamException {
 		writeSimpleElement(writer, elementName, elementValue, false);
 	}
+	
+	
 
 	protected void writeHead(final ConfigurableComponent configurableComponent, XMLStreamWriter xmlStreamWriter)
 			throws XMLStreamException {
@@ -130,13 +132,17 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 		if (hasAdditionalDetails) {
 			xmlStreamWriter.writeStartElement("p");
 
-			xmlStreamWriter.writeStartElement("a");
-			xmlStreamWriter.writeAttribute("href", "additionalDetails.html");
-			xmlStreamWriter.writeCharacters("Additional Information...");
-			xmlStreamWriter.writeEndElement();
+			writeLink(xmlStreamWriter, "Additional Details...", "additionalDetails.html");
 
 			xmlStreamWriter.writeEndElement();
 		}
+	}
+	
+	private void writeLink(final XMLStreamWriter xmlStreamWriter, final String text, final String location) throws XMLStreamException {
+		xmlStreamWriter.writeStartElement("a");
+		xmlStreamWriter.writeAttribute("href", location);
+		xmlStreamWriter.writeCharacters(text);
+		xmlStreamWriter.writeEndElement();
 	}
 
 	protected String getDescription(final ConfigurableComponent configurableComponent) {
@@ -171,8 +177,10 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 			writeSimpleElement(xmlStreamWriter, "th", "Name");
 			writeSimpleElement(xmlStreamWriter, "th", "Description");
 			writeSimpleElement(xmlStreamWriter, "th", "Default Value");
-			writeSimpleElement(xmlStreamWriter, "th", "Expression Language");
 			writeSimpleElement(xmlStreamWriter, "th", "Valid Values");
+			xmlStreamWriter.writeStartElement("th");
+			writeLink(xmlStreamWriter, "EL", "../../html/expression-language-guide.html");
+			xmlStreamWriter.writeEndElement();
 			writeSimpleElement(xmlStreamWriter, "th", "Sensitive");
 			xmlStreamWriter.writeEndElement();
 
@@ -181,8 +189,8 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 				writeSimpleElement(xmlStreamWriter, "td", property.getName(), property.isRequired());
 				writeSimpleElement(xmlStreamWriter, "td", property.getDescription());
 				writeSimpleElement(xmlStreamWriter, "td", property.getDefaultValue());
-				writeSimpleElement(xmlStreamWriter, "td", property.isExpressionLanguageSupported() ? "Yes" : "No");
 				writeValidValues(xmlStreamWriter, property);
+				writeSimpleElement(xmlStreamWriter, "td", property.isExpressionLanguageSupported() ? "Yes" : "No");
 				writeSimpleElement(xmlStreamWriter, "td", property.isSensitive() ? "Yes" : "No");
 				xmlStreamWriter.writeEndElement();
 			}
