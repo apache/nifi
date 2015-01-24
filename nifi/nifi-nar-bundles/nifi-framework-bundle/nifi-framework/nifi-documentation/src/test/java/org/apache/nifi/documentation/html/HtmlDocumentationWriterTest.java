@@ -12,7 +12,7 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingTask;
 import org.junit.Test;
 
-public class AbstractHtmlDocumentationWriterTest {
+public class HtmlDocumentationWriterTest {
 
 	@Test
 	public void testDocumentControllerService() throws InitializationException, IOException {
