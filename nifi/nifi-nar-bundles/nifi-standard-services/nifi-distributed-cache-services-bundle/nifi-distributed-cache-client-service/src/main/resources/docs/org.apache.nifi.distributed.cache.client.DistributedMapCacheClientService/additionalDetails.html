@@ -21,52 +21,6 @@
 </head>
 
 <body>
-	<h2>Description:</h2>
-
-	<p>A Controller Service that can be used to communicate with a
-		Distributed Map Cache Server.</p>
-
-
-
-	<p>
-		<strong>Properties:</strong>
-	</p>
-	<p>In the list below, the names of required properties appear
-		in bold. Any other properties (not in bold) are considered optional.
-		If a property has a default value, it is indicated. If a property
-		supports the use of the NiFi Expression Language (or simply,
-		"expression language"), that is also indicated.</p>
-
-	<ul>
-		<li><strong>Server Hostname</strong>
-			<ul>
-				<li>The name of the server that is running the DistributedMapCacheServer service</li>
-				<li>Default value: no default</li>
-				<li>Supports expression language: false</li>
-			</ul></li>
-		<li><strong>Server Port</strong>
-			<ul>
-				<li>The port on the remote server that is to be used when communicating with the 
-				<a href="../nifi.distributed.cache.server.map.DistributedMapCacheServer/index.html">DistributedMapCacheServer</a> service</li>
-				
-				<li>Default value: 4557</li>
-				<li>Supports expression language: false</li>
-			</ul></li>
-		<li>SSL Context Service
-			<ul>
-				<li>If specified, indicates the SSL Context Service that is used to communicate with the remote server. If not specified, communications will not be encrypted
-				<li>Default value: no default</li>
-				<li>Supports expression language: false</li>
-			</ul></li>
-		<li><strong>Communications Timeout</strong>
-			<ul>
-				<li>Specifices how long to wait when communicating with the remote server before determining that there is a communications failure if data cannot be sent or received
-				<li>Default value: 30 secs</li>
-				<li>Supports expression language: false</li>
-			</ul></li>
-			
-	</ul>
-
 	<p>
 		Below is an example of how to create a client connection to your distributed map cache server. 
 		Note that the identifier in this example is <code>cache-client</code>. If you are using this template
