@@ -69,8 +69,6 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 			throws XMLStreamException {
 		writeSimpleElement(writer, elementName, elementValue, false);
 	}
-	
-	
 
 	protected void writeHead(final ConfigurableComponent configurableComponent, XMLStreamWriter xmlStreamWriter)
 			throws XMLStreamException {
@@ -79,7 +77,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 		xmlStreamWriter.writeComment(apacheLicense);
 		xmlStreamWriter.writeStartElement("head");
 		xmlStreamWriter.writeStartElement("meta");
-		xmlStreamWriter.writeAttribute("charset", "utf-u");
+		xmlStreamWriter.writeAttribute("charset", "utf-8");
 		xmlStreamWriter.writeEndElement();
 		writeSimpleElement(xmlStreamWriter, "title", getTitle(configurableComponent));
 
@@ -137,8 +135,9 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 			xmlStreamWriter.writeEndElement();
 		}
 	}
-	
-	private void writeLink(final XMLStreamWriter xmlStreamWriter, final String text, final String location) throws XMLStreamException {
+
+	private void writeLink(final XMLStreamWriter xmlStreamWriter, final String text, final String location)
+			throws XMLStreamException {
 		xmlStreamWriter.writeStartElement("a");
 		xmlStreamWriter.writeAttribute("href", location);
 		xmlStreamWriter.writeCharacters(text);
@@ -164,10 +163,22 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 		xmlStreamWriter.writeStartElement("p");
 		writeSimpleElement(xmlStreamWriter, "strong", "Properties: ");
 		xmlStreamWriter.writeEndElement();
-		writeSimpleElement(
-				xmlStreamWriter,
-				"p",
-				"In the list below, the names of required properties appear in bold. Any other properties (not in bold) are considered optional. If a property has a default value, it is indicated. If a property supports the use of the NiFi Expression Language (or simply, \"expression language\"), that is also indicated.");
+		xmlStreamWriter.writeStartElement("p");
+		xmlStreamWriter.writeCharacters("In the list below, the names of required properties appear in ");
+		writeSimpleElement(xmlStreamWriter, "strong", "bold");
+		xmlStreamWriter.writeCharacters(". Any"
+				+ "other properties (not in bold) are considered optional. The table also "
+				+ "indicates any default values, whether a property supports the ");
+		writeLink(xmlStreamWriter, "NiFi Expression Language (or simply EL)",
+				"../../html/expression-language-guide.html");
+		xmlStreamWriter.writeCharacters(", and whether a property is considered "
+				+ "\"sensitive\", meaning that its value will be encrypted. Before entering a"
+				+ "value in a sensitive property, ensure that the ");
+		writeSimpleElement(xmlStreamWriter, "strong", "nifi.properties");
+		xmlStreamWriter.writeCharacters(" file has " + "an entry for the property: ");
+		writeSimpleElement(xmlStreamWriter, "strong", "nifi.sensitive.props.key");
+		xmlStreamWriter.writeCharacters(".");
+		xmlStreamWriter.writeEndElement();
 
 		List<PropertyDescriptor> properties = configurableComponent.getPropertyDescriptors();
 		if (properties.size() > 0) {
