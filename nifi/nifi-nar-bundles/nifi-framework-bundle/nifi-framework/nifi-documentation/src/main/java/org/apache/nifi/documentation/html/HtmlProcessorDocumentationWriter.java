@@ -23,11 +23,17 @@ import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 
+/**
+ * Writes documentation specific for a Processor. This includes everything for a
+ * ConfigurableComponent as well as Relationship information.
+ * 
+ *
+ */
 public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
 
 	@Override
-	protected void writeBodySub(ConfigurableComponent configurableComponent, XMLStreamWriter xmlStreamWriter)
-			throws XMLStreamException {
+	protected void writeAdditionalBodyInfo(final ConfigurableComponent configurableComponent,
+			final XMLStreamWriter xmlStreamWriter) throws XMLStreamException {
 		final Processor processor = (Processor) configurableComponent;
 		xmlStreamWriter.writeStartElement("p");
 		writeSimpleElement(xmlStreamWriter, "strong", "Relationships: ");

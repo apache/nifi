@@ -20,17 +20,21 @@ import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.logging.ProcessorLog;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 
+/**
+ * A Mock ProcessorInitializationContext that can be used so that Processors can
+ * be initialized for the purpose of generating documentation.
+ * 
+ *
+ */
 public class MockProcessorInitializationContext implements ProcessorInitializationContext {
 
 	@Override
 	public String getIdentifier() {
-		// TODO Auto-generated method stub
-		return null;
+		return "";
 	}
 
 	@Override
 	public ProcessorLog getLogger() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
@@ -38,5 +42,4 @@ public class MockProcessorInitializationContext implements ProcessorInitializati
 	public ControllerServiceLookup getControllerServiceLookup() {
 		return new MockControllerServiceLookup();
 	}
-
 }

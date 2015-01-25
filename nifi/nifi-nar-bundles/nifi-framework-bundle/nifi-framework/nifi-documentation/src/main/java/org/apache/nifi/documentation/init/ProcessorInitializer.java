@@ -21,6 +21,11 @@ import org.apache.nifi.documentation.ConfigurableComponentInitializer;
 import org.apache.nifi.documentation.mock.MockProcessorInitializationContext;
 import org.apache.nifi.processor.Processor;
 
+/**
+ * Initializes a Procesor using a MockProcessorInitializationContext
+ * 
+ *
+ */
 public class ProcessorInitializer implements ConfigurableComponentInitializer {
 
 	@Override

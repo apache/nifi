@@ -22,6 +22,12 @@ import org.apache.nifi.documentation.ConfigurableComponentInitializer;
 import org.apache.nifi.documentation.mock.MockControllerServiceInitializationContext;
 import org.apache.nifi.reporting.InitializationException;
 
+/**
+ * Initializes a ControllerService using a
+ * MockControllerServiceInitializationContext
+ * 
+ *
+ */
 public class ControllerServiceInitializer implements ConfigurableComponentInitializer {
 
 	@Override
@@ -29,5 +35,4 @@ public class ControllerServiceInitializer implements ConfigurableComponentInitia
 		ControllerService controllerService = (ControllerService) component;
 		controllerService.initialize(new MockControllerServiceInitializationContext());
 	}
-
 }

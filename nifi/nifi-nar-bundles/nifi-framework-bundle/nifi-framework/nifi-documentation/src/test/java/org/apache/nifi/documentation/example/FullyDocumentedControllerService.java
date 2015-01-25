@@ -27,7 +27,7 @@ import org.apache.nifi.processor.annotation.Tags;
 import org.apache.nifi.processor.util.StandardValidators;
 
 @CapabilityDescription("A documented controller service that can help you do things")
-@Tags({"one", "two", "three"})
+@Tags({ "one", "two", "three" })
 public class FullyDocumentedControllerService extends AbstractControllerService {
 	public static final PropertyDescriptor KEYSTORE = new PropertyDescriptor.Builder().name("Keystore Filename")
 			.description("The fully-qualified filename of the Keystore").defaultValue(null)
