@@ -172,10 +172,10 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 		writeLink(xmlStreamWriter, "NiFi Expression Language (or simply EL)",
 				"../../html/expression-language-guide.html");
 		xmlStreamWriter.writeCharacters(", and whether a property is considered "
-				+ "\"sensitive\", meaning that its value will be encrypted. Before entering a"
+				+ "\"sensitive\", meaning that its value will be encrypted. Before entering a "
 				+ "value in a sensitive property, ensure that the ");
 		writeSimpleElement(xmlStreamWriter, "strong", "nifi.properties");
-		xmlStreamWriter.writeCharacters(" file has " + "an entry for the property: ");
+		xmlStreamWriter.writeCharacters(" file has " + "an entry for the property ");
 		writeSimpleElement(xmlStreamWriter, "strong", "nifi.sensitive.props.key");
 		xmlStreamWriter.writeCharacters(".");
 		xmlStreamWriter.writeEndElement();
