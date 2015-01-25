@@ -51,8 +51,7 @@ public class FullyDocumentedProcessor extends AbstractProcessor {
 			.addValidator(StandardValidators.TIME_PERIOD_VALIDATOR).defaultValue("0 sec").build();
 
 	public static final PropertyDescriptor OPTIONAL_PROPERTY = new PropertyDescriptor.Builder()
-			.name("Optional Property").description("This is a property you can use or not").required(false)
-			.build();
+			.name("Optional Property").description("This is a property you can use or not").required(false).build();
 
 	public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
 			.description("Successful files").build();
@@ -94,10 +93,8 @@ public class FullyDocumentedProcessor extends AbstractProcessor {
 
 	@Override
 	protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(String propertyDescriptorName) {
-		return new PropertyDescriptor.Builder()
-		.name(propertyDescriptorName).description("This is a property you can use or not").dynamic(true)
-		.build();
+		return new PropertyDescriptor.Builder().name(propertyDescriptorName)
+				.description("This is a property you can use or not").dynamic(true).build();
 	}
-	
-	
+
 }

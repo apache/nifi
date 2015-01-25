@@ -22,6 +22,11 @@ import org.apache.nifi.documentation.mock.MockReportingInitializationContext;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingTask;
 
+/**
+ * Initializes a ReportingTask using a MockReportingInitializationContext;
+ * 
+ *
+ */
 public class ReportingTaskingInitializer implements ConfigurableComponentInitializer {
 
 	@Override

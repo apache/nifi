@@ -19,12 +19,17 @@ package org.apache.nifi.documentation.mock;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.controller.ControllerServiceLookup;
 
-public class MockControllerServiceInitializationContext implements ControllerServiceInitializationContext{
+/**
+ * A Mock ControllerServiceInitializationContext so that ControllerServices can
+ * be initialized for the purpose of generating documentation.
+ * 
+ *
+ */
+public class MockControllerServiceInitializationContext implements ControllerServiceInitializationContext {
 
 	@Override
 	public String getIdentifier() {
-		// TODO Auto-generated method stub
-		return null;
+		return "";
 	}
 
 	@Override

@@ -35,7 +35,7 @@ public class HtmlDocumentationWriterTest {
 
 		ControllerService controllerService = new FullyDocumentedControllerService();
 		controllerService.initialize(new MockControllerServiceInitializationContext());
-		
+
 		DocumentationWriter writer = new HtmlDocumentationWriter();
 
 		writer.write(controllerService, System.out, false);
@@ -44,10 +44,10 @@ public class HtmlDocumentationWriterTest {
 
 	@Test
 	public void testDocumentReportingTask() throws InitializationException, IOException {
-		
+
 		ReportingTask reportingTask = new FullyDocumentedReportingTask();
 		reportingTask.initialize(new MockReportingInitializationContext());
-		
+
 		DocumentationWriter writer = new HtmlDocumentationWriter();
 
 		writer.write(reportingTask, System.out, false);

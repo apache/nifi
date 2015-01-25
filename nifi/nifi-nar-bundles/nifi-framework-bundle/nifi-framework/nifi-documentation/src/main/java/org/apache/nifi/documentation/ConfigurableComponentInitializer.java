@@ -19,6 +19,20 @@ package org.apache.nifi.documentation;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.reporting.InitializationException;
 
+/**
+ * An interface for initializing a ConfigurableComponent. It is up to the
+ * implementer to call "init" so that you can call
+ * ConfigurableComponent.getPropertyDescriptors()
+ *
+ */
 public interface ConfigurableComponentInitializer {
+
+	/**
+	 * Initializes a configurable component to the point that you can call
+	 * getPropertyDescriptors() on it
+	 * 
+	 * @param component the component to initialize
+	 * @throws InitializationException if the component could not be initialized
+	 */
 	void initialize(ConfigurableComponent component) throws InitializationException;
 }
