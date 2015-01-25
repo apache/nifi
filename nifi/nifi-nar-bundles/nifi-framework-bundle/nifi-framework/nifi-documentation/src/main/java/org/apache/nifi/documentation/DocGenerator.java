@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.documentation;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
@@ -113,10 +114,9 @@ public class DocGenerator {
 			logger.warn(baseDocumenationFile + " already exists!  Overwriting!");
 		}
 
-		try (final OutputStream output = new FileOutputStream(baseDocumenationFile)) {
+		try (final OutputStream output = new BufferedOutputStream(new FileOutputStream(baseDocumenationFile))) {
 			writer.write(component, output, hasAdditionalInfo(directory));
 		}
-
 	}
 
 	/**
