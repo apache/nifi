@@ -51,6 +51,7 @@ nf.ProcessorPropertyComboEditor = function (args) {
         if (propertyDescriptor.required === false) {
             options.push({
                 text: 'No value',
+                value: null,
                 optionClass: 'unset'
             });
         }
@@ -68,6 +69,7 @@ nf.ProcessorPropertyComboEditor = function (args) {
         if (options.length === 0) {
             options.push({
                 text: 'No value',
+                value: null,
                 optionClass: 'unset',
                 disabled: true
             });
@@ -134,7 +136,7 @@ nf.ProcessorPropertyComboEditor = function (args) {
         var propertyDescriptor = processorDetails.config.descriptors[item.property];
 
         // select as appropriate
-        if (nf.Common.isDefinedAndNotNull(item.value)) {
+        if (!nf.Common.isUndefined(item.value)) {
             initialValue = item.value;
 
             combo.combo('setSelectedOption', {

@@ -67,6 +67,26 @@
 			
 	</ul>
 
+	<p>
+		Below is an example of how to create a client connection to your distributed map cache server. 
+		Note that the identifier in this example is <code>cache-client</code>. If you are using this template
+		to create your own MapCacheClient service, replace the values in this template with values that are
+		suitable for your system. Possible options for <code>Server Hostname</code>, <code>Server Port</code>,
+		<code>Communications Timeout</code>, and <span style="font-style: italic;">SSL Context Service</span>.
+	</p>
+
+	<pre>
+&lt;?xml version="1.0" encoding="UTF-8" ?&gt;
+&lt;services&gt;
+    &lt;service&gt;
+        &lt;identifier&gt;cache-client&lt;/identifier&gt;
+        &lt;class&gt;org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService&lt;/class&gt;
+        &lt;property name="Server Hostname"&gt;localhost&lt;/property&gt;
+        &lt;property name="Server Port"&gt;4557&lt;/property&gt;
+        &lt;property name="Communications Timeout"&gt;30 secs&lt;/property&gt;
+    &lt;/service&gt;
+&lt;/services&gt;
+	</pre>
 
 	<i>See Also:</i>
 	<ul>

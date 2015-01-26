@@ -154,6 +154,313 @@ in the remote cluster can be included in the same group. When the ADMIN wants to
 cluster, s/he can grant it to the group and avoid having to grant it individually to each node in the cluster.
 
 
+System Properties
+-----------------
+The _nifi.properties_ file in the conf directory is the main configuration file for controlling how NiFi runs. This section provides an overview of the properties in this file and includes some notes on how to configure it in a way that will make upgrading easier. *After making changes to this file, restart NiFi in order
+for the changes to take effect.*
+
+NOTE: The contents of this file are relatively stable but do change from time to time. It is always a good idea to 
+review this file when upgrading and pay attention for any changes. Consider configuring items
+below marked with an asterisk (*) in such a way that upgrading will be easier. For details, see a full discussion on upgrading 
+at the end of this section. Note that values for periods of time and data sizes must include the unit of measure, 
+for example "10 sec" or "10 MB", not simply "10".
+
+*Core Properties* +
+
+The first section of the _nifi.properties_ file is for the Core Properties. These properties apply to the core framework as a whole.
+
+|====
+|*Property*|*Description*
+|nifi.version|The version number of the current release. If upgrading but reusing this file, be sure to update this value.
+|nifi.flow.configuration.file*|The location of the flow configuration file (i.e., the file that contains what is currently displayed on the NiFi graph). The default value is ./conf/flow.xml.gz.
+|nifi.flow.configuration.archive.dir*|The location of the archive directory where backup copies of the flow.xml are saved. The default value is ./conf/archive. 
+|nifi.flowcontroller.autoResumeState|Indicates whether -upon restart- the components on the NiFi graph should return to their last state. The default value is _true_.
+|nifi.flowcontroller.graceful.shutdown.period|Indicates the shutdown period. The default value is 10 sec.
+|nifi.flowservice.writedelay.interval|When many changes are made to the flow.xml, this property specifies how long to wait before writing out the changes, so as to batch the changes into a single write. The default value is 500 ms.
+|nifi.administrative.yield.duration|If a component allows an unexpected Exception to escape, it is considered a bug. As a result, the framework will pause (or administratively yield) the component for this amount of time. This is done so that the component does not use up massive amounts of system resources, since it is known to have problems in the existing state. The default value is 30 sec.
+|nifi.authority.provider.configuration.file*|This is the location of the file that specifies how user access is authenticated. The default value is ./conf/authority-providers.xml.
+|nifi.reporting.task.configuration.file*|This is the location of the Reporting Tasks file. The default value is ./conf/reporting-tasks.xml.
+|nifi.controller.service.configuration.file*|This is the location of the Controller Services file. The default value is ./conf/controller-services.xml.
+|nifi.templates.directory*|This is the location of the directory where flow templates are saved. The default value is ./conf/templates.
+|nifi.ui.banner.text|This is banner text that may be configured to display at the top of the User Interface. It is blank by default.
+|nifi.ui.autorefresh.interval|The interval at which the User Interface auto-refreshes. The default value is 30 sec.
+|nifi.nar.library.directory|The location of the nar library. The default value is ./lib and probably should be left as is.
+|nifi.nar.working.directory|The location of the nar working directory. The default value is ./work/nar and probably should be left as is.
+|nifi.documentation.working.directory|The documentation working directory. The default value is ./work/docs/components and probably should be left as is.
+|====
+
+*H2 Settings* +
+
+The H2 Settings section defines the settings for the H2 database, which keeps track of user access and flow controller history. 
+
+|====
+|*Property*|*Description*
+|nifi.database.directory|The location of the H2 database directory. The default value is ./database_repository.
+|nifi.h2.url.append|This property specifies additional arguments to add to the connection string for the H2 database. The default value should be used and should not be changed. It is: ;LOCK_TIMEOUT=25000;WRITE_DELAY=0;AUTO_SERVER=FALSE.
+|====
+
+
+*FlowFile Repository* +
+
+The FlowFile repository keeps track of the attributes and current state of each FlowFile in the system. By default,
+this repository is installed in the same root installation directory as all the other repositories; however, it is advisable
+to configure it on a separate drive if available.
+
+|====
+|*Property*|*Description*
+|nifi.flowfile.repository.implementation|The FlowFile Repository implementation. The default value is org.apache.nifi.controller.repository.WriteAheadFlowFileRepository and should not be changed.
+|nifi.flowfile.repository.directory*|The location of the FlowFile Repository. The default value is ./flowfile_repository.
+|nifi.flowfile.repository.partitions|The number of partitions. The default value is 256.
+|nifi.flowfile.repository.checkpoint.interval| The FlowFile Repository checkpoint interval. The default value is 2 mins.
+|nifi.flowfile.repository.always.sync|If set to _true_, any change to the repository will be synchronized to the disk, meaning that NiFi will ask the operating system not to cache the information. This is very expensive and can significantly reduce NiFi performance. However, if it is _false_, there could be the potential for data loss if either there is a sudden power loss or the operating system crashes. The default value is _false_.
+|====
+
+*Swap Management* +
+
+NiFi keeps FlowFile information in memory (the JVM) 
+but during surges of incoming data, the FlowFile information can start to take up so much of the JVM that system performance
+suffers. To counteract this effect, NiFi "swaps" the FlowFile information to disk temporarily until more JVM space becomes
+available again. These properties govern how that process occurs.
+
+|====
+|*Property*|*Description*
+|nifi.swap.manager.implementation|The Swap Manager implementation. The default value is org.apache.nifi.controller.FileSystemSwapManager and should not be changed.
+|nifi.queue.swap.threshold|The queue threshold at which NiFi starts to swap FlowFile information to disk. The default value is 20000.
+|nifi.swap.in.period|The swap in period. The default value is 5 sec.
+|nifi.swap.in.threads|The number of threads to use for swapping in. The default value is 1.
+|nifi.swap.out.period|The swap out period. The default value is 5 sec.
+|nifi.swap.out.threads|The number of threads to use for swapping out. The default value is 4.
+|====
+
+*Content Repository* +
+
+The Content Repository holds the content for all the FlowFiles in the system. By default, it is installed in the same root
+installation directory as all the other repositories; however, administrators will likely want to configure it on a separate
+drive if available. If nothing else, it is best if the Content Repository is not on the same drive as the FlowFile Repository.
+In dataflows that handle a large amount of data, the Content Repository could fill up a disk and the
+FlowFile Repository, if also on that disk, could become corrupt. To avoid this situation, configure these repositories on different drives.
+
+|====
+|*Property*|*Description*
+|nifi.content.repository.implementation|The Content Repository implementation. The default value is org.apache.nifi.controller.repository.FileSystemRepository and should not be changed.
+|nifi.content.claim.max.appendable.size|The maximum size for a content claim. The default value is 10 MB.
+|nifi.content.claim.max.flow.files|The maximum number of FlowFiles to assign to one content claim. The default value is 100.
+|nifi.content.repository.directory.default*|The location of the Content Repository. The default value is ./content_repository.
+|nifi.content.repository.archive.max.retention.period|If archiving is enabled (see nifi.content.repository.archive.enabled below), then
+this property specifies the maximum amount of time to keep the archived data. It is blank by default.
+|nifi.content.repository.archive.max.usage.percentage|If archiving is enabled (see nifi.content.repository.archive.enabled below), then this property also must have a value to indiciate the maximum percentage of disk space that may be used for archiving. It is blank by default.
+|nifi.content.repository.archive.enabled|To enable archiving, set this to _true_ and specify a value for the nifi.content.repository.archive.max.usage.percentage property above. By default, archiving is not enabled.
+|nifi.content.repository.always.sync|If set to _true_, any change to the repository will be synchronized to the disk, meaning that NiFi will ask the operating system not to cache the information. This is very expensive and can significantly reduce NiFi performance. However, if it is _false_, there could be the potential for data loss if either there is a sudden power loss or the operating system crashes. The default value is _false_.
+|nifi.content.viewer.url|The URL for a web-based content viewer if one is available. It is blank by default.
+|====
+
+*Provenance Repository* +
+
+The Provenance Repository contains the information related to Data Provenance. The next three sections are for Provenance Repository properties.
+
+|====
+|*Property*|*Description*
+|nifi.provenance.repository.implementation|The Provenance Repository implementation. The default value is org.apache.nifi.provenance.PersistentProvenanceRepository and should not be changed.
+|====
+
+*Persistent Provenance Repository Properties* +
+
+|====
+|*Property*|*Description*
+|nifi.provenance.repository.directory.default*|The location of the Provenance Repository. The default value is ./provenance_repository.
+|nifi.provenance.repository.max.storage.time|The maximum amount of time to keep data provenance information. The default value is 24 hours.
+|nifi.provenance.repository.max.storage.size|The maximum amount of data provenance information to store at a time. The default is 1 GB.
+|nifi.provenance.repository.rollover.time|The amount of time to wait before rolling over the latest data provenance information so that it is available in the User Interface. The default value is 5 mins. 
+|nifi.provenance.repository.rollover.size|The amount of information to roll over at a time. The default value is 100 MB.
+|nifi.provenance.repository.query.threads|The number of threads to use for Provenance Repository queries. The default value is 2. 
+|nifi.provenance.repository.compress.on.rollover|Indicates whether to compress the provenance information when rolling it over. The default value is _true_.
+|nifi.provenance.repository.always.sync|If set to _true_, any change to the repository will be synchronized to the disk, meaning that NiFi will ask the operating system not to cache the information. This is very expensive and can significantly reduce NiFi performance. However, if it is _false_, there could be the potential for data loss if either there is a sudden power loss or the operating system crashes. The default value is _false_.
+|nifi.provenance.repository.journal.count|The number of journal files that should be used to serialize Provenance Event data. Increasing this value will allow more tasks to simultaneously update the repository but will result in more expensive merging of the journal files later. This value should ideally be equal to the number of threads that are expected to update the repository simultaneously, but 16 tends to work well in must environments. The default value is 16.
+|nifi.provenance.repository.indexed.fields|This is a comma-separated list of the fields that should be indexed and made searchable. Fields that are not indexed will not be searchable. Valid fields are: EventType, FlowFileUUID, Filename, TransitURI, ProcessorID, AlternateIdentifierURI, ContentType, Relationship, Details. The default value is: EventType, FlowFileUUID, Filename, ProcessorID.
+|nifi.provenance.repository.indexed.attributes|This is a comma-separated list of FlowFile Attributes that should be indexed and made searchable. It is blank by default.
+|nifi.provenance.repository.index.shard.size|Large values for the shard size will result in more Java heap usage when searching the Provenance Repository but should provide better performance. The default value is 500 MB.
+|====
+
+*Volatile Provenance Repository Properties* +
+
+|====
+|*Property*|*Description*
+|nifi.provenance.repository.buffer.size|The Provenance Repository buffer size. The default value is 100000.
+|====
+
+*Component Status Repository* +
+
+The Component Status Repository contains the information for the Component Status History tool in the User Interface. These 
+properties govern how that tool works.
+
+|====
+|*Property*|*Description*
+|nifi.components.status.repository.implementation|The Component Status Repository implementation. The default value is org.apache.nifi.controller.status.history.VolatileComponentStatusRepository and should not be changed.
+|nifi.components.status.repository.buffer.size|Specifies the buffer size for the Component Status Repository. The default value is 288.
+|nifi.components.status.snapshot.frequency|This value indicates how often to present a snapshot of the components' status history. The default value is 5 mins.
+|====
+
+*Site to Site Properties* +
+
+These properties govern how this instance of NiFi communicates with remote instances of NiFi when Remote Process Groups are configured in the dataflow.
+
+|====
+|*Property*|*Description*
+|nifi.remote.input.socket.port|The remote input socket port for Site-to-Site communication. By default, it is blank, but it must have a value in order to use Remote Process Groups.
+|nifi.remote.input.secure|This indicates whether communication between this instance of NiFi and remote NiFi instances should be secure. By default, it is set to _true_. In order for secure site-to-site to work, many Security Properties (below) must also be configured.
+|====
+
+*Web Properties* +
+
+These properties pertain to the web-based User Interface.
+
+|====
+|*Property*|*Description*
+|nifi.web.war.directory|This is the location of the web war directory. The default value is ./lib.
+|nifi.web.http.host|The HTTP host. It is blank by default.
+|nifi.web.http.port|The HTTP port. The default value is 8080.
+|nifi.web.https.host|The HTTPS host. It is blank by default.
+|nifi.web.https.port|The HTTPS port. It is blank by default. When configuring NiFi to run securely, this port should be configured.
+|nif.web.jetty.working.directory|The location of the Jetty working directory. The default value is ./work/jetty.
+|nifi.web.jetty.threads|The number of Jetty threads. The default value is 200.
+|====
+
+*Security Properties* +
+
+These properties pertain to various security features in NiFi. Many of these properties are covered in more detail in the 
+Security Configuration section of this Administrator's Guide.
+
+|====
+|*Property*|*Description*
+|nifi.sensitive.props.key|This is the password used to encrypt any sensitive property values that are configured in processors. By default, it is blank, but the system administrator should provide a value for it. It can be a string of any length. Be aware that once this password is set and one or more sensitive processor properties has been configured, this password should not be changed. 
+|nifi.sensitive.props.algorithm|The algorithm used to encrypt sensitive properties. The default value is PBEWITHMD5AND256BITAES-CBC-OPENSSL.
+|nifi.sensitive.props.provider|The sensitive property provider. The default value is BC.
+|nifi.security.keystore*|The full path and name of the keystore. It is blank by default.
+|nifi.security.keystoreType|The keystore type. It is blank by default.
+|nifi.security.keystorePasswd|The keystore password. It is blank by default.
+|nifi.security.keyPasswd|The key password. It is blank by default.
+|nifi.security.truststore*|The full path and name of the truststore. It is blank by default.
+|nifi.security.truststoreType|The truststore type. It is blank by default.
+|nifi.security.truststorePasswd|The truststore password. It is blank by default.
+|nifi.security.needClientAuth|This indicates whether client authentication is required. It is blank by default.
+|nifi.security.user.credential.cache.duration|The length of time to cache user credentials. The default value is 24 hours.
+|nifi.security.user.authority.provider|This indicates what type of authority provider to use. The default value is file-provider, which refers to the file
+configured in the core property nifi.authority.provider.configuration.file. Another authority provider may be used, such as when the NiFi instance is part of a cluster. But the default value of file-provider is fine for a standalone instance of NiFi.
+|nifi.security.support.new.account.requests|This indicates whether a secure NiFi is configured to allow users to request access. It is blank by default.
+|nifi.security.ocsp.responder.url|This is the URL for the Online Certificate Status Protocol (OCSP) responder if one is being used. It is blank by default.
+|nifi.security.ocsp.responder.certificate|This is the location of the OCSP responder certificate if one is being used. It is blank by default.
+|====
+
+*Cluster Common Properties* +
+
+When setting up a NiFi cluster, these properties should be configured the same way on both the cluster manager and the nodes.
+
+|====
+|*Property*|*Description*
+|nifi.cluster.protocol.heartbeat.interval|The interval at which nodes should emit heartbeats to the cluster manager. The default value is 5 sec.
+|nifi.cluster.protocol.is.secure|This indicates whether cluster communications are secure. The default value is _false_.
+|nifi.cluster.protocol.socket.timeout|The amount of time to wait for a cluster protocol socket to be established before trying again. The default value is 30 sec.
+|nifi.cluster.protocol.connection.handshake.timeout|The amount of time to wait for a node to connect to the cluster. The default value is 45 sec.
+|====
+
+*Multicast Cluster Common Properties* +
+If multicast is used, the following nifi.cluster.protocol.multicast.xxx properties must be configured. By default, unicast is used.
+
+|====
+|*Property*|*Description*
+|nifi.cluster.protocol.use.multicast|Indicates whether multicast is being used. The default value is _false_.
+|nifi.cluster.protocol.multicast.address|The cluster multicast address. It is blank by default.
+|nifi.cluster.protocol.multicast.port|The cluster multicast port. It is blank by default.
+|nifi.cluster.protocol.multicast.service.broadcast.delay|The multicast service broadcast delay. The default value is 500 ms.
+|nifi.cluster.protocol.multicast.service.locator.attempts|The number of multicast service locator attempts to make. The default value is 3.
+|nifi.cluster.protocol.multicast.service.locator.attempts.delay|The multicast service locator attempts delay. The default value is 1 sec.
+|====
+
+*Cluster Node Properties* +
+
+Only configure these properties for cluster nodes.
+
+|====
+|*Property*|*Description*
+|nifi.cluster.is.node|Set this to _true_ if the instance is a node in a cluster. The default value is _false_.
+|nifi.cluster.node.address|The fully qualified address of the node. It is blank by default.
+|nifi.cluster.node.protocol.port|The node's protocol port. It is blank by default.
+|nifi.cluster.node.protocol.threads|The number of threads used for the node protocol. The default value is 2.
+|nifi.cluster.node.unicast.manager.address|If multicast is not used, the value for this property should be the same as the value configured on the cluster manager for manager address.
+|nifi.cluster.node.unicast.manager.protocol.port|If multicast is not used, the value for this property should be the same as the value configured on the cluster manager for manager protocol port.
+|====
+
+*Cluster Manager Properties* +
+
+Only configure these properties for the cluster manager.
+
+|====
+|*Property*|*Description*
+|nifi.cluster.is.manager|Set this to _true_ if the instance is a cluster manager. The default value is _false_.
+|nifi.cluster.manager.address|The fully qualified address of the cluster manager. It is blank by default.
+|nifi.cluster.manager.protocol.port|The cluster manager's protocol port. It is blank by default.
+|nifi.cluster.manager.node.firewall.file|The location of the node firewall file. This is a file that may be used to list all the nodes that are allowed to connect to the cluster. It provides an additional layer of security. This value is blank by default.
+|nifi.cluster.manager.node.event.history.size|The size of the cluster manager's event history. The default value is 10.
+|nifi.cluster.manager.node.api.connection.timeout|The amount of time to wait for an API connection to be made. The default value is 30 sec.
+|nifi.cluster.manager.node.api.read.timeout|The API read timeout. The default value is 30 sec.
+|nifi.cluster.manager.node.api.request.threads|The number of threads to use for API requests. The default value is 10.
+|nifi.cluster.manager.flow.retrieval.delay|The delay before the cluster manager retrieves the latest flow configuration. The default value is 5 sec.
+|nifi.cluster.manager.protocol.threads|The number of threads used for the cluster manager protocol. The default value is 10.
+|nifi.cluster.manager.safemode.duration|Upon restart of an already existing cluster, this is the amount of time that the cluster manager waits for the primary node to connect before giving up and selecting another node to be the primary node. The default value is 0 sec, which means to wait forever. If the administrator does not care which node is the primary node, this value can be changed to some amount of time other than 0 sec.
+|====
+
+
+NOTE: *For Upgrading* - Take care when configuring the properties above that are marked with an asterisk (*). To make the upgrade process easier, it is advisable to change the default configurations to locations outside the main root installation directory. In this way, these items can remain in their configured location through an upgrade, and NiFi can find all the repositories and configuration files and pick up where it left off as soon as the old version is stopped and the new version is started. Furthermore, the administrator may reuse this _nifi.properties_ file and any other configuration files without having to re-configure them each time an upgrade takes place. As previously noted, it is important to check for any changes in the _nifi.properties_ file of the new version when upgrading and make sure they are reflected in the _nifi.properties_ file you use.
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
