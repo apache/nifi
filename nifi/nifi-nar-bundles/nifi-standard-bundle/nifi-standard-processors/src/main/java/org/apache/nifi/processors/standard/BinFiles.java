@@ -48,7 +48,7 @@ import org.apache.nifi.processors.standard.util.BinManager;
 import org.apache.nifi.processors.standard.util.FlowFileSessionWrapper;
 
 /**
- * Base class for MergeContent.
+ * Base class for file-binning processors, including MergeContent.
  *
  */
 public abstract class BinFiles extends AbstractSessionFactoryProcessor {
