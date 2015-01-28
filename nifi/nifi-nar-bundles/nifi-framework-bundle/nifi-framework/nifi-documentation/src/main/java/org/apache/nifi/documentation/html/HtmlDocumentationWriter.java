@@ -31,8 +31,10 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.documentation.DocumentationWriter;
+
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+
 
 /**
  * Generates HTML documentation for a ConfigurableComponent. This class is used
@@ -283,6 +285,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 
 			// write the individual properties
 			for (PropertyDescriptor property : properties) {
+
 				containsSensitiveElement |= property.isSensitive();
 				xmlStreamWriter.writeStartElement("tr");
 				xmlStreamWriter.writeStartElement("td");
@@ -299,21 +302,25 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 				writeSimpleElement(xmlStreamWriter, "td", property.getDefaultValue());
 				writeValidValues(xmlStreamWriter, property);
 				writeSimpleElement(xmlStreamWriter, "td", property.isExpressionLanguageSupported() ? "Yes" : "No");
+
 				xmlStreamWriter.writeEndElement();
 			}
 
 			// TODO support dynamic properties...
 			xmlStreamWriter.writeEndElement();
+
 			
 			if (containsSensitiveElement) {
 				writeSensitiveImg(xmlStreamWriter);
 				xmlStreamWriter.writeCharacters(" indicates that a property is a sensitive property");
 			}
 
+
 		} else {
 			writeSimpleElement(xmlStreamWriter, "p", "This component has no required or optional properties.");
 		}
 	}
+
 
 	private void writeSensitiveImg(final XMLStreamWriter xmlStreamWriter) throws XMLStreamException {
 		xmlStreamWriter.writeCharacters(" ");
@@ -341,6 +348,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 			xmlStreamWriter.writeStartElement("ul");
 			for (AllowableValue value : property.getAllowableValues()) {
 				writeSimpleElement(xmlStreamWriter, "li", value.getDisplayName());
+
 			}
 			xmlStreamWriter.writeEndElement();
 		}
