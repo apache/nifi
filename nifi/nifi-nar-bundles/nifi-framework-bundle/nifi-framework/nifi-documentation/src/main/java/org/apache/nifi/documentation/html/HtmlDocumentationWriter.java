@@ -316,6 +316,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 	}
 
 	private void writeSensitiveImg(final XMLStreamWriter xmlStreamWriter) throws XMLStreamException {
+		xmlStreamWriter.writeCharacters(" ");
 		xmlStreamWriter.writeStartElement("img");
 		xmlStreamWriter.writeAttribute("src", "../../html/images/iconSecure.png");
 		xmlStreamWriter.writeAttribute("alt", "Sensitive Property");
@@ -339,7 +340,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 		if (property.getAllowableValues() != null && property.getAllowableValues().size() > 0) {
 			xmlStreamWriter.writeStartElement("ul");
 			for (AllowableValue value : property.getAllowableValues()) {
-				writeSimpleElement(xmlStreamWriter, "li", value.getValue());
+				writeSimpleElement(xmlStreamWriter, "li", value.getDisplayName());
 			}
 			xmlStreamWriter.writeEndElement();
 		}
