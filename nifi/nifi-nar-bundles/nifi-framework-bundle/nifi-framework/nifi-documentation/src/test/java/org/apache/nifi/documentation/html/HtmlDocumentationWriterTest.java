@@ -16,8 +16,14 @@
  */
 package org.apache.nifi.documentation.html;
 
+import static org.apache.nifi.documentation.html.XmlValidator.assertContains;
+import static org.apache.nifi.documentation.html.XmlValidator.assertNotContains;
+import static org.apache.nifi.documentation.html.XmlValidator.assertXmlValid;
+
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.documentation.DocumentationWriter;
 import org.apache.nifi.documentation.example.FullyDocumentedControllerService;
@@ -31,14 +37,34 @@ import org.junit.Test;
 public class HtmlDocumentationWriterTest {
 
 	@Test
-	public void testDocumentControllerService() throws InitializationException, IOException {
+	public void testDocumentControllerService() throws IOException, InitializationException {
 
 		ControllerService controllerService = new FullyDocumentedControllerService();
 		controllerService.initialize(new MockControllerServiceInitializationContext());
 
 		DocumentationWriter writer = new HtmlDocumentationWriter();
 
-		writer.write(controllerService, System.out, false);
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+		writer.write(controllerService, baos, false);
+
+		String results = new String(baos.toByteArray());
+		System.out.println(results);
+		assertXmlValid(results);
+
+		assertContains(results, FullyDocumentedControllerService.KEYSTORE.getDisplayName());
+		assertContains(results, FullyDocumentedControllerService.KEYSTORE.getDescription());
+		assertContains(results, FullyDocumentedControllerService.KEYSTORE_PASSWORD.getDisplayName());
+		assertContains(results, FullyDocumentedControllerService.KEYSTORE_PASSWORD.getDescription());
+		assertContains(results, FullyDocumentedControllerService.KEYSTORE_TYPE.getDisplayName());
+		assertContains(results, FullyDocumentedControllerService.KEYSTORE_TYPE.getDescription());
+		assertContains(results, "iconSecure.png");
+		assertContains(results, FullyDocumentedControllerService.class.getAnnotation(CapabilityDescription.class)
+				.value());
+		assertNotContains(results, "This component has no required or optional properties.");
+		assertNotContains(results, "No description provided.");
+		assertNotContains(results, "No Tags provided.");
+		assertNotContains(results, "Additional Details...");
 
 	}
 
@@ -50,7 +76,19 @@ public class HtmlDocumentationWriterTest {
 
 		DocumentationWriter writer = new HtmlDocumentationWriter();
 
-		writer.write(reportingTask, System.out, false);
-	}
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
+		writer.write(reportingTask, baos, false);
+		String results = new String(baos.toByteArray());
+		assertXmlValid(results);
+
+		assertContains(results, FullyDocumentedReportingTask.SHOW_DELTAS.getDisplayName());
+		assertContains(results, FullyDocumentedReportingTask.SHOW_DELTAS.getDescription());
+		assertNotContains(results, "iconSecure.png");
+		assertContains(results, FullyDocumentedReportingTask.class.getAnnotation(CapabilityDescription.class).value());
+		assertNotContains(results, "This component has no required or optional properties.");
+		assertNotContains(results, "No description provided.");
+		assertNotContains(results, "No Tags provided.");
+		assertNotContains(results, "Additional Details...");
+	}
 }

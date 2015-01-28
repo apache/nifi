@@ -16,8 +16,13 @@
  */
 package org.apache.nifi.documentation.html;
 
+import static org.apache.nifi.documentation.html.XmlValidator.assertContains;
+import static org.apache.nifi.documentation.html.XmlValidator.assertNotContains;
+
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.documentation.DocumentationWriter;
 import org.apache.nifi.documentation.example.FullyDocumentedProcessor;
 import org.apache.nifi.documentation.mock.MockProcessorInitializationContext;
@@ -32,7 +37,33 @@ public class ProcessorDocumentationWriterTest {
 
 		DocumentationWriter writer = new HtmlProcessorDocumentationWriter();
 
-		writer.write(processor, System.out, false);
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+		writer.write(processor, baos, false);
+
+		String results = new String(baos.toByteArray());
+
+		assertContains(results, FullyDocumentedProcessor.DIRECTORY.getDisplayName());
+		assertContains(results, FullyDocumentedProcessor.DIRECTORY.getDescription());
+		assertContains(results, FullyDocumentedProcessor.OPTIONAL_PROPERTY.getDisplayName());
+		assertContains(results, FullyDocumentedProcessor.OPTIONAL_PROPERTY.getDescription());
+		assertContains(results, FullyDocumentedProcessor.POLLING_INTERVAL.getDisplayName());
+		assertContains(results, FullyDocumentedProcessor.POLLING_INTERVAL.getDescription());
+		assertContains(results, FullyDocumentedProcessor.POLLING_INTERVAL.getDefaultValue());
+		assertContains(results, FullyDocumentedProcessor.RECURSE.getDisplayName());
+		assertContains(results, FullyDocumentedProcessor.RECURSE.getDescription());
+
+		assertContains(results, FullyDocumentedProcessor.REL_SUCCESS.getName());
+		assertContains(results, FullyDocumentedProcessor.REL_SUCCESS.getDescription());
+		assertContains(results, FullyDocumentedProcessor.REL_FAILURE.getName());
+		assertContains(results, FullyDocumentedProcessor.REL_FAILURE.getDescription());
+
+		assertNotContains(results, "iconSecure.png");
+		assertContains(results, FullyDocumentedProcessor.class.getAnnotation(CapabilityDescription.class).value());
+		assertNotContains(results, "This component has no required or optional properties.");
+		assertNotContains(results, "No description provided.");
+		assertNotContains(results, "No Tags provided.");
+		assertNotContains(results, "Additional Details...");
 	}
 
 }

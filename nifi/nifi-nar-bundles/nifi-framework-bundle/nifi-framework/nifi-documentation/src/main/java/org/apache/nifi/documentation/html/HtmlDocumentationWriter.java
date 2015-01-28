@@ -264,6 +264,8 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 		xmlStreamWriter.writeCharacters(".");
 		xmlStreamWriter.writeEndElement();
 
+		boolean containsSensitiveElement = false;
+
 		List<PropertyDescriptor> properties = configurableComponent.getPropertyDescriptors();
 		if (properties.size() > 0) {
 			xmlStreamWriter.writeStartElement("table");
@@ -277,27 +279,47 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 			xmlStreamWriter.writeStartElement("th");
 			writeLink(xmlStreamWriter, "EL", "../../html/expression-language-guide.html");
 			xmlStreamWriter.writeEndElement();
-			writeSimpleElement(xmlStreamWriter, "th", "Sensitive");
 			xmlStreamWriter.writeEndElement();
 
 			// write the individual properties
 			for (PropertyDescriptor property : properties) {
+				containsSensitiveElement |= property.isSensitive();
 				xmlStreamWriter.writeStartElement("tr");
-				writeSimpleElement(xmlStreamWriter, "td", property.getName(), property.isRequired());
+				xmlStreamWriter.writeStartElement("td");
+				if (property.isRequired()) {
+					writeSimpleElement(xmlStreamWriter, "strong", property.getDisplayName());
+				} else {
+					xmlStreamWriter.writeCharacters(property.getDisplayName());
+				}
+				if (property.isSensitive()) {
+					writeSensitiveImg(xmlStreamWriter);
+				}
+				xmlStreamWriter.writeEndElement();
 				writeSimpleElement(xmlStreamWriter, "td", property.getDescription());
 				writeSimpleElement(xmlStreamWriter, "td", property.getDefaultValue());
 				writeValidValues(xmlStreamWriter, property);
 				writeSimpleElement(xmlStreamWriter, "td", property.isExpressionLanguageSupported() ? "Yes" : "No");
-				writeSimpleElement(xmlStreamWriter, "td", property.isSensitive() ? "Yes" : "No");
 				xmlStreamWriter.writeEndElement();
 			}
 
 			// TODO support dynamic properties...
 			xmlStreamWriter.writeEndElement();
+			
+			if (containsSensitiveElement) {
+				writeSensitiveImg(xmlStreamWriter);
+				xmlStreamWriter.writeCharacters(" indicates that a property is a sensitive property");
+			}
 
 		} else {
 			writeSimpleElement(xmlStreamWriter, "p", "This component has no required or optional properties.");
 		}
+	}
+
+	private void writeSensitiveImg(final XMLStreamWriter xmlStreamWriter) throws XMLStreamException {
+		xmlStreamWriter.writeStartElement("img");
+		xmlStreamWriter.writeAttribute("src", "../../html/images/iconSecure.png");
+		xmlStreamWriter.writeAttribute("alt", "Sensitive Property");
+		xmlStreamWriter.writeEndElement();
 	}
 
 	/**
