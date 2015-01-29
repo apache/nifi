@@ -106,7 +106,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
     private final Queue<Bin> readyBins = new LinkedBlockingQueue<>();
 
     @Override
-    protected void init(final ProcessorInitializationContext context) {
+    protected final void init(final ProcessorInitializationContext context) {
 
     	final Set<Relationship> relationships = new HashSet<>();
         relationships.add(REL_ORIGINAL);
@@ -133,7 +133,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
     }
 
     @OnStopped
-    public void resetState() {
+    public final void resetState() {
         binManager.purge();
 
         Bin bin;
@@ -145,12 +145,12 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
     }
 
     @Override
-    public Set<Relationship> getRelationships() {
+    public final Set<Relationship> getRelationships() {
         return relationships;
     }
 
     @Override
-    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+    protected final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return descriptors;
     }
 
@@ -222,8 +222,20 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
 			List<FlowFileSessionWrapper> binContents, ProcessContext context,
 			ProcessSession session, ProcessorLog logger) throws Exception;
 
+    /**
+	 * Allows additional custom validation to be done. This will be called from
+	 * the parent's customValidation method.
+	 * 
+	 * @param context
+	 *            The context
+	 * @return Validation results indicating problems
+	 */
+    protected Collection<ValidationResult> additionalCustomValidation(final ValidationContext context) {
+    	return new ArrayList<ValidationResult>();
+    }
+	
     @Override
-    public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
+    public final void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
         int binsAdded = binFlowFiles(context, sessionFactory);
         getLogger().debug("Binned {} FlowFiles", new Object[] {binsAdded});
         
@@ -336,7 +348,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
     }
 
     @OnScheduled
-    public void onScheduled(final ProcessContext context) throws IOException {
+    public final void onScheduled(final ProcessContext context) throws IOException {
         binManager.setMinimumSize(context.getProperty(MIN_SIZE).asDataSize(DataUnit.B).longValue());
 
         if (context.getProperty(MAX_BIN_AGE).isSet() ) {
@@ -363,7 +375,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
     }
     
 	@Override
-    protected Collection<ValidationResult> customValidate(final ValidationContext context) {
+    protected final Collection<ValidationResult> customValidate(final ValidationContext context) {
         final List<ValidationResult> problems = new ArrayList<>(super.customValidate(context));
 
         final long minBytes = context.getProperty(MIN_SIZE).asDataSize(DataUnit.B).longValue();
@@ -381,6 +393,11 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
             if (min > max) {
                 problems.add(new ValidationResult.Builder().subject(MIN_ENTRIES.getName()).input(context.getProperty(MIN_ENTRIES).getValue()).valid(false).explanation("Min Entries must be less than or equal to Max Entries").build());
             }
+        }
+        
+        Collection<ValidationResult> otherProblems = this.additionalCustomValidation(context);
+        if (otherProblems != null) {
+        	problems.addAll(otherProblems);
         }
 
         return problems;
