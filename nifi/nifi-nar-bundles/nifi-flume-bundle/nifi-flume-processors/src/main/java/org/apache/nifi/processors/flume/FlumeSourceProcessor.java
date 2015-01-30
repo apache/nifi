@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.flume;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
@@ -32,6 +33,10 @@ import org.apache.flume.channel.ChannelProcessor;
 import org.apache.flume.channel.MemoryChannel;
 import org.apache.flume.conf.Configurables;
 import org.apache.flume.source.EventDrivenSourceRunner;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
@@ -40,139 +45,147 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.SchedulingContext;
-import org.apache.nifi.processor.annotation.CapabilityDescription;
-import org.apache.nifi.processor.annotation.OnScheduled;
-import org.apache.nifi.processor.annotation.OnUnscheduled;
-import org.apache.nifi.processor.annotation.Tags;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
 /**
- * This processor runs a Flume source 
+ * This processor runs a Flume source
  */
-@Tags({"flume", "hadoop", "get", "source" })
+@Tags({"flume", "hadoop", "get", "source"})
 @CapabilityDescription("Generate FlowFile data from a Flume source")
 public class FlumeSourceProcessor extends AbstractFlumeProcessor {
-  
-  private Source source;
-  private SourceRunner runner;
-  private MemoryChannel channel;
 
-  public static final PropertyDescriptor SOURCE_TYPE = new PropertyDescriptor.Builder()
-      .name("Source Type")
-      .description("The fully-qualified name of the Source class")
-      .required(true)
-      .addValidator(createSourceValidator())
-      .build();
-  public static final PropertyDescriptor AGENT_NAME = new PropertyDescriptor.Builder()
-      .name("Agent Name")
-      .description("The name of the agent used in the Flume source configuration")
-      .required(true)
-      .defaultValue("tier1")
-      .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-      .build();
-  public static final PropertyDescriptor SOURCE_NAME = new PropertyDescriptor.Builder()
-      .name("Source Name")
-      .description("The name of the source used in the Flume source configuration")
-      .required(true)
-      .defaultValue("src-1")
-      .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-      .build();
-  public static final PropertyDescriptor FLUME_CONFIG = new PropertyDescriptor.Builder()
-      .name("Flume Configuration")
-      .description("The Flume configuration for the source copied from the flume.properties file")
-      .required(true)
-      .defaultValue("")
-      .addValidator(Validator.VALID)
-      .build();
+    private Source source;
+    private SourceRunner runner;
+    private MemoryChannel channel;
 
-  public static final Relationship SUCCESS = new Relationship.Builder().name("success").build();
+    public static final PropertyDescriptor SOURCE_TYPE = new PropertyDescriptor.Builder()
+            .name("Source Type")
+            .description("The fully-qualified name of the Source class")
+            .required(true)
+            .addValidator(createSourceValidator())
+            .build();
+    public static final PropertyDescriptor AGENT_NAME = new PropertyDescriptor.Builder()
+            .name("Agent Name")
+            .description("The name of the agent used in the Flume source configuration")
+            .required(true)
+            .defaultValue("tier1")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+    public static final PropertyDescriptor SOURCE_NAME = new PropertyDescriptor.Builder()
+            .name("Source Name")
+            .description("The name of the source used in the Flume source configuration")
+            .required(true)
+            .defaultValue("src-1")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+    public static final PropertyDescriptor FLUME_CONFIG = new PropertyDescriptor.Builder()
+            .name("Flume Configuration")
+            .description("The Flume configuration for the source copied from the flume.properties file")
+            .required(true)
+            .defaultValue("")
+            .addValidator(Validator.VALID)
+            .build();
 
-  private List<PropertyDescriptor> descriptors;
-  private Set<Relationship> relationships;
+    public static final Relationship SUCCESS = new Relationship.Builder().name("success").build();
 
+    private List<PropertyDescriptor> descriptors;
+    private Set<Relationship> relationships;
 
-  @Override
-  protected void init(final ProcessorInitializationContext context) {
-    this.descriptors = ImmutableList.of(SOURCE_TYPE, AGENT_NAME, SOURCE_NAME, FLUME_CONFIG);
-    this.relationships = ImmutableSet.of(SUCCESS);
-  }
-
-  @Override
-  protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-    return descriptors;
-  }
-
-  @Override
-  public Set<Relationship> getRelationships() {
-    return relationships;
-  }
-
-  @OnScheduled
-  public void onScheduled(final SchedulingContext context) {
-    source = SOURCE_FACTORY.create(
-        context.getProperty(SOURCE_NAME).getValue(),
-        context.getProperty(SOURCE_TYPE).getValue());
-    
-    String flumeConfig = context.getProperty(FLUME_CONFIG).getValue();
-    String agentName = context.getProperty(AGENT_NAME).getValue();
-    String sourceName = context.getProperty(SOURCE_NAME).getValue();
-    Configurables.configure(source,
-        getFlumeSourceContext(flumeConfig, agentName, sourceName) );
-
-    if (source instanceof EventDrivenSource) {
-      runner = new EventDrivenSourceRunner();
-      channel = new MemoryChannel();
-      Configurables.configure(channel, new Context());
-      channel.start();
-      source.setChannelProcessor(new ChannelProcessor(new NifiChannelSelector(channel)));
-      runner.setSource(source);
-      runner.start();
-    } 
-  }
-
-  @OnUnscheduled
-  public void unScheduled() {
-    if (runner != null) {
-      runner.stop();
+    @Override
+    protected void init(final ProcessorInitializationContext context) {
+        this.descriptors = ImmutableList.of(SOURCE_TYPE, AGENT_NAME, SOURCE_NAME, FLUME_CONFIG);
+        this.relationships = ImmutableSet.of(SUCCESS);
     }
-    if (channel != null) {
-      channel.stop();
-    }
-  }
 
-  @Override
-  public void onTrigger(final ProcessContext context,
-      final ProcessSession session) throws ProcessException {
-    if (source instanceof EventDrivenSource) {
-      onEventDrivenTrigger(context, session);
-    } else if (source instanceof PollableSource) {
-      onPollableTrigger((PollableSource)source, context, session);
+    @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return descriptors;
     }
-  }
 
-  public void onPollableTrigger(final PollableSource pollableSource,
-      final ProcessContext context, final ProcessSession session)
-      throws ProcessException {
-    try {
-      pollableSource.setChannelProcessor(new ChannelProcessor(
-          new NifiChannelSelector(new NifiChannel(session, SUCCESS))));
-      pollableSource.start();
-      pollableSource.process();
-      pollableSource.stop();
-    } catch (EventDeliveryException ex) {
-      throw new ProcessException("Error processing pollable source", ex);
+    @Override
+    public Set<Relationship> getRelationships() {
+        return relationships;
     }
-  }
 
-  public void onEventDrivenTrigger(final ProcessContext context, final ProcessSession session) {
-    Transaction transaction = channel.getTransaction();
-    transaction.begin();
+    @OnScheduled
+    public void onScheduled(final SchedulingContext context) {
+        try {
+            source = SOURCE_FACTORY.create(
+                    context.getProperty(SOURCE_NAME).getValue(),
+                    context.getProperty(SOURCE_TYPE).getValue());
 
-    Event event = channel.take();
-    if (event != null) {
-      transferEvent(event, session, SUCCESS);
+            String flumeConfig = context.getProperty(FLUME_CONFIG).getValue();
+            String agentName = context.getProperty(AGENT_NAME).getValue();
+            String sourceName = context.getProperty(SOURCE_NAME).getValue();
+            Configurables.configure(source,
+                    getFlumeSourceContext(flumeConfig, agentName, sourceName));
+
+            if (source instanceof EventDrivenSource) {
+                runner = new EventDrivenSourceRunner();
+                channel = new MemoryChannel();
+                Configurables.configure(channel, new Context());
+                channel.start();
+                source.setChannelProcessor(new ChannelProcessor(new NifiChannelSelector(channel)));
+                runner.setSource(source);
+                runner.start();
+            }
+        } catch (Throwable th) {
+            getLogger().error("Error creating source", th);
+            throw Throwables.propagate(th);
+        }
     }
-  }
+
+    @OnUnscheduled
+    public void unScheduled() {
+        if (runner != null) {
+            runner.stop();
+        }
+        if (channel != null) {
+            channel.stop();
+        }
+    }
+
+    @Override
+    public void onTrigger(final ProcessContext context,
+            final ProcessSession session) throws ProcessException {
+        if (source instanceof EventDrivenSource) {
+            onEventDrivenTrigger(context, session);
+        } else if (source instanceof PollableSource) {
+            onPollableTrigger((PollableSource) source, context, session);
+        }
+    }
+
+    public void onPollableTrigger(final PollableSource pollableSource,
+            final ProcessContext context, final ProcessSession session)
+            throws ProcessException {
+        try {
+            pollableSource.setChannelProcessor(new ChannelProcessor(
+                    new NifiChannelSelector(new NifiChannel(session, SUCCESS))));
+            pollableSource.start();
+            pollableSource.process();
+            pollableSource.stop();
+        } catch (EventDeliveryException ex) {
+            throw new ProcessException("Error processing pollable source", ex);
+        }
+    }
+
+    public void onEventDrivenTrigger(final ProcessContext context, final ProcessSession session) {
+        Transaction transaction = channel.getTransaction();
+        transaction.begin();
+
+        try {
+            Event event = channel.take();
+            if (event != null) {
+                transferEvent(event, session, SUCCESS);
+            }
+            transaction.commit();
+        } catch (Throwable th) {
+            transaction.rollback();
+            throw Throwables.propagate(th);
+        } finally {
+            transaction.close();
+        }
+    }
 
 }

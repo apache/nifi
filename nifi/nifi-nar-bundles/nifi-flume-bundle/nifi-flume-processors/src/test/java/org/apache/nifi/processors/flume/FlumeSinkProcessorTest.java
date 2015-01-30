@@ -18,7 +18,6 @@ package org.apache.nifi.processors.flume;
 
 import java.io.File;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import java.io.FileInputStream;
 import java.io.FilenameFilter;
@@ -40,7 +39,6 @@ import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.file.FileUtils;
 
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
