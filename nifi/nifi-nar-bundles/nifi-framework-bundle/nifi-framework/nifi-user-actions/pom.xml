@@ -18,8 +18,8 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-framework</artifactId>
-        <version>0.0.1-incubating-SNAPSHOT</version>
+        <version>0.0.2-incubating-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-user-actions</artifactId>
-    <version>0.0.1-incubating-SNAPSHOT</version>
+    <version>0.0.2-incubating-SNAPSHOT</version>
 </project>

@@ -24,7 +24,7 @@
     </parent>
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-nar-maven-plugin</artifactId>
-    <version>1.0.0-incubating-SNAPSHOT</version>
+    <version>1.0.1-incubating-SNAPSHOT</version>
     <packaging>maven-plugin</packaging>
     <description>Apache NiFi Nar Plugin. It is currently a part of the Apache Incubator.</description>
     <url>http://nifi.incubator.apache.org/maven-site/</url>

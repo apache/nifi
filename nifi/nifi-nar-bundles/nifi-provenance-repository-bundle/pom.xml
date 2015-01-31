@@ -17,10 +17,10 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>0.0.1-incubating-SNAPSHOT</version>
+        <version>0.0.2-incubating-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-provenance-repository-bundle</artifactId>
-    <version>0.0.1-incubating-SNAPSHOT</version>
+    <version>0.0.2-incubating-SNAPSHOT</version>
     <packaging>pom</packaging>
     <modules>
         <module>nifi-persistent-provenance-repository</module>
@@ -32,12 +32,12 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-persistent-provenance-repository</artifactId>
-                <version>0.0.1-incubating-SNAPSHOT</version>
+                <version>0.0.2-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-volatile-provenance-repository</artifactId>
-                <version>0.0.1-incubating-SNAPSHOT</version>
+                <version>0.0.2-incubating-SNAPSHOT</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
