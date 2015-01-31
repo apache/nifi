@@ -17,10 +17,10 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-standard-bundle</artifactId>
-        <version>0.0.1-incubating</version>
+        <version>0.0.2-incubating-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-standard-nar</artifactId>
-    <version>0.0.1-incubating</version>
+    <version>0.0.2-incubating-SNAPSHOT</version>
     <packaging>nar</packaging>
     <description>NiFi Standard Extensions NAR</description>
     <dependencies>

@@ -19,12 +19,12 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi</artifactId>
-        <version>0.0.1-incubating</version>
+        <version>0.0.2-incubating-SNAPSHOT</version>
     </parent>
 
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-nar-bundles</artifactId>
-    <version>0.0.1-incubating</version>
+    <version>0.0.2-incubating-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <modules>
@@ -43,70 +43,70 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-distributed-cache-client-service</artifactId>
-                <version>0.0.1-incubating</version>
+                <version>0.0.2-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-distributed-cache-client-service-api</artifactId>
-                <version>0.0.1-incubating</version>
+                <version>0.0.2-incubating-SNAPSHOT</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-ssl-context-service-api</artifactId>
-                <version>0.0.1-incubating</version>
+                <version>0.0.2-incubating-SNAPSHOT</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-load-distribution-service-api</artifactId>
-                <version>0.0.1-incubating</version>
+                <version>0.0.2-incubating-SNAPSHOT</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-distributed-cache-protocol</artifactId>
-                <version>0.0.1-incubating</version>
+                <version>0.0.2-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-distributed-cache-server</artifactId>
-                <version>0.0.1-incubating</version>
+                <version>0.0.2-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-ssl-context-service</artifactId>
-                <version>0.0.1-incubating</version>
+                <version>0.0.2-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-volatile-provenance-repository</artifactId>
-                <version>0.0.1-incubating</version>
+                <version>0.0.2-incubating-SNAPSHOT</version>
                 <scope>test</scope>
             </dependency>
             <!-- The following dependencies are marked provided because they must be provided by the container.  Nars can assume they are there-->
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-api</artifactId>
-                <version>0.0.1-incubating</version>
+                <version>0.0.2-incubating-SNAPSHOT</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-runtime</artifactId>
-                <version>0.0.1-incubating</version>
+                <version>0.0.2-incubating-SNAPSHOT</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-nar-utils</artifactId>
-                <version>0.0.1-incubating</version>
+                <version>0.0.2-incubating-SNAPSHOT</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-properties</artifactId>
-                <version>0.0.1-incubating</version>
+                <version>0.0.2-incubating-SNAPSHOT</version>
                 <scope>provided</scope>
             </dependency>
         </dependencies>
