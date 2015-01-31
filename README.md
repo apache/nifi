@@ -4,35 +4,15 @@ Apache NiFi is a dataflow system based on the concepts of flow-based programming
 
 ## Table of Contents
 
-- [Features](#features)
 - [Getting Started](#getting-started)
-- [Getting Help](#getting-help)
-- [Requirements](#requirements)
 - [License](#license)
 - [Disclaimer](#disclaimer)
 
-## Features
-
-Apache NiFi supports powerful and scalable directed graphs of data routing, transformation, and system mediation logic. Some of the high-level capabilities and objectives of Apache NiFi include:
-
-- Web-based user interface for seamless experience between design, control, feedback, and monitoring of data flows
-- Highly configurable along several dimensions of quality of service such as loss tolerant versus guaranteed delivery, low latency versus high throughput, and priority based queuing
-- Fine-grained data provenance for all data received, forked, joined, cloned, modified, sent, and ultimately dropped as data reaches its configured end-state
-- Component-based extension model along well defined interfaces enabling rapid development and effective testing 
-
 ## Getting Started
 
-Execute <nifi install dir>/bin/nifi.sh
-
-## Getting Help
-If you have questions, you can reach out to our mailing list: dev@nifi.incubator.apache.org
-([archive](http://mail-archives.apache.org/mod_mbox/incubator-nifi-dev)).
-We're also often available in IRC: #nifi on
-[irc.freenode.net](http://webchat.freenode.net/?channels=#nifi).
-
-
-## Requirements
-* JDK 1.7 or higher
+- Build the nifi-nar-maven-plugin.  Change directory to 'nifi-nar-maven-plugin' and 
+follow the directions found there.
+- Build nifi.  Change directory to 'nifi' and follow the directions found there.
 
 ## License
 
@@ -63,3 +43,4 @@ have stabilized in a manner consistent with other successful ASF projects.
 While incubation status is not necessarily a reflection of the completeness
 or stability of the code, it does indicate that the project has yet to be
 fully endorsed by the ASF.
+

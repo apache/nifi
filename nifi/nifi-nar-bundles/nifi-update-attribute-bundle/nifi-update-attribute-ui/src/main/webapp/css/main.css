@@ -1,0 +1,426 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+    document styles
+*/
+
+body {
+    font-family: Verdana, Arial, Helvetica, sans-serif;
+    font-size: 62.5%;
+}
+
+textarea, input {
+    padding: 4px;
+    border: 1px solid #ccc;
+    font-family: Verdana;
+    font-size: 12px;
+    background: url('../images/bgInputText.png') repeat-x scroll center top white;
+}
+
+#update-attributes-content {
+    overflow: hidden;
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    padding: 5px;
+}
+
+/* new rule */
+
+div.new-rule {
+    float: right;
+    background: url("../images/buttonNew.png") no-repeat scroll left top transparent;
+    cursor: pointer;
+    height: 19px;
+    width: 19px;
+}
+
+#new-rule-dialog {
+    display: none;
+    width: 400px;
+    height: 205px;
+    z-index: 1301;
+}
+
+#new-rule-dialog input {
+    width: 370px;
+}
+
+#update-attributes-content .ui-autocomplete {
+    max-height: 400px;
+    overflow: auto;
+    border: 1px solid #aaaaaa;
+    z-index: 1351;
+    border-radius: 0;
+}
+
+#update-attributes-content .ui-menu .ui-menu-item a.ui-state-focus {
+    background: #D4E0E5 !important;
+    border: 1px solid #999999;
+    border-radius: 0;
+}
+
+input.search {
+    font-style: italic;
+    color: #aaa;
+}
+
+/* rule list panel */
+
+#rule-label-container {
+    margin-bottom: 5px;
+    height: 19px;
+}
+
+#rules-label {
+    float: left;
+    line-height: 19px;
+}
+
+div.large-label {
+    color: #527991;
+    font-size: 13px;
+    font-weight: bold;
+    margin-bottom: 5px;
+    line-height: 19px;
+}
+
+div.label {
+    color: #527991;
+    font-size: 10px;
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+#rule-list-panel {
+    float: left;
+    margin-right: 20px;
+    width: 280px;
+}
+
+#rule-list-container {
+    overflow-y: scroll;
+    overflow-x: hidden;
+    height: 437px;
+    padding: 5px;
+    border: 1px solid #ccc;
+    display: none;
+}
+
+#flowfile-policy-container {
+    margin-bottom: 20px;
+}
+
+#flowfile-policy-label {
+    float: left;
+}
+
+#flowfile-policy {
+    height: 20px;
+    line-height: 20px;
+    float: left;
+    width: 270px;
+}
+
+#rule-list {
+    width: 253px;
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+
+#rule-list li {
+    background: transparent url(../../nifi/images/bgButton.png) repeat-x center center;
+    border-top: 1px solid #d1d1d1;
+    border-right: 1px solid #a7a7a7;
+    border-bottom: 1px solid #828282;
+    border-left: 1px solid #a7a7a7;
+    color: #666;
+    position: relative;
+    margin-bottom: 5px;
+    padding: 8px;
+    list-style: none;
+    height: 12px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+#rule-list li.selected {
+    background: transparent url(../../nifi/images/bgButtonSelected.png) repeat-x center center;
+    border-top: 1px solid #aac1ce;
+    border-right: 1px solid #85a6b8;
+    border-bottom: 1px solid #618ba3;
+    border-left: 1px solid #85a6b8;
+    color: #355b6a;
+}
+
+#rule-list li.unsaved {
+    font-weight: bold;
+    font-size: 13px;
+    cursor: default;
+}
+
+div.rule-label {
+    float: left;
+    width: 200px;
+    height: 12px;
+    line-height: 12px;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+div.remove-rule {
+    float: right;
+    width: 16px;
+    height: 16px;
+    background-image: url(../images/iconDelete.png);
+    cursor: pointer;
+    margin-top: -2px;
+}
+
+#rule-filter-controls {
+    padding-top: 10px;
+    width: 280px;
+}
+
+#rule-filter-container {
+    height: 24px;
+}
+
+#rule-filter {
+    padding: 3px 0px 1px 3px;
+    font-size: 12px;
+    height: 18px;
+    line-height: 20px;
+    width: 173px;
+    margin-right: 3px;
+    float: left;
+}
+
+input.rule-filter-list {
+    color: #888;
+}
+
+#rule-filter-type {
+    width: 85px;
+    height: 18px;
+    line-height: 18px;
+    float: left;
+}
+
+#rule-filter-stats {
+    font-size: 9px;
+    font-weight: bold;
+    color: #9f6000;
+    clear: left; 
+    line-height: normal;
+    margin-left: 5px;
+    margin-top: 5px;
+}
+
+/* rule details panel */
+
+#rule-details-panel {
+    overflow: hidden;
+}
+
+#no-rule-selected-label {
+    height: 25px
+}
+
+div.selected-rule-detail {
+    margin-bottom: 20px;
+}
+
+#selected-rule-name {
+    width: 500px;
+}
+
+div.large-label-container {
+    margin-bottom: 5px;
+    height: 19px;
+}
+
+#conditions-label {
+    float: left;
+    line-height: 19px;
+}
+
+#new-condition {
+    float: right;
+    background: url("../images/buttonNew.png") no-repeat scroll left top transparent;
+    cursor: pointer;
+    height: 19px;
+    width: 19px;
+}
+
+#actions-label {
+    float: left;
+    line-height: 19px;
+}
+
+#selected-rule-conditions {
+    height: 200px;
+    border: 1px solid;
+}
+
+#new-action {
+    float: right;
+    background: url("../images/buttonNew.png") no-repeat scroll left top transparent;
+    cursor: pointer;
+    height: 19px;
+    width: 19px;
+}
+
+#selected-rule-actions {
+    height: 200px;
+    border: 1px solid;
+}
+
+#message {
+    float: left;
+    font-weight: bold;
+    color: #f00;
+}
+
+#selected-rule-save {
+    margin: 0;
+}
+
+input.editor-text {
+    background: none repeat scroll 0 0 transparent;
+    border: 0 none;
+    height: 100%;
+    margin: 0;
+    outline: 0 none;
+    padding: 0;
+    width: 100%;
+}
+
+/* general styles */
+
+#ok-dialog {
+    display: none;
+    width: 450px;
+    height: 300px;
+    z-index: 1301;
+}
+
+#ok-dialog-content {
+    overflow: auto;
+    word-wrap: break-word;
+    height: 200px;
+    width: 410px;
+}
+
+#yes-no-dialog {
+    display: none;
+    width: 400px;
+    height: 200px;
+    z-index: 1301;
+}
+
+#new-condition-dialog {
+    display: none;
+    z-index: 1299;
+    border: 3px solid #365c6a;
+    box-shadow: 4px 4px 6px rgba(0, 0, 0, 0.9);
+    cursor: move;
+    padding: 10px;
+}
+
+#new-condition-dialog .nfel-editor {
+    margin-bottom: 32px;
+}
+
+#new-condition-attribute {
+    width: 374px;
+}
+
+#new-action-button-container, #new-condition-button-container {
+    bottom: 0;
+    left: 0;
+    padding: 0 8px 10px;
+    position: absolute;
+    right: 0;
+}
+
+#new-action-dialog {
+    display: none;
+    z-index: 1299;
+    border: 3px solid #365c6a;
+    box-shadow: 4px 4px 6px rgba(0, 0, 0, 0.9);
+    cursor: move;
+    padding: 10px;
+}
+
+#new-action-attribute-container {
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    margin-bottom: 10px;
+    height: 25px;
+    padding-right: 10px;
+    overflow: hidden;
+}
+
+#new-action-attribute {
+    width: 100%;
+}
+
+#new-action-dialog .nfel-editor {
+    margin-bottom: 32px;
+}
+
+div.slickgrid-nfel-editor .nfel-editor {
+    margin-bottom: 30px;
+}
+
+div.update-attribute-detail .nfel-editor {
+    margin-bottom: 30px;
+}
+
+div.rule-setting {
+    margin-bottom: 10px;
+}
+
+.hidden {
+    display: none;
+}
+
+.clear {
+    clear: both;
+}
+
+.unset {
+    font-style: italic;
+    color: #aaa;
+}
+
+.pointer {
+    cursor: pointer;
+}
+
+img.icon-info {
+    float: left;
+    position: relative;
+    left: 5px;
+    top: 5px;
+}

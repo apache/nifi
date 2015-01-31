@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8" />
+        <title>PutJMS</title>
+
+        <link rel="stylesheet" href="../../css/component-usage.css" type="text/css" />
+    </head>
+
+    <body>
+        <!-- Processor Documentation ================================================== -->
+        <h2>Description:</h2>
+        <p>
+            This processor creates a JMS message from the contents of a FlowFile and sends the message to a JMS server.</p>
+        <p>
+            <strong>Properties:</strong>
+        </p>
+        <p>
+            In the list below, the names of required properties appear in bold. Any other properties (not in bold) are considered optional. If a property has a default value, it is indicated. If a property supports the use of the NiFi Expression Language (or simply, "expression language"), that is also indicated.
+        </p>
+        <ul>
+            <li><strong>JMS Provider</strong>
+                <ul>
+                    <li>This property specifies the provider used for the JMS server. Available options include:
+                        <ul>
+                            <li>ActiveMQ</li>
+                        </ul></li>
+                    <li>Default value: ActiveMQ</li>
+                    <li>Supports expression language: false</li>
+                </ul></li>
+            <li><strong>URL</strong>
+                <ul>
+                    <li>The URL of the JMS server.</li>
+                    <li>Default value: no default</li>
+                    <li>Supports expression language: false</li>
+                </ul></li>
+            <li><strong>Destination Name</strong>
+                <ul>
+                    <li>The name of the JMS topic of queue to use.</li>
+                    <li>Default value: no default</li>
+                    <li>Supports expression language: false</li>
+                </ul></li>
+            <li><strong>Destination Type</strong>
+                <ul>
+                    <li>The type of JMS Destination to use. Options are Queue and Topic.</li>
+                    <li>Default value: Queue</li>
+                    <li>Supports expression language: false</li>
+                </ul></li>
+            <li><strong>Communications Timeout</strong>
+                <ul>
+                    <li>The amount of time to wait when attempting to receive a message before giving up and assuming failure.</li>
+                    <li>Default value: 30 sec</li>
+                    <li>Supports expression language: false</li>
+                </ul></li>
+            <li><strong>Batch Size</strong>
+                <ul>
+                    <li>The number of messages to Put in a single iteration of the processor</li>
+                    <li>Default value: 10</li>
+                    <li>Supports expression language: false</li>
+                </ul></li>
+            <li>Username
+                <ul>
+                    <li>The username used for authentication and authorization.</li>
+                    <li>Default value: no default</li>
+                    <li>Supports expression language: false</li>
+                </ul></li>
+            <li>Password
+                <ul>
+                    <li>The password used for authentication and authorization.</li>
+                    <li>Default value: no default</li>
+                    <li>Supports expression language: false</li>
+                </ul></li>
+            <li><strong>Message Type</strong>
+                <ul>
+                    <li>The type of JMS message to construct. Available options include:
+                        <ul>
+                            <li>byte</li>
+                            <li>stream</li>
+                            <li>text</li>
+                            <li>empty</li>
+                        </ul></li>
+                    <li>Default value: byte</li>
+                    <li>Supports expression language: false</li>
+                </ul></li>
+            <li>Message Priority
+                <ul>
+                    <li>The priority of the message.</li>
+                    <li>Default value: no default</li>
+                    <li>Supports expression language: true</li>
+                </ul></li>
+            <li>Reply-to Queue
+                <ul>
+                    <li>The name of the queue to which a reply should be added.</li>
+                    <li>Default value: no default</li>
+                    <li>Supports expression language: true</li>
+                </ul></li>
+            <li><strong>Max Buffer Size</strong>
+                <ul>
+                    <li>The maximum amount of data that can be buffered for a JMS message. If a FlowFile's size exceeds this value, it will be routed to failure. </li>
+                    <li>Default value: 1 MB</li>
+                    <li>Supports expression language: false</li>
+                </ul></li>
+            <li>Message Time to Live
+                <ul>
+                    <li>The amount of time that the message should live on the destination before being removed; if not specified, the message will never expire.</li>	
+                    <li>Default value: no default</li>
+                    <li>Supports expression language: false</li>
+                </ul></li>
+            <li>Copy Attributes to JMS Properties
+                <ul>
+                    <li>A Boolean value (true/false), indicating whether FlowFile attributes should be translated into JMS Message Properties. If true, all attributes starting with 'jms.' will be set as properties on the JMS message (without the 'jms.' prefix). If an attribute exists that starts with the same value but ends in '.type', that attribute will be used to determine the JMS Message Property type. </li>
+                    <li>Default value: true</li>
+                    <li>Supports expression language: false</li>
+                </ul></li>
+            <li>Client ID Prefix
+                <ul>
+                    <li>A human-readable ID that can be used to associate connections with yourself so that the maintainers of the JMS Server know who to contact if problems arise.</li>
+                    <li>Default value: no default</li>
+                    <li>Supports expression language: false</li>
+                </ul></li>
+        </ul>
+        <p>
+            <strong>Relationships:</strong>
+        </p>
+        <ul>
+            <li>failure
+                <ul>
+                    <li>If something prevents a FlowFile from being routed to the JMS destination, then it follows this relationship.</li>
+                </ul></li>
+            <li>success
+                <ul>
+                    <li>If a FlowFile is successfully routed to the JMS destination, then it follows this relationship.</li>
+                </ul></li>
+        </ul>
+
+
+    </body>
+</html>

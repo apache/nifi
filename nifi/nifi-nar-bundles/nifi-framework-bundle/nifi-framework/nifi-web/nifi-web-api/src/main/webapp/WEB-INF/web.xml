@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<web-app version="3.0" xmlns="http://java.sun.com/xml/ns/javaee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd">
+    <display-name>nifi-api</display-name>
+    
+    <context-param>
+        <param-name>contextConfigLocation</param-name>
+        <param-value>
+            classpath:nifi-context.xml
+            classpath:nifi-web-api-context.xml
+            classpath:nifi-web-security-context.xml
+            classpath:nifi-administration-context.xml
+            classpath:nifi-cluster-manager-context.xml
+            classpath:nifi-cluster-protocol-context.xml
+        </param-value>
+    </context-param>
+    
+    <listener>
+        <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+    </listener>
+    
+    <listener>
+        <listener-class>org.apache.nifi.web.contextlistener.ApplicationStartupContextListener</listener-class>
+    </listener>
+    
+    <servlet>
+        <servlet-name>jerseySpring</servlet-name>
+        <servlet-class>com.sun.jersey.spi.spring.container.servlet.SpringServlet</servlet-class>
+        <init-param>
+            <param-name>com.sun.jersey.api.json.POJOMappingFeature</param-name>
+            <param-value>true</param-value>
+        </init-param>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>jerseySpring</servlet-name>
+        <url-pattern>/*</url-pattern>
+    </servlet-mapping>
+    
+    <filter>
+        <filter-name>timer</filter-name>
+        <filter-class>org.apache.nifi.web.filter.TimerFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>timer</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+    
+    <filter>
+        <filter-name>threadLocal</filter-name>
+        <filter-class>org.apache.nifi.web.filter.ThreadLocalFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>threadLocal</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+    
+    <filter>
+        <filter-name>springSecurityFilterChain</filter-name>
+        <filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>springSecurityFilterChain</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+    
+    <filter>
+        <filter-name>requestLogger</filter-name>
+        <filter-class>org.apache.nifi.web.filter.RequestLogger</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>requestLogger</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+    
+    <filter>
+        <filter-name>gzipCompressionFilter</filter-name>
+        <filter-class>org.eclipse.jetty.servlets.GzipFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>gzipCompressionFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+    
+    <filter>
+        <filter-name>nodeRequestFilter</filter-name>
+        <filter-class>org.apache.nifi.web.filter.NodeRequestFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>nodeRequestFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+</web-app>

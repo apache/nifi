@@ -1,0 +1,214 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+* {
+    margin: 0;
+    padding: 0;
+}
+
+#documentation-body {
+    width: 100%;
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+}
+
+/* banners */
+
+div.main-banner-header {
+    display: none;
+    z-index: 100;
+    font-weight: bold;
+    font-size: 1em;
+    text-align: center;
+    line-height: 15px;
+    color: #7e7e7e;
+    margin: 0px auto;
+    width: 900px;
+    height: 17px;
+    background-color: #fff;
+    z-index: 100;
+    background-image: url(../images/bgHeader.png);
+}
+
+div.main-banner-footer {
+    display: none;
+    position: absolute;
+    left: 0px;
+    right: 0px;
+    bottom: 0px;
+    height: 15px;
+    color: #fff;
+    text-align: center;
+    font-weight: bold;
+    font-size: 1em;
+    line-height: 15px;
+    overflow: visible;
+    background-color: #9eb9c7;
+    background-image: url(../images/bgBannerFoot.png);
+    background-repeat: repeat-x;
+    background-position: left top;
+}
+
+/* documentation */
+
+div.documentation-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 45px;
+    border-bottom: 1px solid #d1dee5;
+    color: #365c6a;
+    font-size: 13px;
+}
+
+#nf-title {
+    float: left;
+    height: 50px;
+    padding: 5px;
+    font-size: 20px;
+    margin-top: 10px;
+}
+
+#nf-version {
+    float: left;
+    font-size: 14px;
+    margin-left: 10px;
+    margin-top: 21px;
+    font-style: italic;
+    color: #aaa;
+}
+
+#selected-component {
+    float: right;
+    height: 50px;
+    padding: 5px;
+    margin-top: 10px;
+    font-size: 20px;
+}
+
+/* component listing */
+
+div.component-listing {
+    width: 300px;
+    position: absolute;
+    top: 46px;
+    left: 0;
+    bottom: 40px;
+    overflow: auto;
+    font-size: 16px;
+    padding: 4px;
+}
+
+div.component-listing div.section {
+    margin-bottom: 15px;
+}
+
+div.component-listing div.header {
+    font-weight: bold;
+    color: #264c58;
+}
+
+div.component-links ul {
+    list-style: none;
+}
+
+li.component-item {
+    padding: 2px;
+    padding-left: 4px;
+    border-left: 8px solid transparent;
+    font-family: "Open Sans","DejaVu Sans",sans-serif;
+    font-size: 15px;
+}
+
+li.component-item a {
+    color: #1e373f;
+}
+
+li.component-item:hover {
+    border-left: 8px solid #d1dee5;
+}
+
+li.component-item:hover a {
+    color: #264c58;
+}
+
+li.component-item.selected {
+    border-left: 8px solid #7098ad;
+}
+
+div.component-links span.no-components {
+    font-style: italic;
+    color: #777;
+}
+
+/* component filter control */
+
+#component-filter-controls {
+    width: 308px;
+    height: 40px;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+}
+
+#component-filter-container {
+    height: 24px;
+    margin-left: 2px;
+    margin-top: 1px;
+}
+
+#component-filter {
+    padding: 1px;
+    font-size: 12px;
+    height: 18px;
+    line-height: 20px;
+    width: 299px;
+    float: left;
+}
+
+input.component-filter-list {
+    color: #888;
+    font-style: italic;
+}
+
+#component-filter-stats {
+    font-size: 9px;
+    font-weight: bold;
+    color: #9f6000;
+    clear: left; 
+    line-height: normal;
+    margin-left: 7px;
+    margin-top: 2px;
+}
+
+/* component usage */
+
+#component-usage-container {
+    position: absolute;
+    top: 46px;
+    right: 0px;
+    bottom: 0px;
+    left: 312px;
+    overflow: hidden;
+}
+
+#component-usage {
+    overflow: auto;
+}

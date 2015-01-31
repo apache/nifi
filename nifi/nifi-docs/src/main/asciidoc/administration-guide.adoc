@@ -1,0 +1,160 @@
+//
+// Licensed to the Apache Software Foundation (ASF) under one or more
+// contributor license agreements.  See the NOTICE file distributed with
+// this work for additional information regarding copyright ownership.
+// The ASF licenses this file to You under the Apache License, Version 2.0
+// (the "License"); you may not use this file except in compliance with
+// the License.  You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+NiFi System Administrator's Guide
+=================================
+Apache NiFi Team <dev@nifi.incubator.apache.org>
+:homepage: http://nifi.incubator.apache.org
+
+How to install and start NiFi
+-----------------------------
+NOTE: This section is incomplete.
+
+* Linux
+** Decompress and untar into desired installation directory.
+** Make any desired edits in files found under <installdir>/conf
+** Execute the following commands
+*** start: starts NiFi in the background
+*** stop: stops NiFi that is running in the background
+*** status: provides the current status of NiFi
+*** run: runs NiFi in the foreground and waits for a Ctl-C to initiate shutdown of NiFi
+*** intall: installs NiFi as a service that can then be controlled via
+**** service nifi start
+**** service nifi stop
+**** service nifi status
+
+Best Practice Configuration
+---------------------------
+NOTE: Typical Linux defaults are not necessarily well tuned for the needs of an IO intensive application like
+NiFi.  For all of these areas your distributions requirements may vary.  Use these sections as advice but
+consult your distribution specific documentation for how best to achieve these recommendations.
+
+Maximum File Handles::
+NiFi will at any one time potentially have a very large number of file handles open.  Increase the limits by
+editing '/etc/security/limits.conf' to add
+something like
+----
+*  hard  nofile  50000
+*  soft  nofile  50000
+----
+Maximum Forked Processes::
+NiFi may be configured to generate a significant number of threads.  To increase the allowable number edit '/etc/security/limits.conf'
+----
+*  hard  nproc  10000
+*  soft  nproc  10000
+----
+And your distribution may require an edit to /etc/security/limits.d/90-nproc.conf by adding
+----
+*  soft  nproc  10000
+----
+
+Increase the number of TCP socket ports available::
+This is particularly important if your flow will be setting up and tearing 
+down a large number of sockets in small period of time.
+----
+sudo sysctl -w net.ipv4.ip_local_port_range="10000 65000"
+----
+
+Set how long sockets stay in a TIMED_WAIT state when closed::
+You don't want your sockets to sit and linger too long given that you want to be 
+able to quickly setup and teardown new sockets.  It is a good idea to read more about
+it but to adjust do something like
+----
+sudo sysctl -w net.ipv4.netfilter.ip_conntrack_tcp_timeout_time_wait="1"
+----
+
+Tell linux you never want NiFi to swap::
+Swapping is fantastic for some applications.  It isn't good for something like
+NiFi that always wants to be running.  To tell linux you'd like swapping off you
+can edit '/etc/sysctl.conf' to add the following line
+----
+vm.swappiness = 0
+----
+For the partions handling the various NiFi repos turn off things like 'atime'.
+Doing so can cause a surprising bump in throughput.  Edit the '/etc/fstab' file
+and for the partition(s) of interest add the 'noatime' option.
+
+Security Configuration
+----------------------
+NOTE: This section is incomplete.
+
+
+Controlling Levels of Access
+----------------------------
+NOTE: This section is incomplete.
+
+Once NiFi is configured to run securely as discussed in the previous section, it is necessary
+to manually designate an ADMIN user in the authorized-users.xml file, which is located in the
+root installation's conf directory. After this ADMIN user has been added, s/he may grant access
+to other users, systems, and other instances of NiFi, through the User Interface (UI) without having to manually edit the authorized-users.xml
+file. If you are the administrator, you would add yourself as the ADMIN user in this file.
+
+Open the authorized-users.xml file in a text editor. You will notice that it includes a template
+to guide you, with example entries that are commented out.
+
+It is only necessary to manually add one user, the ADMIN user,
+to this file.
+So, at a minimum, the following example entry should be included and contain the user Distinguished Name (dn)
+in place of "user dn - read only and admin":
+
+----
+<users>
+    <user dn="[user dn - read only and admin]">
+        <role name="ROLE_ADMIN"/>
+    </user>
+</users>
+----
+
+Here is an example entry using the name John Smith:
+
+----
+<users>
+    <user dn="[cn=John Smith,ou=people,dc=example,dc=com]">
+        <role name="ROLE_ADMIN"/>
+    </user>
+</users>
+----
+
+After the authorized-users.xml file has been edited and saved, restart NiFi.
+Once the application starts, the ADMIN user is
+able to access the UI at the https URL that is configured in the nifi.properties file.
+
+From the UI, click on the Users icon ( image:iconUsers.png["Users", width=32] ) in the
+Management Toolbar (upper-right corner of the UI), and the User Management Page opens.
+
+The ADMIN user should be listed. Click on the pencil icon to see this user's role(s). You may edit the
+roles by selecting the appropriate checkboxes.
+
+When other users want access to the NiFi UI, they navigate to the configured URL and are
+prompted to request access. When someone has requested access, the ADMIN user sees a star
+on the Users icon in the Management Toolbar, alerting the ADMIN to the fact that a request is
+pending. Upon opening the User Management Page, the pending request is visible, and the ADMIN
+can grant access and click on the pencil icon to set the user's roles appropriately.
+
+The ADMIN may also select multiple users and add them to a "Group". Hold down the Shift key and select
+multiple users, then click the `Group` button in the upper-right corner of the User Management Page.
+Then, provide a name for the group.
+
+The group feature is especially useful when a remote NiFi cluster is connecting to this NiFi using
+a Remote Process Group. In that scenario, all the nodes
+in the remote cluster can be included in the same group. When the ADMIN wants to grant port access to the remote
+cluster, s/he can grant it to the group and avoid having to grant it individually to each node in the cluster.
+
+
+
+
+
+

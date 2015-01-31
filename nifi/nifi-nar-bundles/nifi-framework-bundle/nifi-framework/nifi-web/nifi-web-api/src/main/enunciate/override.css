@@ -1,0 +1,178 @@
+/*
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+*/
+
+@import "https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic|Noto+Serif:400,400italic,700,700italic|Droid+Sans+Mono:400";
+
+html, html a {
+    -webkit-font-smoothing: antialiased;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.004);
+}
+
+#site-name {
+    padding-left: 0;
+}
+
+#site-name a {
+    font-variant: normal !important;
+    letter-spacing: 1px;
+}
+
+#primary {
+    padding-right: 0;
+}
+
+#primary li:hover {
+    border-bottom: 6px solid #7098ad;
+}
+
+.xbreadcrumbs {
+    background-color: #7098ad !important;
+    color: #fff !important;
+}
+
+.xbreadcrumbs li a, .xbreadcrumbs li.current a {
+    font-size: 13px !important;
+    color: #fff !important;
+}
+
+.xbreadcrumbs li a.home {
+    background: url(img/home.png) no-repeat left center;
+    line-height: 16px;
+}
+
+.xbreadcrumbs li ul {
+    top: 26px !important;
+    background-color: #e3ebee !important;
+}
+
+.xbreadcrumbs li ul li a, .xbreadcrumbs li.current ul li a {
+    color: #444 !important;
+}
+
+.home {
+    color: #444;
+    font-family: "Open Sans","DejaVu Sans",sans-serif !important;
+}
+
+p {
+    font-family: 'Noto Serif', 'DejaVu Serif', serif;
+    font-size: 16px;
+}
+
+p strong {
+    font-weight: bold;
+}
+
+a {
+    color: #496878;
+}
+
+a:hover {
+    color: #6a90a4;
+}
+
+.container {
+    width: 940px !important;
+    padding: 0 10px;
+    background-color: #fff;
+}
+
+#main h2, #main h3 {
+    border-width: 0;
+}
+
+#main p.note {
+    background-color: #fefefe;
+    border: 1px solid #ccc;
+    border-left: 6px solid #ccc;
+    color: #555;
+    display: block;
+    margin-bottom: 12px;
+    padding: 5px 8px;
+    font-family: "Open Sans","DejaVu Sans",sans-serif;
+    font-size: 16px;
+}
+
+ul.navigation li, ul.xbreadcrumbs li {
+    font-family: "Open Sans","DejaVu Sans",sans-serif;
+    font-size: 16px;
+}
+
+ul li {
+    font-family: 'Noto Serif', 'DejaVu Serif', serif;
+    font-size: 16px;
+}
+
+/* tables */
+
+table {
+    background-color: #fefefe;
+    border: 1px solid #ccc;
+    border-left: 6px solid #ccc;
+    color: #555;
+    display: block;
+    margin-bottom: 12px;
+    padding: 5px 8px;
+}
+
+table tbody tr td {
+    font-size: 14px;
+    vertical-align:top;
+    text-align:left;
+    padding: 4px;
+    border-width: 0;
+}
+
+table tbody tr th {
+    font-size: 16px;
+    vertical-align:top;
+    text-align:left;
+    padding: 4px;
+    border-width: 0;
+}
+
+/* code */
+
+code {
+    font-size: 14px;
+    background-color: #fefefe;
+    border: 1px solid #ccc;
+    border-left: 6px solid #ccc;
+    color: #555;
+    margin-bottom: 10px;
+    padding: 5px 8px;
+    white-space: pre;
+}
+
+h1, h2 {
+    font-weight: normal;
+    color: #ba3925;
+}
+
+/* footer */
+
+#footer {
+    border-top: 3px solid #eee;
+}
+
+/* width */
+
+.span-18 {
+    width: 921px !important;
+}
+
+.span-20 {
+    width: 935px !important;
+}
