@@ -32,6 +32,11 @@
             <artifactId>nifi-properties</artifactId>
             <scope>compile</scope>
         </dependency>
+		<dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-documentation</artifactId>
+            <scope>compile</scope>
+        </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>jul-to-slf4j</artifactId>
