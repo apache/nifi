@@ -274,8 +274,8 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 			xmlStreamWriter.writeStartElement("tr");
 			writeSimpleElement(xmlStreamWriter, "th", "Name");
 			writeSimpleElement(xmlStreamWriter, "th", "Description");
-			writeSimpleElement(xmlStreamWriter, "th", "Default Value");
-			writeSimpleElement(xmlStreamWriter, "th", "Valid Values");
+			writeSimpleElement(xmlStreamWriter, "th", "Default");
+			writeSimpleElement(xmlStreamWriter, "th", "Values");
 			xmlStreamWriter.writeStartElement("th");
 			writeLink(xmlStreamWriter, "EL", "../../html/expression-language-guide.html");
 			xmlStreamWriter.writeEndElement();
