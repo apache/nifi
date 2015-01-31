@@ -17,10 +17,10 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>0.0.1-incubating-SNAPSHOT</version>
+        <version>0.0.1-incubating</version>
     </parent>
     <artifactId>nifi-standard-bundle</artifactId>
-    <version>0.0.1-incubating-SNAPSHOT</version>
+    <version>0.0.1-incubating</version>
     <packaging>pom</packaging>
     <description>NiFi Standard Extensions Bundle</description>
     <modules>
@@ -34,17 +34,17 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-processors</artifactId>
-                <version>0.0.1-incubating-SNAPSHOT</version>
+                <version>0.0.1-incubating</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-prioritizers</artifactId>
-                <version>0.0.1-incubating-SNAPSHOT</version>
+                <version>0.0.1-incubating</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-reporting-tasks</artifactId>
-                <version>0.0.1-incubating-SNAPSHOT</version>
+                <version>0.0.1-incubating</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

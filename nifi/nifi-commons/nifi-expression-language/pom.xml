@@ -17,10 +17,10 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-commons</artifactId>
-        <version>0.0.1-incubating-SNAPSHOT</version>
+        <version>0.0.1-incubating</version>
     </parent>
     <artifactId>nifi-expression-language</artifactId>
-    <version>0.0.1-incubating-SNAPSHOT</version>
+    <version>0.0.1-incubating</version>
     <packaging>jar</packaging>
     <build>
         <plugins>

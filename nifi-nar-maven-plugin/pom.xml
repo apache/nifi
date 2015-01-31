@@ -24,7 +24,7 @@
     </parent>
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-nar-maven-plugin</artifactId>
-    <version>1.0.0-incubating</version>
+    <version>1.0.1-incubating-SNAPSHOT</version>
     <packaging>maven-plugin</packaging>
     <description>Apache NiFi Nar Plugin. It is currently a part of the Apache Incubator.</description>
     <url>http://nifi.incubator.apache.org/maven-site/</url>
@@ -58,7 +58,7 @@
         <connection>scm:git:git://git.apache.org/incubator-nifi.git</connection>
         <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-nifi.git</developerConnection>
         <url>https://git-wip-us.apache.org/repos/asf?p=incubator-nifi.git</url>
-        <tag>nifi-nar-maven-plugin-1.0.0-incubating-RC3</tag>
+        <tag>HEAD</tag>
     </scm>
     <issueManagement>
         <system>JIRA</system>

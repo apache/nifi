@@ -18,10 +18,10 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-framework</artifactId>
-        <version>0.0.1-incubating-SNAPSHOT</version>
+        <version>0.0.1-incubating</version>
     </parent>
     <artifactId>nifi-site-to-site</artifactId>
-    <version>0.0.1-incubating-SNAPSHOT</version>
+    <version>0.0.1-incubating</version>
     <dependencies>
         <dependency> <!-- This can be removed after testing.... -->
             <groupId>org.apache.nifi</groupId>
