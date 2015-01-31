@@ -111,7 +111,7 @@ public class DocGenerator {
 
 		final File baseDocumenationFile = new File(directory, "index.html");
 		if (baseDocumenationFile.exists()) {
-			logger.warn(baseDocumenationFile + " already exists!  Overwriting!");
+			logger.warn(baseDocumenationFile + " already exists, overwriting!");
 		}
 
 		try (final OutputStream output = new BufferedOutputStream(new FileOutputStream(baseDocumenationFile))) {
