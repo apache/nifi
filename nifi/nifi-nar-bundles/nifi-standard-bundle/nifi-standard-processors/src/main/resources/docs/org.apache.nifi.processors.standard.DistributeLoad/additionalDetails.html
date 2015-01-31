@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8" />
+        <title>DistributeLoad</title>
+
+        <link rel="stylesheet" href="../../css/component-usage.css" type="text/css" />
+    </head>
+
+    <body>
+        <h2>Description:</h2>
+        <p>This processor distributes FlowFiles to downstream
+            processors based on a distribution strategy. The user may select the strategy "round robin", the
+            strategy "next available", or "load distribution service". If using the round robin
+            strategy, the default is to assign each destination (i.e., relationship) a weighting of 1
+            (evenly distributed). However, the user may add optional properties to change this weighting. When 
+            adding a property, the name must be a positive integer between 1 and the number of relationships (inclusive).
+            For example, if Number of Relationships has a value of 8 and a property is added with the name 5
+            and the value 10, then relationship 5 (among the 8) will receive 10
+            FlowFiles in each iteration instead of 1. All other relationships will receive 1 FlowFile in each iteration.
+        </p>
+        <strong>Properties:</strong>
+    <p>In the list below, the names of required properties appear
+        in bold. Any other properties (not in bold) are considered optional.
+        If a property has a default value, it is indicated. If a property
+        supports the use of the NiFi Expression Language (or simply,
+        "expression language"), that is also indicated.</p>
+
+    <p>
+        <strong>Relationships:</strong>
+    </p>
+    <ul>
+        <li>1
+            <ul>
+                <li>By default, there is one relationship, named 1. The number
+                    of relationships is determined by the value of the &lt;Number of
+                    Relationships&gt; property.</li>
+            </ul>
+        </li>
+    </ul>
+
+
+
+
+</body>
+</html>
