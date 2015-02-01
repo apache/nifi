@@ -70,7 +70,7 @@ high-level description of the most common extension points:
       many different Processors to load the dataset themselves.
 
 - FlowFilePrioritizer
-    * The FlowFilePrioritizer interface provides a mechanism by which <<flowfile>s
+    * The FlowFilePrioritizer interface provides a mechanism by which <<flowfile>>s
       in a queue can be prioritized, or sorted, so that the FlowFiles can be processed in an order
       that is most effective for a particular use case.
 
@@ -666,14 +666,18 @@ provides a "Usage" menu item in the context menu. Additionally, the
 UI exposes a "Help" link in the top-right corner, from which the same
 Usage information can be found.
 
-The advanced documentation of a Processor is provided as an HTML file.
+The advanced documentation of a Processor is provided as an HTML file named `additionalDetails.html`.
 This file should exist within a directory whose name is the
 fully-qualified
 name of the component, and this directory's parent should be named
 `docs` and exist in the root of the Processor's jar.
-The mechanism provided for this will be changing as of the 0.1.0
-release. At that time, this section will be updated to reflect
-the new procedures for providing this advanced documentation.
+This file will be linked from a generated HTML file that will contain
+all the Capability, Keyword, PropertyDescription and Relationship information,
+so it will not be necessary to duplicate that information.  This is a place 
+to provide a rich explanation of what this processor is doing, what kind of 
+data it expects and produces, and what FlowFile attributes it expects and produces.
+Because this documentation is in an HTML format, you may include images and tables
+to best document this component.
 
 
 
