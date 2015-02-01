@@ -635,7 +635,7 @@ Service and is intended to provide a brief description of the
 functionality
 provided by the component. The Tags annotation has a `value` variable
 that is defined to be an Array of Strings. As such, it is used
-by providing multiple values as a comma-separated list of `String`s
+by providing multiple values as a comma-separated list of `String` s 
 with curly braces. These values are then incorporated into the UI by
 allowing
 users to filter the components based on a tag (i.e., a keyword).
@@ -666,18 +666,18 @@ provides a "Usage" menu item in the context menu. Additionally, the
 UI exposes a "Help" link in the top-right corner, from which the same
 Usage information can be found.
 
-The advanced documentation of a Processor is provided as an HTML file named `additionalDetails.html`.
+The advanced documentation of a component is provided as an HTML file named `additionalDetails.html`.
 This file should exist within a directory whose name is the
 fully-qualified
 name of the component, and this directory's parent should be named
 `docs` and exist in the root of the Processor's jar.
 This file will be linked from a generated HTML file that will contain
 all the Capability, Keyword, PropertyDescription and Relationship information,
-so it will not be necessary to duplicate that information.  This is a place 
-to provide a rich explanation of what this processor is doing, what kind of 
+so it will not be necessary to duplicate that.  This is a place 
+to provide a rich explanation of what this component is doing, what kind of 
 data it expects and produces, and what FlowFile attributes it expects and produces.
 Because this documentation is in an HTML format, you may include images and tables
-to best document this component.
+to best describe this component.
 
 
 
@@ -1229,7 +1229,7 @@ then this method is not possible.
 
 *Both Methods*
 Regardless of whether the Clone Method or the Create Method is used,
-the following is applicable.
+the following is applicable:
 
 If at any point in the InputStreamCallback, a condition is reached in
 which processing cannot continue
@@ -1725,7 +1725,7 @@ which exposes statistics about the amount of data processed in the
 past five minutes by Process Groups,
 Processors, Connections, and other Components. Additionally, the
 EventAccess object provides access to
-the `ProvenanceEventRecord`s
+the `ProvenanceEventRecord` s
 that have been stored in the `ProvenanceEventRepository`. These
 Provenance Events are emitted by Processors when
 data is received from external sources, emitted to external services,
