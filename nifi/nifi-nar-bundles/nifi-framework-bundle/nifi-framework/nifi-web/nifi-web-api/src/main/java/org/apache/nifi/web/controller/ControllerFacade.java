@@ -1190,17 +1190,24 @@ public class ControllerFacade implements ControllerServiceProvider {
         for (final Map.Entry<PropertyDescriptor, String> entry : procNode.getProperties().entrySet()) {
             final PropertyDescriptor descriptor = entry.getKey();
             
-            addIfAppropriate(searchStr, descriptor.getName(), "Property", matches);
-            addIfAppropriate(searchStr, descriptor.getDescription(), "Property", matches);
+            addIfAppropriate(searchStr, descriptor.getName(), "Property name", matches);
+            addIfAppropriate(searchStr, descriptor.getDescription(), "Property description", matches);
             
             // never include sensitive properties values in search results
             if (descriptor.isSensitive()) {
                 continue;
             }
             
-            final String value = entry.getValue();
+            String value = entry.getValue();
+            
+            // if unset consider default value
+            if (value == null) {
+                value = descriptor.getDefaultValue();
+            }
+            
+            // evaluate if the value matches the search criteria
             if (StringUtils.containsIgnoreCase(value, searchStr)) {
-                matches.add("Property: " + descriptor.getName() + " - " + value);
+                matches.add("Property value: " + descriptor.getName() + " - " + value);
             }
         }
 

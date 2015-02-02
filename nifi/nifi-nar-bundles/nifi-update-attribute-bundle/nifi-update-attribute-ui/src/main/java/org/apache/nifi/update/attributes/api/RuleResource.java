@@ -70,12 +70,16 @@ import com.sun.jersey.api.NotFoundException;
 
 import org.apache.nifi.update.attributes.FlowFilePolicy;
 import org.apache.nifi.update.attributes.entity.EvaluationContextEntity;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
  */
 @Path("/criteria")
 public class RuleResource {
+
+    private static final Logger logger = LoggerFactory.getLogger(RuleResource.class);
 
     @Context
     private ServletContext servletContext;
@@ -612,7 +616,9 @@ public class RuleResource {
         } catch (final InvalidRevisionException ire) {
             throw new WebApplicationException(invalidRevision(ire.getMessage()));
         } catch (final Exception e) {
-            throw new WebApplicationException(error(e.getMessage()));
+            final String message = String.format("Unable to get UpdateAttribute[id=%s] criteria: %s", contextConfig.getProcessorId(), e);
+            logger.error(message, e);
+            throw new WebApplicationException(error(message));
         }
 
         Criteria criteria = null;
@@ -620,7 +626,9 @@ public class RuleResource {
             try {
                 criteria = CriteriaSerDe.deserialize(processorInfo.getAnnotationData());
             } catch (final IllegalArgumentException iae) {
-                throw new WebApplicationException(error("Unable to load existing rules. Deserialization error: " + iae.getMessage()));
+                final String message = String.format("Unable to deserialize existing rules for UpdateAttribute[id=%s]. Deserialization error: %s", contextConfig.getProcessorId(), iae);
+                logger.error(message, iae);
+                throw new WebApplicationException(error(message));
             }
         }
         // ensure the criteria isn't null
@@ -644,7 +652,9 @@ public class RuleResource {
         } catch (final InvalidRevisionException ire) {
             throw new WebApplicationException(invalidRevision(ire.getMessage()));
         } catch (final Exception e) {
-            throw new WebApplicationException(error(e.getMessage()));
+            final String message = String.format("Unable to save UpdateAttribute[id=%s] criteria: %s", contextConfig.getProcessorId(), e);
+            logger.error(message, e);
+            throw new WebApplicationException(error(message));
         }
     }
 

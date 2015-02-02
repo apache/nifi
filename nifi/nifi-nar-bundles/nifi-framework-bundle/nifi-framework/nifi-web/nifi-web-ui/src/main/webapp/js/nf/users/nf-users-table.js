@@ -483,7 +483,7 @@ nf.UsersTable = (function () {
 
         // define a custom formatter for the more details column
         var moreDetailsFormatter = function (row, cell, value, columnDef, dataContext) {
-            return '<img src="images/iconDetails.png" title="View Details" class="pointer" style="margin-top: 4px;" onclick="javascript:nf.UsersTable.showUserDetails(\'' + row + '\');"/>';
+            return '<img src="images/iconDetails.png" title="View Details" class="pointer show-user-details" style="margin-top: 4px;"/>';
         };
 
         // function for formatting the last accessed time
@@ -566,20 +566,20 @@ nf.UsersTable = (function () {
 
             // if this represents a grouped row
             if (nf.Common.isDefinedAndNotNull(dataContext.userGroup) && grouped) {
-                var actions = '<img src="images/iconEdit.png" title="Edit Access" class="pointer" style="margin-top: 2px;" onclick="javascript:nf.UsersTable.updateGroupAccess(\'' + row + '\');"/>&nbsp;<img src="images/iconRevoke.png" title="Revoke Access" class="pointer" style="margin-top: 2px;" onclick="javascript:nf.UsersTable.revokeGroupAccess(\'' + row + '\');"/>&nbsp;&nbsp;<img src="images/ungroup.png" title="Ungroup" class="pointer" onclick="javascript:nf.UsersTable.ungroup(\'' + row + '\');"/>';
+                var actions = '<img src="images/iconEdit.png" title="Edit Access" class="pointer update-group-access" style="margin-top: 2px;"/>&nbsp;<img src="images/iconRevoke.png" title="Revoke Access" class="pointer revoke-group-access" style="margin-top: 2px;"/>&nbsp;&nbsp;<img src="images/ungroup.png" title="Ungroup" class="pointer ungroup"/>';
             } else {
                 // return the appropriate markup for an individual user
-                var actions = '<img src="images/iconEdit.png" title="Edit Access" class="pointer" style="margin-top: 2px;" onclick="javascript:nf.UsersTable.updateUserAccess(\'' + row + '\');"/>';
+                var actions = '<img src="images/iconEdit.png" title="Edit Access" class="pointer update-user-access" style="margin-top: 2px;"/>';
 
                 if (dataContext.status === 'ACTIVE') {
-                    actions += '&nbsp;<img src="images/iconRevoke.png" title="Revoke Access" class="pointer" onclick="javascript:nf.UsersTable.revokeUserAccess(\'' + row + '\');"/>';
+                    actions += '&nbsp;<img src="images/iconRevoke.png" title="Revoke Access" class="pointer revoke-user-access"/>';
 
                     // add an ungroup active if appropriate
                     if (nf.Common.isDefinedAndNotNull(dataContext.userGroup)) {
-                        actions += '&nbsp;&nbsp;<img src="images/ungroup.png" title="Ungroup" class="pointer" style="margin-top: 2px;" onclick="javascript:nf.UsersTable.ungroupUser(\'' + row + '\');"/>';
+                        actions += '&nbsp;&nbsp;<img src="images/ungroup.png" title="Ungroup" class="pointer ungroup-user" style="margin-top: 2px;"/>';
                     }
                 } else {
-                    actions += '&nbsp;<img src="images/iconDelete.png" title="Delete Account" class="pointer" onclick="javascript:nf.UsersTable.deleteUserAccount(\'' + row + '\');"/>';
+                    actions += '&nbsp;<img src="images/iconDelete.png" title="Delete Account" class="pointer delete-user-account"/>';
                 }
             }
 
@@ -631,6 +631,37 @@ nf.UsersTable = (function () {
                 columnId: args.sortCol.field,
                 sortAsc: args.sortAsc
             }, usersData);
+        });
+        
+        // configure a click listener
+        usersGrid.onClick.subscribe(function (e, args) {
+            var target = $(e.target);
+
+            // get the node at this row
+            var item = usersData.getItem(args.row);
+
+            // determine the desired action
+            if (usersGrid.getColumns()[args.cell].id === 'actions') {
+                if (target.hasClass('update-group-access')) {
+                    updateGroupAccess(item);
+                } else if (target.hasClass('revoke-group-access')) {
+                    revokeGroupAccess(item);
+                } else if (target.hasClass('ungroup')) {
+                    ungroup(item);
+                } else if (target.hasClass('update-user-access')) {
+                    updateUserAccess(item);
+                } else if (target.hasClass('revoke-user-access')) {
+                    revokeUserAccess(item);
+                } else if (target.hasClass('ungroup-user')) {
+                    ungroupUser(item);
+                } else if (target.hasClass('delete-user-account')) {
+                    deleteUserAccount(item);
+                }
+            } else if (usersGrid.getColumns()[args.cell].id === 'moreDetails') {
+                if (target.hasClass('show-user-details')) {
+                    showUserDetails(item);
+                }
+            }
         });
 
         // wire up the dataview to the grid
@@ -804,6 +835,182 @@ nf.UsersTable = (function () {
         }
     };
 
+    /**
+     * Shows details for the specified user.
+     * 
+     * @param {object} user
+     */
+    var showUserDetails = function (user) {
+        var grouped = $('#group-collaspe-checkbox').hasClass('checkbox-checked');
+
+        // update the dialog fields
+        $('#user-name-details-dialog').text(user.userName);
+        $('#user-dn-details-dialog').text(user.dn);
+
+        // handle fields that could vary for groups
+        if (nf.Common.isDefinedAndNotNull(user.creation)) {
+            $('#user-created-details-dialog').text(user.creation);
+        } else if (grouped && nf.Common.isDefinedAndNotNull(user.userGroup)) {
+            $('#user-created-details-dialog').html('<span class="unset">Multiple users with different creation timestamps.</span>');
+        } else {
+            $('#user-created-details-dialog').html('<span class="unset">No creation timestamp set</span>');
+        }
+
+        if (nf.Common.isDefinedAndNotNull(user.lastVerified)) {
+            $('#user-verified-details-dialog').text(user.lastVerified);
+        } else if (grouped && nf.Common.isDefinedAndNotNull(user.userGroup)) {
+            $('#user-verified-details-dialog').html('<span class="unset">Multiple users with different last verified timestamps.</span>');
+        } else {
+            $('#user-verified-details-dialog').html('<span class="unset">No last verified timestamp set.</span>');
+        }
+
+        if (nf.Common.isDefinedAndNotNull(user.justification)) {
+            $('#user-justification-details-dialog').text(user.justification);
+        } else if (grouped && nf.Common.isDefinedAndNotNull(user.userGroup)) {
+            $('#user-justification-details-dialog').html('<span class="unset">Multiple users with different justifications.</span>');
+        } else {
+            $('#user-justification-details-dialog').html('<span class="unset">No justification set.</span>');
+        }
+
+        // show the dialog
+        $('#user-details-dialog').modal('show');
+    };
+    
+    /**
+     * Updates the specified groups level of access.
+     * 
+     * @argument {object} item        The user item
+     */
+    var updateGroupAccess = function (item) {
+        // record the current group
+        $('#group-name-roles-dialog').text(item.userGroup);
+
+        // show the dialog
+        $('#group-roles-dialog').modal('show');
+    };
+    
+    /**
+     * Disables the specified group's account.
+     * 
+     * @argument {object} item        The user item
+     */
+    var revokeGroupAccess = function (item) {
+        // record the current group
+        $('#group-name-revoke-dialog').text(item.userGroup);
+
+        // show the dialog
+        $('#group-revoke-dialog').modal('show');
+    };
+
+    /**
+     * Ungroups the specified group.
+     * 
+     * @argument {object} item        The user item
+     */
+    var ungroup = function (item) {
+        // prompt for ungroup
+        nf.Dialog.showYesNoDialog({
+            dialogContent: 'Remove all users from group \'' + nf.Common.escapeHtml(item.userGroup) + '\'?',
+            overlayBackground: false,
+            yesHandler: function () {
+                $.ajax({
+                    type: 'DELETE',
+                    url: config.urls.userGroups + '/' + encodeURIComponent(item.userGroup),
+                    dataType: 'json'
+                }).done(function (response) {
+                    nf.UsersTable.loadUsersTable();
+                }).fail(nf.Common.handleAjaxError);
+            }
+        });
+    };
+    
+    /**
+     * Updates the specified users's level of access.
+     * 
+     * @argument {object} item        The user item
+     */
+    var updateUserAccess = function (item) {
+        // populate the user info
+        $('#user-id-roles-dialog').val(item.id);
+        $('#user-name-roles-dialog').attr('title', item.dn).text(item.userName);
+        $('#user-justification-roles-dialog').html(nf.Common.formatValue(item.justification));
+
+        // function for checking a checkbox
+        var check = function (domId) {
+            $('#' + domId).removeClass('checkbox-unchecked').addClass('checkbox-checked');
+        };
+
+        // go through each user role
+        $.each(item.authorities, function (i, authority) {
+            if (authority === 'ROLE_ADMIN') {
+                check('role-admin-checkbox');
+            } else if (authority === 'ROLE_DFM') {
+                check('role-dfm-checkbox');
+            } else if (authority === 'ROLE_PROVENANCE') {
+                check('role-provenance-checkbox');
+            } else if (authority === 'ROLE_MONITOR') {
+                check('role-monitor-checkbox');
+            } else if (authority === 'ROLE_NIFI') {
+                check('role-nifi-checkbox');
+            } else if (authority === 'ROLE_PROXY') {
+                check('role-proxy-checkbox');
+            }
+        });
+
+        // show the dialog
+        $('#user-roles-dialog').modal('show');
+    };
+    
+    /**
+     * Disables the specified user's account.
+     * 
+     * @argument {object} item        The user item
+     */
+    var revokeUserAccess = function (item) {
+        // populate the users info
+        $('#user-id-revoke-dialog').val(item.id);
+        $('#user-name-revoke-dialog').text(item.userName);
+
+        // show the dialog
+        $('#user-revoke-dialog').modal('show');
+    };
+    
+    /**
+     * Prompts to verify group removal.
+     * 
+     * @argument {object} item        The user item
+     */
+    var ungroupUser = function (item) {
+        // prompt for ungroup
+        nf.Dialog.showYesNoDialog({
+            dialogContent: 'Remove user \'' + nf.Common.escapeHtml(item.userName) + '\' from group \'' + nf.Common.escapeHtml(item.userGroup) + '\'?',
+            overlayBackground: false,
+            yesHandler: function () {
+                $.ajax({
+                    type: 'DELETE',
+                    url: config.urls.userGroups + '/' + encodeURIComponent(item.userGroup) + '/users/' + encodeURIComponent(item.id),
+                    dataType: 'json'
+                }).done(function (response) {
+                    nf.UsersTable.loadUsersTable();
+                }).fail(nf.Common.handleAjaxError);
+            }
+        });
+    };
+
+    /**
+     * Delete's the specified user's account.
+     * 
+     * @argument {object} item        The user item
+     */
+    var deleteUserAccount = function (item) {
+        // populate the users info
+        $('#user-id-delete-dialog').val(item.id);
+        $('#user-name-delete-dialog').text(item.userName);
+
+        // show the dialog
+        $('#user-delete-dialog').modal('show');
+    };
+
     return {
         init: function () {
             initUserDetailsDialog();
@@ -814,183 +1021,6 @@ nf.UsersTable = (function () {
             initUserGroupDialog();
             initGroupRevokeDialog();
             initUsersTable();
-        },
-        
-        /**
-         * Disables the specified user's account.
-         * 
-         * @argument {string} row        The row
-         */
-        revokeUserAccess: function (row) {
-            var grid = $('#users-table').data('gridInstance');
-            if (nf.Common.isDefinedAndNotNull(grid)) {
-                var data = grid.getData();
-                var item = data.getItem(row);
-
-                // populate the users info
-                $('#user-id-revoke-dialog').val(item.id);
-                $('#user-name-revoke-dialog').text(item.userName);
-
-                // show the dialog
-                $('#user-revoke-dialog').modal('show');
-            }
-        },
-        
-        /**
-         * Delete's the specified user's account.
-         * 
-         * @argument {string} row        The row
-         */
-        deleteUserAccount: function (row) {
-            var grid = $('#users-table').data('gridInstance');
-            if (nf.Common.isDefinedAndNotNull(grid)) {
-                var data = grid.getData();
-                var item = data.getItem(row);
-
-                // populate the users info
-                $('#user-id-delete-dialog').val(item.id);
-                $('#user-name-delete-dialog').text(item.userName);
-
-                // show the dialog
-                $('#user-delete-dialog').modal('show');
-            }
-        },
-        
-        /**
-         * Disables the specified group's account.
-         * 
-         * @argument {string} row        The row
-         */
-        revokeGroupAccess: function (row) {
-            var grid = $('#users-table').data('gridInstance');
-            if (nf.Common.isDefinedAndNotNull(grid)) {
-                var data = grid.getData();
-                var item = data.getItem(row);
-
-                // record the current group
-                $('#group-name-revoke-dialog').text(item.userGroup);
-
-                // show the dialog
-                $('#group-revoke-dialog').modal('show');
-            }
-        },
-        
-        /**
-         * Updates the specified users's level of access.
-         * 
-         * @argument {string} row        The row
-         */
-        updateUserAccess: function (row) {
-            var grid = $('#users-table').data('gridInstance');
-            if (nf.Common.isDefinedAndNotNull(grid)) {
-                var data = grid.getData();
-                var item = data.getItem(row);
-
-                // populate the user info
-                $('#user-id-roles-dialog').val(item.id);
-                $('#user-name-roles-dialog').attr('title', item.dn).text(item.userName);
-                $('#user-justification-roles-dialog').html(nf.Common.formatValue(item.justification));
-
-                // function for checking a checkbox
-                var check = function (domId) {
-                    $('#' + domId).removeClass('checkbox-unchecked').addClass('checkbox-checked');
-                };
-
-                // go through each user role
-                $.each(item.authorities, function (i, authority) {
-                    if (authority === 'ROLE_ADMIN') {
-                        check('role-admin-checkbox');
-                    } else if (authority === 'ROLE_DFM') {
-                        check('role-dfm-checkbox');
-                    } else if (authority === 'ROLE_PROVENANCE') {
-                        check('role-provenance-checkbox');
-                    } else if (authority === 'ROLE_MONITOR') {
-                        check('role-monitor-checkbox');
-                    } else if (authority === 'ROLE_NIFI') {
-                        check('role-nifi-checkbox');
-                    } else if (authority === 'ROLE_PROXY') {
-                        check('role-proxy-checkbox');
-                    }
-                });
-
-                // show the dialog
-                $('#user-roles-dialog').modal('show');
-            }
-        },
-        
-        /**
-         * Updates the specified groups level of access.
-         * 
-         * @argument {string} row        The row
-         */
-        updateGroupAccess: function (row) {
-            var grid = $('#users-table').data('gridInstance');
-            if (nf.Common.isDefinedAndNotNull(grid)) {
-                var data = grid.getData();
-                var item = data.getItem(row);
-
-                // record the current group
-                $('#group-name-roles-dialog').text(item.userGroup);
-
-                // show the dialog
-                $('#group-roles-dialog').modal('show');
-            }
-        },
-        
-        /**
-         * Prompts to verify group removal.
-         * 
-         * @argument {string} row        The row
-         */
-        ungroupUser: function (row) {
-            var grid = $('#users-table').data('gridInstance');
-            if (nf.Common.isDefinedAndNotNull(grid)) {
-                var data = grid.getData();
-                var item = data.getItem(row);
-
-                // prompt for ungroup
-                nf.Dialog.showYesNoDialog({
-                    dialogContent: 'Remove user \'' + nf.Common.escapeHtml(item.userName) + '\' from group \'' + nf.Common.escapeHtml(item.userGroup) + '\'?',
-                    overlayBackground: false,
-                    yesHandler: function () {
-                        $.ajax({
-                            type: 'DELETE',
-                            url: config.urls.userGroups + '/' + encodeURIComponent(item.userGroup) + '/users/' + encodeURIComponent(item.id),
-                            dataType: 'json'
-                        }).done(function (response) {
-                            nf.UsersTable.loadUsersTable();
-                        }).fail(nf.Common.handleAjaxError);
-                    }
-                });
-            }
-        },
-        
-        /**
-         * Ungroups the specified group.
-         * 
-         * @argument {string} row        The row
-         */
-        ungroup: function (row) {
-            var grid = $('#users-table').data('gridInstance');
-            if (nf.Common.isDefinedAndNotNull(grid)) {
-                var data = grid.getData();
-                var item = data.getItem(row);
-
-                // prompt for ungroup
-                nf.Dialog.showYesNoDialog({
-                    dialogContent: 'Remove all users from group \'' + nf.Common.escapeHtml(item.userGroup) + '\'?',
-                    overlayBackground: false,
-                    yesHandler: function () {
-                        $.ajax({
-                            type: 'DELETE',
-                            url: config.urls.userGroups + '/' + encodeURIComponent(item.userGroup),
-                            dataType: 'json'
-                        }).done(function (response) {
-                            nf.UsersTable.loadUsersTable();
-                        }).fail(nf.Common.handleAjaxError);
-                    }
-                });
-            }
         },
         
         /**
@@ -1037,54 +1067,6 @@ nf.UsersTable = (function () {
                     $('#total-users').text('0');
                 }
             }).fail(nf.Common.handleAjaxError);
-        },
-        
-        /**
-         * Shows details for the specified user.
-         * 
-         * @param {string} row
-         */
-        showUserDetails: function (row) {
-            var usersGrid = $('#users-table').data('gridInstance');
-            if (nf.Common.isDefinedAndNotNull(usersGrid)) {
-                var usersData = usersGrid.getData();
-
-                // get the user
-                var user = usersData.getItem(row);
-                var grouped = $('#group-collaspe-checkbox').hasClass('checkbox-checked');
-
-                // update the dialog fields
-                $('#user-name-details-dialog').text(user.userName);
-                $('#user-dn-details-dialog').text(user.dn);
-
-                // handle fields that could vary for groups
-                if (nf.Common.isDefinedAndNotNull(user.creation)) {
-                    $('#user-created-details-dialog').text(user.creation);
-                } else if (grouped && nf.Common.isDefinedAndNotNull(user.userGroup)) {
-                    $('#user-created-details-dialog').html('<span class="unset">Multiple users with different creation timestamps.</span>');
-                } else {
-                    $('#user-created-details-dialog').html('<span class="unset">No creation timestamp set</span>');
-                }
-
-                if (nf.Common.isDefinedAndNotNull(user.lastVerified)) {
-                    $('#user-verified-details-dialog').text(user.lastVerified);
-                } else if (grouped && nf.Common.isDefinedAndNotNull(user.userGroup)) {
-                    $('#user-verified-details-dialog').html('<span class="unset">Multiple users with different last verified timestamps.</span>');
-                } else {
-                    $('#user-verified-details-dialog').html('<span class="unset">No last verified timestamp set.</span>');
-                }
-
-                if (nf.Common.isDefinedAndNotNull(user.justification)) {
-                    $('#user-justification-details-dialog').text(user.justification);
-                } else if (grouped && nf.Common.isDefinedAndNotNull(user.userGroup)) {
-                    $('#user-justification-details-dialog').html('<span class="unset">Multiple users with different justifications.</span>');
-                } else {
-                    $('#user-justification-details-dialog').html('<span class="unset">No justification set.</span>');
-                }
-
-                // show the dialog
-                $('#user-details-dialog').modal('show');
-            }
         }
     };
 }());
