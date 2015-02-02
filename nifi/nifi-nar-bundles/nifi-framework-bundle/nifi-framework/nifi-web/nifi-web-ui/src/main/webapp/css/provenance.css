@@ -453,6 +453,11 @@ div.content-detail-value {
 
 #provenance-percent-complete, #lineage-percent-complete {
     width: 378px;
+    border-radius: 0;
+}
+
+#provenance-percent-complete .ui-progressbar-value, #lineage-percent-complete .ui-progressbar-value {
+    border-radius: 0;
 }
 
 div.progress-label {
