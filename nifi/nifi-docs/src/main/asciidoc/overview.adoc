@@ -39,7 +39,7 @@ Data access exceeds capacity to consume::
 Sometimes a given data source can outpace some part of the processing or delivery chain - it only takes one weak-link to have an issue.
 
 Boundary conditions are mere suggestions::
-You will get data that is too big, too small, too fast, too slow, corrupt, wrong, wrong format
+You will invariably get data that is too big, too small, too fast, too slow, corrupt, wrong, or in the wrong format.
 
 What is noise one day becomes signal the next::
 Priorities of an organization change - rapidly.  Enabling new flows and changing existing ones must be fast.
@@ -92,7 +92,7 @@ and either commit that work or rollback.
 | Connection | Bounded Buffer | 
 Connections provide the actual linkage between processors.  These act as queues
 and allow various processes to interact at differing rates.  These queues then 
-can be prioritized dynamically and can have upper bounds on load which enable
+can be prioritized dynamically and can have upper bounds on load, which enable
 back pressure.
 
 | Flow Controller | Scheduler | 
@@ -102,14 +102,14 @@ Flow Controller acts as the broker facilitating the exchange of FlowFiles
 between processors.
 
 | Process Group | subnet | 
-A Process Group is a specific set of processes and their connections which can
+A Process Group is a specific set of processes and their connections, which can
 receive data via input ports and send data out via output ports.  In 
 this manner process groups allow creation of entirely new components simply by
 composition of other components.
 
 |===========================
 
-This design model, also similar to <<seda>>, provides many beneficial consequences which help NiFi 
+This design model, also similar to <<seda>>, provides many beneficial consequences that help NiFi 
 to be a very effective platform for building powerful and scalable dataflows.
 A few of these benefits include:
 
@@ -141,7 +141,7 @@ FlowFile Repository::
 The FlowFile Repository is where NiFi keeps track of the state of what it knows about a given FlowFile that is presently active in the flow.  The implementation of the repository is pluggable.  The default approach is a persistent Write-Ahead Log that lives on a specified disk partition. 
 
 Content Repository::
-The Content Repository is where the actual content bytes of a given FlowFile live.  The implementation of the repository is pluggable.  The default approach is a fairly simple mechanism which stores blocks of data in the file system.   More than one file system storage location can be specified so as to get different physical partitions engaged to reduce contention on any single volume.
+The Content Repository is where the actual content bytes of a given FlowFile live.  The implementation of the repository is pluggable.  The default approach is a fairly simple mechanism, which stores blocks of data in the file system.   More than one file system storage location can be specified so as to get different physical partitions engaged to reduce contention on any single volume.
 
 Provenance Repository::
 The Provenance Repository is where all provenance event data is stored.  The repository construct is pluggable with the default implementation being to use  one or more physical disk volumes.  Within each location event data is indexed  and searchable.
@@ -161,8 +161,8 @@ instructed to continue operating as they were to ensure the data flow remains li
 The absence of the NCM simply means new nodes cannot come on-line and flow changes
 cannot occur until the NCM is restored.
 
-Performance Expections and Characteristics of NiFi
---------------------------------------------------
+Performance Expectations and Characteristics of NiFi
+----------------------------------------------------
 NiFi is designed to fully leverage the capabilities of the underlying host system
 it is operating on.  This maximization of resources is particularly strong with
 regard to CPU and disk.  Many more details will
@@ -181,7 +181,7 @@ efficiently reach 100 or more MB/s of throughput.  That is because linear growth
 is expected for each physical partition and content repository added to NiFi.  This will 
 bottleneck at some point on the FlowFile repository and provenance repository.  
 We plan to provide a benchmarking/performance test template to 
-include in the build which will allow users to easily test their system and 
+include in the build, which will allow users to easily test their system and 
 to identify where bottlenecks are and at which point they might become a factor.  It 
 should also make it easy for system administrators to make changes and to verify the impact.
 
@@ -272,8 +272,8 @@ Designed for Extension::
     Points of extension;;
         Processors, Controller Services, Reporting Tasks, Prioritizers, Customer User Interfaces
     Classloader Isolation;;
-        For any component based system one problem that can quickly occur is dependency nightmares.  NiFi addresses this by providing a custom class loader model
-        ensuring that each extension bundle is exposed to a very limited set of dependencies.  As a result extensions can be built with little concern for whether 
+        For any component-based system, dependency nightmares can quickly occur.  NiFi addresses this by providing a custom class loader model,
+        ensuring that each extension bundle is exposed to a very limited set of dependencies.  As a result, extensions can be built with little concern for whether 
         they might conflict with another extension.  The concept of these extension bundles is called 'NiFi Archives' and will be discussed in greater detail 
         in the developer's guide.
 Clustering (scale-out)::
