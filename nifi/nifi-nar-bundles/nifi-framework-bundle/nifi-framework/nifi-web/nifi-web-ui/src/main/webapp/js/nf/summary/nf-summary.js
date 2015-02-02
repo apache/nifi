@@ -69,12 +69,6 @@ nf.Summary = (function () {
         nf.Common.addHoverEffect('#refresh-button', 'button-refresh', 'button-refresh-hover').click(function () {
             nf.SummaryTable.loadProcessorSummaryTable();
         });
-        nf.Common.addHoverEffect('#cluster-processor-refresh-button', 'button-refresh', 'button-refresh-hover').click(function () {
-            nf.SummaryTable.loadClusterProcessorSummary($('#cluster-processor-id').text());
-        });
-        nf.Common.addHoverEffect('#cluster-connection-refresh-button', 'button-refresh', 'button-refresh-hover').click(function () {
-            nf.SummaryTable.loadClusterConnectionSummary($('#cluster-connection-id').text());
-        });
 
         // return a deferred for page initialization
         return $.Deferred(function (deferred) {
