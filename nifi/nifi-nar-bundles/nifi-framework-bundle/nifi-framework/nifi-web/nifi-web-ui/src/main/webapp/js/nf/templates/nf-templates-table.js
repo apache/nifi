@@ -54,6 +54,22 @@ nf.TemplatesTable = (function () {
     };
 
     /**
+     * Prompts the user before attempting to delete the specified template.
+     * 
+     * @argument {object} template     The template
+     */
+    var promptToDeleteTemplate = function (template) {
+        // prompt for deletion
+        nf.Dialog.showYesNoDialog({
+            dialogContent: 'Delete template \'' + nf.Common.escapeHtml(template.name) + '\'?',
+            overlayBackground: false,
+            yesHandler: function () {
+                deleteTemplate(template.id);
+            }
+        });
+    };
+
+    /**
      * Deletes the template with the specified id.
      * 
      * @argument {string} templateId     The template id
@@ -177,11 +193,11 @@ nf.TemplatesTable = (function () {
 
             // function for formatting the actions column
             var actionFormatter = function (row, cell, value, columnDef, dataContext) {
-                var markup = '<img src="images/iconExport.png" title="Download" class="pointer" style="margin-top: 2px;" onclick="javascript:nf.TemplatesTable.exportTemplate(\'' + row + '\');"/>';
+                var markup = '<img src="images/iconExport.png" title="Download" class="pointer export-template" style="margin-top: 2px;"/>';
 
                 // all DFMs to remove templates
                 if (nf.Common.isDFM()) {
-                    markup += '&nbsp;<img src="images/iconDelete.png" title="Remove Template" class="pointer" style="margin-top: 2px;" onclick="javascript:nf.TemplatesTable.promptToDeleteTemplate(\'' + row + '\');"/>';
+                    markup += '&nbsp;<img src="images/iconDelete.png" title="Remove Template" class="pointer prompt-to-delete-template" style="margin-top: 2px;"/>';
                 }
                 return markup;
             };
@@ -230,6 +246,23 @@ nf.TemplatesTable = (function () {
                 }, templatesData);
             });
 
+            // configure a click listener
+            templatesGrid.onClick.subscribe(function (e, args) {
+                var target = $(e.target);
+
+                // get the node at this row
+                var item = templatesData.getItem(args.row);
+
+                // determine the desired action
+                if (templatesGrid.getColumns()[args.cell].id === 'actions') {
+                    if (target.hasClass('export-template')) {
+                        window.open(config.urls.templates + '/' + encodeURIComponent(item.id));
+                    } else if (target.hasClass('prompt-to-delete-template')) {
+                        promptToDeleteTemplate(item);
+                    }
+                }
+            });
+
             // wire up the dataview to the grid
             templatesData.onRowCountChanged.subscribe(function (e, args) {
                 templatesGrid.updateRowCount();
@@ -257,42 +290,6 @@ nf.TemplatesTable = (function () {
             var templateGrid = $('#templates-table').data('gridInstance');
             if (nf.Common.isDefinedAndNotNull(templateGrid)) {
                 templateGrid.resizeCanvas();
-            }
-        },
-        
-        /**
-         * Exports the specified template.
-         * 
-         * @argument {string} row     The row
-         */
-        exportTemplate: function (row) {
-            var grid = $('#templates-table').data('gridInstance');
-            if (nf.Common.isDefinedAndNotNull(grid)) {
-                var data = grid.getData();
-                var item = data.getItem(row);
-                window.open(config.urls.templates + '/' + encodeURIComponent(item.id));
-            }
-        },
-        
-        /**
-         * Prompts the user before attempting to delete the specified template.
-         * 
-         * @argument {string} row     The row
-         */
-        promptToDeleteTemplate: function (row) {
-            var grid = $('#templates-table').data('gridInstance');
-            if (nf.Common.isDefinedAndNotNull(grid)) {
-                var data = grid.getData();
-                var template = data.getItem(row);
-
-                // prompt for deletion
-                nf.Dialog.showYesNoDialog({
-                    dialogContent: 'Delete template \'' + nf.Common.escapeHtml(template.name) + '\'?',
-                    overlayBackground: false,
-                    yesHandler: function () {
-                        deleteTemplate(template.id);
-                    }
-                });
             }
         },
         

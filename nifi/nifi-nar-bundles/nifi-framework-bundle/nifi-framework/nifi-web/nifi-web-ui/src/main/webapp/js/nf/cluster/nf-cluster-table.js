@@ -110,6 +110,22 @@ nf.ClusterTable = (function () {
     };
 
     /**
+     * Prompts to verify node connection.
+     * 
+     * @argument {object} node     The node
+     */
+    var promptForConnect = function (node) {
+        // prompt to connect
+        nf.Dialog.showYesNoDialog({
+            dialogContent: 'Connect \'' + formatNodeAddress(node) + '\' to this cluster?',
+            overlayBackground: false,
+            yesHandler: function () {
+                connect(node.nodeId);
+            }
+        });
+    };
+
+    /**
      * Connects the node in the specified row.
      * 
      * @argument {string} nodeId     The node id
@@ -133,6 +149,22 @@ nf.ClusterTable = (function () {
     };
 
     /**
+     * Prompts to verify node disconnection.
+     * 
+     * @argument {object} node     The node
+     */
+    var promptForDisconnect = function (node) {
+        // prompt for disconnect
+        nf.Dialog.showYesNoDialog({
+            dialogContent: 'Disconnect \'' + formatNodeAddress(node) + '\' from the cluster?',
+            overlayBackground: false,
+            yesHandler: function () {
+                disconnect(node.nodeId);
+            }
+        });
+    };
+
+    /**
      * Disconnects the node in the specified row.
      * 
      * @argument {string} nodeId     The node id
@@ -153,6 +185,22 @@ nf.ClusterTable = (function () {
             var clusterData = clusterGrid.getData();
             clusterData.updateItem(node.nodeId, node);
         }).fail(nf.Common.handleAjaxError);
+    };
+
+    /**
+     * Prompts to verify node disconnection.
+     * 
+     * @argument {object} node     The node
+     */
+    var promptForRemoval = function (node) {
+        // prompt for disconnect
+        nf.Dialog.showYesNoDialog({
+            dialogContent: 'Remove \'' + formatNodeAddress(node) + '\' from the cluster?',
+            overlayBackground: false,
+            yesHandler: function () {
+                remove(node.nodeId);
+            }
+        });
     };
 
     /**
@@ -230,6 +278,86 @@ nf.ClusterTable = (function () {
         // perform the filter
         return item[args.property].search(filterExp) >= 0;
     };
+    
+    /**
+     * Show the node details.
+     * 
+     * @argument {object} item     The item
+     */
+    var showNodeDetails = function (item) {
+        $.ajax({
+            type: 'GET',
+            url: config.urls.nodes + '/' + encodeURIComponent(item.nodeId),
+            dataType: 'json'
+        }).done(function (response) {
+            var node = response.node;
+
+            // update the dialog fields
+            $('#node-id').text(node.nodeId);
+            $('#node-address').text(formatNodeAddress(node));
+
+            // format the events
+            var events = $('#node-events');
+            if ($.isArray(node.events) && node.events.length > 0) {
+                var eventMessages = [];
+                $.each(node.events, function (i, event) {
+                    eventMessages.push(event.timestamp + ": " + event.message);
+                });
+                $('<div></div>').append(nf.Common.formatUnorderedList(eventMessages)).appendTo(events);
+            } else {
+                events.append('<div><span class="unset">None</span></div>');
+            }
+
+            // show the dialog
+            $('#node-details-dialog').modal('show');
+        }).fail(nf.Common.handleAjaxError);
+    };
+    
+    /**
+     * Makes the specified node the primary node of the cluster.
+     * 
+     * @argument {object} item     The node item
+     */
+    var makePrimary = function (item) {
+        $.ajax({
+            type: 'PUT',
+            url: config.urls.nodes + '/' + encodeURIComponent(item.nodeId),
+            data: {
+                primary: true
+            },
+            dataType: 'json'
+        }).done(function (response) {
+            var grid = $('#cluster-table').data('gridInstance');
+            var data = grid.getData();
+
+            var node = response.node;
+
+            // start the update
+            data.beginUpdate();
+            data.updateItem(node.nodeId, node);
+
+            // need to find the previous primary node
+            // get the property grid data
+            var clusterItems = data.getItems();
+            $.each(clusterItems, function (i, otherNode) {
+                // attempt to identify the previous primary node
+                if (node.nodeId !== otherNode.nodeId && otherNode.primary === true) {
+                    // reset its primary status
+                    otherNode.primary = false;
+                    otherNode.status = 'CONNECTED';
+
+                    // set the new node state
+                    data.updateItem(otherNode.nodeId, otherNode);
+
+                    // no need to continue processing
+                    return false;
+                }
+            });
+
+            // end the update
+            data.endUpdate();
+        }).fail(nf.Common.handleAjaxError);
+    };
 
     return {
         /**
@@ -292,7 +420,7 @@ nf.ClusterTable = (function () {
 
             // define a custom formatter for the more details column
             var moreDetailsFormatter = function (row, cell, value, columnDef, dataContext) {
-                return '<img src="images/iconDetails.png" title="View Details" class="pointer" style="margin-top: 4px;" onclick="javascript:nf.ClusterTable.showNodeDetails(\'' + row + '\');"/>';
+                return '<img src="images/iconDetails.png" title="View Details" class="pointer show-node-details" style="margin-top: 4px;"/>';
             };
 
             // define a custom formatter for the run status column
@@ -348,11 +476,11 @@ nf.ClusterTable = (function () {
 
                     // return the appropriate markup
                     if (canConnect) {
-                        return '<img src="images/iconConnect.png" title="Connect" class="pointer" style="margin-top: 2px;" onclick="javascript:nf.ClusterTable.promptForConnect(\'' + row + '\');"/>&nbsp;<img src="images/iconDelete.png" title="Remove" class="pointer" onclick="javascript:nf.ClusterTable.promptForRemoval(\'' + row + '\');"/>';
+                        return '<img src="images/iconConnect.png" title="Connect" class="pointer prompt-for-connect" style="margin-top: 2px;"/>&nbsp;<img src="images/iconDelete.png" title="Remove" class="pointer prompt-for-removal"/>';
                     } else if (canDisconnect) {
-                        var actions = '<img src="images/iconDisconnect.png" title="Disconnect" class="pointer" style="margin-top: 2px;" onclick="javascript:nf.ClusterTable.promptForDisconnect(\'' + row + '\');"/>';
+                        var actions = '<img src="images/iconDisconnect.png" title="Disconnect" class="pointer prompt-for-disconnect" style="margin-top: 2px;"/>';
                         if (canBecomePrimary) {
-                            actions += '&nbsp;<img src="images/iconPrimary.png" title="Make Primary" class="pointer" style="margin-top: 2px;" onclick="javascript:nf.ClusterTable.makePrimary(\'' + row + '\');"/>';
+                            actions += '&nbsp;<img src="images/iconPrimary.png" title="Make Primary" class="pointer make-primary" style="margin-top: 2px;"/>';
                         }
                         return actions;
                     } else {
@@ -360,7 +488,7 @@ nf.ClusterTable = (function () {
                     }
                 };
 
-                columnModel.push({id: 'action', label: '&nbsp;', formatter: actionFormatter, resizable: false, sortable: false, width: 80, maxWidth: 80});
+                columnModel.push({id: 'actions', label: '&nbsp;', formatter: actionFormatter, resizable: false, sortable: false, width: 80, maxWidth: 80});
             }
 
             var clusterOptions = {
@@ -398,6 +526,31 @@ nf.ClusterTable = (function () {
                     sortAsc: args.sortAsc
                 }, clusterData);
             });
+            
+            // configure a click listener
+            clusterGrid.onClick.subscribe(function (e, args) {
+                var target = $(e.target);
+
+                // get the node at this row
+                var item = clusterData.getItem(args.row);
+
+                // determine the desired action
+                if (clusterGrid.getColumns()[args.cell].id === 'actions') {
+                    if (target.hasClass('prompt-for-connect')) {
+                        promptForConnect(item);
+                    } else if (target.hasClass('prompt-for-removal')) {
+                        promptForRemoval(item);
+                    } else if (target.hasClass('prompt-for-disconnect')) {
+                        promptForDisconnect(item);
+                    } else if (target.hasClass('make-primary')) {
+                        makePrimary(item);
+                    }
+                } else if (clusterGrid.getColumns()[args.cell].id === 'moreDetails') {
+                    if (target.hasClass('show-node-details')) {
+                        showNodeDetails(item);
+                    }
+                }
+            });
 
             // wire up the dataview to the grid
             clusterData.onRowCountChanged.subscribe(function (e, args) {
@@ -417,122 +570,6 @@ nf.ClusterTable = (function () {
 
             // initialize the number of displayed items
             $('#displayed-nodes').text('0');
-        },
-        
-        /**
-         * Prompts to verify node connection.
-         * 
-         * @argument {string} row     The row
-         */
-        promptForConnect: function (row) {
-            var grid = $('#cluster-table').data('gridInstance');
-            if (nf.Common.isDefinedAndNotNull(grid)) {
-                var data = grid.getData();
-                var node = data.getItem(row);
-
-                // prompt to connect
-                nf.Dialog.showYesNoDialog({
-                    dialogContent: 'Connect \'' + formatNodeAddress(node) + '\' to this cluster?',
-                    overlayBackground: false,
-                    yesHandler: function () {
-                        connect(node.nodeId);
-                    }
-                });
-            }
-
-        },
-        
-        /**
-         * Prompts to verify node disconnection.
-         * 
-         * @argument {string} row     The row
-         */
-        promptForDisconnect: function (row) {
-            var grid = $('#cluster-table').data('gridInstance');
-            if (nf.Common.isDefinedAndNotNull(grid)) {
-                var data = grid.getData();
-                var node = data.getItem(row);
-
-                // prompt for disconnect
-                nf.Dialog.showYesNoDialog({
-                    dialogContent: 'Disconnect \'' + formatNodeAddress(node) + '\' from the cluster?',
-                    overlayBackground: false,
-                    yesHandler: function () {
-                        disconnect(node.nodeId);
-                    }
-                });
-            }
-        },
-        
-        /**
-         * Makes the specified node the primary node of the cluster.
-         * 
-         * @argument {string} row     The row
-         */
-        makePrimary: function (row) {
-            var grid = $('#cluster-table').data('gridInstance');
-            if (nf.Common.isDefinedAndNotNull(grid)) {
-                var data = grid.getData();
-                var item = data.getItem(row);
-
-                $.ajax({
-                    type: 'PUT',
-                    url: config.urls.nodes + '/' + encodeURIComponent(item.nodeId),
-                    data: {
-                        primary: true
-                    },
-                    dataType: 'json'
-                }).done(function (response) {
-                    var node = response.node;
-
-                    // start the update
-                    data.beginUpdate();
-                    data.updateItem(node.nodeId, node);
-
-                    // need to find the previous primary node
-                    // get the property grid data
-                    var clusterItems = data.getItems();
-                    $.each(clusterItems, function (i, otherNode) {
-                        // attempt to identify the previous primary node
-                        if (node.nodeId !== otherNode.nodeId && otherNode.primary === true) {
-                            // reset its primary status
-                            otherNode.primary = false;
-                            otherNode.status = 'CONNECTED';
-
-                            // set the new node state
-                            data.updateItem(otherNode.nodeId, otherNode);
-
-                            // no need to continue processing
-                            return false;
-                        }
-                    });
-
-                    // end the update
-                    data.endUpdate();
-                }).fail(nf.Common.handleAjaxError);
-            }
-        },
-        
-        /**
-         * Prompts to verify node disconnection.
-         * 
-         * @argument {string} row     The row
-         */
-        promptForRemoval: function (row) {
-            var grid = $('#cluster-table').data('gridInstance');
-            if (nf.Common.isDefinedAndNotNull(grid)) {
-                var data = grid.getData();
-                var node = data.getItem(row);
-
-                // prompt for disconnect
-                nf.Dialog.showYesNoDialog({
-                    dialogContent: 'Remove \'' + formatNodeAddress(node) + '\' from the cluster?',
-                    overlayBackground: false,
-                    yesHandler: function () {
-                        remove(node.nodeId);
-                    }
-                });
-            }
         },
         
         /**
@@ -575,46 +612,6 @@ nf.ClusterTable = (function () {
                     $('#total-nodes').text('0');
                 }
             }).fail(nf.Common.handleAjaxError);
-        },
-        
-        /**
-         * Populate the expanded row.
-         * 
-         * @argument {string} row     The row
-         */
-        showNodeDetails: function (row) {
-            var grid = $('#cluster-table').data('gridInstance');
-            if (nf.Common.isDefinedAndNotNull(grid)) {
-                var data = grid.getData();
-                var item = data.getItem(row);
-
-                $.ajax({
-                    type: 'GET',
-                    url: config.urls.nodes + '/' + encodeURIComponent(item.nodeId),
-                    dataType: 'json'
-                }).done(function (response) {
-                    var node = response.node;
-
-                    // update the dialog fields
-                    $('#node-id').text(node.nodeId);
-                    $('#node-address').text(formatNodeAddress(node));
-
-                    // format the events
-                    var events = $('#node-events');
-                    if ($.isArray(node.events) && node.events.length > 0) {
-                        var eventMessages = [];
-                        $.each(node.events, function (i, event) {
-                            eventMessages.push(event.timestamp + ": " + event.message);
-                        });
-                        $('<div></div>').append(nf.Common.formatUnorderedList(eventMessages)).appendTo(events);
-                    } else {
-                        events.append('<div><span class="unset">None</span></div>');
-                    }
-
-                    // show the dialog
-                    $('#node-details-dialog').modal('show');
-                }).fail(nf.Common.handleAjaxError);
-            }
         }
     };
 }());
