@@ -19,11 +19,8 @@ package org.apache.nifi.processors.standard;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Queue;
-import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -39,7 +36,6 @@ import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -99,38 +95,9 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
     public static final Relationship REL_ORIGINAL = new Relationship.Builder().name("original").description("The FlowFiles that were used to create the bundle").build();
     public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure").description("If the bundle cannot be created, all FlowFiles that would have been used to created the bundle will be transferred to failure").build();
 
-    private Set<Relationship> relationships;
-    private List<PropertyDescriptor> descriptors;
     private final BinManager binManager = new BinManager();
-
     private final Queue<Bin> readyBins = new LinkedBlockingQueue<>();
 
-    @Override
-    protected final void init(final ProcessorInitializationContext context) {
-
-    	final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_ORIGINAL);
-        relationships.add(REL_FAILURE);
-        Set<Relationship> additionalRelationships = defineAdditionalRelationships();
-        if (additionalRelationships != null) {
-        	relationships.addAll(additionalRelationships);
-        }
-        this.relationships = Collections.unmodifiableSet(relationships);
-
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(MIN_ENTRIES);
-        descriptors.add(MAX_ENTRIES);
-        descriptors.add(MIN_SIZE);
-        descriptors.add(MAX_SIZE);
-        descriptors.add(MAX_BIN_AGE);
-        descriptors.add(MAX_BIN_COUNT);
-        List<PropertyDescriptor> additionalPropertyDescriptors = this.defineAdditionalPropertyDescriptors();
-        if (additionalPropertyDescriptors != null) {
-        	descriptors.addAll(additionalPropertyDescriptors);
-        }
-
-        this.descriptors = Collections.unmodifiableList(descriptors);
-    }
 
     @OnStopped
     public final void resetState() {
@@ -144,27 +111,6 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
         }
     }
 
-    @Override
-    public final Set<Relationship> getRelationships() {
-        return relationships;
-    }
-
-    @Override
-    protected final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return descriptors;
-    }
-
-    /**
-     * Allows any additional relationships to be defined.
-     * @return Relationships to be added in the init() method
-     */ 
-    protected abstract Set<Relationship> defineAdditionalRelationships();
-    
-    /**
-     * Allows any additional property descriptors to be defined.
-     * @return Properties to be added in the init() method
-     */
-    protected abstract List<PropertyDescriptor> defineAdditionalPropertyDescriptors();
 
 	/**
 	 * Allows general pre-processing of a flow file before it is offered to a
@@ -213,14 +159,14 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
 	 * to Failure and commit their sessions.  If false, the 
 	 * processBins() method will transfer the files to Original and commit
 	 * the sessions
-	 * @throws Exception
-	 *             This will be handled appropriately, and all flow files in the
-	 *             bin will be transferred to failure and the session rolled
-	 *             back
+	 * 
+	 * @throws ProcessException if any problem arises while processing a bin
+	 *             of FlowFiles. All flow files in the
+	 *             bin will be transferred to failure and the ProcessSession provided by
+	 *             the 'session' argument rolled back
 	 */
-	protected abstract boolean processBin(Bin unmodifiableBin,
-			List<FlowFileSessionWrapper> binContents, ProcessContext context,
-			ProcessSession session, ProcessorLog logger) throws Exception;
+	protected abstract boolean processBin(Bin unmodifiableBin, 
+	        List<FlowFileSessionWrapper> binContents, ProcessContext context, ProcessSession session) throws ProcessException;
 
     /**
 	 * Allows additional custom validation to be done. This will be called from
@@ -288,8 +234,8 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
 
     	boolean binAlreadyCommitted = false;
         try {
-        	binAlreadyCommitted = this.processBin(bin, binCopy, context, session, logger);
-        } catch (final Exception e) {
+        	binAlreadyCommitted = this.processBin(bin, binCopy, context, session);
+        } catch (final ProcessException e) {
             logger.error("Failed to process bundle of {} files due to {}", new Object[]{binCopy.size(), e});
 
             for (final FlowFileSessionWrapper wrapper : binCopy) {
