@@ -238,7 +238,7 @@
                     <plugin>
                         <groupId>net.alchim31.maven</groupId>
                         <artifactId>yuicompressor-maven-plugin</artifactId>
-                        <version>1.1</version>
+                        <version>1.5.1</version>
                         <executions>
                             <execution>
                                 <id>minify</id>
