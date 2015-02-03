@@ -512,7 +512,7 @@ nf.RemoteProcessGroup = (function () {
                                 'height': 13,
                                 'y': 0,
                                 'fill': '#fff',
-                                'fill-opacity': '0.65',
+                                'fill-opacity': '0.4',
                                 'stroke': '#aaa',
                                 'stroke-width': '1'
                             });
