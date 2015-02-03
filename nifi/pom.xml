@@ -26,7 +26,7 @@
     <version>0.0.2-incubating-SNAPSHOT</version>
     <packaging>pom</packaging>
     <description>Apache NiFi is a dataflow system based on the concepts of flow-based programming. It is currently a part of the Apache Incubator.</description>
-    <url>http://nifi.incubator.apache.org/maven-site/</url>
+    <url>http://nifi.incubator.apache.org</url>
     <organization>
         <name>Apache NiFi (incubating)</name>
         <url>http://nifi.incubator.apache.org/</url>
@@ -842,9 +842,6 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-assembly-plugin</artifactId>
                     <version>2.5.2</version>
-                    <configuration>
-                        <tarLongFileMode>gnu</tarLongFileMode>
-                    </configuration>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
@@ -959,15 +956,15 @@
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
                     <excludes>
-                        <exclude>src/main/webapp/js/json2.js</exclude>
-                        <exclude>src/main/webapp/js/jquery/</exclude>
-                        <exclude>src/main/webapp/js/d3/d3.min.js</exclude>
-                        <exclude>src/main/webapp/js/codemirror/</exclude>
-                        <exclude>src/main/webapp/css/reset.css</exclude>
+                        <exclude>src/main/webapp/js/json2.js</exclude> <!-- license/notice accounted for -->
+                        <exclude>src/main/webapp/js/jquery/</exclude> <!-- license/notice accounted for -->
+                        <exclude>src/main/webapp/js/d3/d3.min.js</exclude> <!-- license/notice accounted for -->
+                        <exclude>src/main/webapp/js/codemirror/</exclude> <!-- license/notice accounted for -->
+                        <exclude>src/main/webapp/css/reset.css</exclude> <!-- license/notice accounted for -->
                         <exclude>src/test/resources/</exclude> <!-- Test datasets -->
-                        <exclude>nb-configuration.xml</exclude>
-                        <exclude>nbactions.xml</exclude>
-                        <exclude>DEPENDENCIES</exclude>
+                        <exclude>nb-configuration.xml</exclude><!-- courtesy exclude for netbeans users -->
+                        <exclude>nbactions.xml</exclude> <!-- courtesy exclude for netbeans users -->
+                        <exclude>DEPENDENCIES</exclude> <!-- auto generated file by maven while building sources.zip -->
                     </excludes>
                 </configuration>
             </plugin>
