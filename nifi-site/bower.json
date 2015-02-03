@@ -1,0 +1,19 @@
+{
+  "name": "apache-nifi-site",
+  "version": "0.0.2-incubating",
+  "description": "The artifacts for the Apache NiFi site.",
+  "private": "true",
+  "repository": {
+    "type": "git",
+    "url": "http://git-wip-us.apache.org/repos/asf/incubator-nifi.git"
+  },
+  "dependencies": {
+    "foundation": "~5.5.1",
+    "font-awesome": "~4.3.0",
+    "webfontloader": "~1.5.14"
+  },
+  "licenses" : [{
+    "type": "Apache",
+    "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+  }]
+}
