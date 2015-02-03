@@ -26,7 +26,7 @@
     <version>0.0.2-incubating-SNAPSHOT</version>
     <packaging>pom</packaging>
     <description>Apache NiFi is a dataflow system based on the concepts of flow-based programming. It is currently a part of the Apache Incubator.</description>
-    <url>http://nifi.incubator.apache.org/maven-site/</url>
+    <url>http://nifi.incubator.apache.org</url>
     <organization>
         <name>Apache NiFi (incubating)</name>
         <url>http://nifi.incubator.apache.org/</url>
