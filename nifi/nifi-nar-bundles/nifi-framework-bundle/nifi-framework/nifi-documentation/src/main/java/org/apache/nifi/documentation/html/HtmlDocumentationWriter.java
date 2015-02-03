@@ -25,14 +25,13 @@ import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.documentation.DocumentationWriter;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.Tags;
 
 /**
  * Generates HTML documentation for a ConfigurableComponent. This class is used
@@ -47,22 +46,6 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 	 * The filename where additional user specified information may be stored.
 	 */
 	public static final String ADDITIONAL_DETAILS_HTML = "additionalDetails.html";
-
-	/**
-	 * The apache licence to apply to the top of the generated html
-	 */
-	private static final String apacheLicense;
-
-	static {
-		String value = null;
-		try {
-			value = IOUtils.toString(ClassLoader.getSystemResourceAsStream("apache.license"));
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-
-		apacheLicense = value;
-	}
 
 	@Override
 	public void write(final ConfigurableComponent configurableComponent, final OutputStream streamToWriteTo,
@@ -95,9 +78,6 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 	 */
 	protected void writeHead(final ConfigurableComponent configurableComponent, final XMLStreamWriter xmlStreamWriter)
 			throws XMLStreamException {
-
-		// write the apache license
-		xmlStreamWriter.writeComment(apacheLicense);
 		xmlStreamWriter.writeStartElement("head");
 		xmlStreamWriter.writeStartElement("meta");
 		xmlStreamWriter.writeAttribute("charset", "utf-8");
