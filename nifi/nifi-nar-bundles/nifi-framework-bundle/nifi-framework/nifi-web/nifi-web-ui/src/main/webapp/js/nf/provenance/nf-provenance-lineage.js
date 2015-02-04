@@ -531,6 +531,10 @@ nf.ProvenanceLineage = (function () {
         var svg = d3.select('#provenance-lineage-container').append('svg:svg')
                 .attr('width', width)
                 .attr('height', height)
+                .style({
+                    'font-family': 'Verdana, Arial, sans-serif',
+                    'font-size': '10px'
+                })
                 .call(lineageZoom)
                 .on('dblclick.zoom', null)
                 .on('mousedown', function (d) {
@@ -1210,7 +1214,7 @@ nf.ProvenanceLineage = (function () {
         // add the initial lineage
         addLineage(lineageResults.nodes, lineageResults.links);
     };
-
+    
     return {
         /**
          * Initializes the lineage graph.
@@ -1276,7 +1280,14 @@ nf.ProvenanceLineage = (function () {
                     return '<g' + before + 'transform="translate(' + x + ',' + y + ')"' + after + '>';
                 });
 
-                nf.Common.submit('POST', './convert-svg', {
+                // namespaces
+                svg = svg.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1"');
+
+                // doctype
+                svg = '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">\n' + svg;
+
+                // send to server to initiate download... client side only support is too browser specific at this point
+                nf.Common.submit('POST', './download-svg', {
                     'filename': 'provenance',
                     'svg': encodeURIComponent(svg)
                 });
