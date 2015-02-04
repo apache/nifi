@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -44,7 +45,7 @@ public class FullyDocumentedProcessor extends AbstractProcessor {
 
 	public static final PropertyDescriptor RECURSE = new PropertyDescriptor.Builder().name("Recurse Subdirectories")
 			.description("Indicates whether or not to pull files from subdirectories").required(true)
-			.allowableValues("true", "false").defaultValue("true").build();
+			.allowableValues(new AllowableValue("true", "true", "Should pull from sub directories"), new AllowableValue("false", "false", "Should not pull from sub directories")).defaultValue("true").build();
 
 	public static final PropertyDescriptor POLLING_INTERVAL = new PropertyDescriptor.Builder().name("Polling Interval")
 			.description("Indicates how long to wait before performing a directory listing").required(true)

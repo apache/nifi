@@ -52,8 +52,8 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 			final boolean includesAdditionalDocumentation) throws IOException {
 
 		try {
-			XMLStreamWriter xmlStreamWriter = XMLOutputFactory.newInstance().createXMLStreamWriter(streamToWriteTo,
-					"UTF-8");
+			XMLStreamWriter xmlStreamWriter = XMLOutputFactory.newInstance().createXMLStreamWriter(
+					streamToWriteTo, "UTF-8");
 			xmlStreamWriter.writeDTD("<!DOCTYPE html>");
 			xmlStreamWriter.writeStartElement("html");
 			xmlStreamWriter.writeAttribute("lang", "en");
@@ -76,8 +76,8 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 	 * @throws XMLStreamException
 	 *             thrown if there was a problem writing to the stream
 	 */
-	protected void writeHead(final ConfigurableComponent configurableComponent, final XMLStreamWriter xmlStreamWriter)
-			throws XMLStreamException {
+	protected void writeHead(final ConfigurableComponent configurableComponent,
+			final XMLStreamWriter xmlStreamWriter) throws XMLStreamException {
 		xmlStreamWriter.writeStartElement("head");
 		xmlStreamWriter.writeStartElement("meta");
 		xmlStreamWriter.writeAttribute("charset", "utf-8");
@@ -118,7 +118,8 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 	 *             thrown if there was a problem writing to the XML stream
 	 */
 	private final void writeBody(final ConfigurableComponent configurableComponent,
-			final XMLStreamWriter xmlStreamWriter, final boolean hasAdditionalDetails) throws XMLStreamException {
+			final XMLStreamWriter xmlStreamWriter, final boolean hasAdditionalDetails)
+			throws XMLStreamException {
 		xmlStreamWriter.writeStartElement("body");
 		writeDescription(configurableComponent, xmlStreamWriter, hasAdditionalDetails);
 		writeTags(configurableComponent, xmlStreamWriter);
@@ -149,16 +150,18 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 	 * @param xmlStreamWriter
 	 * @throws XMLStreamException
 	 */
-	private void writeTags(final ConfigurableComponent configurableComponent, final XMLStreamWriter xmlStreamWriter)
-			throws XMLStreamException {
+	private void writeTags(final ConfigurableComponent configurableComponent,
+			final XMLStreamWriter xmlStreamWriter) throws XMLStreamException {
 		final Tags tags = configurableComponent.getClass().getAnnotation(Tags.class);
+		xmlStreamWriter.writeStartElement("h3");
+		xmlStreamWriter.writeCharacters("Tags: ");
+		xmlStreamWriter.writeEndElement();
 		xmlStreamWriter.writeStartElement("p");
 		if (tags != null) {
 			final String tagString = StringUtils.join(tags.value(), ", ");
-			xmlStreamWriter.writeCharacters("Tags: ");
 			xmlStreamWriter.writeCharacters(tagString);
 		} else {
-			xmlStreamWriter.writeCharacters("No Tags provided.");
+			xmlStreamWriter.writeCharacters("None.");
 		}
 		xmlStreamWriter.writeEndElement();
 
@@ -178,7 +181,8 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 	 *             thrown if there was a problem writing to the XML stream
 	 */
 	protected void writeDescription(final ConfigurableComponent configurableComponent,
-			final XMLStreamWriter xmlStreamWriter, final boolean hasAdditionalDetails) throws XMLStreamException {
+			final XMLStreamWriter xmlStreamWriter, final boolean hasAdditionalDetails)
+			throws XMLStreamException {
 		writeSimpleElement(xmlStreamWriter, "h2", "Description: ");
 		writeSimpleElement(xmlStreamWriter, "p", getDescription(configurableComponent));
 		if (hasAdditionalDetails) {
@@ -224,9 +228,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 	 */
 	protected void writeProperties(final ConfigurableComponent configurableComponent,
 			final XMLStreamWriter xmlStreamWriter) throws XMLStreamException {
-		xmlStreamWriter.writeStartElement("p");
-		writeSimpleElement(xmlStreamWriter, "strong", "Properties: ");
-		xmlStreamWriter.writeEndElement();
+		writeSimpleElement(xmlStreamWriter, "h3", "Properties: ");
 		xmlStreamWriter.writeStartElement("p");
 		xmlStreamWriter.writeCharacters("In the list below, the names of required properties appear in ");
 		writeSimpleElement(xmlStreamWriter, "strong", "bold");
@@ -253,11 +255,10 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 			// write the header row
 			xmlStreamWriter.writeStartElement("tr");
 			writeSimpleElement(xmlStreamWriter, "th", "Name");
-			writeSimpleElement(xmlStreamWriter, "th", "Description");
-			writeSimpleElement(xmlStreamWriter, "th", "Default");
-			writeSimpleElement(xmlStreamWriter, "th", "Values");
+			writeSimpleElement(xmlStreamWriter, "th", "Default Value");
+			writeSimpleElement(xmlStreamWriter, "th", "Valid Values");
 			xmlStreamWriter.writeStartElement("th");
-			writeLink(xmlStreamWriter, "EL", "../../html/expression-language-guide.html");
+			writeLink(xmlStreamWriter, "Expression Language", "../../html/expression-language-guide.html");
 			xmlStreamWriter.writeEndElement();
 			xmlStreamWriter.writeEndElement();
 
@@ -274,17 +275,18 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 				if (property.isSensitive()) {
 					writeSensitiveImg(xmlStreamWriter);
 				}
+				writePropertyDescription(xmlStreamWriter, property.getDescription());
 				xmlStreamWriter.writeEndElement();
-				writeSimpleElement(xmlStreamWriter, "td", property.getDescription());
 				writeSimpleElement(xmlStreamWriter, "td", property.getDefaultValue());
 				writeValidValues(xmlStreamWriter, property);
-				writeSimpleElement(xmlStreamWriter, "td", property.isExpressionLanguageSupported() ? "Yes" : "No");
+				writeSimpleElement(xmlStreamWriter, "td", property.isExpressionLanguageSupported() ? "Yes"
+						: "No");
 				xmlStreamWriter.writeEndElement();
 			}
 
 			// TODO support dynamic properties...
 			xmlStreamWriter.writeEndElement();
-			
+
 			if (containsSensitiveElement) {
 				writeSensitiveImg(xmlStreamWriter);
 				xmlStreamWriter.writeCharacters(" indicates that a property is a sensitive property");
@@ -293,6 +295,26 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 		} else {
 			writeSimpleElement(xmlStreamWriter, "p", "This component has no required or optional properties.");
 		}
+	}
+
+	private void writePropertyDescription(XMLStreamWriter xmlStreamWriter, String description)
+			throws XMLStreamException {
+		xmlStreamWriter.writeCharacters(" ");
+		xmlStreamWriter.writeStartElement("img");
+		xmlStreamWriter.writeAttribute("src", "../../html/images/iconInfo.png");
+		xmlStreamWriter.writeAttribute("alt", description);
+		xmlStreamWriter.writeEndElement();
+
+	}
+
+	private void writeValidValueDescription(XMLStreamWriter xmlStreamWriter, String description)
+			throws XMLStreamException {
+		xmlStreamWriter.writeCharacters(" ");
+		xmlStreamWriter.writeStartElement("img");
+		xmlStreamWriter.writeAttribute("src", "../../html/images/iconInfo.png");
+		xmlStreamWriter.writeAttribute("alt", description);
+		xmlStreamWriter.writeEndElement();
+
 	}
 
 	private void writeSensitiveImg(final XMLStreamWriter xmlStreamWriter) throws XMLStreamException {
@@ -320,7 +342,14 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 		if (property.getAllowableValues() != null && property.getAllowableValues().size() > 0) {
 			xmlStreamWriter.writeStartElement("ul");
 			for (AllowableValue value : property.getAllowableValues()) {
-				writeSimpleElement(xmlStreamWriter, "li", value.getDisplayName());
+				xmlStreamWriter.writeStartElement("li");
+				xmlStreamWriter.writeCharacters(value.getDisplayName());
+
+				if (value.getDescription() != null) {
+					writeValidValueDescription(xmlStreamWriter, value.getDescription());
+				}
+				xmlStreamWriter.writeEndElement();
+
 			}
 			xmlStreamWriter.writeEndElement();
 		}
