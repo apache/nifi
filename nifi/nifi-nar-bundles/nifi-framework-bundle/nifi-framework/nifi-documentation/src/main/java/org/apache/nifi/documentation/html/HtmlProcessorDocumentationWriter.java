@@ -35,9 +35,7 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
 	protected void writeAdditionalBodyInfo(final ConfigurableComponent configurableComponent,
 			final XMLStreamWriter xmlStreamWriter) throws XMLStreamException {
 		final Processor processor = (Processor) configurableComponent;
-		xmlStreamWriter.writeStartElement("p");
-		writeSimpleElement(xmlStreamWriter, "strong", "Relationships: ");
-		xmlStreamWriter.writeEndElement();
+		writeSimpleElement(xmlStreamWriter, "h3", "Relationships: ");
 
 		if (processor.getRelationships().size() > 0) {
 			xmlStreamWriter.writeStartElement("table");
