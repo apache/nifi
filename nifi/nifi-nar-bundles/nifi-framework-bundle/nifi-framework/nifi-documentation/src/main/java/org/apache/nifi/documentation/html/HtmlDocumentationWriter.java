@@ -275,12 +275,20 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 				if (property.isSensitive()) {
 					writeSensitiveImg(xmlStreamWriter);
 				}
-				writePropertyDescription(xmlStreamWriter, property.getDescription());
+				//writePropertyDescription(xmlStreamWriter, property.getDescription());
 				xmlStreamWriter.writeEndElement();
 				writeSimpleElement(xmlStreamWriter, "td", property.getDefaultValue());
 				writeValidValues(xmlStreamWriter, property);
 				writeSimpleElement(xmlStreamWriter, "td", property.isExpressionLanguageSupported() ? "Yes"
 						: "No");
+				xmlStreamWriter.writeEndElement();
+				xmlStreamWriter.writeStartElement("tr");
+				xmlStreamWriter.writeStartElement("td");
+				xmlStreamWriter.writeAttribute("span", "4");
+				xmlStreamWriter.writeCharacters("Description:");
+				
+				xmlStreamWriter.writeCharacters(property.getDescription());
+				xmlStreamWriter.writeEndElement();
 				xmlStreamWriter.writeEndElement();
 			}
 
