@@ -18,7 +18,6 @@ package org.apache.nifi.web.servlet;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.net.URLDecoder;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
@@ -44,10 +43,10 @@ public class DownloadSvg extends HttpServlet {
      */
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        final String rawSvg = request.getParameter("svg");
+        final String svg = request.getParameter("svg");
 
         // ensure the image markup has been included
-        if (rawSvg == null) {
+        if (svg == null) {
             // set the response status
             response.setContentType("text/plain");
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
@@ -59,9 +58,6 @@ public class DownloadSvg extends HttpServlet {
         }
 
         try {
-            // get the svg and decode it, +'s need to be converted
-            final String svg = URLDecoder.decode(rawSvg.replace("+", "%2B"), "UTF-8");
-
             if (logger.isDebugEnabled()) {
                 logger.debug(svg);
             }

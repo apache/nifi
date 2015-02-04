@@ -1287,9 +1287,9 @@ nf.ProvenanceLineage = (function () {
                 svg = '<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">\n' + svg;
 
                 // send to server to initiate download... client side only support is too browser specific at this point
-                nf.Common.submit('POST', './download-svg', {
+                nf.Common.post('./download-svg', {
                     'filename': 'provenance',
-                    'svg': encodeURIComponent(svg)
+                    'svg': svg
                 });
             });
 
