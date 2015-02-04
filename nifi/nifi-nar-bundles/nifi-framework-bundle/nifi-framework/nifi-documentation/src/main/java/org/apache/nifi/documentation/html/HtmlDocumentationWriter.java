@@ -284,7 +284,8 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 				xmlStreamWriter.writeEndElement();
 				xmlStreamWriter.writeStartElement("tr");
 				xmlStreamWriter.writeStartElement("td");
-				xmlStreamWriter.writeAttribute("span", "4");
+				xmlStreamWriter.writeAttribute("colspan", "4");
+				xmlStreamWriter.writeAttribute("class", "description-row");
 				xmlStreamWriter.writeCharacters("Description:");
 				
 				xmlStreamWriter.writeCharacters(property.getDescription());
