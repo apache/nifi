@@ -52,6 +52,14 @@ html, html a {
     visibility:hidden;
 }
 
+pre code {
+    display: block;
+    overflow: auto;
+    padding: 10px;
+    font-weight: normal;
+    border-width: 1px;
+}
+
 div.large-space {
     height: 3em;
 }
