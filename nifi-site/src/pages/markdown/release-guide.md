@@ -2,6 +2,8 @@
 title: Apache NiFi Release Guidelines
 ---
 
+# Apache NiFi Release Guidelines
+
 The purpose of this document is to capture and describe the steps involved in producing 
 an official release of Apache NiFi.  It is written specifically to someone acting in the
 capacity of a [Release Manager][release-manager] (RM).  
@@ -82,9 +84,11 @@ There are two lists here: one of specific incubator requirements, and another of
 ### Prepare your environment
   
 Follow the steps outlined in the [Quickstart Guide][quickstart-guide]
-        
-    At this point you're on the latest 'develop' branch and are able to build the entire application
 
+```        
+At this point you're on the latest 'develop' branch and are able to build the entire application
+```
+<br/>
 Create a JIRA ticket for the release tasks and use that ticket number for the commit messages.  For example we'll consider NIFI-270 as our ticket.  Also
 have in mind the release version you are planning for.  For example we'll consider '0.0.1-incubating'.
 
@@ -101,24 +105,26 @@ work `MAVEN_OPTS="-Xms1024m -Xmx3076m -XX:MaxPermSize=256m"`
 
 Ensure your settings.xml has been updated as shown below.  There are other ways to ensure your PGP key is available for signing as well
   
->          ...
->          <profile>
->             <id>signed_release</id>
->             <properties>
->                 <mavenExecutorId>forked-path</mavenExecutorId>
->                 <gpg.keyname>YOUR GPG KEY ID HERE</gpg.keyname>
->                 <gpg.passphrase>YOUR GPG PASSPHRASE HERE</gpg.passphrase>
->             </properties>
->         </profile>
->         ...
->         <servers>
->            <server>
->                <id>repository.apache.org</id>
->                <username>YOUR USER NAME HERE</username>
->                <password>YOUR MAVEN ENCRYPTED PASSWORD HERE</password>
->            </server>
->         </servers>
->         ...
+```
+        ...
+        <profile>
+           <id>signed_release</id>
+           <properties>
+               <mavenExecutorId>forked-path</mavenExecutorId>
+               <gpg.keyname>YOUR GPG KEY ID HERE</gpg.keyname>
+               <gpg.passphrase>YOUR GPG PASSPHRASE HERE</gpg.passphrase>
+           </properties>
+       </profile>
+       ...
+       <servers>
+          <server>
+              <id>repository.apache.org</id>
+              <username>YOUR USER NAME HERE</username>
+              <password>YOUR MAVEN ENCRYPTED PASSWORD HERE</password>
+          </server>
+       </servers>
+       ...
+```
 
 Ensure the the full application build and tests all work by executing
 `mvn -T 2.5C clean install` for a parallel build.  Once that completes you can
@@ -177,94 +183,100 @@ commands can come in handy to help do this so you can set versions to something 
 Now it's time to initiate a vote within the PPMC.  Send the vote request to `dev@nifi.incubator.apache.org`
 with a subject of `[VOTE] Release Apache NiFi nifi-nar-maven-plugin-0.0.1-incubating`. The following template can be used:
  
->     Hello
->     I am pleased to be calling this vote for the source release of Apache NiFi
->     nifi-nar-maven-plugin-0.0.1-incubating.
->     
->     The source zip, including signatures, digests, etc. can be found at:
->     https://repository.apache.org/content/repositories/orgapachenifi-1011
->     
->     The Git tag is nifi-nar-maven-plugin-0.0.1-incubating-RC1
->     The Git commit ID is 72abf18c2e045e9ef404050e2bffc9cef67d2558
->     https://git-wip-us.apache.org/repos/asf?p=incubator-nifi.git;a=commit;h=72abf18c2e045e9ef404050e2bffc9cef67d2558
->     
->     Checksums of nifi-nar-maven-plugin-0.0.1-incubating-source-release.zip:
->     MD5: 5a580756a17b0573efa3070c70585698
->     SHA1: a79ff8fd0d2f81523b675e4c69a7656160ff1214
->     
->     Release artifacts are signed with the following key:
->     https://people.apache.org/keys/committer/joewitt.asc
->     
->     KEYS file available here:
->     https://dist.apache.org/repos/dist/release/incubator/nifi/KEYS
->     
->     8 issues were closed/resolved for this release:
->     https://issues.apache.org/jira/secure/ReleaseNote.jspa?projectId=12316020&version=12329307
->     
->     The vote will be open for 72 hours. 
->     Please download the release candidate and evaluate the necessary items including checking hashes, signatures, build from source, and test.  The please vote:
->     
->     [ ] +1 Release this package as nifi-nar-maven-plugin-0.0.1-incubating
->     [ ] +0 no opinion
->     [ ] -1 Do not release this package because because...
+```
+Hello
+I am pleased to be calling this vote for the source release of Apache NiFi
+nifi-nar-maven-plugin-0.0.1-incubating.
 
+The source zip, including signatures, digests, etc. can be found at:
+https://repository.apache.org/content/repositories/orgapachenifi-1011
+
+The Git tag is nifi-nar-maven-plugin-0.0.1-incubating-RC1
+The Git commit ID is 72abf18c2e045e9ef404050e2bffc9cef67d2558
+https://git-wip-us.apache.org/repos/asf?p=incubator-nifi.git;a=commit;h=72abf18c2e045e9ef404050e2bffc9cef67d2558
+
+Checksums of nifi-nar-maven-plugin-0.0.1-incubating-source-release.zip:
+MD5: 5a580756a17b0573efa3070c70585698
+SHA1: a79ff8fd0d2f81523b675e4c69a7656160ff1214
+
+Release artifacts are signed with the following key:
+https://people.apache.org/keys/committer/joewitt.asc
+
+KEYS file available here:
+https://dist.apache.org/repos/dist/release/incubator/nifi/KEYS
+
+8 issues were closed/resolved for this release:
+https://issues.apache.org/jira/secure/ReleaseNote.jspa?projectId=12316020&version=12329307
+
+The vote will be open for 72 hours. 
+Please download the release candidate and evaluate the necessary items including checking hashes, signatures, build from source, and test.  The please vote:
+
+[ ] +1 Release this package as nifi-nar-maven-plugin-0.0.1-incubating
+[ ] +0 no opinion
+[ ] -1 Do not release this package because because...
+```
+<br/>
 A release vote is majority rule.  So wait 72 hours and see if there are at least 3 binding +1 votes and no more negative votes than positive.
 If so forward the vote to the IPMC.  Send the vote request to `general@incubator.apache.org` with a subject of
 `[VOTE] Release Apache NiFi nifi-nar-maven-plugin-0.0.1-incubating`.  The following template can be used:
 
->     Hello
->     
->     The Apache NiFi PPMC has voted to release Apache NiFi nar-maven-plugin-0.0.1-incubating.
->     The vote was based on the release candidate and thread described below.
->     We now request the IPMC to vote on this release.
->     
->     Here is the PPMC voting result:
->     X +1 (binding)
->     Y -1 (binding)
->     
->     Here is the PPMC vote thread: [URL TO PPMC Vote Thread]
->     
->     The source zip, including signatures, digests, etc. can be found at:
->     https://repository.apache.org/content/repositories/orgapachenifi-1011
->     
->     The Git tag is nar-maven-plugin-0.0.1-incubating-RC1
->     The Git commit ID is 72abf18c2e045e9ef404050e2bffc9cef67d2558
->     https://git-wip-us.apache.org/repos/asf?p=incubator-nifi.git;a=commit;h=72abf18c2e045e9ef404050e2bffc9cef67d2558
->     
->     Checksums of nar-maven-plugin-0.0.1-incubating-source-release.zip:
->     MD5: 5a580756a17b0573efa3070c70585698
->     SHA1: a79ff8fd0d2f81523b675e4c69a7656160ff1214
->     
->     Release artifacts are signed with the following key:
->     https://people.apache.org/keys/committer/joewitt.asc
->     
->     KEYS file available here:
->     https://dist.apache.org/repos/dist/release/incubator/nifi/KEYS
->     
->     8 issues were closed/resolved for this release:
->     https://issues.apache.org/jira/secure/ReleaseNote.jspa?projectId=12316020&version=12329307
->     
->     The vote will be open for 72 hours. 
->     Please download the release candidate and evaluate the necessary items including checking hashes, signatures, build from source, and test.  The please vote:
->     
->     [ ] +1 Release this package as nar-maven-plugin-0.0.1-incubating
->     [ ] +0 no opinion
->     [ ] -1 Do not release this package because because...
+```
+Hello
 
+The Apache NiFi PPMC has voted to release Apache NiFi nar-maven-plugin-0.0.1-incubating.
+The vote was based on the release candidate and thread described below.
+We now request the IPMC to vote on this release.
+
+Here is the PPMC voting result:
+X +1 (binding)
+Y -1 (binding)
+
+Here is the PPMC vote thread: [URL TO PPMC Vote Thread]
+
+The source zip, including signatures, digests, etc. can be found at:
+https://repository.apache.org/content/repositories/orgapachenifi-1011
+
+The Git tag is nar-maven-plugin-0.0.1-incubating-RC1
+The Git commit ID is 72abf18c2e045e9ef404050e2bffc9cef67d2558
+https://git-wip-us.apache.org/repos/asf?p=incubator-nifi.git;a=commit;h=72abf18c2e045e9ef404050e2bffc9cef67d2558
+
+Checksums of nar-maven-plugin-0.0.1-incubating-source-release.zip:
+MD5: 5a580756a17b0573efa3070c70585698
+SHA1: a79ff8fd0d2f81523b675e4c69a7656160ff1214
+
+Release artifacts are signed with the following key:
+https://people.apache.org/keys/committer/joewitt.asc
+
+KEYS file available here:
+https://dist.apache.org/repos/dist/release/incubator/nifi/KEYS
+
+8 issues were closed/resolved for this release:
+https://issues.apache.org/jira/secure/ReleaseNote.jspa?projectId=12316020&version=12329307
+
+The vote will be open for 72 hours. 
+Please download the release candidate and evaluate the necessary items including checking hashes, signatures, build from source, and test.  The please vote:
+
+[ ] +1 Release this package as nar-maven-plugin-0.0.1-incubating
+[ ] +0 no opinion
+[ ] -1 Do not release this package because because...
+```
+<br/>
 Wait 72 hours.  If the vote passes then send a vote result email.  Send the email to `general@incubator.apache.org, dev@nifi.incubator.apache.org`
 with a subject of `[RESULT][VOTE] Release Apache NiFi nar-maven-plugin-0.0.1-incubating`.  Use a template such as:
 
->     Hello
->     
->     The release passes with
->     
->     X +1 (binding) votes
->     Y -1 (binding) votes
->     
->     Thanks to all who helped make this release possible.
->     
->     Here is the IPMC vote thread: [INSERT URL OF IPMC Vote Thread]
+```
+Hello
 
+The release passes with
+
+X +1 (binding) votes
+Y -1 (binding) votes
+
+Thanks to all who helped make this release possible.
+
+Here is the IPMC vote thread: [INSERT URL OF IPMC Vote Thread]
+```
+<br/>
 Now all the voting is done and the release is good to go.  In repository.apache.org go to the staging repository
 and select `release`.  Then publish the source, hashes, and signatures to `https://dist.apache.org/repos/dist/release/incubator/nifi/`
 Then merge the release git tag to develop and to master.

@@ -2,6 +2,8 @@
 title:     Apache NiFi Development Quickstart
 ---
 
+# Apache NiFi Development Quickstart
+
 This documentation is in progress, but should get many started at building Apache NiFi.
 
 ## Source Code
@@ -26,12 +28,16 @@ Track issues on the "NIFI" Project on the Apache Jira ([browse][jira]).
 
 To check out the code:
 
-    git clone http://git-wip-us.apache.org/repos/asf/incubator-nifi.git
-
+```
+git clone http://git-wip-us.apache.org/repos/asf/incubator-nifi.git
+```
+<br/>
 Then checkout the 'develop' branch
 
-    git checkout develop
-
+```
+git checkout develop
+```
+<br/>
 ### Build steps
 
 1. You need a recent Java 7 (or newer) JDK.
