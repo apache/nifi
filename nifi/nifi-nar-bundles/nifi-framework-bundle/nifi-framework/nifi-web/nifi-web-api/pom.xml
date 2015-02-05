@@ -27,7 +27,7 @@
         <profile>
             <id>docs</id>
             <activation>
-               <jdk>1.7</jdk> 
+                <activeByDefault>false</activeByDefault>
             </activation>
             <build>
                 <resources>

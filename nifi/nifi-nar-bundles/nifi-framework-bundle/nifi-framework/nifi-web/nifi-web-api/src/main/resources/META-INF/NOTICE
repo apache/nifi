@@ -1,0 +1,27 @@
+nifi-web-api
+Copyright 2014-2015 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+===========================================
+Apache Software License v2
+===========================================
+
+The following binary components are provided under the Apache Software License v2
+
+  (ASLv2) Enunciate Core Annotations (org.codehaus.enunciate:enunciate-core-annotations:jar:1.28 - http://dist.codehaus.org/enunciate/enunciate-1.28.zip)
+    The following NOTICE information applies:
+      This product includes software developed by the Spring Framework
+      Project (http://www.springframework.org).
+
+      This product includes software developed by the
+      Visigoth Software Society (http://www.visigoths.org/).
+
+========================================================================
+Common Development and Distribution License 1.0
+========================================================================
+
+The following binary components are provided under the Common Development and Distribution License 1.0. See project link for details.
+
+    (CDDL 1.0) SR 250 Common Annotations For The JavaTM Platform (javax.annotation:jsr250-api:jar:1.0 - http://jcp.org/aboutJava/communityprocess/final/jsr250/index.html)

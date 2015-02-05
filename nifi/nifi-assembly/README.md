@@ -49,12 +49,9 @@ Apache NiFi was made for dataflow. It supports highly configurable directed grap
 
 ## Getting Started
 
-To build:
-- Execute 'mvn clean install' or for parallel build execute 'mvn -T 2.0C clean install'
-
 To start NiFi:
-- Change directory to 'nifi-assembly'.  In the target directory there should be a build of nifi.
-- Unpack the build wherever you like or use the already unpacked build.  '<install_location>/bin/nifi.sh start'
+- [linux/osx] execute bin/nifi.sh start
+- [windows] execute bin/start-nifi.bat
 - Direct your browser to http://localhost:8080/nifi/
 
 ## Getting Help

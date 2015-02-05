@@ -1,0 +1,37 @@
+nifi-jetty-bundle
+Copyright 2014-2015 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+******************
+Apache Software License v2
+******************
+
+The following binary components are provided under the Apache Software License v2
+
+  (ASLv2) Jetty
+    The following NOTICE information applies:
+       Jetty Web Container
+       Copyright 1995-2015 Mort Bay Consulting Pty Ltd.
+      
+************************
+Common Development and Distribution License 1.1
+************************
+
+The following binary components are provided under the Common Development and Distribution License 1.1. See project link for details.
+
+    (CDDL 1.1) (GPL2 w/ CPE) JSP Implementation (org.glassfish.web:javax.servlet.jsp:jar:2.3.2 - http://jsp.java.net)
+    (CDDL 1.1) (GPL2 w/ CPE) JavaServer Pages (TM) TagLib Implementation (org.glassfish.web:javax.servlet.jsp.jstl:jar:1.2.2 - http://jstl.java.net)
+    (CDDL 1.1) (GPL2 w/ CPE) Expression Language 3.0 (org.glassfish:javax.el:jar:3.0.0 - http://el-spec.java.net)
+    (CDDL 1.1) (GPL2 w/ CPE) JavaServer Pages(TM) API (javax.servlet.jsp:javax.servlet.jsp-api:jar:2.3.1 - http://jsp.java.net)
+    (CDDL 1.1) (GPL2 w/ CPE) Expression Language 3.0 API  (javax.el:javax.el-api:jar:3.0.0 - http://uel-spec.java.net)
+    (CDDL 1.1) (GPL2 w/ CPE) JavaServer Pages(TM) Standard Tag Library API  (javax.servlet.jsp.jstl:javax.servlet.jsp.jstl-api:jar:1.2.1 - http://jcp.org/en/jsr/detail?id=52)
+    (CDDL 1.1) (GPL2 w/ CPE) Java Servlet API  (javax.servlet:javax.servlet-api:jar:3.1.0 - http://servlet-spec.java.net)
+
+
+
+
+
+
+
