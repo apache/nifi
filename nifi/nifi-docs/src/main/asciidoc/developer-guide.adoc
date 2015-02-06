@@ -2098,6 +2098,8 @@ The back end of Apache NiFi is written in Java. The web tier makes use of JAX-RS
 used to provide a user interface. We depend on several third-party JavaScript libraries, including D3 and JQuery,
 among others. We make use of Apache Maven for our builds and Git for our version control system.
 
+Documentation is created in link:http://asciidoctor.org[AsciiDoc]. 
+
 
 === Where to Start?
 
@@ -2105,6 +2107,8 @@ link:http://issues.apache.org/jira/browse/NIFI[NiFi's JIRA page] can be used to 
 or you can dig into any of the tickets for creating Processors. Processors should be self-contained and not rely on other
 outside components (except for Controller Services), so they make for excellent starting points for new NiFi developers to
 get started. This exposes the developer to the NiFi API and is the most extensible part of the dataflow system.
+
+Tools available to facilitate documentation generation are available at link:http://asciidoctor.org/docs/editing-asciidoc-with-live-preview/[Editing AsciiDoc with Live Preview].
 
 
 === Supplying a contribution
