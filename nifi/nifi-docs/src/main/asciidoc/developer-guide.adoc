@@ -2101,7 +2101,7 @@ among others. We make use of Apache Maven for our builds and Git for our version
 
 === Where to Start?
 
-link:http://issues.apache.org/jira/browse/NIFI[NiFi's Jira page] can be used to find tickets that are tagged as "beginner",
+link:http://issues.apache.org/jira/browse/NIFI[NiFi's JIRA page] can be used to find tickets that are tagged as "beginner",
 or you can dig into any of the tickets for creating Processors. Processors should be self-contained and not rely on other
 outside components (except for Controller Services), so they make for excellent starting points for new NiFi developers to
 get started. This exposes the developer to the NiFi API and is the most extensible part of the dataflow system.
