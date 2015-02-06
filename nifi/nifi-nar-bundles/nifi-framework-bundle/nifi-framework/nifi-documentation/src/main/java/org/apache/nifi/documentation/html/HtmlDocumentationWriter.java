@@ -31,6 +31,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.documentation.DocumentationWriter;
 
 /**
@@ -232,10 +233,10 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 		xmlStreamWriter.writeStartElement("p");
 		xmlStreamWriter.writeCharacters("In the list below, the names of required properties appear in ");
 		writeSimpleElement(xmlStreamWriter, "strong", "bold");
-		xmlStreamWriter.writeCharacters(". Any"
+		xmlStreamWriter.writeCharacters(". Any "
 				+ "other properties (not in bold) are considered optional. The table also "
 				+ "indicates any default values, whether a property supports the ");
-		writeLink(xmlStreamWriter, "NiFi Expression Language (or simply EL)",
+		writeLink(xmlStreamWriter, "NiFi Expression Language",
 				"../../html/expression-language-guide.html");
 		xmlStreamWriter.writeCharacters(", and whether a property is considered "
 				+ "\"sensitive\", meaning that its value will be encrypted. Before entering a "
@@ -246,7 +247,6 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 		xmlStreamWriter.writeCharacters(".");
 		xmlStreamWriter.writeEndElement();
 
-		boolean containsSensitiveElement = false;
 
 		List<PropertyDescriptor> properties = configurableComponent.getPropertyDescriptors();
 		if (properties.size() > 0) {
@@ -257,14 +257,11 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 			writeSimpleElement(xmlStreamWriter, "th", "Name");
 			writeSimpleElement(xmlStreamWriter, "th", "Default Value");
 			writeSimpleElement(xmlStreamWriter, "th", "Valid Values");
-			xmlStreamWriter.writeStartElement("th");
-			writeLink(xmlStreamWriter, "Expression Language", "../../html/expression-language-guide.html");
-			xmlStreamWriter.writeEndElement();
+			writeSimpleElement(xmlStreamWriter, "th", "Description");
 			xmlStreamWriter.writeEndElement();
 
 			// write the individual properties
 			for (PropertyDescriptor property : properties) {
-				containsSensitiveElement |= property.isSensitive();
 				xmlStreamWriter.writeStartElement("tr");
 				xmlStreamWriter.writeStartElement("td");
 				if (property.isRequired()) {
@@ -272,48 +269,39 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 				} else {
 					xmlStreamWriter.writeCharacters(property.getDisplayName());
 				}
-				if (property.isSensitive()) {
-					writeSensitiveImg(xmlStreamWriter);
-				}
-				//writePropertyDescription(xmlStreamWriter, property.getDescription());
+
 				xmlStreamWriter.writeEndElement();
 				writeSimpleElement(xmlStreamWriter, "td", property.getDefaultValue());
-				writeValidValues(xmlStreamWriter, property);
-				writeSimpleElement(xmlStreamWriter, "td", property.isExpressionLanguageSupported() ? "Yes"
-						: "No");
-				xmlStreamWriter.writeEndElement();
-				xmlStreamWriter.writeStartElement("tr");
 				xmlStreamWriter.writeStartElement("td");
-				xmlStreamWriter.writeAttribute("colspan", "4");
-				xmlStreamWriter.writeAttribute("class", "description-row");
-				xmlStreamWriter.writeCharacters("Description:");
-				
-				xmlStreamWriter.writeCharacters(property.getDescription());
+				writeValidValues(xmlStreamWriter, property);
 				xmlStreamWriter.writeEndElement();
+				xmlStreamWriter.writeStartElement("td");
+				if (property.getDescription() != null && property.getDescription().trim().length() > 0) {
+					xmlStreamWriter.writeCharacters(property.getDescription());
+				} else {
+					xmlStreamWriter.writeCharacters("No Description Provided.");
+				}
+
+				if (property.isSensitive()) {
+					xmlStreamWriter.writeEmptyElement("br");
+					writeSimpleElement(xmlStreamWriter, "strong", "Sensitive Property: true");
+				}
+
+				if (property.isExpressionLanguageSupported()) {
+					xmlStreamWriter.writeEmptyElement("br");
+					writeSimpleElement(xmlStreamWriter, "strong", "Supports Expression Language: true");
+				}
+				xmlStreamWriter.writeEndElement();
+
 				xmlStreamWriter.writeEndElement();
 			}
 
 			// TODO support dynamic properties...
 			xmlStreamWriter.writeEndElement();
 
-			if (containsSensitiveElement) {
-				writeSensitiveImg(xmlStreamWriter);
-				xmlStreamWriter.writeCharacters(" indicates that a property is a sensitive property");
-			}
-
 		} else {
 			writeSimpleElement(xmlStreamWriter, "p", "This component has no required or optional properties.");
 		}
-	}
-
-	private void writePropertyDescription(XMLStreamWriter xmlStreamWriter, String description)
-			throws XMLStreamException {
-		xmlStreamWriter.writeCharacters(" ");
-		xmlStreamWriter.writeStartElement("img");
-		xmlStreamWriter.writeAttribute("src", "../../html/images/iconInfo.png");
-		xmlStreamWriter.writeAttribute("alt", description);
-		xmlStreamWriter.writeEndElement();
-
 	}
 
 	private void writeValidValueDescription(XMLStreamWriter xmlStreamWriter, String description)
@@ -322,16 +310,9 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 		xmlStreamWriter.writeStartElement("img");
 		xmlStreamWriter.writeAttribute("src", "../../html/images/iconInfo.png");
 		xmlStreamWriter.writeAttribute("alt", description);
+		xmlStreamWriter.writeAttribute("title", description);
 		xmlStreamWriter.writeEndElement();
 
-	}
-
-	private void writeSensitiveImg(final XMLStreamWriter xmlStreamWriter) throws XMLStreamException {
-		xmlStreamWriter.writeCharacters(" ");
-		xmlStreamWriter.writeStartElement("img");
-		xmlStreamWriter.writeAttribute("src", "../../html/images/iconSecure.png");
-		xmlStreamWriter.writeAttribute("alt", "Sensitive Property");
-		xmlStreamWriter.writeEndElement();
 	}
 
 	/**
@@ -347,7 +328,6 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 	 */
 	protected void writeValidValues(XMLStreamWriter xmlStreamWriter, PropertyDescriptor property)
 			throws XMLStreamException {
-		xmlStreamWriter.writeStartElement("td");
 		if (property.getAllowableValues() != null && property.getAllowableValues().size() > 0) {
 			xmlStreamWriter.writeStartElement("ul");
 			for (AllowableValue value : property.getAllowableValues()) {
@@ -361,8 +341,12 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 
 			}
 			xmlStreamWriter.writeEndElement();
+		} else if (property.getControllerServiceDefinition() != null) {
+			Class<? extends ControllerService> controllerServiceClass = property.getControllerServiceDefinition();
+			writeSimpleElement(xmlStreamWriter, "strong", "Controller Service: ");
+			xmlStreamWriter.writeEmptyElement("br");
+			xmlStreamWriter.writeCharacters(controllerServiceClass.getSimpleName());
 		}
-		xmlStreamWriter.writeEndElement();
 	}
 
 	/**
