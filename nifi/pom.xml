@@ -624,6 +624,11 @@
                 <artifactId>nifi-utils</artifactId>
                 <version>0.0.2-incubating-SNAPSHOT</version>
             </dependency>
+			<dependency>
+				<groupId>org.apache.nifi</groupId>
+				<artifactId>nifi-site-to-site-client</artifactId>
+				<version>0.0.2-incubating-SNAPSHOT</version>
+			</dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-web-utils</artifactId>

@@ -16,20 +16,28 @@
  */
 package org.apache.nifi.remote;
 
+import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Port;
+import org.apache.nifi.controller.AbstractPort;
+import org.apache.nifi.controller.ProcessScheduler;
+import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 
-public interface RemoteGroupPort extends Port {
+public abstract class RemoteGroupPort extends AbstractPort implements Port, RemoteDestination {
 
-    RemoteProcessGroup getRemoteProcessGroup();
+	public RemoteGroupPort(String id, String name, ProcessGroup processGroup, ConnectableType type, ProcessScheduler scheduler) {
+		super(id, name, processGroup, type, scheduler);
+	}
 
-    TransferDirection getTransferDirection();
+	public abstract RemoteProcessGroup getRemoteProcessGroup();
 
-    boolean isUseCompression();
+    public abstract TransferDirection getTransferDirection();
 
-    void setUseCompression(boolean useCompression);
+    public abstract boolean isUseCompression();
 
-    boolean getTargetExists();
+    public abstract void setUseCompression(boolean useCompression);
 
-    boolean isTargetRunning();
+    public abstract boolean getTargetExists();
+
+    public abstract boolean isTargetRunning();
 }

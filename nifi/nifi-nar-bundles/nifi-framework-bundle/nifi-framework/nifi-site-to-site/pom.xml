@@ -60,6 +60,10 @@
             <artifactId>nifi-utils</artifactId>
         </dependency>
         <dependency>
+        	<groupId>org.apache.nifi</groupId>
+        	<artifactId>nifi-site-to-site-client</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
         </dependency>
