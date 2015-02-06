@@ -1943,7 +1943,7 @@ the same environment, Java ClassLoaders quickly
 become a concern. If multiple components have a dependency on the same
 library but each depends on a different
 version, many problems arise, typically resulting in unexpected
-behavior or `NoClassDefFoudnError` errors occurring.
+behavior or `NoClassDefFoundError` errors occurring.
 In order to prevent these issues from becoming problematic, NiFi
 introduces the notion of a NiFi Archive, or NAR.
 
