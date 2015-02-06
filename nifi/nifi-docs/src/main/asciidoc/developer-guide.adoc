@@ -2108,6 +2108,7 @@ or you can dig into any of the tickets for creating Processors. Processors shoul
 outside components (except for Controller Services), so they make for excellent starting points for new NiFi developers to
 get started. This exposes the developer to the NiFi API and is the most extensible part of the dataflow system.
 
+System-level and overview documentation is located in '<code checkout location>/nifi/nifi-docs/src/main/asciidoc'.
 Tools available to facilitate documentation generation are available at link:http://asciidoctor.org/docs/editing-asciidoc-with-live-preview/[Editing AsciiDoc with Live Preview].
 
 
