@@ -109,6 +109,11 @@
                 <artifactId>nifi-web-security</artifactId>
                 <version>0.0.2-incubating-SNAPSHOT</version>
             </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-documentation</artifactId>
+                <version>0.0.2-incubating-SNAPSHOT</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 </project>
