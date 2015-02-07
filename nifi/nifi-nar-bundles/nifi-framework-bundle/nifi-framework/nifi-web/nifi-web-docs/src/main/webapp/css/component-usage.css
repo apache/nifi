@@ -52,7 +52,7 @@ table {
 }
 
 table th {
-	padding:21px 25px 22px 25px;
+	padding:11px 15px 12px 15px;
 	border-top:1px solid #fafafa;
 	border-bottom:1px solid #e0e0e0;
 
@@ -61,12 +61,12 @@ table th {
 
 table th:first-child {
 	text-align: left;
-	padding-left:20px;
+	padding-left:10px;
 }
 
 table th:last-child {
 	text-align: left;
-	padding-left:20px;
+	padding-left:10px;
 }
 
 table tr:first-child th:first-child {
@@ -79,25 +79,25 @@ table tr:first-child th:last-child {
 
 table tr {
 	text-align: center;
-	padding-left:20px;
+	padding-left:10px;
 }
 
 table td:first-child {
 	text-align: left;
-	padding-left:20px;
+	padding-left:10px;
 	border-left: 0;
 }
 
 table td:last-child {
 	text-align: left;
-	padding-left:20px;
+	padding-left:10px;
 	border-left: 0;
 	vertical-align: top;
 	
 }
 
 table td {
-	padding:18px;
+	padding:12px;
 	background: #fafafa;
 }
 
