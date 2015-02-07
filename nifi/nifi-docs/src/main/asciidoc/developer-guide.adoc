@@ -635,7 +635,7 @@ Service and is intended to provide a brief description of the
 functionality
 provided by the component. The Tags annotation has a `value` variable
 that is defined to be an Array of Strings. As such, it is used
-by providing multiple values as a comma-separated list of `String` s 
+by providing multiple values as a comma-separated list of ++String++s 
 with curly braces. These values are then incorporated into the UI by
 allowing
 users to filter the components based on a tag (i.e., a keyword).
@@ -1725,7 +1725,7 @@ which exposes statistics about the amount of data processed in the
 past five minutes by Process Groups,
 Processors, Connections, and other Components. Additionally, the
 EventAccess object provides access to
-the `ProvenanceEventRecord` s
+the ++ProvenanceEventRecord++s
 that have been stored in the `ProvenanceEventRepository`. These
 Provenance Events are emitted by Processors when
 data is received from external sources, emitted to external services,
