@@ -53,6 +53,9 @@ public class FullyDocumentedProcessor extends AbstractProcessor {
 
 	public static final PropertyDescriptor OPTIONAL_PROPERTY = new PropertyDescriptor.Builder()
 			.name("Optional Property").description("This is a property you can use or not").required(false).build();
+	
+	public static final PropertyDescriptor TYPE_PROPERTY = new PropertyDescriptor.Builder()
+	.name("Type").description("This is the type of something that you can choose.  It has several possible values").allowableValues("yes", "no", "maybe", "possibly", "not likely", "longer option name").required(true).build();
 
 	public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
 			.description("Successful files").build();
@@ -69,6 +72,7 @@ public class FullyDocumentedProcessor extends AbstractProcessor {
 		properties.add(RECURSE);
 		properties.add(POLLING_INTERVAL);
 		properties.add(OPTIONAL_PROPERTY);
+		properties.add(TYPE_PROPERTY);
 		this.properties = Collections.unmodifiableList(properties);
 
 		final Set<Relationship> relationships = new HashSet<>();
