@@ -25,6 +25,7 @@ import java.io.IOException;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.documentation.DocumentationWriter;
 import org.apache.nifi.documentation.example.FullyDocumentedProcessor;
+import org.apache.nifi.documentation.example.NakedProcessor;
 import org.apache.nifi.documentation.mock.MockProcessorInitializationContext;
 import org.junit.Test;
 
@@ -40,8 +41,9 @@ public class ProcessorDocumentationWriterTest {
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
 		writer.write(processor, baos, false);
-
+	
 		String results = new String(baos.toByteArray());
+		XmlValidator.assertXmlValid(results);
 
 		assertContains(results, FullyDocumentedProcessor.DIRECTORY.getDisplayName());
 		assertContains(results, FullyDocumentedProcessor.DIRECTORY.getDescription());
@@ -57,13 +59,45 @@ public class ProcessorDocumentationWriterTest {
 		assertContains(results, FullyDocumentedProcessor.REL_SUCCESS.getDescription());
 		assertContains(results, FullyDocumentedProcessor.REL_FAILURE.getName());
 		assertContains(results, FullyDocumentedProcessor.REL_FAILURE.getDescription());
+		assertContains(results, "Controller Service: ");
+		assertContains(results, "SampleService");
 
 		assertNotContains(results, "iconSecure.png");
-		assertContains(results, FullyDocumentedProcessor.class.getAnnotation(CapabilityDescription.class).value());
+		assertContains(results, FullyDocumentedProcessor.class.getAnnotation(CapabilityDescription.class)
+				.value());
 		assertNotContains(results, "This component has no required or optional properties.");
 		assertNotContains(results, "No description provided.");
 		assertNotContains(results, "No Tags provided.");
 		assertNotContains(results, "Additional Details...");
+	}
+
+	@Test
+	public void testNakedProcessor() throws IOException {
+		NakedProcessor processor = new NakedProcessor();
+		processor.initialize(new MockProcessorInitializationContext());
+
+		DocumentationWriter writer = new HtmlProcessorDocumentationWriter();
+
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+		writer.write(processor, baos, false);
+
+		String results = new String(baos.toByteArray());
+		XmlValidator.assertXmlValid(results);
+		
+		// no description
+		assertContains(results, "No description provided.");
+		
+		// no tags
+		assertContains(results, "None.");
+		
+		// properties
+		assertContains(results, "This component has no required or optional properties.");
+		
+		// relationships
+		assertContains(results, "This processor has no relationships.");
+		
+
 	}
 
 }
