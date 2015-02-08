@@ -666,18 +666,19 @@ provides a "Usage" menu item in the context menu. Additionally, the
 UI exposes a "Help" link in the top-right corner, from which the same
 Usage information can be found.
 
-The advanced documentation of a component is provided as an HTML file named `additionalDetails.html`.
+The advanced documentation of a Processor is provided as an HTML file named `additionalDetails.html`.
 This file should exist within a directory whose name is the
 fully-qualified
-name of the component, and this directory's parent should be named
+name of the Processor, and this directory's parent should be named
 `docs` and exist in the root of the Processor's jar.
 This file will be linked from a generated HTML file that will contain
 all the Capability, Keyword, PropertyDescription and Relationship information,
 so it will not be necessary to duplicate that.  This is a place 
-to provide a rich explanation of what this component is doing, what kind of 
+to provide a rich explanation of what this Processor is doing, what kind of 
 data it expects and produces, and what FlowFile attributes it expects and produces.
 Because this documentation is in an HTML format, you may include images and tables
-to best describe this component.
+to best describe this component.  The same methods can be used to provide advanced
+documentation for Processors, ControllerServices and ReportingTasks.
 
 
 
