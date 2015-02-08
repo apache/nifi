@@ -55,6 +55,7 @@
                         <idprefix />
                         <idseparator>-</idseparator>
                         <docinfo1>true</docinfo1>
+                        <stylesheet>asciidoc-mod.css</stylesheet>
                     </attributes>
                 </configuration>
             </plugin>
