@@ -28,7 +28,7 @@
     <description>Apache NiFi(incubating) is an easy to use, powerful, and reliable system to process and distribute data.</description>
     <url>http://nifi.incubator.apache.org</url>
     <organization>
-        <name>Apache NiFi Project</name>
+        <name>Apache NiFi(incubating) Project</name>
         <url>http://nifi.incubator.apache.org/</url>
     </organization>
     <licenses>
