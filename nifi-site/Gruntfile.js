@@ -48,7 +48,8 @@ module.exports = function (grunt) {
             foundation: {
                 src: [
                     'bower_components/foundation/js/foundation/foundation.js',
-                    'bower_components/foundation/js/foundation/foundation.topbar.js'
+                    'bower_components/foundation/js/foundation/foundation.topbar.js',
+                    'bower_components/foundation/js/foundation/foundation.reveal.js'
                 ],
                 dest: 'dist/assets/js/foundation.js'
             },
@@ -132,6 +133,6 @@ module.exports = function (grunt) {
     grunt.registerTask('img', ['newer:copy']);
     grunt.registerTask('css', ['clean:css', 'compass']);
     grunt.registerTask('js',  ['clean:js', 'concat']);
-    grunt.registerTask('dev',  ['clean', 'assemble', 'css', 'js', 'img', 'copy', 'watch']);
     grunt.registerTask('default', ['clean', 'assemble', 'css', 'js', 'img', 'copy']);
+    grunt.registerTask('dev',  ['default', 'watch']);
 };

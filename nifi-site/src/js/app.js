@@ -3,6 +3,8 @@
 $(document).foundation('topbar', {
     mobile_show_parent_link: false,
     is_hover: false
+}).foundation('reveal', {
+    animation: 'none'
 });
 
 // load fonts

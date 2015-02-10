@@ -109,7 +109,7 @@
     </dependencySets>
     <files>
         <file>
-            <source>../README.md</source>
+            <source>./README.md</source>
             <outputDirectory>./</outputDirectory>
             <destName>README</destName>
             <fileMode>0644</fileMode>
@@ -123,14 +123,14 @@
             <filtered>true</filtered>
         </file>
         <file>
-            <source>../LICENSE</source>
+            <source>./LICENSE</source>
             <outputDirectory>./</outputDirectory>
             <destName>LICENSE</destName>
             <fileMode>0644</fileMode>
             <filtered>true</filtered>
         </file>       
         <file>
-            <source>../NOTICE</source>
+            <source>./NOTICE</source>
             <outputDirectory>./</outputDirectory>
             <destName>NOTICE</destName>
             <fileMode>0644</fileMode>

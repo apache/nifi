@@ -377,16 +377,16 @@
                                             <directory>/opt/nifi/nifi-${project.version}</directory>
                                             <sources>
                                                 <source>
-                                                    <location>../LICENSE</location>
+                                                    <location>./LICENSE</location>
                                                 </source>
                                                 <source>
-                                                    <location>../NOTICE</location>
+                                                    <location>./NOTICE</location>
                                                 </source>
                                                 <source>
                                                     <location>../DISCLAIMER</location>
                                                 </source>
                                                 <source>
-                                                    <location>../README.md</location>
+                                                    <location>./README.md</location>
                                                     <destination>README</destination>
                                                 </source>
                                             </sources>

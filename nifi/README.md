@@ -14,7 +14,7 @@
 -->
 # Apache NiFi
 
-Apache NiFi is a dataflow system based on the concepts of flow-based programming. It is currently apart of the Apache Incubator.
+Apache NiFi is an easy to use, powerful, and reliable system to process and distribute data. It is currently apart of the Apache Incubator.
 
 ## Table of Contents
 
@@ -28,12 +28,24 @@ Apache NiFi is a dataflow system based on the concepts of flow-based programming
 
 ## Features
 
-Apache NiFi supports powerful and scalable directed graphs of data routing, transformation, and system mediation logic. Some of the high-level capabilities and objectives of Apache NiFi include:
+Apache NiFi was made for dataflow. It supports highly configurable directed graphs of data routing, transformation, and system mediation logic. Some of its key features include:
 
-- Web-based user interface for seamless experience between design, control, feedback, and monitoring of data flows
-- Highly configurable along several dimensions of quality of service such as loss tolerant versus guaranteed delivery, low latency versus high throughput, and priority based queuing
-- Fine-grained data provenance for all data received, forked, joined, cloned, modified, sent, and ultimately dropped as data reaches its configured end-state
-- Component-based extension model along well defined interfaces enabling rapid development and effective testing 
+- Web-based user interface
+  - Seamless experience for design, control, and monitoring
+- Highly configurable
+  - Loss tolerant vs guaranteed delivery
+  - Low latency vs high throughput
+  - Dynamic prioritization
+  - Flows can be modified at runtime
+  - Back pressure
+- Data Provenance
+  - Track dataflow from beginning to end
+- Designed for extension
+  - Build your own processors and more
+  - Enables rapid development and effective testing
+- Secure
+  - SSL, SSH, HTTPS, encrypted content, etc...
+  - Pluggable role-based authentication/authorization
 
 ## Getting Started
 

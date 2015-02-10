@@ -25,10 +25,10 @@
     <artifactId>nifi</artifactId>
     <version>0.0.2-incubating-SNAPSHOT</version>
     <packaging>pom</packaging>
-    <description>Apache NiFi is a dataflow system based on the concepts of flow-based programming. It is currently a part of the Apache Incubator.</description>
+    <description>Apache NiFi(incubating) is an easy to use, powerful, and reliable system to process and distribute data.</description>
     <url>http://nifi.incubator.apache.org</url>
     <organization>
-        <name>Apache NiFi (incubating)</name>
+        <name>Apache NiFi(incubating) Project</name>
         <url>http://nifi.incubator.apache.org/</url>
     </organization>
     <licenses>
@@ -88,6 +88,7 @@
         <spring.version>4.1.4.RELEASE</spring.version>
         <spring.security.version>3.2.5.RELEASE</spring.security.version>
         <jersey.version>1.18.3</jersey.version>
+        <inceptionYear>2014</inceptionYear>
     </properties>
     <dependencyManagement>
         <dependencies>

@@ -3,6 +3,9 @@
 @import "foundation/components/grid";
 @import "foundation/components/top-bar";
 @import "foundation/components/tables";
+@import "foundation/components/global";
+@import "foundation/components/flex-video";
+@import "foundation/components/reveal";
 
 // @import "foundation";
 // Or selectively include components
@@ -165,6 +168,25 @@ tr th {
 
 table tr:nth-of-type(even) {
     background-color: transparent !important;
+}
+
+/*
+    Iframe
+*/
+
+div.external-guide {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    top: rem-calc(45);
+    z-index: 1;
+    background-color: #fff;
+}
+
+div.external-guide iframe {
+    width: 100%;
+    height: 100%;
 }
 
 /*
