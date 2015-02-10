@@ -27,6 +27,10 @@ import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.client.socket.SocketClient;
+import org.apache.nifi.remote.exception.HandshakeException;
+import org.apache.nifi.remote.exception.PortNotRunningException;
+import org.apache.nifi.remote.exception.ProtocolException;
+import org.apache.nifi.remote.exception.UnknownPortException;
 import org.apache.nifi.remote.protocol.DataPacket;
 
 /**
@@ -65,18 +69,24 @@ import org.apache.nifi.remote.protocol.DataPacket;
 public interface SiteToSiteClient extends Closeable {
 
 	/**
+	 * <p>
 	 * Creates a new Transaction that can be used to either send data to a remote NiFi instance
 	 * or receive data from a remote NiFi instance, depending on the value passed for the {@code direction} argument.
+	 * </p>
 	 * 
+	 * <p>
+	 * <b>Note:</b> If all of the nodes are penalized (See {@link Builder#nodePenalizationPeriod(long, TimeUnit)}), then
+	 * this method will return <code>null</code>.
+	 * </p>
 	 * 
 	 * @param direction specifies which direction the data should be transferred. A value of {@link TransferDirection#SEND}
 	 * indicates that this Transaction will send data to the remote instance; a value of {@link TransferDirection#RECEIVE} indicates
 	 * that this Transaction will be used to receive data from the remote instance.
 	 * 
-	 * @return
+	 * @return a Transaction to use for sending or receiving data, or <code>null</code> if all nodes are penalized.
 	 * @throws IOException
 	 */
-	Transaction createTransaction(TransferDirection direction) throws IOException;
+	Transaction createTransaction(TransferDirection direction) throws HandshakeException, PortNotRunningException, ProtocolException, UnknownPortException, IOException;
 	
 	/**
 	 * <p>

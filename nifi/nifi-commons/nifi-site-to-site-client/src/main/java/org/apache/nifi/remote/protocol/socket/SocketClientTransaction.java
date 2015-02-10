@@ -19,6 +19,7 @@ package org.apache.nifi.remote.protocol.socket;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.zip.CRC32;
 import java.util.zip.CheckedInputStream;
@@ -29,6 +30,8 @@ import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.codec.FlowFileCodec;
 import org.apache.nifi.remote.exception.ProtocolException;
+import org.apache.nifi.remote.io.CompressionInputStream;
+import org.apache.nifi.remote.io.CompressionOutputStream;
 import org.apache.nifi.remote.protocol.DataPacket;
 import org.apache.nifi.remote.protocol.RequestType;
 import org.slf4j.Logger;
@@ -47,14 +50,16 @@ public class SocketClientTransaction implements Transaction {
 	private final boolean compress;
 	private final Peer peer;
 	private final int penaltyMillis;
+	private final String destinationId;
 	
 	private boolean dataAvailable = false;
 	private int transfers = 0;
 	private TransactionState state;
 	
-	SocketClientTransaction(final int protocolVersion, final Peer peer, final FlowFileCodec codec, 
+	SocketClientTransaction(final int protocolVersion, final String destinationId, final Peer peer, final FlowFileCodec codec, 
 			final TransferDirection direction, final boolean useCompression, final int penaltyMillis) throws IOException {
 		this.protocolVersion = protocolVersion;
+		this.destinationId = destinationId;
 		this.peer = peer;
 		this.codec = codec;
 		this.direction = direction;
@@ -140,7 +145,8 @@ public class SocketClientTransaction implements Transaction {
         	}
         	
             logger.debug("{} Receiving data from {}", this, peer);
-            final DataPacket packet = codec.decode(new CheckedInputStream(dis, crc));
+            final InputStream dataIn = compress ? new CompressionInputStream(dis) : dis;
+            final DataPacket packet = codec.decode(new CheckedInputStream(dataIn, crc));
             
             if ( packet == null ) {
                 this.dataAvailable = false;
@@ -174,7 +180,8 @@ public class SocketClientTransaction implements Transaction {
     
             logger.debug("{} Sending data to {}", this, peer);
     
-    		final OutputStream out = new CheckedOutputStream(dos, crc);
+            final OutputStream dataOut = compress ? new CompressionOutputStream(dos) : dos;
+    		final OutputStream out = new CheckedOutputStream(dataOut, crc);
             codec.encode(dataPacket, out);
             
             // need to close the CompressionOutputStream in order to force it write out any remaining bytes.
@@ -208,6 +215,10 @@ public class SocketClientTransaction implements Transaction {
 		}
 	}
 	
+	@Override
+	public void complete() throws IOException {
+	    complete(false);
+	}
 	
 	@Override
 	public void complete(boolean requestBackoff) throws IOException {
@@ -246,7 +257,7 @@ public class SocketClientTransaction implements Transaction {
                 
                 logger.debug("{} Received {} from {}", this, transactionResponse, peer);
                 if ( transactionResponse.getCode() == ResponseCode.TRANSACTION_FINISHED_BUT_DESTINATION_FULL ) {
-                    peer.penalize(penaltyMillis);
+                    peer.penalize(destinationId, penaltyMillis);
                 } else if ( transactionResponse.getCode() != ResponseCode.TRANSACTION_FINISHED ) {
                     throw new ProtocolException("After sending data, expected TRANSACTION_FINISHED response but got " + transactionResponse);
                 }

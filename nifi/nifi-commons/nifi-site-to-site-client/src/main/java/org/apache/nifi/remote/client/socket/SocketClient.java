@@ -24,23 +24,23 @@ import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.client.SiteToSiteClient;
 import org.apache.nifi.remote.client.SiteToSiteClientConfig;
-import org.apache.nifi.remote.exception.HandshakeException;
-import org.apache.nifi.remote.exception.PortNotRunningException;
-import org.apache.nifi.remote.exception.ProtocolException;
-import org.apache.nifi.remote.exception.UnknownPortException;
 import org.apache.nifi.remote.protocol.DataPacket;
 import org.apache.nifi.util.ObjectHolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SocketClient implements SiteToSiteClient {
+    private static final Logger logger = LoggerFactory.getLogger(SocketClient.class);
+    
     private final SiteToSiteClientConfig config;
-	private final EndpointConnectionStatePool pool;
+	private final EndpointConnectionPool pool;
 	private final boolean compress;
 	private final String portName;
 	private final long penalizationNanos;
 	private volatile String portIdentifier;
 	
 	public SocketClient(final SiteToSiteClientConfig config) {
-		pool = new EndpointConnectionStatePool(config.getUrl(), (int) config.getTimeout(TimeUnit.MILLISECONDS), 
+		pool = new EndpointConnectionPool(config.getUrl(), (int) config.getTimeout(TimeUnit.MILLISECONDS), 
 				config.getSslContext(), config.getEventReporter(), config.getPeerPersistenceFile());
 		
 		this.config = config;
@@ -66,44 +66,55 @@ public class SocketClient implements SiteToSiteClient {
 			return id;
 		}
 		
+		final String portId;
 		if ( direction == TransferDirection.SEND ) {
-			return pool.getInputPortIdentifier(this.portName);
+			portId = pool.getInputPortIdentifier(this.portName);
 		} else {
-			return pool.getOutputPortIdentifier(this.portName);
+			portId = pool.getOutputPortIdentifier(this.portName);
 		}
+		
+		if (portId == null) {
+		    logger.debug("Unable to resolve port [{}] to an identifier", portName);
+		} else {
+		    logger.debug("Resolved port [{}] to identifier [{}]", portName, portId);
+		}
+		
+		return portId;
 	}
 	
 	
+	private RemoteDestination createRemoteDestination(final String portId) {
+	    return new RemoteDestination() {
+            @Override
+            public String getIdentifier() {
+                return portId;
+            }
+
+            @Override
+            public long getYieldPeriod(final TimeUnit timeUnit) {
+                return timeUnit.convert(penalizationNanos, TimeUnit.NANOSECONDS);
+            }
+
+            @Override
+            public boolean isUseCompression() {
+                return compress;
+            }
+        };
+	}
+	
 	@Override
 	public Transaction createTransaction(final TransferDirection direction) throws IOException {
-		final String portId = getPortIdentifier(TransferDirection.SEND);
+		final String portId = getPortIdentifier(direction);
 		
 		if ( portId == null ) {
-			throw new IOException("Could not find Port with name " + portName + " for remote NiFi instance");
+			throw new IOException("Could not find Port with name '" + portName + "' for remote NiFi instance");
 		}
 		
-		final RemoteDestination remoteDestination = new RemoteDestination() {
-			@Override
-			public String getIdentifier() {
-				return portId;
-			}
-
-			@Override
-			public long getYieldPeriod(final TimeUnit timeUnit) {
-				return timeUnit.convert(penalizationNanos, TimeUnit.NANOSECONDS);
-			}
-
-			@Override
-			public boolean isUseCompression() {
-				return compress;
-			}
-		};
+		final RemoteDestination remoteDestination = createRemoteDestination(portId);
 		
-		final EndpointConnectionState connectionState;
-		try {
-			connectionState = pool.getEndpointConnectionState(remoteDestination, direction);
-		} catch (final ProtocolException | HandshakeException | PortNotRunningException | UnknownPortException e) {
-			throw new IOException(e);
+		final EndpointConnection connectionState = pool.getEndpointConnection(remoteDestination, direction, getConfig());
+		if ( connectionState == null ) {
+		    return null;
 		}
 		
 		final Transaction transaction = connectionState.getSocketClientProtocol().startTransaction(
@@ -111,7 +122,7 @@ public class SocketClient implements SiteToSiteClient {
 		
 		// Wrap the transaction in a new one that will return the EndpointConnectionState back to the pool whenever
 		// the transaction is either completed or canceled.
-		final ObjectHolder<EndpointConnectionState> connectionStateRef = new ObjectHolder<>(connectionState);
+		final ObjectHolder<EndpointConnection> connectionStateRef = new ObjectHolder<>(connectionState);
 		return new Transaction() {
 			@Override
 			public void confirm() throws IOException {
@@ -119,11 +130,16 @@ public class SocketClient implements SiteToSiteClient {
 			}
 
 			@Override
+			public void complete() throws IOException {
+			    complete(false);
+			}
+			
+			@Override
 			public void complete(final boolean requestBackoff) throws IOException {
 				try {
 					transaction.complete(requestBackoff);
 				} finally {
-				    final EndpointConnectionState state = connectionStateRef.get();
+				    final EndpointConnection state = connectionStateRef.get();
 				    if ( state != null ) {
 				        pool.offer(connectionState);
 				        connectionStateRef.set(null);
@@ -136,7 +152,7 @@ public class SocketClient implements SiteToSiteClient {
 				try {
 					transaction.cancel(explanation);
 				} finally {
-                    final EndpointConnectionState state = connectionStateRef.get();
+                    final EndpointConnection state = connectionStateRef.get();
                     if ( state != null ) {
                         pool.terminate(connectionState);
                         connectionStateRef.set(null);
@@ -149,7 +165,7 @@ public class SocketClient implements SiteToSiteClient {
 			    try {
 			        transaction.error();
 			    } finally {
-                    final EndpointConnectionState state = connectionStateRef.get();
+                    final EndpointConnection state = connectionStateRef.get();
                     if ( state != null ) {
                         pool.terminate(connectionState);
                         connectionStateRef.set(null);

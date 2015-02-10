@@ -47,4 +47,9 @@ public class SSLSocketChannelInput implements CommunicationsInput {
     public long getBytesRead() {
         return countingIn.getBytesRead();
     }
+
+    @Override
+    public void consume() throws IOException {
+        in.consume();
+    }
 }

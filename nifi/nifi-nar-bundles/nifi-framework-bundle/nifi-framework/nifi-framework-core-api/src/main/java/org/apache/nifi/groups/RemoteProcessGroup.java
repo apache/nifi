@@ -24,9 +24,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.exception.CommunicationsException;
 import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.remote.PeerStatus;
 import org.apache.nifi.remote.RemoteGroupPort;
-import org.apache.nifi.remote.client.socket.EndpointConnectionStatePool;
 
 public interface RemoteProcessGroup {
 
@@ -81,8 +79,6 @@ public interface RemoteProcessGroup {
 
     String getYieldDuration();
     
-    EndpointConnectionStatePool getConnectionPool();
-
     /**
      * Sets the timeout using the TimePeriod format (e.g., "30 secs", "1 min")
      *

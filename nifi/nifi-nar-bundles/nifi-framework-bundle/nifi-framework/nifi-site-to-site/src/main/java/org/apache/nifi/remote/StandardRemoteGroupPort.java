@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.remote;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -23,6 +24,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -37,10 +39,9 @@ import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.remote.client.socket.EndpointConnectionState;
-import org.apache.nifi.remote.client.socket.EndpointConnectionStatePool;
+import org.apache.nifi.remote.client.socket.EndpointConnection;
+import org.apache.nifi.remote.client.socket.EndpointConnectionPool;
 import org.apache.nifi.remote.codec.FlowFileCodec;
-import org.apache.nifi.remote.exception.HandshakeException;
 import org.apache.nifi.remote.exception.PortNotRunningException;
 import org.apache.nifi.remote.exception.ProtocolException;
 import org.apache.nifi.remote.exception.TransmissionDisabledException;
@@ -50,6 +51,7 @@ import org.apache.nifi.remote.protocol.CommunicationsSession;
 import org.apache.nifi.remote.protocol.socket.SocketClientProtocol;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,9 +68,10 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
     private final AtomicBoolean useCompression = new AtomicBoolean(false);
     private final AtomicBoolean targetExists = new AtomicBoolean(true);
     private final AtomicBoolean targetRunning = new AtomicBoolean(true);
+    private final SSLContext sslContext;
     private final TransferDirection transferDirection;
     
-    private final EndpointConnectionStatePool connectionStatePool;
+    private final AtomicReference<EndpointConnectionPool> connectionPoolRef = new AtomicReference<>();
     
     private final Set<CommunicationsSession> activeCommsChannels = new HashSet<>();
     private final Lock interruptLock = new ReentrantLock();
@@ -83,9 +86,13 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
         
         this.remoteGroup = remoteGroup;
         this.transferDirection = direction;
+        this.sslContext = sslContext;
         setScheduldingPeriod(MINIMUM_SCHEDULING_NANOS + " nanos");
-        
-        connectionStatePool = remoteGroup.getConnectionPool();
+    }
+    
+    private static File getPeerPersistenceFile(final String portId) {
+        final File stateDir = NiFiProperties.getInstance().getPersistentStateDirectory();
+        return new File(stateDir, portId + ".peers");
     }
     
     @Override
@@ -111,6 +118,11 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
         } finally {
             interruptLock.unlock();
         }
+        
+        final EndpointConnectionPool pool = connectionPoolRef.get();
+        if ( pool != null ) {
+            pool.shutdown();
+        }
     }
     
     @Override
@@ -123,6 +135,11 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
         } finally {
             interruptLock.unlock();
         }
+        
+        final EndpointConnectionPool connectionPool = new EndpointConnectionPool(remoteGroup.getTargetUri().toString(), 
+                remoteGroup.getCommunicationsTimeout(TimeUnit.MILLISECONDS), 
+                sslContext, remoteGroup.getEventReporter(), getPeerPersistenceFile(getIdentifier()));
+        connectionPoolRef.set(connectionPool);
     }
     
     
@@ -140,9 +157,10 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
         
         String url = getRemoteProcessGroup().getTargetUri().toString();
         
-        final EndpointConnectionState connectionState;
+        final EndpointConnectionPool connectionPool = connectionPoolRef.get();
+        final EndpointConnection connection;
         try {
-        	connectionState = connectionStatePool.getEndpointConnectionState(this, transferDirection);
+        	connection = connectionPool.getEndpointConnection(this, transferDirection);
         } catch (final PortNotRunningException e) {
             context.yield();
             this.targetRunning.set(false);
@@ -157,7 +175,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
             logger.error(message);
             remoteGroup.getEventReporter().reportEvent(Severity.ERROR, CATEGORY, message);
             return;
-        } catch (final HandshakeException | IOException e) {
+        } catch (final IOException e) {
             final String message = String.format("%s failed to communicate with %s due to %s", this, url, e.toString());
             logger.error(message);
             if ( logger.isDebugEnabled() ) {
@@ -168,15 +186,15 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
             return;
         }
         
-        if ( connectionState == null ) {
+        if ( connection == null ) {
             logger.debug("{} Unable to determine the next peer to communicate with; all peers must be penalized, so yielding context", this);
             context.yield();
             return;
         }
         
-        FlowFileCodec codec = connectionState.getCodec();
-        SocketClientProtocol protocol = connectionState.getSocketClientProtocol();
-        final Peer peer = connectionState.getPeer();
+        FlowFileCodec codec = connection.getCodec();
+        SocketClientProtocol protocol = connection.getSocketClientProtocol();
+        final Peer peer = connection.getPeer();
         url = peer.getUrl();
         
         try {
@@ -194,7 +212,10 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
             if ( getConnectableType() == ConnectableType.REMOTE_INPUT_PORT ) {
                 transferFlowFiles(peer, protocol, context, session, codec);
             } else {
-                receiveFlowFiles(peer, protocol, context, session, codec);
+                final int numReceived = receiveFlowFiles(peer, protocol, context, session, codec);
+                if ( numReceived == 0 ) {
+                    context.yield();
+                }
             }
 
             interruptLock.lock();
@@ -210,13 +231,13 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
 
             session.commit();
             
-            connectionState.setLastTimeUsed();
-            connectionStatePool.offer(connectionState);
+            connection.setLastTimeUsed();
+            connectionPool.offer(connection);
         } catch (final TransmissionDisabledException e) {
             cleanup(protocol, peer);
             session.rollback();
         } catch (final Exception e) {
-            connectionStatePool.penalize(peer, getYieldPeriod(TimeUnit.MILLISECONDS));
+            connectionPool.penalize(peer, getYieldPeriod(TimeUnit.MILLISECONDS));
 
             final String message = String.format("%s failed to communicate with %s (%s) due to %s", this, peer == null ? url : peer, protocol, e.toString());
             logger.error(message);
@@ -261,12 +282,12 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
     }
     
     
-    private void transferFlowFiles(final Peer peer, final ClientProtocol protocol, final ProcessContext context, final ProcessSession session, final FlowFileCodec codec) throws IOException, ProtocolException {
-        protocol.transferFlowFiles(peer, context, session, codec);
+    private int transferFlowFiles(final Peer peer, final ClientProtocol protocol, final ProcessContext context, final ProcessSession session, final FlowFileCodec codec) throws IOException, ProtocolException {
+        return protocol.transferFlowFiles(peer, context, session, codec);
     }
     
-    private void receiveFlowFiles(final Peer peer, final ClientProtocol protocol, final ProcessContext context, final ProcessSession session, final FlowFileCodec codec) throws IOException, ProtocolException {
-        protocol.receiveFlowFiles(peer, context, session, codec);
+    private int receiveFlowFiles(final Peer peer, final ClientProtocol protocol, final ProcessContext context, final ProcessSession session, final FlowFileCodec codec) throws IOException, ProtocolException {
+        return protocol.receiveFlowFiles(peer, context, session, codec);
     }
 
     @Override

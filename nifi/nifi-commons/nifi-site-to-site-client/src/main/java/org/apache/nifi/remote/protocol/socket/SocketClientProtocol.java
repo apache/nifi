@@ -150,6 +150,7 @@ public class SocketClientProtocol implements ClientProtocol {
             }
         }
         
+        logger.debug("Handshaking with properties {}", properties);
         dos.writeInt(properties.size());
         for ( final Map.Entry<HandshakeProperty, String> entry : properties.entrySet() ) {
             dos.writeUTF(entry.getKey().name());
@@ -269,13 +270,13 @@ public class SocketClientProtocol implements ClientProtocol {
             throw new IllegalStateException("Cannot start transaction; handshake resolution was " + handshakeResponse);
         }
         
-        return new SocketClientTransaction(versionNegotiator.getVersion(), peer, codec, 
+        return new SocketClientTransaction(versionNegotiator.getVersion(), destination.getIdentifier(), peer, codec, 
         		direction, useCompression, (int) destination.getYieldPeriod(TimeUnit.MILLISECONDS));
     }
 
 
     @Override
-    public void receiveFlowFiles(final Peer peer, final ProcessContext context, final ProcessSession session, final FlowFileCodec codec) throws IOException, ProtocolException {
+    public int receiveFlowFiles(final Peer peer, final ProcessContext context, final ProcessSession session, final FlowFileCodec codec) throws IOException, ProtocolException {
     	final String userDn = peer.getCommunicationsSession().getUserDn();
     	final Transaction transaction = startTransaction(peer, codec, TransferDirection.RECEIVE);
     	
@@ -288,7 +289,7 @@ public class SocketClientProtocol implements ClientProtocol {
     		final DataPacket dataPacket = transaction.receive();
     		if ( dataPacket == null ) {
     		    if ( flowFilesReceived.isEmpty() ) {
-    		        peer.penalize(destination.getYieldPeriod(TimeUnit.MILLISECONDS));
+    		        peer.penalize(destination.getIdentifier(), destination.getYieldPeriod(TimeUnit.MILLISECONDS));
     		    }
     			break;
     		}
@@ -322,25 +323,25 @@ public class SocketClientProtocol implements ClientProtocol {
 		transaction.complete(applyBackpressure);
 		logger.debug("{} Sending TRANSACTION_FINISHED_BUT_DESTINATION_FULL to {}", this, peer);
 
-		if ( flowFilesReceived.isEmpty() ) {
-		    return;
+		if ( !flowFilesReceived.isEmpty() ) {
+    		stopWatch.stop();
+    		final String flowFileDescription = flowFilesReceived.size() < 20 ? flowFilesReceived.toString() : flowFilesReceived.size() + " FlowFiles";
+    		final String uploadDataRate = stopWatch.calculateDataRate(bytesReceived);
+    		final long uploadMillis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
+    		final String dataSize = FormatUtils.formatDataSize(bytesReceived);
+    		logger.info("{} Successfully receveied {} ({}) from {} in {} milliseconds at a rate of {}", new Object[] { 
+    				this, flowFileDescription, dataSize, peer, uploadMillis, uploadDataRate });
 		}
 		
-		stopWatch.stop();
-		final String flowFileDescription = flowFilesReceived.size() < 20 ? flowFilesReceived.toString() : flowFilesReceived.size() + " FlowFiles";
-		final String uploadDataRate = stopWatch.calculateDataRate(bytesReceived);
-		final long uploadMillis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
-		final String dataSize = FormatUtils.formatDataSize(bytesReceived);
-		logger.info("{} Successfully receveied {} ({}) from {} in {} milliseconds at a rate of {}", new Object[] { 
-				this, flowFileDescription, dataSize, peer, uploadMillis, uploadDataRate });
+		return flowFilesReceived.size();
     }
 
     
     @Override
-    public void transferFlowFiles(final Peer peer, final ProcessContext context, final ProcessSession session, final FlowFileCodec codec) throws IOException, ProtocolException {
+    public int transferFlowFiles(final Peer peer, final ProcessContext context, final ProcessSession session, final FlowFileCodec codec) throws IOException, ProtocolException {
 		FlowFile flowFile = session.get();
 		if (flowFile == null) {
-			return;
+			return 0;
 		}
 
 		try {
@@ -401,6 +402,8 @@ public class SocketClientProtocol implements ClientProtocol {
 	        final String flowFileDescription = (flowFilesSent.size() < 20) ? flowFilesSent.toString() : flowFilesSent.size() + " FlowFiles";
 	        logger.info("{} Successfully sent {} ({}) to {} in {} milliseconds at a rate of {}", new Object[] {
 	            this, flowFileDescription, dataSize, peer, uploadMillis, uploadDataRate});
+	        
+	        return flowFilesSent.size();
 		} catch (final Exception e) {
 			session.rollback();
 			throw e;

@@ -56,7 +56,6 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.ProcessGroupCounts;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroupPortDescriptor;
-import org.apache.nifi.remote.client.socket.EndpointConnectionStatePool;
 import org.apache.nifi.remote.util.RemoteNiFiUtils;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.Severity;
@@ -130,7 +129,6 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
 
     private volatile String authorizationIssue;
 
-    private final EndpointConnectionStatePool endpointConnectionPool;
     private final ScheduledExecutorService backgroundThreadExecutor;
 
     public StandardRemoteProcessGroup(final String id, final String targetUri, final ProcessGroup processGroup,
@@ -172,13 +170,9 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
             }
         };
 
-        endpointConnectionPool = new EndpointConnectionStatePool(getTargetUri().toString(), getCommunicationsTimeout(TimeUnit.MILLISECONDS), 
-        		sslContext, eventReporter, getPeerPersistenceFile());
-        
         final Runnable checkAuthorizations = new InitializationTask();
-
         backgroundThreadExecutor = new FlowEngine(1, "Remote Process Group " + id + ": " + targetUri);
-        backgroundThreadExecutor.scheduleWithFixedDelay(checkAuthorizations, 0L, 30L, TimeUnit.SECONDS);
+        backgroundThreadExecutor.scheduleWithFixedDelay(checkAuthorizations, 5L, 30L, TimeUnit.SECONDS);
     }
 
     @Override
@@ -200,7 +194,6 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     @Override
     public void shutdown() {
         backgroundThreadExecutor.shutdown();
-        endpointConnectionPool.shutdown();
     }
     
     @Override
@@ -1221,11 +1214,6 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
         return yieldDuration;
     }
     
-    @Override
-    public EndpointConnectionStatePool getConnectionPool() {
-        return endpointConnectionPool;
-    }
-
     @Override
     public void verifyCanDelete() {
         verifyCanDelete(false);

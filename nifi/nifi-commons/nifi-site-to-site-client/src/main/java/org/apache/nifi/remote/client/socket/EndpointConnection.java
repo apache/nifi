@@ -20,13 +20,13 @@ import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.codec.FlowFileCodec;
 import org.apache.nifi.remote.protocol.socket.SocketClientProtocol;
 
-public class EndpointConnectionState {
+public class EndpointConnection {
 	private final Peer peer;
     private final SocketClientProtocol socketClientProtocol;
     private final FlowFileCodec codec;
     private volatile long lastUsed;
     
-    public EndpointConnectionState(final Peer peer, final SocketClientProtocol socketClientProtocol, final FlowFileCodec codec) {
+    public EndpointConnection(final Peer peer, final SocketClientProtocol socketClientProtocol, final FlowFileCodec codec) {
         this.peer = peer;
         this.socketClientProtocol = socketClientProtocol;
         this.codec = codec;

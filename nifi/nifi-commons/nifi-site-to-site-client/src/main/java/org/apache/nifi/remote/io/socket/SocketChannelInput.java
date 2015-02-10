@@ -63,4 +63,9 @@ public class SocketChannelInput implements CommunicationsInput {
     public void interrupt() {
         interruptableIn.interrupt();
     }
+
+    @Override
+    public void consume() throws IOException {
+        socketIn.consume();
+    }
 }

@@ -21,6 +21,12 @@ import java.io.InputStream;
 
 public interface CommunicationsInput {
 
+    /**
+     * Reads all data currently on the socket and throws it away
+     * @throws IOException
+     */
+    void consume() throws IOException;
+    
     InputStream getInputStream() throws IOException;
 
     long getBytesRead();

@@ -18,10 +18,10 @@ package org.apache.nifi.remote;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.nifi.remote.protocol.CommunicationsSession;
-import org.apache.nifi.stream.io.NullOutputStream;
-import org.apache.nifi.stream.io.StreamUtils;
 
 public class Peer {
 
@@ -29,7 +29,8 @@ public class Peer {
     private final String url;
     private final String clusterUrl;
     private final String host;
-    private long penalizationExpiration = 0L;
+    
+    private final Map<String, Long> penaltyExpirationMap = new HashMap<>();
     private boolean closed = false;
 
     public Peer(final CommunicationsSession commsSession, final String peerUrl, final String clusterUrl) {
@@ -61,19 +62,31 @@ public class Peer {
 
         // Consume the InputStream so that it doesn't linger on the Peer's outgoing socket buffer
         try {
-            StreamUtils.copy(commsSession.getInput().getInputStream(), new NullOutputStream());
+            commsSession.getInput().consume();
         } finally {
             commsSession.close();
         }
     }
 
-    public void penalize(final long millis) {
-        penalizationExpiration = Math.max(penalizationExpiration, System.currentTimeMillis() + millis);
+    /**
+     * Penalizes this peer for the given destination only for the provided number of milliseconds
+     * @param destinationId
+     * @param millis
+     */
+    public void penalize(final String destinationId, final long millis) {
+        final Long currentPenalty = penaltyExpirationMap.get(destinationId);
+        final long proposedPenalty = System.currentTimeMillis() + millis;
+        if ( currentPenalty == null || proposedPenalty > currentPenalty ) {
+            penaltyExpirationMap.put(destinationId, proposedPenalty);
+        }
     }
+    
 
-    public boolean isPenalized() {
-        return penalizationExpiration > System.currentTimeMillis();
+    public boolean isPenalized(final String destinationId) {
+        final Long currentPenalty = penaltyExpirationMap.get(destinationId);
+        return (currentPenalty != null && currentPenalty > System.currentTimeMillis());
     }
+    
 
     public boolean isClosed() {
         return closed;
@@ -110,8 +123,6 @@ public class Peer {
         sb.append("Peer[url=").append(url);
         if (closed) {
             sb.append(",CLOSED");
-        } else if (isPenalized()) {
-            sb.append(",PENALIZED");
         }
         sb.append("]");
         return sb.toString();

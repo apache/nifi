@@ -137,6 +137,16 @@ public interface Transaction {
 	void complete(boolean requestBackoff) throws IOException;
 	
 	/**
+     * <p>
+     * Completes the transaction and indicates to both the sender and receiver that the data transfer was
+     * successful.
+     * </p>
+     * 
+     * @throws IOException
+     */
+	void complete() throws IOException;
+	
+	/**
 	 * <p>
 	 * Cancels this transaction, indicating to the sender that the data has not been successfully received so that
 	 * the sender can retry or handle however is appropriate.

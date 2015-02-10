@@ -16,8 +16,11 @@
  */
 package org.apache.nifi.remote.exception;
 
-public class UnknownPortException extends Exception {
-
+/**
+ * An UnknownPortException indicates that the remote NiFi instance has reported that
+ * the endpoint that the client attempted to communicate with does not exist.
+ */
+public class UnknownPortException extends ProtocolException {
     private static final long serialVersionUID = -2790940982005516375L;
 
     public UnknownPortException(final String message) {

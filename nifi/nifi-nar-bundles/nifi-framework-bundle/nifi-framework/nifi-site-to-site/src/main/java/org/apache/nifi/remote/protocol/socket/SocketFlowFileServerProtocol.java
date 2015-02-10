@@ -430,7 +430,7 @@ public class SocketFlowFileServerProtocol implements ServerProtocol {
         
         logger.debug("{} received {} from {}", new Object[] {this, transactionResponse, peer});
         if ( transactionResponse.getCode() == ResponseCode.TRANSACTION_FINISHED_BUT_DESTINATION_FULL ) {
-            peer.penalize(port.getYieldPeriod(TimeUnit.MILLISECONDS));
+            peer.penalize(port.getIdentifier(), port.getYieldPeriod(TimeUnit.MILLISECONDS));
         } else if ( transactionResponse.getCode() != ResponseCode.TRANSACTION_FINISHED ) {
             throw new ProtocolException("After sending data, expected TRANSACTION_FINISHED response but got " + transactionResponse);
         }

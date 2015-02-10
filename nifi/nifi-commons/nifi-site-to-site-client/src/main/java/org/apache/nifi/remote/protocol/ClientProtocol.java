@@ -40,9 +40,9 @@ public interface ClientProtocol extends VersionedRemoteResource {
 
     FlowFileCodec negotiateCodec(Peer peer) throws IOException, ProtocolException;
 
-    void receiveFlowFiles(Peer peer, ProcessContext context, ProcessSession session, FlowFileCodec codec) throws IOException, ProtocolException;
+    int receiveFlowFiles(Peer peer, ProcessContext context, ProcessSession session, FlowFileCodec codec) throws IOException, ProtocolException;
 
-    void transferFlowFiles(Peer peer, ProcessContext context, ProcessSession session, FlowFileCodec codec) throws IOException, ProtocolException;
+    int transferFlowFiles(Peer peer, ProcessContext context, ProcessSession session, FlowFileCodec codec) throws IOException, ProtocolException;
 
     void shutdown(Peer peer) throws IOException, ProtocolException;
 
