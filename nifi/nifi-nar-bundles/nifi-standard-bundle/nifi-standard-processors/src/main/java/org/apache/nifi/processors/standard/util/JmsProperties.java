@@ -33,6 +33,7 @@ public class JmsProperties {
     public static final String MSG_TYPE_BYTE = "byte";
     public static final String MSG_TYPE_TEXT = "text";
     public static final String MSG_TYPE_STREAM = "stream";
+    public static final String MSG_TYPE_MAP = "map";
     public static final String MSG_TYPE_EMPTY = "empty";
 
     // Standard JMS Properties
@@ -142,7 +143,7 @@ public class JmsProperties {
             .name("Message Type")
             .description("The Type of JMS Message to Construct")
             .required(true)
-            .allowableValues(MSG_TYPE_BYTE, MSG_TYPE_STREAM, MSG_TYPE_TEXT, MSG_TYPE_EMPTY)
+            .allowableValues(MSG_TYPE_BYTE, MSG_TYPE_STREAM, MSG_TYPE_TEXT, MSG_TYPE_MAP, MSG_TYPE_EMPTY)
             .defaultValue(MSG_TYPE_BYTE)
             .build();
     public static final PropertyDescriptor MESSAGE_PRIORITY = new PropertyDescriptor.Builder()

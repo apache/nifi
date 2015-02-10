@@ -48,7 +48,6 @@ import javax.jms.MessageConsumer;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.apache.nifi.logging.ProcessorLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -59,10 +58,8 @@ import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processors.standard.util.JmsFactory;
 import org.apache.nifi.processors.standard.util.JmsProcessingSummary;
 import org.apache.nifi.processors.standard.util.WrappedMessageConsumer;
-import org.apache.nifi.util.BooleanHolder;
+import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.apache.nifi.util.IntegerHolder;
-import org.apache.nifi.util.LongHolder;
-import org.apache.nifi.util.ObjectHolder;
 import org.apache.nifi.util.StopWatch;
 
 public abstract class JmsConsumer extends AbstractProcessor {
