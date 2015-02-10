@@ -33,6 +33,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +42,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import javax.jms.JMSException;
+import javax.jms.MapMessage;
 import javax.jms.Message;
 import javax.jms.MessageConsumer;
 
@@ -54,6 +57,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processors.standard.util.JmsFactory;
+import org.apache.nifi.processors.standard.util.JmsProcessingSummary;
 import org.apache.nifi.processors.standard.util.WrappedMessageConsumer;
 import org.apache.nifi.util.BooleanHolder;
 import org.apache.nifi.util.IntegerHolder;
@@ -63,6 +67,8 @@ import org.apache.nifi.util.StopWatch;
 
 public abstract class JmsConsumer extends AbstractProcessor {
 
+    public static final String MAP_MESSAGE_PREFIX = "jms.mapmessage.";
+    
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
             .description("All FlowFiles are routed to success").build();
 
@@ -108,22 +114,17 @@ public abstract class JmsConsumer extends AbstractProcessor {
         final boolean addAttributes = context.getProperty(JMS_PROPS_TO_ATTRIBUTES).asBoolean();
         final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
 
-        final ObjectHolder<Message> lastMessageReceived = new ObjectHolder<>(null);
-        final ObjectHolder<Map<String, String>> attributesFromJmsProps = new ObjectHolder<>(null);
-        final Set<FlowFile> allFlowFilesCreated = new HashSet<>();
-        final IntegerHolder messagesReceived = new IntegerHolder(0);
-        final LongHolder bytesReceived = new LongHolder(0L);
-
+        final JmsProcessingSummary processingSummary = new JmsProcessingSummary();
+        
         final StopWatch stopWatch = new StopWatch(true);
         for (int i = 0; i < batchSize; i++) {
-            final BooleanHolder failure = new BooleanHolder(false);
 
             final Message message;
             try {
                 // If we haven't received a message, wait until one is available. If we have already received at least one
                 // message, then we are not willing to wait for more to become available, but we are willing to keep receiving
                 // all messages that are immediately available.
-                if (messagesReceived.get() == 0) {
+                if (processingSummary.getMessagesReceived() == 0) {
                     message = consumer.receive(timeout);
                 } else {
                     message = consumer.receiveNoWait();
@@ -131,7 +132,6 @@ public abstract class JmsConsumer extends AbstractProcessor {
             } catch (final JMSException e) {
                 logger.error("Failed to receive JMS Message due to {}", e);
                 wrappedConsumer.close(logger);
-                failure.set(true);
                 break;
             }
 
@@ -139,48 +139,16 @@ public abstract class JmsConsumer extends AbstractProcessor {
                 break;
             }
 
-            final IntegerHolder msgsThisFlowFile = new IntegerHolder(0);
-            FlowFile flowFile = session.create();
             try {
-                flowFile = session.write(flowFile, new OutputStreamCallback() {
-                    @Override
-                    public void process(final OutputStream rawOut) throws IOException {
-                        try (final OutputStream out = new BufferedOutputStream(rawOut, 65536)) {
-                            messagesReceived.getAndIncrement();
-                            final Map<String, String> attributes = (addAttributes ? JmsFactory.createAttributeMap(message) : null);
-                            attributesFromJmsProps.set(attributes);
-
-                            final byte[] messageBody = JmsFactory.createByteArray(message);
-                            out.write(messageBody);
-                            bytesReceived.addAndGet(messageBody.length);
-                            msgsThisFlowFile.incrementAndGet();
-                            lastMessageReceived.set(message);
-                        } catch (final JMSException e) {
-                            logger.error("Failed to receive JMS Message due to {}", e);
-                            failure.set(true);
-                        }
-                    }
-                });
-            } finally {
-                if (failure.get()) {    // no flowfile created
-                    session.remove(flowFile);
-                    wrappedConsumer.close(logger);
-                } else {
-                    allFlowFilesCreated.add(flowFile);
-
-                    final Map<String, String> attributes = attributesFromJmsProps.get();
-                    if (attributes != null) {
-                        flowFile = session.putAllAttributes(flowFile, attributes);
-                    }
-
-                    session.getProvenanceReporter().receive(flowFile, context.getProperty(URL).getValue());
-                    session.transfer(flowFile, REL_SUCCESS);
-                    logger.info("Created {} from {} messages received from JMS Server and transferred to 'success'", new Object[]{flowFile, msgsThisFlowFile.get()});
-                }
-            }
+				processingSummary.add( map2FlowFile(context, session, message, addAttributes, logger) );
+			} catch (Exception e) {
+                logger.error("Failed to receive JMS Message due to {}", e);
+                wrappedConsumer.close(logger);
+                break;				
+			}
         }
-
-        if (allFlowFilesCreated.isEmpty()) {
+        
+        if (processingSummary.getFlowFilesCreated()==0) {
             context.yield();
             return;
         }
@@ -188,21 +156,81 @@ public abstract class JmsConsumer extends AbstractProcessor {
         session.commit();
 
         stopWatch.stop();
-        if (!allFlowFilesCreated.isEmpty()) {
+        if (processingSummary.getFlowFilesCreated()>0) {
             final float secs = ((float) stopWatch.getDuration(TimeUnit.MILLISECONDS) / 1000F);
-            float messagesPerSec = ((float) messagesReceived.get()) / secs;
-            final String dataRate = stopWatch.calculateDataRate(bytesReceived.get());
-            logger.info("Received {} messages in {} milliseconds, at a rate of {} messages/sec or {}", new Object[]{messagesReceived.get(), stopWatch.getDuration(TimeUnit.MILLISECONDS), messagesPerSec, dataRate});
+            float messagesPerSec = ((float) processingSummary.getMessagesReceived()) / secs;
+            final String dataRate = stopWatch.calculateDataRate(processingSummary.getBytesReceived());
+            logger.info("Received {} messages in {} milliseconds, at a rate of {} messages/sec or {}", new Object[]{processingSummary.getMessagesReceived(), stopWatch.getDuration(TimeUnit.MILLISECONDS), messagesPerSec, dataRate});
         }
 
         // if we need to acknowledge the messages, do so now.
-        final Message lastMessage = lastMessageReceived.get();
+        final Message lastMessage = processingSummary.getLastMessageReceived();
         if (clientAcknowledge && lastMessage != null) {
             try {
                 lastMessage.acknowledge();  // acknowledge all received messages by acknowledging only the last.
             } catch (final JMSException e) {
-                logger.error("Failed to acknowledge {} JMS Message(s). This may result in duplicate messages. Reason for failure: {}", new Object[]{messagesReceived.get(), e});
+                logger.error("Failed to acknowledge {} JMS Message(s). This may result in duplicate messages. Reason for failure: {}", new Object[]{processingSummary.getMessagesReceived(), e});
             }
         }
     }
+    
+    public static JmsProcessingSummary map2FlowFile(final ProcessContext context, final ProcessSession session, final Message message, final boolean addAttributes, ProcessorLog logger) throws Exception {
+    	
+    	// Currently not very useful, because always one Message == one FlowFile
+        final IntegerHolder msgsThisFlowFile = new IntegerHolder(1);
+        
+        FlowFile flowFile = session.create();
+        try {
+        	// MapMessage is exception, add only name-value pairs to FlowFile attributes
+            if (message instanceof MapMessage) {
+				MapMessage mapMessage = (MapMessage) message;
+            	flowFile = session.putAllAttributes(flowFile, createMapMessageValues(mapMessage));				
+			}
+            // all other message types, write Message body to FlowFile content 
+            else {
+	            flowFile = session.write(flowFile, new OutputStreamCallback() {
+	                @Override
+	                public void process(final OutputStream rawOut) throws IOException {
+	                    try (final OutputStream out = new BufferedOutputStream(rawOut, 65536)) {
+	                        final byte[] messageBody = JmsFactory.createByteArray(message);
+	                        out.write(messageBody);
+	                    } catch (final JMSException e) {
+	                        throw new ProcessException("Failed to receive JMS Message due to {}", e);
+	                    }
+	                }
+	            });
+            }
+            
+            if (addAttributes)
+            	flowFile = session.putAllAttributes(flowFile, JmsFactory.createAttributeMap(message));
+            
+            session.getProvenanceReporter().receive(flowFile, context.getProperty(URL).getValue());
+            session.transfer(flowFile, REL_SUCCESS);
+            logger.info("Created {} from {} messages received from JMS Server and transferred to 'success'", new Object[]{flowFile, msgsThisFlowFile.get()});
+
+            return new JmsProcessingSummary(flowFile.getSize(), message, flowFile);
+            
+        } catch (Exception e) {
+        	session.remove(flowFile);
+            throw e;
+        }
+    }
+
+    public static Map<String, String> createMapMessageValues(final MapMessage mapMessage) throws JMSException {
+        final Map<String, String> valueMap = new HashMap<>();
+
+        final Enumeration<?> enumeration = mapMessage.getMapNames();
+        while (enumeration.hasMoreElements()) {
+            final String name = (String) enumeration.nextElement();
+
+            final Object value = mapMessage.getObject(name);
+            if (value==null)
+            	valueMap.put(MAP_MESSAGE_PREFIX+name, "");
+            else
+            	valueMap.put(MAP_MESSAGE_PREFIX+name, value.toString());        
+        }
+
+        return valueMap;
+    }    
+    
 }
