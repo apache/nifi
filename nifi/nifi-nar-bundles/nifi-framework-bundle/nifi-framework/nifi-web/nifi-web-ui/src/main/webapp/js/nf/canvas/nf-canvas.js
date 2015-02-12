@@ -510,12 +510,24 @@ nf.Canvas = (function () {
         $(window).on('resize', function () {
             updateGraphSize();
         }).on('keydown', function (evt) {
+            var isCtrl = evt.ctrlKey || evt.metaKey;
+            
+            // consider escape, before checking dialogs
+            if (!isCtrl && evt.keyCode === 27) {
+                // esc
+                nf.Actions.hideDialogs();
+
+                evt.preventDefault();
+                return;
+            }
+            
             // if a dialog is open, disable canvas shortcuts
             if ($('.dialog').is(':visible')) {
                 return;
             }
 
-            if (evt.ctrlKey || evt.metaKey) {
+            // handle shortcuts
+            if (isCtrl) {
                 if (evt.keyCode === 82) {
                     // ctrl-r
                     nf.Actions.reloadStatus();
@@ -542,11 +554,6 @@ nf.Canvas = (function () {
                 if (evt.keyCode === 46) {
                     // delete
                     nf.Actions['delete'](nf.CanvasUtils.getSelection());
-
-                    evt.preventDefault();
-                } else if (evt.keyCode === 27) {
-                    // esc
-                    nf.Actions.hideDialogs();
 
                     evt.preventDefault();
                 }
