@@ -75,28 +75,27 @@ public class TestSiteToSiteClient {
     public void testSend() throws IOException {
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.remote", "DEBUG");
         
-        final SiteToSiteClient client = new SiteToSiteClient.Builder()
-            .url("http://10.0.64.63:8080/nifi")
-            .portName("input")
-            .nodePenalizationPeriod(10, TimeUnit.MILLISECONDS)
-            .build();
+            final SiteToSiteClient client = new SiteToSiteClient.Builder()
+                .url("http://localhost:8080/nifi")
+                .portName("input")
+                .build();
         
-        try {
-            final Transaction transaction = client.createTransaction(TransferDirection.SEND);
-            Assert.assertNotNull(transaction);
-            
-            final Map<String, String> attrs = new HashMap<>();
-            attrs.put("site-to-site", "yes, please!");
-            final byte[] bytes = "Hello".getBytes();
-            final ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
-            final DataPacket packet = new StandardDataPacket(attrs, bais, bytes.length);
-            transaction.send(packet);
-
-            transaction.confirm();
-            transaction.complete();
-        } finally {
-            client.close();
-        }
+            try {
+                final Transaction transaction = client.createTransaction(TransferDirection.SEND);
+                Assert.assertNotNull(transaction);
+                
+                    final Map<String, String> attrs = new HashMap<>();
+                    attrs.put("site-to-site", "yes, please!");
+                    final byte[] bytes = "Hello".getBytes();
+                    final ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
+                    final DataPacket packet = new StandardDataPacket(attrs, bais, bytes.length);
+                    transaction.send(packet);
+                
+                transaction.confirm();
+                transaction.complete();
+            } finally {
+                client.close();
+            }
     }
     
 }

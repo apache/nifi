@@ -38,6 +38,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -114,6 +115,7 @@ public class EndpointConnectionPool {
     private final SSLContext sslContext;
     private final ScheduledExecutorService taskExecutor;
     private final int idleExpirationMillis;
+    private final RemoteDestination remoteDestination;
     
     private final ReadWriteLock listeningPortRWLock = new ReentrantReadWriteLock();
     private final Lock remoteInfoReadLock = listeningPortRWLock.readLock();
@@ -128,15 +130,17 @@ public class EndpointConnectionPool {
     private volatile boolean shutdown = false;
     
     
-    public EndpointConnectionPool(final String clusterUrl, final int commsTimeoutMillis, final int idleExpirationMillis, 
-            final EventReporter eventReporter, final File persistenceFile) 
+    public EndpointConnectionPool(final String clusterUrl, final RemoteDestination remoteDestination, final int commsTimeoutMillis, 
+            final int idleExpirationMillis, final EventReporter eventReporter, final File persistenceFile) 
     {
-    	this(clusterUrl, commsTimeoutMillis, idleExpirationMillis, null, eventReporter, persistenceFile);
+    	this(clusterUrl, remoteDestination, commsTimeoutMillis, idleExpirationMillis, null, eventReporter, persistenceFile);
     }
     
-    public EndpointConnectionPool(final String clusterUrl, final int commsTimeoutMillis, final int idleExpirationMillis,
+    public EndpointConnectionPool(final String clusterUrl, final RemoteDestination remoteDestination, final int commsTimeoutMillis, final int idleExpirationMillis,
             final SSLContext sslContext, final EventReporter eventReporter, final File persistenceFile) 
     {
+        Objects.requireNonNull(clusterUrl, "URL cannot be null");
+        Objects.requireNonNull(remoteDestination, "Remote Destination/Port Identifier cannot be null");
     	try {
     		this.clusterUrl = new URI(clusterUrl);
     	} catch (final URISyntaxException e) {
@@ -150,6 +154,7 @@ public class EndpointConnectionPool {
         }
         apiUri = this.clusterUrl.getScheme() + "://" + this.clusterUrl.getHost() + ":" + this.clusterUrl.getPort() + uriPath + "-api";
         
+        this.remoteDestination = remoteDestination;
     	this.sslContext = sslContext;
     	this.peersFile = persistenceFile;
     	this.eventReporter = eventReporter;
@@ -197,12 +202,12 @@ public class EndpointConnectionPool {
     }
     
     
-    public EndpointConnection getEndpointConnection(final RemoteDestination remoteDestination, final TransferDirection direction) throws IOException, HandshakeException, PortNotRunningException, UnknownPortException, ProtocolException {
-        return getEndpointConnection(remoteDestination, direction, null);
+    public EndpointConnection getEndpointConnection(final TransferDirection direction) throws IOException, HandshakeException, PortNotRunningException, UnknownPortException, ProtocolException {
+        return getEndpointConnection(direction, null);
     }
     
     
-    public EndpointConnection getEndpointConnection(final RemoteDestination remoteDestination, final TransferDirection direction, final SiteToSiteClientConfig config) throws IOException, HandshakeException, PortNotRunningException, UnknownPortException, ProtocolException {
+    public EndpointConnection getEndpointConnection(final TransferDirection direction, final SiteToSiteClientConfig config) throws IOException, HandshakeException, PortNotRunningException, UnknownPortException, ProtocolException {
     	//
         // Attempt to get a connection state that already exists for this URL.
         //
@@ -419,6 +424,7 @@ public class EndpointConnectionPool {
         return (peerList == null || peerList.isEmpty() || System.currentTimeMillis() > peerRefreshTime + PEER_REFRESH_PERIOD);
     }
     
+    
     private PeerStatus getNextPeerStatus(final TransferDirection direction) {
         List<PeerStatus> peerList = peerStatuses;
         if ( isPeerRefreshNeeded(peerList) ) {
@@ -532,7 +538,12 @@ public class EndpointConnectionPool {
         RemoteResourceInitiator.initiateResourceNegotiation(clientProtocol, dis, dos);
 
         clientProtocol.setTimeout(commsTimeout);
-        clientProtocol.handshake(peer, null);
+        if (clientProtocol.getVersionNegotiator().getVersion() < 5) {
+            clientProtocol.handshake(peer, remoteDestination.getIdentifier());
+        } else {
+            clientProtocol.handshake(peer, null);
+        }
+        
         final Set<PeerStatus> peerStatuses = clientProtocol.getPeerStatuses(peer);
         persistPeerStatuses(peerStatuses);
 

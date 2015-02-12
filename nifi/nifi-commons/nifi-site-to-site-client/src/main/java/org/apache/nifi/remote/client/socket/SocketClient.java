@@ -40,9 +40,11 @@ public class SocketClient implements SiteToSiteClient {
 	private final String portName;
 	private final long penalizationNanos;
 	private volatile String portIdentifier;
+	private volatile boolean closed = false;
 	
 	public SocketClient(final SiteToSiteClientConfig config) {
-		pool = new EndpointConnectionPool(config.getUrl(), (int) config.getTimeout(TimeUnit.MILLISECONDS),
+		pool = new EndpointConnectionPool(config.getUrl(), createRemoteDestination(config.getPortIdentifier()), 
+		        (int) config.getTimeout(TimeUnit.MILLISECONDS),
 		        (int) config.getIdleConnectionExpiration(TimeUnit.MILLISECONDS),
 				config.getSslContext(), config.getEventReporter(), config.getPeerPersistenceFile());
 		
@@ -107,15 +109,16 @@ public class SocketClient implements SiteToSiteClient {
 	
 	@Override
 	public Transaction createTransaction(final TransferDirection direction) throws IOException {
+	    if ( closed ) {
+	        throw new IllegalStateException("Client is closed");
+	    }
 		final String portId = getPortIdentifier(direction);
 		
 		if ( portId == null ) {
 			throw new IOException("Could not find Port with name '" + portName + "' for remote NiFi instance");
 		}
 		
-		final RemoteDestination remoteDestination = createRemoteDestination(portId);
-		
-		final EndpointConnection connectionState = pool.getEndpointConnection(remoteDestination, direction, getConfig());
+		final EndpointConnection connectionState = pool.getEndpointConnection(direction, getConfig());
 		if ( connectionState == null ) {
 		    return null;
 		}
@@ -196,6 +199,7 @@ public class SocketClient implements SiteToSiteClient {
 	
 	@Override
 	public void close() throws IOException {
+	    closed = true;
 		pool.shutdown();
 	}
 	
