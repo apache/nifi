@@ -28,6 +28,10 @@ Apache NiFi is a dataflow system based on the concepts of flow-based programming
 follow the directions found there.
 - Build nifi.  Change directory to 'nifi' and follow the directions found there.
 
+## Documentation
+
+See http://nifi.incubator.apache.org/ for the latest documentation.
+
 ## License
 
 Except as otherwise noted this software is licensed under the
