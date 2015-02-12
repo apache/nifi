@@ -882,7 +882,9 @@ nf.CanvasToolbox = (function () {
                 nf.Client.setRevision(response.revision);
 
                 // add the label to the graph
-                nf.Label.add(response.label, true);
+                nf.Graph.add({
+                    'labels': [response.label]
+                }, true);
 
                 // update the birdseye
                 nf.Birdseye.refresh();
