@@ -409,10 +409,10 @@ nf.Canvas = (function () {
 
                     // update the selection box
                     selectionBox.attr(d);
+                    
+                    // prevent further propagation (to parents)
+                    d3.event.stopPropagation();
                 }
-
-                // prevent further propagation (to parents)
-                d3.event.stopPropagation();
             }
         })
         .on('mouseup.selection', function () {
