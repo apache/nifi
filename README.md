@@ -14,7 +14,7 @@
 -->
 # Apache NiFi
 
-Apache NiFi is a dataflow system based on the concepts of flow-based programming. It is currently apart of the Apache Incubator.
+Apache NiFi is a dataflow system based on the concepts of flow-based programming. It is currently part of the Apache Incubator.
 
 ## Table of Contents
 
