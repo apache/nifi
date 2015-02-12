@@ -122,19 +122,41 @@ nf.Connectable = (function () {
                         // stop further propagation
                         d3.event.sourceEvent.stopPropagation();
 
+                        // get the add connect img
+                        var addConnect = d3.select(this);
+
                         // get the connector, if it the current point is not over a new destination
                         // the connector will be removed. otherwise it will be removed after the
                         // connection has been configured/cancelled
                         var connector = d3.select('path.connector');
+                        var connectorData = connector.datum();
 
                         // get the destination
                         var destination = d3.select('g.connectable-destination');
 
                         // we are not over a new destination
                         if (destination.empty()) {
+                            // get the source to determine if we are still over it
+                            var source = d3.select('#id-' + connectorData.sourceId);
+                            var sourceData = source.datum();
+                            
+                            // get the mouse position relative to the source
+                            var position = d3.mouse(source.node());
+                            
+                            // if the position is outside the component, remove the add connect img
+                            if (position[0] < 0 || position[0] > sourceData.dimensions.width || position[1] < 0 || position[1] > sourceData.dimensions.height) {
+                                addConnect.remove();
+                            } else {
+                                // reset the add connect img by restoring the position and place in the DOM
+                                addConnect.classed('dragging', false).attr('transform', function () {
+                                    return 'translate(' + d.origX + ', ' + d.origY + ')';
+                                });
+                                source.node().appendChild(this);
+                            }
+                            
+                            // remove the connector
                             connector.remove();
                         } else {
-                            var connectorData = connector.datum();
                             var destinationData = destination.datum();
 
                             // if this is a self loop we need to insert some bend points
@@ -148,13 +170,13 @@ nf.Connectable = (function () {
                                     return 'M' + x + ' ' + y + 'L' + (x + componentOffset + xOffset) + ' ' + (y - yOffset) + 'L' + (x + componentOffset + xOffset) + ' ' + (y + yOffset) + 'Z';
                                 });
                             }
+                            
+                            // remove the add connect img
+                            addConnect.remove();
 
                             // create the connection
                             nf.ConnectionConfiguration.createConnection(connectorData.sourceId, destinationData.component.id);
                         }
-
-                        // remove this component
-                        d3.select(this).remove();
                     });
         },
         
@@ -173,6 +195,10 @@ nf.Connectable = (function () {
                                     var y = (d.dimensions.height / 2) - 14;
 
                                     selection.append('image')
+                                            .datum({
+                                                origX: x,
+                                                origY: y
+                                            })
                                             .call(connect)
                                             .call(nf.CanvasUtils.disableImageHref)
                                             .attr({
