@@ -19,8 +19,10 @@ package org.apache.nifi.remote.client.socket;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.nifi.remote.Communicant;
 import org.apache.nifi.remote.RemoteDestination;
 import org.apache.nifi.remote.Transaction;
+import org.apache.nifi.remote.TransactionCompletion;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.client.SiteToSiteClient;
 import org.apache.nifi.remote.client.SiteToSiteClientConfig;
@@ -40,7 +42,8 @@ public class SocketClient implements SiteToSiteClient {
 	private volatile String portIdentifier;
 	
 	public SocketClient(final SiteToSiteClientConfig config) {
-		pool = new EndpointConnectionPool(config.getUrl(), (int) config.getTimeout(TimeUnit.MILLISECONDS), 
+		pool = new EndpointConnectionPool(config.getUrl(), (int) config.getTimeout(TimeUnit.MILLISECONDS),
+		        (int) config.getIdleConnectionExpiration(TimeUnit.MILLISECONDS),
 				config.getSslContext(), config.getEventReporter(), config.getPeerPersistenceFile());
 		
 		this.config = config;
@@ -130,14 +133,9 @@ public class SocketClient implements SiteToSiteClient {
 			}
 
 			@Override
-			public void complete() throws IOException {
-			    complete(false);
-			}
-			
-			@Override
-			public void complete(final boolean requestBackoff) throws IOException {
+			public TransactionCompletion complete() throws IOException {
 				try {
-					transaction.complete(requestBackoff);
+					return transaction.complete();
 				} finally {
 				    final EndpointConnection state = connectionStateRef.get();
 				    if ( state != null ) {
@@ -187,7 +185,11 @@ public class SocketClient implements SiteToSiteClient {
 			public TransactionState getState() throws IOException {
 				return transaction.getState();
 			}
-			
+
+			@Override
+			public Communicant getCommunicant() {
+			    return transaction.getCommunicant();
+			}
 		};
 	}
 

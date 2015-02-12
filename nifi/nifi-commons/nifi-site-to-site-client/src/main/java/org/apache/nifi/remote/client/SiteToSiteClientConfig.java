@@ -37,6 +37,14 @@ public interface SiteToSiteClientConfig {
 	 * @return
 	 */
 	long getTimeout(final TimeUnit timeUnit);
+	
+	/**
+	 * Returns the amount of time that a connection can remain idle before it is
+	 * "expired" and shut down
+	 * @param timeUnit
+	 * @return
+	 */
+	long getIdleConnectionExpiration(TimeUnit timeUnit);
 
 	/**
 	 * Returns the amount of time that a particular node will be ignored after a
@@ -52,12 +60,6 @@ public interface SiteToSiteClientConfig {
 	 */
 	SSLContext getSslContext();
 	
-	/**
-	 * Returns the EventReporter that is to be used by clients to report events
-	 * @return
-	 */
-	EventReporter getEventReporter();
-
 	/**
 	 * Returns the file that is to be used for persisting the nodes of a remote cluster, if any.
 	 * @return
@@ -111,4 +113,11 @@ public interface SiteToSiteClientConfig {
      * @return
      */
 	int getPreferredBatchCount();
+	
+	/**
+     * Returns the EventReporter that is to be used by clients to report events
+     * @return
+     */
+    EventReporter getEventReporter();
+
 }

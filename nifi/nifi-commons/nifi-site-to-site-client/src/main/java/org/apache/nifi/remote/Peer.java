@@ -23,12 +23,13 @@ import java.util.Map;
 
 import org.apache.nifi.remote.protocol.CommunicationsSession;
 
-public class Peer {
+public class Peer implements Communicant {
 
     private final CommunicationsSession commsSession;
     private final String url;
     private final String clusterUrl;
     private final String host;
+    private final int port;
     
     private final Map<String, Long> penaltyExpirationMap = new HashMap<>();
     private boolean closed = false;
@@ -39,12 +40,15 @@ public class Peer {
         this.clusterUrl = clusterUrl;
 
         try {
-            this.host = new URI(peerUrl).getHost();
+            final URI uri = new URI(peerUrl);
+            this.port = uri.getPort();
+            this.host = uri.getHost();
         } catch (final Exception e) {
             throw new IllegalArgumentException("Invalid URL: " + peerUrl);
         }
     }
 
+    @Override
     public String getUrl() {
         return url;
     }
@@ -92,6 +96,7 @@ public class Peer {
         return closed;
     }
 
+    @Override
     public String getHost() {
         return host;
     }
@@ -126,5 +131,15 @@ public class Peer {
         }
         sb.append("]");
         return sb.toString();
+    }
+
+    @Override
+    public int getPort() {
+        return port;
+    }
+
+    @Override
+    public String getDistinguishedName() {
+        return commsSession.getUserDn();
     }
 }

@@ -107,12 +107,13 @@ public class EndpointConnectionPool {
     private volatile List<PeerStatus> peerStatuses;
     private volatile long peerRefreshTime = 0L;
     private volatile PeerStatusCache peerStatusCache;
-    private final Set<CommunicationsSession> activeCommsChannels = new HashSet<>();
+    private final Set<EndpointConnection> activeConnections = Collections.synchronizedSet(new HashSet<EndpointConnection>());
 
     private final File peersFile;
     private final EventReporter eventReporter;
     private final SSLContext sslContext;
     private final ScheduledExecutorService taskExecutor;
+    private final int idleExpirationMillis;
     
     private final ReadWriteLock listeningPortRWLock = new ReentrantReadWriteLock();
     private final Lock remoteInfoReadLock = listeningPortRWLock.readLock();
@@ -124,12 +125,18 @@ public class EndpointConnectionPool {
     private final Map<String, String> outputPortMap = new HashMap<>();	// map output port name to identifier
     
     private volatile int commsTimeout;
-
-    public EndpointConnectionPool(final String clusterUrl, final int commsTimeoutMillis, final EventReporter eventReporter, final File persistenceFile) {
-    	this(clusterUrl, commsTimeoutMillis, null, eventReporter, persistenceFile);
+    private volatile boolean shutdown = false;
+    
+    
+    public EndpointConnectionPool(final String clusterUrl, final int commsTimeoutMillis, final int idleExpirationMillis, 
+            final EventReporter eventReporter, final File persistenceFile) 
+    {
+    	this(clusterUrl, commsTimeoutMillis, idleExpirationMillis, null, eventReporter, persistenceFile);
     }
     
-    public EndpointConnectionPool(final String clusterUrl, final int commsTimeoutMillis, final SSLContext sslContext, final EventReporter eventReporter, final File persistenceFile) {
+    public EndpointConnectionPool(final String clusterUrl, final int commsTimeoutMillis, final int idleExpirationMillis,
+            final SSLContext sslContext, final EventReporter eventReporter, final File persistenceFile) 
+    {
     	try {
     		this.clusterUrl = new URI(clusterUrl);
     	} catch (final URISyntaxException e) {
@@ -147,6 +154,7 @@ public class EndpointConnectionPool {
     	this.peersFile = persistenceFile;
     	this.eventReporter = eventReporter;
     	this.commsTimeout = commsTimeoutMillis;
+    	this.idleExpirationMillis = idleExpirationMillis;
     	
     	Set<PeerStatus> recoveredStatuses;
     	if ( persistenceFile != null && persistenceFile.exists() ) {
@@ -225,19 +233,21 @@ public class EndpointConnectionPool {
                 
                 // if we can't get an existing Connection, create one
                 if ( connection == null ) {
-                    logger.debug("No Connection available for Port {}; creating new Connection", remoteDestination.getIdentifier());
+                    logger.debug("{} No Connection available for Port {}; creating new Connection", this, remoteDestination.getIdentifier());
                     protocol = new SocketClientProtocol();
                     protocol.setDestination(remoteDestination);
 
+                    logger.debug("{} getting next peer status", this);
                     final PeerStatus peerStatus = getNextPeerStatus(direction);
+                    logger.debug("{} next peer status = {}", this, peerStatus);
                     if ( peerStatus == null ) {
                         return null;
                     }
 
                     try {
+                        logger.debug("{} Establishing site-to-site connection with {}", this, peerStatus);
                         commsSession = establishSiteToSiteConnection(peerStatus);
                     } catch (final IOException ioe) {
-                        // TODO: penalize peer status
                         penalize(peerStatus, remoteDestination.getYieldPeriod(TimeUnit.MILLISECONDS));
                         throw ioe;
                     }
@@ -245,6 +255,7 @@ public class EndpointConnectionPool {
                     final DataInputStream dis = new DataInputStream(commsSession.getInput().getInputStream());
                     final DataOutputStream dos = new DataOutputStream(commsSession.getOutput().getOutputStream());
                     try {
+                        logger.debug("{} Negotiating protocol", this);
                         RemoteResourceInitiator.initiateResourceNegotiation(protocol, dis, dos);
                     } catch (final HandshakeException e) {
                         try {
@@ -267,6 +278,7 @@ public class EndpointConnectionPool {
                     
                     // perform handshake
                     try {
+                        logger.debug("{} performing handshake", this);
                         protocol.handshake(peer);
                         
                         // handle error cases
@@ -286,7 +298,9 @@ public class EndpointConnectionPool {
                         }
                         
                         // negotiate the FlowFileCodec to use
+                        logger.debug("{} negotiating codec", this);
                         codec = protocol.negotiateCodec(peer);
+                        logger.debug("{} negotiated codec is {}", this, codec);
                     } catch (final PortNotRunningException | UnknownPortException e) {
                     	throw e;
                     } catch (final Exception e) {
@@ -323,6 +337,7 @@ public class EndpointConnectionPool {
             }
         }
         
+        activeConnections.add(connection);
         return connection;
     }
     
@@ -338,7 +353,14 @@ public class EndpointConnectionPool {
     		return false;
     	}
     	
-    	return connectionQueue.offer(endpointConnection);
+    	activeConnections.remove(endpointConnection);
+    	if ( shutdown ) {
+    	    terminate(endpointConnection);
+    	    return false;
+    	} else {
+    	    endpointConnection.setLastTimeUsed();
+    	    return connectionQueue.offer(endpointConnection);
+    	}
     }
     
     private void penalize(final PeerStatus status, final long penalizationMillis) {
@@ -393,27 +415,36 @@ public class EndpointConnectionPool {
         }
     }
     
+    private boolean isPeerRefreshNeeded(final List<PeerStatus> peerList) {
+        return (peerList == null || peerList.isEmpty() || System.currentTimeMillis() > peerRefreshTime + PEER_REFRESH_PERIOD);
+    }
+    
     private PeerStatus getNextPeerStatus(final TransferDirection direction) {
         List<PeerStatus> peerList = peerStatuses;
-        if ( (peerList == null || peerList.isEmpty() || System.currentTimeMillis() > peerRefreshTime + PEER_REFRESH_PERIOD) ) {
+        if ( isPeerRefreshNeeded(peerList) ) {
             peerRefreshLock.lock();
             try {
-                try {
-                    peerList = createPeerStatusList(direction);
-                } catch (final Exception e) {
-                    final String message = String.format("%s Failed to update list of peers due to %s", this, e.toString());
-                    logger.warn(message);
-                    if ( logger.isDebugEnabled() ) {
-                        logger.warn("", e);
+                // now that we have the lock, check again that we need to refresh (because another thread
+                // could have been refreshing while we were waiting for the lock).
+                peerList = peerStatuses;
+                if (isPeerRefreshNeeded(peerList)) {
+                    try {
+                        peerList = createPeerStatusList(direction);
+                    } catch (final Exception e) {
+                        final String message = String.format("%s Failed to update list of peers due to %s", this, e.toString());
+                        logger.warn(message);
+                        if ( logger.isDebugEnabled() ) {
+                            logger.warn("", e);
+                        }
+                        
+                        if ( eventReporter != null ) {
+                        	eventReporter.reportEvent(Severity.WARNING, CATEGORY, message);
+                        }
                     }
                     
-                    if ( eventReporter != null ) {
-                    	eventReporter.reportEvent(Severity.WARNING, CATEGORY, message);
-                    }
+                    this.peerStatuses = peerList;
+                    peerRefreshTime = System.currentTimeMillis();
                 }
-                
-                this.peerStatuses = peerList;
-                peerRefreshTime = System.currentTimeMillis();
             } finally {
                 peerRefreshLock.unlock();
             }
@@ -488,7 +519,10 @@ public class EndpointConnectionPool {
 
     private Set<PeerStatus> fetchRemotePeerStatuses() throws IOException, HandshakeException, UnknownPortException, PortNotRunningException {
     	final String hostname = clusterUrl.getHost();
-        final int port = getSiteToSitePort();
+        final Integer port = getSiteToSitePort();
+        if ( port == null ) {
+            throw new IOException("Remote instance of NiFi is not configured to allow site-to-site communications");
+        }
     	
     	final CommunicationsSession commsSession = establishSiteToSiteConnection(hostname, port);
         final Peer peer = new Peer(commsSession, "nifi://" + hostname + ":" + port, clusterUrl.toString());
@@ -667,7 +701,7 @@ public class EndpointConnectionPool {
         distributionDescription.append("New Weighted Distribution of Nodes:");
         for ( final Map.Entry<NodeInformation, Integer> entry : entryCountMap.entrySet() ) {
             final double percentage = entry.getValue() * 100D / (double) destinations.size();
-            distributionDescription.append("\n").append(entry.getKey()).append(" will receive ").append(percentage).append("% of FlowFiles");
+            distributionDescription.append("\n").append(entry.getKey()).append(" will receive ").append(percentage).append("% of data");
         }
         logger.info(distributionDescription.toString());
 
@@ -677,35 +711,36 @@ public class EndpointConnectionPool {
     
     
     private void cleanupExpiredSockets() {
-        final List<EndpointConnection> states = new ArrayList<>();
+        final List<EndpointConnection> connections = new ArrayList<>();
         
-        EndpointConnection state;
-        while ((state = connectionQueue.poll()) != null) {
+        EndpointConnection connection;
+        while ((connection = connectionQueue.poll()) != null) {
             // If the socket has not been used in 10 seconds, shut it down.
-            final long lastUsed = state.getLastTimeUsed();
-            if ( lastUsed < System.currentTimeMillis() - 10000L ) {
+            final long lastUsed = connection.getLastTimeUsed();
+            if ( lastUsed < System.currentTimeMillis() - idleExpirationMillis ) {
                 try {
-                    state.getSocketClientProtocol().shutdown(state.getPeer());
+                    connection.getSocketClientProtocol().shutdown(connection.getPeer());
                 } catch (final Exception e) {
                     logger.debug("Failed to shut down {} using {} due to {}", 
-                        new Object[] {state.getSocketClientProtocol(), state.getPeer(), e} );
+                        new Object[] {connection.getSocketClientProtocol(), connection.getPeer(), e} );
                 }
                 
-                cleanup(state.getSocketClientProtocol(), state.getPeer());
+                terminate(connection);
             } else {
-                states.add(state);
+                connections.add(connection);
             }
         }
         
-        connectionQueue.addAll(states);
+        connectionQueue.addAll(connections);
     }
     
     public void shutdown() {
+        shutdown = true;
     	taskExecutor.shutdown();
     	peerTimeoutExpirations.clear();
-            
-        for ( final CommunicationsSession commsSession : activeCommsChannels ) {
-            commsSession.interrupt();
+        
+       for ( final EndpointConnection conn : activeConnections ) {
+           conn.getPeer().getCommunicationsSession().interrupt();
         }
         
         EndpointConnection state;
@@ -714,8 +749,8 @@ public class EndpointConnectionPool {
         }
     }
     
-    public void terminate(final EndpointConnection state) {
-        cleanup(state.getSocketClientProtocol(), state.getPeer());
+    public void terminate(final EndpointConnection connection) {
+        cleanup(connection.getSocketClientProtocol(), connection.getPeer());
     }
     
     private void refreshPeers() {

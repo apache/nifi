@@ -126,6 +126,7 @@ public interface SiteToSiteClient extends Closeable {
 		private String url;
 		private long timeoutNanos = TimeUnit.SECONDS.toNanos(30);
 		private long penalizationNanos = TimeUnit.SECONDS.toNanos(3);
+		private long idleExpirationNanos = TimeUnit.SECONDS.toNanos(30L);
 		private SSLContext sslContext;
 		private EventReporter eventReporter;
 		private File peerPersistenceFile;
@@ -160,6 +161,19 @@ public interface SiteToSiteClient extends Closeable {
 		public Builder timeout(final long timeout, final TimeUnit unit) {
 			this.timeoutNanos = unit.toNanos(timeout);
 			return this;
+		}
+		
+		/**
+		 * Specifies the amount of time that a connection can remain idle in the connection pool before it
+		 * is "expired" and shutdown. The default value is 30 seconds.
+		 *  
+		 * @param timeout
+		 * @param unit
+		 * @return
+		 */
+		public Builder idleExpiration(final long timeout, final TimeUnit unit) {
+		    this.idleExpirationNanos = unit.toNanos(timeout);
+		    return this;
 		}
 		
 		/**
@@ -327,6 +341,11 @@ public interface SiteToSiteClient extends Closeable {
 				}
 				
 				@Override
+				public long getIdleConnectionExpiration(final TimeUnit timeUnit) {
+				    return Builder.this.getIdleConnectionExpiration(timeUnit);
+				}
+				
+				@Override
 				public SSLContext getSslContext() {
 					return Builder.this.getSslContext();
 				}
@@ -384,11 +403,21 @@ public interface SiteToSiteClient extends Closeable {
 		}
 
 		/**
-		 * Returns the communications timeout in nanoseconds
+		 * Returns the communications timeout
 		 * @return
 		 */
 		public long getTimeout(final TimeUnit timeUnit) {
 			return timeUnit.convert(timeoutNanos, TimeUnit.NANOSECONDS);
+		}
+		
+		/**
+		 * Returns the amount of of time that a connection can remain idle in the connection
+		 * pool before being shutdown
+		 * @param timeUnit
+		 * @return
+		 */
+		public long getIdleConnectionExpiration(final TimeUnit timeUnit) {
+		    return timeUnit.convert(idleExpirationNanos, TimeUnit.NANOSECONDS);
 		}
 
 		/**

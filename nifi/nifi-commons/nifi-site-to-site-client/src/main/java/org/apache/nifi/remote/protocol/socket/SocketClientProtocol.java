@@ -317,10 +317,7 @@ public class SocketClientProtocol implements ClientProtocol {
 		// Commit the session so that we have persisted the data
 		session.commit();
 
-		// We want to apply backpressure if the outgoing connections are full. I.e., there are no available relationships.
-		final boolean applyBackpressure = context.getAvailableRelationships().isEmpty();
-
-		transaction.complete(applyBackpressure);
+		transaction.complete();
 		logger.debug("{} Sending TRANSACTION_FINISHED_BUT_DESTINATION_FULL to {}", this, peer);
 
 		if ( !flowFilesReceived.isEmpty() ) {
@@ -397,7 +394,7 @@ public class SocketClientProtocol implements ClientProtocol {
 	        final String dataSize = FormatUtils.formatDataSize(bytesSent);
 	        
 	        session.commit();
-	        transaction.complete(false);
+	        transaction.complete();
 	        
 	        final String flowFileDescription = (flowFilesSent.size() < 20) ? flowFilesSent.toString() : flowFilesSent.size() + " FlowFiles";
 	        logger.info("{} Successfully sent {} ({}) to {} in {} milliseconds at a rate of {}", new Object[] {

@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
@@ -35,13 +36,13 @@ import org.junit.Test;
 public class TestSiteToSiteClient {
 
     @Test
-    @Ignore("For local testing only; not really a unit test but a manual test")
+    //@Ignore("For local testing only; not really a unit test but a manual test")
     public void testReceive() throws IOException {
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.remote", "DEBUG");
         
         final SiteToSiteClient client = new SiteToSiteClient.Builder()
             .url("http://localhost:8080/nifi")
-            .portName("out")
+            .portName("cba")
             .requestBatchCount(1)
             .build();
         
@@ -62,7 +63,7 @@ public class TestSiteToSiteClient {
             Assert.assertNull(transaction.receive());
             
             transaction.confirm();
-            transaction.complete(false);
+            transaction.complete();
         } finally {
             client.close();
         }
@@ -70,13 +71,14 @@ public class TestSiteToSiteClient {
     
     
     @Test
-    @Ignore("For local testing only; not really a unit test but a manual test")
+    //@Ignore("For local testing only; not really a unit test but a manual test")
     public void testSend() throws IOException {
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.remote", "DEBUG");
         
         final SiteToSiteClient client = new SiteToSiteClient.Builder()
-            .url("http://localhost:8080/nifi")
-            .portName("in")
+            .url("http://10.0.64.63:8080/nifi")
+            .portName("input")
+            .nodePenalizationPeriod(10, TimeUnit.MILLISECONDS)
             .build();
         
         try {
@@ -91,7 +93,7 @@ public class TestSiteToSiteClient {
             transaction.send(packet);
 
             transaction.confirm();
-            transaction.complete(false);
+            transaction.complete();
         } finally {
             client.close();
         }

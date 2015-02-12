@@ -22,6 +22,7 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -130,7 +131,9 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                     final Thread thread = new Thread(new Runnable() {
                         @Override
                         public void run() {
-                            String hostname = socket.getInetAddress().getHostName();
+                            LOG.debug("{} Determining URL of connection", this);
+                            final InetAddress inetAddress = socket.getInetAddress();
+                            String hostname = inetAddress.getHostName();
                             final int slashIndex = hostname.indexOf("/");
                             if ( slashIndex == 0 ) {
                                 hostname = hostname.substring(1);
@@ -140,6 +143,7 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
 
                             final int port = socket.getPort();
                             final String peerUri = "nifi://" + hostname + ":" + port;
+                            LOG.debug("{} Connection URL is {}", this, peerUri);
                             
                             final CommunicationsSession commsSession;
                             final String dn;
@@ -154,6 +158,7 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                                     dn = sslSocketChannel.getDn();
                                     commsSession.setUserDn(dn);
                                 } else {
+                                    LOG.trace("{} Channel is not secure", this);
                                     commsSession = new SocketChannelCommunicationsSession(socketChannel, peerUri);
                                     dn = null;
                                 }
@@ -306,6 +311,7 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                         }
                     });
                     thread.setName("Site-to-Site Worker Thread-" + (threadCount++));
+                    LOG.debug("Handing connection to {}", thread);
                     thread.start();
                 }
             }

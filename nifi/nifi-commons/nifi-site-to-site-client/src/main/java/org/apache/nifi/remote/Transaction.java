@@ -121,30 +121,16 @@ public interface Transaction {
 	void confirm() throws IOException;
 	
 	/**
-	 * <p>
-	 * Completes the transaction and indicates to both the sender and receiver that the data transfer was
-	 * successful. If receiving data, this method can also optionally request that the sender back off sending
-	 * data for a short period of time. This is used, for instance, to apply backpressure or to notify the sender
-	 * that the receiver is not ready to receive data and made not service another request in the short term.
-	 * </p>
-	 * 
-	 * @param requestBackoff if <code>true</code> and the TransferDirection is RECEIVE, indicates to sender that it
-	 * should back off sending data for a short period of time. If <code>false</code> or if the TransferDirection of
-	 * this Transaction is SEND, then this argument is ignored.
-	 * 
-	 * @throws IOException
-	 */
-	void complete(boolean requestBackoff) throws IOException;
-	
-	/**
      * <p>
      * Completes the transaction and indicates to both the sender and receiver that the data transfer was
      * successful.
      * </p>
      * 
      * @throws IOException
+     * 
+     * @return a TransactionCompletion that contains details about the Transaction
      */
-	void complete() throws IOException;
+	TransactionCompletion complete() throws IOException;
 	
 	/**
 	 * <p>
@@ -173,6 +159,13 @@ public interface Transaction {
 	 * @throws IOException
 	 */
 	TransactionState getState() throws IOException;
+	
+	/**
+	 * Returns a Communicant that represents the other side of this Transaction (i.e.,
+	 * the remote NiFi instance)
+	 * @return
+	 */
+	Communicant getCommunicant();
 	
 	
 	public enum TransactionState {
