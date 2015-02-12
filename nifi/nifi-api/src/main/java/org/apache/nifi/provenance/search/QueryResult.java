@@ -19,7 +19,7 @@ package org.apache.nifi.provenance.search;
 import java.util.Date;
 import java.util.List;
 
-import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.StoredProvenanceEvent;
 
 public interface QueryResult {
 
@@ -29,7 +29,7 @@ public interface QueryResult {
      *
      * @return
      */
-    List<ProvenanceEventRecord> getMatchingEvents();
+    List<StoredProvenanceEvent> getMatchingEvents();
 
     /**
      * Returns the total number of Provenance Events that hit

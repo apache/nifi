@@ -40,7 +40,7 @@ public class StandardQueryResult implements QueryResult {
 
     private final Lock writeLock = rwLock.writeLock();
     // guarded by writeLock
-    private final List<ProvenanceEventRecord> matchingRecords = new ArrayList<>();
+    private final List<StoredProvenanceEvent> matchingRecords = new ArrayList<>();
     private long totalHitCount;
     private int numCompletedSteps = 0;
     private Date expirationDate;
@@ -58,14 +58,14 @@ public class StandardQueryResult implements QueryResult {
     }
 
     @Override
-    public List<ProvenanceEventRecord> getMatchingEvents() {
+    public List<StoredProvenanceEvent> getMatchingEvents() {
         readLock.lock();
         try {
             if (matchingRecords.size() <= query.getMaxResults()) {
                 return new ArrayList<>(matchingRecords);
             }
 
-            final List<ProvenanceEventRecord> copy = new ArrayList<>(query.getMaxResults());
+            final List<StoredProvenanceEvent> copy = new ArrayList<>(query.getMaxResults());
             for (int i = 0; i < query.getMaxResults(); i++) {
                 copy.add(matchingRecords.get(i));
             }
@@ -141,7 +141,7 @@ public class StandardQueryResult implements QueryResult {
         }
     }
 
-    public void update(final Collection<ProvenanceEventRecord> matchingRecords, final long totalHits) {
+    public void update(final Collection<StoredProvenanceEvent> matchingRecords, final long totalHits) {
         writeLock.lock();
         try {
             this.matchingRecords.addAll(matchingRecords);

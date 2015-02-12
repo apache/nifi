@@ -16,7 +16,9 @@
  */
 package org.apache.nifi.provenance;
 
+import java.io.Closeable;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 
 import org.apache.nifi.events.EventReporter;
@@ -31,7 +33,7 @@ import org.apache.nifi.provenance.search.SearchableField;
  * has stored, and providing query capabilities against the events.
  *
  */
-public interface ProvenanceEventRepository {
+public interface ProvenanceEventRepository extends Closeable {
 
     /**
      * Performs any initialization needed. This should be called only by the
@@ -56,7 +58,7 @@ public interface ProvenanceEventRepository {
      *
      * @param event
      */
-    void registerEvent(ProvenanceEventRecord event);
+    void registerEvent(ProvenanceEventRecord event) throws IOException;
 
     /**
      * Adds the given events to the repository.
@@ -68,7 +70,7 @@ public interface ProvenanceEventRepository {
      *
      * @param events
      */
-    void registerEvents(Iterable<ProvenanceEventRecord> events);
+    void registerEvents(Collection<ProvenanceEventRecord> events) throws IOException;
 
     /**
      * Returns a List of all <code>ProvenanceEventRecord</code>s in the
@@ -80,15 +82,26 @@ public interface ProvenanceEventRepository {
      * @return
      * @throws java.io.IOException
      */
-    List<ProvenanceEventRecord> getEvents(long firstRecordId, final int maxRecords) throws IOException;
+    List<StoredProvenanceEvent> getEvents(long firstRecordId, final int maxRecords) throws IOException;
 
+    /**
+     * Returns a List of all <code>ProvenanceEventRecord</code>s in the repository whose locations
+     * match those specified. If any event cannot be found, it will be skipped.
+     * 
+     * @param storageLocations
+     * @return
+     * @throws IOException
+     */
+    List<StoredProvenanceEvent> getEvents(List<StorageLocation> storageLocations) throws IOException;
+    
+    
     /**
      * Returns the largest ID of any event that is queryable in the repository.
      * If no queryable events exists, returns null
      *
      * @return
      */
-    Long getMaxEventId();
+    Long getMaxEventId() throws IOException;
 
     /**
      * Submits an asynchronous request to process the given query, returning an
@@ -139,8 +152,18 @@ public interface ProvenanceEventRepository {
      * @return
      * @throws IOException
      */
-    ProvenanceEventRecord getEvent(long id) throws IOException;
+    StoredProvenanceEvent getEvent(long id) throws IOException;
 
+    /**
+     * Returns the Provenance Event Record with the given location, if it exists, or
+     * <code>null</code> otherwise
+     * 
+     * @param location
+     * @return
+     * @throws IOException
+     */
+    StoredProvenanceEvent getEvent(StorageLocation location) throws IOException;
+    
     /**
      * Submits a request to expand the parents of the event with the given id
      *
@@ -166,13 +189,6 @@ public interface ProvenanceEventRepository {
     ComputeLineageSubmission submitExpandChildren(long eventId);
 
     /**
-     * Closes the repository, freeing any resources
-     *
-     * @throws IOException
-     */
-    void close() throws IOException;
-
-    /**
      * Returns a list of all fields that can be searched via the
      * {@link #submitQuery(nifi.provenance.search.Query)} method
      *
@@ -187,4 +203,11 @@ public interface ProvenanceEventRepository {
      * @return
      */
     List<SearchableField> getSearchableAttributes();
+    
+    /**
+     * Returns the timestamp of the earliest event that is available in the repository, or <code>null</code> if no
+     * events exist in the repository
+     * @return
+     */
+    Long getEarliestEventTime() throws IOException;
 }

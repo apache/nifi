@@ -32,11 +32,11 @@ public class NamedSearchableField implements SearchableField {
     private final String friendlyName;
     private final boolean attribute;
 
-    NamedSearchableField(final String identifier, final String searchableName, final String friendlyName, final boolean attribute) {
+    public NamedSearchableField(final String identifier, final String searchableName, final String friendlyName, final boolean attribute) {
         this(identifier, searchableName, friendlyName, attribute, SearchableFieldType.STRING);
     }
 
-    NamedSearchableField(final String identifier, final String searchableName, final String friendlyName, final boolean attribute, final SearchableFieldType fieldType) {
+    public NamedSearchableField(final String identifier, final String searchableName, final String friendlyName, final boolean attribute, final SearchableFieldType fieldType) {
         this.identifier = requireNonNull(identifier);
         this.searchableName = requireNonNull(searchableName);
         this.friendlyName = requireNonNull(friendlyName);

@@ -64,7 +64,7 @@ public class VolatileProvenanceRepository implements ProvenanceEventRepository {
     // default property values
     public static final int DEFAULT_BUFFER_SIZE = 10000;
 
-    private final RingBuffer<ProvenanceEventRecord> ringBuffer;
+    private final RingBuffer<StoredProvenanceEvent> ringBuffer;
     private final List<SearchableField> searchableFields;
     private final List<SearchableField> searchableAttributes;
     private final ExecutorService queryExecService;
@@ -123,17 +123,17 @@ public class VolatileProvenanceRepository implements ProvenanceEventRepository {
     }
 
     @Override
-    public void registerEvents(final Iterable<ProvenanceEventRecord> events) {
+    public void registerEvents(final Collection<ProvenanceEventRecord> events) {
         for (final ProvenanceEventRecord event : events) {
             registerEvent(event);
         }
     }
 
     @Override
-    public List<ProvenanceEventRecord> getEvents(final long firstRecordId, final int maxRecords) throws IOException {
-        return ringBuffer.getSelectedElements(new Filter<ProvenanceEventRecord>() {
+    public List<StoredProvenanceEvent> getEvents(final long firstRecordId, final int maxRecords) throws IOException {
+        return ringBuffer.getSelectedElements(new Filter<StoredProvenanceEvent>() {
             @Override
-            public boolean select(final ProvenanceEventRecord value) {
+            public boolean select(final StoredProvenanceEvent value) {
                 return value.getEventId() >= firstRecordId;
             }
         }, maxRecords);
@@ -145,21 +145,22 @@ public class VolatileProvenanceRepository implements ProvenanceEventRepository {
         return (newest == null) ? null : newest.getEventId();
     }
 
-    public ProvenanceEventRecord getEvent(final String identifier) throws IOException {
-        final List<ProvenanceEventRecord> records = ringBuffer.getSelectedElements(new Filter<ProvenanceEventRecord>() {
+    public StoredProvenanceEvent getEvent(final String identifier) throws IOException {
+        final List<StoredProvenanceEvent> records = ringBuffer.getSelectedElements(new Filter<StoredProvenanceEvent>() {
             @Override
-            public boolean select(final ProvenanceEventRecord event) {
+            public boolean select(final StoredProvenanceEvent event) {
                 return identifier.equals(event.getFlowFileUuid());
             }
         }, 1);
+        
         return records.isEmpty() ? null : records.get(0);
     }
 
     @Override
-    public ProvenanceEventRecord getEvent(final long id) {
-        final List<ProvenanceEventRecord> records = ringBuffer.getSelectedElements(new Filter<ProvenanceEventRecord>() {
+    public StoredProvenanceEvent getEvent(final long id) {
+        final List<StoredProvenanceEvent> records = ringBuffer.getSelectedElements(new Filter<StoredProvenanceEvent>() {
             @Override
-            public boolean select(final ProvenanceEventRecord event) {
+            public boolean select(final StoredProvenanceEvent event) {
                 return event.getEventId() == id;
             }
         }, 1);
@@ -407,6 +408,44 @@ public class VolatileProvenanceRepository implements ProvenanceEventRepository {
         throw new UnsupportedOperationException();
     }
 
+
+    @Override
+    public List<StoredProvenanceEvent> getEvents(final List<StorageLocation> storageLocations) throws IOException {
+        final List<StoredProvenanceEvent> events = new ArrayList<>(storageLocations.size());
+        for ( final StorageLocation location : storageLocations ) {
+            if ( !(location instanceof IdLocation) ) {
+                throw new IllegalArgumentException("Illegal Storage Location");
+            }
+            
+            final long id = ((IdLocation) location).getId();
+            final StoredProvenanceEvent event = getEvent(id);
+            if ( event != null ) {
+                events.add(event);
+            }
+        }
+        return events;
+    }
+
+    @Override
+    public StoredProvenanceEvent getEvent(final StorageLocation location) throws IOException {
+        if ( !(location instanceof IdLocation) ) {
+            throw new IllegalArgumentException("Illegal Storage Location");
+        }
+        
+        final long id = ((IdLocation) location).getId();
+        return getEvent(id);
+    }
+
+    @Override
+    public Long getEarliestEventTime() throws IOException {
+        final List<StoredProvenanceEvent> events = getEvents(0L, 1);
+        if ( events.isEmpty() ) {
+            return null;
+        }
+        
+        return events.get(0).getEventTime();
+    }
+    
     @Override
     public ComputeLineageSubmission submitExpandParents(final long eventId) {
         final ProvenanceEventRecord event = getEvent(eventId);
@@ -432,9 +471,6 @@ public class VolatileProvenanceRepository implements ProvenanceEventRepository {
         }
     }
 
-    public Lineage expandSpawnEventChildren(final String identifier) {
-        throw new UnsupportedOperationException();
-    }
 
     @Override
     public ComputeLineageSubmission submitExpandChildren(final long eventId) {
@@ -465,9 +501,9 @@ public class VolatileProvenanceRepository implements ProvenanceEventRepository {
         final AsyncLineageSubmission result = new AsyncLineageSubmission(computationType, eventId, flowFileUuids, 1);
         lineageSubmissionMap.put(result.getLineageIdentifier(), result);
 
-        final Filter<ProvenanceEventRecord> filter = new Filter<ProvenanceEventRecord>() {
+        final Filter<StoredProvenanceEvent> filter = new Filter<StoredProvenanceEvent>() {
             @Override
-            public boolean select(final ProvenanceEventRecord event) {
+            public boolean select(final StoredProvenanceEvent event) {
                 if (flowFileUuids.contains(event.getFlowFileUuid())) {
                     return true;
                 }
@@ -495,12 +531,12 @@ public class VolatileProvenanceRepository implements ProvenanceEventRepository {
 
     private static class QueryRunnable implements Runnable {
 
-        private final RingBuffer<ProvenanceEventRecord> ringBuffer;
+        private final RingBuffer<StoredProvenanceEvent> ringBuffer;
         private final Filter<ProvenanceEventRecord> filter;
         private final AsyncQuerySubmission submission;
         private final int maxRecords;
 
-        public QueryRunnable(final RingBuffer<ProvenanceEventRecord> ringBuffer, final Filter<ProvenanceEventRecord> filter, final int maxRecords, final AsyncQuerySubmission submission) {
+        public QueryRunnable(final RingBuffer<StoredProvenanceEvent> ringBuffer, final Filter<ProvenanceEventRecord> filter, final int maxRecords, final AsyncQuerySubmission submission) {
             this.ringBuffer = ringBuffer;
             this.filter = filter;
             this.submission = submission;
@@ -511,10 +547,10 @@ public class VolatileProvenanceRepository implements ProvenanceEventRepository {
         public void run() {
             // Retrieve the most recent results and count the total number of matches
             final IntegerHolder matchingCount = new IntegerHolder(0);
-            final List<ProvenanceEventRecord> matchingRecords = new ArrayList<>(maxRecords);
-            ringBuffer.forEach(new ForEachEvaluator<ProvenanceEventRecord>() {
+            final List<StoredProvenanceEvent> matchingRecords = new ArrayList<>(maxRecords);
+            ringBuffer.forEach(new ForEachEvaluator<StoredProvenanceEvent>() {
                 @Override
-                public boolean evaluate(final ProvenanceEventRecord record) {
+                public boolean evaluate(final StoredProvenanceEvent record) {
                     if (filter.select(record)) {
                         if (matchingCount.incrementAndGet() <= maxRecords) {
                             matchingRecords.add(record);
@@ -532,20 +568,21 @@ public class VolatileProvenanceRepository implements ProvenanceEventRepository {
 
     private static class ComputeLineageRunnable implements Runnable {
 
-        private final RingBuffer<ProvenanceEventRecord> ringBuffer;
-        private final Filter<ProvenanceEventRecord> filter;
+        private final RingBuffer<StoredProvenanceEvent> ringBuffer;
+        private final Filter<StoredProvenanceEvent> filter;
         private final AsyncLineageSubmission submission;
 
-        public ComputeLineageRunnable(final RingBuffer<ProvenanceEventRecord> ringBuffer, final Filter<ProvenanceEventRecord> filter, final AsyncLineageSubmission submission) {
+        public ComputeLineageRunnable(final RingBuffer<StoredProvenanceEvent> ringBuffer, final Filter<StoredProvenanceEvent> filter, final AsyncLineageSubmission submission) {
             this.ringBuffer = ringBuffer;
             this.filter = filter;
             this.submission = submission;
         }
 
         @Override
+        @SuppressWarnings({ "unchecked", "rawtypes" })
         public void run() {
-            final List<ProvenanceEventRecord> records = ringBuffer.getSelectedElements(filter);
-            submission.getResult().update(records);
+            final List<StoredProvenanceEvent> records = ringBuffer.getSelectedElements(filter);
+            submission.getResult().update((List) records);
         }
     }
 
@@ -577,7 +614,7 @@ public class VolatileProvenanceRepository implements ProvenanceEventRepository {
         }
     }
 
-    private static class IdEnrichedProvEvent implements ProvenanceEventRecord {
+    private static class IdEnrichedProvEvent implements StoredProvenanceEvent {
 
         private final ProvenanceEventRecord record;
         private final long id;
@@ -741,5 +778,23 @@ public class VolatileProvenanceRepository implements ProvenanceEventRepository {
         public Long getPreviousContentClaimOffset() {
             return record.getPreviousContentClaimOffset();
         }
+
+        @Override
+        public StorageLocation getStorageLocation() {
+            return new IdLocation(getEventId());
+        }
     }
+    
+    private static class IdLocation implements StorageLocation {
+        private final long id;
+        
+        public IdLocation(final long id) {
+            this.id = id;
+        }
+        
+        public long getId() {
+            return id;
+        }
+    }
+
 }

@@ -65,7 +65,7 @@ public class TestVolatileProvenanceRepository {
             repo.registerEvent(builder.build());
         }
 
-        final List<ProvenanceEventRecord> retrieved = repo.getEvents(0L, 12);
+        final List<StoredProvenanceEvent> retrieved = repo.getEvents(0L, 12);
 
         assertEquals(10, retrieved.size());
         for (int i = 0; i < 10; i++) {

@@ -28,7 +28,12 @@ public class ByteCountingInputStream extends InputStream {
     private long bytesSinceMark = 0L;
 
     public ByteCountingInputStream(final InputStream in) {
+        this(in, 0);
+    }
+    
+    public ByteCountingInputStream(final InputStream in, final long initialCount) {
         this.in = in;
+        this.bytesRead = initialCount;
     }
 
     @Override
