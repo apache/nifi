@@ -18,6 +18,8 @@ package org.apache.nifi.cluster.manager.impl;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.nifi.controller.status.ProcessGroupStatus;
@@ -25,6 +27,8 @@ import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.provenance.ProvenanceEventBuilder;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
+import org.apache.nifi.provenance.StorageLocation;
+import org.apache.nifi.provenance.StoredProvenanceEvent;
 import org.apache.nifi.provenance.lineage.ComputeLineageSubmission;
 import org.apache.nifi.provenance.search.Query;
 import org.apache.nifi.provenance.search.QuerySubmission;
@@ -59,12 +63,12 @@ public class ClusteredEventAccess implements EventAccess {
             }
 
             @Override
-            public ProvenanceEventRecord getEvent(long eventId) throws IOException {
+            public StoredProvenanceEvent getEvent(long eventId) throws IOException {
                 return null;
             }
 
             @Override
-            public List<ProvenanceEventRecord> getEvents(long startEventId, int maxEvents) throws IOException {
+            public List<StoredProvenanceEvent> getEvents(long startEventId, int maxEvents) throws IOException {
                 return new ArrayList<>();
             }
 
@@ -85,10 +89,6 @@ public class ClusteredEventAccess implements EventAccess {
 
             @Override
             public void registerEvent(final ProvenanceEventRecord event) {
-            }
-
-            @Override
-            public void registerEvents(final Iterable<ProvenanceEventRecord> events) {
             }
 
             @Override
@@ -129,6 +129,26 @@ public class ClusteredEventAccess implements EventAccess {
             @Override
             public void initialize(EventReporter eventReporter) throws IOException {
 
+            }
+            
+            @Override
+            public Long getEarliestEventTime() throws IOException {
+                return null;
+            }
+            
+            @Override
+            public StoredProvenanceEvent getEvent(final StorageLocation location) throws IOException {
+                return null;
+            }
+            
+            @Override
+            public List<StoredProvenanceEvent> getEvents(final List<StorageLocation> storageLocations) throws IOException {
+                return Collections.emptyList();
+            }
+            
+            @Override
+            public void registerEvents(final Collection<ProvenanceEventRecord> events) throws IOException {
+                
             }
         };
     }

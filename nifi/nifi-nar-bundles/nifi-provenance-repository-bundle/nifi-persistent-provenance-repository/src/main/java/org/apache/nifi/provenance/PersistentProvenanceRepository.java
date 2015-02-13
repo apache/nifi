@@ -152,19 +152,25 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
     private final AtomicBoolean repoDirty = new AtomicBoolean(false);
     // we keep the last 1000 records on hand so that when the UI is opened and it asks for the last 1000 records we don't need to 
     // read them. Since this is a very cheap operation to keep them, it's worth the tiny expense for the improved user experience.
-    private final RingBuffer<ProvenanceEventRecord> latestRecords = new RingBuffer<>(1000);
+    private final RingBuffer<StoredProvenanceEvent> latestRecords = new RingBuffer<>(1000);
     private EventReporter eventReporter;
+    private long rolloverCheckMillis = 10;
 
     public PersistentProvenanceRepository() throws IOException {
         this(createRepositoryConfiguration());
     }
 
     public PersistentProvenanceRepository(final RepositoryConfiguration configuration) throws IOException {
+        this(configuration, 10);
+    }
+    
+    PersistentProvenanceRepository(final RepositoryConfiguration configuration, final int rolloverCheckMillis) throws IOException {
         if (configuration.getStorageDirectories().isEmpty()) {
             throw new IllegalArgumentException("Must specify at least one storage directory");
         }
 
         this.configuration = configuration;
+        this.rolloverCheckMillis = rolloverCheckMillis;
 
         for (final File file : configuration.getStorageDirectories()) {
             final Path storageDirectory = file.toPath();
@@ -205,8 +211,9 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
         rolloverExecutor = Executors.newFixedThreadPool(numRolloverThreads, new NamedThreadFactory("Provenance Repository Rollover Thread"));
     }
 
+    
     @Override
-    public void initialize(final EventReporter eventReporter) throws IOException {
+    public synchronized void initialize(final EventReporter eventReporter) throws IOException {
         if (initialized.getAndSet(true)) {
             return;
         }
@@ -244,7 +251,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                         }
                     }
                 }
-            }, 10L, 10L, TimeUnit.SECONDS);
+            }, rolloverCheckMillis, rolloverCheckMillis, TimeUnit.MILLISECONDS);
 
             scheduledExecService.scheduleWithFixedDelay(new RemoveExpiredQueryResults(), 30L, 3L, TimeUnit.SECONDS);
             scheduledExecService.scheduleWithFixedDelay(new Runnable() {
@@ -350,13 +357,13 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
     }
 
     @Override
-    public void registerEvents(final Iterable<ProvenanceEventRecord> events) {
+    public void registerEvents(final Collection<ProvenanceEventRecord> events) {
         persistRecord(events);
     }
 
     @Override
-    public List<ProvenanceEventRecord> getEvents(final long firstRecordId, final int maxRecords) throws IOException {
-        final List<ProvenanceEventRecord> records = new ArrayList<>(maxRecords);
+    public List<StoredProvenanceEvent> getEvents(final long firstRecordId, final int maxRecords) throws IOException {
+        final List<StoredProvenanceEvent> records = new ArrayList<>(maxRecords);
 
         final List<Path> paths = getPathsForId(firstRecordId);
         if (paths == null || paths.isEmpty()) {
@@ -368,7 +375,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                 StandardProvenanceEventRecord record;
                 while (records.size() < maxRecords && ((record = reader.nextRecord()) != null)) {
                     if (record.getEventId() >= firstRecordId) {
-                        records.add(record);
+                        records.add(new IdEnrichedProvenanceEvent(record));
                     }
                 }
             } catch (final EOFException | FileNotFoundException fnfe) {
@@ -1133,7 +1140,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
         return mergedFile;
     }
 
-    static File mergeJournals(final List<File> journalFiles, final File storageDir, final File mergedFile, final EventReporter eventReporter, final RingBuffer<ProvenanceEventRecord> ringBuffer) throws IOException {
+    static File mergeJournals(final List<File> journalFiles, final File storageDir, final File mergedFile, final EventReporter eventReporter, final RingBuffer<StoredProvenanceEvent> ringBuffer) throws IOException {
         final long startNanos = System.nanoTime();
         if (journalFiles.isEmpty()) {
             return null;
@@ -1210,7 +1217,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                     final RecordReader reader = entry.getValue();
 
                     writer.writeRecord(record, record.getEventId());
-                    ringBuffer.add(record);
+                    ringBuffer.add(new IdEnrichedProvenanceEvent(record));
                     records++;
 
                     // Remove this entry from the map
@@ -1325,8 +1332,8 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
             final AsyncQuerySubmission result = new AsyncQuerySubmission(query, 1);
 
             if (latestRecords.getSize() >= query.getMaxResults()) {
-                final List<ProvenanceEventRecord> latestList = latestRecords.asList();
-                final List<ProvenanceEventRecord> trimmed;
+                final List<StoredProvenanceEvent> latestList = latestRecords.asList();
+                final List<StoredProvenanceEvent> trimmed;
                 if (latestList.size() > query.getMaxResults()) {
                     trimmed = latestList.subList(latestList.size() - query.getMaxResults(), latestList.size());
                 } else {
@@ -1335,7 +1342,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
 
                 final Long maxEventId = getMaxEventId();
                 if (maxEventId == null) {
-                    result.getResult().update(Collections.<ProvenanceEventRecord>emptyList(), 0L);
+                    result.getResult().update(Collections.<StoredProvenanceEvent>emptyList(), 0L);
                 }
                 Long minIndexedId = indexConfig.getMinIdIndexed();
                 if (minIndexedId == null) {
@@ -1361,7 +1368,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
         querySubmissionMap.put(query.getIdentifier(), result);
 
         if (indexDirectories.isEmpty()) {
-            result.getResult().update(Collections.<ProvenanceEventRecord>emptyList(), 0L);
+            result.getResult().update(Collections.<StoredProvenanceEvent>emptyList(), 0L);
         } else {
             for (final File indexDir : indexDirectories) {
                 queryExecService.submit(new QueryRunnable(query, result, indexDir, retrievalCount));
@@ -1582,7 +1589,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
             if (event == null) {
                 final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_CHILDREN, eventId, Collections.<String>emptyList(), 1);
                 lineageSubmissionMap.put(submission.getLineageIdentifier(), submission);
-                submission.getResult().update(Collections.<ProvenanceEventRecord>emptyList());
+                submission.getResult().update(Collections.<StoredProvenanceEvent>emptyList());
                 return submission;
             }
 
@@ -1619,7 +1626,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
             if (event == null) {
                 final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_CHILDREN, eventId, Collections.<String>emptyList(), 1);
                 lineageSubmissionMap.put(submission.getLineageIdentifier(), submission);
-                submission.getResult().update(Collections.<ProvenanceEventRecord>emptyList());
+                submission.getResult().update(Collections.<StoredProvenanceEvent>emptyList());
                 return submission;
             }
 
@@ -1661,12 +1668,21 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
     }
 
     @Override
-    public ProvenanceEventRecord getEvent(final long id) throws IOException {
-        final List<ProvenanceEventRecord> records = getEvents(id, 1);
+    public StoredProvenanceEvent getEvent(final StorageLocation location) throws IOException {
+        if ( !(location instanceof EventIdLocation) ) {
+            throw new IllegalArgumentException("Invalid StorageLocation for this repository");
+        }
+        
+        return getEvent(((EventIdLocation) location).getId());
+    }
+    
+    @Override
+    public StoredProvenanceEvent getEvent(final long id) throws IOException {
+        final List<StoredProvenanceEvent> records = getEvents(id, 1);
         if (records.isEmpty()) {
             return null;
         }
-        final ProvenanceEventRecord record = records.get(0);
+        final StoredProvenanceEvent record = records.get(0);
         if (record.getEventId() != id) {
             return null;
         }
@@ -1729,7 +1745,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
             // get the max indexed event id
             final Long maxEventId = indexConfig.getMaxIdIndexed();
             if (maxEventId == null) {
-                submission.getResult().update(Collections.<ProvenanceEventRecord>emptyList(), 0);
+                submission.getResult().update(Collections.<StoredProvenanceEvent>emptyList(), 0);
                 return;
             }
 
@@ -1743,7 +1759,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                 }
                 final long totalNumDocs = maxEventId - minIndexedId;
 
-                final List<ProvenanceEventRecord> mostRecent = getEvents(startIndex, maxResults);
+                final List<StoredProvenanceEvent> mostRecent = getEvents(startIndex, maxResults);
                 submission.getResult().update(mostRecent, totalNumDocs);
             } catch (final IOException ioe) {
                 logger.error("Failed to retrieve records from Provenance Repository: " + ioe.toString());
@@ -1818,7 +1834,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
             }
 
             try {
-                final Set<ProvenanceEventRecord> matchingRecords = LineageQuery.computeLineageForFlowFiles(PersistentProvenanceRepository.this, indexDir, null, flowFileUuids);
+                final Set<StoredProvenanceEvent> matchingRecords = LineageQuery.computeLineageForFlowFiles(PersistentProvenanceRepository.this, indexDir, null, flowFileUuids);
                 final StandardLineageResult result = submission.getResult();
                 result.update(matchingRecords);
 
@@ -1888,5 +1904,27 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
             thread.setName(namePrefix + "-" + counter.incrementAndGet());
             return thread;
         }
+    }
+
+    @Override
+    public List<StoredProvenanceEvent> getEvents(final List<StorageLocation> storageLocations) throws IOException {
+        final List<StoredProvenanceEvent> storedEvents = new ArrayList<>(storageLocations.size());
+        for ( final StorageLocation location : storageLocations ) {
+            final StoredProvenanceEvent event = getEvent(location);
+            if ( event != null ) {
+                storedEvents.add(event);
+            }
+        }
+        return storedEvents;
+    }
+
+    @Override
+    public Long getEarliestEventTime() throws IOException {
+        final List<StoredProvenanceEvent> firstEvents = getEvents(0, 1);
+        if ( firstEvents == null || firstEvents.isEmpty() ) {
+            return null;
+        }
+        
+        return firstEvents.get(0).getEventTime();
     }
 }

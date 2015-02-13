@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.provenance.journaling;
 
+import java.util.Collections;
+import java.util.Map;
 import java.util.UUID;
 
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -23,7 +25,12 @@ import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 
 public class TestUtil {
+    
     public static ProvenanceEventRecord generateEvent(final long id) {
+        return generateEvent(id, Collections.<String, String>emptyMap());
+    }
+    
+    public static ProvenanceEventRecord generateEvent(final long id, final Map<String, String> attributes) {
         // Create prov event to add to the stream
         final ProvenanceEventRecord event = new StandardProvenanceEventRecord.Builder()
             .setEventType(ProvenanceEventType.CREATE)
@@ -34,6 +41,7 @@ public class TestUtil {
             .setFlowFileEntryDate(System.currentTimeMillis() - 1000L)
             .setLineageStartDate(System.currentTimeMillis() - 2000L)
             .setCurrentContentClaim(null, null, null, null, 0L)
+            .setAttributes(null, attributes == null ? Collections.<String, String>emptyMap() : attributes)
             .build();
         
         return event;

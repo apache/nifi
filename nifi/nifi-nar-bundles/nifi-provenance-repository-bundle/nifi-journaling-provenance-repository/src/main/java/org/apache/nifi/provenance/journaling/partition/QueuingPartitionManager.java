@@ -35,9 +35,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.nifi.provenance.journaling.config.JournalingRepositoryConfig;
 import org.apache.nifi.util.Tuple;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class QueuingPartitionManager implements PartitionManager {
-
+    
+    private static final Logger logger = LoggerFactory.getLogger(QueuingPartitionManager.class);
+    
     private final JournalingRepositoryConfig config;
     private final BlockingQueue<Partition> partitionQueue;
     private final JournalingPartition[] partitionArray;
@@ -180,6 +184,39 @@ public class QueuingPartitionManager implements PartitionManager {
     
     @Override
     public void withEachPartition(final VoidPartitionAction action, final boolean async) {
+        // TODO: Do not use blacklisted partitions.
+        final Map<Partition, Future<?>> futures = new HashMap<>(partitionArray.length);
+        for ( final Partition partition : partitionArray ) {
+            final Runnable runnable = new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        action.perform(partition);
+                    } catch (final Throwable t) {
+                        logger.error("Failed to perform action against " + partition + " due to " + t);
+                        if ( logger.isDebugEnabled() ) {
+                            logger.error("", t);
+                        }
+                    }
+                }
+            };
+            
+            final Future<?> future = executor.submit(runnable);
+            futures.put(partition, future);
+        }
         
+        if ( !async ) {
+            for ( final Map.Entry<Partition, Future<?>> entry : futures.entrySet() ) {
+                try {
+                    // throw any exception thrown by runnable
+                    entry.getValue().get();
+                } catch (final ExecutionException ee) {
+                    final Throwable cause = ee.getCause();
+                    throw new RuntimeException("Failed to query Partition " + entry.getKey() + " due to " + cause, cause);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
     }
 }

@@ -65,6 +65,7 @@ import org.apache.nifi.provenance.MockProvenanceEventRepository;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.provenance.ProvenanceEventType;
+import org.apache.nifi.provenance.StoredProvenanceEvent;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -357,7 +358,7 @@ public class TestStandardProcessSession {
         
         session.commit();
         
-        final List<ProvenanceEventRecord> events = provenanceRepo.getEvents(0L, 1000);
+        final List<StoredProvenanceEvent> events = provenanceRepo.getEvents(0L, 1000);
 
         // We should have a JOIN and 2 ATTRIBUTE_MODIFIED's
         assertEquals(3, events.size());
@@ -412,7 +413,7 @@ public class TestStandardProcessSession {
         session.remove(orig);
         session.commit();
 
-        final List<ProvenanceEventRecord> events = provenanceRepo.getEvents(0L, 1000);
+        final List<StoredProvenanceEvent> events = provenanceRepo.getEvents(0L, 1000);
         assertEquals(2, events.size());
 
         final ProvenanceEventRecord firstRecord = events.get(0);
@@ -838,7 +839,7 @@ public class TestStandardProcessSession {
         session.transfer(newFlowFile, new Relationship.Builder().name("A").build());
         session.commit();
         
-        final List<ProvenanceEventRecord> events = provenanceRepo.getEvents(0L, 10000);
+        final List<StoredProvenanceEvent> events = provenanceRepo.getEvents(0L, 10000);
         assertFalse(events.isEmpty());
         assertEquals(1, events.size());
         
@@ -857,7 +858,7 @@ public class TestStandardProcessSession {
         session.transfer(newFlowFile, new Relationship.Builder().name("A").build());
         session.commit();
         
-        final List<ProvenanceEventRecord> events = provenanceRepo.getEvents(0L, 10000);
+        final List<StoredProvenanceEvent> events = provenanceRepo.getEvents(0L, 10000);
         assertFalse(events.isEmpty());
         assertEquals(1, events.size());
         
@@ -883,7 +884,7 @@ public class TestStandardProcessSession {
         session.transfer(existingFlowFile, new Relationship.Builder().name("A").build());
         session.commit();
         
-        final List<ProvenanceEventRecord> events = provenanceRepo.getEvents(0L, 10000);
+        final List<StoredProvenanceEvent> events = provenanceRepo.getEvents(0L, 10000);
         assertFalse(events.isEmpty());
         assertEquals(1, events.size());
         
@@ -904,7 +905,7 @@ public class TestStandardProcessSession {
         session.transfer(existingFlowFile, new Relationship.Builder().name("A").build());
         session.commit();
         
-        final List<ProvenanceEventRecord> events = provenanceRepo.getEvents(0L, 10000);
+        final List<StoredProvenanceEvent> events = provenanceRepo.getEvents(0L, 10000);
         assertFalse(events.isEmpty());
         assertEquals(1, events.size());
         

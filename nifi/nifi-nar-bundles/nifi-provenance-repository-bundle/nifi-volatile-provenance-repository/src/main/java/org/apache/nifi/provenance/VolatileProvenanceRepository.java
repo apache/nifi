@@ -24,7 +24,6 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
@@ -119,7 +118,7 @@ public class VolatileProvenanceRepository implements ProvenanceEventRepository {
     @Override
     public void registerEvent(final ProvenanceEventRecord event) {
         final long id = idGenerator.getAndIncrement();
-        ringBuffer.add(new IdEnrichedProvEvent(event, id));
+        ringBuffer.add(new IdEnrichedProvenanceEvent(event, id));
     }
 
     @Override
@@ -413,11 +412,11 @@ public class VolatileProvenanceRepository implements ProvenanceEventRepository {
     public List<StoredProvenanceEvent> getEvents(final List<StorageLocation> storageLocations) throws IOException {
         final List<StoredProvenanceEvent> events = new ArrayList<>(storageLocations.size());
         for ( final StorageLocation location : storageLocations ) {
-            if ( !(location instanceof IdLocation) ) {
+            if ( !(location instanceof EventIdLocation) ) {
                 throw new IllegalArgumentException("Illegal Storage Location");
             }
             
-            final long id = ((IdLocation) location).getId();
+            final long id = ((EventIdLocation) location).getId();
             final StoredProvenanceEvent event = getEvent(id);
             if ( event != null ) {
                 events.add(event);
@@ -428,11 +427,11 @@ public class VolatileProvenanceRepository implements ProvenanceEventRepository {
 
     @Override
     public StoredProvenanceEvent getEvent(final StorageLocation location) throws IOException {
-        if ( !(location instanceof IdLocation) ) {
+        if ( !(location instanceof EventIdLocation) ) {
             throw new IllegalArgumentException("Illegal Storage Location");
         }
         
-        final long id = ((IdLocation) location).getId();
+        final long id = ((EventIdLocation) location).getId();
         return getEvent(id);
     }
 
@@ -452,7 +451,7 @@ public class VolatileProvenanceRepository implements ProvenanceEventRepository {
         if (event == null) {
             final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_PARENTS, eventId, Collections.<String>emptyList(), 1);
             lineageSubmissionMap.put(submission.getLineageIdentifier(), submission);
-            submission.getResult().update(Collections.<ProvenanceEventRecord>emptyList());
+            submission.getResult().update(Collections.<StoredProvenanceEvent>emptyList());
             return submission;
         }
 
@@ -478,7 +477,7 @@ public class VolatileProvenanceRepository implements ProvenanceEventRepository {
         if (event == null) {
             final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_CHILDREN, eventId, Collections.<String>emptyList(), 1);
             lineageSubmissionMap.put(submission.getLineageIdentifier(), submission);
-            submission.getResult().update(Collections.<ProvenanceEventRecord>emptyList());
+            submission.getResult().update(Collections.<StoredProvenanceEvent>emptyList());
             return submission;
         }
 
@@ -611,189 +610,6 @@ public class VolatileProvenanceRepository implements ProvenanceEventRepository {
                     querySubmissionMap.remove(entry.getKey());
                 }
             }
-        }
-    }
-
-    private static class IdEnrichedProvEvent implements StoredProvenanceEvent {
-
-        private final ProvenanceEventRecord record;
-        private final long id;
-
-        public IdEnrichedProvEvent(final ProvenanceEventRecord record, final long id) {
-            this.record = record;
-            this.id = id;
-        }
-
-        @Override
-        public long getEventId() {
-            return id;
-        }
-
-        @Override
-        public long getEventTime() {
-            return record.getEventTime();
-        }
-
-        @Override
-        public long getFlowFileEntryDate() {
-            return record.getFlowFileEntryDate();
-        }
-
-        @Override
-        public long getLineageStartDate() {
-            return record.getLineageStartDate();
-        }
-
-        @Override
-        public Set<String> getLineageIdentifiers() {
-            return record.getLineageIdentifiers();
-        }
-
-        @Override
-        public long getFileSize() {
-            return record.getFileSize();
-        }
-
-        @Override
-        public Long getPreviousFileSize() {
-            return record.getPreviousFileSize();
-        }
-
-        @Override
-        public long getEventDuration() {
-            return record.getEventDuration();
-        }
-
-        @Override
-        public ProvenanceEventType getEventType() {
-            return record.getEventType();
-        }
-
-        @Override
-        public Map<String, String> getAttributes() {
-            return record.getAttributes();
-        }
-
-        @Override
-        public Map<String, String> getPreviousAttributes() {
-            return record.getPreviousAttributes();
-        }
-
-        @Override
-        public Map<String, String> getUpdatedAttributes() {
-            return record.getUpdatedAttributes();
-        }
-
-        @Override
-        public String getComponentId() {
-            return record.getComponentId();
-        }
-
-        @Override
-        public String getComponentType() {
-            return record.getComponentType();
-        }
-
-        @Override
-        public String getTransitUri() {
-            return record.getTransitUri();
-        }
-
-        @Override
-        public String getSourceSystemFlowFileIdentifier() {
-            return record.getSourceSystemFlowFileIdentifier();
-        }
-
-        @Override
-        public String getFlowFileUuid() {
-            return record.getFlowFileUuid();
-        }
-
-        @Override
-        public List<String> getParentUuids() {
-            return record.getParentUuids();
-        }
-
-        @Override
-        public List<String> getChildUuids() {
-            return record.getChildUuids();
-        }
-
-        @Override
-        public String getAlternateIdentifierUri() {
-            return record.getAlternateIdentifierUri();
-        }
-
-        @Override
-        public String getDetails() {
-            return record.getDetails();
-        }
-
-        @Override
-        public String getRelationship() {
-            return record.getRelationship();
-        }
-
-        @Override
-        public String getSourceQueueIdentifier() {
-            return record.getSourceQueueIdentifier();
-        }
-
-        @Override
-        public String getContentClaimSection() {
-            return record.getContentClaimSection();
-        }
-
-        @Override
-        public String getPreviousContentClaimSection() {
-            return record.getPreviousContentClaimSection();
-        }
-
-        @Override
-        public String getContentClaimContainer() {
-            return record.getContentClaimContainer();
-        }
-
-        @Override
-        public String getPreviousContentClaimContainer() {
-            return record.getPreviousContentClaimContainer();
-        }
-
-        @Override
-        public String getContentClaimIdentifier() {
-            return record.getContentClaimIdentifier();
-        }
-
-        @Override
-        public String getPreviousContentClaimIdentifier() {
-            return record.getPreviousContentClaimIdentifier();
-        }
-
-        @Override
-        public Long getContentClaimOffset() {
-            return record.getContentClaimOffset();
-        }
-
-        @Override
-        public Long getPreviousContentClaimOffset() {
-            return record.getPreviousContentClaimOffset();
-        }
-
-        @Override
-        public StorageLocation getStorageLocation() {
-            return new IdLocation(getEventId());
-        }
-    }
-    
-    private static class IdLocation implements StorageLocation {
-        private final long id;
-        
-        public IdLocation(final long id) {
-            this.id = id;
-        }
-        
-        public long getId() {
-            return id;
         }
     }
 

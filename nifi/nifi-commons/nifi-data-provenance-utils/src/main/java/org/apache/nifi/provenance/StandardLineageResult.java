@@ -178,7 +178,7 @@ public class StandardLineageResult implements ComputeLineageResult {
         }
     }
 
-    public void update(final Collection<ProvenanceEventRecord> records) {
+    public void update(final Collection<StoredProvenanceEvent> records) {
         writeLock.lock();
         try {
             relevantRecords.addAll(records);

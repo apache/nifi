@@ -34,7 +34,7 @@ public class JournalingRepositoryConfig {
     private long journalCapacity = 1024L * 1024L * 5L;   // 5 MB
     private long desiredIndexBytes = 1024L * 1024L * 500L; // 500 MB
     private int partitionCount = 16;
-    private int blockSize = 100;
+    private int blockSize = 5000;
 
     private List<SearchableField> searchableFields = new ArrayList<>();
     private List<SearchableField> searchableAttributes = new ArrayList<>();

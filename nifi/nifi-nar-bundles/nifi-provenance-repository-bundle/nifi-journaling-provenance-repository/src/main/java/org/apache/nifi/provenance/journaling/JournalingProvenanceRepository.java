@@ -55,6 +55,8 @@ import org.apache.nifi.provenance.journaling.partition.PartitionAction;
 import org.apache.nifi.provenance.journaling.partition.PartitionManager;
 import org.apache.nifi.provenance.journaling.partition.QueuingPartitionManager;
 import org.apache.nifi.provenance.journaling.partition.VoidPartitionAction;
+import org.apache.nifi.provenance.journaling.query.QueryManager;
+import org.apache.nifi.provenance.journaling.query.StandardQueryManager;
 import org.apache.nifi.provenance.journaling.toc.StandardTocReader;
 import org.apache.nifi.provenance.journaling.toc.TocReader;
 import org.apache.nifi.provenance.lineage.ComputeLineageSubmission;
@@ -67,15 +69,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class JournalingProvenanceRepository implements ProvenanceEventRepository {
+    public static final String BLOCK_SIZE = "nifi.provenance.block.size";
+    
     private static final Logger logger = LoggerFactory.getLogger(JournalingProvenanceRepository.class);
     
     private final JournalingRepositoryConfig config;
-    private final PartitionManager partitionManager;
     private final AtomicLong idGenerator = new AtomicLong(0L);
-    
-    private EventReporter eventReporter;    // effectively final
     private final ExecutorService executor;
     
+    private EventReporter eventReporter;    // effectively final
+    private PartitionManager partitionManager;  // effectively final
+    private QueryManager queryManager;    // effectively final
     
     public JournalingProvenanceRepository() throws IOException {
         this(createConfig());
@@ -84,7 +88,6 @@ public class JournalingProvenanceRepository implements ProvenanceEventRepository
     public JournalingProvenanceRepository(final JournalingRepositoryConfig config) throws IOException {
         this.config = config;
         this.executor = Executors.newFixedThreadPool(config.getThreadPoolSize());
-        this.partitionManager = new QueuingPartitionManager(config, executor);
     }
     
     
@@ -110,7 +113,8 @@ public class JournalingProvenanceRepository implements ProvenanceEventRepository
         final boolean compressOnRollover = Boolean.parseBoolean(properties.getProperty(NiFiProperties.PROVENANCE_COMPRESS_ON_ROLLOVER));
         final String indexedFieldString = properties.getProperty(NiFiProperties.PROVENANCE_INDEXED_FIELDS);
         final String indexedAttrString = properties.getProperty(NiFiProperties.PROVENANCE_INDEXED_ATTRIBUTES);
-
+        final int blockSize = properties.getIntegerProperty(BLOCK_SIZE, 1000);
+        
         final Boolean alwaysSync = Boolean.parseBoolean(properties.getProperty("nifi.provenance.repository.always.sync", "false"));
 
         final List<SearchableField> searchableFields = SearchableFieldParser.extractSearchableFields(indexedFieldString, true);
@@ -137,7 +141,8 @@ public class JournalingProvenanceRepository implements ProvenanceEventRepository
         config.setMaxStorageCapacity(maxStorageBytes);
         config.setThreadPoolSize(queryThreads);
         config.setPartitionCount(journalCount);
-
+        config.setBlockSize(blockSize);
+        
         if (shardSize != null) {
             config.setDesiredIndexSize(DataUnit.parseDataSize(shardSize, DataUnit.B).longValue());
         }
@@ -150,6 +155,9 @@ public class JournalingProvenanceRepository implements ProvenanceEventRepository
     @Override
     public synchronized void initialize(final EventReporter eventReporter) throws IOException {
         this.eventReporter = eventReporter;
+        
+        this.partitionManager = new QueuingPartitionManager(config, executor);
+        this.queryManager = new StandardQueryManager(partitionManager, config, 10);
     }
 
     @Override
@@ -328,14 +336,12 @@ public class JournalingProvenanceRepository implements ProvenanceEventRepository
     
     @Override
     public QuerySubmission submitQuery(final Query query) {
-        // TODO Auto-generated method stub
-        return null;
+        return queryManager.submitQuery(query);
     }
 
     @Override
     public QuerySubmission retrieveQuerySubmission(final String queryIdentifier) {
-        // TODO Auto-generated method stub
-        return null;
+        return queryManager.retrieveQuerySubmission(queryIdentifier);
     }
 
     @Override
@@ -364,7 +370,10 @@ public class JournalingProvenanceRepository implements ProvenanceEventRepository
 
     @Override
     public void close() throws IOException {
-        partitionManager.shutdown();
+        if ( partitionManager != null ) {
+            partitionManager.shutdown();
+        }
+        
         executor.shutdown();
     }
 

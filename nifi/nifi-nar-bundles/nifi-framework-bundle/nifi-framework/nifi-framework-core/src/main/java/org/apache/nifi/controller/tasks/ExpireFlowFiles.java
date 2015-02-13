@@ -16,8 +16,11 @@
  */
 package org.apache.nifi.controller.tasks;
 
+import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+
+import javax.print.attribute.standard.Severity;
 
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
@@ -29,9 +32,12 @@ import org.apache.nifi.controller.repository.ProcessContext;
 import org.apache.nifi.controller.repository.StandardProcessSession;
 import org.apache.nifi.controller.repository.StandardProcessSessionFactory;
 import org.apache.nifi.controller.scheduling.ProcessContextFactory;
+import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.util.FormatUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This task runs through all Connectable Components and goes through its
@@ -39,7 +45,8 @@ import org.apache.nifi.util.FormatUtils;
  * desired side effect of expiring old FlowFiles.
  */
 public class ExpireFlowFiles implements Runnable {
-
+    private static final Logger logger = LoggerFactory.getLogger(ExpireFlowFiles.class);
+    
     private final FlowController flowController;
     private final ProcessContextFactory contextFactory;
 
@@ -51,7 +58,19 @@ public class ExpireFlowFiles implements Runnable {
     @Override
     public void run() {
         final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
-        expireFlowFiles(rootGroup);
+        
+        try {
+            expireFlowFiles(rootGroup);
+        } catch (final Exception e) {
+            logger.error("Failed to expire FlowFiles due to {}", e.toString());
+            if ( logger.isDebugEnabled() ) {
+                logger.error("", e);
+            }
+            
+            flowController.getBulletinRepository().addBulletin(BulletinFactory.createBulletin(
+                    "FlowFile Expiration", Severity.ERROR.getName(), "Could not expire FlowFiles due to " + e));
+            
+        }
     }
 
     private StandardProcessSession createSession(final Connectable connectable) {
@@ -60,7 +79,7 @@ public class ExpireFlowFiles implements Runnable {
         return sessionFactory.createSession();
     }
 
-    private void expireFlowFiles(final Connectable connectable) {
+    private void expireFlowFiles(final Connectable connectable) throws IOException {
         // determine if the incoming connections for this Connectable have Expiration configured.
         boolean expirationConfigured = false;
         for (final Connection incomingConn : connectable.getIncomingConnections()) {
@@ -80,7 +99,7 @@ public class ExpireFlowFiles implements Runnable {
         session.commit();
     }
 
-    private void expireFlowFiles(final ProcessGroup group) {
+    private void expireFlowFiles(final ProcessGroup group) throws IOException {
         for (final ProcessorNode procNode : group.getProcessors()) {
             expireFlowFiles(procNode);
         }

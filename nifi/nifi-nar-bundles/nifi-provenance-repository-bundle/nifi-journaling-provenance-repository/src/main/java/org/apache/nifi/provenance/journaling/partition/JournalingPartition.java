@@ -214,6 +214,7 @@ public class JournalingPartition implements Partition {
         final File journalFile = new File(journalsDir, firstEventId + JOURNAL_FILE_EXTENSION);
         journalWriter = new StandardJournalWriter(firstEventId, journalFile, false, new StandardEventSerializer());
         tocWriter = new StandardTocWriter(QueryUtils.getTocFile(journalFile), false);
+        tocWriter.addBlockOffset(journalWriter.getSize());
         numEventsAtEndOfLastBlock = 0;
     }
     
@@ -420,5 +421,10 @@ public class JournalingPartition implements Partition {
     @Override
     public Long getEarliestEventTime() throws IOException {
         return earliestEventTime;
+    }
+    
+    @Override
+    public String toString() {
+        return "Partition[section=" + sectionName + "]";
     }
 }

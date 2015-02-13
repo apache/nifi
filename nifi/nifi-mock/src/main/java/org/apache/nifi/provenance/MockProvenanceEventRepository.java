@@ -18,6 +18,7 @@ package org.apache.nifi.provenance;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
@@ -30,11 +31,11 @@ import org.apache.nifi.provenance.search.SearchableField;
 
 public class MockProvenanceEventRepository implements ProvenanceEventRepository {
 
-    private final List<ProvenanceEventRecord> records = new ArrayList<>();
+    private final List<StoredProvenanceEvent> records = new ArrayList<>();
     private final AtomicLong idGenerator = new AtomicLong(0L);
 
     @Override
-    public void registerEvents(final Iterable<ProvenanceEventRecord> events) {
+    public void registerEvents(final Collection<ProvenanceEventRecord> events) {
         for (final ProvenanceEventRecord event : events) {
             registerEvent(event);
         }
@@ -50,7 +51,7 @@ public class MockProvenanceEventRepository implements ProvenanceEventRepository 
         }
         newRecord.setEventId(idGenerator.getAndIncrement());
 
-        records.add(newRecord);
+        records.add(new IdEnrichedProvenanceEvent(newRecord));
     }
 
     @Override
@@ -58,7 +59,7 @@ public class MockProvenanceEventRepository implements ProvenanceEventRepository 
     }
 
     @Override
-    public List<ProvenanceEventRecord> getEvents(long firstRecordId, int maxRecords) throws IOException {
+    public List<StoredProvenanceEvent> getEvents(long firstRecordId, int maxRecords) throws IOException {
         if (firstRecordId > records.size()) {
             return Collections.emptyList();
         }
@@ -92,7 +93,7 @@ public class MockProvenanceEventRepository implements ProvenanceEventRepository 
     }
 
     @Override
-    public ProvenanceEventRecord getEvent(long id) throws IOException {
+    public StoredProvenanceEvent getEvent(long id) throws IOException {
         if (id > records.size()) {
             return null;
         }
@@ -127,5 +128,35 @@ public class MockProvenanceEventRepository implements ProvenanceEventRepository 
     @Override
     public ProvenanceEventBuilder eventBuilder() {
         return new StandardProvenanceEventRecord.Builder();
+    }
+    
+    @Override
+    public Long getEarliestEventTime() throws IOException {
+        final StoredProvenanceEvent event = getEvent(0);
+        if ( event == null ) {
+            return null;
+        }
+        
+        return event.getEventTime();
+    }
+    
+    @Override
+    public StoredProvenanceEvent getEvent(final StorageLocation location) throws IOException {
+        if ( location instanceof EventIdLocation ) {
+            return getEvent( ((EventIdLocation) location).getId() );
+        }
+        throw new IllegalArgumentException("Invalid StorageLocation");
+    }
+    
+    @Override
+    public List<StoredProvenanceEvent> getEvents(final List<StorageLocation> storageLocations) throws IOException {
+        final List<StoredProvenanceEvent> events = new ArrayList<>(storageLocations.size());
+        for ( final StorageLocation location : storageLocations ) {
+            final StoredProvenanceEvent event = getEvent(location);
+            if ( event != null ) {
+                events.add(event);
+            }
+        }
+        return events;
     }
 }

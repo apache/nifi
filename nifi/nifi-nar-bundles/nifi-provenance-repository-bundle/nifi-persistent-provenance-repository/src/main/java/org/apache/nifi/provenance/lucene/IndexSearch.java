@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.nifi.provenance.PersistentProvenanceRepository;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.StandardQueryResult;
-
+import org.apache.nifi.provenance.StoredProvenanceEvent;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexNotFoundException;
 import org.apache.lucene.search.IndexSearcher;
@@ -53,7 +53,7 @@ public class IndexSearch {
         }
 
         final StandardQueryResult sqr = new StandardQueryResult(provenanceQuery, 1);
-        final Set<ProvenanceEventRecord> matchingRecords;
+        final Set<StoredProvenanceEvent> matchingRecords;
 
         try (final DirectoryReader directoryReader = DirectoryReader.open(FSDirectory.open(indexDirectory))) {
             final IndexSearcher searcher = new IndexSearcher(directoryReader);
@@ -65,7 +65,7 @@ public class IndexSearch {
 
             TopDocs topDocs = searcher.search(luceneQuery, provenanceQuery.getMaxResults());
             if (topDocs.totalHits == 0) {
-                sqr.update(Collections.<ProvenanceEventRecord>emptyList(), 0);
+                sqr.update(Collections.<StoredProvenanceEvent>emptyList(), 0);
                 return sqr;
             }
 
@@ -76,7 +76,7 @@ public class IndexSearch {
             return sqr;
         } catch (final IndexNotFoundException e) {
             // nothing has been indexed yet.
-            sqr.update(Collections.<ProvenanceEventRecord>emptyList(), 0);
+            sqr.update(Collections.<StoredProvenanceEvent>emptyList(), 0);
             return sqr;
         }
     }

@@ -28,22 +28,22 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.nifi.provenance.ProvenanceEventRecord;
-import org.apache.nifi.provenance.StandardProvenanceEventRecord;
-import org.apache.nifi.provenance.serialization.RecordReader;
-import org.apache.nifi.provenance.serialization.RecordReaders;
-
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
+import org.apache.nifi.provenance.IdEnrichedProvenanceEvent;
+import org.apache.nifi.provenance.StandardProvenanceEventRecord;
+import org.apache.nifi.provenance.StoredProvenanceEvent;
+import org.apache.nifi.provenance.serialization.RecordReader;
+import org.apache.nifi.provenance.serialization.RecordReaders;
 
 public class DocsReader {
 
     public DocsReader(final List<File> storageDirectories) {
     }
 
-    public Set<ProvenanceEventRecord> read(final TopDocs topDocs, final IndexReader indexReader, final Collection<Path> allProvenanceLogFiles, final AtomicInteger retrievalCount, final int maxResults) throws IOException {
+    public Set<StoredProvenanceEvent> read(final TopDocs topDocs, final IndexReader indexReader, final Collection<Path> allProvenanceLogFiles, final AtomicInteger retrievalCount, final int maxResults) throws IOException {
         if (retrievalCount.get() >= maxResults) {
             return Collections.emptySet();
         }
@@ -59,13 +59,13 @@ public class DocsReader {
         return read(docs, allProvenanceLogFiles, retrievalCount, maxResults);
     }
 
-    public Set<ProvenanceEventRecord> read(final List<Document> docs, final Collection<Path> allProvenanceLogFiles, final AtomicInteger retrievalCount, final int maxResults) throws IOException {
+    public Set<StoredProvenanceEvent> read(final List<Document> docs, final Collection<Path> allProvenanceLogFiles, final AtomicInteger retrievalCount, final int maxResults) throws IOException {
         LuceneUtil.sortDocsForRetrieval(docs);
 
         RecordReader reader = null;
         String lastStorageFilename = null;
         long lastByteOffset = 0L;
-        final Set<ProvenanceEventRecord> matchingRecords = new LinkedHashSet<>();
+        final Set<StoredProvenanceEvent> matchingRecords = new LinkedHashSet<>();
 
         try {
             for (final Document d : docs) {
@@ -78,7 +78,8 @@ public class DocsReader {
                         try {
                             reader.skipTo(byteOffset);
                             final StandardProvenanceEventRecord record = reader.nextRecord();
-                            matchingRecords.add(record);
+                            matchingRecords.add(new IdEnrichedProvenanceEvent(record));
+                            
                             if (retrievalCount.incrementAndGet() >= maxResults) {
                                 break;
                             }
@@ -107,7 +108,7 @@ public class DocsReader {
                                 reader.skip(byteOffset);
 
                                 final StandardProvenanceEventRecord record = reader.nextRecord();
-                                matchingRecords.add(record);
+                                matchingRecords.add(new IdEnrichedProvenanceEvent(record));
                                 if (retrievalCount.incrementAndGet() >= maxResults) {
                                     break;
                                 }

@@ -163,7 +163,7 @@ public class StandardJournalReader implements JournalReader {
             }
         }
         
-        throw new IOException("Could not find event with ID " + eventId);
+        throw new IOException("Could not find event with ID " + eventId + " in " + this);
     }
 
     @Override

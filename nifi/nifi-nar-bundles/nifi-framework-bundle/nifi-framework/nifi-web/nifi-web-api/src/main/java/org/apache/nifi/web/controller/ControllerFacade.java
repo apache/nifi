@@ -697,9 +697,9 @@ public class ControllerFacade implements ControllerServiceProvider {
             resultsDto.setTimeOffset(TimeZone.getDefault().getOffset(now.getTime()));
 
             // get the oldest available event time
-            final List<ProvenanceEventRecord> firstEvent = provenanceRepository.getEvents(0, 1);
-            if (!firstEvent.isEmpty()) {
-                resultsDto.setOldestEvent(new Date(firstEvent.get(0).getEventTime()));
+            final Long oldestEventTime = provenanceRepository.getEarliestEventTime();
+            if (oldestEventTime != null) {
+                resultsDto.setOldestEvent(new Date(oldestEventTime));
             }
 
             provenanceDto.setResults(resultsDto);

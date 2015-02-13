@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.util.file;
 
-import java.io.BufferedInputStream;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
