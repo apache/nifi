@@ -67,7 +67,6 @@ nf.Graph = (function () {
 
             // if we are going to select the new components, deselect the previous selection
             if (selectAll) {
-                // deselect the current selection
                 nf.CanvasUtils.getSelection().classed('selected', false);
             }
 
@@ -95,6 +94,11 @@ nf.Graph = (function () {
             }
             if (!nf.Common.isEmpty(processGroupContents.connections)) {
                 nf.Connection.add(processGroupContents.connections, selectAll);
+            }
+            
+            // trigger the toolbar to refresh if the selection is changing
+            if (selectAll) {
+                nf.CanvasToolbar.refresh();
             }
         },
         
