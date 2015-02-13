@@ -14,7 +14,7 @@
 -->
 # Apache NiFi
 
-Apache NiFi is an easy to use, powerful, and reliable system to process and distribute data. It is currently apart of the Apache Incubator.
+Apache NiFi is an easy to use, powerful, and reliable system to process and distribute data.
 
 ## Table of Contents
 
