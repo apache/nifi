@@ -88,8 +88,12 @@
     z-index: 1301;
     display: none;
     width: 195px;
-    height: 345px;
+    height: 400px;
     border: 1px solid #eee;
+}
+
+#fill-color-value {
+    width: 165px;
 }
 
 #fill-color-processor-preview {

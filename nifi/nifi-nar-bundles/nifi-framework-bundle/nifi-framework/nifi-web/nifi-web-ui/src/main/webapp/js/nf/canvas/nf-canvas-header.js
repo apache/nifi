@@ -170,22 +170,22 @@ nf.CanvasHeader = (function () {
                         buttonText: 'Apply',
                         handler: {
                             click: function () {
-                                // close the dialog
-                                $('#fill-color-dialog').modal('hide');
-
-                                // ensure the selection is a processor or label
                                 var selection = nf.CanvasUtils.getSelection();
-                                if (selection.size() === 1 && (nf.CanvasUtils.isProcessor(selection) || nf.CanvasUtils.isLabel(selection))) {
+                                
+                                // color the selected components
+                                selection.each(function (d) {
+                                    var selected = d3.select(this);
+                                    
                                     var revision = nf.Client.getRevision();
-                                    var selectionData = selection.datum();
+                                    var selectedData = selected.datum();
 
                                     // get the color and update the styles
-                                    var color = $('#fill-color-value').val();
+                                    var color = $('#fill-color').minicolors('value');
 
                                     // update the style for the specified component
                                     $.ajax({
                                         type: 'PUT',
-                                        url: selectionData.component.uri,
+                                        url: selectedData.component.uri,
                                         data: {
                                             'version': revision.version,
                                             'clientId': revision.clientId,
@@ -197,7 +197,7 @@ nf.CanvasHeader = (function () {
                                         nf.Client.setRevision(response.revision);
 
                                         // update the processor
-                                        if (nf.CanvasUtils.isProcessor(selection)) {
+                                        if (nf.CanvasUtils.isProcessor(selected)) {
                                             nf.Processor.set(response.processor);
                                         } else {
                                             nf.Label.set(response.label);
@@ -210,7 +210,10 @@ nf.CanvasHeader = (function () {
                                             });
                                         }
                                     });
-                                }
+                                });
+                                
+                                // close the dialog
+                                $('#fill-color-dialog').modal('hide');
                             }
                         }
                     }, {
@@ -221,18 +224,47 @@ nf.CanvasHeader = (function () {
                                 $('#fill-color-dialog').modal('hide');
                             }
                         }
-                    }]
+                    }],
+                handler: {
+                    close: function () {
+                        // clear the current color
+                        $('#fill-color-value').val('');
+                        $('#fill-color').minicolors('value', '');
+                    }
+                }
             });
 
             // initialize the fill color picker
-            $('#fill-color-value').minicolors({
+            $('#fill-color').minicolors({
                 inline: true,
                 change: function (hex, opacity) {
+                    // update the value
+                    $('#fill-color-value').val(hex);
+
+                    // always update the preview
                     $('#fill-color-processor-preview, #fill-color-label-preview').css({
                         'border-color': hex,
                         'background': 'linear-gradient(to bottom, #ffffff, ' + hex + ')',
                         'filter': 'progid:DXImageTransform.Microsoft.gradient(gradientType=0, startColorstr=#ffffff, endColorstr=' + hex + ')'
                     });
+                }
+            });
+            
+            // updates the color if its a valid hex color string
+            var updateColor = function () {
+                var hex = $('#fill-color-value').val();
+                
+                // only update the fill color when its a valid hex color string
+                if (/(^#[0-9A-F]{6}$)|(^#[0-9A-F]{3}$)/i.test(hex)) {
+                    $('#fill-color').minicolors('value', hex);
+                }
+            };
+            
+            // initialize the fill color value
+            $('#fill-color-value').on('blur', updateColor).on('keyup', function(e) {
+                var code = e.keyCode ? e.keyCode : e.which;
+                if (code === $.ui.keyCode.ENTER) {
+                    updateColor();
                 }
             });
 
