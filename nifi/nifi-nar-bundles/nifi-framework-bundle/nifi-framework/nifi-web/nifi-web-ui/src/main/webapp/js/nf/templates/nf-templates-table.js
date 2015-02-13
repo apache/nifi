@@ -204,7 +204,7 @@ nf.TemplatesTable = (function () {
 
             // initialize the templates table
             var templatesColumns = [
-                {id: 'timestamp', name: 'Date/Time', field: 'timestamp', sortable: true, resizable: false, formatter: valueFormatter, width: 225, maxWidth: 225},
+                {id: 'timestamp', name: 'Date/Time', field: 'timestamp', sortable: true, defaultSortAsc: false, resizable: false, formatter: valueFormatter, width: 225, maxWidth: 225},
                 {id: 'name', name: 'Name', field: 'name', sortable: true, resizable: true},
                 {id: 'description', name: 'Description', field: 'description', sortable: true, resizable: true, formatter: valueFormatter},
                 {id: 'actions', name: '&nbsp;', sortable: false, resizable: false, formatter: actionFormatter, width: 100, maxWidth: 100}
@@ -231,14 +231,14 @@ nf.TemplatesTable = (function () {
             // initialize the sort
             sort({
                 columnId: 'timestamp',
-                sortAsc: true
+                sortAsc: false
             }, templatesData);
 
             // initialize the grid
             var templatesGrid = new Slick.Grid('#templates-table', templatesData, templatesColumns, templatesOptions);
             templatesGrid.setSelectionModel(new Slick.RowSelectionModel());
             templatesGrid.registerPlugin(new Slick.AutoTooltips());
-            templatesGrid.setSortColumn('timestamp', true);
+            templatesGrid.setSortColumn('timestamp', false);
             templatesGrid.onSort.subscribe(function (e, args) {
                 sort({
                     columnId: args.sortCol.field,
