@@ -349,7 +349,7 @@ nf.CanvasUtils = (function () {
                         .each(function () {
                             var bBox = this.getBBox();
                             d3.select(this).attr('x', function () {
-                                return d.dimensions.width - bBox.width - 2;
+                                return d.dimensions.width - bBox.width - 4;
                             });
                         });
 
@@ -357,7 +357,7 @@ nf.CanvasUtils = (function () {
                 selection.select('rect.active-thread-count-background')
                         .attr('width', function () {
                             var bBox = activeThreadCount.node().getBBox();
-                            return bBox.width + 4;
+                            return bBox.width + 8;
                         })
                         .attr('x', function () {
                             var bBox = activeThreadCount.node().getBBox();
@@ -367,7 +367,18 @@ nf.CanvasUtils = (function () {
                                 setOffset(bBox.width + 6);
                             }
 
-                            return d.dimensions.width - bBox.width - 4;
+                            return d.dimensions.width - bBox.width - 8;
+                        })
+                        .attr('stroke-dasharray', function() {
+                            var rect = d3.select(this);
+                            var width = parseFloat(rect.attr('width'));
+                            var height = parseFloat(rect.attr('height'));
+                            
+                            var dashArray = [];
+                            dashArray.push(0);
+                            dashArray.push(width + height);
+                            dashArray.push(width + height);
+                            return dashArray.join(' ');
                         })
                         .style('display', 'block');
             } else {
@@ -382,7 +393,7 @@ nf.CanvasUtils = (function () {
          */
         disableImageHref: function (selection) {
             selection.on('click.disableImageHref', function () {
-                if (d3.event.ctrlKey) {
+                if (d3.event.ctrlKey || d3.event.shiftKey) {
                     d3.event.preventDefault();
                 }
             });

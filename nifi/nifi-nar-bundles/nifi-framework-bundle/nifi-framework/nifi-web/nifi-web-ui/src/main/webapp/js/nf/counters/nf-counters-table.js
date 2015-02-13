@@ -110,6 +110,26 @@ nf.CountersTable = (function () {
         // perform the filter
         return item[args.property].search(filterExp) >= 0;
     };
+    
+    /**
+     * Resets the specified counter.
+     * 
+     * @argument {object} item     The counter item
+     */
+    var resetCounter = function (item) {
+        $.ajax({
+            type: 'PUT',
+            url: config.urls.counters + '/' + encodeURIComponent(item.id),
+            dataType: 'json'
+        }).done(function (response) {
+            var counter = response.counter;
+
+            // get the table and update the row accordingly
+            var countersGrid = $('#counters-table').data('gridInstance');
+            var countersData = countersGrid.getData();
+            countersData.updateItem(counter.id, counter);
+        }).fail(nf.Common.handleAjaxError);
+    };
 
     return {
         /**
@@ -159,7 +179,7 @@ nf.CountersTable = (function () {
             if (nf.Common.isDFM()) {
                 // function for formatting the actions column
                 var actionFormatter = function (row, cell, value, columnDef, dataContext) {
-                    return '<img src="images/iconResetCounter.png" title="Reset" class="pointer" style="margin-top: 2px;" onclick="javascript:nf.CountersTable.resetCounter(\'' + row + '\');"/>';
+                    return '<img src="images/iconResetCounter.png" title="Reset" class="pointer reset-counter" style="margin-top: 2px;"/>';
                 };
 
                 // add the action column
@@ -202,6 +222,21 @@ nf.CountersTable = (function () {
                     sortAsc: args.sortAsc
                 }, countersData);
             });
+            
+            // configure a click listener
+            countersGrid.onClick.subscribe(function (e, args) {
+                var target = $(e.target);
+
+                // get the node at this row
+                var item = countersData.getItem(args.row);
+
+                // determine the desired action
+                if (countersGrid.getColumns()[args.cell].id === 'actions') {
+                    if (target.hasClass('reset-counter')) {
+                        resetCounter(item);
+                    }
+                }
+            });
 
             // wire up the dataview to the grid
             countersData.onRowCountChanged.subscribe(function (e, args) {
@@ -221,32 +256,6 @@ nf.CountersTable = (function () {
 
             // initialize the number of display items
             $('#displayed-counters').text('0');
-        },
-        
-        /**
-         * Resets the specified counter.
-         * 
-         * @argument {string} row     The row
-         */
-        resetCounter: function (row) {
-            var grid = $('#counters-table').data('gridInstance');
-            if (nf.Common.isDefinedAndNotNull(grid)) {
-                var data = grid.getData();
-                var item = data.getItem(row);
-
-                $.ajax({
-                    type: 'PUT',
-                    url: config.urls.counters + '/' + encodeURIComponent(item.id),
-                    dataType: 'json'
-                }).done(function (response) {
-                    var counter = response.counter;
-
-                    // get the table and update the row accordingly
-                    var countersGrid = $('#counters-table').data('gridInstance');
-                    var countersData = countersGrid.getData();
-                    countersData.updateItem(counter.id, counter);
-                }).fail(nf.Common.handleAjaxError);
-            }
         },
         
         /**

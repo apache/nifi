@@ -18,10 +18,10 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi</artifactId>
-        <version>0.0.1-incubating-SNAPSHOT</version>
+        <version>0.0.2-incubating-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-assembly</artifactId>
-    <version>0.0.1-incubating-SNAPSHOT</version>
+    <version>0.0.2-incubating-SNAPSHOT</version>
     <packaging>pom</packaging>
     <description>This is the assembly Apache NiFi (incubating)</description>
     <build>
@@ -43,6 +43,7 @@
                             <descriptors>
                                 <descriptor>src/main/assembly/dependencies.xml</descriptor>
                             </descriptors>
+                            <tarLongFileMode>posix</tarLongFileMode>
                         </configuration>
                     </execution>
                 </executions>    
@@ -206,7 +207,7 @@
         
         
         <nifi.restore.directory />
-        <nifi.ui.banner.text></nifi.ui.banner.text>
+        <nifi.ui.banner.text />
         <nifi.ui.autorefresh.interval>30 sec</nifi.ui.autorefresh.interval>
         <nifi.nar.library.directory>./lib</nifi.nar.library.directory>
         <nifi.nar.working.directory>./work/nar/</nifi.nar.working.directory>
@@ -376,16 +377,16 @@
                                             <directory>/opt/nifi/nifi-${project.version}</directory>
                                             <sources>
                                                 <source>
-                                                    <location>../LICENSE</location>
+                                                    <location>./LICENSE</location>
                                                 </source>
                                                 <source>
-                                                    <location>../NOTICE</location>
+                                                    <location>./NOTICE</location>
                                                 </source>
                                                 <source>
                                                     <location>../DISCLAIMER</location>
                                                 </source>
                                                 <source>
-                                                    <location>../README.md</location>
+                                                    <location>./README.md</location>
                                                     <destination>README</destination>
                                                 </source>
                                             </sources>

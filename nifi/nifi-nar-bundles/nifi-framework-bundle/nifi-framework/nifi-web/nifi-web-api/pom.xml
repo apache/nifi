@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-web</artifactId>
-        <version>0.0.1-incubating-SNAPSHOT</version>
+        <version>0.0.2-incubating-SNAPSHOT</version>
     </parent>
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-web-api</artifactId>
@@ -27,7 +27,7 @@
         <profile>
             <id>docs</id>
             <activation>
-               <jdk>1.7</jdk> 
+                <activeByDefault>false</activeByDefault>
             </activation>
             <build>
                 <resources>
@@ -118,7 +118,7 @@
             <classifier>sources</classifier>
             <scope>provided</scope>
             <optional>true</optional>
-            <version>0.0.1-incubating-SNAPSHOT</version>
+            <version>0.0.2-incubating-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>

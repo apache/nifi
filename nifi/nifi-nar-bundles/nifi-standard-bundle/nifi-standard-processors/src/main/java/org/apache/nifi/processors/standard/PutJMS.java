@@ -40,6 +40,7 @@ import static org.apache.nifi.processors.standard.util.JmsProperties.MSG_TYPE_BY
 import static org.apache.nifi.processors.standard.util.JmsProperties.MSG_TYPE_EMPTY;
 import static org.apache.nifi.processors.standard.util.JmsProperties.MSG_TYPE_STREAM;
 import static org.apache.nifi.processors.standard.util.JmsProperties.MSG_TYPE_TEXT;
+import static org.apache.nifi.processors.standard.util.JmsProperties.MSG_TYPE_MAP;
 import static org.apache.nifi.processors.standard.util.JmsProperties.PASSWORD;
 import static org.apache.nifi.processors.standard.util.JmsProperties.REPLY_TO_QUEUE;
 import static org.apache.nifi.processors.standard.util.JmsProperties.TIMEOUT;
@@ -257,18 +258,22 @@ public class PutJMS extends AbstractProcessor {
         switch (context.getProperty(MESSAGE_TYPE).getValue()) {
             case MSG_TYPE_EMPTY: {
                 message = jmsSession.createTextMessage("");
+                break;
             }
-            break;
             case MSG_TYPE_STREAM: {
                 final StreamMessage streamMessage = jmsSession.createStreamMessage();
                 streamMessage.writeBytes(messageContent);
                 message = streamMessage;
+                break;
             }
-            break;
             case MSG_TYPE_TEXT: {
                 message = jmsSession.createTextMessage(new String(messageContent, UTF8));
+                break;
             }
-            break;
+            case MSG_TYPE_MAP: {
+                message = jmsSession.createMapMessage();
+                break;
+            }
             case MSG_TYPE_BYTE:
             default: {
                 final BytesMessage bytesMessage = jmsSession.createBytesMessage();

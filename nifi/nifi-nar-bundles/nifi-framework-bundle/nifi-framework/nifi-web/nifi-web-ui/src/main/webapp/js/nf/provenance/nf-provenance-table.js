@@ -553,7 +553,7 @@ nf.ProvenanceTable = (function () {
 
         // define a custom formatter for the more details column
         var moreDetailsFormatter = function (row, cell, value, columnDef, dataContext) {
-            return '<img src="images/iconDetails.png" title="View Details" class="pointer" style="margin-top: 4px;" onclick="javascript:nf.ProvenanceTable.showEventDetailsByIndex(\'' + row + '\');"/>';
+            return '<img src="images/iconDetails.png" title="View Details" class="pointer show-event-details" style="margin-top: 4px;"/>';
         };
 
         // define how general values are formatted
@@ -570,12 +570,12 @@ nf.ProvenanceTable = (function () {
 
             // conditionally include the cluster node id
             if (nf.Common.SUPPORTS_SVG) {
-                markup += '<img src="images/iconLineage.png" title="Show Lineage" class="pointer" style="margin-top: 2px;" onclick="javascript:nf.ProvenanceTable.showLineage(\'' + row + '\');"/>';
+                markup += '<img src="images/iconLineage.png" title="Show Lineage" class="pointer show-lineage" style="margin-top: 2px;"/>';
             }
 
             // conditionally support going to the component
             if (isInShell && nf.Common.isDefinedAndNotNull(dataContext.groupId)) {
-                markup += '&nbsp;<img src="images/iconGoTo.png" title="Go To" class="pointer" style="margin-top: 2px;" onclick="javascript:nf.ProvenanceTable.goTo(\'' + row + '\');"/>';
+                markup += '&nbsp;<img src="images/iconGoTo.png" title="Go To" class="pointer go-to" style="margin-top: 2px;"/>';
             }
 
             return markup;
@@ -599,7 +599,7 @@ nf.ProvenanceTable = (function () {
 
         // conditionally show the action column
         if (nf.Common.SUPPORTS_SVG || isInShell) {
-            provenanceColumns.push({id: 'action', name: '&nbsp;', formatter: showLineageFormatter, resizable: false, sortable: false, width: 50, maxWidth: 50});
+            provenanceColumns.push({id: 'actions', name: '&nbsp;', formatter: showLineageFormatter, resizable: false, sortable: false, width: 50, maxWidth: 50});
         }
 
         var provenanceOptions = {
@@ -640,6 +640,27 @@ nf.ProvenanceTable = (function () {
                 columnId: args.sortCol.field,
                 sortAsc: args.sortAsc
             }, provenanceData);
+        });
+        
+        // configure a click listener
+        provenanceGrid.onClick.subscribe(function (e, args) {
+            var target = $(e.target);
+
+            // get the node at this row
+            var item = provenanceData.getItem(args.row);
+
+            // determine the desired action
+            if (provenanceGrid.getColumns()[args.cell].id === 'actions') {
+                if (target.hasClass('show-lineage')) {
+                    nf.ProvenanceLineage.showLineage(item.flowFileUuid, item.eventId.toString(), item.clusterNodeId);
+                } else if (target.hasClass('go-to')) {
+                    goTo(item);
+                }
+            } else if (provenanceGrid.getColumns()[args.cell].id === 'moreDetails') {
+                if (target.hasClass('show-event-details')) {
+                    nf.ProvenanceTable.showEventDetails(item);
+                }
+            }
         });
 
         // wire up the dataview to the grid
@@ -884,6 +905,25 @@ nf.ProvenanceTable = (function () {
         }
     };
 
+    /**
+     * Goes to the specified component if possible.
+     * 
+     * @argument {object} item       The event it
+     */
+    var goTo = function (item) {
+        // ensure the component is still present in the flow
+        if (nf.Common.isDefinedAndNotNull(item.groupId)) {
+            // only attempt this if we're within a frame
+            if (top !== window) {
+                // and our parent has canvas utils and shell defined
+                if (nf.Common.isDefinedAndNotNull(parent.nf) && nf.Common.isDefinedAndNotNull(parent.nf.CanvasUtils) && nf.Common.isDefinedAndNotNull(parent.nf.Shell)) {
+                    parent.nf.CanvasUtils.showComponent(item.groupId, item.componentId);
+                    parent.$('#shell-close-button').click();
+                }
+            }
+        }
+    };
+
     return {
         /**
          * The max delay between requests.
@@ -907,31 +947,6 @@ nf.ProvenanceTable = (function () {
                 initSearchDialog(isClustered);
                 initProvenanceTable(isClustered);
             }).fail(nf.Common.handleAjaxError);
-        },
-        
-        /**
-         * Goes to the specified component if possible.
-         * 
-         * @argument {string} row       The row
-         */
-        goTo: function (row) {
-            var grid = $('#provenance-table').data('gridInstance');
-            if (nf.Common.isDefinedAndNotNull(grid)) {
-                var data = grid.getData();
-                var item = data.getItem(row);
-
-                // ensure the component is still present in the flow
-                if (nf.Common.isDefinedAndNotNull(item.groupId)) {
-                    // only attempt this if we're within a frame
-                    if (top !== window) {
-                        // and our parent has canvas utils and shell defined
-                        if (nf.Common.isDefinedAndNotNull(parent.nf) && nf.Common.isDefinedAndNotNull(parent.nf.CanvasUtils) && nf.Common.isDefinedAndNotNull(parent.nf.Shell)) {
-                            parent.nf.CanvasUtils.showComponent(item.groupId, item.componentId);
-                            parent.$('#shell-close-button').click();
-                        }
-                    }
-                }
-            }
         },
         
         /**
@@ -1093,36 +1108,6 @@ nf.ProvenanceTable = (function () {
                 // process the results, if they are not done wait 1 second before trying again
                 processProvenanceResponse(1);
             }).fail(closeDialog);
-        },
-        
-        /**
-         * Shows the lineage for the event in the specified row.
-         * 
-         * @param {type} row
-         */
-        showLineage: function (row) {
-            var grid = $('#provenance-table').data('gridInstance');
-            if (nf.Common.isDefinedAndNotNull(grid)) {
-                var data = grid.getData();
-                var item = data.getItem(row);
-                nf.ProvenanceLineage.showLineage(item.flowFileUuid, item.eventId.toString(), item.clusterNodeId);
-            }
-        },
-        
-        /**
-         * Gets the event details and shows the details dialog.
-         * 
-         * @param {long} index
-         */
-        showEventDetailsByIndex: function (index) {
-            var provenanceGrid = $('#provenance-table').data('gridInstance');
-            if (nf.Common.isDefinedAndNotNull(provenanceGrid)) {
-                var provenanceModel = provenanceGrid.getData();
-                var event = provenanceModel.getItem(index);
-
-                // show the event details
-                nf.ProvenanceTable.showEventDetails(event);
-            }
         },
         
         /**

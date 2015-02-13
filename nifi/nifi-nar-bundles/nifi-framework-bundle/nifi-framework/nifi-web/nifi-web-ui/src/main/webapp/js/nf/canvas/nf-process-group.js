@@ -565,9 +565,9 @@ nf.ProcessGroup = (function () {
                             .attr({
                                 'class': 'active-thread-count-background',
                                 'height': 13,
-                                'y': 2,
+                                'y': 0,
                                 'fill': '#fff',
-                                'fill-opacity': '0.65',
+                                'fill-opacity': '0.4',
                                 'stroke': '#aaa',
                                 'stroke-width': '1'
                             });
@@ -577,7 +577,7 @@ nf.ProcessGroup = (function () {
                             .attr({
                                 'class': 'active-thread-count',
                                 'height': 13,
-                                'y': 12,
+                                'y': 10,
                                 'fill': '#000'
                             });
 

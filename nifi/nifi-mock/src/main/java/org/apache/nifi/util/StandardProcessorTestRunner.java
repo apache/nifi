@@ -66,6 +66,8 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceReporter;
 import org.apache.nifi.reporting.InitializationException;
 import org.junit.Assert;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StandardProcessorTestRunner implements TestRunner {
 
@@ -80,6 +82,7 @@ public class StandardProcessorTestRunner implements TestRunner {
     private int numThreads = 1;
     private final AtomicInteger invocations = new AtomicInteger(0);
 
+    private static final Logger logger = LoggerFactory.getLogger(StandardProcessorTestRunner.class);
     private static final Set<Class<? extends Annotation>> deprecatedTypeAnnotations = new HashSet<>();
     private static final Set<Class<? extends Annotation>> deprecatedMethodAnnotations = new HashSet<>();
     
@@ -134,14 +137,14 @@ public class StandardProcessorTestRunner implements TestRunner {
     private static void detectDeprecatedAnnotations(final Processor processor) {
         for ( final Class<? extends Annotation> annotationClass : deprecatedTypeAnnotations ) {
             if ( processor.getClass().isAnnotationPresent(annotationClass) ) {
-                Assert.fail("Processor is using deprecated Annotation " + annotationClass.getCanonicalName());
+                logger.warn("Processor is using deprecated Annotation " + annotationClass.getCanonicalName());
             }
         }
         
         for ( final Class<? extends Annotation> annotationClass : deprecatedMethodAnnotations ) {
             for ( final Method method : processor.getClass().getMethods() ) {
                 if ( method.isAnnotationPresent(annotationClass) ) {
-                    Assert.fail("Processor is using deprecated Annotation " + annotationClass.getCanonicalName() + " for method " + method);
+                    logger.warn("Processor is using deprecated Annotation " + annotationClass.getCanonicalName() + " for method " + method);
                 }
             }
         }

@@ -20,8 +20,10 @@ import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.junit.Ignore;
 import org.junit.Test;
 
+@Ignore("This should not be enabled until we actually fail processor unit tests for using deprecated methods, which should happen in 0.1.0")
 public class TestStandardProcessorTestRunner {
 
     @Test(expected=AssertionError.class)

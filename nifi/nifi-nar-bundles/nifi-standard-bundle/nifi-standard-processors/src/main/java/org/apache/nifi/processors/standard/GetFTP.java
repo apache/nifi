@@ -57,6 +57,11 @@ public class GetFTP extends GetFileTransfer {
         properties.add(FTPTransfer.MAX_SELECTS);
         properties.add(FTPTransfer.REMOTE_POLL_BATCH_SIZE);
         properties.add(FTPTransfer.USE_NATURAL_ORDERING);
+        properties.add(FTPTransfer.PROXY_TYPE);
+        properties.add(FTPTransfer.PROXY_HOST);
+        properties.add(FTPTransfer.PROXY_PORT);
+        properties.add(FTPTransfer.HTTP_PROXY_USERNAME);
+        properties.add(FTPTransfer.HTTP_PROXY_PASSWORD);
         this.properties = Collections.unmodifiableList(properties);
     }
 

@@ -1065,7 +1065,6 @@ nf.Actions = (function () {
 
                             // refresh the birdseye/toolbar
                             nf.Birdseye.refresh();
-                            nf.CanvasToolbar.refresh();
 
                             // remove the original snippet
                             nf.Snippet.remove(snippet.id).fail(reject);
@@ -1078,7 +1077,6 @@ nf.Actions = (function () {
 
                                 // refresh the birdseye/toolbar
                                 nf.Birdseye.refresh();
-                                nf.CanvasToolbar.refresh();
                             });
 
                             // reject the deferred

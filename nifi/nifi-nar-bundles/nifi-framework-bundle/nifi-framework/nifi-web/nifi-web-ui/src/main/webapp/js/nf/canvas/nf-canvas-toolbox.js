@@ -373,6 +373,9 @@ nf.CanvasToolbox = (function () {
 
         // show the dialog
         $('#new-processor-dialog').modal('show');
+        
+        // set the focus in the filter field
+        $('#processor-type-filter').focus();
 
         // adjust the grid canvas now that its been rendered
         grid.resizeCanvas();
@@ -427,12 +430,11 @@ nf.CanvasToolbox = (function () {
      */
     var promptForInputPortName = function (pt) {
         var addInputPort = function () {
-            // hide the dialog
-            $('#new-port-dialog').modal('hide');
-
             // get the name of the input port and clear the textfield
             var portName = $('#new-port-name').val();
-            $('#new-port-name').val('');
+            
+            // hide the dialog
+            $('#new-port-dialog').modal('hide');
 
             // create the input port
             createInputPort(portName, pt);
@@ -514,12 +516,11 @@ nf.CanvasToolbox = (function () {
      */
     var promptForOutputPortName = function (pt) {
         var addOutputPort = function () {
-            // hide the dialog
-            $('#new-port-dialog').modal('hide');
-
             // get the name of the output port and clear the textfield
             var portName = $('#new-port-name').val();
-            $('#new-port-name').val('');
+            
+            // hide the dialog
+            $('#new-port-dialog').modal('hide');
 
             // create the output port
             createOutputPort(portName, pt);
@@ -641,12 +642,11 @@ nf.CanvasToolbox = (function () {
      */
     var promptForRemoteProcessGroupUri = function (pt) {
         var addRemoteProcessGroup = function () {
-            // hide the dialog
-            $('#new-remote-process-group-dialog').modal('hide');
-
             // get the uri of the controller and clear the textfield
             var remoteProcessGroupUri = $('#new-remote-process-group-uri').val();
-            $('#new-remote-process-group-uri').val('');
+            
+            // hide the dialog
+            $('#new-remote-process-group-dialog').modal('hide');
 
             // create the remote process group
             createRemoteProcessGroup(remoteProcessGroupUri, pt);
@@ -882,7 +882,9 @@ nf.CanvasToolbox = (function () {
                 nf.Client.setRevision(response.revision);
 
                 // add the label to the graph
-                nf.Label.add(response.label, true);
+                nf.Graph.add({
+                    'labels': [response.label]
+                }, true);
 
                 // update the birdseye
                 nf.Birdseye.refresh();
@@ -975,7 +977,7 @@ nf.CanvasToolbox = (function () {
                         if (nf.Common.isBlank(processorType.description)) {
                             $('#processor-type-description').attr('title', '').html('<span class="unset">No description specified</span>');
                         } else {
-                            $('#processor-type-description').text(processorType.description).ellipsis();
+                            $('#processor-type-description').html(processorType.description).ellipsis();
                         }
 
                         // populate the dom
@@ -1121,19 +1123,34 @@ nf.CanvasToolbox = (function () {
                 // configure the new port dialog
                 $('#new-port-dialog').modal({
                     headerText: 'Add Port',
-                    overlayBackground: false
+                    overlayBackground: false,
+                    handler: {
+                        close: function () {
+                            $('#new-port-name').val('');
+                        }
+                    }
                 });
 
                 // configure the new process group dialog
                 $('#new-process-group-dialog').modal({
                     headerText: 'Add Process Group',
-                    overlayBackground: false
+                    overlayBackground: false,
+                    handler: {
+                        close: function () {
+                            $('#new-process-group-name').val('');
+                        }
+                    }
                 });
 
                 // configure the new remote process group dialog
                 $('#new-remote-process-group-dialog').modal({
                     headerText: 'Add Remote Process Group',
-                    overlayBackground: false
+                    overlayBackground: false,
+                    handler: {
+                        close: function () {
+                            $('#new-remote-process-group-uri').val('');
+                        }
+                    }
                 });
 
                 // configure the instantiate template dialog
@@ -1162,12 +1179,11 @@ nf.CanvasToolbox = (function () {
         promptForGroupName: function (pt) {
             return $.Deferred(function (deferred) {
                 var addGroup = function () {
-                    // hide the dialog
-                    $('#new-process-group-dialog').modal('hide');
-
                     // get the name of the group and clear the textfield
                     var groupName = $('#new-process-group-name').val();
-                    $('#new-process-group-name').val('');
+
+                    // hide the dialog
+                    $('#new-process-group-dialog').modal('hide');
 
                     // create the group and resolve the deferred accordingly
                     createGroup(groupName, pt).done(function (response) {
