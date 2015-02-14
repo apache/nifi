@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.processors.standard;
 
+import com.jayway.jsonpath.Configuration;
+import com.jayway.jsonpath.InvalidPathException;
+import com.jayway.jsonpath.JsonPath;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -28,7 +31,11 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.*;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.InputStreamCallback;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 @EventDriven
@@ -121,14 +128,25 @@ public class EvaluateJsonPath extends AbstractProcessor {
         if (flowFile == null) {
             return;
         }
-
+        processSession.read(flowFile, new InputStreamCallback() {
+            @Override
+            public void process(InputStream in) throws IOException {
+                // Parse the document once to support multiple path evaluations if specified
+                Object document = Configuration.defaultConfiguration().jsonProvider().parse(in, StandardCharsets.UTF_8.displayName());
+            }
+        });
     }
 
     private static class JsonPathValidator implements Validator {
-
         @Override
         public ValidationResult validate(String subject, String input, ValidationContext context) {
-            return null;
+            String error = null;
+            try {
+                JsonPath compile = JsonPath.compile(input);
+            } catch (InvalidPathException ipe) {
+                error = ipe.toString();
+            }
+            return new ValidationResult.Builder().valid(error == null).explanation(error).build();
         }
     }
 }
