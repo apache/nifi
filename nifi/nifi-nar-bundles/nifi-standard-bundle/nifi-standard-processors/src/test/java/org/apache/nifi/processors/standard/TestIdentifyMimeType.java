@@ -57,63 +57,16 @@ public class TestIdentifyMimeType {
 
         final Map<String, String> expectedMimeTypes = new HashMap<>();
         expectedMimeTypes.put("1.7z", "application/x-7z-compressed");
-        expectedMimeTypes.put("1.mdb", "application/msaccess");
-        expectedMimeTypes.put("1.txt.bz2", "application/bzip2");
+        expectedMimeTypes.put("1.mdb", "application/x-msaccess");
+        expectedMimeTypes.put("1.txt", "text/plain");
+        expectedMimeTypes.put("1.txt.bz2", "application/x-bzip2");
         expectedMimeTypes.put("1.txt.gz", "application/gzip");
         expectedMimeTypes.put("1.zip", "application/zip");
         expectedMimeTypes.put("bgBannerFoot.png", "image/png");
-        expectedMimeTypes.put("blueBtnBg.jpg", "image/jpg");
+        expectedMimeTypes.put("blueBtnBg.jpg", "image/jpeg");
         expectedMimeTypes.put("1.pdf", "application/pdf");
         expectedMimeTypes.put("grid.gif", "image/gif");
-        expectedMimeTypes.put("1.tar", "application/octet-stream"); //wrong ID without IDENTIFY_TAR
-        expectedMimeTypes.put("1.jar", "application/java-archive");
-        expectedMimeTypes.put("1.xml", "application/xml");
-        expectedMimeTypes.put("flowfilev3", "application/flowfile-v3");
-        expectedMimeTypes.put("flowfilev1.tar", "application/tar"); //wrong ID without IDENTIFY_TAR
-
-        final List<MockFlowFile> filesOut = runner.getFlowFilesForRelationship(IdentifyMimeType.REL_SUCCESS);
-        for (final MockFlowFile file : filesOut) {
-            final String filename = file.getAttribute(CoreAttributes.FILENAME.key());
-            final String mimeType = file.getAttribute(CoreAttributes.MIME_TYPE.key());
-            final String expected = expectedMimeTypes.get(filename);
-            assertEquals("Expected " + file + " to have MIME Type " + expected + ", but it was " + mimeType, expected, mimeType);
-        }
-    }
-
-    @Test
-    public void testFilesWithIdentifyTarAndZip() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new IdentifyMimeType());
-        runner.setProperty(IdentifyMimeType.IDENTIFY_TAR.getName(), "true");
-        runner.setProperty(IdentifyMimeType.IDENTIFY_ZIP.getName(), "true");
-
-        final File dir = new File("src/test/resources/TestIdentifyMimeType");
-        final File[] files = dir.listFiles();
-        int fileCount = 0;
-        for (final File file : files) {
-            if (file.isDirectory()) {
-                continue;
-            }
-
-            runner.enqueue(file.toPath());
-            fileCount++;
-        }
-
-        runner.setThreadCount(4);
-        runner.run(fileCount);
-
-        runner.assertAllFlowFilesTransferred(IdentifyMimeType.REL_SUCCESS, fileCount);
-
-        final Map<String, String> expectedMimeTypes = new HashMap<>();
-        expectedMimeTypes.put("1.7z", "application/x-7z-compressed");
-        expectedMimeTypes.put("1.mdb", "application/msaccess");
-        expectedMimeTypes.put("1.txt.bz2", "application/bzip2");
-        expectedMimeTypes.put("1.txt.gz", "application/gzip");
-        expectedMimeTypes.put("1.zip", "application/zip");
-        expectedMimeTypes.put("bgBannerFoot.png", "image/png");
-        expectedMimeTypes.put("blueBtnBg.jpg", "image/jpg");
-        expectedMimeTypes.put("1.pdf", "application/pdf");
-        expectedMimeTypes.put("grid.gif", "image/gif");
-        expectedMimeTypes.put("1.tar", "application/tar");
+        expectedMimeTypes.put("1.tar", "application/x-tar");
         expectedMimeTypes.put("1.jar", "application/java-archive");
         expectedMimeTypes.put("1.xml", "application/xml");
         expectedMimeTypes.put("flowfilev3", "application/flowfile-v3");
@@ -127,5 +80,4 @@ public class TestIdentifyMimeType {
             assertEquals("Expected " + file + " to have MIME Type " + expected + ", but it was " + mimeType, expected, mimeType);
         }
     }
-
 }
