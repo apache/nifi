@@ -22,38 +22,113 @@ import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.processor.AbstractProcessor;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.*;
 import org.apache.nifi.processor.exception.ProcessException;
+
+import java.util.*;
 
 @EventDriven
 @SideEffectFree
 @SupportsBatching
-@Tags({"JSON", "evaluate", "JSONPath"})
+@Tags({"JSON", "evaluate", "JsonPath"})
 @CapabilityDescription("")
-public class EvaluateJSONPath extends AbstractProcessor {
+public class EvaluateJsonPath extends AbstractProcessor {
 
     public static final String DESTINATION_ATTRIBUTE = "flowfile-attribute";
     public static final String DESTINATION_CONTENT = "flowfile-content";
 
     public static final PropertyDescriptor DESTINATION = new PropertyDescriptor.Builder()
             .name("Destination")
-            .description("Indicates whether the results of the JSONPath evaluation are written to the FlowFile content or a FlowFile attribute; if using attribute, must specify the Attribute Name property. If set to flowfile-content, only one JSONPath may be specified, and the property name is ignored.")
+            .description("Indicates whether the results of the JsonPath evaluation are written to the FlowFile content or a FlowFile attribute; if using attribute, must specify the Attribute Name property. If set to flowfile-content, only one JsonPath may be specified, and the property name is ignored.")
             .required(true)
             .allowableValues(DESTINATION_CONTENT, DESTINATION_ATTRIBUTE)
             .defaultValue(DESTINATION_CONTENT)
             .build();
 
-    public static final Relationship REL_MATCH = new Relationship.Builder().name("matched").description("FlowFiles are routed to this relationship when the JSONPath is successfully evaluated and the FlowFile is modified as a result").build();
-    public static final Relationship REL_NO_MATCH = new Relationship.Builder().name("unmatched").description("FlowFiles are routed to this relationship when the JSONPath does not match the content of the FlowFile and the Destination is set to flowfile-content").build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure").description("FlowFiles are routed to this relationship when the JSONPath cannot be evaluated against the content of the FlowFile; for instance, if the FlowFile is not valid JSON").build();
+    public static final Relationship REL_MATCH = new Relationship.Builder().name("matched").description("FlowFiles are routed to this relationship when the JsonPath is successfully evaluated and the FlowFile is modified as a result").build();
+    public static final Relationship REL_NO_MATCH = new Relationship.Builder().name("unmatched").description("FlowFiles are routed to this relationship when the JsonPath does not match the content of the FlowFile and the Destination is set to flowfile-content").build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure").description("FlowFiles are routed to this relationship when the JsonPath cannot be evaluated against the content of the FlowFile; for instance, if the FlowFile is not valid JSON").build();
 
+    private Set<Relationship> relationships;
+    private List<PropertyDescriptor> properties;
+
+
+    @Override
+    protected void init(final ProcessorInitializationContext context) {
+        final Set<Relationship> relationships = new HashSet<>();
+        relationships.add(REL_MATCH);
+        relationships.add(REL_NO_MATCH);
+        relationships.add(REL_FAILURE);
+        this.relationships = Collections.unmodifiableSet(relationships);
+
+        final List<PropertyDescriptor> properties = new ArrayList<>();
+        properties.add(DESTINATION);
+        this.properties = Collections.unmodifiableList(properties);
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(final ValidationContext context) {
+        final List<ValidationResult> results = new ArrayList<>(super.customValidate(context));
+
+        final String destination = context.getProperty(DESTINATION).getValue();
+        if (DESTINATION_CONTENT.equals(destination)) {
+            int jsonPathCount = 0;
+
+            for (final PropertyDescriptor desc : context.getProperties().keySet()) {
+                if (desc.isDynamic()) {
+                    jsonPathCount++;
+                }
+            }
+
+            if (jsonPathCount != 1) {
+                results.add(new ValidationResult.Builder().subject("JsonPaths").valid(false).explanation("Exactly one JsonPath must be set if using destination of " + DESTINATION_CONTENT).build());
+            }
+        }
+
+        return results;
+    }
+
+    @Override
+    public Set<Relationship> getRelationships() {
+        return relationships;
+    }
+
+    @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return properties;
+    }
+
+
+    @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+        return new PropertyDescriptor.Builder()
+                .name(propertyDescriptorName)
+                .expressionLanguageSupported(false)
+                .addValidator(new JsonPathValidator())
+                .required(false)
+                .dynamic(true)
+                .build();
+    }
 
     @Override
     public void onTrigger(ProcessContext processContext, ProcessSession processSession) throws ProcessException {
 
+        final FlowFile flowFile = processSession.get();
+        if (flowFile == null) {
+            return;
+        }
+
     }
 
+    private static class JsonPathValidator implements Validator {
+
+        @Override
+        public ValidationResult validate(String subject, String input, ValidationContext context) {
+            return null;
+        }
+    }
 }
