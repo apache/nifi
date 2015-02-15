@@ -18,21 +18,24 @@ package org.apache.nifi.provenance.journaling.index;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.List;
 
-import org.apache.nifi.provenance.journaling.JournaledStorageLocation;
-import org.apache.nifi.provenance.search.Query;
+public interface IndexManager extends Closeable {
 
-public interface EventIndexSearcher extends Closeable {
     /**
-     * Searches the repository for any events that match the provided query and returns the locations
-     * where those events are stored
-     * @param query
+     * Returns an EventIndexWriter for the given container.
+     * @param container
      * @return
      */
-    SearchResult search(Query query) throws IOException;
-    
-    List<JournaledStorageLocation> getEvents(long minEventId, int maxResults) throws IOException;
-    
+    EventIndexWriter getIndexWriter(final String container);
+
+    /**
+     * Returns the max event ID that has been indexed for the given container and section.
+     * 
+     * @param container
+     * @param section
+     * @return
+     */
     Long getMaxEventId(String container, String section) throws IOException;
+    
+    EventIndexSearcher newIndexSearcher(String containerName) throws IOException;
 }

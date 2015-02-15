@@ -30,9 +30,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -47,6 +48,8 @@ import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.apache.nifi.provenance.StorageLocation;
 import org.apache.nifi.provenance.StoredProvenanceEvent;
 import org.apache.nifi.provenance.journaling.config.JournalingRepositoryConfig;
+import org.apache.nifi.provenance.journaling.index.IndexManager;
+import org.apache.nifi.provenance.journaling.index.LuceneIndexManager;
 import org.apache.nifi.provenance.journaling.index.QueryUtils;
 import org.apache.nifi.provenance.journaling.journals.JournalReader;
 import org.apache.nifi.provenance.journaling.journals.StandardJournalReader;
@@ -75,11 +78,12 @@ public class JournalingProvenanceRepository implements ProvenanceEventRepository
     
     private final JournalingRepositoryConfig config;
     private final AtomicLong idGenerator = new AtomicLong(0L);
-    private final ExecutorService executor;
+    private final ScheduledExecutorService executor;
     
     private EventReporter eventReporter;    // effectively final
     private PartitionManager partitionManager;  // effectively final
     private QueryManager queryManager;    // effectively final
+    private IndexManager indexManager;    // effectively final
     
     public JournalingProvenanceRepository() throws IOException {
         this(createConfig());
@@ -87,7 +91,16 @@ public class JournalingProvenanceRepository implements ProvenanceEventRepository
     
     public JournalingProvenanceRepository(final JournalingRepositoryConfig config) throws IOException {
         this.config = config;
-        this.executor = Executors.newFixedThreadPool(config.getThreadPoolSize());
+        this.executor = Executors.newScheduledThreadPool(config.getThreadPoolSize(), new ThreadFactory() {
+            private final ThreadFactory defaultFactory = Executors.defaultThreadFactory();
+            
+            @Override
+            public Thread newThread(final Runnable r) {
+                final Thread thread = defaultFactory.newThread(r);
+                thread.setName("Provenance Repository Worker Thread");
+                return thread;
+            }
+        });
     }
     
     
@@ -156,7 +169,8 @@ public class JournalingProvenanceRepository implements ProvenanceEventRepository
     public synchronized void initialize(final EventReporter eventReporter) throws IOException {
         this.eventReporter = eventReporter;
         
-        this.partitionManager = new QueuingPartitionManager(config, executor);
+        this.indexManager = new LuceneIndexManager(config, executor);
+        this.partitionManager = new QueuingPartitionManager(indexManager, config, executor);
         this.queryManager = new StandardQueryManager(partitionManager, config, 10);
     }
 
@@ -312,7 +326,7 @@ public class JournalingProvenanceRepository implements ProvenanceEventRepository
 
     @Override
     public Long getMaxEventId() throws IOException {
-        final Set<Long> maxIds = partitionManager.withEachPartition(new PartitionAction<Long>() {
+        final Set<Long> maxIds = partitionManager.withEachPartitionSerially(new PartitionAction<Long>() {
             @Override
             public Long perform(final Partition partition) throws IOException {
                 return partition.getMaxEventId();
@@ -374,6 +388,10 @@ public class JournalingProvenanceRepository implements ProvenanceEventRepository
             partitionManager.shutdown();
         }
         
+        indexManager.close();
+        
+        // TODO: make sure that all are closed here!
+        
         executor.shutdown();
     }
 
@@ -390,7 +408,7 @@ public class JournalingProvenanceRepository implements ProvenanceEventRepository
     @Override
     public Long getEarliestEventTime() throws IOException {
         // Get the earliest event timestamp for each partition
-        final Set<Long> earliestTimes = partitionManager.withEachPartition(new PartitionAction<Long>() {
+        final Set<Long> earliestTimes = partitionManager.withEachPartitionSerially(new PartitionAction<Long>() {
             @Override
             public Long perform(final Partition partition) throws IOException {
                 return partition.getEarliestEventTime();

@@ -18,9 +18,11 @@ package org.apache.nifi.provenance.journaling.index;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
@@ -117,6 +119,7 @@ public class LuceneIndexWriter implements EventIndexWriter {
     public void index(final Collection<JournaledProvenanceEvent> events) throws IOException {
         long maxId = this.indexMaxId.get();
         
+        final List<Document> documents = new ArrayList<>(events.size());
         for ( final JournaledProvenanceEvent event : events ) {
             maxId = event.getEventId();
 
@@ -189,8 +192,10 @@ public class LuceneIndexWriter implements EventIndexWriter {
                 }
             }
 
-            indexWriter.addDocument(doc);
+            documents.add(doc);
         }
+        
+        indexWriter.addDocuments(documents);
 
         // Update the index's max id
         boolean updated = false;

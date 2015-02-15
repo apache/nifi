@@ -34,6 +34,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.nifi.provenance.journaling.config.JournalingRepositoryConfig;
+import org.apache.nifi.provenance.journaling.index.IndexManager;
 import org.apache.nifi.util.Tuple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,7 +51,7 @@ public class QueuingPartitionManager implements PartitionManager {
     
     private final AtomicInteger blacklistedCount = new AtomicInteger(0);
     
-    public QueuingPartitionManager(final JournalingRepositoryConfig config, final ExecutorService executor) throws IOException {
+    public QueuingPartitionManager(final IndexManager indexManager, final JournalingRepositoryConfig config, final ExecutorService executor) throws IOException {
         this.config = config;
         this.partitionQueue = new LinkedBlockingQueue<>(config.getPartitionCount());
         this.partitionArray = new JournalingPartition[config.getPartitionCount()];
@@ -64,7 +65,7 @@ public class QueuingPartitionManager implements PartitionManager {
             final Tuple<String, File> tuple = containerTuples.get(i % containerTuples.size());
             final File section = new File(tuple.getValue(), String.valueOf(i));
             
-            final JournalingPartition partition = new JournalingPartition(tuple.getKey(), String.valueOf(i), section, config, executor);
+            final JournalingPartition partition = new JournalingPartition(indexManager, tuple.getKey(), i, section, config, executor);
             partitionQueue.offer(partition);
             partitionArray[i] = partition;
         }
@@ -177,6 +178,17 @@ public class QueuingPartitionManager implements PartitionManager {
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
+        }
+        
+        return results;
+    }
+    
+    @Override
+    public <T> Set<T> withEachPartitionSerially(final PartitionAction<T> action) throws IOException {
+        // TODO: Do not use blacklisted partitions.
+        final Set<T> results = new HashSet<>(partitionArray.length);
+        for ( final Partition partition : partitionArray ) {
+            results.add( action.perform(partition) );
         }
         
         return results;

@@ -55,6 +55,19 @@ public interface PartitionManager {
     <T> Set<T> withEachPartition(PartitionAction<T> action) throws IOException;
     
     /**
+     * Performs the given Action on each partition and returns the set of results. Unlike
+     * {@link #withEachPartition(PartitionAction))}, this method does not use the thread pool
+     * in order to perform the request in parallel. This is desirable for very quick functions,
+     * as the thread pool can be fully utilized, resulting in a quick function taking far longer
+     * than it should.
+     * 
+     * @param action the action to perform
+     * @param writeAction specifies whether or not the action writes to the repository
+     * @return
+     */
+    <T> Set<T> withEachPartitionSerially(PartitionAction<T> action) throws IOException;
+    
+    /**
      * Performs the given Action to each partition, optionally waiting for the action to complete
      * @param action
      * @param writeAction

@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.provenance.journaling.journals;
 
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -29,6 +27,8 @@ import java.util.concurrent.TimeUnit;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.journaling.io.Serializer;
 import org.apache.nifi.remote.io.CompressionOutputStream;
+import org.apache.nifi.stream.io.BufferedOutputStream;
+import org.apache.nifi.stream.io.ByteArrayOutputStream;
 import org.apache.nifi.stream.io.ByteCountingOutputStream;
 
 
@@ -96,6 +96,9 @@ public class StandardJournalWriter implements JournalWriter {
     private OutputStream compressedStream;
     private ByteCountingOutputStream out;
     
+    private long recordBytes = 256L;
+    private long recordCount = 1L;
+    
     
     public StandardJournalWriter(final long journalId, final File journalFile, final boolean compressed, final Serializer serializer) throws IOException {
         this.journalId = journalId;
@@ -132,16 +135,38 @@ public class StandardJournalWriter implements JournalWriter {
     @Override
     public void close() throws IOException {
         finishBlock();
-        
-        if ( compressedStream != null ) {
+
+        IOException suppressed = null;
+        try {
             compressedStream.flush();
             compressedStream.close();
+        } catch (final IOException ioe) {
+            suppressed = ioe;
+        }
+        
+        try {
+            try {
+                uncompressedStream.flush();
+            } finally {
+                uncompressedStream.close();
+            }
+        } catch (final IOException ioe) {
+            if ( suppressed != null ) {
+                ioe.addSuppressed(suppressed);
+            }
+            throw ioe;
+        }
+        
+        if ( suppressed != null ) {
+            throw suppressed;
         }
     }
 
     @Override
     public void write(final Collection<ProvenanceEventRecord> events, final long firstEventId) throws IOException {
-        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        final int avgRecordSize = (int) (recordBytes / recordCount);
+        
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream(avgRecordSize);
         final DataOutputStream serializerDos = new DataOutputStream(baos);
         
         final BufferedOutputStream bos = new BufferedOutputStream(out);
@@ -153,10 +178,13 @@ public class StandardJournalWriter implements JournalWriter {
                 serializer.serialize(event, serializerDos);
                 serializerDos.flush();
                 
-                final int recordLength = 8 + baos.size();   // record length is length of ID (8 bytes) plus length of serialized record
+                final int serializedLength = baos.size();
+                final int recordLength = 8 + serializedLength;   // record length is length of ID (8 bytes) plus length of serialized record
                 outDos.writeInt(recordLength);
                 outDos.writeLong(id++);
                 baos.writeTo(outDos);
+                recordBytes += recordLength;
+                recordCount++;
                 baos.reset();
                 
                 eventCount++;

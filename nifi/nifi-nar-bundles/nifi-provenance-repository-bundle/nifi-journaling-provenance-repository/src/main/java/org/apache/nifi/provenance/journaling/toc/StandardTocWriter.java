@@ -40,6 +40,7 @@ public class StandardTocWriter implements TocWriter {
     
     private final File file;
     private final FileOutputStream fos;
+    private final boolean alwaysSync;
     private int index = 0;
     
     /**
@@ -48,7 +49,7 @@ public class StandardTocWriter implements TocWriter {
      * @param compressionFlag whether or not the journal is compressed
      * @throws FileNotFoundException 
      */
-    public StandardTocWriter(final File file, final boolean compressionFlag) throws IOException {
+    public StandardTocWriter(final File file, final boolean compressionFlag, final boolean alwaysSync) throws IOException {
         if ( file.exists() ) {
             throw new FileAlreadyExistsException(file.getAbsolutePath());
         }
@@ -59,11 +60,17 @@ public class StandardTocWriter implements TocWriter {
         
         this.file = file;
         fos = new FileOutputStream(file);
-        
-        fos.write(VERSION);
-        fos.write(compressionFlag ? 1 : 0);
+        this.alwaysSync = alwaysSync;
+
+        final byte[] header = new byte[2];
+        header[0] = VERSION;
+        header[1] = (byte) (compressionFlag ? 1 : 0);
+        fos.write(header);
         fos.flush();
-        fos.getFD().sync();
+        
+        if ( alwaysSync ) {
+            fos.getFD().sync();
+        }
     }
     
     @Override
@@ -73,7 +80,9 @@ public class StandardTocWriter implements TocWriter {
         dos.writeLong(offset);
         dos.flush();
         
-        fos.getFD().sync();
+        if ( alwaysSync ) {
+            fos.getFD().sync();
+        }
     }
     
     @Override
@@ -83,6 +92,10 @@ public class StandardTocWriter implements TocWriter {
 
     @Override
     public void close() throws IOException {
+        if (alwaysSync) {
+            fos.getFD().sync();
+        }
+        
         fos.close();
     }
     

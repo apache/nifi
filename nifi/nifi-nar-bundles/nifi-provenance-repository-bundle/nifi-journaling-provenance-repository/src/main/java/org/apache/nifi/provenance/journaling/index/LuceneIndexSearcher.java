@@ -23,6 +23,7 @@ import java.util.List;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.IndexSearcher;
@@ -31,6 +32,7 @@ import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.SortField.Type;
+import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.nifi.provenance.journaling.JournaledStorageLocation;
@@ -108,6 +110,27 @@ public class LuceneIndexSearcher implements EventIndexSearcher {
         
         final TopDocs topDocs = searcher.search(query, maxResults, new Sort(new SortField(IndexedFieldNames.EVENT_ID, Type.LONG)));
         return getLocations(topDocs);
+    }
+
+    @Override
+    public Long getMaxEventId(final String container, final String section) throws IOException {
+        final BooleanQuery query = new BooleanQuery();
+        
+        if ( container != null ) {
+            query.add(new TermQuery(new Term(IndexedFieldNames.CONTAINER_NAME, container)), Occur.MUST);
+        }
+        
+        if ( section != null ) {
+            query.add(new TermQuery(new Term(IndexedFieldNames.SECTION_NAME, section)), Occur.MUST);
+        }
+        
+        final TopDocs topDocs = searcher.search(query, 1, new Sort(new SortField(IndexedFieldNames.EVENT_ID, Type.LONG, true)));
+        final List<JournaledStorageLocation> locations = getLocations(topDocs);
+        if ( locations.isEmpty() ) {
+            return null;
+        }
+        
+        return locations.get(0).getEventId();
     }
 
 }

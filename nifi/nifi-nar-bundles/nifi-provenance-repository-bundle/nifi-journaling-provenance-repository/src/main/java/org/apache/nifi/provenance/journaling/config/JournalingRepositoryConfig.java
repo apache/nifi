@@ -35,6 +35,7 @@ public class JournalingRepositoryConfig {
     private long desiredIndexBytes = 1024L * 1024L * 500L; // 500 MB
     private int partitionCount = 16;
     private int blockSize = 5000;
+    private int indexesPerContainer = 2;
 
     private List<SearchableField> searchableFields = new ArrayList<>();
     private List<SearchableField> searchableAttributes = new ArrayList<>();
@@ -51,6 +52,10 @@ public class JournalingRepositoryConfig {
         return readOnly;
     }
 
+    public int getIndexesPerContainer() {
+        return indexesPerContainer;
+    }
+    
     /**
      * Specifies where the repository will store data
      *

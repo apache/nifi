@@ -35,8 +35,11 @@ import org.apache.nifi.provenance.journaling.JournaledProvenanceEvent;
 import org.apache.nifi.provenance.journaling.JournaledStorageLocation;
 import org.apache.nifi.provenance.journaling.config.JournalingRepositoryConfig;
 import org.apache.nifi.provenance.journaling.index.EventIndexSearcher;
+import org.apache.nifi.provenance.journaling.index.EventIndexWriter;
+import org.apache.nifi.provenance.journaling.index.IndexManager;
 import org.apache.nifi.provenance.journaling.index.LuceneIndexSearcher;
 import org.apache.nifi.provenance.journaling.index.LuceneIndexWriter;
+import org.apache.nifi.provenance.journaling.index.MultiIndexSearcher;
 import org.apache.nifi.provenance.journaling.index.QueryUtils;
 import org.apache.nifi.provenance.journaling.io.StandardEventSerializer;
 import org.apache.nifi.provenance.journaling.journals.JournalReader;
@@ -55,13 +58,12 @@ public class JournalingPartition implements Partition {
     private static final String JOURNAL_FILE_EXTENSION = ".journal";
     
     private final String containerName;
-    private final String sectionName;
+    private final int sectionIndex;
     
     private final File section;
     private final File journalsDir;
     private final JournalingRepositoryConfig config;
     private final ExecutorService executor;
-    private final LuceneIndexWriter indexWriter;
     
     private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final Lock readLock = rwLock.readLock();
@@ -73,9 +75,12 @@ public class JournalingPartition implements Partition {
     private volatile long maxEventId = -1L;
     private volatile Long earliestEventTime = null;
     
-    public JournalingPartition(final String containerName, final String sectionName, final File sectionDir, final JournalingRepositoryConfig config, final ExecutorService executor) throws IOException {
+    private final IndexManager indexManager;
+    
+    public JournalingPartition(final IndexManager indexManager, final String containerName, final int sectionIndex, final File sectionDir, final JournalingRepositoryConfig config, final ExecutorService executor) throws IOException {
+        this.indexManager = indexManager;
         this.containerName = containerName;
-        this.sectionName = sectionName;
+        this.sectionIndex = sectionIndex;
         this.section = sectionDir;
         this.journalsDir = new File(section, "journals");
         this.config = config;
@@ -88,22 +93,11 @@ public class JournalingPartition implements Partition {
         if ( journalsDir.exists() && journalsDir.isFile() ) {
             throw new IOException("Could not create directory " + section + " because a file already exists with this name");
         }
-        
-        if ( config.isReadOnly() ) {
-            indexWriter = null;
-        } else {
-            final File indexDir = new File(section, "index");
-            indexWriter = new LuceneIndexWriter(indexDir, config);
-        }
     }
     
     
     public EventIndexSearcher newIndexSearcher() throws IOException {
-        if (config.isReadOnly()) {
-            return new LuceneIndexSearcher(new File(section, "index"));
-        }
-        
-        return indexWriter.newIndexSearcher();
+        return indexManager.newIndexSearcher(containerName);
     }
     
     protected JournalWriter getJournalWriter(final long firstEventId) throws IOException {
@@ -116,6 +110,11 @@ public class JournalingPartition implements Partition {
         }
         
         return journalWriter;
+    }
+    
+    // MUST be called with writeLock or readLock held.
+    private EventIndexWriter getIndexWriter() {
+        return indexManager.getIndexWriter(containerName);
     }
     
     @Override
@@ -139,12 +138,13 @@ public class JournalingPartition implements Partition {
             final List<JournaledProvenanceEvent> storedEvents = new ArrayList<>(events.size());
             long id = firstEventId;
             for (final ProvenanceEventRecord event : events) {
-                final JournaledStorageLocation location = new JournaledStorageLocation(containerName, sectionName, 
+                final JournaledStorageLocation location = new JournaledStorageLocation(containerName, String.valueOf(sectionIndex), 
                         String.valueOf(writer.getJournalId()), tocWriter.getCurrentBlockIndex(), id++);
                 final JournaledProvenanceEvent storedEvent = new JournaledProvenanceEvent(event, location);
                 storedEvents.add(storedEvent);
             }
             
+            final EventIndexWriter indexWriter = getIndexWriter();
             indexWriter.index(storedEvents);
             
             if ( config.isAlwaysSync() ) {
@@ -196,13 +196,28 @@ public class JournalingPartition implements Partition {
     
     // MUST be called with write lock held.
     private void rollover(final long firstEventId) throws IOException {
+        // TODO: Rework how rollover works because we now have index manager!!
+        
         // if we have a writer already, close it and initiate rollover actions
         if ( journalWriter != null ) {
             journalWriter.finishBlock();
             journalWriter.close();
             tocWriter.close();
-            indexWriter.sync();
-        
+
+            final EventIndexWriter curWriter = getIndexWriter();
+            executor.submit(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        curWriter.sync();
+                    } catch (final IOException e) {
+                        
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    }
+                }
+            });
+            
             if ( config.isCompressOnRollover() ) {
                 final File finishedFile = journalWriter.getJournalFile();
                 final File finishedTocFile = tocWriter.getFile();
@@ -213,7 +228,7 @@ public class JournalingPartition implements Partition {
         // create new writers and reset state.
         final File journalFile = new File(journalsDir, firstEventId + JOURNAL_FILE_EXTENSION);
         journalWriter = new StandardJournalWriter(firstEventId, journalFile, false, new StandardEventSerializer());
-        tocWriter = new StandardTocWriter(QueryUtils.getTocFile(journalFile), false);
+        tocWriter = new StandardTocWriter(QueryUtils.getTocFile(journalFile), false, config.isAlwaysSync());
         tocWriter.addBlockOffset(journalWriter.getSize());
         numEventsAtEndOfLastBlock = 0;
     }
@@ -237,112 +252,123 @@ public class JournalingPartition implements Partition {
     
     @Override
     public void restore() throws IOException {
-        // delete or rename files if stopped during rollover; compress any files that haven't been compressed
-        if ( !config.isReadOnly() ) {
-            final File[] children = journalsDir.listFiles();
-            if ( children != null ) {
-                // find the latest journal.
-                File latestJournal = null;
-                long latestJournalId = -1L;
-                
-                final List<File> journalFiles = new ArrayList<>();
-                
-                // find any journal files that either haven't been compressed or were partially compressed when
-                // we last shutdown and then restart compression.
-                for ( final File file : children ) {
-                    final String filename = file.getName();
-                    if ( !filename.contains(JOURNAL_FILE_EXTENSION) ) {
-                        continue;
-                    }
+        writeLock.lock();
+        try {
+            // delete or rename files if stopped during rollover; compress any files that haven't been compressed
+            if ( !config.isReadOnly() ) {
+                final File[] children = journalsDir.listFiles();
+                if ( children != null ) {
+                    // find the latest journal.
+                    File latestJournal = null;
+                    long latestJournalId = -1L;
                     
-                    final Long journalId = getJournalId(file);
-                    if ( journalId != null && journalId > latestJournalId ) {
-                        latestJournal = file;
-                        latestJournalId = journalId;
-                    }
+                    final List<File> journalFiles = new ArrayList<>();
                     
-                    journalFiles.add(file);
-                    
-                    if ( !config.isCompressOnRollover() ) {
-                        continue;
-                    }
-                    
-                    if ( filename.endsWith(CompressionTask.FILE_EXTENSION) ) {
-                        final File uncompressedFile = new File(journalsDir, filename.replace(CompressionTask.FILE_EXTENSION, ""));
-                        if ( uncompressedFile.exists() ) {
-                            // both the compressed and uncompressed version of this journal exist. The Compression Task was
-                            // not complete when we shutdown. Delete the compressed journal and toc and re-start the Compression Task.
-                            final File tocFile = QueryUtils.getTocFile(uncompressedFile);
-                            executor.submit(new CompressionTask(uncompressedFile, getJournalId(uncompressedFile), tocFile));
-                        } else {
-                            // The compressed file exists but the uncompressed file does not. This means that we have finished
-                            // writing the compressed file and deleted the original journal file but then shutdown before
-                            // renaming the compressed file to the original filename. We can simply rename the compressed file
-                            // to the original file and then address the TOC file.
-                            final boolean rename = CompressionTask.rename(file, uncompressedFile);
-                            if ( !rename ) {
-                                logger.warn("{} During recovery, failed to rename {} to {}", this, file, uncompressedFile);
-                                continue;
-                            }
-                            
-                            // Check if the compressed TOC file exists. If not, we are finished.
-                            // If it does exist, then we know that it is complete, as described above, so we will go
-                            // ahead and replace the uncompressed version.
-                            final File tocFile = QueryUtils.getTocFile(uncompressedFile);
-                            final File compressedTocFile = new File(tocFile.getParentFile(), tocFile.getName() + CompressionTask.FILE_EXTENSION);
-                            if ( !compressedTocFile.exists() ) {
-                                continue;
-                            }
-                            
-                            tocFile.delete();
-                            
-                            final boolean renamedTocFile = CompressionTask.rename(compressedTocFile, tocFile);
-                            if ( !renamedTocFile ) {
-                                logger.warn("{} During recovery, failed to rename {} to {}", this, compressedTocFile, tocFile);
+                    // find any journal files that either haven't been compressed or were partially compressed when
+                    // we last shutdown and then restart compression.
+                    for ( final File file : children ) {
+                        final String filename = file.getName();
+                        if ( !filename.contains(JOURNAL_FILE_EXTENSION) ) {
+                            continue;
+                        }
+                        
+                        final Long journalId = getJournalId(file);
+                        if ( journalId != null && journalId > latestJournalId ) {
+                            latestJournal = file;
+                            latestJournalId = journalId;
+                        }
+                        
+                        journalFiles.add(file);
+                        
+                        if ( !config.isCompressOnRollover() ) {
+                            continue;
+                        }
+                        
+                        if ( filename.endsWith(CompressionTask.FILE_EXTENSION) ) {
+                            final File uncompressedFile = new File(journalsDir, filename.replace(CompressionTask.FILE_EXTENSION, ""));
+                            if ( uncompressedFile.exists() ) {
+                                // both the compressed and uncompressed version of this journal exist. The Compression Task was
+                                // not complete when we shutdown. Delete the compressed journal and toc and re-start the Compression Task.
+                                final File tocFile = QueryUtils.getTocFile(uncompressedFile);
+                                executor.submit(new CompressionTask(uncompressedFile, getJournalId(uncompressedFile), tocFile));
+                            } else {
+                                // The compressed file exists but the uncompressed file does not. This means that we have finished
+                                // writing the compressed file and deleted the original journal file but then shutdown before
+                                // renaming the compressed file to the original filename. We can simply rename the compressed file
+                                // to the original file and then address the TOC file.
+                                final boolean rename = CompressionTask.rename(file, uncompressedFile);
+                                if ( !rename ) {
+                                    logger.warn("{} During recovery, failed to rename {} to {}", this, file, uncompressedFile);
+                                    continue;
+                                }
+                                
+                                // Check if the compressed TOC file exists. If not, we are finished.
+                                // If it does exist, then we know that it is complete, as described above, so we will go
+                                // ahead and replace the uncompressed version.
+                                final File tocFile = QueryUtils.getTocFile(uncompressedFile);
+                                final File compressedTocFile = new File(tocFile.getParentFile(), tocFile.getName() + CompressionTask.FILE_EXTENSION);
+                                if ( !compressedTocFile.exists() ) {
+                                    continue;
+                                }
+                                
+                                tocFile.delete();
+                                
+                                final boolean renamedTocFile = CompressionTask.rename(compressedTocFile, tocFile);
+                                if ( !renamedTocFile ) {
+                                    logger.warn("{} During recovery, failed to rename {} to {}", this, compressedTocFile, tocFile);
+                                }
                             }
                         }
                     }
-                }
-                
-                // Get the first event in the earliest journal file so that we know what the earliest time available is
-                Collections.sort(journalFiles, new Comparator<File>() {
-                    @Override
-                    public int compare(final File o1, final File o2) {
-                        return Long.compare(getJournalId(o1), getJournalId(o2));
+                    
+                    // Get the first event in the earliest journal file so that we know what the earliest time available is
+                    Collections.sort(journalFiles, new Comparator<File>() {
+                        @Override
+                        public int compare(final File o1, final File o2) {
+                            return Long.compare(getJournalId(o1), getJournalId(o2));
+                        }
+                    });
+                    
+                    for ( final File journal : journalFiles ) {
+                        try (final JournalReader reader = new StandardJournalReader(journal)) {
+                            final ProvenanceEventRecord record = reader.nextEvent();
+                            this.earliestEventTime = record.getEventTime();
+                            break;
+                        } catch (final IOException ioe) {
+                        }
                     }
-                });
-                
-                for ( final File journal : journalFiles ) {
-                    try (final JournalReader reader = new StandardJournalReader(journal)) {
-                        final ProvenanceEventRecord record = reader.nextEvent();
-                        this.earliestEventTime = record.getEventTime();
-                        break;
-                    } catch (final IOException ioe) {
-                    }
-                }
-                
-                // Whatever was the last journal for this partition, we need to remove anything for that journal
-                // from the index and re-add them, and then sync the index. This allows us to avoid syncing
-                // the index each time (we sync only on rollover) but allows us to still ensure that we index
-                // all events.
-                if ( latestJournal != null ) {
-                    try {
-                        reindex(latestJournal);
-                    } catch (final EOFException eof) {
+                    
+                    // Whatever was the last journal for this partition, we need to remove anything for that journal
+                    // from the index and re-add them, and then sync the index. This allows us to avoid syncing
+                    // the index each time (we sync only on rollover) but allows us to still ensure that we index
+                    // all events.
+                    if ( latestJournal != null ) {
+                        try {
+                            reindex(latestJournal);
+                        } catch (final EOFException eof) {
+                        }
                     }
                 }
             }
+        } finally {
+            writeLock.unlock();
         }
     }
 
     
     private void reindex(final File journalFile) throws IOException {
-        try (final TocJournalReader reader = new TocJournalReader(containerName, sectionName, String.valueOf(getJournalId(journalFile)), journalFile)) {
-            indexWriter.delete(containerName, sectionName, String.valueOf(getJournalId(journalFile)));
+        // TODO: Rework how recovery works because we now have index manager!!
+        try (final TocJournalReader reader = new TocJournalReader(containerName, String.valueOf(sectionIndex), String.valueOf(getJournalId(journalFile)), journalFile)) {
+            // We don't know which index contains the data for this journal, so remove the journal
+            // from both.
+            for (final LuceneIndexWriter indexWriter : indexWriters ) {
+                indexWriter.delete(containerName, String.valueOf(sectionIndex), String.valueOf(getJournalId(journalFile)));
+            }
             
             long maxId = -1L;
             final List<JournaledProvenanceEvent> storedEvents = new ArrayList<>(1000);
             JournaledProvenanceEvent event;
+            final LuceneIndexWriter indexWriter = indexWriters[0];
             while ((event = reader.nextJournaledEvent()) != null ) {
                 storedEvents.add(event);
                 maxId = event.getEventId();
@@ -365,7 +391,7 @@ public class JournalingPartition implements Partition {
     
     @Override
     public List<JournaledStorageLocation> getEvents(final long minEventId, final int maxRecords) throws IOException {
-        try (final EventIndexSearcher searcher = indexWriter.newIndexSearcher()) {
+        try (final EventIndexSearcher searcher = newIndexSearcher()) {
             return searcher.getEvents(minEventId, maxRecords);
         }
     }
@@ -401,16 +427,6 @@ public class JournalingPartition implements Partition {
             }
         }
         
-        if ( indexWriter != null ) {
-            try {
-                indexWriter.close();
-            } catch (final IOException ioe) {
-                logger.warn("Failed to close {} due to {}", indexWriter, ioe);
-                if ( logger.isDebugEnabled() ) {
-                    logger.warn("", ioe);
-                }
-            }
-        }
     }
     
     @Override
@@ -425,6 +441,6 @@ public class JournalingPartition implements Partition {
     
     @Override
     public String toString() {
-        return "Partition[section=" + sectionName + "]";
+        return "Partition[section=" + sectionIndex + "]";
     }
 }

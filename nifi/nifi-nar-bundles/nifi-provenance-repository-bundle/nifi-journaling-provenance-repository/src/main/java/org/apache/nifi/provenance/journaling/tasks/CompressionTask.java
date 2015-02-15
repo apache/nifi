@@ -133,7 +133,7 @@ public class CompressionTask implements Runnable {
             try (final JournalReader journalReader = new StandardJournalReader(journalFile);
                 final JournalWriter compressedWriter = new StandardJournalWriter(journalId, compressedFile, true, new StandardEventSerializer());
                 final TocReader tocReader = new StandardTocReader(tocFile);
-                final TocWriter compressedTocWriter = new StandardTocWriter(compressedTocFile, true)) {
+                final TocWriter compressedTocWriter = new StandardTocWriter(compressedTocFile, true, false)) {
                 
                 compress(journalReader, compressedWriter, tocReader, compressedTocWriter);
                 compressedWriter.sync();
