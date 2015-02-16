@@ -94,4 +94,21 @@ public class TestEvaluateJsonPath {
         final MockFlowFile out = testRunner.getFlowFilesForRelationship(expectedRel).get(0);
         Assert.assertEquals("Transferred flow file did not have the correct result", "54df94072d5dbf7dc6340cc5", out.getAttribute(jsonPathAttrKey));
     }
+
+    @Test
+    public void testExtractPath_destinationContent() throws Exception {
+        String jsonPathAttrKey = "JsonPath";
+
+        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateJsonPath());
+        testRunner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_CONTENT);
+        testRunner.setProperty(jsonPathAttrKey, "$[0]._id");
+
+        testRunner.enqueue(JSON_SNIPPET);
+        testRunner.run();
+
+        Relationship expectedRel = EvaluateJsonPath.REL_MATCH;
+
+        testRunner.assertAllFlowFilesTransferred(expectedRel, 1);
+        testRunner.getFlowFilesForRelationship(expectedRel).get(0).assertContentEquals("54df94072d5dbf7dc6340cc5");
+    }
 }
