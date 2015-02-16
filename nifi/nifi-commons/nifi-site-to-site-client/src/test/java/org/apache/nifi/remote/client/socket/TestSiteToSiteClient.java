@@ -43,26 +43,31 @@ public class TestSiteToSiteClient {
         final SiteToSiteClient client = new SiteToSiteClient.Builder()
             .url("http://localhost:8080/nifi")
             .portName("cba")
-            .requestBatchCount(1)
+            .requestBatchCount(10)
             .build();
         
         try {
-            final Transaction transaction = client.createTransaction(TransferDirection.RECEIVE);
-            Assert.assertNotNull(transaction);
-            
-            final DataPacket packet = transaction.receive();
-            Assert.assertNotNull(packet);
-            
-            final InputStream in = packet.getData();
-            final long size = packet.getSize();
-            final byte[] buff = new byte[(int) size];
-            
-            StreamUtils.fillBuffer(in, buff);
-            
-            Assert.assertNull(transaction.receive());
-            
-            transaction.confirm();
-            transaction.complete();
+            for (int i=0; i < 1000; i++) {
+                final Transaction transaction = client.createTransaction(TransferDirection.RECEIVE);
+                Assert.assertNotNull(transaction);
+                
+                DataPacket packet;
+                while (true) {
+                    packet = transaction.receive();
+                    if ( packet == null ) {
+                        break;
+                    }
+
+                    final InputStream in = packet.getData();
+                    final long size = packet.getSize();
+                    final byte[] buff = new byte[(int) size];
+                    
+                    StreamUtils.fillBuffer(in, buff);
+                }
+                
+                transaction.confirm();
+                transaction.complete();
+            }
         } finally {
             client.close();
         }
@@ -70,7 +75,7 @@ public class TestSiteToSiteClient {
     
     
     @Test
-    //@Ignore("For local testing only; not really a unit test but a manual test")
+    @Ignore("For local testing only; not really a unit test but a manual test")
     public void testSend() throws IOException {
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.remote", "DEBUG");
         

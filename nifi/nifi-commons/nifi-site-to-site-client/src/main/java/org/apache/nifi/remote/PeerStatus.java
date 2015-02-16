@@ -17,43 +17,31 @@
 package org.apache.nifi.remote;
 
 public class PeerStatus {
-
-    private final String hostname;
-    private final int port;
-    private final boolean secure;
+    private final PeerDescription description;
     private final int numFlowFiles;
 
-    public PeerStatus(final String hostname, final int port, final boolean secure, final int numFlowFiles) {
-        this.hostname = hostname;
-        this.port = port;
-        this.secure = secure;
+    public PeerStatus(final PeerDescription description, final int numFlowFiles) {
+        this.description = description;
         this.numFlowFiles = numFlowFiles;
     }
 
-    public String getHostname() {
-        return hostname;
+    public PeerDescription getPeerDescription() {
+        return description;
     }
-
-    public int getPort() {
-        return port;
-    }
-
-    public boolean isSecure() {
-        return secure;
-    }
-
+    
     public int getFlowFileCount() {
         return numFlowFiles;
     }
 
     @Override
     public String toString() {
-        return "PeerStatus[hostname=" + hostname + ",port=" + port + ",secure=" + secure + ",flowFileCount=" + numFlowFiles + "]";
+        return "PeerStatus[hostname=" + description.getHostname() + ",port=" + description.getPort() + 
+                ",secure=" + description.isSecure() + ",flowFileCount=" + numFlowFiles + "]";
     }
 
     @Override
     public int hashCode() {
-        return 9824372 + hostname.hashCode() + port;
+        return 9824372 + description.getHostname().hashCode() + description.getPort() * 41;
     }
 
     @Override
@@ -67,6 +55,6 @@ public class PeerStatus {
         }
 
         final PeerStatus other = (PeerStatus) obj;
-        return port == other.port && hostname.equals(other.hostname);
+        return description.equals(other.getPeerDescription());
     }
 }

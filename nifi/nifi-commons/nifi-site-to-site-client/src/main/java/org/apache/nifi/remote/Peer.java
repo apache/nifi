@@ -25,6 +25,7 @@ import org.apache.nifi.remote.protocol.CommunicationsSession;
 
 public class Peer implements Communicant {
 
+    private final PeerDescription description;
     private final CommunicationsSession commsSession;
     private final String url;
     private final String clusterUrl;
@@ -34,7 +35,8 @@ public class Peer implements Communicant {
     private final Map<String, Long> penaltyExpirationMap = new HashMap<>();
     private boolean closed = false;
 
-    public Peer(final CommunicationsSession commsSession, final String peerUrl, final String clusterUrl) {
+    public Peer(final PeerDescription description, final CommunicationsSession commsSession, final String peerUrl, final String clusterUrl) {
+        this.description = description;
         this.commsSession = commsSession;
         this.url = peerUrl;
         this.clusterUrl = clusterUrl;
@@ -48,6 +50,10 @@ public class Peer implements Communicant {
         }
     }
 
+    public PeerDescription getDescription() {
+        return description;
+    }
+    
     @Override
     public String getUrl() {
         return url;

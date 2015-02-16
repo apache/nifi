@@ -34,6 +34,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.remote.Peer;
+import org.apache.nifi.remote.PeerDescription;
 import org.apache.nifi.remote.PeerStatus;
 import org.apache.nifi.remote.RemoteDestination;
 import org.apache.nifi.remote.RemoteResourceInitiator;
@@ -117,7 +118,7 @@ public class SocketClientProtocol implements ClientProtocol {
         properties.put(HandshakeProperty.GZIP, String.valueOf(useCompression));
         
         if ( destinationId != null ) {
-        	properties.put(HandshakeProperty.PORT_IDENTIFIER, destination.getIdentifier());
+        	properties.put(HandshakeProperty.PORT_IDENTIFIER, destinationId);
         }
         
         properties.put(HandshakeProperty.REQUEST_EXPIRATION_MILLIS, String.valueOf(timeoutMillis) );
@@ -229,7 +230,7 @@ public class SocketClientProtocol implements ClientProtocol {
             final int port = dis.readInt();
             final boolean secure = dis.readBoolean();
             final int flowFileCount = dis.readInt();
-            peers.add(new PeerStatus(hostname, port, secure, flowFileCount));
+            peers.add(new PeerStatus(new PeerDescription(hostname, port, secure), flowFileCount));
         }
         
         logger.debug("{} Received {} Peer Statuses from {}", this, peers.size(), peer);

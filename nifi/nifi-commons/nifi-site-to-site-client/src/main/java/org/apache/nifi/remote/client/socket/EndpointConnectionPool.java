@@ -61,6 +61,7 @@ import javax.security.cert.CertificateNotYetValidException;
 
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.remote.Peer;
+import org.apache.nifi.remote.PeerDescription;
 import org.apache.nifi.remote.PeerStatus;
 import org.apache.nifi.remote.RemoteDestination;
 import org.apache.nifi.remote.RemoteResourceInitiator;
@@ -97,8 +98,8 @@ public class EndpointConnectionPool {
 
 	private static final Logger logger = LoggerFactory.getLogger(EndpointConnectionPool.class);
 	
-	private final BlockingQueue<EndpointConnection> connectionQueue = new LinkedBlockingQueue<>();
-    private final ConcurrentMap<PeerStatus, Long> peerTimeoutExpirations = new ConcurrentHashMap<>();
+	private final ConcurrentMap<PeerDescription, BlockingQueue<EndpointConnection>> connectionQueueMap = new ConcurrentHashMap<>();
+    private final ConcurrentMap<PeerDescription, Long> peerTimeoutExpirations = new ConcurrentHashMap<>();
     private final URI clusterUrl;
     private final String apiUri;
     
@@ -227,6 +228,23 @@ public class EndpointConnectionPool {
         SocketClientProtocol protocol = null;
         EndpointConnection connection;
         Peer peer = null;
+
+        logger.debug("{} getting next peer status", this);
+        final PeerStatus peerStatus = getNextPeerStatus(direction);
+        logger.debug("{} next peer status = {}", this, peerStatus);
+        if ( peerStatus == null ) {
+            return null;
+        }
+
+        final PeerDescription peerDescription = peerStatus.getPeerDescription();
+        BlockingQueue<EndpointConnection> connectionQueue = connectionQueueMap.get(peerStatus);
+        if ( connectionQueue == null ) {
+            connectionQueue = new LinkedBlockingQueue<>();
+            BlockingQueue<EndpointConnection> existing = connectionQueueMap.putIfAbsent(peerDescription, connectionQueue);
+            if ( existing != null ) {
+                connectionQueue = existing;
+            }
+        }
         
         final List<EndpointConnection> addBack = new ArrayList<>();
         try {
@@ -254,19 +272,12 @@ public class EndpointConnectionPool {
                     protocol = new SocketClientProtocol();
                     protocol.setDestination(new IdEnrichedRemoteDestination(remoteDestination, portId));
 
-                    logger.debug("{} getting next peer status", this);
-                    final PeerStatus peerStatus = getNextPeerStatus(direction);
-                    logger.debug("{} next peer status = {}", this, peerStatus);
-                    if ( peerStatus == null ) {
-                        return null;
-                    }
-
                     final long penalizationMillis = remoteDestination.getYieldPeriod(TimeUnit.MILLISECONDS);
                     try {
                         logger.debug("{} Establishing site-to-site connection with {}", this, peerStatus);
                         commsSession = establishSiteToSiteConnection(peerStatus);
                     } catch (final IOException ioe) {
-                        penalize(peerStatus, penalizationMillis);
+                        penalize(peerStatus.getPeerDescription(), penalizationMillis);
                         throw ioe;
                     }
                     
@@ -283,8 +294,8 @@ public class EndpointConnectionPool {
                         }
                     }
                 
-                    final String peerUrl = "nifi://" + peerStatus.getHostname() + ":" + peerStatus.getPort();
-                    peer = new Peer(commsSession, peerUrl, clusterUrl.toString());
+                    final String peerUrl = "nifi://" + peerDescription.getHostname() + ":" + peerDescription.getPort();
+                    peer = new Peer(peerDescription, commsSession, peerUrl, clusterUrl.toString());
     
                     // set properties based on config
                     if ( config != null ) {
@@ -371,6 +382,11 @@ public class EndpointConnectionPool {
     		return false;
     	}
     	
+    	final BlockingQueue<EndpointConnection> connectionQueue = connectionQueueMap.get(peer.getDescription());
+    	if ( connectionQueue == null ) {
+    	    return false;
+    	}
+    	
     	activeConnections.remove(endpointConnection);
     	if ( shutdown ) {
     	    terminate(endpointConnection);
@@ -381,14 +397,14 @@ public class EndpointConnectionPool {
     	}
     }
     
-    private void penalize(final PeerStatus status, final long penalizationMillis) {
-        Long expiration = peerTimeoutExpirations.get(status);
+    private void penalize(final PeerDescription peerDescription, final long penalizationMillis) {
+        Long expiration = peerTimeoutExpirations.get(peerDescription);
         if ( expiration == null ) {
             expiration = Long.valueOf(0L);
         }
         
         final long newExpiration = Math.max(expiration, System.currentTimeMillis() + penalizationMillis);
-        peerTimeoutExpirations.put(status, Long.valueOf(newExpiration));
+        peerTimeoutExpirations.put(peerDescription, Long.valueOf(newExpiration));
     }
     
     /**
@@ -396,19 +412,7 @@ public class EndpointConnectionPool {
      * @param peer
      */
     public void penalize(final Peer peer, final long penalizationMillis) {
-        String host;
-        int port;
-        try {
-            final URI uri = new URI(peer.getUrl());
-            host = uri.getHost();
-            port = uri.getPort();
-        } catch (final URISyntaxException e) {
-            host = peer.getHost();
-            port = -1;
-        }
-        
-        final PeerStatus status = new PeerStatus(host, port, true, 1);
-        penalize(status, penalizationMillis);
+        penalize(peer.getDescription(), penalizationMillis);
     }
     
     private void cleanup(final SocketClientProtocol protocol, final Peer peer) {
@@ -509,7 +513,8 @@ public class EndpointConnectionPool {
         final ClusterNodeInformation clusterNodeInfo = new ClusterNodeInformation();
         final List<NodeInformation> nodeInfos = new ArrayList<>();
         for ( final PeerStatus peerStatus : statuses ) {
-            final NodeInformation nodeInfo = new NodeInformation(peerStatus.getHostname(), peerStatus.getPort(), 0, peerStatus.isSecure(), peerStatus.getFlowFileCount());
+            final PeerDescription description = peerStatus.getPeerDescription();
+            final NodeInformation nodeInfo = new NodeInformation(description.getHostname(), description.getPort(), 0, description.isSecure(), peerStatus.getFlowFileCount());
             nodeInfos.add(nodeInfo);
         }
         clusterNodeInfo.setNodeInformation(nodeInfos);
@@ -526,7 +531,7 @@ public class EndpointConnectionPool {
         if (cache.getTimestamp() + PEER_CACHE_MILLIS < System.currentTimeMillis()) {
             final Set<PeerStatus> equalizedSet = new HashSet<>(cache.getStatuses().size());
             for (final PeerStatus status : cache.getStatuses()) {
-                final PeerStatus equalizedStatus = new PeerStatus(status.getHostname(), status.getPort(), status.isSecure(), 1);
+                final PeerStatus equalizedStatus = new PeerStatus(status.getPeerDescription(), 1);
                 equalizedSet.add(equalizedStatus);
             }
 
@@ -543,8 +548,9 @@ public class EndpointConnectionPool {
             throw new IOException("Remote instance of NiFi is not configured to allow site-to-site communications");
         }
     	
+        final PeerDescription clusterPeerDescription = new PeerDescription(hostname, port, clusterUrl.toString().startsWith("https://"));
     	final CommunicationsSession commsSession = establishSiteToSiteConnection(hostname, port);
-        final Peer peer = new Peer(commsSession, "nifi://" + hostname + ":" + port, clusterUrl.toString());
+        final Peer peer = new Peer(clusterPeerDescription, commsSession, "nifi://" + hostname + ":" + port, clusterUrl.toString());
         final SocketClientProtocol clientProtocol = new SocketClientProtocol();
         final DataInputStream dis = new DataInputStream(commsSession.getInput().getInputStream());
         final DataOutputStream dos = new DataOutputStream(commsSession.getOutput().getOutputStream());
@@ -602,7 +608,8 @@ public class EndpointConnectionPool {
              final OutputStream out = new BufferedOutputStream(fos)) {
 
             for (final PeerStatus status : statuses) {
-                final String line = status.getHostname() + ":" + status.getPort() + ":" + status.isSecure() + "\n";
+                final PeerDescription description = status.getPeerDescription();
+                final String line = description.getHostname() + ":" + description.getPort() + ":" + description.isSecure() + "\n";
                 out.write(line.getBytes(StandardCharsets.UTF_8));
             }
 
@@ -631,7 +638,7 @@ public class EndpointConnectionPool {
                 final int port = Integer.parseInt(splits[1]);
                 final boolean secure = Boolean.parseBoolean(splits[2]);
 
-                statuses.add(new PeerStatus(hostname, port, secure, 1));
+                statuses.add(new PeerStatus(new PeerDescription(hostname, port, secure), 1));
             }
         }
 
@@ -640,7 +647,8 @@ public class EndpointConnectionPool {
     
     
     private CommunicationsSession establishSiteToSiteConnection(final PeerStatus peerStatus) throws IOException {
-    	return establishSiteToSiteConnection(peerStatus.getHostname(), peerStatus.getPort());
+        final PeerDescription description = peerStatus.getPeerDescription();
+    	return establishSiteToSiteConnection(description.getHostname(), description.getPort());
     }
     
     private CommunicationsSession establishSiteToSiteConnection(final String hostname, final int port) throws IOException {
@@ -720,7 +728,8 @@ public class EndpointConnectionPool {
                     final int index = n % destinations.size();
                     PeerStatus status = destinations.get(index);
                     if ( status == null ) {
-                        status = new PeerStatus(nodeInfo.getHostname(), nodeInfo.getSiteToSitePort(), nodeInfo.isSiteToSiteSecure(), nodeInfo.getTotalFlowFiles());
+                        final PeerDescription description = new PeerDescription(nodeInfo.getHostname(), nodeInfo.getSiteToSitePort(), nodeInfo.isSiteToSiteSecure());
+                        status = new PeerStatus(description, nodeInfo.getTotalFlowFiles());
                         destinations.set(index, status);
                         break;
                     } else {
@@ -744,27 +753,29 @@ public class EndpointConnectionPool {
     
     
     private void cleanupExpiredSockets() {
-        final List<EndpointConnection> connections = new ArrayList<>();
-        
-        EndpointConnection connection;
-        while ((connection = connectionQueue.poll()) != null) {
-            // If the socket has not been used in 10 seconds, shut it down.
-            final long lastUsed = connection.getLastTimeUsed();
-            if ( lastUsed < System.currentTimeMillis() - idleExpirationMillis ) {
-                try {
-                    connection.getSocketClientProtocol().shutdown(connection.getPeer());
-                } catch (final Exception e) {
-                    logger.debug("Failed to shut down {} using {} due to {}", 
-                        new Object[] {connection.getSocketClientProtocol(), connection.getPeer(), e} );
+        for ( final BlockingQueue<EndpointConnection> connectionQueue : connectionQueueMap.values()) {
+            final List<EndpointConnection> connections = new ArrayList<>();
+            
+            EndpointConnection connection;
+            while ((connection = connectionQueue.poll()) != null) {
+                // If the socket has not been used in 10 seconds, shut it down.
+                final long lastUsed = connection.getLastTimeUsed();
+                if ( lastUsed < System.currentTimeMillis() - idleExpirationMillis ) {
+                    try {
+                        connection.getSocketClientProtocol().shutdown(connection.getPeer());
+                    } catch (final Exception e) {
+                        logger.debug("Failed to shut down {} using {} due to {}", 
+                            new Object[] {connection.getSocketClientProtocol(), connection.getPeer(), e} );
+                    }
+                    
+                    terminate(connection);
+                } else {
+                    connections.add(connection);
                 }
-                
-                terminate(connection);
-            } else {
-                connections.add(connection);
             }
+            
+            connectionQueue.addAll(connections);
         }
-        
-        connectionQueue.addAll(connections);
     }
     
     public void shutdown() {
@@ -775,10 +786,12 @@ public class EndpointConnectionPool {
        for ( final EndpointConnection conn : activeConnections ) {
            conn.getPeer().getCommunicationsSession().interrupt();
         }
-        
-        EndpointConnection state;
-        while ( (state = connectionQueue.poll()) != null)  {
-            cleanup(state.getSocketClientProtocol(), state.getPeer());
+
+        for ( final BlockingQueue<EndpointConnection> connectionQueue : connectionQueueMap.values() ) {
+            EndpointConnection state;
+            while ( (state = connectionQueue.poll()) != null)  {
+                cleanup(state.getSocketClientProtocol(), state.getPeer());
+            }
         }
     }
     

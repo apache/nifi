@@ -41,7 +41,7 @@ public class TestEndpointConnectionStatePool {
         clusterNodeInfo.setNodeInformation(collection);
         final List<PeerStatus> destinations = EndpointConnectionPool.formulateDestinationList(clusterNodeInfo, TransferDirection.SEND);
         for ( final PeerStatus peerStatus : destinations ) {
-            System.out.println(peerStatus.getHostname() + ":" + peerStatus.getPort());
+            System.out.println(peerStatus.getPeerDescription());
         }
     }
     
@@ -55,7 +55,7 @@ public class TestEndpointConnectionStatePool {
         clusterNodeInfo.setNodeInformation(collection);
         final List<PeerStatus> destinations = EndpointConnectionPool.formulateDestinationList(clusterNodeInfo, TransferDirection.SEND);
         for ( final PeerStatus peerStatus : destinations ) {
-            System.out.println(peerStatus.getHostname() + ":" + peerStatus.getPort());
+            System.out.println(peerStatus.getPeerDescription());
         }
     }
     
@@ -75,7 +75,7 @@ public class TestEndpointConnectionStatePool {
         clusterNodeInfo.setNodeInformation(collection);
         final List<PeerStatus> destinations = EndpointConnectionPool.formulateDestinationList(clusterNodeInfo, TransferDirection.SEND);
         for ( final PeerStatus peerStatus : destinations ) {
-            System.out.println(peerStatus.getHostname() + ":" + peerStatus.getPort());
+            System.out.println(peerStatus.getPeerDescription());
         }
     }
     
@@ -89,7 +89,7 @@ public class TestEndpointConnectionStatePool {
         clusterNodeInfo.setNodeInformation(collection);
         final List<PeerStatus> destinations = EndpointConnectionPool.formulateDestinationList(clusterNodeInfo, TransferDirection.SEND);
         for ( final PeerStatus peerStatus : destinations ) {
-            System.out.println(peerStatus.getHostname() + ":" + peerStatus.getPort());
+            System.out.println(peerStatus.getPeerDescription());
         }
     }
 }

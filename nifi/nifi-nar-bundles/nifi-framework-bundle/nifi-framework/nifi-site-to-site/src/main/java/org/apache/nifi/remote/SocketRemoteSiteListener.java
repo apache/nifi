@@ -206,7 +206,8 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                             	protocol.setRootProcessGroup(rootGroup.get());
                           	    protocol.setNodeInformant(nodeInformant);
                             	
-                            	peer = new Peer(commsSession, peerUri, "nifi://localhost:" + getPort());
+                          	    final PeerDescription description = new PeerDescription("localhost", getPort(), sslContext != null);
+                            	peer = new Peer(description, commsSession, peerUri, "nifi://localhost:" + getPort());
                             	LOG.debug("Handshaking....");
                             	protocol.handshake(peer);
                             	
