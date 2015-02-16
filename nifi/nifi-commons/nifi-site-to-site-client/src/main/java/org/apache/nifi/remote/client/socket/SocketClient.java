@@ -17,6 +17,7 @@
 package org.apache.nifi.remote.client.socket;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.remote.Communicant;
@@ -185,6 +186,11 @@ public class SocketClient implements SiteToSiteClient {
 				transaction.send(dataPacket);
 			}
 
+			@Override
+			public void send(final byte[] content, final Map<String, String> attributes) throws IOException {
+			    transaction.send(content, attributes);
+			}
+			
 			@Override
 			public DataPacket receive() throws IOException {
 				return transaction.receive();

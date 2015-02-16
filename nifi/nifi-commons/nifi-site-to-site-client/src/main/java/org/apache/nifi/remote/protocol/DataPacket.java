@@ -19,11 +19,27 @@ package org.apache.nifi.remote.protocol;
 import java.io.InputStream;
 import java.util.Map;
 
+
+/**
+ * Represents a piece of data that is to be sent to or that was received from a NiFi instance.
+ */
 public interface DataPacket {
 
+    /**
+     * The key-value attributes that are to be associated with the data
+     * @return
+     */
 	Map<String, String> getAttributes();
 	
+	/**
+	 * An InputStream from which the content can be read
+	 * @return
+	 */
 	InputStream getData();
-	
+
+	/**
+	 * The length of the InputStream.
+	 * @return
+	 */
 	long getSize();
 }

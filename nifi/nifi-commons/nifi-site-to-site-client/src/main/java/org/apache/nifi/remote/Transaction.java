@@ -17,6 +17,7 @@
 package org.apache.nifi.remote;
 
 import java.io.IOException;
+import java.util.Map;
 
 import org.apache.nifi.remote.protocol.DataPacket;
 
@@ -79,6 +80,16 @@ public interface Transaction {
      * @throws IOException
      */
     void send(DataPacket dataPacket) throws IOException;
+    
+    /**
+     * Sends the given byte array as the content of a {@link DataPacket} along with the
+     * provided attributes
+     * 
+     * @param content
+     * @param attributes
+     * @throws IOException
+     */
+    void send(byte[] content, Map<String, String> attributes) throws IOException;
     
     /**
      * Retrieves information from the remote NiFi instance, if any is available. If no data is available, will return
