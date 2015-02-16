@@ -138,7 +138,7 @@ public class SocketClientTransaction implements Transaction {
                             this.dataAvailable = true;
                             break;
                         case FINISH_TRANSACTION:
-                            logger.debug("{} {} Indicates Transaction should finish", peer);
+                            logger.debug("{} {} Indicates Transaction should finish", this, peer);
                             this.dataAvailable = false;
                             break;
                         default:

@@ -904,7 +904,10 @@ public class EndpointConnectionPool {
         return listeningPort;
     }
  
-    
+    @Override
+    public String toString() {
+        return "EndpointConnectionPool[Cluster URL=" + clusterUrl + "]";
+    }
     
     
     /**
