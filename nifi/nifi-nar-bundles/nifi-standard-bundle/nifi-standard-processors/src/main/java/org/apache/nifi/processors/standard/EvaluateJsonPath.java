@@ -72,7 +72,7 @@ public class EvaluateJsonPath extends AbstractProcessor {
             .name("Return Type")
             .description("Indicates the desired return type of the JSON Path expressions.  Selecting 'auto-detect' will set the return type to 'json' for a Destination of 'flowfile-content', and 'string' for a Destination of 'flowfile-attribute'.")
             .required(true)
-            .allowableValues(RETURN_TYPE_AUTO, RETURN_TYPE_AUTO, RETURN_TYPE_STRING)
+            .allowableValues(RETURN_TYPE_AUTO, RETURN_TYPE_JSON, RETURN_TYPE_STRING)
             .defaultValue(RETURN_TYPE_AUTO)
             .build();
 
