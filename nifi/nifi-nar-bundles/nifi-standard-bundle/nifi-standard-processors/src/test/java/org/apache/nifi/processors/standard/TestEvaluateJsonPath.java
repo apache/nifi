@@ -177,4 +177,39 @@ public class TestEvaluateJsonPath {
         testRunner.assertAllFlowFilesTransferred(expectedRel, 1);
         testRunner.getFlowFilesForRelationship(expectedRel).get(0).assertContentEquals("54df94072d5dbf7dc6340cc5");
     }
+
+
+    @Test
+    public void testExtractPath_destinationAttribute_indefiniteResult() throws Exception {
+        String jsonPathAttrKey = "friends.indefinite.id.list";
+
+        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateJsonPath());
+        testRunner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_CONTENT);
+        testRunner.setProperty(jsonPathAttrKey, "$[0].friends.[*].id");
+
+        testRunner.enqueue(JSON_SNIPPET);
+        testRunner.run();
+
+        Relationship expectedRel = EvaluateJsonPath.REL_MATCH;
+
+        testRunner.assertAllFlowFilesTransferred(expectedRel, 1);
+        testRunner.getFlowFilesForRelationship(expectedRel).get(0).assertContentEquals("[0,1,2]");
+    }
+
+    @Test
+    public void testExtractPath_destinationAttribute_indefiniteResult_operators() throws Exception {
+        String jsonPathAttrKey = "friends.indefinite.id.list";
+
+        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateJsonPath());
+        testRunner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_CONTENT);
+        testRunner.setProperty(jsonPathAttrKey, "$[0].friends[?(@.id < 3)].id");
+
+        testRunner.enqueue(JSON_SNIPPET);
+        testRunner.run();
+
+        Relationship expectedRel = EvaluateJsonPath.REL_MATCH;
+
+        testRunner.assertAllFlowFilesTransferred(expectedRel, 1);
+        testRunner.getFlowFilesForRelationship(expectedRel).get(0).assertContentEquals("[0,1,2]");
+    }
 }
