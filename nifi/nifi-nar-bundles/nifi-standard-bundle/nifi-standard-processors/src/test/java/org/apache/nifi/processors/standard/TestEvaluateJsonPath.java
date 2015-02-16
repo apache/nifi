@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
@@ -27,6 +28,7 @@ import java.nio.file.Paths;
 public class TestEvaluateJsonPath {
 
     private static final Path JSON_SNIPPET = Paths.get("src/test/resources/TestJson/json-sample.json");
+    private static final Path XML_SNIPPET = Paths.get("src/test/resources/TestXml/xml-snippet.xml");
 
     @Test(expected = AssertionError.class)
     public void testInvalidJsonPath() {
@@ -36,5 +38,16 @@ public class TestEvaluateJsonPath {
 
         Assert.fail("An improper JsonPath expression was not detected as being invalid.");
     }
-    
+
+    @Test
+    public void testInvalidJsonDocument() throws Exception {
+        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateJsonPath());
+        testRunner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_ATTRIBUTE);
+
+        testRunner.enqueue(XML_SNIPPET);
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(EvaluateJsonPath.REL_FAILURE, 1);
+        final MockFlowFile out = testRunner.getFlowFilesForRelationship(EvaluateJsonPath.REL_FAILURE).get(0);
+    }
 }
