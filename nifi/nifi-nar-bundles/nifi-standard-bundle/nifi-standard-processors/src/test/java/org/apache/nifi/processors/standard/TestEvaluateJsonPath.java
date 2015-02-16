@@ -118,6 +118,28 @@ public class TestEvaluateJsonPath {
     }
 
     @Test
+    public void testExtractPath_destinationAttributes_twoPaths_notFound() throws Exception {
+        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateJsonPath());
+        testRunner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_ATTRIBUTE);
+
+        String jsonPathIdAttrKey = "evaluatejson.id";
+        String jsonPathNameAttrKey = "evaluatejson.name";
+
+        testRunner.setProperty(jsonPathIdAttrKey, "$[0]._id.nonexistent");
+        testRunner.setProperty(jsonPathNameAttrKey, "$[0].name.nonexistent");
+
+        testRunner.enqueue(JSON_SNIPPET);
+        testRunner.run();
+
+        Relationship expectedRel = EvaluateJsonPath.REL_MATCH;
+
+        testRunner.assertAllFlowFilesTransferred(expectedRel, 1);
+        final MockFlowFile out = testRunner.getFlowFilesForRelationship(expectedRel).get(0);
+        Assert.assertEquals("Transferred flow file did not have the correct result for id attribute", "", out.getAttribute(jsonPathIdAttrKey));
+        Assert.assertEquals("Transferred flow file did not have the correct result for name attribute", "", out.getAttribute(jsonPathNameAttrKey));
+    }
+
+    @Test
     public void testExtractPath_destinationContent() throws Exception {
         String jsonPathAttrKey = "JsonPath";
 

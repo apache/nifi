@@ -212,27 +212,30 @@ public class EvaluateJsonPath extends AbstractProcessor {
 
                 String jsonPathAttrKey = attributeJsonPathEntry.getKey();
                 JsonPath jsonPathExp = attributeJsonPathEntry.getValue();
-                final String evalResult = evaluatePathForContext(jsonPathExp, documentContext);
 
+
+                final ObjectHolder<String> resultHolder = new ObjectHolder<>("");
                 try {
-                    switch (destination) {
-                        case DESTINATION_ATTRIBUTE:
-                            jsonPathResults.put(jsonPathAttrKey, evalResult);
-                            break;
-                        case DESTINATION_CONTENT:
-                            flowFile = processSession.write(flowFile, new OutputStreamCallback() {
-                                @Override
-                                public void process(final OutputStream out) throws IOException {
-                                    try (OutputStream outputStream = new BufferedOutputStream(out)) {
-                                        outputStream.write(evalResult.getBytes(StandardCharsets.UTF_8));
-                                    }
-                                }
-                            });
-                            break;
-                    }
+                    resultHolder.set(evaluatePathForContext(jsonPathExp, documentContext));
                 } catch (PathNotFoundException e) {
                     logger.error("FlowFile {} could not find path {} for attribute key {}.", new Object[]{flowFile.getId(), jsonPathExp.getPath(), jsonPathAttrKey}, e);
                     jsonPathResults.put(jsonPathAttrKey, "");
+                }
+
+                switch (destination) {
+                    case DESTINATION_ATTRIBUTE:
+                        jsonPathResults.put(jsonPathAttrKey, resultHolder.get());
+                        break;
+                    case DESTINATION_CONTENT:
+                        flowFile = processSession.write(flowFile, new OutputStreamCallback() {
+                            @Override
+                            public void process(final OutputStream out) throws IOException {
+                                try (OutputStream outputStream = new BufferedOutputStream(out)) {
+                                    outputStream.write(resultHolder.get().getBytes(StandardCharsets.UTF_8));
+                                }
+                            }
+                        });
+                        break;
                 }
             }
             flowFile = processSession.putAllAttributes(flowFile, jsonPathResults);
