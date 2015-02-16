@@ -29,7 +29,13 @@ public interface RemoteDestination {
      * @return
      */
 	String getIdentifier();
-	
+
+	/**
+	 * Returns the human-readable name of the remote destination
+	 * @return
+	 */
+	String getName();
+
 	/**
 	 * Returns the amount of time that system should pause sending to a particular node if unable to 
 	 * send data to or receive data from this endpoint

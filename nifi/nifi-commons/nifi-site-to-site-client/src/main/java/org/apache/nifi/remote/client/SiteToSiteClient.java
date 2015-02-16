@@ -19,6 +19,7 @@ package org.apache.nifi.remote.client;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLContext;
@@ -122,8 +123,10 @@ public interface SiteToSiteClient extends Closeable {
 	 * and a new client created. 
 	 * </p>
 	 */
-	public static class Builder {
-		private String url;
+	public static class Builder implements Serializable {
+        private static final long serialVersionUID = -4954962284343090219L;
+        
+        private String url;
 		private long timeoutNanos = TimeUnit.SECONDS.toNanos(30);
 		private long penalizationNanos = TimeUnit.SECONDS.toNanos(3);
 		private long idleExpirationNanos = TimeUnit.SECONDS.toNanos(30L);
@@ -309,10 +312,89 @@ public interface SiteToSiteClient extends Closeable {
 		    return this;
 		}
 		
+		/**
+		 * Returns a {@link SiteToSiteClientConfig} for the configured values but does not create a SiteToSiteClient
+		 * @return
+		 */
+		public SiteToSiteClientConfig buildConfig() {
+		    final SiteToSiteClientConfig config = new SiteToSiteClientConfig() {
+                private static final long serialVersionUID = 1323119754841633818L;
+
+                @Override
+                public boolean isUseCompression() {
+                    return Builder.this.isUseCompression();
+                }
+                
+                @Override
+                public String getUrl() {
+                    return Builder.this.getUrl();
+                }
+                
+                @Override
+                public long getTimeout(final TimeUnit timeUnit) {
+                    return Builder.this.getTimeout(timeUnit);
+                }
+                
+                @Override
+                public long getIdleConnectionExpiration(final TimeUnit timeUnit) {
+                    return Builder.this.getIdleConnectionExpiration(timeUnit);
+                }
+                
+                @Override
+                public SSLContext getSslContext() {
+                    return Builder.this.getSslContext();
+                }
+                
+                @Override
+                public String getPortName() {
+                    return Builder.this.getPortName();
+                }
+                
+                @Override
+                public String getPortIdentifier() {
+                    return Builder.this.getPortIdentifier();
+                }
+                
+                @Override
+                public long getPenalizationPeriod(final TimeUnit timeUnit) {
+                    return Builder.this.getPenalizationPeriod(timeUnit);
+                }
+                
+                @Override
+                public File getPeerPersistenceFile() {
+                    return Builder.this.getPeerPersistenceFile();
+                }
+                
+                @Override
+                public EventReporter getEventReporter() {
+                    return Builder.this.getEventReporter();
+                }
+
+                @Override
+                public long getPreferredBatchDuration(final TimeUnit timeUnit) {
+                    return timeUnit.convert(Builder.this.batchNanos, TimeUnit.NANOSECONDS);
+                }
+                
+                @Override
+                public long getPreferredBatchSize() {
+                    return Builder.this.batchSize;
+                }
+                
+                @Override
+                public int getPreferredBatchCount() {
+                    return Builder.this.batchCount;
+                }
+            };
+            
+            return config;
+		}
 		
 		/**
 		 * Builds a new SiteToSiteClient that can be used to send and receive data with remote instances of NiFi
 		 * @return
+		 * 
+		 * @throws IllegalStateException if either the url is not set or neither the port name nor port identifier
+		 * is set.
 		 */
 		public SiteToSiteClient build() {
 			if ( url == null ) {
@@ -323,75 +405,7 @@ public interface SiteToSiteClient extends Closeable {
 				throw new IllegalStateException("Must specify either Port Name or Port Identifier to builder Site-to-Site client");
 			}
 			
-			final SiteToSiteClientConfig config = new SiteToSiteClientConfig() {
-				
-				@Override
-				public boolean isUseCompression() {
-					return Builder.this.isUseCompression();
-				}
-				
-				@Override
-				public String getUrl() {
-					return Builder.this.getUrl();
-				}
-				
-				@Override
-				public long getTimeout(final TimeUnit timeUnit) {
-					return Builder.this.getTimeout(timeUnit);
-				}
-				
-				@Override
-				public long getIdleConnectionExpiration(final TimeUnit timeUnit) {
-				    return Builder.this.getIdleConnectionExpiration(timeUnit);
-				}
-				
-				@Override
-				public SSLContext getSslContext() {
-					return Builder.this.getSslContext();
-				}
-				
-				@Override
-				public String getPortName() {
-					return Builder.this.getPortName();
-				}
-				
-				@Override
-				public String getPortIdentifier() {
-					return Builder.this.getPortIdentifier();
-				}
-				
-				@Override
-				public long getPenalizationPeriod(final TimeUnit timeUnit) {
-					return Builder.this.getPenalizationPeriod(timeUnit);
-				}
-				
-				@Override
-				public File getPeerPersistenceFile() {
-					return Builder.this.getPeerPersistenceFile();
-				}
-				
-				@Override
-				public EventReporter getEventReporter() {
-					return Builder.this.getEventReporter();
-				}
-
-		        @Override
-		        public long getPreferredBatchDuration(final TimeUnit timeUnit) {
-		            return timeUnit.convert(Builder.this.batchNanos, TimeUnit.NANOSECONDS);
-		        }
-		        
-		        @Override
-		        public long getPreferredBatchSize() {
-		            return Builder.this.batchSize;
-		        }
-		        
-		        @Override
-		        public int getPreferredBatchCount() {
-		            return Builder.this.batchCount;
-		        }
-			};
-			
-			return new SocketClient(config);
+			return new SocketClient(buildConfig());
 		}
 
 		/**

@@ -43,7 +43,8 @@ public class SocketClient implements SiteToSiteClient {
 	private volatile boolean closed = false;
 	
 	public SocketClient(final SiteToSiteClientConfig config) {
-		pool = new EndpointConnectionPool(config.getUrl(), createRemoteDestination(config.getPortIdentifier()), 
+		pool = new EndpointConnectionPool(config.getUrl(), 
+		        createRemoteDestination(config.getPortIdentifier(), config.getPortName()),
 		        (int) config.getTimeout(TimeUnit.MILLISECONDS),
 		        (int) config.getIdleConnectionExpiration(TimeUnit.MILLISECONDS),
 				config.getSslContext(), config.getEventReporter(), config.getPeerPersistenceFile());
@@ -88,11 +89,16 @@ public class SocketClient implements SiteToSiteClient {
 	}
 	
 	
-	private RemoteDestination createRemoteDestination(final String portId) {
+	private RemoteDestination createRemoteDestination(final String portId, final String portName) {
 	    return new RemoteDestination() {
             @Override
             public String getIdentifier() {
                 return portId;
+            }
+            
+            @Override
+            public String getName() {
+                return portName;
             }
 
             @Override

@@ -36,7 +36,7 @@ import org.junit.Test;
 public class TestSiteToSiteClient {
 
     @Test
-    @Ignore("For local testing only; not really a unit test but a manual test")
+    //@Ignore("For local testing only; not really a unit test but a manual test")
     public void testReceive() throws IOException {
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.remote", "DEBUG");
         
@@ -58,7 +58,6 @@ public class TestSiteToSiteClient {
             final byte[] buff = new byte[(int) size];
             
             StreamUtils.fillBuffer(in, buff);
-            System.out.println(buff.length);
             
             Assert.assertNull(transaction.receive());
             
@@ -71,7 +70,7 @@ public class TestSiteToSiteClient {
     
     
     @Test
-    @Ignore("For local testing only; not really a unit test but a manual test")
+    //@Ignore("For local testing only; not really a unit test but a manual test")
     public void testSend() throws IOException {
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.remote", "DEBUG");
         
@@ -84,12 +83,12 @@ public class TestSiteToSiteClient {
             final Transaction transaction = client.createTransaction(TransferDirection.SEND);
             Assert.assertNotNull(transaction);
             
-                final Map<String, String> attrs = new HashMap<>();
-                attrs.put("site-to-site", "yes, please!");
-                final byte[] bytes = "Hello".getBytes();
-                final ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
-                final DataPacket packet = new StandardDataPacket(attrs, bais, bytes.length);
-                transaction.send(packet);
+            final Map<String, String> attrs = new HashMap<>();
+            attrs.put("site-to-site", "yes, please!");
+            final byte[] bytes = "Hello".getBytes();
+            final ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
+            final DataPacket packet = new StandardDataPacket(attrs, bais, bytes.length);
+            transaction.send(packet);
             
             transaction.confirm();
             transaction.complete();

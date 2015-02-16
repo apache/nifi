@@ -79,8 +79,8 @@ import org.apache.nifi.remote.io.socket.ssl.SSLSocketChannel;
 import org.apache.nifi.remote.io.socket.ssl.SSLSocketChannelCommunicationsSession;
 import org.apache.nifi.remote.protocol.CommunicationsSession;
 import org.apache.nifi.remote.protocol.socket.SocketClientProtocol;
+import org.apache.nifi.remote.util.NiFiRestApiUtil;
 import org.apache.nifi.remote.util.PeerStatusCache;
-import org.apache.nifi.remote.util.RemoteNiFiUtils;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.apache.nifi.web.api.dto.ControllerDTO;
@@ -201,6 +201,17 @@ public class EndpointConnectionPool {
     	}, 5, 5, TimeUnit.SECONDS);
     }
     
+    private String getPortIdentifier(final TransferDirection transferDirection) throws IOException {
+        if ( remoteDestination.getIdentifier() != null ) {
+            return remoteDestination.getIdentifier();
+        }
+        
+        if ( transferDirection == TransferDirection.RECEIVE ) {
+            return getOutputPortIdentifier(remoteDestination.getName());
+        } else {
+            return getInputPortIdentifier(remoteDestination.getName());
+        }
+    }
     
     public EndpointConnection getEndpointConnection(final TransferDirection direction) throws IOException, HandshakeException, PortNotRunningException, UnknownPortException, ProtocolException {
         return getEndpointConnection(direction, null);
@@ -222,14 +233,15 @@ public class EndpointConnectionPool {
             do {
                 connection = connectionQueue.poll();
                 logger.debug("{} Connection State for {} = {}", this, clusterUrl, connection);
+                final String portId = getPortIdentifier(direction);
                 
                 if ( connection == null && !addBack.isEmpty() ) {
                     // all available connections have been penalized.
-                    logger.debug("{} all Connections for {} are penalized; returning no Connection", this, remoteDestination.getIdentifier());
+                    logger.debug("{} all Connections for {} are penalized; returning no Connection", this, portId);
                     return null;
                 }
                 
-                if ( connection != null && connection.getPeer().isPenalized(remoteDestination.getIdentifier()) ) {
+                if ( connection != null && connection.getPeer().isPenalized(portId) ) {
                     // we have a connection, but it's penalized. We want to add it back to the queue
                     // when we've found one to use.
                     addBack.add(connection);
@@ -238,9 +250,9 @@ public class EndpointConnectionPool {
                 
                 // if we can't get an existing Connection, create one
                 if ( connection == null ) {
-                    logger.debug("{} No Connection available for Port {}; creating new Connection", this, remoteDestination.getIdentifier());
+                    logger.debug("{} No Connection available for Port {}; creating new Connection", this, portId);
                     protocol = new SocketClientProtocol();
-                    protocol.setDestination(remoteDestination);
+                    protocol.setDestination(new IdEnrichedRemoteDestination(remoteDestination, portId));
 
                     logger.debug("{} getting next peer status", this);
                     final PeerStatus peerStatus = getNextPeerStatus(direction);
@@ -249,11 +261,12 @@ public class EndpointConnectionPool {
                         return null;
                     }
 
+                    final long penalizationMillis = remoteDestination.getYieldPeriod(TimeUnit.MILLISECONDS);
                     try {
                         logger.debug("{} Establishing site-to-site connection with {}", this, peerStatus);
                         commsSession = establishSiteToSiteConnection(peerStatus);
                     } catch (final IOException ioe) {
-                        penalize(peerStatus, remoteDestination.getYieldPeriod(TimeUnit.MILLISECONDS));
+                        penalize(peerStatus, penalizationMillis);
                         throw ioe;
                     }
                     
@@ -289,17 +302,17 @@ public class EndpointConnectionPool {
                         // handle error cases
                         if ( protocol.isDestinationFull() ) {
                             logger.warn("{} {} indicates that port's destination is full; penalizing peer", this, peer);
-                            penalize(peer, remoteDestination.getYieldPeriod(TimeUnit.MILLISECONDS));
+                            penalize(peer, penalizationMillis);
                             connectionQueue.offer(connection);
                             continue;
                         } else if ( protocol.isPortInvalid() ) {
-                        	penalize(peer, remoteDestination.getYieldPeriod(TimeUnit.MILLISECONDS));
+                        	penalize(peer, penalizationMillis);
                         	cleanup(protocol, peer);
-                        	throw new PortNotRunningException(peer.toString() + " indicates that port " + remoteDestination.getIdentifier() + " is not running");
+                        	throw new PortNotRunningException(peer.toString() + " indicates that port " + portId + " is not running");
                         } else if ( protocol.isPortUnknown() ) {
-                        	penalize(peer, remoteDestination.getYieldPeriod(TimeUnit.MILLISECONDS));
+                        	penalize(peer, penalizationMillis);
                         	cleanup(protocol, peer);
-                        	throw new UnknownPortException(peer.toString() + " indicates that port " + remoteDestination.getIdentifier() + " is not known");
+                        	throw new UnknownPortException(peer.toString() + " indicates that port " + portId + " is not known");
                         }
                         
                         // negotiate the FlowFileCodec to use
@@ -309,7 +322,7 @@ public class EndpointConnectionPool {
                     } catch (final PortNotRunningException | UnknownPortException e) {
                     	throw e;
                     } catch (final Exception e) {
-                        penalize(peer, remoteDestination.getYieldPeriod(TimeUnit.MILLISECONDS));
+                        penalize(peer, penalizationMillis);
                         cleanup(protocol, peer);
                         
                         final String message = String.format("%s failed to communicate with %s due to %s", this, peer == null ? clusterUrl : peer, e.toString());
@@ -539,7 +552,16 @@ public class EndpointConnectionPool {
 
         clientProtocol.setTimeout(commsTimeout);
         if (clientProtocol.getVersionNegotiator().getVersion() < 5) {
-            clientProtocol.handshake(peer, remoteDestination.getIdentifier());
+            String portId = getPortIdentifier(TransferDirection.RECEIVE);
+            if ( portId == null ) {
+                portId = getPortIdentifier(TransferDirection.SEND);
+            }
+            
+            if ( portId == null ) {
+                peer.close();
+                throw new IOException("Failed to determine the identifier of port " + remoteDestination.getName());
+            }
+            clientProtocol.handshake(peer, portId);
         } else {
             clientProtocol.handshake(peer, null);
         }
@@ -818,8 +840,8 @@ public class EndpointConnectionPool {
     
     private ControllerDTO refreshRemoteInfo() throws IOException {
     	final boolean webInterfaceSecure = clusterUrl.toString().startsWith("https");
-        final RemoteNiFiUtils utils = new RemoteNiFiUtils(webInterfaceSecure ? sslContext : null);
-		final ControllerDTO controller = utils.getController(URI.create(apiUri + "/controller"), commsTimeout);
+        final NiFiRestApiUtil utils = new NiFiRestApiUtil(webInterfaceSecure ? sslContext : null);
+		final ControllerDTO controller = utils.getController(apiUri + "/controller", commsTimeout);
         
         remoteInfoWriteLock.lock();
         try {
@@ -897,5 +919,36 @@ public class EndpointConnectionPool {
         }
         
         return isSecure;
+    }
+    
+    
+    private class IdEnrichedRemoteDestination implements RemoteDestination {
+        private final RemoteDestination original;
+        private final String identifier;
+        
+        public IdEnrichedRemoteDestination(final RemoteDestination original, final String identifier) {
+            this.original = original;
+            this.identifier = identifier;
+        }
+
+        @Override
+        public String getIdentifier() {
+            return identifier;
+        }
+
+        @Override
+        public String getName() {
+            return original.getName();
+        }
+
+        @Override
+        public long getYieldPeriod(final TimeUnit timeUnit) {
+            return original.getYieldPeriod(timeUnit);
+        }
+
+        @Override
+        public boolean isUseCompression() {
+            return original.isUseCompression();
+        }
     }
 }

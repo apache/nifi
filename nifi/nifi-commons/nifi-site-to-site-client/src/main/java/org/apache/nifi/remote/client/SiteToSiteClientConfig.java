@@ -17,6 +17,7 @@
 package org.apache.nifi.remote.client;
 
 import java.io.File;
+import java.io.Serializable;
 import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLContext;
@@ -24,7 +25,7 @@ import javax.net.ssl.SSLContext;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.remote.protocol.DataPacket;
 
-public interface SiteToSiteClientConfig {
+public interface SiteToSiteClientConfig extends Serializable {
 
 	/**
 	 * Returns the configured URL for the remote NiFi instance
