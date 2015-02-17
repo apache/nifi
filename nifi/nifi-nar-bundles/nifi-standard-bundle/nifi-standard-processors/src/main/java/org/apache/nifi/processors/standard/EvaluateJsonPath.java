@@ -16,12 +16,9 @@
  */
 package org.apache.nifi.processors.standard;
 
-import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
-import com.jayway.jsonpath.spi.json.JsonProvider;
-import net.minidev.json.JSONValue;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -34,17 +31,12 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ProcessorLog;
 import org.apache.nifi.processor.*;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
-import org.apache.nifi.processors.standard.util.JsonPathUtils;
-import org.apache.nifi.stream.io.BufferedInputStream;
+import org.apache.nifi.processors.standard.util.JsonUtils;
 import org.apache.nifi.stream.io.BufferedOutputStream;
-import org.apache.nifi.util.BooleanHolder;
 import org.apache.nifi.util.ObjectHolder;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -94,8 +86,6 @@ public class EvaluateJsonPath extends AbstractProcessor {
 
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> properties;
-
-    private static final JsonProvider JSON_PROVIDER = Configuration.defaultConfiguration().jsonProvider();
 
 
     @Override
@@ -150,7 +140,7 @@ public class EvaluateJsonPath extends AbstractProcessor {
         return new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
                 .expressionLanguageSupported(false)
-                .addValidator(JsonPathUtils.JSON_PATH_VALIDATOR)
+                .addValidator(JsonUtils.JSON_PATH_VALIDATOR)
                 .required(false)
                 .dynamic(true)
                 .build();
@@ -182,41 +172,14 @@ public class EvaluateJsonPath extends AbstractProcessor {
 
         flowFileLoop:
         for (FlowFile flowFile : flowFiles) {
-            // Validate the JSON document before attempting processing
-            final BooleanHolder validJsonHolder = new BooleanHolder(false);
-            processSession.read(flowFile, new InputStreamCallback() {
-                @Override
-                public void process(InputStream in) throws IOException {
-                    try (InputStreamReader inputStreamReader = new InputStreamReader(in)) {
-                        /*
-                         * JSONValue#isValidJson is permissive to the degree of the Smart JSON definition.
-                         * Accordingly, a strict JSON approach is preferred in determining whether or not a document is valid.
-                         */
-                        boolean validJson = JSONValue.isValidJsonStrict(inputStreamReader);
-                        validJsonHolder.set(validJson);
-                    }
-                }
-            });
 
-            if (!validJsonHolder.get()) {
-                logger.error("FlowFile {} did not have valid JSON content.", new Object[]{flowFile.getId()});
+            final DocumentContext documentContext = JsonUtils.validateAndEstablishJsonContext(processSession, flowFile);
+
+            if (documentContext == null) {
+                logger.error("FlowFile {} did not have valid JSON content.", new Object[]{flowFile});
                 processSession.transfer(flowFile, REL_FAILURE);
                 continue flowFileLoop;
             }
-
-            // Parse the document once into an associated context to support multiple path evaluations if specified
-            final ObjectHolder<DocumentContext> contextHolder = new ObjectHolder<>(null);
-            processSession.read(flowFile, new InputStreamCallback() {
-                @Override
-                public void process(InputStream in) throws IOException {
-                    try (BufferedInputStream bufferedInputStream = new BufferedInputStream(in)) {
-                        DocumentContext ctx = JsonPath.parse(in);
-                        contextHolder.set(ctx);
-                    }
-                }
-            });
-
-            final DocumentContext documentContext = contextHolder.get();
 
             final Map<String, String> jsonPathResults = new HashMap<>();
 
@@ -225,7 +188,6 @@ public class EvaluateJsonPath extends AbstractProcessor {
 
                 String jsonPathAttrKey = attributeJsonPathEntry.getKey();
                 JsonPath jsonPathExp = attributeJsonPathEntry.getValue();
-
 
                 final ObjectHolder<Object> resultHolder = new ObjectHolder<>(null);
                 try {
@@ -274,7 +236,7 @@ public class EvaluateJsonPath extends AbstractProcessor {
         if (isScalar(jsonPathResult)) {
             return jsonPathResult.toString();
         }
-        return JSON_PROVIDER.toJson(jsonPathResult);
+        return JsonUtils.JSON_PROVIDER.toJson(jsonPathResult);
     }
 
     private static boolean isScalar(Object obj) {
