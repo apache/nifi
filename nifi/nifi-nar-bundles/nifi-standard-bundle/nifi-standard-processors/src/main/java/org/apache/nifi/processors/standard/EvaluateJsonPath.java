@@ -16,7 +16,10 @@
  */
 package org.apache.nifi.processors.standard;
 
-import com.jayway.jsonpath.*;
+import com.jayway.jsonpath.Configuration;
+import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.PathNotFoundException;
 import com.jayway.jsonpath.spi.json.JsonProvider;
 import net.minidev.json.JSONValue;
 import org.apache.nifi.annotation.behavior.EventDriven;
@@ -27,13 +30,13 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.Validator;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ProcessorLog;
 import org.apache.nifi.processor.*;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
+import org.apache.nifi.processors.standard.util.JsonPathUtils;
 import org.apache.nifi.stream.io.BufferedInputStream;
 import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.apache.nifi.util.BooleanHolder;
@@ -147,7 +150,7 @@ public class EvaluateJsonPath extends AbstractProcessor {
         return new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
                 .expressionLanguageSupported(false)
-                .addValidator(new JsonPathValidator())
+                .addValidator(JsonPathUtils.JSON_PATH_VALIDATOR)
                 .required(false)
                 .dynamic(true)
                 .build();
@@ -278,17 +281,5 @@ public class EvaluateJsonPath extends AbstractProcessor {
         return (obj instanceof String);
     }
 
-    private static class JsonPathValidator implements Validator {
-        @Override
-        public ValidationResult validate(String subject, String input, ValidationContext context) {
-            String error = null;
-            try {
-                JsonPath compile = JsonPath.compile(input);
-            } catch (InvalidPathException ipe) {
-                error = ipe.toString();
-            }
-            return new ValidationResult.Builder().valid(error == null).explanation(error).build();
-        }
-    }
 
 }
