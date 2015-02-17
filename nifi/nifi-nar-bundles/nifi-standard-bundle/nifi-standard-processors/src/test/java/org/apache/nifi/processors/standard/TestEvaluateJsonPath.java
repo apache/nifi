@@ -180,7 +180,7 @@ public class TestEvaluateJsonPath {
 
 
     @Test
-    public void testExtractPath_destinationAttribute_indefiniteResult() throws Exception {
+    public void testExtractPath_destinationContent_indefiniteResult() throws Exception {
         String jsonPathAttrKey = "friends.indefinite.id.list";
 
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateJsonPath());
@@ -197,7 +197,7 @@ public class TestEvaluateJsonPath {
     }
 
     @Test
-    public void testExtractPath_destinationAttribute_indefiniteResult_operators() throws Exception {
+    public void testExtractPath_destinationContent_indefiniteResult_operators() throws Exception {
         String jsonPathAttrKey = "friends.indefinite.id.list";
 
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateJsonPath());
@@ -212,4 +212,20 @@ public class TestEvaluateJsonPath {
         testRunner.assertAllFlowFilesTransferred(expectedRel, 1);
         testRunner.getFlowFilesForRelationship(expectedRel).get(0).assertContentEquals("[0,1,2]");
     }
+
+    @Test
+    public void testRouteUnmatched_destinationContent_noMatch() throws Exception {
+        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateJsonPath());
+        testRunner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_CONTENT);
+        testRunner.setProperty("jsonPath", "$[0].nonexistent.key");
+
+        testRunner.enqueue(JSON_SNIPPET);
+        testRunner.run();
+
+        Relationship expectedRel = EvaluateJsonPath.REL_NO_MATCH;
+
+        testRunner.assertAllFlowFilesTransferred(expectedRel, 1);
+        testRunner.getFlowFilesForRelationship(expectedRel).get(0).assertContentEquals(JSON_SNIPPET);
+    }
+
 }
