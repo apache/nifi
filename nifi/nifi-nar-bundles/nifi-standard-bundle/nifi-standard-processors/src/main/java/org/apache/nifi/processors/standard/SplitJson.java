@@ -41,7 +41,7 @@ import java.util.*;
 @SupportsBatching
 @Tags({"json", "split", "jsonpath"})
 @CapabilityDescription("Splits a JSON File into multiple, separate FlowFiles for an array element specified by a JsonPath expression. "
-        + "Each generated FlowFile is comprised of an element of the specified array and transferred to relationship 'split, "
+        + "Each generated FlowFile is comprised of an element of the specified array and transferred to relationship 'split,' "
         + "with the original file transferred to the 'original' relationship. If the specified JsonPath is not found or "
         + "does not evaluate to an array element, the original file is routed to 'failure' and no files are generated.")
 public class SplitJson extends AbstractProcessor {
