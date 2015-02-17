@@ -84,7 +84,7 @@ import org.xml.sax.InputSource;
 @CapabilityDescription("Evaluates one or more XPaths against the content of a FlowFile. The results of those XPaths are assigned to "
         + "FlowFile Attributes or are written to the content of the FlowFile itself, depending on configuration of the "
         + "Processor. XPaths are entered by adding user-defined properties; the name of the property maps to the Attribute "
-        + "Name into which the result will be placed (if the Destination is flowfile-content; otherwise, the property name is ignored). "
+        + "Name into which the result will be placed (if the Destination is flowfile-attribute; otherwise, the property name is ignored). "
         + "The value of the property must be a valid XPath expression. If the XPath evaluates to more than one node and the Return Type is "
         + "set to 'nodeset' (either directly, or via 'auto-detect' with a Destination of "
         + "'flowfile-content', the FlowFile will be unmodified and will be routed to failure. If the XPath does not "
