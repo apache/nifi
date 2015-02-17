@@ -21,6 +21,5 @@
         <version>0.0.2-incubating-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-api</artifactId>
-    <version>0.0.2-incubating-SNAPSHOT</version>
     <packaging>jar</packaging>    
 </project>

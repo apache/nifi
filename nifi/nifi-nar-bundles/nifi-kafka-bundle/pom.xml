@@ -13,12 +13,12 @@
       See the License for the specific language governing permissions and
       limitations under the License.
     -->
+    <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
         <version>0.0.2-incubating-SNAPSHOT</version>
     </parent>
-    <modelVersion>4.0.0</modelVersion>
     <artifactId>nifi-kafka-bundle</artifactId>
     <packaging>pom</packaging>
     <modules>

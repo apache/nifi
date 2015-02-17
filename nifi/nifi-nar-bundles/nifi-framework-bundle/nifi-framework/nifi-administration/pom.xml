@@ -21,7 +21,6 @@
         <version>0.0.2-incubating-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-administration</artifactId>
-    <version>0.0.2-incubating-SNAPSHOT</version>
     <build>
         <resources>
             <resource>

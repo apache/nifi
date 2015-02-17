@@ -20,10 +20,8 @@
         <version>0.0.2-incubating-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-jetty-bundle</artifactId>
-    <version>0.0.2-incubating-SNAPSHOT</version>
     <packaging>nar</packaging>
     <description>NiFi: Jetty Bundle</description>
-
     <dependencies>
         <dependency>
             <groupId>org.eclipse.jetty</groupId>

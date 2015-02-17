@@ -20,7 +20,6 @@
         <version>0.0.2-incubating-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-ssl-context-bundle</artifactId>
-    <version>0.0.2-incubating-SNAPSHOT</version>
     <packaging>pom</packaging>
     <modules>
         <module>nifi-ssl-context-service</module>

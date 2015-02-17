@@ -21,7 +21,6 @@
     </parent>
     <artifactId>nifi-hadoop-libraries-nar</artifactId>
     <packaging>nar</packaging>
-    <version>0.0.2-incubating-SNAPSHOT</version>
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
