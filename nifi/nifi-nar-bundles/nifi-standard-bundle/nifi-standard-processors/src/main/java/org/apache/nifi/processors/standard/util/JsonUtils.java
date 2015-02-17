@@ -104,13 +104,9 @@ public class JsonUtils {
      * @throws IOException
      */
     public static boolean isValidJson(InputStream inputStream) throws IOException {
-        boolean isValid = false;
-
         try (InputStreamReader inputStreamReader = new InputStreamReader(inputStream)) {
-            isValid = JSONValue.isValidJsonStrict(inputStreamReader);
+            return JSONValue.isValidJsonStrict(inputStreamReader);
         }
-
-        return isValid;
     }
 
     /**
