@@ -148,14 +148,8 @@ nf.CanvasToolbar = (function () {
                     actions['fill'].disable();
                 }
                 
-                // determine if there are any selected components that support enable/disable
-                var supportsEnable = selection.filter(function(d) {
-                    var selected = d3.select(this);
-                    return nf.CanvasUtils.isProcessor(selected) || nf.CanvasUtils.isInputPort(selected) || nf.CanvasUtils.isOutputPort(selected);
-                });
-                
                 // ensure the entire selection supports enable/disable
-                if (!supportsEnable.empty() && supportsEnable.size() === selection.size()) {
+                if (!selection.empty()) {
                     actions['enable'].enable();
                     actions['disable'].enable();
                 } else {

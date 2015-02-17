@@ -349,7 +349,12 @@ nf.Actions = (function () {
         enable: function () {
             var components = d3.selectAll('g.component.selected').filter(function (d) {
                 var selected = d3.select(this);
-                return (nf.CanvasUtils.isProcessor(selected) || nf.CanvasUtils.isInputPort(selected) || nf.CanvasUtils.isOutputPort(selected)) && nf.CanvasUtils.supportsModification(selected);
+                var selectedData = selected.datum();
+                
+                // processors and ports that support modification and are not currently stopped
+                return (nf.CanvasUtils.isProcessor(selected) || nf.CanvasUtils.isInputPort(selected) || nf.CanvasUtils.isOutputPort(selected)) && 
+                        nf.CanvasUtils.supportsModification(selected) &&
+                        selectedData.component.state !== 'STOPPED';
             });
             if (components.empty()) {
                 nf.Dialog.showOkDialog({
@@ -379,7 +384,12 @@ nf.Actions = (function () {
         disable: function () {
             var components = d3.selectAll('g.component.selected').filter(function (d) {
                 var selected = d3.select(this);
-                return (nf.CanvasUtils.isProcessor(selected) || nf.CanvasUtils.isInputPort(selected) || nf.CanvasUtils.isOutputPort(selected)) && nf.CanvasUtils.supportsModification(selected);
+                var selectedData = selected.datum();
+                
+                // processors and ports that support modification and are not currently disabled
+                return (nf.CanvasUtils.isProcessor(selected) || nf.CanvasUtils.isInputPort(selected) || nf.CanvasUtils.isOutputPort(selected)) && 
+                        nf.CanvasUtils.supportsModification(selected) &&
+                        selectedData.component.state !== 'DISABLED';
             });
             if (components.empty()) {
                 nf.Dialog.showOkDialog({
@@ -435,7 +445,6 @@ nf.Actions = (function () {
                             data['running'] = true;
                         }
 
-                        // update the resource
                         updateResource(d.component.uri, data).done(function (response) {
                             if (nf.CanvasUtils.isProcessor(selected)) {
                                 nf.Processor.set(response.processor);
