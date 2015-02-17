@@ -89,11 +89,6 @@ public class JsonUtils {
         return contextHolder.get();
     }
 
-    /*
-     * JSONValue#isValidJson is permissive to the degree of the Smart JSON definition.
-     * Accordingly, a strict JSON approach is preferred in determining whether or not a document is valid.
-     */
-
     /**
      * JSONValue#isValidJson is permissive to the degree of the Smart JSON definition, accordingly a strict JSON approach
      * is preferred in determining whether or not a document is valid.
