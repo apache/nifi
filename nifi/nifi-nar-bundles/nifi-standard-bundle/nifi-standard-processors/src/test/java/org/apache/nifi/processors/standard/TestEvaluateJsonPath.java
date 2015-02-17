@@ -100,6 +100,7 @@ public class TestEvaluateJsonPath {
     public void testExtractPath_destinationAttributes_twoPaths() throws Exception {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateJsonPath());
         testRunner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_ATTRIBUTE);
+        testRunner.setProperty(EvaluateJsonPath.RETURN_TYPE, EvaluateJsonPath.RETURN_TYPE_JSON);
 
         String jsonPathIdAttrKey = "evaluatejson.id";
         String jsonPathNameAttrKey = "evaluatejson.name";

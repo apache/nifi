@@ -61,6 +61,7 @@ public class EvaluateJsonPath extends AbstractProcessor {
     public static final String DESTINATION_ATTRIBUTE = "flowfile-attribute";
     public static final String DESTINATION_CONTENT = "flowfile-content";
 
+    public static final String RETURN_TYPE_AUTO = "auto-detect";
     public static final String RETURN_TYPE_JSON = "json";
     public static final String RETURN_TYPE_SCALAR = "scalar";
 
@@ -76,8 +77,8 @@ public class EvaluateJsonPath extends AbstractProcessor {
             .name("Return Type")
             .description("Indicates the desired return type of the JSON Path expressions.  Selecting 'auto-detect' will set the return type to 'json' for a Destination of 'flowfile-content', and 'string' for a Destination of 'flowfile-attribute'.")
             .required(true)
-            .allowableValues(RETURN_TYPE_JSON, RETURN_TYPE_SCALAR)
-            .defaultValue(RETURN_TYPE_JSON)
+            .allowableValues(RETURN_TYPE_AUTO, RETURN_TYPE_JSON, RETURN_TYPE_SCALAR)
+            .defaultValue(RETURN_TYPE_AUTO)
             .build();
 
     public static final Relationship REL_MATCH = new Relationship.Builder().name("matched").description("FlowFiles are routed to this relationship when the JsonPath is successfully evaluated and the FlowFile is modified as a result").build();
@@ -168,7 +169,10 @@ public class EvaluateJsonPath extends AbstractProcessor {
         }
 
         final String destination = processContext.getProperty(DESTINATION).getValue();
-        final String returnType = processContext.getProperty(RETURN_TYPE).getValue();
+        String returnType = processContext.getProperty(RETURN_TYPE).getValue();
+        if (returnType.equals(RETURN_TYPE_AUTO)) {
+            returnType = destination.equals(DESTINATION_CONTENT) ? RETURN_TYPE_JSON : RETURN_TYPE_SCALAR;
+        }
 
         flowFileLoop:
         for (FlowFile flowFile : flowFiles) {
