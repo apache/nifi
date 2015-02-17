@@ -179,12 +179,7 @@ nf.ContextMenu = (function () {
      * @param {selection} selection          The selection
      */
     var isColorable = function (selection) {
-        // ensure the correct number of components are selected
-        if (selection.size() !== 1) {
-            return false;
-        }
-
-        return nf.Common.isDFM() && (nf.CanvasUtils.isProcessor(selection) || nf.CanvasUtils.isLabel(selection));
+        return nf.Common.isDFM() && nf.CanvasUtils.isColorable(selection);
     };
 
     /**

@@ -843,17 +843,11 @@ nf.Actions = (function () {
          * @param {type} selection      The selection
          */
         fillColor: function (selection) {
-            var selectedProcessors = selection.filter(function(d) {
-                return nf.CanvasUtils.isProcessor(d3.select(this));
-            });
-            var selectedLabels = selection.filter(function(d) {
-                return nf.CanvasUtils.isLabel(d3.select(this));
-            });
-            
-            var allProcessors = selectedProcessors.size() === selection.size();
-            var allLabels = selectedLabels.size() === selection.size();
-            
-            if (allProcessors || allLabels) {
+            if (nf.CanvasUtils.isColorable(selection)) {
+                // we know that the entire selection is processors or labels... this
+                // checks if the first item is a processor... if true, all processors
+                var allProcessors = nf.CanvasUtils.isProcessor(selection);
+                
                 var color;
                 if (allProcessors) {
                     color = nf.Processor.defaultColor();
