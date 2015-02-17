@@ -141,6 +141,29 @@ public interface SiteToSiteClient extends Closeable {
 		private long batchNanos;
 
 		/**
+		 * Populates the builder with values from the provided config
+		 * @param config
+		 * @return
+		 */
+		public Builder fromConfig(final SiteToSiteClientConfig config) {
+		    this.url = config.getUrl();
+		    this.timeoutNanos = config.getTimeout(TimeUnit.NANOSECONDS);
+		    this.penalizationNanos = config.getPenalizationPeriod(TimeUnit.NANOSECONDS);
+		    this.idleExpirationNanos = config.getIdleConnectionExpiration(TimeUnit.NANOSECONDS);
+		    this.sslContext = config.getSslContext();
+		    this.eventReporter = config.getEventReporter();
+		    this.peerPersistenceFile = config.getPeerPersistenceFile();
+		    this.useCompression = config.isUseCompression();
+		    this.portName = config.getPortName();
+		    this.portIdentifier = config.getPortIdentifier();
+		    this.batchCount = config.getPreferredBatchCount();
+		    this.batchSize = config.getPreferredBatchSize();
+		    this.batchNanos = config.getPreferredBatchDuration(TimeUnit.NANOSECONDS);
+		    
+		    return this;
+		}
+		
+		/**
 		 * Specifies the URL of the remote NiFi instance. If this URL points to the Cluster Manager of
 		 * a NiFi cluster, data transfer to and from nodes will be automatically load balanced across
 		 * the different nodes.

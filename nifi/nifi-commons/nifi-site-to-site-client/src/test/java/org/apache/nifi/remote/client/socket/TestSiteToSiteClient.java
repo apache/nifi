@@ -36,7 +36,7 @@ import org.junit.Test;
 public class TestSiteToSiteClient {
 
     @Test
-    //@Ignore("For local testing only; not really a unit test but a manual test")
+    @Ignore("For local testing only; not really a unit test but a manual test")
     public void testReceive() throws IOException {
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.remote", "DEBUG");
         
