@@ -35,6 +35,8 @@ import org.apache.nifi.util.ObjectHolder;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Provides utilities for interacting with JSON elements and JsonPath expressions and results
@@ -101,4 +103,10 @@ public class JsonUtils {
 
         return isValid;
     }
+
+    public static boolean isJsonScalar(Object obj) {
+        // For the default provider, a Map or List is able to be handled as a JSON entity
+        return !(obj instanceof Map || obj instanceof List);
+    }
+
 }

@@ -192,7 +192,7 @@ public class EvaluateJsonPath extends AbstractProcessor {
                 final ObjectHolder<Object> resultHolder = new ObjectHolder<>(null);
                 try {
                     Object result = documentContext.read(jsonPathExp);
-                    if (returnType.equals(RETURN_TYPE_SCALAR) && !isScalar(result)) {
+                    if (returnType.equals(RETURN_TYPE_SCALAR) && !JsonUtils.isJsonScalar(result)) {
                         logger.error("Unable to return a scalar value for the expression {} for FlowFile {}. Evaluated value was {}. Transferring to {}.",
                                 new Object[]{jsonPathExp.getPath(), flowFile.getId(), result.toString(), REL_FAILURE.getName()});
                         processSession.transfer(flowFile, REL_FAILURE);
@@ -233,14 +233,10 @@ public class EvaluateJsonPath extends AbstractProcessor {
     }
 
     private static String getResultRepresentation(Object jsonPathResult) {
-        if (isScalar(jsonPathResult)) {
+        if (JsonUtils.isJsonScalar(jsonPathResult)) {
             return jsonPathResult.toString();
         }
         return JsonUtils.JSON_PROVIDER.toJson(jsonPathResult);
-    }
-
-    private static boolean isScalar(Object obj) {
-        return (obj instanceof String);
     }
 
 
