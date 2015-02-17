@@ -50,16 +50,17 @@ import java.util.*;
 @SideEffectFree
 @SupportsBatching
 @Tags({"JSON", "evaluate", "JsonPath"})
-@CapabilityDescription("Evaluates one or more JsonPath expressions against the content of a FlowFile. The results of those expressions are assigned to "
-        + "FlowFile Attributes or are written to the content of the FlowFile itself, depending on configuration of the "
-        + "Processor. JsonPaths are entered by adding user-defined properties; the name of the property maps to the Attribute "
-        + "Name into which the result will be placed (if the Destination is flowfile-attribute; otherwise, the property name is ignored). "
-        + "The value of the property must be a valid JsonPath expression. If the JsonPath evaluates to a JSON array or JSON object and the Return Type is "
-        + "set to 'scalar' the FlowFile will be unmodified and will be routed to failure. If the JsonPath does not "
-        + "evaluate to a scalar, the FlowFile will be routed to 'unmatched' without having its contents modified. If Destination is "
-        + "flowfile-attribute and the expression matches nothing, attributes will be created with empty strings as the value, and the "
-        + "FlowFile will always be routed to 'matched.'  If Destination is 'flowfile-content' and the expression matches nothing, "
-        + "the FlowFile will be routed to 'unmatched' without having its contents modified.")
+@CapabilityDescription("Evaluates one or more JsonPath expressions against the content of a FlowFile. "
+        + "The results of those expressions are assigned to FlowFile Attributes or are written to the content of the FlowFile itself, "
+        + "depending on configuration of the Processor. "
+        + "JsonPaths are entered by adding user-defined properties; the name of the property maps to the Attribute Name "
+        + "into which the result will be placed (if the Destination is flowfile-attribute; otherwise, the property name is ignored). "
+        + "The value of the property must be a valid JsonPath expression. "
+        + "If the JsonPath evaluates to a JSON array or JSON object and the Return Type is set to 'scalar' the FlowFile will be unmodified and will be routed to failure. "
+        + "A Return Type of JSON can return scalar values if the provided JsonPath evaluates to the specified value and will be routed as a match."
+        + "If Destination is 'flowfile-content' and the JsonPath does not evaluate to a defined path, the FlowFile will be routed to 'unmatched' without having its contents modified. "
+        + "If Destination is flowfile-attribute and the expression matches nothing, attributes will be created with "
+        + "empty strings as the value, and the FlowFile will always be routed to 'matched.'")
 public class EvaluateJsonPath extends AbstractProcessor {
 
     public static final String DESTINATION_ATTRIBUTE = "flowfile-attribute";
@@ -174,6 +175,7 @@ public class EvaluateJsonPath extends AbstractProcessor {
         }
 
         final String destination = processContext.getProperty(DESTINATION).getValue();
+        final String returnType = processContext.getProperty(RETURN_TYPE).getValue();
 
         flowFileLoop:
         for (FlowFile flowFile : flowFiles) {
@@ -215,7 +217,6 @@ public class EvaluateJsonPath extends AbstractProcessor {
 
             final Map<String, String> jsonPathResults = new HashMap<>();
 
-            // Iterate through all JsonPath entries specified
             jsonPathEvalLoop:
             for (final Map.Entry<String, JsonPath> attributeJsonPathEntry : attributeToJsonPathMap.entrySet()) {
 
@@ -226,8 +227,9 @@ public class EvaluateJsonPath extends AbstractProcessor {
                 final ObjectHolder<Object> resultHolder = new ObjectHolder<>(null);
                 try {
                     Object result = documentContext.read(jsonPathExp);
-                    if (RETURN_TYPE.getName().equals(RETURN_TYPE_SCALAR) && !isScalar(result)) {
-                        logger.error("Unable to return a scalar value for a JsonPath {} for FlowFile {}. Transferring to {}.", new Object[]{flowFile.getId(), jsonPathExp.getPath(), REL_FAILURE.getName()});
+                    if (returnType.equals(RETURN_TYPE_SCALAR) && !isScalar(result)) {
+                        logger.error("Unable to return a scalar value for the expression {} for FlowFile {}. Evaluated value was {}. Transferring to {}.",
+                                new Object[]{jsonPathExp.getPath(), flowFile.getId(), result.toString(), REL_FAILURE.getName()});
                         processSession.transfer(flowFile, REL_FAILURE);
                         continue flowFileLoop;
                     }
@@ -273,9 +275,6 @@ public class EvaluateJsonPath extends AbstractProcessor {
     }
 
     private static boolean isScalar(Object obj) {
-        /*
-         *  A given path could be a JSON object or a single/scalar value
-         */
         return (obj instanceof String);
     }
 

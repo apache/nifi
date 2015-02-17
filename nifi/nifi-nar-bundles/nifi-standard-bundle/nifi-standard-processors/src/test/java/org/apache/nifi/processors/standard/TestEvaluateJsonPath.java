@@ -228,4 +228,23 @@ public class TestEvaluateJsonPath {
         testRunner.getFlowFilesForRelationship(expectedRel).get(0).assertContentEquals(JSON_SNIPPET);
     }
 
+
+    @Test
+    public void testRouteFailure_returnTypeScalar_resultArray() throws Exception {
+        String jsonPathAttrKey = "friends.indefinite.id.list";
+
+        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateJsonPath());
+        testRunner.setProperty(EvaluateJsonPath.RETURN_TYPE, EvaluateJsonPath.RETURN_TYPE_SCALAR);
+        testRunner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_CONTENT);
+        testRunner.setProperty(jsonPathAttrKey, "$[0].friends[?(@.id < 3)].id");
+
+        testRunner.enqueue(JSON_SNIPPET);
+        testRunner.run();
+
+        Relationship expectedRel = EvaluateJsonPath.REL_FAILURE;
+
+        testRunner.assertAllFlowFilesTransferred(expectedRel, 1);
+        testRunner.getFlowFilesForRelationship(expectedRel).get(0).assertContentEquals(JSON_SNIPPET);
+    }
+
 }
