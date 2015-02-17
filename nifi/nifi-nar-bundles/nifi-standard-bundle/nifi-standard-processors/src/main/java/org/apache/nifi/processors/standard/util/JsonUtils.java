@@ -89,14 +89,23 @@ public class JsonUtils {
         return contextHolder.get();
     }
 
+    /*
+     * JSONValue#isValidJson is permissive to the degree of the Smart JSON definition.
+     * Accordingly, a strict JSON approach is preferred in determining whether or not a document is valid.
+     */
 
+    /**
+     * JSONValue#isValidJson is permissive to the degree of the Smart JSON definition, accordingly a strict JSON approach
+     * is preferred in determining whether or not a document is valid.
+     * Performs a validation of the provided stream according to RFC 4627 as implemented by {@link net.minidev.json.parser.JSONParser#MODE_RFC4627}
+     *
+     * @param inputStream of content to be validated as JSON
+     * @return true, if the content is valid within the bounds of the strictness specified; false otherwise
+     * @throws IOException
+     */
     public static boolean isValidJson(InputStream inputStream) throws IOException {
         boolean isValid = false;
 
-        /*
-         * JSONValue#isValidJson is permissive to the degree of the Smart JSON definition.
-         * Accordingly, a strict JSON approach is preferred in determining whether or not a document is valid.
-         */
         try (InputStreamReader inputStreamReader = new InputStreamReader(inputStream)) {
             isValid = JSONValue.isValidJsonStrict(inputStreamReader);
         }
@@ -104,8 +113,15 @@ public class JsonUtils {
         return isValid;
     }
 
+    /**
+     * Determines the context by which JsonSmartJsonProvider would treat the value.  {@link java.util.Map} and
+     * {@link java.util.List} objects can be rendered as JSON elements, everything else is treated as a scalar.
+     *
+     * @param obj item to be inspected if it is a scalar or a JSON element
+     * @return false, if the object is a supported type; true otherwise
+     */
     public static boolean isJsonScalar(Object obj) {
-        // For the default provider, a Map or List is able to be handled as a JSON entity
+        // For the default provider, JsonSmartJsonProvider, a Map or List is able to be handled as a JSON entity
         return !(obj instanceof Map || obj instanceof List);
     }
 

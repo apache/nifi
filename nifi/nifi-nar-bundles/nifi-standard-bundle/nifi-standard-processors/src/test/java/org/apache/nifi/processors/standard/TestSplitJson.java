@@ -112,4 +112,15 @@ public class TestSplitJson {
         testRunner.getFlowFilesForRelationship(SplitJson.REL_SPLIT).get(0).assertContentEquals("{\"first\":\"Shaffer\",\"last\":\"Pearson\"}");
     }
 
+    @Test
+    public void testSplit_pathNotFound() throws Exception {
+        final TestRunner testRunner = TestRunners.newTestRunner(new SplitJson());
+        testRunner.setProperty(SplitJson.ARRAY_JSON_PATH_EXPRESSION, "$.nonexistent");
+
+        testRunner.enqueue(JSON_SNIPPET);
+        testRunner.run();
+
+        testRunner.assertTransferCount(SplitJson.REL_FAILURE, 1);
+        testRunner.getFlowFilesForRelationship(SplitJson.REL_FAILURE).get(0).assertContentEquals(JSON_SNIPPET);
+    }
 }

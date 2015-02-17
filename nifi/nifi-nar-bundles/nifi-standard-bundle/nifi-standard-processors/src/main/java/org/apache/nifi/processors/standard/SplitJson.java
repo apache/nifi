@@ -18,6 +18,7 @@ package org.apache.nifi.processors.standard;
 
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.PathNotFoundException;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -105,10 +106,17 @@ public class SplitJson extends AbstractProcessor {
 
         final List<FlowFile> segments = new ArrayList<>();
 
-        Object jsonPathResult = documentContext.read(jsonPath);
+        Object jsonPathResult;
+        try {
+            jsonPathResult = documentContext.read(jsonPath);
+        } catch (PathNotFoundException e) {
+            logger.warn("JsonPath {} could not be found for FlowFile {}", new Object[]{jsonPath.getPath(), original});
+            processSession.transfer(original, REL_FAILURE);
+            return;
+        }
 
         if (!(jsonPathResult instanceof List)) {
-            logger.error("The evaluated value {} of {} was not an array compatible type and cannot be split.",
+            logger.error("The evaluated value {} of {} was not a JSON Array compatible type and cannot be split.",
                     new Object[]{jsonPathResult, jsonPath.getPath()});
             processSession.transfer(original, REL_FAILURE);
             return;
