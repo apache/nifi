@@ -35,6 +35,7 @@ import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processors.standard.util.JsonUtils;
 import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.apache.nifi.util.ObjectHolder;
+import org.apache.nifi.util.StringUtils;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -206,7 +207,7 @@ public class EvaluateJsonPath extends AbstractProcessor {
                 } catch (PathNotFoundException e) {
                     logger.warn("FlowFile {} could not find path {} for attribute key {}.", new Object[]{flowFile.getId(), jsonPathExp.getPath(), jsonPathAttrKey}, e);
                     if (destination.equals(DESTINATION_ATTRIBUTE)) {
-                        jsonPathResults.put(jsonPathAttrKey, "");
+                        jsonPathResults.put(jsonPathAttrKey, StringUtils.EMPTY);
                         continue jsonPathEvalLoop;
                     } else {
                         processSession.transfer(flowFile, REL_NO_MATCH);
