@@ -1,0 +1,143 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.nifi.processors.standard;
+
+import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.PathNotFoundException;
+import org.apache.nifi.annotation.behavior.EventDriven;
+import org.apache.nifi.annotation.behavior.SideEffectFree;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.processor.*;
+import org.apache.nifi.processor.io.OutputStreamCallback;
+import org.apache.nifi.processors.standard.util.JsonUtils;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+
+@EventDriven
+@SideEffectFree
+@SupportsBatching
+@Tags({"json", "split", "jsonpath"})
+@CapabilityDescription("Splits a JSON File into multiple, separate FlowFiles for an array element specified by a JsonPath expression. "
+        + "Each generated FlowFile is comprised of an element of the specified array and transferred to relationship 'split,' "
+        + "with the original file transferred to the 'original' relationship. If the specified JsonPath is not found or "
+        + "does not evaluate to an array element, the original file is routed to 'failure' and no files are generated.")
+public class SplitJson extends AbstractProcessor {
+
+    public static final PropertyDescriptor ARRAY_JSON_PATH_EXPRESSION = new PropertyDescriptor.Builder()
+            .name("JsonPath Expression")
+            .description("A JsonPath expression that indicates the array element to split into JSON/scalar fragments.")
+            .required(true)
+            .addValidator(JsonUtils.JSON_PATH_VALIDATOR)
+            .build();
+
+    public static final Relationship REL_ORIGINAL = new Relationship.Builder().name("original").description("The original FlowFile that was split into segments. If the FlowFile fails processing, nothing will be sent to this relationship").build();
+    public static final Relationship REL_SPLIT = new Relationship.Builder().name("split").description("All segments of the original FlowFile will be routed to this relationship").build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure").description("If a FlowFile fails processing for any reason (for example, the FlowFile is not valid JSON or the specified path does not exist), it will be routed to this relationship").build();
+
+    private List<PropertyDescriptor> properties;
+    private Set<Relationship> relationships;
+
+    @Override
+    protected void init(final ProcessorInitializationContext context) {
+        final List<PropertyDescriptor> properties = new ArrayList<>();
+        properties.add(ARRAY_JSON_PATH_EXPRESSION);
+        this.properties = Collections.unmodifiableList(properties);
+
+        final Set<Relationship> relationships = new HashSet<>();
+        relationships.add(REL_ORIGINAL);
+        relationships.add(REL_SPLIT);
+        relationships.add(REL_FAILURE);
+        this.relationships = Collections.unmodifiableSet(relationships);
+    }
+
+    @Override
+    public Set<Relationship> getRelationships() {
+        return relationships;
+    }
+
+    @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return properties;
+    }
+
+    @Override
+    public void onTrigger(final ProcessContext processContext, final ProcessSession processSession) {
+        final FlowFile original = processSession.get();
+        if (original == null) {
+            return;
+        }
+
+        final ProcessorLog logger = getLogger();
+
+
+        final DocumentContext documentContext = JsonUtils.validateAndEstablishJsonContext(processSession, original);
+
+        if (documentContext == null) {
+            logger.error("FlowFile {} did not have valid JSON content.", new Object[]{original});
+            processSession.transfer(original, REL_FAILURE);
+            return;
+        }
+
+        final String jsonPathExpression = processContext.getProperty(ARRAY_JSON_PATH_EXPRESSION).getValue();
+        final JsonPath jsonPath = JsonPath.compile(jsonPathExpression);
+
+        final List<FlowFile> segments = new ArrayList<>();
+
+        Object jsonPathResult;
+        try {
+            jsonPathResult = documentContext.read(jsonPath);
+        } catch (PathNotFoundException e) {
+            logger.warn("JsonPath {} could not be found for FlowFile {}", new Object[]{jsonPath.getPath(), original});
+            processSession.transfer(original, REL_FAILURE);
+            return;
+        }
+
+        if (!(jsonPathResult instanceof List)) {
+            logger.error("The evaluated value {} of {} was not a JSON Array compatible type and cannot be split.",
+                    new Object[]{jsonPathResult, jsonPath.getPath()});
+            processSession.transfer(original, REL_FAILURE);
+            return;
+        }
+
+        List resultList = (List) jsonPathResult;
+
+        for (final Object resultSegment : resultList) {
+            FlowFile split = processSession.create(original);
+            split = processSession.write(split, new OutputStreamCallback() {
+                @Override
+                public void process(OutputStream out) throws IOException {
+                    String resultSegmentContent = JsonUtils.getResultRepresentation(resultSegment);
+                    out.write(resultSegmentContent.getBytes(StandardCharsets.UTF_8));
+                }
+            });
+            segments.add(split);
+        }
+
+        processSession.transfer(segments, REL_SPLIT);
+        processSession.transfer(original, REL_ORIGINAL);
+        logger.info("Split {} into {} FlowFiles", new Object[]{original, segments.size()});
+    }
+}

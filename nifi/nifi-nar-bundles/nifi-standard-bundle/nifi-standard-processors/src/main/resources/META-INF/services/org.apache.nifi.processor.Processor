@@ -19,6 +19,7 @@ org.apache.nifi.processors.standard.ConvertCharacterSet
 org.apache.nifi.processors.standard.DetectDuplicate
 org.apache.nifi.processors.standard.DistributeLoad
 org.apache.nifi.processors.standard.EncryptContent
+org.apache.nifi.processors.standard.EvaluateJsonPath
 org.apache.nifi.processors.standard.EvaluateRegularExpression
 org.apache.nifi.processors.standard.EvaluateXPath
 org.apache.nifi.processors.standard.EvaluateXQuery
@@ -54,6 +55,7 @@ org.apache.nifi.processors.standard.ScanAttribute
 org.apache.nifi.processors.standard.ScanContent
 org.apache.nifi.processors.standard.SegmentContent
 org.apache.nifi.processors.standard.SplitContent
+org.apache.nifi.processors.standard.SplitJson
 org.apache.nifi.processors.standard.SplitText
 org.apache.nifi.processors.standard.SplitXml
 org.apache.nifi.processors.standard.TransformXml
