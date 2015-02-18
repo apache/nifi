@@ -215,7 +215,7 @@ public class EvaluateJsonPath extends AbstractProcessor {
                     }
                 }
 
-                final String resultRepresentation = getResultRepresentation(resultHolder.get());
+                final String resultRepresentation = JsonUtils.getResultRepresentation(resultHolder.get());
                 switch (destination) {
                     case DESTINATION_ATTRIBUTE:
                         jsonPathResults.put(jsonPathAttrKey, resultRepresentation);
@@ -236,13 +236,5 @@ public class EvaluateJsonPath extends AbstractProcessor {
             processSession.transfer(flowFile, REL_MATCH);
         }
     }
-
-    private static String getResultRepresentation(Object jsonPathResult) {
-        if (JsonUtils.isJsonScalar(jsonPathResult)) {
-            return jsonPathResult.toString();
-        }
-        return JsonUtils.JSON_PROVIDER.toJson(jsonPathResult);
-    }
-
 
 }

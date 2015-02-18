@@ -129,12 +129,7 @@ public class SplitJson extends AbstractProcessor {
             split = processSession.write(split, new OutputStreamCallback() {
                 @Override
                 public void process(OutputStream out) throws IOException {
-                    String resultSegmentContent;
-                    if (JsonUtils.isJsonScalar(resultSegment)) {
-                        resultSegmentContent = resultSegment.toString();
-                    } else {
-                        resultSegmentContent = JsonUtils.JSON_PROVIDER.toJson(resultSegment);
-                    }
+                    String resultSegmentContent = JsonUtils.getResultRepresentation(resultSegment);
                     out.write(resultSegmentContent.getBytes(StandardCharsets.UTF_8));
                 }
             });

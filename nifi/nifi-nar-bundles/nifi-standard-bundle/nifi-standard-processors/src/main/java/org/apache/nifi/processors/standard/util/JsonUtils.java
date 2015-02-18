@@ -46,7 +46,7 @@ import java.util.Map;
  */
 public class JsonUtils {
 
-    public static final JsonProvider JSON_PROVIDER = Configuration.defaultConfiguration().jsonProvider();
+    static final JsonProvider JSON_PROVIDER = Configuration.defaultConfiguration().jsonProvider();
 
     public static final Validator JSON_PATH_VALIDATOR = new Validator() {
         @Override
@@ -114,6 +114,14 @@ public class JsonUtils {
     public static boolean isJsonScalar(Object obj) {
         // For the default provider, JsonSmartJsonProvider, a Map or List is able to be handled as a JSON entity
         return !(obj instanceof Map || obj instanceof List);
+    }
+
+
+    public static String getResultRepresentation(Object jsonPathResult) {
+        if (JsonUtils.isJsonScalar(jsonPathResult)) {
+            return jsonPathResult.toString();
+        }
+        return JSON_PROVIDER.toJson(jsonPathResult);
     }
 
 }
