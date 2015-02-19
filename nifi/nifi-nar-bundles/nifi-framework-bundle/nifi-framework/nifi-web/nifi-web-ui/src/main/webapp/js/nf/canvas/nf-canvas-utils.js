@@ -481,6 +481,10 @@ nf.CanvasUtils = (function () {
          * @returns {boolean}
          */
         isColorable: function(selection) {
+            if (selection.empty()) {
+                return false;
+            }
+            
             // determine if the current selection is entirely processors or labels
             var selectedProcessors = selection.filter(function(d) {
                 return nf.CanvasUtils.isProcessor(d3.select(this));
