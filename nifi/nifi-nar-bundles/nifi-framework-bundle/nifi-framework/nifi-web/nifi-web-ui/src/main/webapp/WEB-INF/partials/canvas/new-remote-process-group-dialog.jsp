@@ -20,7 +20,7 @@
         <div class="setting">
             <div class="setting-name">URL</div>
             <div class="setting-field">
-                <input id="new-remote-process-group-uri" type="text"/>
+                <input id="new-remote-process-group-uri" type="text" placeholder="https://"/>
             </div>
         </div>
     </div>
