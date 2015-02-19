@@ -65,6 +65,7 @@
         <module>nifi-assembly</module>
         <module>nifi-docs</module>
         <module>nifi-maven-archetypes</module>
+		<module>nifi-external</module>
     </modules>
     <scm>
         <connection>scm:git:git://git.apache.org/incubator-nifi.git</connection>
