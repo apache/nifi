@@ -17,7 +17,7 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi</artifactId>
+        <artifactId>nifi-external</artifactId>
         <version>0.0.2-incubating-SNAPSHOT</version>
     </parent>
     <groupId>org.apache.nifi</groupId>
@@ -32,7 +32,6 @@
 		<dependency>
 			<groupId>org.apache.nifi</groupId>
 			<artifactId>nifi-site-to-site-client</artifactId>
-			<version>0.0.2-incubating-SNAPSHOT</version>
 		</dependency>
 	</dependencies>
 </project>
