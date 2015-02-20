@@ -20,9 +20,13 @@
         <div class="setting">
             <div class="setting-name">Color</div>
             <div class="setting-field">
+                <input type="text" id="fill-color" value="#FFFFFF"/>
+            </div>
+            <div class="setting-name" style="margin-top: 10px;">Value</div>
+            <div class="setting-field">
                 <input type="text" id="fill-color-value" value="#FFFFFF"/>
             </div>
-            <div class="setting-name" style="margin-top: 5px;">Preview</div>
+            <div class="setting-name" style="margin-top: 10px;">Preview</div>
             <div class="setting-field">
                 <div id="fill-color-processor-preview">
                     <div id="fill-color-processor-preview-name">Processor</div>

@@ -475,6 +475,31 @@ nf.CanvasUtils = (function () {
         },
         
         /**
+         * Determines if the specified selection is colorable (in a single action).
+         * 
+         * @param {selection} selection     The selection
+         * @returns {boolean}
+         */
+        isColorable: function(selection) {
+            if (selection.empty()) {
+                return false;
+            }
+            
+            // determine if the current selection is entirely processors or labels
+            var selectedProcessors = selection.filter(function(d) {
+                return nf.CanvasUtils.isProcessor(d3.select(this));
+            });
+            var selectedLabels = selection.filter(function(d) {
+                return nf.CanvasUtils.isLabel(d3.select(this));
+            });
+
+            var allProcessors = selectedProcessors.size() === selection.size();
+            var allLabels = selectedLabels.size() === selection.size();
+            
+            return allProcessors || allLabels;
+        },
+        
+        /**
          * Determines if the specified selection is a connection.
          *
          * @argument {selection} selection      The selection

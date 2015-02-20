@@ -21,7 +21,6 @@
         <version>0.0.2-incubating-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-logging-utils</artifactId>
-    <version>0.0.2-incubating-SNAPSHOT</version>
     <description>Utilities for logging</description>
     <dependencies>
         <dependency>
