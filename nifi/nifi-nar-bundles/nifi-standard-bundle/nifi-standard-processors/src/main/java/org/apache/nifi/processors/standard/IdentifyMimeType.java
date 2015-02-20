@@ -42,6 +42,7 @@ import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.processor.io.InputStreamCallback;
+import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.FlowFilePackagerV1;
 import org.apache.nifi.util.FlowFilePackagerV3;
 import org.apache.nifi.util.ObjectHolder;
@@ -146,7 +147,7 @@ public class IdentifyMimeType extends AbstractProcessor {
                         mimetype = config.getMimeRepository().forName(mediatype.toString());
                         extensionRef.set(mimetype.getExtension());
                     } catch (MimeTypeException ex) {
-                        logger.warn("MIME type detection failed: {}", new Object[]{ex.toString()});
+                        logger.warn("MIME type detection failed: {}", new Object[]{ex});
                     }
                 }
             }
@@ -183,7 +184,7 @@ public class IdentifyMimeType extends AbstractProcessor {
             // Sanity check the stream. This may not be a tarfile at all
             in.mark(FlowFilePackagerV1.FILENAME_ATTRIBUTES.length());
             byte[] bytes = new byte[FlowFilePackagerV1.FILENAME_ATTRIBUTES.length()];
-            in.read(bytes);
+            StreamUtils.fillBuffer(in, bytes, false);
             in.reset();
 
             // Quick exit if the first filename is not correct
