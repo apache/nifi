@@ -65,6 +65,7 @@
         <module>nifi-assembly</module>
         <module>nifi-docs</module>
         <module>nifi-maven-archetypes</module>
+		<module>nifi-external</module>
     </modules>
     <scm>
         <connection>scm:git:git://git.apache.org/incubator-nifi.git</connection>
@@ -625,6 +626,11 @@
                 <artifactId>nifi-utils</artifactId>
                 <version>0.0.2-incubating-SNAPSHOT</version>
             </dependency>
+			<dependency>
+				<groupId>org.apache.nifi</groupId>
+				<artifactId>nifi-site-to-site-client</artifactId>
+				<version>0.0.2-incubating-SNAPSHOT</version>
+			</dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-web-utils</artifactId>

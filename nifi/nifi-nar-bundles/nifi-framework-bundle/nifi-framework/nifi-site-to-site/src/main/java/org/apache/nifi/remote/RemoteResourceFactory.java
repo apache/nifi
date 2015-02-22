@@ -26,48 +26,8 @@ import org.apache.nifi.remote.exception.HandshakeException;
 import org.apache.nifi.remote.protocol.ClientProtocol;
 import org.apache.nifi.remote.protocol.ServerProtocol;
 
-public class RemoteResourceFactory {
+public class RemoteResourceFactory extends RemoteResourceInitiator {
 
-	public static final int RESOURCE_OK = 20;
-	public static final int DIFFERENT_RESOURCE_VERSION = 21;
-	public static final int ABORT = 255;
-
-	
-	public static VersionedRemoteResource initiateResourceNegotiation(final VersionedRemoteResource resource, final DataInputStream dis, final DataOutputStream dos) throws IOException, HandshakeException {
-        // Write the classname of the RemoteStreamCodec, followed by its version
-    	dos.writeUTF(resource.getResourceName());
-    	final VersionNegotiator negotiator = resource.getVersionNegotiator();
-    	dos.writeInt(negotiator.getVersion());
-    	dos.flush();
-        
-        // wait for response from server.
-        final int statusCode = dis.read();
-        switch (statusCode) {
-            case RESOURCE_OK:	// server accepted our proposal of codec name/version
-                return resource;
-            case DIFFERENT_RESOURCE_VERSION:	// server accepted our proposal of codec name but not the version
-                // Get server's preferred version
-            	final int newVersion = dis.readInt();
-                
-                // Determine our new preferred version that is no greater than the server's preferred version.
-                final Integer newPreference = negotiator.getPreferredVersion(newVersion);
-                // If we could not agree with server on a version, fail now.
-                if ( newPreference == null ) {
-                    throw new HandshakeException("Could not agree on version for " + resource);
-                }
-                
-                negotiator.setVersion(newPreference);
-                
-                // Attempt negotiation of resource based on our new preferred version.
-                return initiateResourceNegotiation(resource, dis, dos);
-            case ABORT:
-            	throw new HandshakeException("Remote destination aborted connection with message: " + dis.readUTF());
-            default:
-                return null;	// Unable to negotiate codec
-        }
-	}
-
-	
 	@SuppressWarnings("unchecked")
     public static <T extends FlowFileCodec> T receiveCodecNegotiation(final DataInputStream dis, final DataOutputStream dos) throws IOException, HandshakeException {
         final String codecName = dis.readUTF();
@@ -96,6 +56,14 @@ public class RemoteResourceFactory {
         }
 	}
 	
+	public static void rejectCodecNegotiation(final DataInputStream dis, final DataOutputStream dos, final String explanation) throws IOException {
+		dis.readUTF();	// read codec name
+		dis.readInt();	// read codec version
+		
+		dos.write(ABORT);
+		dos.writeUTF(explanation);
+		dos.flush();
+	}
 	
 	@SuppressWarnings("unchecked")
     public static <T extends ClientProtocol> T receiveClientProtocolNegotiation(final DataInputStream dis, final DataOutputStream dos) throws IOException, HandshakeException {
