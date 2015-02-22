@@ -185,12 +185,17 @@ nf.Actions = (function () {
             if (selection.size() === 1 && nf.CanvasUtils.isConnection(selection)) {
                 var selectionData = selection.datum();
 
-                // if the source is actually in another group
-                if (selectionData.component.source.groupId !== nf.Canvas.getGroupId()) {
-                    nf.CanvasUtils.showComponent(selectionData.component.source.groupId, selectionData.component.source.id);
-                } else {
+                // the source is in the current group
+                if (selectionData.component.source.groupId === nf.Canvas.getGroupId()) {
                     var source = d3.select('#id-' + selectionData.component.source.id);
                     nf.Actions.show(source);
+                } else if (selectionData.component.source.type === 'REMOTE_OUTPUT_PORT') {
+                    // if the source is remote
+                    var remoteSource = d3.select('#id-' + selectionData.component.source.groupId);
+                    nf.Actions.show(remoteSource);
+                } else {
+                    // if the source is local but in a sub group
+                    nf.CanvasUtils.showComponent(selectionData.component.source.groupId, selectionData.component.source.id);
                 }
             }
         },
@@ -204,12 +209,17 @@ nf.Actions = (function () {
             if (selection.size() === 1 && nf.CanvasUtils.isConnection(selection)) {
                 var selectionData = selection.datum();
 
-                // if the destination is actually in another group
-                if (selectionData.component.destination.groupId !== nf.Canvas.getGroupId()) {
-                    nf.CanvasUtils.showComponent(selectionData.component.destination.groupId, selectionData.component.destination.id);
-                } else {
+                // the destination is in the current group or its remote
+                if (selectionData.component.destination.groupId === nf.Canvas.getGroupId()) {
                     var destination = d3.select('#id-' + selectionData.component.destination.id);
                     nf.Actions.show(destination);
+                } else if (selectionData.component.destination.type === 'REMOTE_INPUT_PORT') {
+                    // if the destination is remote
+                    var remoteDestination = d3.select('#id-' + selectionData.component.destination.groupId);
+                    nf.Actions.show(remoteDestination);
+                } else {
+                    // if the destination is local but in a sub group
+                    nf.CanvasUtils.showComponent(selectionData.component.destination.groupId, selectionData.component.destination.id);
                 }
             }
         },
@@ -349,7 +359,12 @@ nf.Actions = (function () {
         enable: function () {
             var components = d3.selectAll('g.component.selected').filter(function (d) {
                 var selected = d3.select(this);
-                return (nf.CanvasUtils.isProcessor(selected) || nf.CanvasUtils.isInputPort(selected) || nf.CanvasUtils.isOutputPort(selected)) && nf.CanvasUtils.supportsModification(selected);
+                var selectedData = selected.datum();
+                
+                // processors and ports that support modification and are not currently stopped
+                return (nf.CanvasUtils.isProcessor(selected) || nf.CanvasUtils.isInputPort(selected) || nf.CanvasUtils.isOutputPort(selected)) && 
+                        nf.CanvasUtils.supportsModification(selected) &&
+                        selectedData.component.state !== 'STOPPED';
             });
             if (components.empty()) {
                 nf.Dialog.showOkDialog({
@@ -379,7 +394,12 @@ nf.Actions = (function () {
         disable: function () {
             var components = d3.selectAll('g.component.selected').filter(function (d) {
                 var selected = d3.select(this);
-                return (nf.CanvasUtils.isProcessor(selected) || nf.CanvasUtils.isInputPort(selected) || nf.CanvasUtils.isOutputPort(selected)) && nf.CanvasUtils.supportsModification(selected);
+                var selectedData = selected.datum();
+                
+                // processors and ports that support modification and are not currently disabled
+                return (nf.CanvasUtils.isProcessor(selected) || nf.CanvasUtils.isInputPort(selected) || nf.CanvasUtils.isOutputPort(selected)) && 
+                        nf.CanvasUtils.supportsModification(selected) &&
+                        selectedData.component.state !== 'DISABLED';
             });
             if (components.empty()) {
                 nf.Dialog.showOkDialog({
@@ -435,7 +455,6 @@ nf.Actions = (function () {
                             data['running'] = true;
                         }
 
-                        // update the resource
                         updateResource(d.component.uri, data).done(function (response) {
                             if (nf.CanvasUtils.isProcessor(selected)) {
                                 nf.Processor.set(response.processor);
@@ -843,17 +862,11 @@ nf.Actions = (function () {
          * @param {type} selection      The selection
          */
         fillColor: function (selection) {
-            var selectedProcessors = selection.filter(function(d) {
-                return nf.CanvasUtils.isProcessor(d3.select(this));
-            });
-            var selectedLabels = selection.filter(function(d) {
-                return nf.CanvasUtils.isLabel(d3.select(this));
-            });
-            
-            var allProcessors = selectedProcessors.size() === selection.size();
-            var allLabels = selectedLabels.size() === selection.size();
-            
-            if (allProcessors || allLabels) {
+            if (nf.CanvasUtils.isColorable(selection)) {
+                // we know that the entire selection is processors or labels... this
+                // checks if the first item is a processor... if true, all processors
+                var allProcessors = nf.CanvasUtils.isProcessor(selection);
+                
                 var color;
                 if (allProcessors) {
                     color = nf.Processor.defaultColor();

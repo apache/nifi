@@ -182,34 +182,37 @@ nf.CanvasHeader = (function () {
                                     // get the color and update the styles
                                     var color = $('#fill-color').minicolors('value');
 
-                                    // update the style for the specified component
-                                    $.ajax({
-                                        type: 'PUT',
-                                        url: selectedData.component.uri,
-                                        data: {
-                                            'version': revision.version,
-                                            'clientId': revision.clientId,
-                                            'style[background-color]': color
-                                        },
-                                        dataType: 'json'
-                                    }).done(function (response) {
-                                        // update the revision
-                                        nf.Client.setRevision(response.revision);
+                                    // ensure the color actually changed
+                                    if (color !== selectedData.component.style['background-color']) {
+                                        // update the style for the specified component
+                                        $.ajax({
+                                            type: 'PUT',
+                                            url: selectedData.component.uri,
+                                            data: {
+                                                'version': revision.version,
+                                                'clientId': revision.clientId,
+                                                'style[background-color]': color
+                                            },
+                                            dataType: 'json'
+                                        }).done(function (response) {
+                                            // update the revision
+                                            nf.Client.setRevision(response.revision);
 
-                                        // update the processor
-                                        if (nf.CanvasUtils.isProcessor(selected)) {
-                                            nf.Processor.set(response.processor);
-                                        } else {
-                                            nf.Label.set(response.label);
-                                        }
-                                    }).fail(function (xhr, status, error) {
-                                        if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
-                                            nf.Dialog.showOkDialog({
-                                                dialogContent: nf.Common.escapeHtml(xhr.responseText),
-                                                overlayBackground: true
-                                            });
-                                        }
-                                    });
+                                            // update the processor
+                                            if (nf.CanvasUtils.isProcessor(selected)) {
+                                                nf.Processor.set(response.processor);
+                                            } else {
+                                                nf.Label.set(response.label);
+                                            }
+                                        }).fail(function (xhr, status, error) {
+                                            if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
+                                                nf.Dialog.showOkDialog({
+                                                    dialogContent: nf.Common.escapeHtml(xhr.responseText),
+                                                    overlayBackground: true
+                                                });
+                                            }
+                                        });
+                                    }
                                 });
                                 
                                 // close the dialog
@@ -255,12 +258,13 @@ nf.CanvasHeader = (function () {
                 var hex = $('#fill-color-value').val();
                 
                 // only update the fill color when its a valid hex color string
+                // #[six hex characters|three hex characters] case insensitive
                 if (/(^#[0-9A-F]{6}$)|(^#[0-9A-F]{3}$)/i.test(hex)) {
                     $('#fill-color').minicolors('value', hex);
                 }
             };
             
-            // initialize the fill color value
+            // apply fill color from field on blur and enter press
             $('#fill-color-value').on('blur', updateColor).on('keyup', function(e) {
                 var code = e.keyCode ? e.keyCode : e.which;
                 if (code === $.ui.keyCode.ENTER) {
