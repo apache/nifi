@@ -142,7 +142,7 @@ public class CompressionInputStream extends InputStream {
             return -1;
         }
 
-        return buffer[bufferIndex++];
+        return buffer[bufferIndex++] & 0xFF;
     }
 
     @Override
