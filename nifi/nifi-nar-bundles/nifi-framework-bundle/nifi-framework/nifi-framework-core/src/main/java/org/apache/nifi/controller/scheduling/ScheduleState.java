@@ -16,9 +16,10 @@
  */
 package org.apache.nifi.controller.scheduling;
 
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -27,7 +28,7 @@ public class ScheduleState {
 
     private final AtomicInteger activeThreadCount = new AtomicInteger(0);
     private final AtomicBoolean scheduled = new AtomicBoolean(false);
-    private final List<ScheduledFuture<?>> futures = new ArrayList<>();
+    private final Set<ScheduledFuture<?>> futures = new HashSet<ScheduledFuture<?>>();
     private final AtomicBoolean mustCallOnStoppedMethods = new AtomicBoolean(false);
     private volatile long lastStopTime = -1;
 
@@ -79,12 +80,17 @@ public class ScheduleState {
      *
      * @param newFutures
      */
-    public void setFutures(final List<ScheduledFuture<?>> newFutures) {
+    public synchronized void setFutures(final Collection<ScheduledFuture<?>> newFutures) {
         futures.clear();
         futures.addAll(newFutures);
     }
 
-    public List<ScheduledFuture<?>> getFutures() {
-        return Collections.unmodifiableList(futures);
+    public synchronized void replaceFuture(final ScheduledFuture<?> oldFuture, final ScheduledFuture<?> newFuture) {
+        futures.remove(oldFuture);
+        futures.add(newFuture);
+    }
+    
+    public synchronized Set<ScheduledFuture<?>> getFutures() {
+        return Collections.unmodifiableSet(futures);
     }
 }

@@ -14,7 +14,7 @@
 -->
 # Apache NiFi
 
-Apache NiFi is a dataflow system based on the concepts of flow-based programming. It is currently apart of the Apache Incubator.
+Apache NiFi is an easy to use, powerful, and reliable system to process and distribute data.
 
 ## Table of Contents
 
@@ -27,6 +27,10 @@ Apache NiFi is a dataflow system based on the concepts of flow-based programming
 - Build the nifi-nar-maven-plugin.  Change directory to 'nifi-nar-maven-plugin' and 
 follow the directions found there.
 - Build nifi.  Change directory to 'nifi' and follow the directions found there.
+
+## Documentation
+
+See http://nifi.incubator.apache.org/ for the latest documentation.
 
 ## License
 

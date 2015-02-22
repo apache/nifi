@@ -71,7 +71,12 @@ public class PutFTP extends PutFileTransfer<FTPTransfer> {
         properties.add(FTPTransfer.LAST_MODIFIED_TIME);
         properties.add(FTPTransfer.PERMISSIONS);
         properties.add(FTPTransfer.USE_COMPRESSION);
-
+        properties.add(FTPTransfer.PROXY_TYPE);
+        properties.add(FTPTransfer.PROXY_HOST);
+        properties.add(FTPTransfer.PROXY_PORT);
+        properties.add(FTPTransfer.HTTP_PROXY_USERNAME);
+        properties.add(FTPTransfer.HTTP_PROXY_PASSWORD);
+        
         this.properties = Collections.unmodifiableList(properties);
     }
 

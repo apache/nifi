@@ -20,6 +20,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.net.UnknownHostException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -40,6 +42,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
+import org.apache.commons.net.ftp.FTPHTTPClient;
 import org.apache.commons.net.ftp.FTPReply;
 
 public class FTPTransfer implements FileTransfer {
@@ -49,6 +52,9 @@ public class FTPTransfer implements FileTransfer {
     public static final String TRANSFER_MODE_ASCII = "ASCII";
     public static final String TRANSFER_MODE_BINARY = "Binary";
     public static final String FTP_TIMEVAL_FORMAT = "yyyyMMddHHmmss";
+    public static final String PROXY_TYPE_DIRECT = Proxy.Type.DIRECT.name();
+    public static final String PROXY_TYPE_HTTP = Proxy.Type.HTTP.name();
+    public static final String PROXY_TYPE_SOCKS = Proxy.Type.SOCKS.name();
 
     public static final PropertyDescriptor CONNECTION_MODE = new PropertyDescriptor.Builder()
             .name("Connection Mode")
@@ -68,6 +74,35 @@ public class FTPTransfer implements FileTransfer {
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .required(true)
             .defaultValue("21")
+            .build();
+    public static final PropertyDescriptor PROXY_TYPE = new PropertyDescriptor.Builder()
+            .name("Proxy Type")
+            .description("Proxy type used for file transfers")
+            .allowableValues(PROXY_TYPE_DIRECT, PROXY_TYPE_HTTP, PROXY_TYPE_SOCKS)
+            .defaultValue(PROXY_TYPE_DIRECT)
+            .build();
+    public static final PropertyDescriptor PROXY_HOST = new PropertyDescriptor.Builder()
+            .name("Proxy Host")
+            .description("The fully qualified hostname or IP address of the proxy server")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+    public static final PropertyDescriptor PROXY_PORT = new PropertyDescriptor.Builder()
+            .name("Proxy Port")
+            .description("The port of the proxy server")
+            .addValidator(StandardValidators.PORT_VALIDATOR)
+            .build();
+    public static final PropertyDescriptor HTTP_PROXY_USERNAME = new PropertyDescriptor.Builder()
+            .name("Http Proxy Username")
+            .description("Http Proxy Username")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .required(false)
+            .build();
+    public static final PropertyDescriptor HTTP_PROXY_PASSWORD = new PropertyDescriptor.Builder()
+            .name("Http Proxy Password")
+            .description("Http Proxy Password")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .required(false)
+            .sensitive(true)
             .build();
 
     private final ProcessorLog logger;
@@ -450,7 +485,18 @@ public class FTPTransfer implements FileTransfer {
             }
         }
 
-        final FTPClient client = new FTPClient();
+        final Proxy.Type proxyType = Proxy.Type.valueOf(ctx.getProperty(PROXY_TYPE).getValue());
+        final String proxyHost = ctx.getProperty(PROXY_HOST).getValue();
+        final Integer proxyPort = ctx.getProperty(PROXY_PORT).asInteger();
+        FTPClient client;
+        if (proxyType == Proxy.Type.HTTP) {
+            client = new FTPHTTPClient(proxyHost, proxyPort, ctx.getProperty(HTTP_PROXY_USERNAME).getValue(), ctx.getProperty(HTTP_PROXY_PASSWORD).getValue());
+        } else {
+            client = new FTPClient();
+            if (proxyType == Proxy.Type.SOCKS) {
+                client.setSocketFactory(new SocksProxySocketFactory(new Proxy(proxyType, new InetSocketAddress(proxyHost, proxyPort))));
+            }
+        }
         this.client = client;
         client.setDataTimeout(ctx.getProperty(DATA_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
         client.setDefaultTimeout(ctx.getProperty(CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());

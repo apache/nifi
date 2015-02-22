@@ -17,6 +17,7 @@
 package org.apache.nifi.controller.tasks;
 
 import java.io.IOException;
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -31,7 +32,6 @@ import org.apache.nifi.controller.repository.StandardProcessSessionFactory;
 import org.apache.nifi.controller.scheduling.ProcessContextFactory;
 import org.apache.nifi.controller.scheduling.ScheduleState;
 import org.apache.nifi.controller.scheduling.SchedulingAgent;
-import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.logging.ProcessorLog;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.ProcessSessionFactory;
@@ -43,7 +43,12 @@ import org.apache.nifi.util.ReflectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ContinuallyRunProcessorTask implements Runnable {
+
+/**
+ * Continually runs a processor as long as the processor has work to do. {@link #call()} will return
+ * <code>true</code> if the processor should be yielded, <code>false</code> otherwise.
+ */
+public class ContinuallyRunProcessorTask implements Callable<Boolean> {
 
     private static final Logger logger = LoggerFactory.getLogger(ContinuallyRunProcessorTask.class);
 
@@ -56,7 +61,8 @@ public class ContinuallyRunProcessorTask implements Runnable {
     private final int numRelationships;
 
     public ContinuallyRunProcessorTask(final SchedulingAgent schedulingAgent, final ProcessorNode procNode,
-            final FlowController flowController, final ProcessContextFactory contextFactory, final ScheduleState scheduleState, final StringEncryptor encryptor) {
+            final FlowController flowController, final ProcessContextFactory contextFactory, final ScheduleState scheduleState, 
+            final StandardProcessContext processContext) {
 
         this.schedulingAgent = schedulingAgent;
         this.procNode = procNode;
@@ -65,28 +71,28 @@ public class ContinuallyRunProcessorTask implements Runnable {
         this.flowController = flowController;
 
         context = contextFactory.newProcessContext(procNode, new AtomicLong(0L));
-        this.processContext = new StandardProcessContext(procNode, flowController, encryptor);
+        this.processContext = processContext;
     }
 
-    @SuppressWarnings("deprecation")
     @Override
-    public void run() {
+    @SuppressWarnings("deprecation")
+    public Boolean call() {
         // make sure processor is not yielded
         boolean shouldRun = (procNode.getYieldExpiration() < System.currentTimeMillis());
         if (!shouldRun) {
-            return;
+            return false;
         }
 
         // make sure that either we're not clustered or this processor runs on all nodes or that this is the primary node
         shouldRun = !procNode.isIsolated() || !flowController.isClustered() || flowController.isPrimary();
         if (!shouldRun) {
-            return;
+            return false;
         }
 
         // make sure that either proc has incoming FlowFiles or has no incoming connections or is annotated with @TriggerWhenEmpty
         shouldRun = procNode.isTriggerWhenEmpty() || !procNode.hasIncomingConnection() || Connectables.flowFilesQueued(procNode);
         if (!shouldRun) {
-            return;
+            return true;
         }
 
         if (numRelationships > 0) {
@@ -109,7 +115,7 @@ public class ContinuallyRunProcessorTask implements Runnable {
         }
 
         if (!shouldRun) {
-            return;
+            return false;
         }
 
         scheduleState.incrementActiveThreadCount();
@@ -124,11 +130,11 @@ public class ContinuallyRunProcessorTask implements Runnable {
                     invocationCount++;
 
                     if (!batch) {
-                        return;
+                        return false;
                     }
 
                     if (System.nanoTime() > finishNanos) {
-                        return;
+                        return false;
                     }
 
                     shouldRun = procNode.isTriggerWhenEmpty() || !procNode.hasIncomingConnection() || Connectables.flowFilesQueued(procNode);
@@ -180,6 +186,8 @@ public class ContinuallyRunProcessorTask implements Runnable {
                 logger.error("", e);
             }
         }
+        
+        return false;
     }
 
 }

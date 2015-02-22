@@ -20,9 +20,7 @@
         <version>0.0.2-incubating-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-update-attribute-nar</artifactId>
-    <version>0.0.2-incubating-SNAPSHOT</version>
     <packaging>nar</packaging>
-    
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>

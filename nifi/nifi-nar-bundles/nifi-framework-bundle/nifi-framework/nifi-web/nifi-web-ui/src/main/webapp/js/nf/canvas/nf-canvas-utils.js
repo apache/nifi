@@ -393,7 +393,7 @@ nf.CanvasUtils = (function () {
          */
         disableImageHref: function (selection) {
             selection.on('click.disableImageHref', function () {
-                if (d3.event.ctrlKey) {
+                if (d3.event.ctrlKey || d3.event.shiftKey) {
                     d3.event.preventDefault();
                 }
             });

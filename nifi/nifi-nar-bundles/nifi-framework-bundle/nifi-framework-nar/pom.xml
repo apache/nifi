@@ -20,7 +20,6 @@
         <version>0.0.2-incubating-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-framework-nar</artifactId>
-    <version>0.0.2-incubating-SNAPSHOT</version>
     <packaging>nar</packaging>
     <description>NiFi: Framework Nar</description>
     <dependencies>

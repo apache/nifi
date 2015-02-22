@@ -20,11 +20,8 @@
         <artifactId>nifi-nar-bundles</artifactId>
         <version>0.0.2-incubating-SNAPSHOT</version>
     </parent>
-
     <artifactId>nifi-update-attribute-bundle</artifactId>
-    <version>0.0.2-incubating-SNAPSHOT</version>
     <packaging>pom</packaging>
-
     <modules>
         <module>nifi-update-attribute-model</module>
         <module>nifi-update-attribute-processor</module>

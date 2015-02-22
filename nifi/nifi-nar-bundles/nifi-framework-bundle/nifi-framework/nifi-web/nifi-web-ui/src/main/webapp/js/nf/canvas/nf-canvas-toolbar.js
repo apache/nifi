@@ -141,14 +141,19 @@ nf.CanvasToolbar = (function () {
                     actions['group'].disable();
                 }
 
-                // determine how many colorable components are selected
-                var colorableComponents = selection.filter(function (d) {
-                    var selected = d3.select(this);
-                    return nf.CanvasUtils.isProcessor(selected) || nf.CanvasUtils.isLabel(selected);
+                // determine if the current selection is entirely processors or labels
+                var selectedProcessors = selection.filter(function(d) {
+                    return nf.CanvasUtils.isProcessor(d3.select(this));
+                });
+                var selectedLabels = selection.filter(function(d) {
+                    return nf.CanvasUtils.isLabel(d3.select(this));
                 });
 
+                var allProcessors = selectedProcessors.size() === selection.size();
+                var allLabels = selectedLabels.size() === selection.size();
+
                 // if there are any colorable components enable the button
-                if (colorableComponents.size() === 1 && colorableComponents.size() === selection.size()) {
+                if (allProcessors || allLabels) {
                     actions['fill'].enable();
                 } else {
                     actions['fill'].disable();

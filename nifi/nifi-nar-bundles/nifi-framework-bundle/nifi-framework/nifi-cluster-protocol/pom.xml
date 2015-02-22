@@ -24,7 +24,6 @@
     <packaging>jar</packaging>
     <description>The messaging protocol for clustered NiFi</description>
     <dependencies>
-        
         <!-- application dependencies -->
         <dependency>
             <groupId>org.apache.nifi</groupId>

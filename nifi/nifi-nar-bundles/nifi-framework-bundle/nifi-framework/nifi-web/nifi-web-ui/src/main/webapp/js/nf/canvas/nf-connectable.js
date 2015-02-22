@@ -20,6 +20,21 @@ nf.Connectable = (function () {
     var canvas;
     var origin;
 
+    /**
+     * Determines if we want to allow adding connections in the current state:
+     * 
+     * 1) When shift is down, we could be adding components to the current selection.
+     * 2) When the selection box is visible, we are in the process of moving all the
+     * components currently selected.
+     * 3) When the drag selection box is visible, we are in the process or selecting components
+     * using the selection box.
+     * 
+     * @returns {boolean}
+     */
+    var allowConnection = function () {
+        return !d3.event.shiftKey && d3.select('rect.drag-selection').empty() && d3.select('rect.selection').empty();
+    };
+
     return {
         init: function () {
             canvas = d3.select('#canvas');
@@ -102,17 +117,27 @@ nf.Connectable = (function () {
                         }).attr('d', function (pathDatum) {
                             if (!destination.empty() && destination.classed('connectable-destination')) {
                                 var destinationData = destination.datum();
+                                
+                                // show the line preview as appropriate
+                                if (pathDatum.sourceId === destinationData.component.id) {
+                                    var x = pathDatum.x;
+                                    var y = pathDatum.y;
+                                    var componentOffset = pathDatum.sourceWidth / 2;
+                                    var xOffset = nf.Connection.config.selfLoopXOffset;
+                                    var yOffset = nf.Connection.config.selfLoopYOffset;
+                                    return 'M' + x + ' ' + y + 'L' + (x + componentOffset + xOffset) + ' ' + (y - yOffset) + 'L' + (x + componentOffset + xOffset) + ' ' + (y + yOffset) + 'Z';
+                                } else {
+                                    // get the position on the destination perimeter
+                                    var end = nf.CanvasUtils.getPerimeterPoint(pathDatum, {
+                                        'x': destinationData.component.position.x,
+                                        'y': destinationData.component.position.y,
+                                        'width': destinationData.dimensions.width,
+                                        'height': destinationData.dimensions.height
+                                    });
 
-                                // get the position on the destination perimeter
-                                var end = nf.CanvasUtils.getPerimeterPoint(pathDatum, {
-                                    'x': destinationData.component.position.x,
-                                    'y': destinationData.component.position.y,
-                                    'width': destinationData.dimensions.width,
-                                    'height': destinationData.dimensions.height
-                                });
-
-                                // direct line between components to provide a 'snap feel'
-                                return 'M' + pathDatum.x + ' ' + pathDatum.y + 'L' + end.x + ' ' + end.y;
+                                    // direct line between components to provide a 'snap feel'
+                                    return 'M' + pathDatum.x + ' ' + pathDatum.y + 'L' + end.x + ' ' + end.y;
+                                }
                             } else {
                                 return 'M' + pathDatum.x + ' ' + pathDatum.y + 'L' + d3.event.x + ' ' + d3.event.y;
                             }
@@ -122,57 +147,70 @@ nf.Connectable = (function () {
                         // stop further propagation
                         d3.event.sourceEvent.stopPropagation();
 
+                        // get the add connect img
+                        var addConnect = d3.select(this);
+
                         // get the connector, if it the current point is not over a new destination
                         // the connector will be removed. otherwise it will be removed after the
                         // connection has been configured/cancelled
                         var connector = d3.select('path.connector');
+                        var connectorData = connector.datum();
 
                         // get the destination
                         var destination = d3.select('g.connectable-destination');
 
                         // we are not over a new destination
                         if (destination.empty()) {
+                            // get the source to determine if we are still over it
+                            var source = d3.select('#id-' + connectorData.sourceId);
+                            var sourceData = source.datum();
+                            
+                            // get the mouse position relative to the source
+                            var position = d3.mouse(source.node());
+                            
+                            // if the position is outside the component, remove the add connect img
+                            if (position[0] < 0 || position[0] > sourceData.dimensions.width || position[1] < 0 || position[1] > sourceData.dimensions.height) {
+                                addConnect.remove();
+                            } else {
+                                // reset the add connect img by restoring the position and place in the DOM
+                                addConnect.classed('dragging', false).attr('transform', function () {
+                                    return 'translate(' + d.origX + ', ' + d.origY + ')';
+                                });
+                                source.node().appendChild(this);
+                            }
+                            
+                            // remove the connector
                             connector.remove();
                         } else {
-                            var connectorData = connector.datum();
-                            var destinationData = destination.datum();
-
-                            // if this is a self loop we need to insert some bend points
-                            if (connectorData.sourceId === destinationData.component.id) {
-                                connector.attr('d', function (pathDatum) {
-                                    var x = pathDatum.x;
-                                    var y = pathDatum.y;
-                                    var componentOffset = pathDatum.sourceWidth / 2;
-                                    var xOffset = nf.Connection.config.selfLoopXOffset;
-                                    var yOffset = nf.Connection.config.selfLoopYOffset;
-                                    return 'M' + x + ' ' + y + 'L' + (x + componentOffset + xOffset) + ' ' + (y - yOffset) + 'L' + (x + componentOffset + xOffset) + ' ' + (y + yOffset) + 'Z';
-                                });
-                            }
+                            // remove the add connect img
+                            addConnect.remove();
 
                             // create the connection
+                            var destinationData = destination.datum();
                             nf.ConnectionConfiguration.createConnection(connectorData.sourceId, destinationData.component.id);
                         }
-
-                        // remove this component
-                        d3.select(this).remove();
                     });
         },
         
         activate: function (components) {
             components
                     .on('mouseenter.connectable', function (d) {
-                        if (!d3.event.shiftKey && d3.select('rect.drag-selection').empty()) {
+                        if (allowConnection()) {
                             var selection = d3.select(this);
 
                             // ensure the current component supports connection source
                             if (nf.CanvasUtils.isValidConnectionSource(selection)) {
                                 // see if theres already a connector rendered
-                                var anyConnector = d3.select('image.add-connect');
-                                if (anyConnector.empty()) {
+                                var addConnect = d3.select('image.add-connect');
+                                if (addConnect.empty()) {
                                     var x = (d.dimensions.width / 2) - 14;
                                     var y = (d.dimensions.height / 2) - 14;
 
                                     selection.append('image')
+                                            .datum({
+                                                origX: x,
+                                                origY: y
+                                            })
                                             .call(connect)
                                             .call(nf.CanvasUtils.disableImageHref)
                                             .attr({
@@ -188,17 +226,16 @@ nf.Connectable = (function () {
                     })
                     .on('mouseleave.connectable', function () {
                         // conditionally remove the connector
-                        var connector = d3.select(this).select('image.add-connect');
-                        if (!connector.empty() && !connector.classed('dragging')) {
-                            connector.remove();
+                        var addConnect = d3.select(this).select('image.add-connect');
+                        if (!addConnect.empty() && !addConnect.classed('dragging')) {
+                            addConnect.remove();
                         }
                     })
                     // Using mouseover/out to workaround chrome issue #122746
                     .on('mouseover.connectable', function () {
                         // mark that we are hovering when appropriate
-                        var selection = d3.select(this);
-                        selection.classed('hover', function () {
-                            return !d3.event.shiftKey && !selection.classed('hover') && d3.select('rect.drag-selection').empty();
+                        d3.select(this).classed('hover', function () {
+                            return allowConnection();
                         });
                     })
                     .on('mouseout.connection', function () {

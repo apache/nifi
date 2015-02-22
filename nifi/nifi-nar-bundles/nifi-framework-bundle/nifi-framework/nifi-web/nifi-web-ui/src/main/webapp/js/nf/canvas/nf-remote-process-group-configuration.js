@@ -48,6 +48,9 @@ nf.RemoteProcessGroupConfiguration = (function () {
                                 }).done(function (response) {
                                     // update the revision
                                     nf.Client.setRevision(response.revision);
+                                    
+                                    // refresh the remote process group component
+                                    nf.RemoteProcessGroup.set(response.remoteProcessGroup);
 
                                     // close the details panel
                                     $('#remote-process-group-configuration').modal('hide');

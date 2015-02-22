@@ -172,7 +172,7 @@ nf.CountersTable = (function () {
             var countersColumns = [
                 {id: 'context', name: 'Context', field: 'context', sortable: true, resizable: true},
                 {id: 'name', name: 'Name', field: 'name', sortable: true, resizable: true},
-                {id: 'value', name: 'Value', field: 'value', sortable: true, resizable: true}
+                {id: 'value', name: 'Value', field: 'value', sortable: true, resizable: true, defaultSortAsc: false}
             ];
 
             // only allow dfm's to reset counters

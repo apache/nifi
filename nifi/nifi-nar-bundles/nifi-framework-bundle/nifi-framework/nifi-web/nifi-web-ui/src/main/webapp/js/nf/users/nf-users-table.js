@@ -592,7 +592,7 @@ nf.UsersTable = (function () {
             {id: 'userName', name: 'User', field: 'userName', sortable: true, resizable: true},
             {id: 'userGroup', name: 'Group', field: 'userGroup', sortable: true, resizable: true, formatter: valueFormatter},
             {id: 'authorities', name: 'Roles', field: 'authorities', sortable: true, resizable: true, formatter: roleFormatter},
-            {id: 'lastAccessed', name: 'Last Accessed', field: 'lastAccessed', sortable: true, resizable: true, formatter: valueFormatter},
+            {id: 'lastAccessed', name: 'Last Accessed', field: 'lastAccessed', sortable: true, defaultSortAsc: false, resizable: true, formatter: valueFormatter},
             {id: 'status', name: 'Status', field: 'status', sortable: true, resizable: false, formatter: statusFormatter},
             {id: 'actions', name: '&nbsp;', sortable: false, resizable: false, formatter: actionFormatter, width: 100, maxWidth: 100}
         ];

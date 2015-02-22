@@ -21,12 +21,9 @@
         <artifactId>nifi</artifactId>
         <version>0.0.2-incubating-SNAPSHOT</version>
     </parent>
-
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-nar-bundles</artifactId>
-    <version>0.0.2-incubating-SNAPSHOT</version>
     <packaging>pom</packaging>
-
     <modules>
         <module>nifi-framework-bundle</module>
         <module>nifi-hadoop-bundle</module>

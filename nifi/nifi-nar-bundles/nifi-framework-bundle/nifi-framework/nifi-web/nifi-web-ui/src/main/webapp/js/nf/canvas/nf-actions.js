@@ -843,20 +843,39 @@ nf.Actions = (function () {
          * @param {type} selection      The selection
          */
         fillColor: function (selection) {
-            if (selection.size() === 1 && (nf.CanvasUtils.isProcessor(selection) || nf.CanvasUtils.isLabel(selection))) {
-                var selectionData = selection.datum();
-                var color = nf[selectionData.type].defaultColor();
-
-                // use the specified color if appropriate
-                if (nf.Common.isDefinedAndNotNull(selectionData.component.style['background-color'])) {
-                    color = selectionData.component.style['background-color'];
+            var selectedProcessors = selection.filter(function(d) {
+                return nf.CanvasUtils.isProcessor(d3.select(this));
+            });
+            var selectedLabels = selection.filter(function(d) {
+                return nf.CanvasUtils.isLabel(d3.select(this));
+            });
+            
+            var allProcessors = selectedProcessors.size() === selection.size();
+            var allLabels = selectedLabels.size() === selection.size();
+            
+            if (allProcessors || allLabels) {
+                var color;
+                if (allProcessors) {
+                    color = nf.Processor.defaultColor();
+                } else {
+                    color = nf.Label.defaultColor();
+                }
+                
+                // if there is only one component selected, get its color otherwise use default
+                if (selection.size() === 1) {
+                    var selectionData = selection.datum();
+                    
+                    // use the specified color if appropriate
+                    if (nf.Common.isDefinedAndNotNull(selectionData.component.style['background-color'])) {
+                        color = selectionData.component.style['background-color'];
+                    }
                 }
 
                 // set the color
-                $('#fill-color-value').minicolors('value', color);
+                $('#fill-color').minicolors('value', color);
 
                 // update the preview visibility
-                if (nf.CanvasUtils.isProcessor(selection)) {
+                if (allProcessors) {
                     $('#fill-color-processor-preview').show();
                     $('#fill-color-label-preview').hide();
                 } else {
@@ -1065,7 +1084,6 @@ nf.Actions = (function () {
 
                             // refresh the birdseye/toolbar
                             nf.Birdseye.refresh();
-                            nf.CanvasToolbar.refresh();
 
                             // remove the original snippet
                             nf.Snippet.remove(snippet.id).fail(reject);
@@ -1078,7 +1096,6 @@ nf.Actions = (function () {
 
                                 // refresh the birdseye/toolbar
                                 nf.Birdseye.refresh();
-                                nf.CanvasToolbar.refresh();
                             });
 
                             // reject the deferred
