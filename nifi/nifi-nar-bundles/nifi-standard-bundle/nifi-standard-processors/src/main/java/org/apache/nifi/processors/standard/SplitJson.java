@@ -27,9 +27,11 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ProcessorLog;
-import org.apache.nifi.processor.*;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.ProcessorInitializationContext;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.io.OutputStreamCallback;
-import org.apache.nifi.processors.standard.util.JsonUtils;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -44,13 +46,13 @@ import java.util.*;
         + "Each generated FlowFile is comprised of an element of the specified array and transferred to relationship 'split,' "
         + "with the original file transferred to the 'original' relationship. If the specified JsonPath is not found or "
         + "does not evaluate to an array element, the original file is routed to 'failure' and no files are generated.")
-public class SplitJson extends AbstractProcessor {
+public class SplitJson extends AbstractJsonPathProcessor {
 
     public static final PropertyDescriptor ARRAY_JSON_PATH_EXPRESSION = new PropertyDescriptor.Builder()
             .name("JsonPath Expression")
             .description("A JsonPath expression that indicates the array element to split into JSON/scalar fragments.")
             .required(true)
-            .addValidator(JsonUtils.JSON_PATH_VALIDATOR)
+            .addValidator(JSON_PATH_VALIDATOR)
             .build();
 
     public static final Relationship REL_ORIGINAL = new Relationship.Builder().name("original").description("The original FlowFile that was split into segments. If the FlowFile fails processing, nothing will be sent to this relationship").build();
@@ -93,7 +95,7 @@ public class SplitJson extends AbstractProcessor {
         final ProcessorLog logger = getLogger();
 
 
-        final DocumentContext documentContext = JsonUtils.validateAndEstablishJsonContext(processSession, original);
+        final DocumentContext documentContext = validateAndEstablishJsonContext(processSession, original);
 
         if (documentContext == null) {
             logger.error("FlowFile {} did not have valid JSON content.", new Object[]{original});
@@ -129,7 +131,7 @@ public class SplitJson extends AbstractProcessor {
             split = processSession.write(split, new OutputStreamCallback() {
                 @Override
                 public void process(OutputStream out) throws IOException {
-                    String resultSegmentContent = JsonUtils.getResultRepresentation(resultSegment);
+                    String resultSegmentContent = getResultRepresentation(resultSegment);
                     out.write(resultSegmentContent.getBytes(StandardCharsets.UTF_8));
                 }
             });

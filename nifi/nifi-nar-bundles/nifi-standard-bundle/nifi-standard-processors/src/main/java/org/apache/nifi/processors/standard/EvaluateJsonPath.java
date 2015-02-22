@@ -29,10 +29,12 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ProcessorLog;
-import org.apache.nifi.processor.*;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.ProcessorInitializationContext;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
-import org.apache.nifi.processors.standard.util.JsonUtils;
 import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.apache.nifi.util.ObjectHolder;
 import org.apache.nifi.util.StringUtils;
@@ -57,7 +59,7 @@ import java.util.*;
         + "If Destination is 'flowfile-content' and the JsonPath does not evaluate to a defined path, the FlowFile will be routed to 'unmatched' without having its contents modified. "
         + "If Destination is flowfile-attribute and the expression matches nothing, attributes will be created with "
         + "empty strings as the value, and the FlowFile will always be routed to 'matched.'")
-public class EvaluateJsonPath extends AbstractProcessor {
+public class EvaluateJsonPath extends AbstractJsonPathProcessor {
 
     public static final String DESTINATION_ATTRIBUTE = "flowfile-attribute";
     public static final String DESTINATION_CONTENT = "flowfile-content";
@@ -142,7 +144,7 @@ public class EvaluateJsonPath extends AbstractProcessor {
         return new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
                 .expressionLanguageSupported(false)
-                .addValidator(JsonUtils.JSON_PATH_VALIDATOR)
+                .addValidator(JSON_PATH_VALIDATOR)
                 .required(false)
                 .dynamic(true)
                 .build();
@@ -175,7 +177,7 @@ public class EvaluateJsonPath extends AbstractProcessor {
             returnType = destination.equals(DESTINATION_CONTENT) ? RETURN_TYPE_JSON : RETURN_TYPE_SCALAR;
         }
 
-        final DocumentContext documentContext = JsonUtils.validateAndEstablishJsonContext(processSession, flowFile);
+        final DocumentContext documentContext = validateAndEstablishJsonContext(processSession, flowFile);
 
         if (documentContext == null) {
             logger.error("FlowFile {} did not have valid JSON content.", new Object[]{flowFile});
@@ -194,7 +196,7 @@ public class EvaluateJsonPath extends AbstractProcessor {
             final ObjectHolder<Object> resultHolder = new ObjectHolder<>(null);
             try {
                 Object result = documentContext.read(jsonPathExp);
-                if (returnType.equals(RETURN_TYPE_SCALAR) && !JsonUtils.isJsonScalar(result)) {
+                if (returnType.equals(RETURN_TYPE_SCALAR) && !isJsonScalar(result)) {
                     logger.error("Unable to return a scalar value for the expression {} for FlowFile {}. Evaluated value was {}. Transferring to {}.",
                             new Object[]{jsonPathExp.getPath(), flowFile.getId(), result.toString(), REL_FAILURE.getName()});
                     processSession.transfer(flowFile, REL_FAILURE);
@@ -212,7 +214,7 @@ public class EvaluateJsonPath extends AbstractProcessor {
                 }
             }
 
-            final String resultRepresentation = JsonUtils.getResultRepresentation(resultHolder.get());
+            final String resultRepresentation = getResultRepresentation(resultHolder.get());
             switch (destination) {
                 case DESTINATION_ATTRIBUTE:
                     jsonPathResults.put(jsonPathAttrKey, resultRepresentation);
@@ -231,5 +233,6 @@ public class EvaluateJsonPath extends AbstractProcessor {
         flowFile = processSession.putAllAttributes(flowFile, jsonPathResults);
         processSession.transfer(flowFile, REL_MATCH);
     }
+
 
 }
