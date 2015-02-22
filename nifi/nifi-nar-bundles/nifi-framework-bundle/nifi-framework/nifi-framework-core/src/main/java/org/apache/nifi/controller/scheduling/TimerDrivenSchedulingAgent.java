@@ -18,8 +18,10 @@ package org.apache.nifi.controller.scheduling;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
@@ -31,15 +33,17 @@ import org.apache.nifi.controller.tasks.ContinuallyRunProcessorTask;
 import org.apache.nifi.controller.tasks.ReportingTaskWrapper;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.engine.FlowEngine;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.StandardProcessContext;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.FormatUtils;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class TimerDrivenSchedulingAgent implements SchedulingAgent {
-
     private static final Logger logger = LoggerFactory.getLogger(TimerDrivenSchedulingAgent.class);
-
+    private static final long NO_WORK_YIELD_NANOS = TimeUnit.MILLISECONDS.toNanos(10L);
+    
     private final FlowController flowController;
     private final FlowEngine flowEngine;
     private final ProcessContextFactory contextFactory;
@@ -72,20 +76,95 @@ public class TimerDrivenSchedulingAgent implements SchedulingAgent {
         logger.info("{} started.", taskNode.getReportingTask());
     }
 
+    
     @Override
     public void schedule(final Connectable connectable, final ScheduleState scheduleState) {
-        final Runnable runnable;
-        if (connectable.getConnectableType() == ConnectableType.PROCESSOR) {
-            final ProcessorNode procNode = (ProcessorNode) connectable;
-            ContinuallyRunProcessorTask runnableTask = new ContinuallyRunProcessorTask(this, procNode, flowController, contextFactory, scheduleState, encryptor);
-            runnable = runnableTask;
-        } else {
-            runnable = new ContinuallyRunConnectableTask(contextFactory, connectable, scheduleState, encryptor);
-        }
-
+        
         final List<ScheduledFuture<?>> futures = new ArrayList<>();
         for (int i = 0; i < connectable.getMaxConcurrentTasks(); i++) {
-            final ScheduledFuture<?> future = flowEngine.scheduleWithFixedDelay(runnable, 0L, connectable.getSchedulingPeriod(TimeUnit.NANOSECONDS), TimeUnit.NANOSECONDS);
+            final Callable<Boolean> continuallyRunTask;
+            final ProcessContext processContext;
+            
+            // Determine the task to run and create it.
+            if (connectable.getConnectableType() == ConnectableType.PROCESSOR) {
+                final ProcessorNode procNode = (ProcessorNode) connectable;
+                final StandardProcessContext standardProcContext = new StandardProcessContext(procNode, flowController, encryptor);
+                final ContinuallyRunProcessorTask runnableTask = new ContinuallyRunProcessorTask(this, procNode, flowController, 
+                        contextFactory, scheduleState, standardProcContext);
+                
+                continuallyRunTask = runnableTask;
+                processContext = standardProcContext;
+            } else {
+                processContext = new ConnectableProcessContext(connectable, encryptor);
+                continuallyRunTask = new ContinuallyRunConnectableTask(contextFactory, connectable, scheduleState, processContext);
+            }
+            
+            final AtomicReference<ScheduledFuture<?>> futureRef = new AtomicReference<>();
+            
+            final Runnable yieldDetectionRunnable = new Runnable() {
+                @Override
+                public void run() {
+                    // Call the continually run task. It will return a boolean indicating whether or not we should yield
+                    // based on a lack of work for to do for the component.
+                    final boolean shouldYield;
+                    try {
+                        shouldYield = continuallyRunTask.call();
+                    } catch (final RuntimeException re) {
+                        throw re;
+                    } catch (final Exception e) {
+                        throw new ProcessException(e);
+                    }
+                    
+                    // If the component is yielded, cancel its future and re-submit it to run again
+                    // after the yield has expired.
+                    final long newYieldExpiration = connectable.getYieldExpiration();
+                    if ( newYieldExpiration > System.currentTimeMillis() ) {
+                        final long yieldMillis = System.currentTimeMillis() - newYieldExpiration;
+                        final ScheduledFuture<?> scheduledFuture = futureRef.get();
+                        if ( scheduledFuture == null ) {
+                            return;
+                        }
+                        
+                        // If we are able to cancel the future, create a new one and update the ScheduleState so that it has
+                        // an accurate accounting of which futures are outstanding; we must then also update the futureRef
+                        // so that we can do this again the next time that the component is yielded.
+                        if (scheduledFuture.cancel(false)) {
+                            final long yieldNanos = TimeUnit.MILLISECONDS.toNanos(yieldMillis);
+                            final ScheduledFuture<?> newFuture = flowEngine.scheduleWithFixedDelay(this, yieldNanos, 
+                                    connectable.getSchedulingPeriod(TimeUnit.NANOSECONDS), TimeUnit.NANOSECONDS);
+                            scheduleState.replaceFuture(scheduledFuture, newFuture);
+                            futureRef.set(newFuture);
+                        }
+                    } else if ( shouldYield ) {
+                        // Component itself didn't yield but there was no work to do, so the framework will choose
+                        // to yield the component automatically for a short period of time.
+                        final ScheduledFuture<?> scheduledFuture = futureRef.get();
+                        if ( scheduledFuture == null ) {
+                            return;
+                        }
+                        
+                        // If we are able to cancel the future, create a new one and update the ScheduleState so that it has
+                        // an accurate accounting of which futures are outstanding; we must then also update the futureRef
+                        // so that we can do this again the next time that the component is yielded.
+                        if (scheduledFuture.cancel(false)) {
+                            final ScheduledFuture<?> newFuture = flowEngine.scheduleWithFixedDelay(this, NO_WORK_YIELD_NANOS, 
+                                    connectable.getSchedulingPeriod(TimeUnit.NANOSECONDS), TimeUnit.NANOSECONDS);
+                            scheduleState.replaceFuture(scheduledFuture, newFuture);
+                            futureRef.set(newFuture);
+                        }
+                    }
+                }
+            };
+
+            // Schedule the task to run
+            final ScheduledFuture<?> future = flowEngine.scheduleWithFixedDelay(yieldDetectionRunnable, 0L, 
+                    connectable.getSchedulingPeriod(TimeUnit.NANOSECONDS), TimeUnit.NANOSECONDS);
+            
+            // now that we have the future, set the atomic reference so that if the component is yielded we
+            // are able to then cancel this future.
+            futureRef.set(future);
+            
+            // Keep track of the futures so that we can update the ScheduleState.
             futures.add(future);
         }
 
