@@ -19,6 +19,24 @@ NiFi System Administrator's Guide
 Apache NiFi Team <dev@nifi.incubator.apache.org>
 :homepage: http://nifi.incubator.apache.org
 
+System Requirements
+-------------------
+Apache NiFi can run on something as simple as a laptop, but it can also be clustered across many enterprise servers. The hardware and memory you need will depend on the size and nature of the dataflow you are running. NiFi has the following system requirements:
+
+* Requires Java 7
+* Supported Operating Systems: 
+** Linux
+** Unix
+** Windows
+** Mac OS X
+* Supported Web Browsers: 
+** Internet Explorer 9+ (see note below)
+** Mozilla FireFox 24+
+** Google Chrome 36+
+** Safari 8
+
+Note that there is a known issue in Internet Explorer (IE) 10 and 11 that can cause problems when moving items on the NiFi graph. If you encounter this problem, we suggest using a browser other than IE. This known issue is described here: https://connect.microsoft.com/IE/Feedback/Details/1050422.
+
 How to install and start NiFi
 -----------------------------
 
@@ -63,8 +81,8 @@ See the <<system_properties>> section of this guide for more information about c
 Best Practice Configuration
 ---------------------------
 NOTE: Typical Linux defaults are not necessarily well tuned for the needs of an IO intensive application like
-NiFi.  For all of these areas your distributions requirements may vary.  Use these sections as advice but
-consult your distribution specific documentation for how best to achieve these recommendations.
+NiFi.  For all of these areas your distribution's requirements may vary.  Use these sections as advice but
+consult your distribution-specific documentation for how best to achieve these recommendations.
 
 Maximum File Handles::
 NiFi will at any one time potentially have a very large number of file handles open.  Increase the limits by
