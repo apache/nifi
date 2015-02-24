@@ -21,6 +21,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -34,8 +35,9 @@ import org.apache.nifi.controller.tasks.ContinuallyRunProcessorTask;
 import org.apache.nifi.controller.tasks.ReportingTaskWrapper;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.engine.FlowEngine;
+import org.apache.nifi.processor.StandardProcessContext;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.FormatUtils;
-
 import org.quartz.CronExpression;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -130,13 +132,16 @@ public class QuartzSchedulingAgent implements SchedulingAgent {
 
         final List<AtomicBoolean> triggers = new ArrayList<>();
         for (int i = 0; i < connectable.getMaxConcurrentTasks(); i++) {
-            final Runnable continuallyRunTask;
+            final Callable<Boolean> continuallyRunTask;
             if (connectable.getConnectableType() == ConnectableType.PROCESSOR) {
                 final ProcessorNode procNode = (ProcessorNode) connectable;
-                ContinuallyRunProcessorTask runnableTask = new ContinuallyRunProcessorTask(this, procNode, flowController, contextFactory, scheduleState, encryptor);
+                
+                final StandardProcessContext standardProcContext = new StandardProcessContext(procNode, flowController, encryptor);
+                ContinuallyRunProcessorTask runnableTask = new ContinuallyRunProcessorTask(this, procNode, flowController, contextFactory, scheduleState, standardProcContext);
                 continuallyRunTask = runnableTask;
             } else {
-                continuallyRunTask = new ContinuallyRunConnectableTask(contextFactory, connectable, scheduleState, encryptor);
+                final ConnectableProcessContext connProcContext = new ConnectableProcessContext(connectable, encryptor);
+                continuallyRunTask = new ContinuallyRunConnectableTask(contextFactory, connectable, scheduleState, connProcContext);
             }
 
             final AtomicBoolean canceled = new AtomicBoolean(false);
@@ -147,7 +152,13 @@ public class QuartzSchedulingAgent implements SchedulingAgent {
                         return;
                     }
 
-                    continuallyRunTask.run();
+                    try {
+                        continuallyRunTask.call();
+                    } catch (final RuntimeException re) {
+                        throw re;
+                    } catch (final Exception e) {
+                        throw new ProcessException(e);
+                    }
 
                     if (canceled.get()) {
                         return;

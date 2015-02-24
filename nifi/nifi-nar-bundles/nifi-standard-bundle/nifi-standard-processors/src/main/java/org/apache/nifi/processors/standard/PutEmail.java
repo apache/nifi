@@ -32,6 +32,7 @@ import java.util.Set;
 import javax.activation.DataHandler;
 import javax.mail.Message;
 import javax.mail.Message.RecipientType;
+import javax.mail.MessagingException;
 import javax.mail.Session;
 import javax.mail.URLName;
 import javax.mail.internet.AddressException;
@@ -56,9 +57,9 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-
 import org.apache.commons.codec.binary.Base64;
 
 import com.sun.mail.smtp.SMTPTransport;
@@ -263,7 +264,7 @@ public class PutEmail extends AbstractProcessor {
             session.getProvenanceReporter().send(flowFile, "mailto:" + message.getAllRecipients()[0].toString());
             session.transfer(flowFile, REL_SUCCESS);
             logger.info("Sent email as a result of receiving {}", new Object[]{flowFile});
-        } catch (final Exception e) {
+        } catch (final ProcessException | MessagingException | IOException e) {
             context.yield();
             logger.error("Failed to send email for {}: {}; routing to failure", new Object[]{flowFile, e});
             session.transfer(flowFile, REL_FAILURE);

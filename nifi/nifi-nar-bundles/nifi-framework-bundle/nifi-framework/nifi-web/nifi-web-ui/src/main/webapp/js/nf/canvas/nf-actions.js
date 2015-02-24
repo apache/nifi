@@ -185,12 +185,17 @@ nf.Actions = (function () {
             if (selection.size() === 1 && nf.CanvasUtils.isConnection(selection)) {
                 var selectionData = selection.datum();
 
-                // if the source is actually in another group
-                if (selectionData.component.source.groupId !== nf.Canvas.getGroupId()) {
-                    nf.CanvasUtils.showComponent(selectionData.component.source.groupId, selectionData.component.source.id);
-                } else {
+                // the source is in the current group
+                if (selectionData.component.source.groupId === nf.Canvas.getGroupId()) {
                     var source = d3.select('#id-' + selectionData.component.source.id);
                     nf.Actions.show(source);
+                } else if (selectionData.component.source.type === 'REMOTE_OUTPUT_PORT') {
+                    // if the source is remote
+                    var remoteSource = d3.select('#id-' + selectionData.component.source.groupId);
+                    nf.Actions.show(remoteSource);
+                } else {
+                    // if the source is local but in a sub group
+                    nf.CanvasUtils.showComponent(selectionData.component.source.groupId, selectionData.component.source.id);
                 }
             }
         },
@@ -204,12 +209,17 @@ nf.Actions = (function () {
             if (selection.size() === 1 && nf.CanvasUtils.isConnection(selection)) {
                 var selectionData = selection.datum();
 
-                // if the destination is actually in another group
-                if (selectionData.component.destination.groupId !== nf.Canvas.getGroupId()) {
-                    nf.CanvasUtils.showComponent(selectionData.component.destination.groupId, selectionData.component.destination.id);
-                } else {
+                // the destination is in the current group or its remote
+                if (selectionData.component.destination.groupId === nf.Canvas.getGroupId()) {
                     var destination = d3.select('#id-' + selectionData.component.destination.id);
                     nf.Actions.show(destination);
+                } else if (selectionData.component.destination.type === 'REMOTE_INPUT_PORT') {
+                    // if the destination is remote
+                    var remoteDestination = d3.select('#id-' + selectionData.component.destination.groupId);
+                    nf.Actions.show(remoteDestination);
+                } else {
+                    // if the destination is local but in a sub group
+                    nf.CanvasUtils.showComponent(selectionData.component.destination.groupId, selectionData.component.destination.id);
                 }
             }
         },
