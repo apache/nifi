@@ -67,17 +67,41 @@ public class TestIdentifyMimeType {
         expectedMimeTypes.put("1.pdf", "application/pdf");
         expectedMimeTypes.put("grid.gif", "image/gif");
         expectedMimeTypes.put("1.tar", "application/x-tar");
+        expectedMimeTypes.put("1.tar.gz", "application/gzip");
         expectedMimeTypes.put("1.jar", "application/java-archive");
         expectedMimeTypes.put("1.xml", "application/xml");
         expectedMimeTypes.put("flowfilev3", "application/flowfile-v3");
         expectedMimeTypes.put("flowfilev1.tar", "application/flowfile-v1");
+
+        final Map<String, String> expectedExtensions = new HashMap<>();
+        expectedExtensions.put("1.7z", ".7z");
+        expectedExtensions.put("1.mdb", ".mdb");
+        expectedExtensions.put("1.txt", ".txt");
+        expectedExtensions.put("1.txt.bz2", ".bz2");
+        expectedExtensions.put("1.txt.gz", ".gz");
+        expectedExtensions.put("1.zip", ".zip");
+        expectedExtensions.put("bgBannerFoot.png", ".png");
+        expectedExtensions.put("blueBtnBg.jpg", ".jpg");
+        expectedExtensions.put("1.pdf", ".pdf");
+        expectedExtensions.put("grid.gif", ".gif");
+        expectedExtensions.put("1.tar", ".tar");
+        expectedExtensions.put("1.tar.gz", ".gz");
+        expectedExtensions.put("1.jar", ".jar");
+        expectedExtensions.put("1.xml", ".xml");
+        expectedExtensions.put("flowfilev3", "");
+        expectedExtensions.put("flowfilev1.tar", "");
 
         final List<MockFlowFile> filesOut = runner.getFlowFilesForRelationship(IdentifyMimeType.REL_SUCCESS);
         for (final MockFlowFile file : filesOut) {
             final String filename = file.getAttribute(CoreAttributes.FILENAME.key());
             final String mimeType = file.getAttribute(CoreAttributes.MIME_TYPE.key());
             final String expected = expectedMimeTypes.get(filename);
+
+            final String extension = file.getAttribute("mime.extension");
+            final String expectedExtension = expectedExtensions.get(filename);
+
             assertEquals("Expected " + file + " to have MIME Type " + expected + ", but it was " + mimeType, expected, mimeType);
+            assertEquals("Expected " + file + " to have extension " + expectedExtension + ", but it was " + extension, expectedExtension, extension);
         }
     }
 }
