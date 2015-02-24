@@ -61,7 +61,7 @@ public abstract class AbstractJsonPathProcessor extends AbstractProcessor {
         }
     };
 
-    public static DocumentContext validateAndEstablishJsonContext(ProcessSession processSession, FlowFile flowFile) {
+    static DocumentContext validateAndEstablishJsonContext(ProcessSession processSession, FlowFile flowFile) {
 
         final BooleanHolder validJsonHolder = new BooleanHolder(false);
         processSession.read(flowFile, new InputStreamCallback() {
@@ -101,7 +101,7 @@ public abstract class AbstractJsonPathProcessor extends AbstractProcessor {
         return !(obj instanceof Map || obj instanceof List);
     }
 
-    public static String getResultRepresentation(Object jsonPathResult) {
+    static String getResultRepresentation(Object jsonPathResult) {
         if (isJsonScalar(jsonPathResult)) {
             return jsonPathResult.toString();
         }
