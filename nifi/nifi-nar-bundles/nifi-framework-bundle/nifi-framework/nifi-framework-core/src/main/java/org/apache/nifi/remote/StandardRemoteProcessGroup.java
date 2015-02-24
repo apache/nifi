@@ -915,50 +915,6 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
         try {
             verifyCanStartTransmitting();
 
-            // Check if any port is invalid
-            boolean invalidPort = false;
-            for (final Port port : getInputPorts()) {
-                if (!port.isValid()) {
-                    invalidPort = true;
-                    break;
-                }
-            }
-
-            if (!invalidPort) {
-                for (final Port port : getOutputPorts()) {
-                    if (!port.isValid()) {
-                        invalidPort = true;
-                    }
-                }
-            }
-
-            // if any port is invalid, refresh contents to check if it is still invalid
-            boolean allPortsInvalid = invalidPort;
-            if (invalidPort) {
-                try {
-                    refreshFlowContents();
-                } catch (final CommunicationsException e) {
-                    logger.warn("{} Attempted to refresh Flow Contents because at least one port is invalid but failed due to {}", this, e);
-                }
-
-                for (final Port port : getInputPorts()) {
-                    if (port.isValid()) {
-                        allPortsInvalid = false;
-                        break;
-                    }
-                }
-                for (final Port port : getOutputPorts()) {
-                    if (port.isValid()) {
-                        allPortsInvalid = false;
-                        break;
-                    }
-                }
-            }
-
-            if (allPortsInvalid) {
-                throw new IllegalStateException("Cannot Enable Transmission because all Input Ports & Output Ports to this Remote Process Group are in invalid states");
-            }
-
             for (final Port port : getInputPorts()) {
                 // if port is not valid, don't start it because it will never become valid.
                 // Validation is based on connections and whether or not the remote target exists.
