@@ -155,10 +155,10 @@ by a single NiFi Cluster Manager (NCM).  The design of clustering is a simple
 master/slave model where the NCM is the master and the Nodes are the slaves.
 The NCM's reason for existence is to keep track of which Nodes are in the cluster,
 their status, and to replicate requests to modify or observe the 
-flow.  Fundamentally then the NCM keeps the state of the cluster consistent.  
+flow.  Fundamentally, then, the NCM keeps the state of the cluster consistent.  
 While the model is that of master and slave, if the master dies the Nodes are all
 instructed to continue operating as they were to ensure the data flow remains live.
-The absence of the NCM simply means new nodes cannot come on-line and flow changes
+The absence of the NCM simply means new nodes cannot join the cluster and cluster flow changes
 cannot occur until the NCM is restored.
 
 Performance Expectations and Characteristics of NiFi

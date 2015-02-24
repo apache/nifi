@@ -21,9 +21,9 @@ Apache NiFi Team <dev@nifi.incubator.apache.org>
 
 System Requirements
 -------------------
-Apache NiFi can run on something as simple as a laptop, but it can also be clustered across many enterprise servers. The hardware and memory you need will depend on the size and nature of the dataflow you are running. NiFi has the following system requirements:
+Apache NiFi can run on something as simple as a laptop, but it can also be clustered across many enterprise-class servers. Therefore, the amount of hardware and memory needed will depend on the size and nature of the dataflow involved. The data is stored on disk while NiFi is processing it. So NiFi needs to have sufficient disk space allocated for its various repositories, particularly the content repository, flowfile repository, and provenance repository (see the <<system_properties>> section for more information about these repositories). NiFi has the following minimum system requirements:
 
-* Requires Java 7
+* Requires Java 7 or newer
 * Supported Operating Systems: 
 ** Linux
 ** Unix
@@ -40,7 +40,7 @@ Note that there is a known issue in Internet Explorer (IE) 10 and 11 that can ca
 How to install and start NiFi
 -----------------------------
 
-* Linux/Unix/OSX
+* Linux/Unix/OS X
 ** Decompress and untar into desired installation directory
 ** Make any desired edits in files found under <installdir>/conf
 *** At a minimum, we recommend editing the _nifi.properties_ file and entering a password for the nifi.sensitive.props.key (see <<system_properties>> below)
@@ -78,10 +78,9 @@ When NiFi first starts up, the following files and directories are created:
 See the <<system_properties>> section of this guide for more information about configuring NiFi repositories and configuration files.
 
 
-Best Practice Configuration
----------------------------
-NOTE: Typical Linux defaults are not necessarily well tuned for the needs of an IO intensive application like
-NiFi.  For all of these areas your distribution's requirements may vary.  Use these sections as advice but
+Configuration Best Practices
+----------------------------
+NOTE: If you are running on Linux, consider these best practices. Typical Linux defaults are not necessarily well tuned for the needs of an IO intensive application like NiFi.  For all of these areas, your distribution's requirements may vary.  Use these sections as advice, but
 consult your distribution-specific documentation for how best to achieve these recommendations.
 
 Maximum File Handles::
@@ -201,7 +200,7 @@ Clustering Configuration
 
 This section provides a quick overview of NiFi Clustering and instructions on how to set up a basic cluster. In the future, we hope to provide supplemental documentation that covers the NiFi Cluster Architecture in depth. 
 
-The design of NiFi clustering is a simple master/slave model where there is a master and one or more slaves. While the model is that of master and slave, if the master dies, the slaves are all instructed to continue operating as they were to ensure the dataflow remains live. The absence of the master simply means new slaves cannot come on-line and flow changes cannot occur until the master is restored. In NiFi clustering, we call the master the NiFi Cluster Manager (NCM), and the slaves are called Nodes. See a full description of each in the Terminology section below.
+The design of NiFi clustering is a simple master/slave model where there is a master and one or more slaves. While the model is that of master and slave, if the master dies, the slaves are all instructed to continue operating as they were to ensure the dataflow remains live. The absence of the master simply means new slaves cannot join the cluster and cluster flow changes cannot occur until the master is restored. In NiFi clustering, we call the master the NiFi Cluster Manager (NCM), and the slaves are called Nodes. See a full description of each in the Terminology section below.
 
 *Why Cluster?* +
 
@@ -216,17 +215,17 @@ NiFi Clustering is unique and has its own terminology. It's important to underst
 
 *Nodes*: Each cluster is made up of the NCM and one or more nodes. The nodes do the actual data processing. (The NCM does not process any data; all data runs through the nodes.)  While nodes are connected to a cluster, the DFM may not access the User Interface for any of the individual nodes. The User Interface of a node may only be accessed if the node is manually removed from the cluster.
 
-*Primary Node*: Every cluster has one Primary Node. On this node, it is possible to run "Isolated Processors" (see below). By default, the NCM will elect the first node that connects to the cluster as the Primary Node; however, the DFM may select a new node as the Primary Node in the Cluster Management page of the User Interface if desired. If the cluster restarts, the NCM will "remember" which node was he Primary Node and wait for that node to re-connect before allowing the DFM to make any changes to the dataflow. The ADMIN may adjust how long the NCM waits for the Primary Node to reconnect by adjusting the property _nifi.cluster.manager.safemode.duration_ in the _nifi.properties_ file, which is discussed in the <<system_properties>> section of this document. 
+*Primary Node*: Every cluster has one Primary Node. On this node, it is possible to run "Isolated Processors" (see below). By default, the NCM will elect the first node that connects to the cluster as the Primary Node; however, the DFM may select a new node as the Primary Node in the Cluster Management page of the User Interface if desired. If the cluster restarts, the NCM will "remember" which node was the Primary Node and wait for that node to re-connect before allowing the DFM to make any changes to the dataflow. The ADMIN may adjust how long the NCM waits for the Primary Node to reconnect by adjusting the property _nifi.cluster.manager.safemode.duration_ in the _nifi.properties_ file, which is discussed in the <<system_properties>> section of this document. 
 
-*Isolated Processors*: In a NiFi cluster, the same dataflow runs on all the nodes. As a result, every component in the flow runs on every node. However, there may be cases when the DFM would not want every processor to run on every node. The most common case is when using a processor like the GetSFTP processor, which is pulling from a remote directory. If the GetSFTP on every node tries simultaneously to pull from the same remote directory, there could be race conditions. Therefore, the DFM could configure the GetSFTP on the Primary Node to run in isolation, meaning that it only runs on that node. It could pull in data and -with the proper dataflow configuration- load-balance it across the rest of the nodes in the cluster. Note that while this feature exists, it is also very common to simply use a standalone NiFi instance to pull data and feed it to the cluster. It just depends on the resources available and how the Administrator decides to configure the cluster. 
+*Isolated Processors*: In a NiFi cluster, the same dataflow runs on all the nodes. As a result, every component in the flow runs on every node. However, there may be cases when the DFM would not want every processor to run on every node. The most common case is when using a processor that communicates with an external service using a protocol that does not scale well. For example, the GetSFTP processor pulls from a remote directory, and if the GetSFTP on every node in the cluster tries simultaneously to pull from the same remote directory, there could be race conditions. Therefore, the DFM could configure the GetSFTP on the Primary Node to run in isolation, meaning that it only runs on that node. It could pull in data and -with the proper dataflow configuration- load-balance it across the rest of the nodes in the cluster. Note that while this feature exists, it is also very common to simply use a standalone NiFi instance to pull data and feed it to the cluster. It just depends on the resources available and how the Administrator decides to configure the cluster. 
 
 *Heartbeats*: The nodes communicate their health and status to the NCM via "heartbeats", which let the NCM know they are still connected to the cluster and working properly. By default, the nodes emit heartbeats to the NCM every 5 seconds, and if the NCM does not receive a heartbeat from a node within 45 seconds, it disconnects the node due to "lack of heartbeat". (The 5-second and 45-second settings are configurable in the _nifi.properties_ file. See the <<system_properties>> section of this document for more information.) The reason that the NCM disconnects the node is because the NCM needs to ensure that every node in the cluster is in sync, and if a node is not heard from regularly, the NCM cannot be sure it is still in sync with the rest of the cluster. If, after 45 seconds, the node does send a new heartbeat, the NCM will automatically reconnect the node to the cluster. Both the disconnection due to lack of heartbeat and the reconnection once a heartbeat is received are reported to the DFM in the NCM's User Interface. 
 
 *Communication within the Cluster* +
 
-As noted, the nodes communicate with the NCM via heartbeats. The NCM-to-node communication may be set up as multicast or unicast, depending on the properties that are configured in the _nifi.properties_ file (See <<system_properties>> ). By default, unicast is used. It is important to note that the nodes in a NiFi cluster are not aware of each other. They only communicate with the NCM. Therefore, if one of the nodes goes down, the other nodes in the cluster will not automatically pick up the load of the missing node. It is possible for the DFM to configure the dataflow for failover contingencies; however, this is dependent on the dataflow design and does not happen automatically.
+As noted, the nodes communicate with the NCM via heartbeats. The communication that allows the nodes to find the NCM may be set up as multicast or unicast; this is configured in the _nifi.properties_ file (See <<system_properties>> ). By default, unicast is used. It is important to note that the nodes in a NiFi cluster are not aware of each other. They only communicate with the NCM. Therefore, if one of the nodes goes down, the other nodes in the cluster will not automatically pick up the load of the missing node. It is possible for the DFM to configure the dataflow for failover contingencies; however, this is dependent on the dataflow design and does not happen automatically.
 
-When the DFM makes changes to the dataflow, the NCM communicates those changes to the nodes and waits for each node to respond, indicating that it has made the change on its local flow. If the DFM wants to make another change, the NCM will only allow this to happen once all the nodes have acknowledged that they've implemented the last change. As such, the speed with which dataflow changes may be made is as fast as the slowest node. When all nodes are located in close proximity and the network is stable, this response time is not an issue. However, if your cluster is comprised of nodes that are geographically dispersed and/or operating over a latent network, there may be times when DFMs cannot make changes as quickly as they would like. Keep this in mind when setting up a cluster.
+When the DFM makes changes to the dataflow, the NCM communicates those changes to the nodes and waits for each node to respond, indicating that it has made the change on its local flow. If the DFM wants to make another change, the NCM will only allow this to happen once all the nodes have acknowledged that they've implemented the last change. This is a safeguard to ensure that all the nodes in the cluster have the correct and up-to-date flow.
 
 *Dealing with Disconnected Nodes* +
 
@@ -259,7 +258,8 @@ For Node 1, the minimum properties to configure are as follows:
 * Under the Web Properties, set either the http or https port that you want Node 1 to run on. If the NCM is running on the same server, choose a different web port for Node 1.
 * Under Cluster Node Properties, set the following:
 ** nifi.cluster.is.node - Set this to _true_.
-** nifi.cluster.node.protocol.port - Set this to an open port that is higher than 1024 (anything lower requires root). If Node 1 and the NCM are on the same server, make sure this port is different from the nifi.cluster.protocol.manager.port.  
+** nifi.cluster.node.protocol.port - Set this to an open port that is higher than 1024 (anything lower requires root). If Node 1 and the NCM are on the same server, make sure this port is different from the nifi.cluster.protocol.manager.port.
+** nifi.cluster.node.unicast.manager.address - Set this to the NCM's fully qualified hostname.  
 ** nifi.cluster.node.unicast.manager.protocol.port - Set this to exactly the same port that was set on the NCM for the property nifi.cluster.manager.protocol.port.
 
 For Node 2, the minimum properties to configure are as follows:
@@ -268,6 +268,7 @@ For Node 2, the minimum properties to configure are as follows:
 * Under the Cluster Node Properties, set the following:
 ** nifi.cluster.is.node - Set this to _true_.
 ** nifi.cluster.node.protocol.port - Set this to an open port that is higher than 1024 (anything lower requires root).
+** nifi.cluster.node.unicast.manager.address - Set this to the NCM's fully qualified hostname.
 ** nifi.cluster.node.unicast.manager.protocol.port - Set this to exactly the same port that was set on the NCM for the property nifi.cluster.manager.protocol.port.
 
 Now, it is possible to start up the cluster. Technically, it does not matter which instance starts up first. However, you could start the NCM first, then Node 1 and then Node 2. Since the first node that connects is automatically elected as the Primary Node, this sequence should create a cluster where Node 1 is the Primary Node. Navigate to the URL for the NCM in your web browser, and the User Interface should look similar to the following:
