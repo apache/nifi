@@ -130,11 +130,12 @@ public class TimerDrivenSchedulingAgent implements SchedulingAgent {
                         // so that we can do this again the next time that the component is yielded.
                         if (scheduledFuture.cancel(false)) {
                             final long yieldNanos = TimeUnit.MILLISECONDS.toNanos(yieldMillis);
-                            final ScheduledFuture<?> newFuture = flowEngine.scheduleWithFixedDelay(this, yieldNanos, 
-                                    connectable.getSchedulingPeriod(TimeUnit.NANOSECONDS), TimeUnit.NANOSECONDS);
                             
                             synchronized (scheduleState) {
                                 if ( scheduleState.isScheduled() ) {
+                                    final ScheduledFuture<?> newFuture = flowEngine.scheduleWithFixedDelay(this, yieldNanos, 
+                                            connectable.getSchedulingPeriod(TimeUnit.NANOSECONDS), TimeUnit.NANOSECONDS);
+                                    
                                     scheduleState.replaceFuture(scheduledFuture, newFuture);
                                     futureRef.set(newFuture);
                                 }
@@ -152,11 +153,11 @@ public class TimerDrivenSchedulingAgent implements SchedulingAgent {
                         // an accurate accounting of which futures are outstanding; we must then also update the futureRef
                         // so that we can do this again the next time that the component is yielded.
                         if (scheduledFuture.cancel(false)) {
-                            final ScheduledFuture<?> newFuture = flowEngine.scheduleWithFixedDelay(this, NO_WORK_YIELD_NANOS, 
-                                    connectable.getSchedulingPeriod(TimeUnit.NANOSECONDS), TimeUnit.NANOSECONDS);
-                            
                             synchronized (scheduleState) {
                                 if ( scheduleState.isScheduled() ) {
+                                    final ScheduledFuture<?> newFuture = flowEngine.scheduleWithFixedDelay(this, NO_WORK_YIELD_NANOS, 
+                                            connectable.getSchedulingPeriod(TimeUnit.NANOSECONDS), TimeUnit.NANOSECONDS);
+                                    
                                     scheduleState.replaceFuture(scheduledFuture, newFuture);
                                     futureRef.set(newFuture);
                                 }

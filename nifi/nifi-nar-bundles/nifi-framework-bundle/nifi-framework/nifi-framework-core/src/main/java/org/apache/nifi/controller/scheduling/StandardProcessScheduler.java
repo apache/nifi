@@ -43,7 +43,6 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.annotation.OnConfigured;
-import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.engine.FlowEngine;
@@ -374,9 +373,9 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                 return;
             }
 
+            state.setScheduled(false);
             getSchedulingAgent(procNode).unschedule(procNode, state);
             procNode.setScheduledState(ScheduledState.STOPPED);
-            state.setScheduled(false);
         }
 
         final Runnable stopProcRunnable = new Runnable() {
@@ -474,8 +473,8 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         if (!state.isScheduled()) {
             return;
         }
+        
         state.setScheduled(false);
-
         getSchedulingAgent(connectable).unschedule(connectable, state);
 
         if (!state.isScheduled() && state.getActiveThreadCount() == 0 && state.mustCallOnStoppedMethods()) {
