@@ -54,7 +54,27 @@ public class SSLSocketChannelCommunicationsSession extends AbstractCommunication
 
     @Override
     public void close() throws IOException {
-        channel.close();
+        IOException suppressed = null;
+        
+        try {
+            request.consume();
+        } catch (final IOException ioe) {
+            suppressed = ioe;
+        }
+        
+        try {
+            channel.close();
+        } catch (final IOException ioe) {
+            if ( suppressed != null ) {
+                ioe.addSuppressed(suppressed);
+            }
+            
+            throw ioe;
+        }
+        
+        if ( suppressed != null ) {
+            throw suppressed;
+        }
     }
     
     @Override

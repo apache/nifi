@@ -377,11 +377,6 @@ public class EndpointConnectionPool {
     		return false;
     	}
     	
-    	final String url = peer.getUrl();
-    	if ( url == null ) {
-    		return false;
-    	}
-    	
     	final BlockingQueue<EndpointConnection> connectionQueue = connectionQueueMap.get(peer.getDescription());
     	if ( connectionQueue == null ) {
     	    return false;

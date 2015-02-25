@@ -150,6 +150,18 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
         
         String url = getRemoteProcessGroup().getTargetUri().toString();
         
+        // If we are sending data, we need to ensure that we have at least 1 FlowFile to send. Otherwise,
+        // we don't want to create a transaction at all.
+        final FlowFile firstFlowFile;
+        if ( getConnectableType() == ConnectableType.REMOTE_INPUT_PORT ) {
+            firstFlowFile = session.get();
+            if ( firstFlowFile == null ) {
+                return;
+            }
+        } else {
+            firstFlowFile = null;
+        }
+        
         final SiteToSiteClient client = clientRef.get();
         final Transaction transaction;
         try {
@@ -187,7 +199,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
 
         try {
             if ( getConnectableType() == ConnectableType.REMOTE_INPUT_PORT ) {
-                transferFlowFiles(transaction, context, session);
+                transferFlowFiles(transaction, context, session, firstFlowFile);
             } else {
                 final int numReceived = receiveFlowFiles(transaction, context, session);
                 if ( numReceived == 0 ) {
@@ -196,14 +208,15 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
             }
 
             session.commit();
-        } catch (final Exception e) {
-            final String message = String.format("%s failed to communicate with remote NiFi instance due to %s", this, e.toString());
-            logger.error("{} failed to communicate with remote NiFi instance due to {}", this, e.toString());
+        } catch (final Throwable t) {
+            final String message = String.format("%s failed to communicate with remote NiFi instance due to %s", this, t.toString());
+            logger.error("{} failed to communicate with remote NiFi instance due to {}", this, t.toString());
             if ( logger.isDebugEnabled() ) {
-                logger.error("", e);
+                logger.error("", t);
             }
             
             remoteGroup.getEventReporter().reportEvent(Severity.ERROR, CATEGORY, message);
+            transaction.error();
             session.rollback();
         }
     }
@@ -216,11 +229,8 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
     }
     
     
-    private int transferFlowFiles(final Transaction transaction, final ProcessContext context, final ProcessSession session) throws IOException, ProtocolException {
-        FlowFile flowFile = session.get();
-        if (flowFile == null) {
-            return 0;
-        }
+    private int transferFlowFiles(final Transaction transaction, final ProcessContext context, final ProcessSession session, FlowFile firstFlowFile) throws IOException, ProtocolException {
+        FlowFile flowFile = firstFlowFile;
 
         try {
             final String userDn = transaction.getCommunicant().getDistinguishedName();
