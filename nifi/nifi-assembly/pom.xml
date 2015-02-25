@@ -173,6 +173,7 @@
         <nifi.flowcontroller.graceful.shutdown.period>10 sec</nifi.flowcontroller.graceful.shutdown.period>
         <nifi.flowservice.writedelay.interval>500 ms</nifi.flowservice.writedelay.interval>
         <nifi.administrative.yield.duration>30 sec</nifi.administrative.yield.duration>
+        <nifi.bored.yield.duration>10 millis</nifi.bored.yield.duration>
 
         <nifi.flow.configuration.file>./conf/flow.xml.gz</nifi.flow.configuration.file>
         <nifi.flow.configuration.archive.dir>./conf/archive/</nifi.flow.configuration.archive.dir>

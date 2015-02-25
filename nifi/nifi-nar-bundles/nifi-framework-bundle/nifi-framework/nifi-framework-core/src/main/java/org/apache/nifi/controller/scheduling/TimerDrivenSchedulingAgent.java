@@ -37,12 +37,13 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.StandardProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class TimerDrivenSchedulingAgent implements SchedulingAgent {
     private static final Logger logger = LoggerFactory.getLogger(TimerDrivenSchedulingAgent.class);
-    private static final long NO_WORK_YIELD_NANOS = TimeUnit.MILLISECONDS.toNanos(10L);
+    private final long noWorkYieldNanos;
     
     private final FlowController flowController;
     private final FlowEngine flowEngine;
@@ -56,6 +57,13 @@ public class TimerDrivenSchedulingAgent implements SchedulingAgent {
         this.flowEngine = flowEngine;
         this.contextFactory = contextFactory;
         this.encryptor = encryptor;
+        
+        final String boredYieldDuration = NiFiProperties.getInstance().getBoredYieldDuration();
+        try {
+            noWorkYieldNanos = FormatUtils.getTimeDuration(boredYieldDuration, TimeUnit.NANOSECONDS);
+        } catch (final IllegalArgumentException e) {
+            throw new RuntimeException("Failed to create SchedulingAgent because the " + NiFiProperties.BORED_YIELD_DURATION + " property is set to an invalid time duration: " + boredYieldDuration);
+        }
     }
 
     @Override
@@ -141,7 +149,7 @@ public class TimerDrivenSchedulingAgent implements SchedulingAgent {
                                 }
                             }
                         }
-                    } else if ( shouldYield ) {
+                    } else if ( noWorkYieldNanos > 0L && shouldYield ) {
                         // Component itself didn't yield but there was no work to do, so the framework will choose
                         // to yield the component automatically for a short period of time.
                         final ScheduledFuture<?> scheduledFuture = futureRef.get();
@@ -155,7 +163,7 @@ public class TimerDrivenSchedulingAgent implements SchedulingAgent {
                         if (scheduledFuture.cancel(false)) {
                             synchronized (scheduleState) {
                                 if ( scheduleState.isScheduled() ) {
-                                    final ScheduledFuture<?> newFuture = flowEngine.scheduleWithFixedDelay(this, NO_WORK_YIELD_NANOS, 
+                                    final ScheduledFuture<?> newFuture = flowEngine.scheduleWithFixedDelay(this, noWorkYieldNanos, 
                                             connectable.getSchedulingPeriod(TimeUnit.NANOSECONDS), TimeUnit.NANOSECONDS);
                                     
                                     scheduleState.replaceFuture(scheduledFuture, newFuture);
