@@ -28,6 +28,8 @@ org.apache.nifi.processors.standard.GetFile
 org.apache.nifi.processors.standard.GetFTP
 org.apache.nifi.processors.standard.GetHTTP
 org.apache.nifi.processors.standard.GetSFTP
+org.apache.nifi.processors.standard.HandleHttpRequest
+org.apache.nifi.processors.standard.HandleHttpResponse
 org.apache.nifi.processors.standard.HashAttribute
 org.apache.nifi.processors.standard.HashContent
 org.apache.nifi.processors.standard.IdentifyMimeType

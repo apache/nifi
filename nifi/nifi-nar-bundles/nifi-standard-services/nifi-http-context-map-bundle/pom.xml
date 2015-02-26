@@ -19,28 +19,13 @@
         <artifactId>nifi-standard-services</artifactId>
         <version>0.0.2-incubating-SNAPSHOT</version>
     </parent>
-    <artifactId>nifi-standard-services-api-nar</artifactId>
-    <packaging>nar</packaging>
-    <dependencies>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-ssl-context-service-api</artifactId>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-distributed-cache-client-service-api</artifactId>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-load-distribution-service-api</artifactId>
-            <scope>compile</scope>
-        </dependency>
-		<dependency>
-			<groupId>org.apache.nifi</groupId>
-			<artifactId>nifi-http-context-map-api</artifactId>
-			<scope>compile</scope>
-		</dependency>
-    </dependencies>
+
+    <artifactId>nifi-http-context-map-bundle</artifactId>
+    <packaging>pom</packaging>
+
+    <modules>
+        <module>nifi-http-context-map</module>
+        <module>nifi-http-context-map-nar</module>
+    </modules>
+    
 </project>

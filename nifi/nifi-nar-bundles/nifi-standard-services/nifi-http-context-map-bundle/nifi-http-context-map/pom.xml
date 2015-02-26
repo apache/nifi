@@ -16,31 +16,29 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-standard-services</artifactId>
+        <artifactId>nifi-http-context-map-bundle</artifactId>
         <version>0.0.2-incubating-SNAPSHOT</version>
     </parent>
-    <artifactId>nifi-standard-services-api-nar</artifactId>
-    <packaging>nar</packaging>
+	
+    <artifactId>nifi-http-context-map</artifactId>
+    <packaging>jar</packaging>
+	
     <dependencies>
+    	<dependency>
+    		<groupId>org.apache.nifi</groupId>
+    		<artifactId>nifi-api</artifactId>
+    	</dependency>
+    	<dependency>
+    		<groupId>org.apache.nifi</groupId>
+    		<artifactId>nifi-processor-utils</artifactId>
+    	</dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-ssl-context-service-api</artifactId>
-            <scope>compile</scope>
+            <artifactId>nifi-http-context-map-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-distributed-cache-client-service-api</artifactId>
-            <scope>compile</scope>
+        	<groupId>javax.servlet</groupId>
+        	<artifactId>javax.servlet-api</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-load-distribution-service-api</artifactId>
-            <scope>compile</scope>
-        </dependency>
-		<dependency>
-			<groupId>org.apache.nifi</groupId>
-			<artifactId>nifi-http-context-map-api</artifactId>
-			<scope>compile</scope>
-		</dependency>
     </dependencies>
 </project>

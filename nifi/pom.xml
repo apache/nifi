@@ -753,6 +753,12 @@
                 <version>0.0.2-incubating-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
+			<dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-http-context-map-nar</artifactId>
+                <version>0.0.2-incubating-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-properties</artifactId>

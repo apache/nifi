@@ -60,6 +60,12 @@
                 <version>0.0.2-incubating-SNAPSHOT</version>
                 <scope>provided</scope>
             </dependency>
+			<dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-http-context-map-api</artifactId>
+                <version>0.0.2-incubating-SNAPSHOT</version>
+                <scope>provided</scope>
+            </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-distributed-cache-protocol</artifactId>
@@ -73,6 +79,11 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-ssl-context-service</artifactId>
+                <version>0.0.2-incubating-SNAPSHOT</version>
+            </dependency>
+			<dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-http-context-map</artifactId>
                 <version>0.0.2-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>

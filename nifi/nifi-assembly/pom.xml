@@ -156,6 +156,11 @@
             <artifactId>nifi-kafka-nar</artifactId>
             <type>nar</type>
         </dependency>
+		<dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-http-context-map-nar</artifactId>
+            <type>nar</type>
+        </dependency>
     </dependencies>
     
     <properties>        
