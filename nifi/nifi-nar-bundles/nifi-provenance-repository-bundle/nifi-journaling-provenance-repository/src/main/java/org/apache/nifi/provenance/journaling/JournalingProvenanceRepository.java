@@ -30,11 +30,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.nifi.events.EventReporter;
@@ -48,6 +50,8 @@ import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.apache.nifi.provenance.StorageLocation;
 import org.apache.nifi.provenance.StoredProvenanceEvent;
 import org.apache.nifi.provenance.journaling.config.JournalingRepositoryConfig;
+import org.apache.nifi.provenance.journaling.index.EventIndexSearcher;
+import org.apache.nifi.provenance.journaling.index.IndexAction;
 import org.apache.nifi.provenance.journaling.index.IndexManager;
 import org.apache.nifi.provenance.journaling.index.LuceneIndexManager;
 import org.apache.nifi.provenance.journaling.index.QueryUtils;
@@ -66,24 +70,36 @@ import org.apache.nifi.provenance.lineage.ComputeLineageSubmission;
 import org.apache.nifi.provenance.search.Query;
 import org.apache.nifi.provenance.search.QuerySubmission;
 import org.apache.nifi.provenance.search.SearchableField;
+import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
+// TODO: Add header info to journals. Magic header. Prov repo implementation. Version. Encoding. Encoding Version.
+// TODO: EXPIRE : backpressure if unable to delete fast enough! I.e., if size is greater than 110% of size specified
+// TODO: Ensure number of partitions does not go below the current value. If it does, use the existing value
+// so that we don't lose events.
 public class JournalingProvenanceRepository implements ProvenanceEventRepository {
-    public static final String BLOCK_SIZE = "nifi.provenance.block.size";
+    public static final String WORKER_THREAD_POOL_SIZE = "nifi.provenance.repository.worker.threads";
+    public static final String BLOCK_SIZE = "nifi.provenance.repository.writer.block.size";
     
     private static final Logger logger = LoggerFactory.getLogger(JournalingProvenanceRepository.class);
     
     private final JournalingRepositoryConfig config;
     private final AtomicLong idGenerator = new AtomicLong(0L);
-    private final ScheduledExecutorService executor;
     
-    private EventReporter eventReporter;    // effectively final
-    private PartitionManager partitionManager;  // effectively final
-    private QueryManager queryManager;    // effectively final
-    private IndexManager indexManager;    // effectively final
+    // the follow member variables are effectively final. They are initialized
+    // in the initialize method rather than the constructor because we want to ensure
+    // that they only not created every time that the Java Service Loader instantiates the class.
+    private ScheduledExecutorService workerExecutor;
+    private ExecutorService queryExecutor;
+    private ExecutorService compressionExecutor;
+    private EventReporter eventReporter;
+    private PartitionManager partitionManager;
+    private QueryManager queryManager;
+    private IndexManager indexManager;
     
     public JournalingProvenanceRepository() throws IOException {
         this(createConfig());
@@ -91,18 +107,21 @@ public class JournalingProvenanceRepository implements ProvenanceEventRepository
     
     public JournalingProvenanceRepository(final JournalingRepositoryConfig config) throws IOException {
         this.config = config;
-        this.executor = Executors.newScheduledThreadPool(config.getThreadPoolSize(), new ThreadFactory() {
-            private final ThreadFactory defaultFactory = Executors.defaultThreadFactory();
-            
+    }
+
+    private static ThreadFactory createThreadFactory(final String namePrefix) {
+        final ThreadFactory defaultFactory = Executors.defaultThreadFactory();
+        final AtomicInteger counter = new AtomicInteger(0);
+        
+        return new ThreadFactory() {
             @Override
             public Thread newThread(final Runnable r) {
                 final Thread thread = defaultFactory.newThread(r);
-                thread.setName("Provenance Repository Worker Thread");
+                thread.setName(namePrefix + "-" + counter.incrementAndGet());
                 return thread;
             }
-        });
+        };
     }
-    
     
     private static JournalingRepositoryConfig createConfig()  {
         final NiFiProperties properties = NiFiProperties.getInstance();
@@ -116,6 +135,7 @@ public class JournalingProvenanceRepository implements ProvenanceEventRepository
         final String rolloverSize = properties.getProperty(NiFiProperties.PROVENANCE_ROLLOVER_SIZE, "100 MB");
         final String shardSize = properties.getProperty(NiFiProperties.PROVENANCE_INDEX_SHARD_SIZE, "500 MB");
         final int queryThreads = properties.getIntegerProperty(NiFiProperties.PROVENANCE_QUERY_THREAD_POOL_SIZE, 2);
+        final int workerThreads = properties.getIntegerProperty(WORKER_THREAD_POOL_SIZE, 4);
         final int journalCount = properties.getIntegerProperty(NiFiProperties.PROVENANCE_JOURNAL_COUNT, 16);
 
         final long storageMillis = FormatUtils.getTimeDuration(storageTime, TimeUnit.MILLISECONDS);
@@ -126,7 +146,7 @@ public class JournalingProvenanceRepository implements ProvenanceEventRepository
         final boolean compressOnRollover = Boolean.parseBoolean(properties.getProperty(NiFiProperties.PROVENANCE_COMPRESS_ON_ROLLOVER));
         final String indexedFieldString = properties.getProperty(NiFiProperties.PROVENANCE_INDEXED_FIELDS);
         final String indexedAttrString = properties.getProperty(NiFiProperties.PROVENANCE_INDEXED_ATTRIBUTES);
-        final int blockSize = properties.getIntegerProperty(BLOCK_SIZE, 1000);
+        final int blockSize = properties.getIntegerProperty(BLOCK_SIZE, 5000);
         
         final Boolean alwaysSync = Boolean.parseBoolean(properties.getProperty("nifi.provenance.repository.always.sync", "false"));
 
@@ -152,7 +172,8 @@ public class JournalingProvenanceRepository implements ProvenanceEventRepository
         config.setJournalRolloverPeriod(rolloverMillis, TimeUnit.MILLISECONDS);
         config.setEventExpiration(storageMillis, TimeUnit.MILLISECONDS);
         config.setMaxStorageCapacity(maxStorageBytes);
-        config.setThreadPoolSize(queryThreads);
+        config.setQueryThreadPoolSize(queryThreads);
+        config.setWorkerThreadPoolSize(workerThreads);
         config.setPartitionCount(journalCount);
         config.setBlockSize(blockSize);
         
@@ -169,9 +190,43 @@ public class JournalingProvenanceRepository implements ProvenanceEventRepository
     public synchronized void initialize(final EventReporter eventReporter) throws IOException {
         this.eventReporter = eventReporter;
         
-        this.indexManager = new LuceneIndexManager(config, executor);
-        this.partitionManager = new QueuingPartitionManager(indexManager, config, executor);
-        this.queryManager = new StandardQueryManager(partitionManager, config, 10);
+        // We use 3 different thread pools here because we don't want to threads from 1 pool to interfere with
+        // each other. This is because the worker threads can be long running, and they shouldn't tie up the
+        // compression threads. Likewise, there may be MANY compression tasks, which could delay the worker
+        // threads. And the query threads need to run immediately when a user submits a query - they cannot
+        // wait until we finish compressing data and sync'ing the repository!
+        final int workerThreadPoolSize = Math.max(2, config.getWorkerThreadPoolSize());
+        this.workerExecutor = Executors.newScheduledThreadPool(workerThreadPoolSize, createThreadFactory("Provenance Repository Worker Thread"));
+        
+        final int queryThreadPoolSize = Math.max(2, config.getQueryThreadPoolSize());
+        this.queryExecutor = Executors.newScheduledThreadPool(queryThreadPoolSize, createThreadFactory("Provenance Repository Query Thread"));
+        
+        final int compressionThreads = Math.max(1, config.getCompressionThreadPoolSize());
+        this.compressionExecutor = Executors.newFixedThreadPool(compressionThreads, createThreadFactory("Provenance Repository Compression Thread"));
+        
+        this.indexManager = new LuceneIndexManager(config, workerExecutor, queryExecutor);
+        this.partitionManager = new QueuingPartitionManager(indexManager, idGenerator, config, workerExecutor, compressionExecutor);
+        this.queryManager = new StandardQueryManager(indexManager, queryExecutor, config, 10);
+        
+        final Long maxEventId = getMaxEventId();
+        if ( maxEventId != null && maxEventId > 0 ) {
+            this.idGenerator.set(maxEventId);   // maxEventId returns 1 greater than the last event id written
+        }
+        
+        // the partition manager may have caused journals to be re-indexed. We will sync the
+        // index manager to make sure that we are completely in sync before allowing any new data
+        // to be written to the repo.
+        indexManager.sync();
+        
+        final long expirationFrequencyNanos = config.getExpirationFrequency(TimeUnit.NANOSECONDS);
+        workerExecutor.scheduleWithFixedDelay(new ExpireOldEvents(), expirationFrequencyNanos, expirationFrequencyNanos, TimeUnit.NANOSECONDS);
+        
+        workerExecutor.scheduleWithFixedDelay(new Runnable() {
+            @Override
+            public void run() {
+                partitionManager.deleteEventsBasedOnSize();
+            }
+        }, expirationFrequencyNanos, expirationFrequencyNanos, TimeUnit.NANOSECONDS);
     }
 
     @Override
@@ -186,12 +241,19 @@ public class JournalingProvenanceRepository implements ProvenanceEventRepository
 
     @Override
     public void registerEvents(final Collection<ProvenanceEventRecord> events) throws IOException {
-        partitionManager.withPartition(new VoidPartitionAction() {
-            @Override
-            public void perform(final Partition partition) throws IOException {
-                partition.registerEvents(events, idGenerator.getAndAdd(events.size()));
+        try {
+            partitionManager.withPartition(new VoidPartitionAction() {
+                @Override
+                public void perform(final Partition partition) throws IOException {
+                    partition.registerEvents(events, idGenerator.getAndAdd(events.size()));
+                }
+            }, true);
+        } catch (final IOException ioe) {
+            if ( eventReporter != null ) {
+                eventReporter.reportEvent(Severity.ERROR, "Provenance Repository", "Failed to persist " + events.size() + " events to Provenance Repository due to " + ioe);
             }
-        }, true);
+            throw ioe;
+        }
     }
 
     @Override
@@ -216,11 +278,11 @@ public class JournalingProvenanceRepository implements ProvenanceEventRepository
     public List<StoredProvenanceEvent> getEvents(final long firstRecordId, final int maxRecords) throws IOException {
         // Must generate query to determine the appropriate StorageLocation objects and then call
         // getEvent(List<StorageLocation>)
-        final Set<List<JournaledStorageLocation>> resultSet = partitionManager.withEachPartition(
-            new PartitionAction<List<JournaledStorageLocation>>() {
+        final Set<List<JournaledStorageLocation>> resultSet = indexManager.withEachIndex(
+            new IndexAction<List<JournaledStorageLocation>>() {
                 @Override
-                public List<JournaledStorageLocation> perform(final Partition partition) throws IOException {
-                    return partition.getEvents(firstRecordId, maxRecords);
+                public List<JournaledStorageLocation> perform(final EventIndexSearcher searcher) throws IOException {
+                    return searcher.getEvents(firstRecordId, maxRecords);
                 }
         });
         
@@ -267,7 +329,12 @@ public class JournalingProvenanceRepository implements ProvenanceEventRepository
             final Callable<List<StoredProvenanceEvent>> callable = new Callable<List<StoredProvenanceEvent>>() {
                 @Override
                 public List<StoredProvenanceEvent> call() throws Exception {
-                    try(final TocReader tocReader = new StandardTocReader(new File(journalFile.getParentFile(), journalFile.getName() + ".toc"));
+                    final File tocFile = QueryUtils.getTocFile(journalFile);
+                    if ( !journalFile.exists() || !tocFile.exists() ) {
+                        return Collections.emptyList();
+                    }
+                    
+                    try(final TocReader tocReader = new StandardTocReader(tocFile);
                         final JournalReader reader = new StandardJournalReader(journalFile)) 
                     {
                         final List<StoredProvenanceEvent> storedEvents = new ArrayList<>(locationsForFile.size());
@@ -284,7 +351,7 @@ public class JournalingProvenanceRepository implements ProvenanceEventRepository
                 }
             };
             
-            final Future<List<StoredProvenanceEvent>> future = executor.submit(callable);
+            final Future<List<StoredProvenanceEvent>> future = queryExecutor.submit(callable);
             futures.add(future);
         }
         
@@ -331,7 +398,7 @@ public class JournalingProvenanceRepository implements ProvenanceEventRepository
             public Long perform(final Partition partition) throws IOException {
                 return partition.getMaxEventId();
             }
-        });
+        }, false);
         
         Long maxId = null;
         for ( final Long id : maxIds ) {
@@ -360,26 +427,22 @@ public class JournalingProvenanceRepository implements ProvenanceEventRepository
 
     @Override
     public ComputeLineageSubmission submitLineageComputation(final String flowFileUuid) {
-        // TODO Auto-generated method stub
-        return null;
+        return queryManager.submitLineageComputation(flowFileUuid);
     }
 
     @Override
     public ComputeLineageSubmission retrieveLineageSubmission(final String lineageIdentifier) {
-        // TODO Auto-generated method stub
-        return null;
+        return queryManager.retrieveLineageSubmission(lineageIdentifier);
     }
 
     @Override
     public ComputeLineageSubmission submitExpandParents(final long eventId) {
-        // TODO Auto-generated method stub
-        return null;
+        return queryManager.submitExpandParents(this, eventId);
     }
 
     @Override
     public ComputeLineageSubmission submitExpandChildren(final long eventId) {
-        // TODO Auto-generated method stub
-        return null;
+        return queryManager.submitExpandChildren(this, eventId);
     }
 
     @Override
@@ -388,16 +451,40 @@ public class JournalingProvenanceRepository implements ProvenanceEventRepository
             partitionManager.shutdown();
         }
         
-        indexManager.close();
+        if ( indexManager != null ) {
+            try {
+                indexManager.close();
+            } catch (final IOException ioe) {
+                logger.warn("Failed to shutdown Index Manager due to {}", ioe.toString());
+                if ( logger.isDebugEnabled() ) {
+                    logger.warn("", ioe);
+                }
+            }
+        }
         
-        // TODO: make sure that all are closed here!
+        if ( queryManager != null ) {
+            try {
+                queryManager.close();
+            } catch (final IOException ioe) {
+                logger.warn("Failed to shutdown Query Manager due to {}", ioe.toString());
+                if ( logger.isDebugEnabled() ) {
+                    logger.warn("", ioe);
+                }
+            }
+        }
         
-        executor.shutdown();
+        compressionExecutor.shutdown();
+        workerExecutor.shutdown();
+        queryExecutor.shutdown();
     }
 
     @Override
     public List<SearchableField> getSearchableFields() {
-        return config.getSearchableFields();
+        final List<SearchableField> searchableFields = new ArrayList<>(config.getSearchableFields());
+        // we exclude the Event Time because it is always searchable and is a bit special in its handling
+        // because it dictates in some cases which index files we look at
+        searchableFields.remove(SearchableFields.EventTime);
+        return searchableFields;
     }
 
     @Override
@@ -413,7 +500,7 @@ public class JournalingProvenanceRepository implements ProvenanceEventRepository
             public Long perform(final Partition partition) throws IOException {
                 return partition.getEarliestEventTime();
             }
-        });
+        }, false);
         
         // Find the latest timestamp for each of the "earliest" timestamps.
         // This is a bit odd, but we're doing it for a good reason:
@@ -437,4 +524,43 @@ public class JournalingProvenanceRepository implements ProvenanceEventRepository
         return latest;
     }
 
+
+    
+    private class ExpireOldEvents implements Runnable {
+        @Override
+        public void run() {
+            final long now = System.currentTimeMillis();
+            final long expirationThreshold = now - config.getEventExpiration(TimeUnit.MILLISECONDS);
+            
+            try {
+                indexManager.deleteOldEvents(expirationThreshold);
+            } catch (final IOException ioe) {
+                logger.error("Failed to delete expired events from index due to {}", ioe.toString());
+                if ( logger.isDebugEnabled() ) {
+                    logger.error("", ioe);
+                }
+            }
+            
+            try {
+                partitionManager.withEachPartitionSerially(new VoidPartitionAction() {
+                    @Override
+                    public void perform(final Partition partition) throws IOException {
+                        try {
+                            partition.deleteOldEvents(expirationThreshold);
+                        } catch (final IOException ioe) {
+                            logger.error("Failed to delete expired events from Partition {} due to {}", partition, ioe.toString());
+                            if ( logger.isDebugEnabled() ) {
+                                logger.error("", ioe);
+                            }
+                        }
+                    }
+                }, false);
+            } catch (IOException ioe) {
+                logger.error("Failed to delete expired events from journals due to {}", ioe.toString());
+                if ( logger.isDebugEnabled() ) {
+                    logger.error("", ioe);
+                }
+            }
+        }
+    }
 }

@@ -66,6 +66,12 @@ public interface Partition {
     long getMaxEventId();
     
     /**
+     * Returns the name of the container that this Partition operates on
+     * @return
+     */
+    String getContainerName();
+    
+    /**
      * Returns the locations of events that have an id at least equal to minEventId, returning the events
      * with the smallest ID's possible that are greater than minEventId
      *
@@ -82,4 +88,39 @@ public interface Partition {
      * @throws IOException
      */
     Long getEarliestEventTime() throws IOException;
+    
+    /**
+     * Verifies that the partition is able to be written to. A Partition may need to create a new journal
+     * in order to verify. In this case, the nextId is provided so that the Partition knows the minimum event id
+     * that will be written to the partition
+     * 
+     * @throws IOException
+     */
+    void verifyWritable(long nextId) throws IOException;
+    
+    
+    /**
+     * Deletes any journal for this partition that occurred before the given time
+     * @param earliestEventTimeToDelete
+     * @throws IOException
+     */
+    void deleteOldEvents(long earliestEventTimeToDelete) throws IOException;
+
+    /**
+     * Returns the size of this partition in bytes
+     * @return
+     */
+    long getPartitionSize();
+    
+    /**
+     * Returns the size of the journals in the entire container
+     * @return
+     */
+    long getContainerSize();
+    
+    /**
+     * Deletes the oldest journal from this partition
+     * @throws IOException
+     */
+    void deleteOldest() throws IOException;
 }

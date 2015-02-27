@@ -18,6 +18,7 @@ package org.apache.nifi.provenance.journaling.index;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 
 import org.apache.nifi.provenance.journaling.JournaledStorageLocation;
@@ -32,7 +33,53 @@ public interface EventIndexSearcher extends Closeable {
      */
     SearchResult search(Query query) throws IOException;
     
+    /**
+     * Returns the locations of all events for a FlowFile that has a FlowFile UUID in the collection of
+     * UUIDs provided, if the event time occurs between earliestTime and latestTime. The return value is 
+     * ordered in the order in which the records should be read from the journals in order to obtain 
+     * maximum efficiency
+     * 
+     * @param flowFileUuids
+     * @param earliestTime
+     * @param latestTime
+     * 
+     * @return
+     * @throws IOException
+     */
+    List<JournaledStorageLocation> getEventsForFlowFiles(Collection<String> flowFileUuids, long earliestTime, long latestTime) throws IOException;
+    
+    /**
+     * Returns the locations of events that have Event ID's at least equal to minEventId, and returns
+     * up to the given number of results
+     * 
+     * @param minEventId
+     * @param maxResults
+     * @return
+     * @throws IOException
+     */
     List<JournaledStorageLocation> getEvents(long minEventId, int maxResults) throws IOException;
     
+    /**
+     * Returns the largest event id that is known by the index being searched
+     * @param container
+     * @param section
+     * @return
+     * @throws IOException
+     */
     Long getMaxEventId(String container, String section) throws IOException;
+    
+    /**
+     * Returns the locations of the latest events for the index being searched
+     * @param numEvents
+     * @return
+     * @throws IOException
+     */
+    List<JournaledStorageLocation> getLatestEvents(int numEvents) throws IOException;
+    
+    /**
+     * Returns the total number of events that exist for the index being searched
+     * @return
+     * @throws IOException
+     */
+    long getNumberOfEvents() throws IOException;
 }

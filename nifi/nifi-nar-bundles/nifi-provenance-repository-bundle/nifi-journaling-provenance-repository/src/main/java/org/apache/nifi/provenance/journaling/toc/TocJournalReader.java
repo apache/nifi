@@ -33,13 +33,13 @@ public class TocJournalReader implements Closeable {
     
     private final String containerName;
     private final String sectionName;
-    private final String journalId;
+    private final Long journalId;
     
     private int blockIndex;
     private long nextBlockOffset;
     
     
-    public TocJournalReader(final String containerName, final String sectionName, final String journalId, final File journalFile) throws IOException {
+    public TocJournalReader(final String containerName, final String sectionName, final Long journalId, final File journalFile) throws IOException {
         this.containerName = containerName;
         this.sectionName = sectionName;
         this.journalId = journalId;

@@ -21,10 +21,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.lucene.analysis.Analyzer;
@@ -33,6 +35,7 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field.Store;
 import org.apache.lucene.document.LongField;
 import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.ConcurrentMergeScheduler;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
@@ -40,6 +43,8 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.NumericRangeQuery;
+import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
@@ -61,6 +66,7 @@ public class LuceneIndexWriter implements EventIndexWriter {
     private final JournalingRepositoryConfig config;
     private final Set<SearchableField> nonAttributeSearchableFields;
     private final Set<SearchableField> attributeSearchableFields;
+    private final File indexDir;
     
     private final Directory directory;
     private final Analyzer analyzer;
@@ -68,6 +74,7 @@ public class LuceneIndexWriter implements EventIndexWriter {
     private final AtomicLong indexMaxId = new AtomicLong(-1L);
     
     public LuceneIndexWriter(final File indexDir, final JournalingRepositoryConfig config) throws IOException {
+        this.indexDir = indexDir;
         this.config = config;
         
         attributeSearchableFields = Collections.unmodifiableSet(new HashSet<>(config.getSearchableAttributes()));
@@ -76,12 +83,20 @@ public class LuceneIndexWriter implements EventIndexWriter {
         directory = FSDirectory.open(indexDir);
         analyzer = new StandardAnalyzer();
         final IndexWriterConfig writerConfig = new IndexWriterConfig(Version.LATEST, analyzer);
+        // Increase number of concurrent merges since we are on SSD:
+        final ConcurrentMergeScheduler cms = new ConcurrentMergeScheduler();
+        writerConfig.setMergeScheduler(cms);
+        final int mergeThreads = Math.max(2, Math.min(4, config.getWorkerThreadPoolSize() / 2));
+        cms.setMaxMergesAndThreads(mergeThreads, mergeThreads);
+        
         indexWriter = new IndexWriter(directory, writerConfig);
     }
     
     public EventIndexSearcher newIndexSearcher() throws IOException {
+        logger.trace("Creating index searcher for {}", indexWriter);
+        
         final DirectoryReader reader = DirectoryReader.open(indexWriter, false);
-        return new LuceneIndexSearcher(reader);
+        return new LuceneIndexSearcher(reader, indexDir);
     }
 
     @Override
@@ -119,6 +134,8 @@ public class LuceneIndexWriter implements EventIndexWriter {
     public void index(final Collection<JournaledProvenanceEvent> events) throws IOException {
         long maxId = this.indexMaxId.get();
         
+        final long startNanos = System.nanoTime();
+        
         final List<Document> documents = new ArrayList<>(events.size());
         for ( final JournaledProvenanceEvent event : events ) {
             maxId = event.getEventId();
@@ -154,7 +171,7 @@ public class LuceneIndexWriter implements EventIndexWriter {
             final JournaledStorageLocation location = event.getStorageLocation();
             doc.add(new StringField(IndexedFieldNames.CONTAINER_NAME, location.getContainerName(), Store.YES));
             doc.add(new StringField(IndexedFieldNames.SECTION_NAME, location.getSectionName(), Store.YES));
-            doc.add(new StringField(IndexedFieldNames.JOURNAL_ID, location.getJournalId(), Store.YES));
+            doc.add(new LongField(IndexedFieldNames.JOURNAL_ID, location.getJournalId(), Store.YES));
             doc.add(new LongField(IndexedFieldNames.BLOCK_INDEX, location.getBlockIndex(), Store.YES));
             doc.add(new LongField(IndexedFieldNames.EVENT_ID, location.getEventId(), Store.YES));
 
@@ -207,22 +224,59 @@ public class LuceneIndexWriter implements EventIndexWriter {
                 updated = true;
             }
         } while (!updated);
+        
+        final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+        logger.debug("Indexed {} events in {} millis with {}", events.size(), millis, this);
     }
     
     
     @Override
-    public void delete(final String containerName, final String section, final String journalId) throws IOException {
+    public void delete(final String containerName, final String section, final Long journalId) throws IOException {
         final BooleanQuery query = new BooleanQuery();
         query.add(new BooleanClause(new TermQuery(new Term(IndexedFieldNames.CONTAINER_NAME, containerName)), Occur.MUST));
         query.add(new BooleanClause(new TermQuery(new Term(IndexedFieldNames.SECTION_NAME, section)), Occur.MUST));
-        query.add(new BooleanClause(new TermQuery(new Term(IndexedFieldNames.JOURNAL_ID, journalId)), Occur.MUST));
+        query.add(NumericRangeQuery.newLongRange(IndexedFieldNames.JOURNAL_ID, journalId, journalId, true, true), Occur.MUST);
         
+        final long start = System.nanoTime();
         indexWriter.deleteDocuments(query);
+        final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+        logger.info("Deleted events from {} that matched container={}, section={}, journal={} in {} millis", indexWriter, containerName, section, journalId, millis);
+    }
+    
+    @Override
+    public void deleteEventsBefore(final String containerName, final String section, final Long journalId) throws IOException {
+        final BooleanQuery query = new BooleanQuery();
+        query.add(new BooleanClause(new TermQuery(new Term(IndexedFieldNames.CONTAINER_NAME, containerName)), Occur.MUST));
+        query.add(new BooleanClause(new TermQuery(new Term(IndexedFieldNames.SECTION_NAME, section)), Occur.MUST));
+        query.add(NumericRangeQuery.newLongRange(IndexedFieldNames.JOURNAL_ID, 0L, journalId, true, false), Occur.MUST);
+        
+        final long start = System.nanoTime();
+        indexWriter.deleteDocuments(query);
+        final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+        logger.info("Deleted events from {} that matched container={}, section={}, journal less than {} in {} millis", indexWriter, containerName, section, journalId, millis);
     }
     
     
     @Override
+    public void deleteOldEvents(final long earliestEventTimeToDelete) throws IOException {
+        final Query query = NumericRangeQuery.newLongRange(SearchableFields.EventTime.getSearchableFieldName(), 0L, earliestEventTimeToDelete, true, true);
+        
+        final long start = System.nanoTime();
+        indexWriter.deleteDocuments(query);
+        final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+        logger.info("Deleted events from {} that ocurred before {}; deletion took {} millis", this, new Date(earliestEventTimeToDelete), millis);
+    }
+    
+    @Override
     public void sync() throws IOException {
+        final long start = System.nanoTime();
         indexWriter.commit();
+        final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+        logger.info("Successfully sync'ed {} in {} millis", this, millis);
+    }
+    
+    @Override
+    public String toString() {
+        return "LuceneIndexWriter[indexDir=" + indexDir + "]";
     }
 }

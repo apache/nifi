@@ -35,6 +35,7 @@ import org.apache.nifi.provenance.journaling.config.JournalingRepositoryConfig;
 import org.apache.nifi.provenance.search.Query;
 import org.apache.nifi.provenance.search.SearchTerms;
 import org.apache.nifi.provenance.search.SearchableField;
+import org.apache.nifi.util.file.FileUtils;
 import org.junit.Test;
 
 public class TestEventIndexWriter {
@@ -51,11 +52,9 @@ public class TestEventIndexWriter {
         
         final File indexDir = new File("target/" + UUID.randomUUID().toString());
         
-        final File journalFile = new File("target/" + UUID.randomUUID().toString());
         try (final LuceneIndexWriter indexWriter = new LuceneIndexWriter(indexDir, config)) {
-            
             final ProvenanceEventRecord event = TestUtil.generateEvent(23L);
-            final JournaledStorageLocation location = new JournaledStorageLocation("container", "section", "journalId", 2, 23L);
+            final JournaledStorageLocation location = new JournaledStorageLocation("container", "section", 1L, 2, 23L);
             final JournaledProvenanceEvent storedEvent = new JournaledProvenanceEvent(event, location);
             indexWriter.index(Collections.singleton(storedEvent));
             
@@ -72,12 +71,12 @@ public class TestEventIndexWriter {
                 assertNotNull(found);
                 assertEquals("container", found.getContainerName());
                 assertEquals("section", found.getSectionName());
-                assertEquals("journalId", found.getJournalId());
+                assertEquals(1L, found.getJournalId().longValue());
                 assertEquals(2, found.getBlockIndex());
                 assertEquals(23L, found.getEventId());
             }
         } finally {
-            journalFile.delete();
+            FileUtils.deleteFile(indexDir, true);
         }
         
     }

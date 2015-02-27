@@ -17,11 +17,13 @@
 package org.apache.nifi.provenance.journaling.journals;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.util.Collections;
 import java.util.UUID;
@@ -32,10 +34,46 @@ import org.apache.nifi.provenance.journaling.TestUtil;
 import org.apache.nifi.provenance.journaling.io.StandardEventDeserializer;
 import org.apache.nifi.provenance.journaling.io.StandardEventSerializer;
 import org.apache.nifi.remote.io.CompressionInputStream;
+import org.apache.nifi.util.file.FileUtils;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class TestStandardJournalWriter {
 
+    @Test
+    public void testOverwriteEmptyFile() throws IOException {
+        final File journalFile = new File("target/" + UUID.randomUUID().toString());
+        try {
+            assertTrue( journalFile.createNewFile() );
+            
+            try (final StandardJournalWriter writer = new StandardJournalWriter(1L, journalFile, true, new StandardEventSerializer())) {
+                
+            }
+        } finally {
+            FileUtils.deleteFile(journalFile, false);
+        }
+    }
+    
+    @Test
+    public void testDoNotOverwriteNonEmptyFile() throws IOException {
+        final File journalFile = new File("target/" + UUID.randomUUID().toString());
+        try {
+            assertTrue( journalFile.createNewFile() );
+            
+            try (final StandardJournalWriter writer = new StandardJournalWriter(1L, journalFile, true, new StandardEventSerializer())) {
+                writer.write(Collections.singleton(TestUtil.generateEvent(1L)), 1L);
+            }
+            
+            try (final StandardJournalWriter writer = new StandardJournalWriter(1L, journalFile, true, new StandardEventSerializer())) {
+                Assert.fail("StandardJournalWriter attempted to overwrite existing file");
+            } catch (final FileAlreadyExistsException faee) {
+                // expected
+            }
+        } finally {
+            FileUtils.deleteFile(journalFile, false);
+        }
+    }
+    
     @Test
     public void testOneBlockOneRecordWriteCompressed() throws IOException {
         final File journalFile = new File("target/" + UUID.randomUUID().toString());

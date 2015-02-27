@@ -16,11 +16,17 @@
  */
 package org.apache.nifi.provenance.journaling.journals;
 
+import java.io.BufferedInputStream;
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.EOFException;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.FileAlreadyExistsException;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 
@@ -30,6 +36,8 @@ import org.apache.nifi.remote.io.CompressionOutputStream;
 import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.apache.nifi.stream.io.ByteArrayOutputStream;
 import org.apache.nifi.stream.io.ByteCountingOutputStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
@@ -82,11 +90,14 @@ import org.apache.nifi.stream.io.ByteCountingOutputStream;
  * 
  */
 public class StandardJournalWriter implements JournalWriter {
+    private static final Logger logger = LoggerFactory.getLogger(StandardJournalWriter.class);
+    
     private final long journalId;
     private final File journalFile;
     private final boolean compressed;
     private final Serializer serializer;
     private final long creationTime = System.nanoTime();
+    private final String description;
     
     private int eventCount;
     private boolean blockStarted = false;
@@ -101,10 +112,28 @@ public class StandardJournalWriter implements JournalWriter {
     
     
     public StandardJournalWriter(final long journalId, final File journalFile, final boolean compressed, final Serializer serializer) throws IOException {
+        if ( journalFile.exists() ) {
+            // Check if there is actually any data here.
+            try (final InputStream fis = new FileInputStream(journalFile);
+                 final InputStream bufferedIn = new BufferedInputStream(fis);
+                 final DataInputStream dis = new DataInputStream(bufferedIn) ) {
+                dis.readUTF();
+                dis.readInt();
+                dis.readBoolean();
+                final int nextByte = dis.read();
+                if ( nextByte > -1 ) {
+                    throw new FileAlreadyExistsException(journalFile.getAbsolutePath());
+                }
+            } catch (final EOFException eof) {
+                // If we catch an EOF, there's no real data here, so we can overwrite the file.
+            }
+        }
+        
         this.journalId = journalId;
         this.journalFile = journalFile;
         this.compressed = compressed;
         this.serializer = serializer;
+        this.description = "Journal Writer for " + journalFile;
         this.fos = new FileOutputStream(journalFile);
         
         uncompressedStream = new ByteCountingOutputStream(fos);
@@ -164,6 +193,7 @@ public class StandardJournalWriter implements JournalWriter {
 
     @Override
     public void write(final Collection<ProvenanceEventRecord> events, final long firstEventId) throws IOException {
+        final long start = System.nanoTime();
         final int avgRecordSize = (int) (recordBytes / recordCount);
         
         final ByteArrayOutputStream baos = new ByteArrayOutputStream(avgRecordSize);
@@ -192,6 +222,9 @@ public class StandardJournalWriter implements JournalWriter {
         } finally {
             outDos.flush();
         }
+        
+        final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+        logger.debug("Finished writing {} events to {} in {} millis", events.size(), this, millis);
     }
     
 
@@ -202,7 +235,10 @@ public class StandardJournalWriter implements JournalWriter {
 
     @Override
     public void sync() throws IOException {
+        final long start = System.nanoTime();
         fos.getFD().sync();
+        final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime()- start);
+        logger.debug("Successfully sync'ed {} in {} millis", this, millis);
     }
 
     @Override
@@ -259,6 +295,6 @@ public class StandardJournalWriter implements JournalWriter {
     
     @Override
     public String toString() {
-        return "Journal Writer for " + journalFile;
+        return description;
     }
 }

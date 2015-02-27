@@ -43,4 +43,9 @@ public interface TocReader extends Closeable {
      */
     long getBlockOffset(int blockIndex);
     
+    /**
+     * Returns the byte offset into the Journal File of the last Block in the given index
+     * @return
+     */
+    long getLastBlockOffset();
 }

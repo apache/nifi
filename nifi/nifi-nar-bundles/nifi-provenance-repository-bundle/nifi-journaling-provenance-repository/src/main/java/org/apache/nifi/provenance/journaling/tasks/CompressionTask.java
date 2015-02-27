@@ -18,8 +18,11 @@ package org.apache.nifi.provenance.journaling.tasks;
 
 import java.io.EOFException;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.journaling.io.StandardEventSerializer;
@@ -34,7 +37,10 @@ import org.apache.nifi.provenance.journaling.toc.TocWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CompressionTask implements Runnable {
+/**
+ * Compresses a journal file and returns the new size of the journal
+ */
+public class CompressionTask implements Callable<Long> {
     public static final String FILE_EXTENSION = ".compress";
     
     private static final Logger logger = LoggerFactory.getLogger(CompressionTask.class);
@@ -56,7 +62,10 @@ public class CompressionTask implements Runnable {
         long blockOffset = tocReader.getBlockOffset(blockIndex);
         tocWriter.addBlockOffset(blockOffset);
         long nextBlockOffset = tocReader.getBlockOffset(blockIndex + 1);
-        
+
+        // we write the events one at a time here so that we can ensure that when the block
+        // changes we are able to insert a new block into the TOC, as the blocks have to contain
+        // the same number of events, since the index just knows about the block index.
         try {
             while ((event = reader.nextEvent()) != null) {
                 // Check if we've gone beyond the offset of the next block. If so, write
@@ -97,7 +106,7 @@ public class CompressionTask implements Runnable {
             }
         }
         
-        return false;
+        return !file.exists();
     }
     
     /**
@@ -125,11 +134,24 @@ public class CompressionTask implements Runnable {
     }
     
     @Override
-    public void run() {
+    public Long call() {
+        final long startNanos = System.nanoTime();
+        final long preCompressionSize = journalFile.length();
+        
         try {
             final File compressedFile = new File(journalFile.getParentFile(), journalFile.getName() + FILE_EXTENSION);
             final File compressedTocFile = new File(tocFile.getParentFile(), tocFile.getName() + FILE_EXTENSION);
 
+            if ( compressedFile.exists() && !compressedFile.delete() ) {
+                logger.error("Compressed file {} already exists and could not remove it; compression task failed", compressedFile);
+                return preCompressionSize;
+            }
+            
+            if ( compressedTocFile.exists() && !compressedTocFile.delete() ) {
+                logger.error("Compressed TOC file {} already exists and could not remove it; compression task failed", compressedTocFile);
+                return preCompressionSize;
+            }
+            
             try (final JournalReader journalReader = new StandardJournalReader(journalFile);
                 final JournalWriter compressedWriter = new StandardJournalWriter(journalId, compressedFile, true, new StandardEventSerializer());
                 final TocReader tocReader = new StandardTocReader(tocFile);
@@ -137,14 +159,19 @@ public class CompressionTask implements Runnable {
                 
                 compress(journalReader, compressedWriter, tocReader, compressedTocWriter);
                 compressedWriter.sync();
+            } catch (final FileNotFoundException fnfe) {
+                logger.info("Failed to compress Journal File {} because it has already been removed", journalFile);
+                return 0L;
             }
-
+            
+            final long postCompressionSize = compressedFile.length();
+            
             final boolean deletedJournal = delete(journalFile);
             if ( !deletedJournal ) {
                 delete(compressedFile);
                 delete(compressedTocFile);
                 logger.error("Failed to remove Journal file {}; considering compression task a failure", journalFile);
-                return;
+                return preCompressionSize;
             }
             
             final boolean deletedToc = delete(tocFile);
@@ -152,7 +179,7 @@ public class CompressionTask implements Runnable {
                 delete(compressedFile);
                 delete(compressedTocFile);
                 logger.error("Failed to remove TOC file for {}; considering compression task a failure", journalFile);
-                return;
+                return preCompressionSize;
             }
             
             final boolean renamedJournal = rename(compressedFile, journalFile);
@@ -165,12 +192,18 @@ public class CompressionTask implements Runnable {
                 logger.error("Failed to rename {} to {}; this journal file may be inaccessible until it is renamed", compressedTocFile, tocFile);
             }
             
-            logger.info("Successfully compressed Journal File {}");
+            final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+            final double percent = (postCompressionSize / preCompressionSize) * 100D;
+            final String pct = String.format("%.2f", percent);
+            logger.info("Successfully compressed Journal File {} in {} millis; size changed from {} bytes to {} bytes ({}% of original size)", journalFile, millis, preCompressionSize, postCompressionSize, pct);
+            return postCompressionSize;
         } catch (final IOException ioe) {
             logger.error("Failed to compress Journal File {} due to {}", journalFile, ioe.toString());
             if ( logger.isDebugEnabled() ) {
                 logger.error("", ioe);
             }
+            
+            return preCompressionSize;
         }
     }
     

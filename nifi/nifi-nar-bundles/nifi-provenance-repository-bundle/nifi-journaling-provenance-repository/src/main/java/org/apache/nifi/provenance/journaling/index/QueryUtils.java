@@ -91,6 +91,15 @@ public class QueryUtils {
     }
     
     
+    /**
+     * Orders the given StorageLocations so that we have a Map where the Key is a Journal file and the value is a List of JournaledStorageLocation in the order
+     * in which they should be read from the journal for optimal performance
+     * @param locations
+     * @param config
+     * @return
+     * @throws FileNotFoundException
+     * @throws IOException
+     */
     public static Map<File, List<JournaledStorageLocation>> orderLocations(final List<StorageLocation> locations, final JournalingRepositoryConfig config) throws FileNotFoundException, IOException {
         final Map<File, List<JournaledStorageLocation>> map = new HashMap<>();
         

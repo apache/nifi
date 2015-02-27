@@ -20,13 +20,21 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.nifi.provenance.journaling.JournaledProvenanceEvent;
 import org.apache.nifi.provenance.journaling.config.JournalingRepositoryConfig;
+import org.apache.nifi.provenance.journaling.toc.TocJournalReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,14 +42,14 @@ public class LuceneIndexManager implements IndexManager {
     private static final Logger logger = LoggerFactory.getLogger(LuceneIndexManager.class);
     
     private final JournalingRepositoryConfig config;
-    private final ScheduledExecutorService executor;
+    private final ExecutorService queryExecutor;
     
     private final Map<String, List<LuceneIndexWriter>> writers = new HashMap<>();
     private final Map<String, AtomicLong> writerIndexes = new HashMap<>();
     
-    public LuceneIndexManager(final JournalingRepositoryConfig config, final ScheduledExecutorService executor) throws IOException {
+    public LuceneIndexManager(final JournalingRepositoryConfig config, final ScheduledExecutorService workerExecutor, final ExecutorService queryExecutor) throws IOException {
         this.config = config;
-        this.executor = executor;
+        this.queryExecutor = queryExecutor;
         
         final int rolloverSeconds = (int) config.getJournalRolloverPeriod(TimeUnit.SECONDS);
         if ( !config.isReadOnly() ) {
@@ -58,7 +66,7 @@ public class LuceneIndexManager implements IndexManager {
                     writerList.add(new LuceneIndexWriter(indexDir, config));
                 }
                 
-                executor.scheduleWithFixedDelay(new Runnable() {
+                workerExecutor.scheduleWithFixedDelay(new Runnable() {
                     @Override
                     public void run() {
                         try {
@@ -150,6 +158,15 @@ public class LuceneIndexManager implements IndexManager {
         return max;
     }
 
+    @Override
+    public void sync() throws IOException {
+        for ( final List<LuceneIndexWriter> writerList : writers.values() ) {
+            for ( final LuceneIndexWriter writer : writerList ) {
+                writer.sync();
+            }
+        }
+    }
+    
     
     private void sync(final String containerName) throws IOException {
         final AtomicLong index = writerIndexes.get(containerName);
@@ -174,5 +191,191 @@ public class LuceneIndexManager implements IndexManager {
                 }
             }
         }        
+    }
+    
+    @Override
+    public <T> Set<T> withEachIndex(final IndexAction<T> action) throws IOException {
+        final Set<T> results = new HashSet<>();
+        final Map<String, Future<T>> futures = new HashMap<>();
+        final Set<String> containerNames = config.getContainers().keySet();
+        for (final String containerName : containerNames) {
+            final Callable<T> callable = new Callable<T>() {
+                @Override
+                public T call() throws Exception {
+                    try (final EventIndexSearcher searcher = newIndexSearcher(containerName)) {
+                        return action.perform(searcher);
+                    }
+                }
+            };
+            
+            final Future<T> future = queryExecutor.submit(callable);
+            futures.put(containerName, future);
+        }
+        
+        for ( final Map.Entry<String, Future<T>> entry : futures.entrySet() ) {
+            try {
+                final T result = entry.getValue().get();
+                results.add(result);
+            } catch (final ExecutionException ee) {
+                final Throwable cause = ee.getCause();
+                if ( cause instanceof IOException ) {
+                    throw (IOException) cause;
+                } else {
+                    throw new RuntimeException("Failed to query Container " + entry.getKey() + " due to " + cause, cause);
+                }
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        
+        return results;
+    }
+    
+    @Override
+    public void withEachIndex(final VoidIndexAction action) throws IOException {
+        withEachIndex(action, false);
+    }
+    
+    @Override
+    public void withEachIndex(final VoidIndexAction action, final boolean async) throws IOException {
+        final Map<String, Future<?>> futures = new HashMap<>();
+        final Set<String> containerNames = config.getContainers().keySet();
+
+        for (final String containerName : containerNames) {
+            final Callable<Object> callable = new Callable<Object>() {
+                @Override
+                public Object call() throws IOException {
+                    try (final EventIndexSearcher searcher = newIndexSearcher(containerName)) {
+                        action.perform(searcher);
+                        return null;
+                    } catch (final Throwable t) {
+                        if ( async ) {
+                            logger.error("Failed to perform action against container " + containerName + " due to " + t, t);
+                            if ( logger.isDebugEnabled() ) {
+                                logger.error("", t);
+                            }
+                            
+                            return null;
+                        } else {
+                            throw new IOException("Failed to perform action against container " + containerName + " due to " + t, t);
+                        }
+                    }
+                }
+            };
+            
+            final Future<?> future = queryExecutor.submit(callable);
+            futures.put(containerName, future);
+        }
+        
+        if ( !async ) {
+            for ( final Map.Entry<String, Future<?>> entry : futures.entrySet() ) {
+                try {
+                    // throw any exception thrown by runnable
+                    entry.getValue().get();
+                } catch (final ExecutionException ee) {
+                    final Throwable cause = ee.getCause();
+                    if ( cause instanceof IOException ) {
+                        throw ((IOException) cause);
+                    }
+                    
+                    throw new RuntimeException("Failed to query Partition " + entry.getKey() + " due to " + cause, cause);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+    }
+    
+    @Override
+    public int getNumberOfIndices() {
+        return config.getContainers().size();
+    }
+    
+    @Override
+    public void deleteEvents(final String containerName, final int sectionIndex, final Long journalId) throws IOException {
+        final List<LuceneIndexWriter> writerList = writers.get(containerName);
+        for ( final LuceneIndexWriter writer : writerList ) {
+            writer.delete(containerName, String.valueOf(sectionIndex), journalId);
+        }
+    }
+    
+    @Override
+    public void deleteEventsBefore(final String containerName, final int sectionIndex, final Long journalId) throws IOException {
+        final List<LuceneIndexWriter> writerList = writers.get(containerName);
+        for ( final LuceneIndexWriter writer : writerList ) {
+            writer.deleteEventsBefore(containerName, String.valueOf(sectionIndex), journalId);
+        }
+    }
+    
+    @Override
+    public void reindex(final String containerName, final int sectionIndex, final Long journalId, final File journalFile) throws IOException {
+        deleteEvents(containerName, sectionIndex, journalId);
+        
+        final LuceneIndexWriter writer = getIndexWriter(containerName);
+        try (final TocJournalReader reader = new TocJournalReader(containerName, String.valueOf(sectionIndex), journalId, journalFile)) {
+            final List<JournaledProvenanceEvent> events = new ArrayList<>(1000);
+            JournaledProvenanceEvent event;
+            
+            while ((event = reader.nextJournaledEvent()) != null) {
+                events.add(event);
+                if ( events.size() >= 1000 ) {
+                    writer.index(events);
+                    events.clear();
+                }
+            }
+            
+            if (!events.isEmpty() ) {
+                writer.index(events);
+            }
+        }
+    }
+    
+    @Override
+    public long getNumberOfEvents() throws IOException {
+        final AtomicLong totalCount = new AtomicLong(0L);
+        withEachIndex(new VoidIndexAction() {
+            @Override
+            public void perform(final EventIndexSearcher searcher) throws IOException {
+                totalCount.addAndGet(searcher.getNumberOfEvents());
+            }
+        });
+        
+        return totalCount.get();
+    }
+    
+    @Override
+    public void deleteOldEvents(final long earliestEventTimeToDelete) throws IOException {
+        for ( final String containerName : config.getContainers().keySet() ) {
+            final List<LuceneIndexWriter> writerList = writers.get(containerName);
+            for ( final LuceneIndexWriter writer : writerList ) {
+                writer.deleteOldEvents(earliestEventTimeToDelete);
+            }
+        }
+    }
+    
+    
+    @Override
+    public long getSize(final String containerName) {
+        final File containerFile = config.getContainers().get(containerName);
+        final File indicesDir = new File(containerFile, "indices");
+        
+        return getSize(indicesDir);
+    }
+    
+    private long getSize(final File file) {
+        if ( file.isDirectory() ) {
+            long totalSize = 0L;
+            
+            final File[] children = file.listFiles();
+            if ( children != null ) {
+                for ( final File child : children ) {
+                    totalSize += getSize(child);
+                }
+            }
+            
+            return totalSize;
+        } else {
+            return file.length();
+        }
     }
 }

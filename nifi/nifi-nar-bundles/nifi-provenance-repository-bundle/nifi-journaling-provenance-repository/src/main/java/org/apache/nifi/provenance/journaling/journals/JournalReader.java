@@ -44,4 +44,12 @@ public interface JournalReader extends Closeable {
      * @return
      */
     long getPosition();
+    
+    /**
+     * Retrieves the last event from the journal, given the offset of the last Block in the journal
+     * @param blockOffset
+     * @return
+     * @throws IOException
+     */
+    ProvenanceEventRecord getLastEvent(long blockOffset) throws IOException;
 }

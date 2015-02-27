@@ -23,12 +23,16 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.journaling.JournaledProvenanceEvent;
@@ -37,9 +41,6 @@ import org.apache.nifi.provenance.journaling.config.JournalingRepositoryConfig;
 import org.apache.nifi.provenance.journaling.index.EventIndexSearcher;
 import org.apache.nifi.provenance.journaling.index.EventIndexWriter;
 import org.apache.nifi.provenance.journaling.index.IndexManager;
-import org.apache.nifi.provenance.journaling.index.LuceneIndexSearcher;
-import org.apache.nifi.provenance.journaling.index.LuceneIndexWriter;
-import org.apache.nifi.provenance.journaling.index.MultiIndexSearcher;
 import org.apache.nifi.provenance.journaling.index.QueryUtils;
 import org.apache.nifi.provenance.journaling.io.StandardEventSerializer;
 import org.apache.nifi.provenance.journaling.journals.JournalReader;
@@ -47,8 +48,9 @@ import org.apache.nifi.provenance.journaling.journals.JournalWriter;
 import org.apache.nifi.provenance.journaling.journals.StandardJournalReader;
 import org.apache.nifi.provenance.journaling.journals.StandardJournalWriter;
 import org.apache.nifi.provenance.journaling.tasks.CompressionTask;
+import org.apache.nifi.provenance.journaling.toc.StandardTocReader;
 import org.apache.nifi.provenance.journaling.toc.StandardTocWriter;
-import org.apache.nifi.provenance.journaling.toc.TocJournalReader;
+import org.apache.nifi.provenance.journaling.toc.TocReader;
 import org.apache.nifi.provenance.journaling.toc.TocWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,29 +64,32 @@ public class JournalingPartition implements Partition {
     
     private final File section;
     private final File journalsDir;
-    private final JournalingRepositoryConfig config;
+    private final IndexManager indexManager;
+    private final AtomicLong containerSize;
     private final ExecutorService executor;
-    
-    private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
-    private final Lock readLock = rwLock.readLock();
-    private final Lock writeLock = rwLock.writeLock();
+    private final JournalingRepositoryConfig config;
     
     private JournalWriter journalWriter;
     private TocWriter tocWriter;
     private int numEventsAtEndOfLastBlock = 0;
     private volatile long maxEventId = -1L;
     private volatile Long earliestEventTime = null;
+
+    private final Lock lock = new ReentrantLock();
+    private boolean writable = true;    // guarded by lock
+    private final List<File> timeOrderedJournalFiles = Collections.synchronizedList(new ArrayList<File>());
+    private final AtomicLong partitionSize = new AtomicLong(0L);
     
-    private final IndexManager indexManager;
-    
-    public JournalingPartition(final IndexManager indexManager, final String containerName, final int sectionIndex, final File sectionDir, final JournalingRepositoryConfig config, final ExecutorService executor) throws IOException {
+    public JournalingPartition(final IndexManager indexManager, final String containerName, final int sectionIndex, final File sectionDir, 
+            final JournalingRepositoryConfig config, final AtomicLong containerSize, final ExecutorService compressionExecutor) throws IOException {
         this.indexManager = indexManager;
+        this.containerSize = containerSize;
         this.containerName = containerName;
         this.sectionIndex = sectionIndex;
         this.section = sectionDir;
         this.journalsDir = new File(section, "journals");
         this.config = config;
-        this.executor = executor;
+        this.executor = compressionExecutor;
         
         if (!journalsDir.exists() && !journalsDir.mkdirs()) {
             throw new IOException("Could not create directory " + section);
@@ -119,18 +124,24 @@ public class JournalingPartition implements Partition {
     
     @Override
     public List<JournaledProvenanceEvent> registerEvents(final Collection<ProvenanceEventRecord> events, final long firstEventId) throws IOException {
-        writeLock.lock();
+        if ( events.isEmpty() ) {
+            return Collections.emptyList();
+        }
+        
+        lock.lock();
         try {
+            if ( !writable ) {
+                throw new IOException("Cannot write to partition " + this + " because there was previously a write failure. The partition will fix itself in time if I/O problems are resolved");
+            }
+            
             final JournalWriter writer = getJournalWriter(firstEventId);
     
-            if ( !events.isEmpty() ) {
-                final int eventsWritten = writer.getEventCount();
-                if ( eventsWritten - numEventsAtEndOfLastBlock > config.getBlockSize() ) {
-                    writer.finishBlock();
-                    tocWriter.addBlockOffset(writer.getSize());
-                    numEventsAtEndOfLastBlock = eventsWritten;
-                    writer.beginNewBlock();
-                }
+            final int eventsWritten = writer.getEventCount();
+            if ( eventsWritten - numEventsAtEndOfLastBlock > config.getBlockSize() ) {
+                writer.finishBlock();
+                tocWriter.addBlockOffset(writer.getSize());
+                numEventsAtEndOfLastBlock = eventsWritten;
+                writer.beginNewBlock();
             }
     
             writer.write(events, firstEventId);
@@ -139,7 +150,7 @@ public class JournalingPartition implements Partition {
             long id = firstEventId;
             for (final ProvenanceEventRecord event : events) {
                 final JournaledStorageLocation location = new JournaledStorageLocation(containerName, String.valueOf(sectionIndex), 
-                        String.valueOf(writer.getJournalId()), tocWriter.getCurrentBlockIndex(), id++);
+                        writer.getJournalId(), tocWriter.getCurrentBlockIndex(), id++);
                 final JournaledProvenanceEvent storedEvent = new JournaledProvenanceEvent(event, location);
                 storedEvents.add(storedEvent);
             }
@@ -169,8 +180,11 @@ public class JournalingPartition implements Partition {
             }
             
             return storedEvents;
+        } catch (final IOException ioe) {
+            writable = false;
+            throw ioe;
         } finally {
-            writeLock.unlock();
+            lock.unlock();
         }
     }
 
@@ -194,43 +208,66 @@ public class JournalingPartition implements Partition {
         return false;
     }
     
+    private void updateSize(final long delta) {
+        partitionSize.addAndGet(delta);
+        containerSize.addAndGet(delta);
+    }
+    
     // MUST be called with write lock held.
+    /**
+     * Rolls over the current journal (if any) and begins writing top a new journal.
+     * 
+     * <p>
+     * <b>NOTE:</b> This method MUST be called with the write lock held!!
+     * </p>
+     * 
+     * @param firstEventId the ID of the first event to add to this journal
+     * @throws IOException
+     */
     private void rollover(final long firstEventId) throws IOException {
-        // TODO: Rework how rollover works because we now have index manager!!
-        
         // if we have a writer already, close it and initiate rollover actions
+        final File finishedFile = journalWriter == null ? null : journalWriter.getJournalFile();
         if ( journalWriter != null ) {
             journalWriter.finishBlock();
             journalWriter.close();
             tocWriter.close();
 
-            final EventIndexWriter curWriter = getIndexWriter();
+            final File finishedTocFile = tocWriter.getFile();
+            updateSize(finishedFile.length());
+            
             executor.submit(new Runnable() {
                 @Override
                 public void run() {
-                    try {
-                        curWriter.sync();
-                    } catch (final IOException e) {
-                        
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
+                    if ( config.isCompressOnRollover() ) {
+                        final long originalSize = finishedFile.length();
+                        final long compressedFileSize = new CompressionTask(finishedFile, journalWriter.getJournalId(), finishedTocFile).call();
+                        final long sizeAdded = compressedFileSize - originalSize;
+                        updateSize(sizeAdded);
                     }
                 }
             });
             
-            if ( config.isCompressOnRollover() ) {
-                final File finishedFile = journalWriter.getJournalFile();
-                final File finishedTocFile = tocWriter.getFile();
-                executor.submit(new CompressionTask(finishedFile, journalWriter.getJournalId(), finishedTocFile));
-            }
+            timeOrderedJournalFiles.add(finishedFile);
         }
         
         // create new writers and reset state.
         final File journalFile = new File(journalsDir, firstEventId + JOURNAL_FILE_EXTENSION);
         journalWriter = new StandardJournalWriter(firstEventId, journalFile, false, new StandardEventSerializer());
-        tocWriter = new StandardTocWriter(QueryUtils.getTocFile(journalFile), false, config.isAlwaysSync());
-        tocWriter.addBlockOffset(journalWriter.getSize());
-        numEventsAtEndOfLastBlock = 0;
+        try {
+            tocWriter = new StandardTocWriter(QueryUtils.getTocFile(journalFile), false, config.isAlwaysSync());
+            tocWriter.addBlockOffset(journalWriter.getSize());
+            numEventsAtEndOfLastBlock = 0;
+        } catch (final Exception e) {
+            try {
+                journalWriter.close();
+            } catch (final IOException ioe) {}
+            
+            journalWriter = null;
+            
+            throw e;
+        }
+        
+        logger.debug("Rolling over {} from {} to {}", this, finishedFile, journalFile);
     }
     
 
@@ -252,33 +289,24 @@ public class JournalingPartition implements Partition {
     
     @Override
     public void restore() throws IOException {
-        writeLock.lock();
+        lock.lock();
         try {
             // delete or rename files if stopped during rollover; compress any files that haven't been compressed
             if ( !config.isReadOnly() ) {
                 final File[] children = journalsDir.listFiles();
                 if ( children != null ) {
-                    // find the latest journal.
-                    File latestJournal = null;
-                    long latestJournalId = -1L;
-                    
                     final List<File> journalFiles = new ArrayList<>();
                     
                     // find any journal files that either haven't been compressed or were partially compressed when
                     // we last shutdown and then restart compression.
                     for ( final File file : children ) {
                         final String filename = file.getName();
-                        if ( !filename.contains(JOURNAL_FILE_EXTENSION) ) {
+                        if ( !filename.endsWith(JOURNAL_FILE_EXTENSION) ) {
                             continue;
                         }
                         
-                        final Long journalId = getJournalId(file);
-                        if ( journalId != null && journalId > latestJournalId ) {
-                            latestJournal = file;
-                            latestJournalId = journalId;
-                        }
-                        
                         journalFiles.add(file);
+                        updateSize(file.length());
                         
                         if ( !config.isCompressOnRollover() ) {
                             continue;
@@ -290,7 +318,15 @@ public class JournalingPartition implements Partition {
                                 // both the compressed and uncompressed version of this journal exist. The Compression Task was
                                 // not complete when we shutdown. Delete the compressed journal and toc and re-start the Compression Task.
                                 final File tocFile = QueryUtils.getTocFile(uncompressedFile);
-                                executor.submit(new CompressionTask(uncompressedFile, getJournalId(uncompressedFile), tocFile));
+                                executor.submit(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        final long originalSize = uncompressedFile.length();
+                                        final long compressedSize = new CompressionTask(uncompressedFile, getJournalId(uncompressedFile), tocFile).call();
+                                        final long sizeAdded = compressedSize - originalSize;
+                                        updateSize(sizeAdded);
+                                    }
+                                });
                             } else {
                                 // The compressed file exists but the uncompressed file does not. This means that we have finished
                                 // writing the compressed file and deleted the original journal file but then shutdown before
@@ -321,6 +357,22 @@ public class JournalingPartition implements Partition {
                         }
                     }
                     
+                    // we want to sort the list of all journal files.
+                    // we need to create a map of file to last mod time, rather than comparing
+                    // by using File.lastModified() because the File.lastModified() value could potentially
+                    // change while running the comparator, which violates the comparator's contract.
+                    timeOrderedJournalFiles.addAll(journalFiles);
+                    final Map<File, Long> lastModTimes = new HashMap<>();
+                    for ( final File journalFile : journalFiles ) {
+                        lastModTimes.put(journalFile, journalFile.lastModified());
+                    }
+                    Collections.sort(timeOrderedJournalFiles, new Comparator<File>() {
+                        @Override
+                        public int compare(final File o1, final File o2) {
+                            return lastModTimes.get(o1).compareTo(lastModTimes.get(o2));
+                        }
+                    });
+                    
                     // Get the first event in the earliest journal file so that we know what the earliest time available is
                     Collections.sort(journalFiles, new Comparator<File>() {
                         @Override
@@ -332,61 +384,83 @@ public class JournalingPartition implements Partition {
                     for ( final File journal : journalFiles ) {
                         try (final JournalReader reader = new StandardJournalReader(journal)) {
                             final ProvenanceEventRecord record = reader.nextEvent();
-                            this.earliestEventTime = record.getEventTime();
-                            break;
+                            if ( record != null ) {
+                                this.earliestEventTime = record.getEventTime();
+                                break;
+                            }
                         } catch (final IOException ioe) {
                         }
                     }
-                    
-                    // Whatever was the last journal for this partition, we need to remove anything for that journal
-                    // from the index and re-add them, and then sync the index. This allows us to avoid syncing
-                    // the index each time (we sync only on rollover) but allows us to still ensure that we index
-                    // all events.
-                    if ( latestJournal != null ) {
+
+                    // order such that latest journal file is first.
+                    Collections.reverse(journalFiles);
+                    for ( final File journal : journalFiles ) {
+                        try (final JournalReader reader = new StandardJournalReader(journal);
+                             final TocReader tocReader = new StandardTocReader(QueryUtils.getTocFile(journal))) {
+                            
+                            final long lastBlockOffset = tocReader.getLastBlockOffset();
+                            final ProvenanceEventRecord lastEvent = reader.getLastEvent(lastBlockOffset);
+                            if ( lastEvent != null ) {
+                                maxEventId = lastEvent.getEventId() + 1;
+                                break;
+                            }
+                        } catch (final EOFException eof) {}
+                    }
+
+                    // We need to re-index all of the journal files that have not been indexed. We can do this by determining
+                    // what is the largest event id that has been indexed for this container and section, and then re-indexing
+                    // any file that has an event with an id larger than that.
+                    // In order to do that, we iterate over the journal files in the order of newest (largest id) to oldest
+                    // (smallest id). If the first event id in a file is greater than the max indexed, we re-index the file.
+                    // Beyond that, we need to re-index one additional journal file because it's possible that if the first id
+                    // is 10 and the max index id is 15, the file containing 10 could also go up to 20. So we re-index one
+                    // file that has a min id less than what has been indexed; then we are done.
+                    final Long maxIndexedId = indexManager.getMaxEventId(containerName, String.valueOf(sectionIndex));
+                    final List<File> reindexJournals = new ArrayList<>();
+                    for ( final File journalFile : journalFiles ) {
+                        final Long firstEventId;
                         try {
-                            reindex(latestJournal);
-                        } catch (final EOFException eof) {
+                            firstEventId = getJournalId(journalFile);
+                        } catch (final NumberFormatException nfe) {
+                            // not a journal; skip this file
+                            continue;
+                        }
+                        
+                        if ( maxIndexedId == null || firstEventId > maxIndexedId ) {
+                            reindexJournals.add(journalFile);
+                        } else {
+                            reindexJournals.add(journalFile);
+                            break;
                         }
                     }
+                    
+                    // Make sure that the indexes are not pointing to events that no longer exist.
+                    if ( journalFiles.isEmpty() ) {
+                        indexManager.deleteEventsBefore(containerName, sectionIndex, Long.MAX_VALUE);
+                    } else {
+                        final File firstJournalFile = journalFiles.get(0);
+                        indexManager.deleteEventsBefore(containerName, sectionIndex, getJournalId(firstJournalFile));
+                    }
+                    
+                    // The reindexJournals list is currently in order of newest to oldest. We need to re-index
+                    // in order of oldest to newest, so reverse the list.
+                    Collections.reverse(reindexJournals);
+                    
+                    logger.info("Reindexing {} journal files that were not found in index for container {} and section {}", reindexJournals.size(), containerName, sectionIndex);
+                    final long reindexStart = System.nanoTime();
+                    for ( final File journalFile : reindexJournals ) {
+                        indexManager.reindex(containerName, sectionIndex, getJournalId(journalFile), journalFile);
+                    }
+                    final long reindexMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - reindexStart);
+                    logger.info("Finished reindexing {} journal files for container {} and section {}; reindex took {} millis", 
+                            reindexJournals.size(), containerName, sectionIndex, reindexMillis);
                 }
             }
         } finally {
-            writeLock.unlock();
+            lock.unlock();
         }
     }
 
-    
-    private void reindex(final File journalFile) throws IOException {
-        // TODO: Rework how recovery works because we now have index manager!!
-        try (final TocJournalReader reader = new TocJournalReader(containerName, String.valueOf(sectionIndex), String.valueOf(getJournalId(journalFile)), journalFile)) {
-            // We don't know which index contains the data for this journal, so remove the journal
-            // from both.
-            for (final LuceneIndexWriter indexWriter : indexWriters ) {
-                indexWriter.delete(containerName, String.valueOf(sectionIndex), String.valueOf(getJournalId(journalFile)));
-            }
-            
-            long maxId = -1L;
-            final List<JournaledProvenanceEvent> storedEvents = new ArrayList<>(1000);
-            JournaledProvenanceEvent event;
-            final LuceneIndexWriter indexWriter = indexWriters[0];
-            while ((event = reader.nextJournaledEvent()) != null ) {
-                storedEvents.add(event);
-                maxId = event.getEventId();
-                
-                if ( storedEvents.size() == 1000 ) {
-                    indexWriter.index(storedEvents);
-                    storedEvents.clear();
-                }
-            }
-
-            if ( !storedEvents.isEmpty() ) {
-                indexWriter.index(storedEvents);
-            }
-            
-            indexWriter.sync();
-            this.maxEventId = maxId;
-        }
-    }
 
     
     @Override
@@ -442,5 +516,130 @@ public class JournalingPartition implements Partition {
     @Override
     public String toString() {
         return "Partition[section=" + sectionIndex + "]";
+    }
+    
+    @Override
+    public void verifyWritable(final long nextId) throws IOException {
+        final long freeSpace = section.getFreeSpace();
+        final long freeMegs = freeSpace / 1024 / 1024;
+        if (freeMegs < 10) {
+            // if not at least 10 MB, don't even try to write
+            throw new IOException("Not Enough Disk Space: partition housing " + section + " has only " + freeMegs + " MB of storage available");
+        }
+        
+        rollover(nextId);
+        writable = true;
+    }
+    
+    private boolean delete(final File journalFile) {
+        for (int i=0; i < 10; i++) {
+            if ( journalFile.delete() || !journalFile.exists() ) {
+                return true;
+            } else {
+                try {
+                    Thread.sleep(100L);
+                } catch (final InterruptedException ie) {}
+            }
+        }
+        
+        return false;
+    }
+    
+    @Override
+    public void deleteOldEvents(final long earliestEventTimeToDelete) throws IOException {
+        final Set<File> removeFromTimeOrdered = new HashSet<>();
+        
+        final long start = System.nanoTime();
+        try {
+            for ( final File journalFile : timeOrderedJournalFiles ) {
+                // since these are time-ordered, if we find one that we don't want to delete, we're done.
+                if ( journalFile.lastModified() < earliestEventTimeToDelete ) {
+                    return;
+                }
+                
+                final long journalSize;
+                if ( journalFile.exists() ) {
+                    journalSize = journalFile.length();
+                } else {
+                    continue;
+                }
+                
+                if ( delete(journalFile) ) {
+                    removeFromTimeOrdered.add(journalFile);
+                } else {
+                    logger.warn("Failed to remove expired journal file {}; will attempt to delete again later", journalFile);
+                }
+                
+                updateSize(-journalSize);
+                final File tocFile = QueryUtils.getTocFile(journalFile);
+                if ( !delete(tocFile) ) {
+                    logger.warn("Failed to remove TOC file for expired journal file {}; will attempt to delete again later", journalFile);
+                }
+            }
+        } finally {
+            timeOrderedJournalFiles.removeAll(removeFromTimeOrdered);
+        }
+        
+        final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+        logger.info("Removed {} expired journal files from container {}, section {}; total time for deletion was {} millis", 
+                removeFromTimeOrdered.size(), containerName, sectionIndex, millis);
+    }
+    
+    
+    @Override
+    public void deleteOldest() throws IOException {
+        File removeFromTimeOrdered = null;
+        
+        final long start = System.nanoTime();
+        try {
+            for ( final File journalFile : timeOrderedJournalFiles ) {
+                final long journalSize;
+                if ( journalFile.exists() ) {
+                    journalSize = journalFile.length();
+                } else {
+                    continue;
+                }
+                
+                if ( delete(journalFile) ) {
+                    removeFromTimeOrdered = journalFile;
+                } else {
+                    throw new IOException("Cannot delete oldest event file " + journalFile);
+                }
+                
+                final File tocFile = QueryUtils.getTocFile(journalFile);
+                if ( !delete(tocFile) ) {
+                    logger.warn("Failed to remove TOC file for expired journal file {}; will attempt to delete again later", journalFile);
+                }
+                
+                updateSize(-journalSize);
+                indexManager.deleteEvents(containerName, sectionIndex, getJournalId(journalFile));
+            }
+        } finally {
+            if ( removeFromTimeOrdered != null ) {
+                timeOrderedJournalFiles.remove(removeFromTimeOrdered);
+                
+                final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
+                logger.info("Removed oldest event file {} from container {}, section {}; total time for deletion was {} millis", 
+                        removeFromTimeOrdered, containerName, sectionIndex, millis);
+            } else {
+                logger.debug("No journals to remove for {}", this);
+            }
+        }
+    }
+    
+    
+    @Override
+    public long getPartitionSize() {
+        return partitionSize.get();
+    }
+    
+    @Override
+    public long getContainerSize() {
+        return containerSize.get();
+    }
+    
+    @Override
+    public String getContainerName() {
+        return containerName;
     }
 }

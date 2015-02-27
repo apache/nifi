@@ -44,5 +44,23 @@ public interface EventIndexWriter extends Closeable {
      * @param journalId
      * @throws IOException
      */
-    void delete(String containerName, String section, String journalId) throws IOException;
+    void delete(String containerName, String section, Long journalId) throws IOException;
+    
+    /**
+     * Deletes any records that belong to the given container and section but have a journal Id less
+     * than the specified value
+     * @param containerName
+     * @param section
+     * @param journalId
+     * @throws IOException
+     */
+    void deleteEventsBefore(String containerName, String section, Long journalId) throws IOException;
+    
+    
+    /**
+     * Removes all events from the index that occurred before the given time
+     * @param earliestEventTimeToDelete
+     * @throws IOException
+     */
+    void deleteOldEvents(long earliestEventTimeToDelete) throws IOException;
 }

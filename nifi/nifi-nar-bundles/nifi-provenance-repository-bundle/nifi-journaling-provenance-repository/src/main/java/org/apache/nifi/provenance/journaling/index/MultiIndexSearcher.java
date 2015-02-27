@@ -18,7 +18,9 @@ package org.apache.nifi.provenance.journaling.index;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 import org.apache.nifi.provenance.journaling.JournaledStorageLocation;
@@ -63,6 +65,7 @@ public class MultiIndexSearcher implements EventIndexSearcher {
             locations.addAll(result.getLocations());
         }
         
+        Collections.sort(locations);
         return new SearchResult(locations, totalHitCount);
     }
 
@@ -109,4 +112,52 @@ public class MultiIndexSearcher implements EventIndexSearcher {
         return max;
     }
 
+    @Override
+    public List<JournaledStorageLocation> getEventsForFlowFiles(final Collection<String> flowFileUuids, final long earliestTime, final long latestTime) throws IOException {
+        final List<JournaledStorageLocation> locations = new ArrayList<>();
+        for ( final EventIndexSearcher searcher : searchers ) {
+            final List<JournaledStorageLocation> indexLocations = searcher.getEventsForFlowFiles(flowFileUuids, earliestTime, latestTime);
+            if ( indexLocations != null && !indexLocations.isEmpty() ) {
+                locations.addAll(indexLocations);
+            }
+        }
+        
+        Collections.sort(locations);
+        return locations;
+    }
+    
+    @Override
+    public List<JournaledStorageLocation> getLatestEvents(final int numEvents) throws IOException {
+        final List<JournaledStorageLocation> locations = new ArrayList<>();
+        for ( final EventIndexSearcher searcher : searchers ) {
+            final List<JournaledStorageLocation> indexLocations = searcher.getLatestEvents(numEvents);
+            if ( indexLocations != null && !indexLocations.isEmpty() ) {
+                locations.addAll(indexLocations);
+            }
+        }
+        
+        Collections.sort(locations, new Comparator<JournaledStorageLocation>() {
+            @Override
+            public int compare(final JournaledStorageLocation o1, final JournaledStorageLocation o2) {
+                return Long.compare(o1.getEventId(), o2.getEventId());
+            }
+        });
+        return locations;
+    }
+    
+    @Override
+    public long getNumberOfEvents() throws IOException {
+        long totalCount = 0;
+        
+        for ( final EventIndexSearcher searcher : searchers ) {
+            totalCount += searcher.getNumberOfEvents();
+        }
+        
+        return totalCount;
+    }
+    
+    @Override
+    public String toString() {
+        return searchers.toString();
+    }
 }

@@ -52,10 +52,23 @@ public interface PartitionManager {
      * @param writeAction specifies whether or not the action writes to the repository
      * @return
      */
-    <T> Set<T> withEachPartition(PartitionAction<T> action) throws IOException;
+//    <T> Set<T> withEachPartition(PartitionAction<T> action, boolean writeAction) throws IOException;
     
     /**
-     * Performs the given Action on each partition and returns the set of results. Unlike
+     * Performs the given Action on each partition and returns the set of results. This method does 
+     * not use the thread pool in order to perform the request in parallel. This is desirable for 
+     * very quick functions, as the thread pool can be fully utilized, resulting in a quick function 
+     * taking far longer than it should.
+     * 
+     * @param action the action to perform
+     * @param writeAction specifies whether or not the action writes to the repository
+     * @return
+     */
+    <T> Set<T> withEachPartitionSerially(PartitionAction<T> action, boolean writeAction) throws IOException;
+    
+    
+    /**
+     * Performs the given Action on each partition. Unlike
      * {@link #withEachPartition(PartitionAction))}, this method does not use the thread pool
      * in order to perform the request in parallel. This is desirable for very quick functions,
      * as the thread pool can be fully utilized, resulting in a quick function taking far longer
@@ -65,7 +78,7 @@ public interface PartitionManager {
      * @param writeAction specifies whether or not the action writes to the repository
      * @return
      */
-    <T> Set<T> withEachPartitionSerially(PartitionAction<T> action) throws IOException;
+    void withEachPartitionSerially(VoidPartitionAction action, boolean writeAction) throws IOException;
     
     /**
      * Performs the given Action to each partition, optionally waiting for the action to complete
@@ -74,7 +87,13 @@ public interface PartitionManager {
      * @param async if <code>true</code>, will perform the action asynchronously; if <code>false</code>, will
      *  wait for the action to complete before returning
      */
-    void withEachPartition(VoidPartitionAction action, boolean async);
+//    void withEachPartition(VoidPartitionAction action, boolean async);
     
     void shutdown();
+    
+    /**
+     * Triggers the Partition Manager to delete events from journals and indices based on the sizes of the containers
+     * and overall size of the repository
+     */
+    void deleteEventsBasedOnSize();
 }

@@ -83,6 +83,14 @@ public class StandardTocReader implements TocReader {
     }
 
     @Override
+    public long getLastBlockOffset() {
+        if ( offsets.length == 0 ) {
+            return 0L;
+        }
+        return offsets[offsets.length - 1];
+    }
+    
+    @Override
     public void close() throws IOException {
     }
 

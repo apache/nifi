@@ -23,11 +23,11 @@ import org.apache.nifi.provenance.StorageLocation;
 public class JournaledStorageLocation implements StorageLocation, Comparable<JournaledStorageLocation>, Comparator<JournaledStorageLocation> {
     private final String containerName;
     private final String sectionName;
-    private final String journalId;
+    private final Long journalId;
     private final int blockIndex;
     private final long eventId;
     
-    public JournaledStorageLocation(final String containerName, final String sectionName, final String journalId, final int blockIndex, final long eventId) {
+    public JournaledStorageLocation(final String containerName, final String sectionName, final Long journalId, final int blockIndex, final long eventId) {
         this.containerName = containerName;
         this.sectionName = sectionName;
         this.journalId = journalId;
@@ -43,7 +43,7 @@ public class JournaledStorageLocation implements StorageLocation, Comparable<Jou
         return sectionName;
     }
     
-    public String getJournalId() {
+    public Long getJournalId() {
         return journalId;
     }
     
@@ -53,6 +53,11 @@ public class JournaledStorageLocation implements StorageLocation, Comparable<Jou
     
     public long getEventId() {
         return eventId;
+    }
+
+    @Override
+    public String toString() {
+        return "JournaledStorageLocation [containerName=" + containerName + ", sectionName=" + sectionName + ", journalId=" + journalId + ", eventId=" + eventId + "]";
     }
 
     @Override

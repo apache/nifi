@@ -28,6 +28,8 @@ import org.apache.nifi.provenance.search.SearchableField;
 
 public class JournalingRepositoryConfig {
     private Map<String, File> containers = new HashMap<>();
+    private Map<String, Long> containerCapacities = new HashMap<>();
+    
     private long expirationMillis = TimeUnit.MILLISECONDS.convert(24, TimeUnit.HOURS);
     private long storageCapacity = 1024L * 1024L * 1024L;   // 1 GB
     private long rolloverMillis = TimeUnit.MILLISECONDS.convert(5, TimeUnit.MINUTES);
@@ -35,13 +37,16 @@ public class JournalingRepositoryConfig {
     private long desiredIndexBytes = 1024L * 1024L * 500L; // 500 MB
     private int partitionCount = 16;
     private int blockSize = 5000;
-    private int indexesPerContainer = 2;
-
+    private int indexesPerContainer = 1;
+    private long expirationFrequency = TimeUnit.MINUTES.toNanos(2L);
+    
     private List<SearchableField> searchableFields = new ArrayList<>();
     private List<SearchableField> searchableAttributes = new ArrayList<>();
     private boolean compress = true;
     private boolean alwaysSync = false;
-    private int threadPoolSize = 4;
+    private int workerThreadPoolSize = 2;
+    private int queryThreadPoolSize = 2;
+    private int compressionThreadPoolSize = 1;
     private boolean readOnly = false;
 
     public void setReadOnly(final boolean readOnly) {
@@ -74,6 +79,27 @@ public class JournalingRepositoryConfig {
         this.containers = new HashMap<>(containers);
     }
 
+    
+    public long getMaxCapacity(final String containerName) {
+        final Long maxCapacity = containerCapacities.get(containerName);
+        if ( maxCapacity == null ) {
+            return getMaxStorageCapacity();
+        } else {
+            return maxCapacity;
+        }
+    }
+
+    public void setMaxContainerCapacities(final Map<String, Long> containerCapacities) {
+        this.containerCapacities = new HashMap<>(containerCapacities);
+    }
+
+    public void setMaxContainerCapacity(final String containerName, final long maxCapacity) {
+        if ( maxCapacity < 1 ) {
+            throw new IllegalArgumentException("Cannot set max container capacity for " + containerName + " to " + maxCapacity + " bytes");
+        }
+
+        this.containerCapacities.put(containerName, maxCapacity);
+    }
     /**
      * Returns the maximum amount of time that a given record will stay in the
      * repository
@@ -207,15 +233,28 @@ public class JournalingRepositoryConfig {
         this.compress = compress;
     }
 
-    public int getThreadPoolSize() {
-        return threadPoolSize;
+    public int getWorkerThreadPoolSize() {
+        return workerThreadPoolSize;
     }
 
-    public void setThreadPoolSize(final int queryThreadPoolSize) {
+    public void setWorkerThreadPoolSize(final int workerThreadPoolSize) {
+        if (workerThreadPoolSize < 1) {
+            throw new IllegalArgumentException();
+        }
+        this.workerThreadPoolSize = workerThreadPoolSize;
+    }
+    
+    
+
+    public int getQueryThreadPoolSize() {
+        return queryThreadPoolSize;
+    }
+
+    public void setQueryThreadPoolSize(int queryThreadPoolSize) {
         if (queryThreadPoolSize < 1) {
             throw new IllegalArgumentException();
         }
-        this.threadPoolSize = queryThreadPoolSize;
+        this.queryThreadPoolSize = queryThreadPoolSize;
     }
 
     /**
@@ -308,7 +347,7 @@ public class JournalingRepositoryConfig {
      * Returns the minimum number of Provenance Events that should be written to a single Block.
      * Events are written out in blocks, which are later optionally compressed. A larger block size
      * will potentially result in better compression. However, a smaller block size will result
-     * in better performance when reading the data. The default value is 100 events per block.
+     * in better performance when reading the data. The default value is 5000 events per block.
      * 
      * @return
      */
@@ -320,7 +359,7 @@ public class JournalingRepositoryConfig {
      * Sets the minimum number of Provenance Events that should be written to a single Block.
      * Events are written out in blocks, which are later optionally compressed. A larger block size
      * will potentially result in better compression. However, a smaller block size will result
-     * in better performance when reading the data. The default value is 100 events per block.
+     * in better performance when reading the data. The default value is 5000 events per block.
      * 
      * @return
      */
@@ -329,5 +368,21 @@ public class JournalingRepositoryConfig {
             throw new IllegalArgumentException("Cannot set block size to " + blockSize + "; must be a positive integer");
         }
         this.blockSize = blockSize;
+    }
+
+    public int getCompressionThreadPoolSize() {
+        return compressionThreadPoolSize;
+    }
+
+    public void setCompressionThreadPoolSize(final int compressionThreadPoolSize) {
+        this.compressionThreadPoolSize = compressionThreadPoolSize;
+    }
+    
+    public long getExpirationFrequency(final TimeUnit unit) {
+        return unit.convert(expirationFrequency, TimeUnit.NANOSECONDS);
+    }
+    
+    public void setExpirationFrequency(final long period, final TimeUnit unit) {
+        this.expirationFrequency = unit.toNanos(period);
     }
 }

@@ -62,13 +62,21 @@ public class StandardJournalReader implements JournalReader {
     private void resetStreams() throws IOException {
         final InputStream bufferedIn = new BufferedInputStream(new FileInputStream(file));
         compressedStream = new ByteCountingInputStream(bufferedIn);
-        final DataInputStream dis = new DataInputStream(compressedStream);
-        final String codecName = dis.readUTF();
-        serializationVersion = dis.readInt();
-        compressed = dis.readBoolean();
-        deserializer = Deserializers.getDeserializer(codecName);
-        
-        resetDecompressedStream();
+        try {
+            final DataInputStream dis = new DataInputStream(compressedStream);
+            final String codecName = dis.readUTF();
+            serializationVersion = dis.readInt();
+            compressed = dis.readBoolean();
+            deserializer = Deserializers.getDeserializer(codecName);
+            
+            resetDecompressedStream();
+        } catch (final Exception e) {
+            try {
+                compressedStream.close();
+            } catch (final IOException ignore) {}
+            
+            throw new IOException("Failed to reset data stream when reading" + file, e);
+        }
     }
     
     private void resetDecompressedStream() throws IOException {
@@ -76,6 +84,15 @@ public class StandardJournalReader implements JournalReader {
             decompressedStream = new ByteCountingInputStream(new BufferedInputStream(new CompressionInputStream(compressedStream)), compressedStream.getBytesConsumed());
         } else {
             decompressedStream = compressedStream;
+        }
+    }
+    
+    @Override
+    public void close() throws IOException {
+        compressedStream.close();
+        
+        if ( compressedStream != decompressedStream ) {
+            decompressedStream.close();
         }
     }
     
@@ -145,7 +162,7 @@ public class StandardJournalReader implements JournalReader {
         // of the file. We do this because we know that the ID's are always increasing, so if we need an ID less
         // than the previous ID, we have to go backward in the file. We can't do this with streams, so start the
         // stream over.
-        if ( eventId < lastEventIdRead ) {
+        if ( eventId <= lastEventIdRead ) {
             close();
             resetStreams();
         }
@@ -167,12 +184,36 @@ public class StandardJournalReader implements JournalReader {
     }
 
     @Override
-    public void close() throws IOException {
-        decompressedStream.close();
-    }
-    
-    @Override
     public String toString() {
         return "StandardJournalReader[" + file + "]";
+    }
+
+    @Override
+    public ProvenanceEventRecord getLastEvent(final long blockOffset) throws IOException {
+        if ( blockOffset > compressedStream.getBytesConsumed() ) {
+            close();
+            resetStreams();
+        }
+        
+        final long bytesToSkip = blockOffset - compressedStream.getBytesConsumed();
+        if ( bytesToSkip > 0 ) {
+            StreamUtils.skip(compressedStream, bytesToSkip);
+            resetDecompressedStream();
+        }
+        
+        ProvenanceEventRecord lastReadRecord = null;
+        ProvenanceEventRecord event;
+        while ((event = nextEvent()) != null) {
+            lastReadRecord = event;
+        }
+        
+        // If we weren't able to read anything and the block offset was given, just start over
+        // and read the entire thing, returning the last event.
+        if ( lastReadRecord == null && blockOffset > 0L ) {
+            return getLastEvent(0L);
+        }
+        
+        // return the last even that we read, whether or not it was null
+        return lastReadRecord;
     }
 }
