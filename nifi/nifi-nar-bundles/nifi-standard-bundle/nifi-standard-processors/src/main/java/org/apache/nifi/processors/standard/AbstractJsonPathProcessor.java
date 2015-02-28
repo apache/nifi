@@ -57,7 +57,7 @@ public abstract class AbstractJsonPathProcessor extends AbstractProcessor {
             } catch (InvalidPathException ipe) {
                 error = ipe.toString();
             }
-            return new ValidationResult.Builder().valid(error == null).explanation(error).build();
+            return new ValidationResult.Builder().subject("JsonPath expression " + subject).valid(error == null).explanation(error).build();
         }
     };
 
