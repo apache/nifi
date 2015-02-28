@@ -141,32 +141,15 @@ nf.CanvasToolbar = (function () {
                     actions['group'].disable();
                 }
 
-                // determine if the current selection is entirely processors or labels
-                var selectedProcessors = selection.filter(function(d) {
-                    return nf.CanvasUtils.isProcessor(d3.select(this));
-                });
-                var selectedLabels = selection.filter(function(d) {
-                    return nf.CanvasUtils.isLabel(d3.select(this));
-                });
-
-                var allProcessors = selectedProcessors.size() === selection.size();
-                var allLabels = selectedLabels.size() === selection.size();
-
-                // if there are any colorable components enable the button
-                if (allProcessors || allLabels) {
+                // if there are any colorable components enable the fill button
+                if (nf.CanvasUtils.isColorable(selection)) {
                     actions['fill'].enable();
                 } else {
                     actions['fill'].disable();
                 }
                 
-                // determine if there are any selected components that support enable/disable
-                var supportsEnable = selection.filter(function(d) {
-                    var selected = d3.select(this);
-                    return nf.CanvasUtils.isProcessor(selected) || nf.CanvasUtils.isInputPort(selected) || nf.CanvasUtils.isOutputPort(selected);
-                });
-                
                 // ensure the entire selection supports enable/disable
-                if (!supportsEnable.empty() && supportsEnable.size() === selection.size()) {
+                if (!selection.empty()) {
                     actions['enable'].enable();
                     actions['disable'].enable();
                 } else {

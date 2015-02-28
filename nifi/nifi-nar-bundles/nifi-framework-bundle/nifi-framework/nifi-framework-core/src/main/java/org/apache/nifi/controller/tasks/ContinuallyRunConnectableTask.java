@@ -16,16 +16,16 @@
  */
 package org.apache.nifi.controller.tasks;
 
+import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.controller.repository.StandardProcessSessionFactory;
-import org.apache.nifi.controller.scheduling.ConnectableProcessContext;
 import org.apache.nifi.controller.scheduling.ProcessContextFactory;
 import org.apache.nifi.controller.scheduling.ScheduleState;
-import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.nar.NarCloseable;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.Connectables;
@@ -33,28 +33,33 @@ import org.apache.nifi.util.ReflectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ContinuallyRunConnectableTask implements Runnable {
+/**
+ * Continually runs a Connectable as long as the processor has work to do. {@link #call()} will return
+ * <code>true</code> if the Connectable should be yielded, <code>false</code> otherwise.
+ */
+public class ContinuallyRunConnectableTask implements Callable<Boolean> {
 
     private static final Logger logger = LoggerFactory.getLogger(ContinuallyRunConnectableTask.class);
 
     private final Connectable connectable;
     private final ScheduleState scheduleState;
     private final ProcessSessionFactory sessionFactory;
-    private final ConnectableProcessContext processContext;
+    private final ProcessContext processContext;
 
-    public ContinuallyRunConnectableTask(final ProcessContextFactory contextFactory, final Connectable connectable, final ScheduleState scheduleState, final StringEncryptor encryptor) {
+    public ContinuallyRunConnectableTask(final ProcessContextFactory contextFactory, final Connectable connectable, final ScheduleState scheduleState, final ProcessContext processContext) {
         this.connectable = connectable;
         this.scheduleState = scheduleState;
         this.sessionFactory = new StandardProcessSessionFactory(contextFactory.newProcessContext(connectable, new AtomicLong(0L)));
-        this.processContext = new ConnectableProcessContext(connectable, encryptor);
+        this.processContext = processContext;
     }
 
-    @SuppressWarnings("deprecation")
     @Override
-    public void run() {
+    @SuppressWarnings("deprecation")
+    public Boolean call() {
         if (!scheduleState.isScheduled()) {
-            return;
+            return false;
         }
+        
         // Connectable should run if the following conditions are met:
         // 1. It's an Input Port or or is a Remote Input Port or has incoming FlowFiles queued
         // 2. Any relationship is available (since there's only 1
@@ -62,8 +67,9 @@ public class ContinuallyRunConnectableTask implements Runnable {
         // it means the same thing)
         // 3. It is not yielded.
         final boolean triggerWhenEmpty = connectable.isTriggerWhenEmpty();
+        boolean flowFilesQueued = true;
         final boolean shouldRun = (connectable.getYieldExpiration() < System.currentTimeMillis())
-                && (triggerWhenEmpty || Connectables.flowFilesQueued(connectable)) && (connectable.getRelationships().isEmpty() || Connectables.anyRelationshipAvailable(connectable));
+                && (triggerWhenEmpty || (flowFilesQueued = Connectables.flowFilesQueued(connectable))) && (connectable.getRelationships().isEmpty() || Connectables.anyRelationshipAvailable(connectable));
 
         if (shouldRun) {
             scheduleState.incrementActiveThreadCount();
@@ -92,6 +98,12 @@ public class ContinuallyRunConnectableTask implements Runnable {
 
                 scheduleState.decrementActiveThreadCount();
             }
+        } else if (!flowFilesQueued) {
+            // FlowFiles must be queued in order to run but there are none queued;
+            // yield for just a bit.
+            return true;
         }
+        
+        return true;
     }
 }

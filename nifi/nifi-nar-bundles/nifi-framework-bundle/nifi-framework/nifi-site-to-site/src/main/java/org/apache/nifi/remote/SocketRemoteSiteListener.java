@@ -22,6 +22,7 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -35,8 +36,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.net.ssl.SSLContext;
 
-import org.apache.nifi.cluster.NodeInformant;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.remote.cluster.NodeInformant;
 import org.apache.nifi.remote.exception.HandshakeException;
 import org.apache.nifi.remote.io.socket.SocketChannelCommunicationsSession;
 import org.apache.nifi.remote.io.socket.ssl.SSLSocketChannel;
@@ -122,12 +123,17 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                     }
                     LOG.trace("Got connection");
                     
+                    if ( stopped.get() ) {
+                        return;
+                    }
                     final Socket socket = acceptedSocket;
                     final SocketChannel socketChannel = socket.getChannel();
                     final Thread thread = new Thread(new Runnable() {
                         @Override
                         public void run() {
-                            String hostname = socket.getInetAddress().getHostName();
+                            LOG.debug("{} Determining URL of connection", this);
+                            final InetAddress inetAddress = socket.getInetAddress();
+                            String hostname = inetAddress.getHostName();
                             final int slashIndex = hostname.indexOf("/");
                             if ( slashIndex == 0 ) {
                                 hostname = hostname.substring(1);
@@ -137,6 +143,7 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
 
                             final int port = socket.getPort();
                             final String peerUri = "nifi://" + hostname + ":" + port;
+                            LOG.debug("{} Connection URL is {}", this, peerUri);
                             
                             final CommunicationsSession commsSession;
                             final String dn;
@@ -151,6 +158,7 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                                     dn = sslSocketChannel.getDn();
                                     commsSession.setUserDn(dn);
                                 } else {
+                                    LOG.trace("{} Channel is not secure", this);
                                     commsSession = new SocketChannelCommunicationsSession(socketChannel, peerUri);
                                     dn = null;
                                 }
@@ -198,7 +206,8 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                             	protocol.setRootProcessGroup(rootGroup.get());
                           	    protocol.setNodeInformant(nodeInformant);
                             	
-                            	peer = new Peer(commsSession, peerUri);
+                          	    final PeerDescription description = new PeerDescription("localhost", getPort(), sslContext != null);
+                            	peer = new Peer(description, commsSession, peerUri, "nifi://localhost:" + getPort());
                             	LOG.debug("Handshaking....");
                             	protocol.handshake(peer);
                             	
@@ -303,6 +312,7 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                         }
                     });
                     thread.setName("Site-to-Site Worker Thread-" + (threadCount++));
+                    LOG.debug("Handing connection to {}", thread);
                     thread.start();
                 }
             }

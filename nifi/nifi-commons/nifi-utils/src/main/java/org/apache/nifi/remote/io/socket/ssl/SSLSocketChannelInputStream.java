@@ -27,6 +27,10 @@ public class SSLSocketChannelInputStream extends InputStream {
         this.channel = channel;
     }
 
+    public void consume() throws IOException {
+        channel.consume();
+    }
+    
     @Override
     public int read() throws IOException {
         return channel.read();

@@ -35,5 +35,6 @@
         <module>nifi-web-utils</module>
         <module>nifi-processor-utilities</module>
         <module>nifi-write-ahead-log</module>
+		<module>nifi-site-to-site-client</module>
     </modules>
 </project>

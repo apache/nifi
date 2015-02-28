@@ -63,6 +63,7 @@ public class NiFiProperties extends Properties {
     public static final String TEMPLATE_DIRECTORY = "nifi.templates.directory";
     public static final String ADMINISTRATIVE_YIELD_DURATION = "nifi.administrative.yield.duration";
     public static final String PERSISTENT_STATE_DIRECTORY = "nifi.persistent.state.directory";
+    public static final String BORED_YIELD_DURATION = "nifi.bored.yield.duration";
 
     // content repository properties
     public static final String REPOSITORY_CONTENT_PREFIX = "nifi.content.repository.directory.";
@@ -200,6 +201,7 @@ public class NiFiProperties extends Properties {
     public static final String DEFAULT_ADMINISTRATIVE_YIELD_DURATION = "30 sec";
     public static final String DEFAULT_PERSISTENT_STATE_DIRECTORY = "./conf/state";
     public static final String DEFAULT_COMPONENT_STATUS_SNAPSHOT_FREQUENCY = "5 mins";
+    public static final String DEFAULT_BORED_YIELD_DURATION = "10 millis";
 
     // cluster common defaults
     public static final String DEFAULT_CLUSTER_PROTOCOL_HEARTBEAT_INTERVAL = "5 sec";
@@ -873,4 +875,7 @@ public class NiFiProperties extends Properties {
         return value;
     }
 
+    public String getBoredYieldDuration() {
+        return getProperty(BORED_YIELD_DURATION, DEFAULT_BORED_YIELD_DURATION);
+    }
 }

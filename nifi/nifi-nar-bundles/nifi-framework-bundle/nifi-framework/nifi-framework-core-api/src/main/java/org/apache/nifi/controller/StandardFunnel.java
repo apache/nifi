@@ -94,7 +94,7 @@ public class StandardFunnel implements Funnel {
         position = new AtomicReference<>(new Position(0D, 0D));
         scheduledState = new AtomicReference<>(ScheduledState.STOPPED);
         penalizationPeriod = new AtomicReference<>("30 sec");
-        yieldPeriod = new AtomicReference<>("1 sec");
+        yieldPeriod = new AtomicReference<>("250 millis");
         yieldExpiration = new AtomicLong(0L);
         schedulingPeriod = new AtomicReference<>("0 millis");
         schedulingNanos = new AtomicLong(30000);

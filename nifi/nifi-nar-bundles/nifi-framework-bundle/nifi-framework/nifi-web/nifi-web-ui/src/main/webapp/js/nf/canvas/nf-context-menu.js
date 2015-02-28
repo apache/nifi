@@ -179,12 +179,7 @@ nf.ContextMenu = (function () {
      * @param {selection} selection          The selection
      */
     var isColorable = function (selection) {
-        // ensure the correct number of components are selected
-        if (selection.size() !== 1) {
-            return false;
-        }
-
-        return nf.Common.isDFM() && (nf.CanvasUtils.isProcessor(selection) || nf.CanvasUtils.isLabel(selection));
+        return nf.Common.isDFM() && nf.CanvasUtils.isColorable(selection);
     };
 
     /**
@@ -359,7 +354,7 @@ nf.ContextMenu = (function () {
         {condition: hasUpstream, menuItem: {img: 'images/iconSmallRelationship.png', text: 'Upstream connections', action: 'showUpstream'}},
         {condition: hasDownstream, menuItem: {img: 'images/iconSmallRelationship.png', text: 'Downstream connections', action: 'showDownstream'}},
         {condition: hasUsage, menuItem: {img: 'images/iconUsage.png', text: 'Usage', action: 'showUsage'}},
-        {condition: isRemoteProcessGroup, menuItem: {img: 'images/iconRefresh.png', text: 'Refresh flow', action: 'refreshRemoteFlow'}},
+        {condition: isRemoteProcessGroup, menuItem: {img: 'images/iconRefresh.png', text: 'Refresh', action: 'refreshRemoteFlow'}},
         {condition: isRemoteProcessGroup, menuItem: {img: 'images/iconGoTo.png', text: 'Go to', action: 'openUri'}},
         {condition: isColorable, menuItem: {img: 'images/iconColor.png', text: 'Change color', action: 'fillColor'}},
         {condition: isNotConnection, menuItem: {img: 'images/iconCenterView.png', text: 'Center in view', action: 'center'}},

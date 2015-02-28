@@ -43,6 +43,18 @@ public class SocketChannelInputStream extends InputStream {
     public void setTimeout(final int timeoutMillis) {
         this.timeoutMillis = timeoutMillis;
     }
+    
+    public void consume() throws IOException {
+        channel.shutdownInput();
+        
+        final byte[] b = new byte[4096];
+        final ByteBuffer buffer = ByteBuffer.wrap(b);
+        int bytesRead;
+        do {
+            bytesRead = channel.read(buffer);
+            buffer.flip();
+        } while ( bytesRead > 0 );
+    }
 
     @Override
     public int read() throws IOException {

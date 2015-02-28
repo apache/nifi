@@ -109,4 +109,22 @@ public class TestCompressContent {
         flowFile.assertAttributeEquals("filename", "SampleFile.txt.gz");
 
     }
+    
+    @Test
+    public void testDecompressFailure() throws IOException {
+    	final TestRunner runner = TestRunners.newTestRunner(CompressContent.class);
+        runner.setProperty(CompressContent.MODE, "decompress");
+        runner.setProperty(CompressContent.COMPRESSION_FORMAT, "gzip");
+        
+        byte[] data = new byte[]{1,2,3,4,5,6,7,8,9,10};
+        runner.enqueue(data);
+        
+        
+        assertTrue(runner.setProperty(CompressContent.UPDATE_FILENAME, "true").isValid());
+        runner.run();
+        runner.assertQueueEmpty();
+        runner.assertAllFlowFilesTransferred(CompressContent.REL_FAILURE, 1);
+        
+        runner.getFlowFilesForRelationship(CompressContent.REL_FAILURE).get(0).assertContentEquals(data);
+    }
 }
