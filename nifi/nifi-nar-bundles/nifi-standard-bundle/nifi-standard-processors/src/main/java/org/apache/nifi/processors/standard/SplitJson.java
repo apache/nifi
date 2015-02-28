@@ -138,6 +138,8 @@ public class SplitJson extends AbstractJsonPathProcessor {
             segments.add(split);
         }
 
+        processSession.getProvenanceReporter().fork(original, segments);
+
         processSession.transfer(segments, REL_SPLIT);
         processSession.transfer(original, REL_ORIGINAL);
         logger.info("Split {} into {} FlowFiles", new Object[]{original, segments.size()});
