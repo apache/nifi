@@ -397,6 +397,7 @@ public class HandleHttpRequest extends AbstractProcessor {
         if ( server != null ) {
             getLogger().debug("Shutting down server");
             server.stop();
+            server.destroy();
             server.join();
             getLogger().info("Shut down {}", new Object[] {server});
         }

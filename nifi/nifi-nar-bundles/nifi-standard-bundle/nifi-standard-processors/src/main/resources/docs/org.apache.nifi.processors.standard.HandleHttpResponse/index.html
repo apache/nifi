@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8" />
+        <title>HandleHttpResponse</title>
+        <link rel="stylesheet" href="../../css/component-usage.css" type="text/css" />
+    </head>
+
+    <body>
+        <!-- Processor Documentation ================================================== -->
+        <h2>Description:</h2>
+        <p>
+            This processor responds to an HTTP request that was received by the  
+            <a href="../org.apache.nifi.processors.standard.HandleHttpRequest/index.html">HandleHttpRequest</a> Processor.
+        </p>
+        
+        <p>
+        	The pairing of this Processor with a <a href="../org.apache.nifi.processors.standard.HandleHttpRequest/index.html">HandleHttpRequest</a> Processor
+        	provides the ability to use NiFi to visually construct a web server that can carry out any functionality that is available
+        	through the existing Processors. For example, one could construct a Web-based front end to an SFTP Server by constructing a
+        	flow such as:
+        </p>
+        
+        <p>
+        	<a href="../org.apache.nifi.processors.standard.HandleHttpRequest/index.html">HandleHttpRequest</a> -> 
+        	<a href="../org.apache.nifi.processors.standard.PutSFTP/index.html">PutSFTP</a> ->
+			<a href="index.html">HandleHttpResponse</a>
+        </p>
+        
+        <p>
+        	This Processor must be configured with the same &lt;HTTP Context Map&gt; service as the corresponding HandleHttpRequest Processor.
+        	Otherwise, all FlowFiles will be routed to the 'failure' relationship.
+        </p>
+        
+        <p>
+        	All FlowFiles must have an attribute named <code>http.context.identifier</code>. The value of this attribute is used to lookup
+        	the HTTP Response so that the proper message can be sent back to the requestor. If this attribute is missing, the FlowFile
+        	will be routed to 'failure.'
+        </p>
+        
+        
+        <p>
+            <strong>Properties:</strong>
+        </p>
+        <p>
+            In the list below, the names of required properties appear in bold. Any other properties (not in bold) are considered optional. If a property has a default value, it is indicated. If a property supports the use of the NiFi Expression Language (or simply, "expression language"), that is also indicated.
+        </p>
+        <ul>
+            <li><strong>HTTP Status Code</strong>
+                <ul>
+                    <li>The HTTP Status Code to use when responding to the HTTP Request. See Section 10 of RFC 2616 for more information.</li>
+                    <li>Default value: no default</li>
+                    <li>Supports expression language: true</li>
+                </ul>
+            </li>
+            <li><strong>HTTP Context Map</strong>
+                <ul>
+                    <li>The HTTP Context Map Controller Service to use for caching the HTTP Request Information</li>
+                    <li>Default value: no default</li>
+                    <li>Supports expression language: false</li>
+                </ul>
+            </li>
+        </ul>
+
+        <p>
+            <strong>Relationships:</strong>
+        </p>
+        <ul>
+            <li>success
+                <ul>
+                    <li>If a message is successfully sent back to the requestor, the FlowFile is routed to this relationship.</li>
+                </ul>
+            </li>
+            
+            <li>failure
+            	<ul>
+            		<li>
+            			A FlowFile will be routed to failure under the following conditions:
+            			<ul>
+            				<li>The FlowFile does not have an <code>http.context.identifier</code> attribute</li>
+            				<li>The <code>http.context.identifier</code> attribute has a value that cannot be found in the HTTP Context Map</li>
+            				<li>The HTTP Status Code is not a number</li>
+            				<li>There was a communications failure when attempting to write the response to the requestor</li>
+            			</ul>
+            		</li>
+            	</ul>
+            </li>
+        </ul>
+
+		<p>
+		<strong>See Also:</strong><br />
+		<a href="../org.apache.nifi.processors.standard.HandleHttpRequest/index.html">HandleHttpRequest</a><br />
+		<a href="../org.apache.nifi.http.StandardHttpContextMap/index.html">StandardHttpContextMap</a><br />
+		<a href="../org.apache.nifi.ssl.StandardSSLContextService/index.html">StandardSSLContextService</a><br />
+		</p>
+		
+    </body>
+</html>
