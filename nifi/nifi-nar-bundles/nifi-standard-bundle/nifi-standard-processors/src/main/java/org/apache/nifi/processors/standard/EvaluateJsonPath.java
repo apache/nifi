@@ -227,6 +227,8 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
                             }
                         }
                     });
+                    processSession.getProvenanceReporter().modifyContent(flowFile,
+                            "Replaced content with result of expression " + jsonPathExp.getPath());
                     break;
             }
         }
