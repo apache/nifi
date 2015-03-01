@@ -17,8 +17,10 @@
 package org.apache.nifi.processors.standard;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URLDecoder;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -73,6 +75,7 @@ import com.sun.jersey.api.client.ClientResponse.Status;
 @CapabilityDescription("Starts an HTTP Server and listens for HTTP Requests. For each request, creates a FlowFile and transfers to 'success'. This Processor is designed to be used in conjunction with the HandleHttpResponse Processor in order to create a Web Service")
 public class HandleHttpRequest extends AbstractProcessor {
     public static final String HTTP_CONTEXT_ID = "http.context.identifier";
+    private static final Pattern URL_QUERY_PARAM_DELIMITER = Pattern.compile("&");
     
     // Allowable values for client auth
     public static final AllowableValue CLIENT_NONE = new AllowableValue("No Authentication", "Processor will not authenticate clients. Anyone can communicate with this Processor anonymously");
@@ -106,6 +109,13 @@ public class HandleHttpRequest extends AbstractProcessor {
         .description("The SSL Context Service to use in order to secure the server. If specified, the server will accept only HTTPS requests; otherwise, the server will accept only HTTP requests")
         .required(false)
         .identifiesControllerService(SSLContextService.class)
+        .build();
+    public static final PropertyDescriptor URL_CHARACTER_SET = new PropertyDescriptor.Builder()
+        .name("URL Character Set")
+        .description("The character set to use for decoding URL parameters")
+        .required(true)
+        .defaultValue("UTF-8")
+        .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
         .build();
     public static final PropertyDescriptor PATH_REGEX = new PropertyDescriptor.Builder()
         .name("Allowed Paths")
@@ -189,6 +199,7 @@ public class HandleHttpRequest extends AbstractProcessor {
         descriptors.add(SSL_CONTEXT);
         descriptors.add(HTTP_CONTEXT_MAP);
         descriptors.add(PATH_REGEX);
+        descriptors.add(URL_CHARACTER_SET);
         descriptors.add(ALLOW_GET);
         descriptors.add(ALLOW_POST);
         descriptors.add(ALLOW_PUT);
@@ -360,7 +371,7 @@ public class HandleHttpRequest extends AbstractProcessor {
     protected int getPort() {
         for ( final Connector connector : server.getConnectors() ) {
             if ( connector instanceof ServerConnector ) {
-                return ((ServerConnector) connector).getPort();
+                return ((ServerConnector) connector).getLocalPort();
             }
         }
         
@@ -421,19 +432,50 @@ public class HandleHttpRequest extends AbstractProcessor {
             return;
         }
         
+        final String charset = context.getProperty(URL_CHARACTER_SET).getValue();
+        
         final String contextIdentifier = UUID.randomUUID().toString();
         final Map<String, String> attributes = new HashMap<>();
-        putAttribute(attributes, HTTP_CONTEXT_ID, contextIdentifier);
-        putAttribute(attributes, "mime.type", request.getContentType());
-        putAttribute(attributes, "http.servlet.path", request.getServletPath());
-        putAttribute(attributes, "http.context.path", request.getContextPath());
-        putAttribute(attributes, "http.method", request.getMethod());
-        putAttribute(attributes, "http.query.string", request.getQueryString());
-        putAttribute(attributes, "http.remote.host", request.getRemoteHost());
-        putAttribute(attributes, "http.remote.addr", request.getRemoteAddr());
-        putAttribute(attributes, "http.remote.user", request.getRemoteUser());
-        putAttribute(attributes, "http.request.uri", request.getRequestURI());
-        putAttribute(attributes, "http.auth.type", request.getAuthType());
+        try {
+            putAttribute(attributes, HTTP_CONTEXT_ID, contextIdentifier);
+            putAttribute(attributes, "mime.type", request.getContentType());
+            putAttribute(attributes, "http.servlet.path", request.getServletPath());
+            putAttribute(attributes, "http.context.path", request.getContextPath());
+            putAttribute(attributes, "http.method", request.getMethod());
+            if ( request.getQueryString() != null ) {
+                putAttribute(attributes, "http.query.string", URLDecoder.decode(request.getQueryString(), charset));
+            }
+            putAttribute(attributes, "http.remote.host", request.getRemoteHost());
+            putAttribute(attributes, "http.remote.addr", request.getRemoteAddr());
+            putAttribute(attributes, "http.remote.user", request.getRemoteUser());
+            putAttribute(attributes, "http.request.uri", request.getRequestURI());
+            putAttribute(attributes, "http.auth.type", request.getAuthType());
+            
+            final String queryString = request.getQueryString();
+            if ( queryString != null ) {
+                final String[] params = URL_QUERY_PARAM_DELIMITER.split(queryString);
+                for ( final String keyValueString : params ) {
+                    final int indexOf = keyValueString.indexOf("=");
+                    if ( indexOf < 0 ) {
+                        // no =, then it's just a key with no value
+                        attributes.put("http.query.param." + URLDecoder.decode(keyValueString, charset), "");
+                    } else {
+                        final String key = keyValueString.substring(0, indexOf);
+                        final String value;
+                        
+                        if ( indexOf == keyValueString.length() - 1 ) {
+                            value = "";
+                        } else {
+                            value = keyValueString.substring(indexOf + 1);
+                        }
+                        
+                        attributes.put("http.query.param." + URLDecoder.decode(key, charset), URLDecoder.decode(value, charset));
+                    }
+                }
+            }
+        } catch (final UnsupportedEncodingException uee) {
+            throw new ProcessException("Invalid character encoding", uee);  // won't happen because charset has been validated
+        }
         
         final Enumeration<String> headerNames = request.getHeaderNames();
         while ( headerNames.hasMoreElements() ) {
