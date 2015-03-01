@@ -20,6 +20,7 @@ import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.InvalidJsonException;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -38,6 +39,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 @EventDriven
 @SideEffectFree
@@ -53,7 +56,17 @@ public class SplitJson extends AbstractJsonPathProcessor {
             .name("JsonPath Expression")
             .description("A JsonPath expression that indicates the array element to split into JSON/scalar fragments.")
             .required(true)
-            .addValidator(JSON_PATH_VALIDATOR)
+            .addValidator(new JsonPathValidator() {
+                @Override
+                public void cacheComputedValue(String subject, String input, JsonPath computedJson) {
+                    JSON_PATH_MAP.put(input, computedJson);
+                }
+
+                @Override
+                public boolean isStale(String subject, String input) {
+                    return JSON_PATH_MAP.get(input) == null;
+                }
+            })
             .build();
 
     public static final Relationship REL_ORIGINAL = new Relationship.Builder().name("original").description("The original FlowFile that was split into segments. If the FlowFile fails processing, nothing will be sent to this relationship").build();
@@ -62,6 +75,8 @@ public class SplitJson extends AbstractJsonPathProcessor {
 
     private List<PropertyDescriptor> properties;
     private Set<Relationship> relationships;
+
+    private static final ConcurrentMap<String, JsonPath> JSON_PATH_MAP = new ConcurrentHashMap();
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -87,6 +102,16 @@ public class SplitJson extends AbstractJsonPathProcessor {
     }
 
     @Override
+    public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
+        if (descriptor.equals(ARRAY_JSON_PATH_EXPRESSION)) {
+            if (!StringUtils.equals(oldValue, newValue)) {
+                // clear the cached item
+                JSON_PATH_MAP.remove(oldValue);
+            }
+        }
+    }
+
+    @Override
     public void onTrigger(final ProcessContext processContext, final ProcessSession processSession) {
         final FlowFile original = processSession.get();
         if (original == null) {
@@ -104,8 +129,9 @@ public class SplitJson extends AbstractJsonPathProcessor {
             return;
         }
 
-        final String jsonPathExpression = processContext.getProperty(ARRAY_JSON_PATH_EXPRESSION).getValue();
-        final JsonPath jsonPath = JsonPath.compile(jsonPathExpression);
+        String jsonPathExpression = processContext.getProperty(ARRAY_JSON_PATH_EXPRESSION).getValue();
+        final JsonPath jsonPath = JSON_PATH_MAP.get(jsonPathExpression);
+        getLogger().info("Using value {} for split ", new Object[]{jsonPathExpression});
 
         final List<FlowFile> segments = new ArrayList<>();
 

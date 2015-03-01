@@ -20,11 +20,13 @@ import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.InvalidJsonException;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -38,12 +40,14 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.apache.nifi.util.ObjectHolder;
-import org.apache.nifi.util.StringUtils;
+import org.apache.nifi.util.Tuple;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 @EventDriven
 @SideEffectFree
@@ -92,6 +96,7 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> properties;
 
+    private ConcurrentMap<String, Tuple<String, JsonPath>> cachedJsonPathMap = new ConcurrentHashMap<>();
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -145,10 +150,44 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
         return new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
                 .expressionLanguageSupported(false)
-                .addValidator(JSON_PATH_VALIDATOR)
+                .addValidator(new JsonPathValidator() {
+                    @Override
+                    public void cacheComputedValue(String subject, String input, JsonPath computedJsonPath) {
+                        cachedJsonPathMap.put(subject, new Tuple<>(input, computedJsonPath));
+
+                    }
+
+                    @Override
+                    public boolean isStale(String subject, String input) {
+                        return cachedJsonPathMap.get(subject) == null;
+                    }
+                })
                 .required(false)
                 .dynamic(true)
                 .build();
+    }
+
+    @Override
+    public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
+        if (descriptor.isDynamic()) {
+            if (!StringUtils.equals(oldValue, newValue)) {
+                cachedJsonPathMap.remove(descriptor.getName());
+            }
+        }
+    }
+
+    /**
+     * Provides cleanup of the map for any JsonPath values that may have been created.  This will remove common values
+     * shared between multiple instances, but will be regenerated when the next validation cycle occurs as a result of
+     * isStale()
+     */
+    @OnRemoved
+    public void onRemoved() {
+        for (PropertyDescriptor propertyDescriptor : getPropertyDescriptors()) {
+            if (propertyDescriptor.isDynamic()) {
+                cachedJsonPathMap.remove(propertyDescriptor.getName());
+            }
+        }
     }
 
     @Override

@@ -51,19 +51,6 @@ public abstract class AbstractJsonPathProcessor extends AbstractProcessor {
 
     private static final JsonProvider JSON_PROVIDER = STRICT_PROVIDER_CONFIGURATION.jsonProvider();
 
-    public static final Validator JSON_PATH_VALIDATOR = new Validator() {
-        @Override
-        public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
-            String error = null;
-            try {
-                JsonPath compile = JsonPath.compile(input);
-            } catch (InvalidPathException ipe) {
-                error = ipe.toString();
-            }
-            return new ValidationResult.Builder().subject(subject).valid(error == null).explanation(error).build();
-        }
-    };
-
     static DocumentContext validateAndEstablishJsonContext(ProcessSession processSession, FlowFile flowFile) {
         // Parse the document once into an associated context to support multiple path evaluations if specified
         final ObjectHolder<DocumentContext> contextHolder = new ObjectHolder<>(null);
@@ -99,4 +86,32 @@ public abstract class AbstractJsonPathProcessor extends AbstractProcessor {
         return JSON_PROVIDER.toJson(jsonPathResult);
     }
 
+    protected abstract static class JsonPathValidator implements Validator {
+
+        @Override
+        public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+            JsonPath compiledJsonPath = null;
+            String error = null;
+            try {
+                if (isStale(subject, input)) {
+                    compiledJsonPath = JsonPath.compile(input);
+                    cacheComputedValue(subject, input, compiledJsonPath);
+                }
+            } catch (InvalidPathException ipe) {
+                error = ipe.toString();
+            }
+            return new ValidationResult.Builder().subject(subject).valid(error == null).explanation(error).build();
+        }
+
+        /**
+         * An optional hook to act on the compute value
+         */
+        abstract void cacheComputedValue(String subject, String input, JsonPath computedJsonPath);
+
+        /**
+         * A hook for implementing classes to determine if a cached value is stale for a compiled JsonPath represented
+         * by either a validation
+         */
+        abstract boolean isStale(String subject, String input);
+    }
 }
