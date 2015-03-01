@@ -39,6 +39,7 @@ import java.util.regex.Pattern;
 import javax.security.cert.X509Certificate;
 import javax.servlet.AsyncContext;
 import javax.servlet.ServletException;
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -111,8 +112,8 @@ public class HandleHttpRequest extends AbstractProcessor {
         .identifiesControllerService(SSLContextService.class)
         .build();
     public static final PropertyDescriptor URL_CHARACTER_SET = new PropertyDescriptor.Builder()
-        .name("URL Character Set")
-        .description("The character set to use for decoding URL parameters")
+        .name("Default URL Character Set")
+        .description("The character set to use for decoding URL parameters if the HTTP Request does not supply one")
         .required(true)
         .defaultValue("UTF-8")
         .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
@@ -432,7 +433,7 @@ public class HandleHttpRequest extends AbstractProcessor {
             return;
         }
         
-        final String charset = context.getProperty(URL_CHARACTER_SET).getValue();
+        final String charset = request.getCharacterEncoding() == null ? context.getProperty(URL_CHARACTER_SET).getValue() : request.getCharacterEncoding();
         
         final String contextIdentifier = UUID.randomUUID().toString();
         final Map<String, String> attributes = new HashMap<>();
@@ -442,6 +443,8 @@ public class HandleHttpRequest extends AbstractProcessor {
             putAttribute(attributes, "http.servlet.path", request.getServletPath());
             putAttribute(attributes, "http.context.path", request.getContextPath());
             putAttribute(attributes, "http.method", request.getMethod());
+            putAttribute(attributes, "http.local.addr", request.getLocalAddr());
+            putAttribute(attributes, "http.local.name", request.getLocalName());
             if ( request.getQueryString() != null ) {
                 putAttribute(attributes, "http.query.string", URLDecoder.decode(request.getQueryString(), charset));
             }
@@ -449,7 +452,38 @@ public class HandleHttpRequest extends AbstractProcessor {
             putAttribute(attributes, "http.remote.addr", request.getRemoteAddr());
             putAttribute(attributes, "http.remote.user", request.getRemoteUser());
             putAttribute(attributes, "http.request.uri", request.getRequestURI());
+            putAttribute(attributes, "http.request.url", request.getRequestURL().toString());
             putAttribute(attributes, "http.auth.type", request.getAuthType());
+            
+            putAttribute(attributes, "http.requested.session.id", request.getRequestedSessionId());
+            if ( request.getDispatcherType() != null ) {
+                putAttribute(attributes, "http.dispatcher.type", request.getDispatcherType().name());
+            }
+            putAttribute(attributes, "http.character.encoding", request.getCharacterEncoding());
+            putAttribute(attributes, "http.locale", request.getLocale());
+            putAttribute(attributes, "http.server.name", request.getServerName());
+            putAttribute(attributes, "http.server.port", request.getServerPort());
+            
+            final Enumeration<String> paramEnumeration = request.getParameterNames();
+            while ( paramEnumeration.hasMoreElements() ) {
+                final String paramName = paramEnumeration.nextElement();
+                final String value = request.getParameter(paramName);
+                attributes.put("http.param." + paramName, value);
+            }
+            
+            final Cookie[] cookies = request.getCookies();
+            if ( cookies != null ) {
+                for ( final Cookie cookie : cookies ) {
+                    final String name = cookie.getName();
+                    final String cookiePrefix = "http.cookie." + name + ".";
+                    attributes.put(cookiePrefix + "value", cookie.getValue());
+                    attributes.put(cookiePrefix + "domain", cookie.getDomain());
+                    attributes.put(cookiePrefix + "path", cookie.getPath());
+                    attributes.put(cookiePrefix + "max.age", String.valueOf(cookie.getMaxAge()));
+                    attributes.put(cookiePrefix + "version", String.valueOf(cookie.getVersion()));
+                    attributes.put(cookiePrefix + "secure", String.valueOf(cookie.getSecure()));
+                }
+            }
             
             final String queryString = request.getQueryString();
             if ( queryString != null ) {
@@ -525,6 +559,14 @@ public class HandleHttpRequest extends AbstractProcessor {
         session.getProvenanceReporter().receive(flowFile, request.getRequestURI(), "Received from " + request.getRemoteAddr() + (subjectDn == null ? "" : " with DN=" + subjectDn), receiveMillis);
         session.transfer(flowFile, REL_SUCCESS);
         getLogger().info("Transferring {} to 'success'; received from {}", new Object[] {flowFile, request.getRemoteAddr()});
+    }
+    
+    private void putAttribute(final Map<String, String> map, final String key, final Object value) {
+        if ( value == null ) {
+            return;
+        }
+        
+        putAttribute(map, key, value.toString());
     }
     
     private void putAttribute(final Map<String, String> map, final String key, final String value) {

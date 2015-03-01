@@ -78,7 +78,8 @@ public class TestHandleHttpRequest {
             });
             httpThread.start();
             
-            try { Thread.sleep(100L); } catch (final InterruptedException ie) {}
+            // give processor a bit to handle the http request
+            try { Thread.sleep(1000L); } catch (final InterruptedException ie) {}
             
             // process the request.
             runner.run(1, false);
