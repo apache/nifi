@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.standard;
 
 import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.InvalidJsonException;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
 import org.apache.nifi.annotation.behavior.EventDriven;
@@ -177,9 +178,10 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
             returnType = destination.equals(DESTINATION_CONTENT) ? RETURN_TYPE_JSON : RETURN_TYPE_SCALAR;
         }
 
-        final DocumentContext documentContext = validateAndEstablishJsonContext(processSession, flowFile);
-
-        if (documentContext == null) {
+        DocumentContext documentContext = null;
+        try {
+            documentContext = validateAndEstablishJsonContext(processSession, flowFile);
+        } catch (InvalidJsonException e) {
             logger.error("FlowFile {} did not have valid JSON content.", new Object[]{flowFile});
             processSession.transfer(flowFile, REL_FAILURE);
             return;
@@ -187,7 +189,6 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
 
         final Map<String, String> jsonPathResults = new HashMap<>();
 
-        jsonPathEvalLoop:
         for (final Map.Entry<String, JsonPath> attributeJsonPathEntry : attributeToJsonPathMap.entrySet()) {
 
             String jsonPathAttrKey = attributeJsonPathEntry.getKey();
@@ -207,7 +208,7 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
                 logger.warn("FlowFile {} could not find path {} for attribute key {}.", new Object[]{flowFile.getId(), jsonPathExp.getPath(), jsonPathAttrKey}, e);
                 if (destination.equals(DESTINATION_ATTRIBUTE)) {
                     jsonPathResults.put(jsonPathAttrKey, StringUtils.EMPTY);
-                    continue jsonPathEvalLoop;
+                    continue;
                 } else {
                     processSession.transfer(flowFile, REL_NO_MATCH);
                     return;
@@ -235,6 +236,4 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
         flowFile = processSession.putAllAttributes(flowFile, jsonPathResults);
         processSession.transfer(flowFile, REL_MATCH);
     }
-
-
 }

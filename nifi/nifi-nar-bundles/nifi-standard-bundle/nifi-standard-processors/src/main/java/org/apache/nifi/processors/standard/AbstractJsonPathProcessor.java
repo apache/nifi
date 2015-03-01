@@ -20,7 +20,9 @@ import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.InvalidPathException;
 import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.internal.spi.json.JsonSmartJsonProvider;
 import com.jayway.jsonpath.spi.json.JsonProvider;
+import net.minidev.json.parser.JSONParser;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
@@ -28,9 +30,7 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.io.InputStreamCallback;
-import org.apache.nifi.processors.standard.util.JsonUtils;
 import org.apache.nifi.stream.io.BufferedInputStream;
-import org.apache.nifi.util.BooleanHolder;
 import org.apache.nifi.util.ObjectHolder;
 
 import java.io.IOException;
@@ -46,7 +46,10 @@ import java.util.Map;
  */
 public abstract class AbstractJsonPathProcessor extends AbstractProcessor {
 
-    protected static final JsonProvider JSON_PROVIDER = Configuration.defaultConfiguration().jsonProvider();
+    private static final Configuration STRICT_PROVIDER_CONFIGURATION =
+            Configuration.builder().jsonProvider(new JsonSmartJsonProvider(JSONParser.MODE_RFC4627)).build();
+
+    private static final JsonProvider JSON_PROVIDER = STRICT_PROVIDER_CONFIGURATION.jsonProvider();
 
     public static final Validator JSON_PATH_VALIDATOR = new Validator() {
         @Override
@@ -57,34 +60,22 @@ public abstract class AbstractJsonPathProcessor extends AbstractProcessor {
             } catch (InvalidPathException ipe) {
                 error = ipe.toString();
             }
-            return new ValidationResult.Builder().subject("JsonPath expression " + subject).valid(error == null).explanation(error).build();
+            return new ValidationResult.Builder().subject(subject).valid(error == null).explanation(error).build();
         }
     };
 
     static DocumentContext validateAndEstablishJsonContext(ProcessSession processSession, FlowFile flowFile) {
-
-        final BooleanHolder validJsonHolder = new BooleanHolder(false);
+        // Parse the document once into an associated context to support multiple path evaluations if specified
+        final ObjectHolder<DocumentContext> contextHolder = new ObjectHolder<>(null);
         processSession.read(flowFile, new InputStreamCallback() {
             @Override
             public void process(InputStream in) throws IOException {
-                validJsonHolder.set(JsonUtils.isValidJson(in));
+                try (BufferedInputStream bufferedInputStream = new BufferedInputStream(in)) {
+                    DocumentContext ctx = JsonPath.using(STRICT_PROVIDER_CONFIGURATION).parse(bufferedInputStream);
+                    contextHolder.set(ctx);
+                }
             }
         });
-
-        // Parse the document once into an associated context to support multiple path evaluations if specified
-        final ObjectHolder<DocumentContext> contextHolder = new ObjectHolder<>(null);
-
-        if (validJsonHolder.get()) {
-            processSession.read(flowFile, new InputStreamCallback() {
-                @Override
-                public void process(InputStream in) throws IOException {
-                    try (BufferedInputStream bufferedInputStream = new BufferedInputStream(in)) {
-                        DocumentContext ctx = JsonPath.parse(in);
-                        contextHolder.set(ctx);
-                    }
-                }
-            });
-        }
 
         return contextHolder.get();
     }
@@ -107,4 +98,5 @@ public abstract class AbstractJsonPathProcessor extends AbstractProcessor {
         }
         return JSON_PROVIDER.toJson(jsonPathResult);
     }
+
 }

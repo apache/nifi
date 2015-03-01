@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.standard;
 
 import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.InvalidJsonException;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
 import org.apache.nifi.annotation.behavior.EventDriven;
@@ -94,10 +95,10 @@ public class SplitJson extends AbstractJsonPathProcessor {
 
         final ProcessorLog logger = getLogger();
 
-
-        final DocumentContext documentContext = validateAndEstablishJsonContext(processSession, original);
-
-        if (documentContext == null) {
+        DocumentContext documentContext = null;
+        try {
+            documentContext = validateAndEstablishJsonContext(processSession, original);
+        } catch (InvalidJsonException e) {
             logger.error("FlowFile {} did not have valid JSON content.", new Object[]{original});
             processSession.transfer(original, REL_FAILURE);
             return;
