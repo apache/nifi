@@ -40,7 +40,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.apache.nifi.util.ObjectHolder;
-import org.apache.nifi.util.Tuple;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -96,7 +95,7 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> properties;
 
-    private ConcurrentMap<String, Tuple<String, JsonPath>> cachedJsonPathMap = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, JsonPath> cachedJsonPathMap = new ConcurrentHashMap<>();
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -153,13 +152,12 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
                 .addValidator(new JsonPathValidator() {
                     @Override
                     public void cacheComputedValue(String subject, String input, JsonPath computedJsonPath) {
-                        cachedJsonPathMap.put(subject, new Tuple<>(input, computedJsonPath));
-
+                        cachedJsonPathMap.put(input, computedJsonPath);
                     }
 
                     @Override
                     public boolean isStale(String subject, String input) {
-                        return cachedJsonPathMap.get(subject) == null;
+                        return cachedJsonPathMap.get(input) == null;
                     }
                 })
                 .required(false)
@@ -171,7 +169,9 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
     public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
         if (descriptor.isDynamic()) {
             if (!StringUtils.equals(oldValue, newValue)) {
-                cachedJsonPathMap.remove(descriptor.getName());
+                if (oldValue != null) {
+                    cachedJsonPathMap.remove(oldValue);
+                }
             }
         }
     }
@@ -185,7 +185,7 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
     public void onRemoved(ProcessContext processContext) {
         for (PropertyDescriptor propertyDescriptor : getPropertyDescriptors()) {
             if (propertyDescriptor.isDynamic()) {
-                cachedJsonPathMap.remove(propertyDescriptor.getName());
+                cachedJsonPathMap.remove(processContext.getProperty(propertyDescriptor).getValue());
             }
         }
     }
