@@ -33,6 +33,12 @@
     does not evaluate to an array element, the original file is routed to 'failure' and no files are generated.
 </p>
 
+<p>
+    <strong>Note:</strong> The underlying JsonPath library loads the entirety of the streamed content into and performs
+    result evaluations in memory. Accordingly, it is important to consider the anticipated profile of content being
+    evaluated by this processor and the hardware supporting it especially when working against large JSON documents.
+</p>
+
 <strong>Properties:</strong>
 </p>
 
