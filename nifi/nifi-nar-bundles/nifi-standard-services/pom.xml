@@ -31,5 +31,6 @@
         <module>nifi-ssl-context-service-api</module>
 		<module>nifi-http-context-map-bundle</module>
         <module>nifi-standard-services-api-nar</module>
+        <module>nifi-dbcp-service-api</module>
     </modules>
 </project>
