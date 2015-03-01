@@ -182,7 +182,7 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
      * isStale()
      */
     @OnRemoved
-    public void onRemoved() {
+    public void onRemoved(ProcessContext processContext) {
         for (PropertyDescriptor propertyDescriptor : getPropertyDescriptors()) {
             if (propertyDescriptor.isDynamic()) {
                 cachedJsonPathMap.remove(propertyDescriptor.getName());

@@ -26,6 +26,7 @@ import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ProcessorLog;
@@ -109,6 +110,17 @@ public class SplitJson extends AbstractJsonPathProcessor {
                 JSON_PATH_MAP.remove(oldValue);
             }
         }
+    }
+
+    /**
+     * Provides cleanup of the map for any JsonPath values that may have been created.  This will remove common values
+     * shared between multiple instances, but will be regenerated when the next validation cycle occurs as a result of
+     * isStale()
+     */
+    @OnRemoved
+    public void onRemoved(ProcessContext processContext) {
+        String jsonPathExpression = processContext.getProperty(ARRAY_JSON_PATH_EXPRESSION).getValue();
+        JSON_PATH_MAP.remove(jsonPathExpression);
     }
 
     @Override

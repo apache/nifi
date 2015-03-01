@@ -86,7 +86,7 @@ public abstract class AbstractJsonPathProcessor extends AbstractProcessor {
         return JSON_PROVIDER.toJson(jsonPathResult);
     }
 
-    protected abstract static class JsonPathValidator implements Validator {
+    abstract static class JsonPathValidator implements Validator {
 
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
