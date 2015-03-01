@@ -131,7 +131,6 @@ public class SplitJson extends AbstractJsonPathProcessor {
 
         String jsonPathExpression = processContext.getProperty(ARRAY_JSON_PATH_EXPRESSION).getValue();
         final JsonPath jsonPath = JSON_PATH_MAP.get(jsonPathExpression);
-        getLogger().info("Using value {} for split ", new Object[]{jsonPathExpression});
 
         final List<FlowFile> segments = new ArrayList<>();
 
