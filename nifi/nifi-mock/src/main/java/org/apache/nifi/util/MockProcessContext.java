@@ -67,11 +67,13 @@ public class MockProcessContext extends MockControllerServiceLookup implements S
             annotationData = context.getControllerServiceAnnotationData(component);
             final Map<PropertyDescriptor, String> props = context.getControllerServiceProperties(component);
             properties.putAll(props);
+
+            super.addControllerServices(context);
         } catch (IllegalArgumentException e) {
             // do nothing...the service is being loaded
         }
     }
-
+    
     @Override
     public PropertyValue getProperty(final PropertyDescriptor descriptor) {
         return getProperty(descriptor.getName());
