@@ -795,6 +795,11 @@
                 <artifactId>nifi-write-ahead-log</artifactId>
                 <version>0.0.2-incubating-SNAPSHOT</version>
             </dependency>
+            <dependency>
+                <groupId>com.jayway.jsonpath</groupId>
+                <artifactId>json-path</artifactId>
+                <version>1.2.0</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
     <dependencies>
