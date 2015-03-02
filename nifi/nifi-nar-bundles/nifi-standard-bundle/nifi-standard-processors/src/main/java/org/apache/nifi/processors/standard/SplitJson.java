@@ -57,7 +57,7 @@ public class SplitJson extends AbstractJsonPathProcessor {
     public static final PropertyDescriptor ARRAY_JSON_PATH_EXPRESSION = new PropertyDescriptor.Builder()
             .name("JsonPath Expression")
             .description("A JsonPath expression that indicates the array element to split into JSON/scalar fragments.")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR) // Full validation/caching occurs in #customValidate
             .required(true)
             .build();
 

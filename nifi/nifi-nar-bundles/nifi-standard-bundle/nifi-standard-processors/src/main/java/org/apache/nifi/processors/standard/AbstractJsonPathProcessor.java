@@ -18,7 +18,6 @@ package org.apache.nifi.processors.standard;
 
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.DocumentContext;
-import com.jayway.jsonpath.InvalidPathException;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.internal.spi.json.JsonSmartJsonProvider;
 import com.jayway.jsonpath.spi.json.JsonProvider;
@@ -30,6 +29,7 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.io.InputStreamCallback;
+import org.apache.nifi.processors.standard.util.JsonPathExpressionValidator;
 import org.apache.nifi.stream.io.BufferedInputStream;
 import org.apache.nifi.util.ObjectHolder;
 
@@ -90,15 +90,14 @@ public abstract class AbstractJsonPathProcessor extends AbstractProcessor {
 
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
-            JsonPath compiledJsonPath = null;
             String error = null;
-            try {
-                if (isStale(subject, input)) {
-                    compiledJsonPath = JsonPath.compile(input);
+            if (isStale(subject, input)) {
+                if (JsonPathExpressionValidator.isValidExpression(input)) {
+                    JsonPath compiledJsonPath = JsonPath.compile(input);
                     cacheComputedValue(subject, input, compiledJsonPath);
+                } else {
+                    error = "specified expression was not valid: " + input;
                 }
-            } catch (InvalidPathException ipe) {
-                error = ipe.toString();
             }
             return new ValidationResult.Builder().subject(subject).valid(error == null).explanation(error).build();
         }
@@ -106,6 +105,7 @@ public abstract class AbstractJsonPathProcessor extends AbstractProcessor {
         /**
          * An optional hook to act on the compute value
          */
+
         abstract void cacheComputedValue(String subject, String input, JsonPath computedJsonPath);
 
         /**
