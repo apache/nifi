@@ -17,30 +17,36 @@
 package org.apache.nifi.processors.standard;
 
 import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.InvalidJsonException;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.PathNotFoundException;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ProcessorLog;
-import org.apache.nifi.processor.*;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.ProcessorInitializationContext;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
-import org.apache.nifi.processors.standard.util.JsonUtils;
 import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.apache.nifi.util.ObjectHolder;
-import org.apache.nifi.util.StringUtils;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 @EventDriven
 @SideEffectFree
@@ -57,7 +63,7 @@ import java.util.*;
         + "If Destination is 'flowfile-content' and the JsonPath does not evaluate to a defined path, the FlowFile will be routed to 'unmatched' without having its contents modified. "
         + "If Destination is flowfile-attribute and the expression matches nothing, attributes will be created with "
         + "empty strings as the value, and the FlowFile will always be routed to 'matched.'")
-public class EvaluateJsonPath extends AbstractProcessor {
+public class EvaluateJsonPath extends AbstractJsonPathProcessor {
 
     public static final String DESTINATION_ATTRIBUTE = "flowfile-attribute";
     public static final String DESTINATION_CONTENT = "flowfile-content";
@@ -89,6 +95,7 @@ public class EvaluateJsonPath extends AbstractProcessor {
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> properties;
 
+    private final ConcurrentMap<String, JsonPath> cachedJsonPathMap = new ConcurrentHashMap<>();
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -142,17 +149,52 @@ public class EvaluateJsonPath extends AbstractProcessor {
         return new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
                 .expressionLanguageSupported(false)
-                .addValidator(JsonUtils.JSON_PATH_VALIDATOR)
+                .addValidator(new JsonPathValidator() {
+                    @Override
+                    public void cacheComputedValue(String subject, String input, JsonPath computedJsonPath) {
+                        cachedJsonPathMap.put(input, computedJsonPath);
+                    }
+
+                    @Override
+                    public boolean isStale(String subject, String input) {
+                        return cachedJsonPathMap.get(input) == null;
+                    }
+                })
                 .required(false)
                 .dynamic(true)
                 .build();
     }
 
     @Override
+    public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
+        if (descriptor.isDynamic()) {
+            if (!StringUtils.equals(oldValue, newValue)) {
+                if (oldValue != null) {
+                    cachedJsonPathMap.remove(oldValue);
+                }
+            }
+        }
+    }
+
+    /**
+     * Provides cleanup of the map for any JsonPath values that may have been created.  This will remove common values
+     * shared between multiple instances, but will be regenerated when the next validation cycle occurs as a result of
+     * isStale()
+     */
+    @OnRemoved
+    public void onRemoved(ProcessContext processContext) {
+        for (PropertyDescriptor propertyDescriptor : getPropertyDescriptors()) {
+            if (propertyDescriptor.isDynamic()) {
+                cachedJsonPathMap.remove(processContext.getProperty(propertyDescriptor).getValue());
+            }
+        }
+    }
+
+    @Override
     public void onTrigger(ProcessContext processContext, final ProcessSession processSession) throws ProcessException {
 
-        List<FlowFile> flowFiles = processSession.get(50);
-        if (flowFiles.isEmpty()) {
+        FlowFile flowFile = processSession.get();
+        if (flowFile == null) {
             return;
         }
 
@@ -175,66 +217,62 @@ public class EvaluateJsonPath extends AbstractProcessor {
             returnType = destination.equals(DESTINATION_CONTENT) ? RETURN_TYPE_JSON : RETURN_TYPE_SCALAR;
         }
 
-        flowFileLoop:
-        for (FlowFile flowFile : flowFiles) {
-
-            final DocumentContext documentContext = JsonUtils.validateAndEstablishJsonContext(processSession, flowFile);
-
-            if (documentContext == null) {
-                logger.error("FlowFile {} did not have valid JSON content.", new Object[]{flowFile});
-                processSession.transfer(flowFile, REL_FAILURE);
-                continue flowFileLoop;
-            }
-
-            final Map<String, String> jsonPathResults = new HashMap<>();
-
-            jsonPathEvalLoop:
-            for (final Map.Entry<String, JsonPath> attributeJsonPathEntry : attributeToJsonPathMap.entrySet()) {
-
-                String jsonPathAttrKey = attributeJsonPathEntry.getKey();
-                JsonPath jsonPathExp = attributeJsonPathEntry.getValue();
-
-                final ObjectHolder<Object> resultHolder = new ObjectHolder<>(null);
-                try {
-                    Object result = documentContext.read(jsonPathExp);
-                    if (returnType.equals(RETURN_TYPE_SCALAR) && !JsonUtils.isJsonScalar(result)) {
-                        logger.error("Unable to return a scalar value for the expression {} for FlowFile {}. Evaluated value was {}. Transferring to {}.",
-                                new Object[]{jsonPathExp.getPath(), flowFile.getId(), result.toString(), REL_FAILURE.getName()});
-                        processSession.transfer(flowFile, REL_FAILURE);
-                        continue flowFileLoop;
-                    }
-                    resultHolder.set(result);
-                } catch (PathNotFoundException e) {
-                    logger.warn("FlowFile {} could not find path {} for attribute key {}.", new Object[]{flowFile.getId(), jsonPathExp.getPath(), jsonPathAttrKey}, e);
-                    if (destination.equals(DESTINATION_ATTRIBUTE)) {
-                        jsonPathResults.put(jsonPathAttrKey, StringUtils.EMPTY);
-                        continue jsonPathEvalLoop;
-                    } else {
-                        processSession.transfer(flowFile, REL_NO_MATCH);
-                        continue flowFileLoop;
-                    }
-                }
-
-                final String resultRepresentation = JsonUtils.getResultRepresentation(resultHolder.get());
-                switch (destination) {
-                    case DESTINATION_ATTRIBUTE:
-                        jsonPathResults.put(jsonPathAttrKey, resultRepresentation);
-                        break;
-                    case DESTINATION_CONTENT:
-                        flowFile = processSession.write(flowFile, new OutputStreamCallback() {
-                            @Override
-                            public void process(final OutputStream out) throws IOException {
-                                try (OutputStream outputStream = new BufferedOutputStream(out)) {
-                                    outputStream.write(resultRepresentation.getBytes(StandardCharsets.UTF_8));
-                                }
-                            }
-                        });
-                        break;
-                }
-            }
-            flowFile = processSession.putAllAttributes(flowFile, jsonPathResults);
-            processSession.transfer(flowFile, REL_MATCH);
+        DocumentContext documentContext = null;
+        try {
+            documentContext = validateAndEstablishJsonContext(processSession, flowFile);
+        } catch (InvalidJsonException e) {
+            logger.error("FlowFile {} did not have valid JSON content.", new Object[]{flowFile});
+            processSession.transfer(flowFile, REL_FAILURE);
+            return;
         }
-    }
 
+        final Map<String, String> jsonPathResults = new HashMap<>();
+
+        for (final Map.Entry<String, JsonPath> attributeJsonPathEntry : attributeToJsonPathMap.entrySet()) {
+
+            String jsonPathAttrKey = attributeJsonPathEntry.getKey();
+            JsonPath jsonPathExp = attributeJsonPathEntry.getValue();
+
+            final ObjectHolder<Object> resultHolder = new ObjectHolder<>(null);
+            try {
+                Object result = documentContext.read(jsonPathExp);
+                if (returnType.equals(RETURN_TYPE_SCALAR) && !isJsonScalar(result)) {
+                    logger.error("Unable to return a scalar value for the expression {} for FlowFile {}. Evaluated value was {}. Transferring to {}.",
+                            new Object[]{jsonPathExp.getPath(), flowFile.getId(), result.toString(), REL_FAILURE.getName()});
+                    processSession.transfer(flowFile, REL_FAILURE);
+                    return;
+                }
+                resultHolder.set(result);
+            } catch (PathNotFoundException e) {
+                logger.warn("FlowFile {} could not find path {} for attribute key {}.", new Object[]{flowFile.getId(), jsonPathExp.getPath(), jsonPathAttrKey}, e);
+                if (destination.equals(DESTINATION_ATTRIBUTE)) {
+                    jsonPathResults.put(jsonPathAttrKey, StringUtils.EMPTY);
+                    continue;
+                } else {
+                    processSession.transfer(flowFile, REL_NO_MATCH);
+                    return;
+                }
+            }
+
+            final String resultRepresentation = getResultRepresentation(resultHolder.get());
+            switch (destination) {
+                case DESTINATION_ATTRIBUTE:
+                    jsonPathResults.put(jsonPathAttrKey, resultRepresentation);
+                case DESTINATION_CONTENT:
+                    flowFile = processSession.write(flowFile, new OutputStreamCallback() {
+                        @Override
+                        public void process(final OutputStream out) throws IOException {
+                            try (OutputStream outputStream = new BufferedOutputStream(out)) {
+                                outputStream.write(resultRepresentation.getBytes(StandardCharsets.UTF_8));
+                            }
+                        }
+                    });
+                    processSession.getProvenanceReporter().modifyContent(flowFile,
+                            "Replaced content with result of expression " + jsonPathExp.getPath());
+                    break;
+            }
+        }
+        flowFile = processSession.putAllAttributes(flowFile, jsonPathResults);
+        processSession.transfer(flowFile, REL_MATCH);
+    }
 }

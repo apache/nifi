@@ -67,6 +67,18 @@ public class TestEvaluateJsonPath {
         Assert.fail("Processor incorrectly ran with an invalid configuration of multiple paths specified as attributes for a destination of content.");
     }
 
+    @Test(expected = AssertionError.class)
+    public void testInvalidConfiguration_invalidJsonPath_space() throws Exception {
+        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateJsonPath());
+        testRunner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_CONTENT);
+        testRunner.setProperty("JsonPath1", "$[0]. _id");
+
+        testRunner.enqueue(JSON_SNIPPET);
+        testRunner.run();
+
+        Assert.fail("Processor incorrectly ran with an invalid configuration of multiple paths specified as attributes for a destination of content.");
+    }
+
     @Test
     public void testConfiguration_destinationAttributes_twoPaths() throws Exception {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateJsonPath());
