@@ -72,11 +72,6 @@ public class TestIdentifyMimeType {
         expectedMimeTypes.put("1.xml", "application/xml");
         expectedMimeTypes.put("flowfilev3", "application/flowfile-v3");
         expectedMimeTypes.put("flowfilev1.tar", "application/flowfile-v1");
-        // Office documents below randomly selected from govdocs1:
-        // http://digitalcorpora.org/corpora/govdocs
-        expectedMimeTypes.put("651924.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
-        expectedMimeTypes.put("528206.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        expectedMimeTypes.put("392790.pptx", "application/vnd.openxmlformats-officedocument.presentationml.presentation");
 
         final Map<String, String> expectedExtensions = new HashMap<>();
         expectedExtensions.put("1.7z", ".7z");
@@ -95,9 +90,6 @@ public class TestIdentifyMimeType {
         expectedExtensions.put("1.xml", ".xml");
         expectedExtensions.put("flowfilev3", "");
         expectedExtensions.put("flowfilev1.tar", "");
-        expectedExtensions.put("651924.docx", ".docx");
-        expectedExtensions.put("528206.xlsx", ".xlsx");
-        expectedExtensions.put("392790.pptx", ".pptx");
 
         final List<MockFlowFile> filesOut = runner.getFlowFilesForRelationship(IdentifyMimeType.REL_SUCCESS);
         for (final MockFlowFile file : filesOut) {
