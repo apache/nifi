@@ -32,7 +32,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.journaling.io.Serializer;
-import org.apache.nifi.remote.io.CompressionOutputStream;
 import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.apache.nifi.stream.io.ByteArrayOutputStream;
 import org.apache.nifi.stream.io.ByteCountingOutputStream;
@@ -67,11 +66,13 @@ import org.slf4j.LoggerFactory;
  * 
  * Where &lt;header&gt; is defined as:
  * <pre>
+ *  magic header "NiFiProvJournal_1"
  *  String: serialization codec name (retrieved from serializer)
  *      --> 2 bytes for length of string
  *      --> N bytes for actual serialization codec name
  *  int: serialization version
  *  boolean: compressed: 1 -> compressed, 0 -> not compressed
+ *  String : if compressed, name of compression codec; otherwise, not present
  * </pre>
  * 
  * And &lt;record&gt; is defined as:
@@ -94,7 +95,7 @@ public class StandardJournalWriter implements JournalWriter {
     
     private final long journalId;
     private final File journalFile;
-    private final boolean compressed;
+    private final CompressionCodec compressionCodec;
     private final Serializer serializer;
     private final long creationTime = System.nanoTime();
     private final String description;
@@ -111,7 +112,7 @@ public class StandardJournalWriter implements JournalWriter {
     private long recordCount = 1L;
     
     
-    public StandardJournalWriter(final long journalId, final File journalFile, final boolean compressed, final Serializer serializer) throws IOException {
+    public StandardJournalWriter(final long journalId, final File journalFile, final CompressionCodec compressionCodec, final Serializer serializer) throws IOException {
         if ( journalFile.exists() ) {
             // Check if there is actually any data here.
             try (final InputStream fis = new FileInputStream(journalFile);
@@ -133,7 +134,7 @@ public class StandardJournalWriter implements JournalWriter {
         
         this.journalId = journalId;
         this.journalFile = journalFile;
-        this.compressed = compressed;
+        this.compressionCodec = compressionCodec;
         this.serializer = serializer;
         this.description = "Journal Writer for " + journalFile;
         this.fos = new FileOutputStream(journalFile);
@@ -141,8 +142,10 @@ public class StandardJournalWriter implements JournalWriter {
         uncompressedStream = new ByteCountingOutputStream(fos);
         writeHeader(uncompressedStream);
         
-        if (compressed) {
-            compressedStream = new CompressionOutputStream(uncompressedStream);
+        if (compressionCodec != null) {
+            final CompressedOutputStream cos = compressionCodec.newCompressionOutputStream(uncompressedStream);
+            cos.beginNewBlock();
+            compressedStream = cos;
         } else {
             compressedStream = fos;
         }
@@ -155,7 +158,13 @@ public class StandardJournalWriter implements JournalWriter {
         StandardJournalMagicHeader.write(out);
         dos.writeUTF(serializer.getCodecName());
         dos.writeInt(serializer.getVersion());
+        
+        final boolean compressed = compressionCodec != null;
         dos.writeBoolean(compressed);
+        if ( compressed ) {
+            dos.writeUTF(compressionCodec.getName());
+        }
+        
         dos.flush();
     }
     
@@ -258,6 +267,7 @@ public class StandardJournalWriter implements JournalWriter {
     public long getAge(final TimeUnit timeUnit) {
         return timeUnit.convert(System.nanoTime() - creationTime, TimeUnit.NANOSECONDS);
     }
+    
 
     @Override
     public void finishBlock() throws IOException {
@@ -266,16 +276,10 @@ public class StandardJournalWriter implements JournalWriter {
         }
         
         blockStarted = false;
-        if ( !compressed ) {
-            return;
+        
+        if ( compressedStream instanceof CompressedOutputStream ) {
+            ((CompressedOutputStream) compressedStream).finishBlock();
         }
-
-        // Calling close() on CompressionOutputStream doesn't close the underlying stream -- it is designed
-        // such that calling close() will write out the Compression footer and become unusable but not
-        // close the underlying stream because the whole point of CompressionOutputStream as opposed to
-        // GZIPOutputStream is that with CompressionOutputStream we can concatenate many together on a single
-        // stream.
-        compressedStream.close();
     }
     
     @Override
@@ -285,15 +289,10 @@ public class StandardJournalWriter implements JournalWriter {
         }
         blockStarted = true;
         
-        if ( !compressed ) {
-            return;
+        if ( compressedStream instanceof CompressedOutputStream ) {
+            ((CompressedOutputStream) compressedStream).beginNewBlock();
+            this.out = new ByteCountingOutputStream(compressedStream, uncompressedStream.getBytesWritten());
         }
-        if ( eventCount == 0 ) {
-            return;
-        }
-        
-        this.compressedStream = new CompressionOutputStream(uncompressedStream);
-        this.out = new ByteCountingOutputStream(compressedStream, uncompressedStream.getBytesWritten());
     }
     
     @Override

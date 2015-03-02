@@ -209,6 +209,8 @@ public class TestStandardJournalReader {
     @Test
     public void testReadFirstEventCompressed() throws IOException {
         dos.writeBoolean(true);
+        dos.writeUTF(DeflatorCompressionCodec.DEFLATOR_COMPRESSION_CODEC);
+
         writeRecords(88L, 1, true);
         
         // write data to a file so that we can read it with the journal reader
@@ -235,6 +237,8 @@ public class TestStandardJournalReader {
     @Test
     public void testReadManyCompressed() throws IOException {
         dos.writeBoolean(true);
+        dos.writeUTF(DeflatorCompressionCodec.DEFLATOR_COMPRESSION_CODEC);
+
         writeRecords(0, 1024, true);
         
         // write data to a file so that we can read it with the journal reader
@@ -266,6 +270,7 @@ public class TestStandardJournalReader {
     @Test
     public void testReadFirstEventWithBlockOffsetCompressed() throws IOException {
         dos.writeBoolean(true);
+        dos.writeUTF(DeflatorCompressionCodec.DEFLATOR_COMPRESSION_CODEC);
         writeRecords(0, 10, true);
         
         final int secondBlockOffset = baos.size();
@@ -295,6 +300,8 @@ public class TestStandardJournalReader {
     @Test
     public void testReadSubsequentEventWithBlockOffsetCompressed() throws IOException {
         dos.writeBoolean(true);
+        dos.writeUTF(DeflatorCompressionCodec.DEFLATOR_COMPRESSION_CODEC);
+
         writeRecords(0, 10, true);
         
         final int secondBlockOffset = baos.size();
@@ -324,6 +331,8 @@ public class TestStandardJournalReader {
     @Test
     public void testReadMultipleEventsWithBlockOffsetCompressed() throws IOException {
         dos.writeBoolean(true);
+        dos.writeUTF(DeflatorCompressionCodec.DEFLATOR_COMPRESSION_CODEC);
+
         writeRecords(0, 10, true);
         
         final int secondBlockOffset = baos.size();
@@ -417,6 +426,8 @@ public class TestStandardJournalReader {
     @Test
     public void testReadEventWithBlockOffsetThenPreviousBlockOffsetCompressed() throws IOException {
         dos.writeBoolean(true);
+        dos.writeUTF(DeflatorCompressionCodec.DEFLATOR_COMPRESSION_CODEC);
+
         final int firstBlockOffset = baos.size();
         writeRecords(0, 10, true);
         

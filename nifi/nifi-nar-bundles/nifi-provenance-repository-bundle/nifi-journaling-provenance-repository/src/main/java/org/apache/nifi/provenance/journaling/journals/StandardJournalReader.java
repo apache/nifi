@@ -27,7 +27,6 @@ import java.io.InputStream;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.journaling.io.Deserializer;
 import org.apache.nifi.provenance.journaling.io.Deserializers;
-import org.apache.nifi.remote.io.CompressionInputStream;
 import org.apache.nifi.stream.io.ByteCountingInputStream;
 import org.apache.nifi.stream.io.LimitingInputStream;
 import org.apache.nifi.stream.io.MinimumLengthInputStream;
@@ -49,7 +48,7 @@ public class StandardJournalReader implements JournalReader {
     
     private Deserializer deserializer;
     private int serializationVersion;
-    private boolean compressed;
+    private CompressionCodec compressionCodec = null;
     
     private long lastEventIdRead = -1L;
     
@@ -68,7 +67,15 @@ public class StandardJournalReader implements JournalReader {
             StandardJournalMagicHeader.read(dis);
             final String codecName = dis.readUTF();
             serializationVersion = dis.readInt();
-            compressed = dis.readBoolean();
+            final boolean compressed = dis.readBoolean();
+            if ( compressed ) {
+                final String compressionCodecName = dis.readUTF();
+                if ( DeflatorCompressionCodec.DEFLATOR_COMPRESSION_CODEC.equals(compressionCodecName) ) {
+                    compressionCodec = new DeflatorCompressionCodec();
+                } else {
+                    throw new IOException(file + " is compressed using unknown Compression Codec " + compressionCodecName);
+                }
+            }
             deserializer = Deserializers.getDeserializer(codecName);
             
             resetDecompressedStream();
@@ -83,10 +90,10 @@ public class StandardJournalReader implements JournalReader {
     
     
     private void resetDecompressedStream() throws IOException {
-        if ( compressed ) {
-            decompressedStream = new ByteCountingInputStream(new BufferedInputStream(new CompressionInputStream(compressedStream)), compressedStream.getBytesConsumed());
-        } else {
+        if ( compressionCodec == null ) {
             decompressedStream = compressedStream;
+        } else {
+            decompressedStream = new ByteCountingInputStream(new BufferedInputStream(compressionCodec.newCompressionInputStream(compressedStream)), compressedStream.getBytesConsumed());
         }
     }
     
@@ -129,7 +136,7 @@ public class StandardJournalReader implements JournalReader {
             
             // we are allowed to span blocks. We're out of data but if we are compressed, it could
             // just mean that the block has ended.
-            if ( !compressed ) {
+            if ( compressionCodec == null ) {
                 return null;
             }
             

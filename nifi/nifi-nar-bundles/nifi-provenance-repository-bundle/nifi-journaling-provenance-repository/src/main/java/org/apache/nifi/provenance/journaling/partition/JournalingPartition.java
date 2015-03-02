@@ -252,7 +252,7 @@ public class JournalingPartition implements Partition {
         
         // create new writers and reset state.
         final File journalFile = new File(journalsDir, firstEventId + JOURNAL_FILE_EXTENSION);
-        journalWriter = new StandardJournalWriter(firstEventId, journalFile, false, new StandardEventSerializer());
+        journalWriter = new StandardJournalWriter(firstEventId, journalFile, null, new StandardEventSerializer());
         try {
             tocWriter = new StandardTocWriter(QueryUtils.getTocFile(journalFile), false, config.isAlwaysSync());
             tocWriter.addBlockOffset(journalWriter.getSize());

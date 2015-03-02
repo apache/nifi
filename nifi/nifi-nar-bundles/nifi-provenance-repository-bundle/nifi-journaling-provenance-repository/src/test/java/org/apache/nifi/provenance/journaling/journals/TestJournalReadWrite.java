@@ -42,7 +42,8 @@ public class TestJournalReadWrite {
         final StandardEventSerializer serializer = new StandardEventSerializer();
         
         try {
-            try (final StandardJournalWriter writer = new StandardJournalWriter(journalId, journalFile, compressed, serializer)) {
+            final CompressionCodec codec = compressed ? new DeflatorCompressionCodec() : null;
+            try (final StandardJournalWriter writer = new StandardJournalWriter(journalId, journalFile, codec, serializer)) {
                 for (int block=0; block < 100; block++) {
                     writer.beginNewBlock();
                     

@@ -26,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.journaling.io.StandardEventSerializer;
+import org.apache.nifi.provenance.journaling.journals.DeflatorCompressionCodec;
 import org.apache.nifi.provenance.journaling.journals.JournalReader;
 import org.apache.nifi.provenance.journaling.journals.JournalWriter;
 import org.apache.nifi.provenance.journaling.journals.StandardJournalReader;
@@ -153,7 +154,7 @@ public class CompressionTask implements Callable<Long> {
             }
             
             try (final JournalReader journalReader = new StandardJournalReader(journalFile);
-                final JournalWriter compressedWriter = new StandardJournalWriter(journalId, compressedFile, true, new StandardEventSerializer());
+                final JournalWriter compressedWriter = new StandardJournalWriter(journalId, compressedFile, new DeflatorCompressionCodec(), new StandardEventSerializer());
                 final TocReader tocReader = new StandardTocReader(tocFile);
                 final TocWriter compressedTocWriter = new StandardTocWriter(compressedTocFile, true, false)) {
                 

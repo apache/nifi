@@ -46,7 +46,7 @@ public class TestStandardJournalWriter {
         try {
             assertTrue( journalFile.createNewFile() );
             
-            try (final StandardJournalWriter writer = new StandardJournalWriter(1L, journalFile, true, new StandardEventSerializer())) {
+            try (final StandardJournalWriter writer = new StandardJournalWriter(1L, journalFile, new DeflatorCompressionCodec(), new StandardEventSerializer())) {
                 
             }
         } finally {
@@ -60,11 +60,11 @@ public class TestStandardJournalWriter {
         try {
             assertTrue( journalFile.createNewFile() );
             
-            try (final StandardJournalWriter writer = new StandardJournalWriter(1L, journalFile, true, new StandardEventSerializer())) {
+            try (final StandardJournalWriter writer = new StandardJournalWriter(1L, journalFile, new DeflatorCompressionCodec(), new StandardEventSerializer())) {
                 writer.write(Collections.singleton(TestUtil.generateEvent(1L)), 1L);
             }
             
-            try (final StandardJournalWriter writer = new StandardJournalWriter(1L, journalFile, true, new StandardEventSerializer())) {
+            try (final StandardJournalWriter writer = new StandardJournalWriter(1L, journalFile, new DeflatorCompressionCodec(), new StandardEventSerializer())) {
                 Assert.fail("StandardJournalWriter attempted to overwrite existing file");
             } catch (final FileAlreadyExistsException faee) {
                 // expected
@@ -80,7 +80,7 @@ public class TestStandardJournalWriter {
         
         final StandardEventSerializer serializer = new StandardEventSerializer();
         try {
-            try (final StandardJournalWriter writer = new StandardJournalWriter(1L, journalFile, true, serializer)) {
+            try (final StandardJournalWriter writer = new StandardJournalWriter(1L, journalFile, new DeflatorCompressionCodec(), serializer)) {
                 writer.beginNewBlock();
                 writer.write(Collections.singleton(TestUtil.generateEvent(1L)), 1L);
                 writer.finishBlock();
@@ -99,6 +99,10 @@ public class TestStandardJournalWriter {
             
             // compression flag
             assertEquals(true, dis.readBoolean());
+            
+            // compression codec name
+            final String compressionCodecName = dis.readUTF();
+            assertEquals(DeflatorCompressionCodec.DEFLATOR_COMPRESSION_CODEC, compressionCodecName);
             
             // read block start
             final CompressionInputStream decompressedIn = new CompressionInputStream(bais);
@@ -123,7 +127,7 @@ public class TestStandardJournalWriter {
         
         final StandardEventSerializer serializer = new StandardEventSerializer();
         try {
-            try (final StandardJournalWriter writer = new StandardJournalWriter(1L, journalFile, true, serializer)) {
+            try (final StandardJournalWriter writer = new StandardJournalWriter(1L, journalFile, new DeflatorCompressionCodec(), serializer)) {
                 for (int i=0; i < 1024; i++) {
                     writer.beginNewBlock();
                     writer.write(Collections.singleton(TestUtil.generateEvent(1L)), 1L);
@@ -144,6 +148,8 @@ public class TestStandardJournalWriter {
             
             // compression flag
             assertEquals(true, dis.readBoolean());
+            
+            assertEquals(DeflatorCompressionCodec.DEFLATOR_COMPRESSION_CODEC, dis.readUTF());
             
             // read block start
             for (int i=0; i < 1024; i++) {
