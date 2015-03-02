@@ -80,6 +80,10 @@ public class IdEnrichedProvenanceEvent implements StoredProvenanceEvent {
         return event.getEventType();
     }
 
+    public String getAttribute(final String attributeName) {
+        return event.getAttribute(attributeName);
+    }
+    
     public Map<String, String> getAttributes() {
         return event.getAttributes();
     }

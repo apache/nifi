@@ -75,6 +75,11 @@ public class IdEnrichedProvenanceEvent implements ProvenanceEventRecord {
         return event.getEventType();
     }
 
+    @Override
+    public String getAttribute(final String attributeName) {
+        return event.getAttribute(attributeName);
+    }
+    
     public Map<String, String> getAttributes() {
         return event.getAttributes();
     }

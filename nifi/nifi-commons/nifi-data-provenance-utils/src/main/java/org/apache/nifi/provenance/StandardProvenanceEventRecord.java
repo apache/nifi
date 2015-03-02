@@ -161,6 +161,15 @@ public final class StandardProvenanceEventRecord implements ProvenanceEventRecor
     }
 
     @Override
+    public String getAttribute(final String attributeName) {
+        if ( updatedAttributes.containsKey(attributeName) ) {
+            return updatedAttributes.get(attributeName);
+        }
+        
+        return previousAttributes.get(attributeName);
+    }
+    
+    @Override
     public Map<String, String> getAttributes() {
         final Map<String, String> allAttrs = new HashMap<>(previousAttributes.size() + updatedAttributes.size());
         allAttrs.putAll(previousAttributes);
@@ -424,7 +433,6 @@ public final class StandardProvenanceEventRecord implements ProvenanceEventRecor
         private String uuid = null;
         private List<String> parentUuids = null;
         private List<String> childrenUuids = null;
-        private String contentType = null;
         private String alternateIdentifierUri = null;
         private String details = null;
         private String relationship = null;
@@ -628,11 +636,6 @@ public final class StandardProvenanceEventRecord implements ProvenanceEventRecor
             }
 
             childrenUuids.remove(childFlowFile.getAttribute(CoreAttributes.UUID.key()));
-            return this;
-        }
-
-        public Builder setContentType(String contentType) {
-            this.contentType = contentType;
             return this;
         }
 

@@ -98,6 +98,14 @@ public interface ProvenanceEventRecord {
      * @return
      */
     Map<String, String> getAttributes();
+    
+    /**
+     * Returns the value of FlowFile attribute with the given name, or <code>null</code>
+     * if no attribute exists with that name
+     * 
+     * @return
+     */
+    String getAttribute(String attributeName);
 
     /**
      * Returns all FlowFile attributes that existed on the FlowFile before this
