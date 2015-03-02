@@ -64,6 +64,8 @@ public class StandardJournalReader implements JournalReader {
         compressedStream = new ByteCountingInputStream(bufferedIn);
         try {
             final DataInputStream dis = new DataInputStream(compressedStream);
+            
+            StandardJournalMagicHeader.read(dis);
             final String codecName = dis.readUTF();
             serializationVersion = dis.readInt();
             compressed = dis.readBoolean();
@@ -78,6 +80,7 @@ public class StandardJournalReader implements JournalReader {
             throw new IOException("Failed to reset data stream when reading" + file, e);
         }
     }
+    
     
     private void resetDecompressedStream() throws IOException {
         if ( compressed ) {

@@ -17,6 +17,7 @@
 package org.apache.nifi.provenance.journaling;
 
 import java.io.File;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -38,6 +39,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Pattern;
 
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.processor.DataUnit;
@@ -77,10 +79,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-// TODO: Add header info to journals. Magic header. Prov repo implementation. Version. Encoding. Encoding Version.
-// TODO: EXPIRE : backpressure if unable to delete fast enough! I.e., if size is greater than 110% of size specified
-// TODO: Ensure number of partitions does not go below the current value. If it does, use the existing value
-// so that we don't lose events.
 public class JournalingProvenanceRepository implements ProvenanceEventRepository {
     public static final String WORKER_THREAD_POOL_SIZE = "nifi.provenance.repository.worker.threads";
     public static final String BLOCK_SIZE = "nifi.provenance.repository.writer.block.size";
@@ -189,6 +187,30 @@ public class JournalingProvenanceRepository implements ProvenanceEventRepository
     @Override
     public synchronized void initialize(final EventReporter eventReporter) throws IOException {
         this.eventReporter = eventReporter;
+        
+        // Ensure that the number of partitions specified by the config is at least as large as the 
+        // number of sections that we have. If not, update the config to be equal to the number of
+        // sections that we have.
+        final Pattern numberPattern = Pattern.compile("\\d+");
+        int numSections = 0;
+        for ( final File container : config.getContainers().values() ) {
+            final String[] sections = container.list(new FilenameFilter() {
+                @Override
+                public boolean accept(final File dir, final String name) {
+                    return numberPattern.matcher(name).matches();
+                }
+            });
+            
+            if ( sections != null ) {
+                numSections += sections.length;
+            }
+        }
+        
+        if ( config.getPartitionCount() < numSections ) {
+            logger.warn("Configured number of partitions for Provenance Repository is {}, but {} partitions already exist. Using {} partitions instead of {}.", 
+                    config.getPartitionCount(), numSections, numSections, config.getPartitionCount());
+            config.setPartitionCount(numSections);
+        }
         
         // We use 3 different thread pools here because we don't want to threads from 1 pool to interfere with
         // each other. This is because the worker threads can be long running, and they shouldn't tie up the

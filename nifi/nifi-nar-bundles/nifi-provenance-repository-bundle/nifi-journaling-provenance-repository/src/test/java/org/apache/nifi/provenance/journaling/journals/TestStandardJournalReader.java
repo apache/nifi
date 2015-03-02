@@ -47,6 +47,7 @@ public class TestStandardJournalReader {
         dos = new DataOutputStream(baos);
         
         // Write out header: codec name and serialization version
+        StandardJournalMagicHeader.write(dos);
         dos.writeUTF(StandardEventSerializer.CODEC_NAME);
         dos.writeInt(0);
     }

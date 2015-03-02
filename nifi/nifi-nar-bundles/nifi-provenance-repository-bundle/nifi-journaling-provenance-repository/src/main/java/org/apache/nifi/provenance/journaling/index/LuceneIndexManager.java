@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -46,6 +48,7 @@ public class LuceneIndexManager implements IndexManager {
     
     private final Map<String, List<LuceneIndexWriter>> writers = new HashMap<>();
     private final Map<String, AtomicLong> writerIndexes = new HashMap<>();
+    private final ConcurrentMap<String, IndexSize> indexSizes = new ConcurrentHashMap<>();
     
     public LuceneIndexManager(final JournalingRepositoryConfig config, final ScheduledExecutorService workerExecutor, final ExecutorService queryExecutor) throws IOException {
         this.config = config;
@@ -356,10 +359,19 @@ public class LuceneIndexManager implements IndexManager {
     
     @Override
     public long getSize(final String containerName) {
+        // Cache index sizes so that we don't have to continually calculate it, as calculating it requires
+        // disk accesses, which are quite expensive.
+        final IndexSize indexSize = indexSizes.get(containerName);
+        if ( indexSize != null && !indexSize.isExpired() ) {
+            return indexSize.getSize();
+        }
+        
         final File containerFile = config.getContainers().get(containerName);
         final File indicesDir = new File(containerFile, "indices");
         
-        return getSize(indicesDir);
+        final long size = getSize(indicesDir);
+        indexSizes.put(containerName, new IndexSize(size));
+        return size;
     }
     
     private long getSize(final File file) {
@@ -376,6 +388,25 @@ public class LuceneIndexManager implements IndexManager {
             return totalSize;
         } else {
             return file.length();
+        }
+    }
+    
+    
+    private static class IndexSize {
+        private final long size;
+        private final long expirationTime;
+        
+        public IndexSize(final long size) {
+            this.size = size;
+            this.expirationTime = System.currentTimeMillis() + 5000L;   // good for 5 seconds
+        }
+        
+        public long getSize() {
+            return size;
+        }
+        
+        public boolean isExpired() {
+            return System.currentTimeMillis() > expirationTime;
         }
     }
 }

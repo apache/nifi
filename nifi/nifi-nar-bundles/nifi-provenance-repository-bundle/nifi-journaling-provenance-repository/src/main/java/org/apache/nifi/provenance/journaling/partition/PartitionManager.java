@@ -45,14 +45,6 @@ public interface PartitionManager {
      */
     void withPartition(VoidPartitionAction action, boolean writeAction) throws IOException;
     
-    /**
-     * Performs the given Action on each partition and returns the set of results.
-     * 
-     * @param action the action to perform
-     * @param writeAction specifies whether or not the action writes to the repository
-     * @return
-     */
-//    <T> Set<T> withEachPartition(PartitionAction<T> action, boolean writeAction) throws IOException;
     
     /**
      * Performs the given Action on each partition and returns the set of results. This method does 
@@ -79,15 +71,6 @@ public interface PartitionManager {
      * @return
      */
     void withEachPartitionSerially(VoidPartitionAction action, boolean writeAction) throws IOException;
-    
-    /**
-     * Performs the given Action to each partition, optionally waiting for the action to complete
-     * @param action
-     * @param writeAction
-     * @param async if <code>true</code>, will perform the action asynchronously; if <code>false</code>, will
-     *  wait for the action to complete before returning
-     */
-//    void withEachPartition(VoidPartitionAction action, boolean async);
     
     void shutdown();
     

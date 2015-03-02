@@ -90,6 +90,7 @@ public class TestStandardJournalWriter {
             final ByteArrayInputStream bais = new ByteArrayInputStream(data);
             final DataInputStream dis = new DataInputStream(bais);
 
+            StandardJournalMagicHeader.read(dis);
             final String codecName = dis.readUTF();
             assertEquals(StandardEventSerializer.CODEC_NAME, codecName);
             
@@ -134,6 +135,7 @@ public class TestStandardJournalWriter {
             final ByteArrayInputStream bais = new ByteArrayInputStream(data);
             final DataInputStream dis = new DataInputStream(bais);
 
+            StandardJournalMagicHeader.read(dis);
             final String codecName = dis.readUTF();
             assertEquals(StandardEventSerializer.CODEC_NAME, codecName);
             

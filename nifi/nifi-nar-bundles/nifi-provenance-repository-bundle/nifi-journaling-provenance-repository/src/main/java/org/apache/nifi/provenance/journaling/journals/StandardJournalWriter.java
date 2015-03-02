@@ -117,6 +117,8 @@ public class StandardJournalWriter implements JournalWriter {
             try (final InputStream fis = new FileInputStream(journalFile);
                  final InputStream bufferedIn = new BufferedInputStream(fis);
                  final DataInputStream dis = new DataInputStream(bufferedIn) ) {
+                
+                StandardJournalMagicHeader.read(dis);
                 dis.readUTF();
                 dis.readInt();
                 dis.readBoolean();
@@ -150,6 +152,7 @@ public class StandardJournalWriter implements JournalWriter {
 
     private void writeHeader(final OutputStream out) throws IOException {
         final DataOutputStream dos = new DataOutputStream(out);
+        StandardJournalMagicHeader.write(out);
         dos.writeUTF(serializer.getCodecName());
         dos.writeInt(serializer.getVersion());
         dos.writeBoolean(compressed);
