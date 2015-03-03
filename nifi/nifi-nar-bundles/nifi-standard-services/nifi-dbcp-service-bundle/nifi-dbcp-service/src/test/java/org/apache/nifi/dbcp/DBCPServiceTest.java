@@ -16,7 +16,8 @@
  */
 package org.apache.nifi.dbcp;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.io.File;
 import java.sql.Connection;
@@ -25,8 +26,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
-
-import javax.activation.DataSource;
 
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
@@ -46,11 +45,11 @@ public class DBCPServiceTest {
 	 * 
 	 */
     @Test
-    public void testBad1() throws InitializationException {
+    public void testUnknownDatabaseSystem() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        final DBCPServiceApacheDBCP14 service = new DBCPServiceApacheDBCP14();
+        final DBCPConnectionPool service = new DBCPConnectionPool();
         final Map<String, String> properties = new HashMap<String, String>();
-        properties.put(DBCPServiceApacheDBCP14.DATABASE_SYSTEM.getName(), "garbage");
+        properties.put(DBCPConnectionPool.DATABASE_SYSTEM.getName(), "garbage");
         runner.addControllerService("test-bad2", service, properties);
         runner.assertNotValid(service);
     }
@@ -59,9 +58,9 @@ public class DBCPServiceTest {
      *  Missing property values.
      */    
     @Test
-    public void testGood1() throws InitializationException {
+    public void testMissingPropertyValues() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        final DBCPServiceApacheDBCP14 service = new DBCPServiceApacheDBCP14();
+        final DBCPConnectionPool service = new DBCPConnectionPool();
         final Map<String, String> properties = new HashMap<String, String>();
         runner.addControllerService("test-bad1", service, properties);
         runner.assertNotValid(service);
@@ -73,24 +72,24 @@ public class DBCPServiceTest {
      * 
      */
     @Test
-    public void testGood2() throws InitializationException, SQLException {
+    public void testCreateInsertSelect() throws InitializationException, SQLException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        final DBCPServiceApacheDBCP14 service = new DBCPServiceApacheDBCP14();
+        final DBCPConnectionPool service = new DBCPConnectionPool();
         runner.addControllerService("test-good1", service);
         
         // remove previous test database, if any
         File dbLocation = new File(DB_LOCATION);
         dbLocation.delete();
         
-        // Should setProperty call also generate DBCPServiceApacheDBCP14.onPropertyModified() method call? 
+        // Should setProperty call also generate DBCPConnectionPool.onPropertyModified() method call? 
         // It does not currently.
         
         // Some properties already should have JavaDB/Derby default values, let's set only missing values.
         
-        runner.setProperty(service, DBCPServiceApacheDBCP14.DB_HOST, "NA");	// Embedded Derby don't use host
-        runner.setProperty(service, DBCPServiceApacheDBCP14.DB_NAME, DB_LOCATION);
-        runner.setProperty(service, DBCPServiceApacheDBCP14.DB_USER, 	"tester");
-        runner.setProperty(service, DBCPServiceApacheDBCP14.DB_PASSWORD, "testerp");
+        runner.setProperty(service, DBCPConnectionPool.DB_HOST, "NA");	// Embedded Derby don't use host
+        runner.setProperty(service, DBCPConnectionPool.DB_NAME, DB_LOCATION);
+        runner.setProperty(service, DBCPConnectionPool.DB_USER, 	"tester");
+        runner.setProperty(service, DBCPConnectionPool.DB_PASSWORD, "testerp");
         
         runner.enableControllerService(service);
 
@@ -117,17 +116,17 @@ public class DBCPServiceTest {
     @Test
     public void testExhaustPool() throws InitializationException, SQLException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        final DBCPServiceApacheDBCP14 service = new DBCPServiceApacheDBCP14();
+        final DBCPConnectionPool service = new DBCPConnectionPool();
         runner.addControllerService("test-exhaust", service);
         
         // remove previous test database, if any
         File dbLocation = new File(DB_LOCATION);
         dbLocation.delete();
         
-        runner.setProperty(service, DBCPServiceApacheDBCP14.DB_HOST, "NA");	// Embedded Derby don't use host
-        runner.setProperty(service, DBCPServiceApacheDBCP14.DB_NAME, DB_LOCATION);
-        runner.setProperty(service, DBCPServiceApacheDBCP14.DB_USER, 	"tester");
-        runner.setProperty(service, DBCPServiceApacheDBCP14.DB_PASSWORD, "testerp");
+        runner.setProperty(service, DBCPConnectionPool.DB_HOST, "NA");	// Embedded Derby don't use host
+        runner.setProperty(service, DBCPConnectionPool.DB_NAME, DB_LOCATION);
+        runner.setProperty(service, DBCPConnectionPool.DB_USER, 	"tester");
+        runner.setProperty(service, DBCPConnectionPool.DB_PASSWORD, "testerp");
         
         runner.enableControllerService(service);
 
@@ -136,6 +135,7 @@ public class DBCPServiceTest {
         Assert.assertNotNull(dbcpService);
         
         exception.expect(ProcessException.class);
+        exception.expectMessage("Cannot get a connection, pool error Timeout waiting for idle object");
         for (int i = 0; i < 100; i++) {
             Connection connection = dbcpService.getConnection();
             Assert.assertNotNull(connection);
@@ -148,19 +148,19 @@ public class DBCPServiceTest {
      * and getConnection should not fail.    
      */
     @Test
-    public void testGetMany() throws InitializationException, SQLException {
+    public void testGetManyNormal() throws InitializationException, SQLException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        final DBCPServiceApacheDBCP14 service = new DBCPServiceApacheDBCP14();
+        final DBCPConnectionPool service = new DBCPConnectionPool();
         runner.addControllerService("test-exhaust", service);
         
         // remove previous test database, if any
         File dbLocation = new File(DB_LOCATION);
         dbLocation.delete();
         
-        runner.setProperty(service, DBCPServiceApacheDBCP14.DB_HOST, "NA");	// Embedded Derby don't use host
-        runner.setProperty(service, DBCPServiceApacheDBCP14.DB_NAME, DB_LOCATION);
-        runner.setProperty(service, DBCPServiceApacheDBCP14.DB_USER, 	"tester");
-        runner.setProperty(service, DBCPServiceApacheDBCP14.DB_PASSWORD, "testerp");
+        runner.setProperty(service, DBCPConnectionPool.DB_HOST, "NA");	// Embedded Derby don't use host
+        runner.setProperty(service, DBCPConnectionPool.DB_NAME, DB_LOCATION);
+        runner.setProperty(service, DBCPConnectionPool.DB_USER, 	"tester");
+        runner.setProperty(service, DBCPConnectionPool.DB_PASSWORD, "testerp");
         
         runner.enableControllerService(service);
 
@@ -177,7 +177,7 @@ public class DBCPServiceTest {
     
     
     @Test
-    public void testDriverLaod() throws ClassNotFoundException {
+    public void testDriverLoad() throws ClassNotFoundException {
     	Class<?> clazz = Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
     	assertNotNull(clazz);
     }

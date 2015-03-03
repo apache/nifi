@@ -25,6 +25,7 @@ import java.util.List;
 import org.apache.commons.dbcp.BasicDataSource;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
@@ -41,29 +42,28 @@ import org.apache.nifi.reporting.InitializationException;
 @Tags({"dbcp", "jdbc", "database", "connection", "pooling", "store"})
 @CapabilityDescription("Provides Database Connection Pooling Service. Connections can be asked from pool and returned after usage."
         )
-public class DBCPServiceApacheDBCP14 extends AbstractControllerService implements DBCPService {
+public class DBCPConnectionPool extends AbstractControllerService implements DBCPService {
 
 	public static final DatabaseSystemDescriptor DEFAULT_DATABASE_SYSTEM = DatabaseSystems.getDescriptor("JavaDB");
 
     public static final PropertyDescriptor DATABASE_SYSTEM = new PropertyDescriptor.Builder()
     .name("Database")
     .description("Database management system")
-//    .allowableValues(POSTGRES, JavaDB, DERBY, MariaDB, OtherDB)
     .allowableValues(DatabaseSystems.knownDatabaseSystems)
     .defaultValue(DEFAULT_DATABASE_SYSTEM.getValue())
     .required(true)
     .build();    
 
     public static final PropertyDescriptor DB_HOST = new PropertyDescriptor.Builder()
-    .name("Database host")
-    .description("Database host")
+    .name("Database Host")
+    .description("Database Host")
     .defaultValue(null)
     .required(true)
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
     .build();
 
     public static final PropertyDescriptor DB_PORT = new PropertyDescriptor.Builder()
-    .name("Database port")
+    .name("Database Port")
     .description("Database server port")
     .defaultValue(DEFAULT_DATABASE_SYSTEM.defaultPort.toString())
     .required(true)
@@ -71,7 +71,7 @@ public class DBCPServiceApacheDBCP14 extends AbstractControllerService implement
     .build();
 
     public static final PropertyDescriptor DB_DRIVERNAME = new PropertyDescriptor.Builder()
-    .name("Database driver class name")
+    .name("Database Driver Class Name")
     .description("Database driver class name")
     .defaultValue(DEFAULT_DATABASE_SYSTEM.driverClassName)
     .required(true)
@@ -79,7 +79,7 @@ public class DBCPServiceApacheDBCP14 extends AbstractControllerService implement
     .build();
 
     public static final PropertyDescriptor DB_NAME = new PropertyDescriptor.Builder()
-    .name("Database name")
+    .name("Database Name")
     .description("Database name")
     .defaultValue(null)
     .required(true)
@@ -87,7 +87,7 @@ public class DBCPServiceApacheDBCP14 extends AbstractControllerService implement
     .build();
 
     public static final PropertyDescriptor DB_USER = new PropertyDescriptor.Builder()
-    .name("Database user")
+    .name("Database User")
     .description("Database user name")
     .defaultValue(null)
     .required(true)
@@ -100,6 +100,26 @@ public class DBCPServiceApacheDBCP14 extends AbstractControllerService implement
     .defaultValue(null)
     .required(true)
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+    .sensitive(true)
+    .build();
+
+    public static final PropertyDescriptor MAX_WAIT_MILLIS = new PropertyDescriptor.Builder()
+    .name("Max Wait Millis")
+    .description("The maximum number of milliseconds that the pool will wait (when there are no available connections) " 
+     + " for a connection to be returned before throwing an exception, or -1 to wait indefinitely. ")
+    .defaultValue("500")
+    .required(true)
+    .addValidator(StandardValidators.LONG_VALIDATOR)
+    .sensitive(true)
+    .build();
+
+    public static final PropertyDescriptor MAX_TOTAL_CONNECTIONS = new PropertyDescriptor.Builder()
+    .name("Max Total Connections")
+    .description("The maximum number of active connections that can be allocated from this pool at the same time, " 
+     + " or negative for no limit.")
+    .defaultValue("8")
+    .required(true)
+    .addValidator(StandardValidators.INTEGER_VALIDATOR)
     .sensitive(true)
     .build();
 
@@ -125,36 +145,12 @@ public class DBCPServiceApacheDBCP14 extends AbstractControllerService implement
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return properties;
     }
-    
-    //=================================   Apache DBCP pool parameters  ================================ 
-    
-    /** The maximum number of milliseconds that the pool will wait (when there are no available connections) 
-     * for a connection to be returned before throwing an exception, or -1 to wait indefinitely. 
-     */
-    static final long maxWaitMillis = 500;
-   
-    /** The maximum number of active connections that can be allocated from this pool at the same time, 
-     * or negative for no limit.
-     */
-    static final int maxTotal 		= 8;
 
-    //=================================================================================================
-    
     /**
-     * Idea was to dynamically set port, driver and url properties default values after user select database system.
-     * As of 01mar2015 such functionality is not supported.
-     * 
-    @Override
-    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
-        super.onPropertyModified(descriptor, oldValue, newValue);
-
-        if (descriptor.equals(DATABASE_SYSTEM)) {
-        	
-        	DatabaseSystemDescriptor databaseSystemDescriptor = DatabaseSystems.getDescriptor(newValue);
-        }        
-    }
-	*/
-
+     *  Create new pool, open some connections ready to be used
+     * @param context
+     * @throws InitializationException
+     */
     @OnEnabled
     public void onConfigured(final ConfigurationContext context) throws InitializationException {
         configContext = context;
@@ -167,6 +163,8 @@ public class DBCPServiceApacheDBCP14 extends AbstractControllerService implement
         String dbname = context.getProperty(DB_NAME).getValue();
         String user   = context.getProperty(DB_USER).getValue();
         String passw  = context.getProperty(DB_PASSWORD).getValue();
+        Long maxWaitMillis = context.getProperty(MAX_WAIT_MILLIS).asLong();
+        Integer maxTotal  = context.getProperty(MAX_TOTAL_CONNECTIONS).asInteger();
         
         String dburl  = dbsystem.buildUrl(host, port, dbname);
         
@@ -178,6 +176,9 @@ public class DBCPServiceApacheDBCP14 extends AbstractControllerService implement
         dataSource.setDriverClassName(drv);
         dataSource.setUsername(user);
         dataSource.setPassword(passw);
+        
+        // That will ensure that you are using the ClassLoader for you NAR. 
+        dataSource.setDriverClassLoader(Thread.currentThread().getContextClassLoader());
 
         // verify connection can be established.
         try {
@@ -189,6 +190,19 @@ public class DBCPServiceApacheDBCP14 extends AbstractControllerService implement
 			throw new InitializationException(e);
 		}
     }
+    
+    /**
+     *  Shutdown pool, close all open connections.
+     */
+    @OnDisabled
+    public void shutdown() {
+    	try {
+			dataSource.close();
+		} catch (SQLException e) {
+			throw new ProcessException(e);
+		}
+    }
+    
     
 	@Override
 	public Connection getConnection() throws ProcessException {
