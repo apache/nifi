@@ -69,6 +69,7 @@ public class ProcessorDocumentationWriterTest {
 		assertNotContains(results, "No description provided.");
 		assertNotContains(results, "No Tags provided.");
 		assertNotContains(results, "Additional Details...");
+		System.out.println(results);
 	}
 
 	@Test

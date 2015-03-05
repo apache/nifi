@@ -16,9 +16,17 @@
  */
 package org.apache.nifi.documentation.html;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.documentation.ReadsAttribute;
+import org.apache.nifi.annotation.documentation.ReadsAttributes;
+import org.apache.nifi.annotation.documentation.WritesAttribute;
+import org.apache.nifi.annotation.documentation.WritesAttributes;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
@@ -35,6 +43,109 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
     protected void writeAdditionalBodyInfo(final ConfigurableComponent configurableComponent,
             final XMLStreamWriter xmlStreamWriter) throws XMLStreamException {
         final Processor processor = (Processor) configurableComponent;
+        writeRelationships(processor, xmlStreamWriter);
+        writeAttributeInfo(processor, xmlStreamWriter);
+    }
+
+    private void writeAttributeInfo(ConfigurableComponent configurableComponent,
+            XMLStreamWriter xmlStreamWriter) throws XMLStreamException {
+        final Processor processor = (Processor) configurableComponent;
+
+        handleReadsAttributes(xmlStreamWriter, processor);
+        handleWritesAttributes(xmlStreamWriter, processor);
+    }
+
+    private void handleReadsAttributes(XMLStreamWriter xmlStreamWriter, final Processor processor)
+            throws XMLStreamException {
+        List<ReadsAttribute> attributesRead = getReadsAttributes(processor);
+
+        writeSimpleElement(xmlStreamWriter, "h3", "Reads Attributes: ");
+        if (attributesRead.size() > 0) {
+            xmlStreamWriter.writeStartElement("table");
+            xmlStreamWriter.writeStartElement("tr");
+            writeSimpleElement(xmlStreamWriter, "th", "Name");
+            writeSimpleElement(xmlStreamWriter, "th", "Description");
+            xmlStreamWriter.writeEndElement();
+            for (ReadsAttribute attribute : attributesRead) {
+                xmlStreamWriter.writeStartElement("tr");
+                writeSimpleElement(xmlStreamWriter, "td",
+                        StringUtils.defaultIfBlank(attribute.attribute(), "Not Specified"));
+                writeSimpleElement(xmlStreamWriter, "td",
+                        StringUtils.defaultIfBlank(attribute.description(), "Not Specified"));
+                xmlStreamWriter.writeEndElement();
+            }
+            xmlStreamWriter.writeEndElement();
+
+        } else {
+            xmlStreamWriter.writeCharacters("None specified.");
+        }
+    }
+
+    private void handleWritesAttributes(XMLStreamWriter xmlStreamWriter, final Processor processor)
+            throws XMLStreamException {
+        List<WritesAttribute> attributesRead = getWritesAttributes(processor);
+
+        writeSimpleElement(xmlStreamWriter, "h3", "Writes Attributes: ");
+        if (attributesRead.size() > 0) {
+            xmlStreamWriter.writeStartElement("table");
+            xmlStreamWriter.writeStartElement("tr");
+            writeSimpleElement(xmlStreamWriter, "th", "Name");
+            writeSimpleElement(xmlStreamWriter, "th", "Description");
+            xmlStreamWriter.writeEndElement();
+            for (WritesAttribute attribute : attributesRead) {
+                xmlStreamWriter.writeStartElement("tr");
+                writeSimpleElement(xmlStreamWriter, "td",
+                        StringUtils.defaultIfBlank(attribute.attribute(), "Not Specified"));
+                writeSimpleElement(xmlStreamWriter, "td",
+                        StringUtils.defaultIfBlank(attribute.description(), "Not Specified"));
+                xmlStreamWriter.writeEndElement();
+            }
+            xmlStreamWriter.writeEndElement();
+
+        } else {
+            xmlStreamWriter.writeCharacters("None specified.");
+        }
+    }
+
+    private List<ReadsAttribute> getReadsAttributes(Processor processor) {
+        List<ReadsAttribute> attributes = new ArrayList<>();
+
+        ReadsAttributes readsAttributes = processor.getClass().getAnnotation(ReadsAttributes.class);
+        if (readsAttributes != null) {
+            for (ReadsAttribute readAttribute : readsAttributes.value()) {
+                attributes.add(readAttribute);
+            }
+        }
+        
+        ReadsAttribute readsAttribute = processor.getClass().getAnnotation(ReadsAttribute.class);
+        if (readsAttribute != null) {
+            attributes.add(readsAttribute);
+        }
+
+        return attributes;
+    }
+
+    private List<WritesAttribute> getWritesAttributes(Processor processor) {
+        List<WritesAttribute> attributes = new ArrayList<>();
+
+        WritesAttributes writesAttributes = processor.getClass().getAnnotation(WritesAttributes.class);
+        if (writesAttributes != null) {
+            for (WritesAttribute writeAttribute : writesAttributes.value()) {
+                attributes.add(writeAttribute);
+            }
+        }
+        
+        WritesAttribute writeAttribute = processor.getClass().getAnnotation(WritesAttribute.class);
+        if (writeAttribute != null) {
+            attributes.add(writeAttribute);
+        }
+
+        return attributes;
+    }
+
+    private void writeRelationships(final Processor processor, final XMLStreamWriter xmlStreamWriter)
+            throws XMLStreamException {
+
         writeSimpleElement(xmlStreamWriter, "h3", "Relationships: ");
 
         if (processor.getRelationships().size() > 0) {
