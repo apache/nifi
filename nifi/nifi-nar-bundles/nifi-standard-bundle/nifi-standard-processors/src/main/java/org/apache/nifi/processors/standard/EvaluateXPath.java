@@ -66,6 +66,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.WritesAttribute;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -91,6 +92,7 @@ import org.xml.sax.InputSource;
         + "evaluate to a Node, the FlowFile will be routed to 'unmatched' without having its contents modified. If Destination is "
         + "flowfile-attribute and the expression matches nothing, attributes will be created with empty strings as the value, and the "
         + "FlowFile will always be routed to 'matched'")
+@WritesAttribute(attribute="user-defined", description="This processor adds user-defined attributes if the <Destination> property is set to flowfile-attribute.")
 public class EvaluateXPath extends AbstractProcessor {
 
     public static final String DESTINATION_ATTRIBUTE = "flowfile-attribute";

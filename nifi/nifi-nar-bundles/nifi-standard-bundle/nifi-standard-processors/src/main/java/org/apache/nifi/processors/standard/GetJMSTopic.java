@@ -44,6 +44,7 @@ import javax.jms.Session;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -61,6 +62,7 @@ import org.apache.nifi.processors.standard.util.WrappedMessageConsumer;
 @TriggerWhenEmpty
 @Tags({"jms", "topic", "subscription", "durable", "non-durable", "listen", "get", "pull", "source", "consume", "consumer"})
 @CapabilityDescription("Pulls messages from a JMS Topic, creating a FlowFile for each JMS Message or bundle of messages, as configured")
+@SeeAlso(PutJMS.class)
 public class GetJMSTopic extends JmsConsumer {
 
     public static final String SUBSCRIPTION_NAME_PROPERTY = "subscription.name";

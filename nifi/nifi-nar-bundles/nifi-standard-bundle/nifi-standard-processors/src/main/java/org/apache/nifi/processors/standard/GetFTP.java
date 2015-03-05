@@ -24,6 +24,9 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
+import org.apache.nifi.annotation.documentation.WritesAttribute;
+import org.apache.nifi.annotation.documentation.WritesAttributes;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.processors.standard.util.FTPTransfer;
@@ -32,6 +35,15 @@ import org.apache.nifi.processors.standard.util.FileTransfer;
 @SideEffectFree
 @Tags({"FTP", "get", "retrieve", "files", "fetch", "remote", "ingest", "source", "input"})
 @CapabilityDescription("Fetches files from an FTP Server and creates FlowFiles from them")
+@WritesAttributes({ @WritesAttribute(attribute = "filename", description = "The filename is set to the name of the file on the remote server"),
+    @WritesAttribute(attribute = "path", description = "The path is set to the path of the file's directory on the remote server. For example, if the <Remote Path> property is set to /tmp, files picked up from /tmp will have the path attribute set to /tmp. If the <Search Recursively> property is set to true and a file is picked up from /tmp/abc/1/2/3, then the path attribute will be set to /tmp/abc/1/2/3"),
+    @WritesAttribute(attribute = "file.lastModifiedTime", description = "The date and time that the source file was last modified"),
+    @WritesAttribute(attribute = "file.lastAccessTime", description = "The date and time that the file was last accessed. May not work on all file systems"),
+    @WritesAttribute(attribute = "file.owner", description = "The numeric owner id of the source file"),
+    @WritesAttribute(attribute = "file.group", description = "The numeric group id of the source file"),
+    @WritesAttribute(attribute = "file.permissions", description = "The read/write/execute permissions of the source file"),
+    @WritesAttribute(attribute = "absolute.path", description = "The full/absolute path from where a file was picked up. The current 'path' attribute is still populated, but may be a relative path")})
+@SeeAlso(PutFTP.class)
 public class GetFTP extends GetFileTransfer {
 
     private List<PropertyDescriptor> properties;

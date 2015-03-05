@@ -26,18 +26,34 @@ import java.lang.annotation.Target;
 import org.apache.nifi.components.ConfigurableComponent;
 
 /**
- * Annotation that may be placed on a {@link org.apache.nifi.processor.Processor Processor}, 
+ * Annotation that may be placed on a
+ * {@link org.apache.nifi.processor.Processor Processor},
  * {@link org.apache.nifi.controller.ControllerService ControllerService}, or
- * {@link org.apache.nifi.reporting.ReportingTask ReportingTask} that indicates this component is related
- * to the components listed.
- * @author 
+ * {@link org.apache.nifi.reporting.ReportingTask ReportingTask} that indicates
+ * this component is related to the components listed.
+ * 
+ * @author
  *
  */
 
 @Documented
-@Target({ElementType.TYPE})
+@Target({ ElementType.TYPE })
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited
 public @interface SeeAlso {
-    public Class<? extends ConfigurableComponent>[] value(); 
+    /**
+     * Classes you want to link to.
+     * 
+     * @return
+     */
+    public Class<? extends ConfigurableComponent>[] value();
+
+    /**
+     * Fully qualified class names you want to link to. Use this when the class
+     * you want to link to is not in the class path of the component you are
+     * linking from.
+     * 
+     * @return
+     */
+    public String[] classNames() default "";
 }

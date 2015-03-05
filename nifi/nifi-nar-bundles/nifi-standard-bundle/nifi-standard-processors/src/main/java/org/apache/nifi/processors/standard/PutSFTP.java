@@ -20,17 +20,19 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
+import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessorInitializationContext;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.behavior.SupportsBatching;
-import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.processors.standard.util.SFTPTransfer;
 
 @SupportsBatching
 @Tags({"remote", "copy", "egress", "put", "sftp", "archive", "files"})
 @CapabilityDescription("Sends FlowFiles to an SFTP Server")
+@SeeAlso(GetSFTP.class)
 public class PutSFTP extends PutFileTransfer<SFTPTransfer> {
 
     private List<PropertyDescriptor> properties;
