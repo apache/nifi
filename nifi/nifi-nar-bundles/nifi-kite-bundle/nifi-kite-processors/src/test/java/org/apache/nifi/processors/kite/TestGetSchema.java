@@ -61,8 +61,8 @@ public class TestGetSchema {
 
   @Test
   public void testSchemaFromKiteURIs() throws IOException {
-    String location = temp.newFolder("ns", "temp").toString();
-    String datasetUri = "dataset:file:" + location;
+    String location = temp.newFolder("ns", "temp").toURI().toString();
+    String datasetUri = "dataset:" + location;
     DatasetDescriptor descriptor = new DatasetDescriptor.Builder()
         .schema(SCHEMA)
         .build();
