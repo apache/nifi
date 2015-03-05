@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
@@ -57,6 +58,7 @@ import org.apache.hadoop.fs.Path;
 @TriggerWhenEmpty
 @Tags({"hadoop", "HDFS", "get", "fetch", "ingest", "source", "sequence file"})
 @CapabilityDescription("Fetch sequence files from Hadoop Distributed File System (HDFS) into FlowFiles")
+@SeeAlso(PutHDFS.class)
 public class GetHDFSSequenceFile extends GetHDFS {
 
     static final String VALUE_ONLY = "VALUE ONLY";

@@ -22,8 +22,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.hadoop.io.SequenceFile.CompressionType;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
@@ -33,7 +35,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.hadoop.util.SequenceFileWriter;
-import org.apache.hadoop.io.SequenceFile.CompressionType;
 
 /**
  * <p>
@@ -67,6 +68,7 @@ import org.apache.hadoop.io.SequenceFile.CompressionType;
 @SideEffectFree
 @Tags({"hadoop", "sequence file", "create", "sequencefile"})
 @CapabilityDescription("Creates Hadoop Sequence Files from incoming flow files")
+@SeeAlso(PutHDFS.class)
 public class CreateHadoopSequenceFile extends AbstractHadoopProcessor {
 
     public static final String TAR_FORMAT = "tar";
