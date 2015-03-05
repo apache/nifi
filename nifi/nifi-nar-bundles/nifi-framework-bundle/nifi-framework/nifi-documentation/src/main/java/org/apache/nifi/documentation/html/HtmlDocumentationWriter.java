@@ -144,7 +144,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
     private void writeSeeAlso(ConfigurableComponent configurableComponent, XMLStreamWriter xmlStreamWriter)
             throws XMLStreamException {
         final SeeAlso seeAlso = configurableComponent.getClass().getAnnotation(SeeAlso.class);
-        if (seeAlso != null && seeAlso.value().length > 0) {
+        if (seeAlso != null) {
             writeSimpleElement(xmlStreamWriter, "h3", "See Also:");
             xmlStreamWriter.writeStartElement("p");
             int index = 0;
@@ -167,7 +167,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 
                 final String link = "../" + linkedComponent + "/index.html";
 
-                final int indexOfLastPeriod = Math.min(0,  linkedComponent.lastIndexOf("."));
+                final int indexOfLastPeriod = Math.max(0,  linkedComponent.lastIndexOf("."));
                 
                 writeLink(xmlStreamWriter, linkedComponent.substring(indexOfLastPeriod), link);
 
