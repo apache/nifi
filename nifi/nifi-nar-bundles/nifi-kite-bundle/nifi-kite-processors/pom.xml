@@ -69,44 +69,19 @@
 
     <dependency>
       <groupId>org.kitesdk</groupId>
-      <artifactId>kite-data-hive</artifactId>
-      <version>${kite.version}</version>
-      <exclusions>
-        <exclusion>
-          <!-- Use findbugs-annotations instead -->
-          <groupId>com.google.code.findbugs</groupId>
-          <artifactId>jsr305</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-
-    <dependency>
-      <groupId>org.kitesdk</groupId>
-      <artifactId>kite-data-hbase</artifactId>
-      <version>${kite.version}</version>
-      <exclusions>
-        <exclusion>
-          <!-- Use findbugs-annotations instead -->
-          <groupId>com.google.code.findbugs</groupId>
-          <artifactId>jsr305</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-
-    <dependency>
-      <groupId>org.kitesdk</groupId>
       <artifactId>kite-hadoop-dependencies</artifactId>
       <type>pom</type>
       <version>${kite.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.kitesdk</groupId>
-      <artifactId>kite-hbase-dependencies</artifactId>
-      <type>pom</type>
-      <scope>provided</scope>
-      <optional>true</optional>
-      <version>${kite.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.apache.hadoop</groupId>
+          <artifactId>hadoop-mapreduce-client-app</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.apache.hadoop</groupId>
+          <artifactId>hadoop-mapreduce-client-jobclient</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
     <dependency>
