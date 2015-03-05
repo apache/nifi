@@ -46,7 +46,7 @@ public @interface SeeAlso {
      * 
      * @return
      */
-    public Class<? extends ConfigurableComponent>[] value();
+    public Class<? extends ConfigurableComponent>[] value() default {};
 
     /**
      * Fully qualified class names you want to link to. Use this when the class
@@ -55,5 +55,5 @@ public @interface SeeAlso {
      * 
      * @return
      */
-    public String[] classNames() default "";
+    public String[] classNames() default {};
 }

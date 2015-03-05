@@ -57,7 +57,7 @@ import org.apache.nifi.processor.util.StandardValidators;
         + "\"description\", which is specified in the <FlowFile Description> property. If the FlowFile is not determined to be a duplicate, the Processor "
         + "routes the FlowFile to 'non-duplicate'")
 @WritesAttribute(attribute="original.flowfile.description", description="All FlowFiles routed to the duplicate relationship will have an attribute added named original.flowfile.description. The value of this attribute is determined by the attributes of the original copy of the data and by the FlowFile Description property.")
-@SeeAlso(value={DistributedMapCacheClient.class}, classNames={"org.apache.nifi.distributed.cache.server.map.DistributedMapCacheServer"})
+@SeeAlso(classNames={"org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService", "org.apache.nifi.distributed.cache.server.map.DistributedMapCacheServer"})
 public class DetectDuplicate extends AbstractProcessor {
 
     public static final String ORIGINAL_DESCRIPTION_ATTRIBUTE_NAME = "original.flowfile.description";

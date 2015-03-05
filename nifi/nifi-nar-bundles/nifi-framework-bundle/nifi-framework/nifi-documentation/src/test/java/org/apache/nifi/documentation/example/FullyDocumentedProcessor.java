@@ -42,7 +42,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 @CapabilityDescription("This is a processor that is used to test documentation.")
 @WritesAttributes({@WritesAttribute(attribute="first", description="this is the first attribute i write"), @WritesAttribute(attribute="second")})
 @ReadsAttribute(attribute = "incoming", description="this specifies the format of the thing")
-@SeeAlso({FullyDocumentedControllerService.class, FullyDocumentedReportingTask.class})
+@SeeAlso(value={FullyDocumentedControllerService.class, FullyDocumentedReportingTask.class}, classNames={"org.apache.nifi.processor.ExampleProcessor"})
 public class FullyDocumentedProcessor extends AbstractProcessor {
 
 	public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder().name("Input Directory")

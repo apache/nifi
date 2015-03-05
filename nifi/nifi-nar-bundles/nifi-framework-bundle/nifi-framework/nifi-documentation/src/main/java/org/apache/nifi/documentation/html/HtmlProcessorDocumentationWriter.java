@@ -88,9 +88,11 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
                 xmlStreamWriter.writeStartElement("tr");
                 writeSimpleElement(xmlStreamWriter, "td",
                         StringUtils.defaultIfBlank(attribute.attribute(), "Not Specified"));
+                // TODO allow for HTML characters here.
                 writeSimpleElement(xmlStreamWriter, "td",
                         StringUtils.defaultIfBlank(attribute.description(), "Not Specified"));
                 xmlStreamWriter.writeEndElement();
+                
             }
             xmlStreamWriter.writeEndElement();
 
@@ -123,6 +125,7 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
                 xmlStreamWriter.writeStartElement("tr");
                 writeSimpleElement(xmlStreamWriter, "td",
                         StringUtils.defaultIfBlank(attribute.attribute(), "Not Specified"));
+                // TODO allow for HTML characters here.
                 writeSimpleElement(xmlStreamWriter, "td",
                         StringUtils.defaultIfBlank(attribute.description(), "Not Specified"));
                 xmlStreamWriter.writeEndElement();
