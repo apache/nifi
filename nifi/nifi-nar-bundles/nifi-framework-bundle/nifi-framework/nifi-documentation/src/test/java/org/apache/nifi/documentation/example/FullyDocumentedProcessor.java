@@ -22,6 +22,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.ReadsAttribute;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.documentation.WritesAttribute;
+import org.apache.nifi.annotation.documentation.WritesAttributes;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -29,13 +34,13 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
 @Tags({ "one", "two", "three" })
 @CapabilityDescription("This is a processor that is used to test documentation.")
+@WritesAttributes({@WritesAttribute(attribute="first", description="this is the first attribute i write"), @WritesAttribute(attribute="second")})
+@ReadsAttribute(attribute = "incoming", description="this specifies the format of the thing")
 public class FullyDocumentedProcessor extends AbstractProcessor {
 
 	public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder().name("Input Directory")
