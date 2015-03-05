@@ -28,6 +28,7 @@ import static org.apache.nifi.processors.standard.util.JmsFactory.PROP_TYPE_OBJE
 import static org.apache.nifi.processors.standard.util.JmsFactory.PROP_TYPE_SHORT;
 import static org.apache.nifi.processors.standard.util.JmsFactory.PROP_TYPE_STRING;
 import static org.apache.nifi.processors.standard.util.JmsProperties.ATTRIBUTES_TO_JMS_PROPS;
+import static org.apache.nifi.processors.standard.util.JmsProperties.BATCH_SIZE;
 import static org.apache.nifi.processors.standard.util.JmsProperties.CLIENT_ID_PREFIX;
 import static org.apache.nifi.processors.standard.util.JmsProperties.DESTINATION_NAME;
 import static org.apache.nifi.processors.standard.util.JmsProperties.DESTINATION_TYPE;
@@ -44,7 +45,6 @@ import static org.apache.nifi.processors.standard.util.JmsProperties.MSG_TYPE_MA
 import static org.apache.nifi.processors.standard.util.JmsProperties.PASSWORD;
 import static org.apache.nifi.processors.standard.util.JmsProperties.REPLY_TO_QUEUE;
 import static org.apache.nifi.processors.standard.util.JmsProperties.TIMEOUT;
-import static org.apache.nifi.processors.standard.util.JmsProperties.BATCH_SIZE;
 import static org.apache.nifi.processors.standard.util.JmsProperties.URL;
 import static org.apache.nifi.processors.standard.util.JmsProperties.USERNAME;
 
@@ -71,11 +71,11 @@ import javax.jms.Session;
 import javax.jms.StreamMessage;
 
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.logging.ProcessorLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
@@ -86,9 +86,11 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processors.standard.util.JmsFactory;
 import org.apache.nifi.processors.standard.util.WrappedMessageProducer;
+import org.apache.nifi.stream.io.StreamUtils;
 
 @Tags({"jms", "send", "put"})
 @CapabilityDescription("Creates a JMS Message from the contents of a FlowFile and sends the message to a JMS Server")
+@SeeAlso({GetJMSQueue.class, GetJMSTopic.class})
 public class PutJMS extends AbstractProcessor {
 
     public static final Charset UTF8 = Charset.forName("UTF-8");

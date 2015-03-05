@@ -159,6 +159,20 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 
                 ++index;
             }
+            
+            for (final String linkedComponent : seeAlso.classNames()) {
+                if (index != 0) {
+                    xmlStreamWriter.writeCharacters(", ");
+                }
+
+                final String link = "../" + linkedComponent + "/index.html";
+
+                final int indexOfLastPeriod = Math.min(0,  linkedComponent.lastIndexOf("."));
+                
+                writeLink(xmlStreamWriter, linkedComponent.substring(indexOfLastPeriod), link);
+
+                ++index;
+            }
             xmlStreamWriter.writeEndElement();
         }
     }
