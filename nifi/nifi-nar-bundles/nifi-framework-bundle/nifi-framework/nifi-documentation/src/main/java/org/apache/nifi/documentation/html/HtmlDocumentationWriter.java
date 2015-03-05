@@ -167,7 +167,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 
                 final String link = "../" + linkedComponent + "/index.html";
 
-                final int indexOfLastPeriod = Math.max(0,  linkedComponent.lastIndexOf("."));
+                final int indexOfLastPeriod = linkedComponent.lastIndexOf(".") + 1;
                 
                 writeLink(xmlStreamWriter, linkedComponent.substring(indexOfLastPeriod), link);
 
