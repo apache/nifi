@@ -27,9 +27,21 @@
   <name>Kite NAR</name>
 
   <dependencies>
+  	<dependency>
+  		<groupId>org.apache.nifi</groupId>
+  		<artifactId>nifi-hadoop-libraries-nar</artifactId>
+  		<type>nar</type>
+  	</dependency>
     <dependency>
       <groupId>org.apache.nifi</groupId>
       <artifactId>nifi-kite-processors</artifactId>
+      <!-- Hadoop client is inherited from nifi-hadoop-libraries-nar -->
+      <exclusions>
+        <exclusion>
+          <groupId>org.apache.hadoop</groupId>
+          <artifactId>hadoop-client</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
   </dependencies>
 </project>

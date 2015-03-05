@@ -34,6 +34,7 @@
         <module>nifi-standard-services</module>
         <module>nifi-update-attribute-bundle</module>
         <module>nifi-kafka-bundle</module>
+		<module>nifi-kite-bundle</module>
     </modules>
     <dependencyManagement>
         <dependencies>

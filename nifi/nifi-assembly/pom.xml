@@ -161,6 +161,11 @@
             <artifactId>nifi-http-context-map-nar</artifactId>
             <type>nar</type>
         </dependency>
+		<dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-kite-nar</artifactId>
+            <type>nar</type>
+        </dependency>
     </dependencies>
     
     <properties>        
