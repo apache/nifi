@@ -47,14 +47,32 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
         writeAttributeInfo(processor, xmlStreamWriter);
     }
 
-    private void writeAttributeInfo(ConfigurableComponent configurableComponent,
-            XMLStreamWriter xmlStreamWriter) throws XMLStreamException {
-        final Processor processor = (Processor) configurableComponent;
+    /**
+     * Writes all the attributes that a processor says it reads and writes
+     * 
+     * @param processor
+     *            the processor to describe
+     * @param xmlStreamWriter
+     *            the xml stream writer to use
+     * @throws XMLStreamException
+     *             thrown if there was a problem writing the XML
+     */
+    private void writeAttributeInfo(Processor processor, XMLStreamWriter xmlStreamWriter)
+            throws XMLStreamException {
 
         handleReadsAttributes(xmlStreamWriter, processor);
         handleWritesAttributes(xmlStreamWriter, processor);
     }
 
+    /**
+     * Writes out just the attributes that are being read in a table form.
+     * 
+     * @param xmlStreamWriter
+     *            the xml stream writer to use
+     * @param processor
+     *            the processor to describe
+     * @throws XMLStreamException
+     */
     private void handleReadsAttributes(XMLStreamWriter xmlStreamWriter, final Processor processor)
             throws XMLStreamException {
         List<ReadsAttribute> attributesRead = getReadsAttributes(processor);
@@ -81,6 +99,15 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
         }
     }
 
+    /**
+     * Writes out just the attributes that are being written to in a table form.
+     * 
+     * @param xmlStreamWriter
+     *            the xml stream writer to use
+     * @param processor
+     *            the processor to describe
+     * @throws XMLStreamException
+     */
     private void handleWritesAttributes(XMLStreamWriter xmlStreamWriter, final Processor processor)
             throws XMLStreamException {
         List<WritesAttribute> attributesRead = getWritesAttributes(processor);
@@ -107,6 +134,13 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
         }
     }
 
+    /**
+     * Collects the attributes that a processor is reading from.
+     * 
+     * @param processor
+     *            the processor to describe
+     * @return the list of attributes that processor is reading
+     */
     private List<ReadsAttribute> getReadsAttributes(Processor processor) {
         List<ReadsAttribute> attributes = new ArrayList<>();
 
@@ -116,7 +150,7 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
                 attributes.add(readAttribute);
             }
         }
-        
+
         ReadsAttribute readsAttribute = processor.getClass().getAnnotation(ReadsAttribute.class);
         if (readsAttribute != null) {
             attributes.add(readsAttribute);
@@ -125,6 +159,13 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
         return attributes;
     }
 
+    /**
+     * Collects the attributes that a processor is writing to.
+     * 
+     * @param processor
+     *            the processor to describe
+     * @return the list of attributes the processor is writing
+     */
     private List<WritesAttribute> getWritesAttributes(Processor processor) {
         List<WritesAttribute> attributes = new ArrayList<>();
 
@@ -134,7 +175,7 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
                 attributes.add(writeAttribute);
             }
         }
-        
+
         WritesAttribute writeAttribute = processor.getClass().getAnnotation(WritesAttribute.class);
         if (writeAttribute != null) {
             attributes.add(writeAttribute);
@@ -143,6 +184,16 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
         return attributes;
     }
 
+    /**
+     * Writes a table describing the relations a processor has.
+     * 
+     * @param processor
+     *            the processor to describe
+     * @param xmlStreamWriter
+     *            the stream writer to use
+     * @throws XMLStreamException
+     *             thrown if there was a problem writing the xml
+     */
     private void writeRelationships(final Processor processor, final XMLStreamWriter xmlStreamWriter)
             throws XMLStreamException {
 
