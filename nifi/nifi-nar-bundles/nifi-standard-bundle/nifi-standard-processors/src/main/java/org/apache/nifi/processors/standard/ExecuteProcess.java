@@ -57,7 +57,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.stream.io.StreamUtils;
 
 
 @Tags({"command", "process", "source", "external", "invoke", "script"})
@@ -66,13 +65,8 @@ import org.apache.nifi.stream.io.StreamUtils;
         + "format, as it typically does not make sense to split binary data on arbitrary time-based intervals.")
 public class ExecuteProcess extends AbstractProcessor {
 
-    public static final Relationship REL_SUCCESS = new Relationship.Builder()
-        .name("success")
-        .description("All created FlowFiles are routed to this relationship")
-        .build();
-
     public static final PropertyDescriptor COMMAND = new PropertyDescriptor.Builder()
-        .name("Command Path")
+        .name("Command")
         .description("Specifies the command to be executed; if just the name of an executable is provided, it must be in the user's environment PATH.")
         .required(true)
         .expressionLanguageSupported(false)
@@ -105,6 +99,12 @@ public class ExecuteProcess extends AbstractProcessor {
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
         .build();
     
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+        .name("success")
+        .description("All created FlowFiles are routed to this relationship")
+        .build();
+    
+
     private volatile ExecutorService executor;
     
     @Override
@@ -317,6 +317,10 @@ public class ExecuteProcess extends AbstractProcessor {
                 process.destroy();
                 break;
             }
+            
+            // Create a FlowFile that we can write to and set the OutputStream for the FlowFile
+            // as the delegate for the ProxyOuptutStream, then wait until the process finishes
+            // or until the specified amount of time
             FlowFile flowFile = session.create();
             flowFile = session.write(flowFile, new OutputStreamCallback() {
                 @Override
@@ -345,17 +349,22 @@ public class ExecuteProcess extends AbstractProcessor {
             });
             
             if ( flowFile.getSize() == 0L ) {
+                // If no data was written to the file, remove it
                 session.remove(flowFile);
             } else if ( failure.get() ) {
+                // If there was a failure processing the output of the Process, remove the FlowFile
                 session.remove(flowFile);
                 getLogger().error("Failed to read data from Process, so will not generate FlowFile");
+                break;
             } else {
+                // All was good. Generate event and transfer FlowFile.
                 session.getProvenanceReporter().create(flowFile, "Created from command: " + commandString);
                 getLogger().info("Created {} and routed to success", new Object[] {flowFile});
                 session.transfer(flowFile, REL_SUCCESS);
                 flowFileCount++;
             }
             
+            // Commit the session so that the FlowFile is transferred to the next processor
             session.commit();
         }
         
@@ -394,6 +403,10 @@ public class ExecuteProcess extends AbstractProcessor {
     }
     
     
+    /**
+     * Output stream that is used to wrap another output stream in a way that the
+     * underlying output stream can be swapped out for a different one when needed
+     */
     private static class ProxyOutputStream extends OutputStream {
         private final ProcessorLog logger;
         
