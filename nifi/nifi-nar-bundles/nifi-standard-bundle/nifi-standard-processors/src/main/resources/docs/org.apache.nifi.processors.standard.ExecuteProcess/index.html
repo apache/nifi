@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8" />
+        <title>ExecuteProcess</title>
+
+        <link rel="stylesheet" href="../../css/component-usage.css" type="text/css" />
+    </head>
+
+    <body>
+        <!-- Processor Documentation ================================================== -->
+        <h2> Description:</h2>
+        <p>
+        	Runs an operating system command specified by the user and writes the output of that command to a FlowFile. If the command is expected
+        	to be long-running, the Processor can output the partial data on a specified interval. When this option is used, the output is expected to be in textual
+            format, as it typically does not make sense to split binary data on arbitrary time-based intervals.
+        </p>
+        
+        <p>
+            <strong>Properties:</strong>
+        </p>
+        <p>In the list below, the names of required properties appear
+            in bold. Any other properties (not in bold) are considered optional.
+            If a property has a default value, it is indicated. If a property
+            supports the use of the NiFi Expression Language (or simply,
+            "expression language"), that is also indicated.</p>
+        <ul>
+            <li><strong>Command</strong>
+                <ul>
+                    <li>Specifies the command to be executed; if just the name of an executable is provided, it must be in the user's environment PATH.</li>
+                    <li>Default value: none</li>
+                    <li>Supports expression language: false</li>
+                </ul>
+            </li>
+            <li>Command Arguments
+                <ul>
+                    <li>The arguments to supply to the executable delimited by white space. White space can be escaped by enclosing it in double-quotes.</li>
+                    <li>Default value: none</li>
+                    <li>Supports expression language: false</li>
+                </ul>
+            </li>
+            <li>Working Directory
+                <ul>
+                    <li>The directory to use as the current working directory when executing the command</li>
+                    <li>Default value: none (which means whatever NiFi's root installation directory is)</li>
+                    <li>Supports expression language: false</li>
+                </ul>
+            </li>
+			<li>
+				Batch Duration>
+				<ul>
+					<li>
+						If the process is expected to be long-running and produce textual output, a batch duration can be specified so 
+						that the output will be captured for this amount of time and a FlowFile will then be sent out with the results
+						and a new FlowFile will be started, rather than waiting for the process to finish before sending out the results.
+						If no value is provided, the process will run to completion and the entire output of the process will be written
+						to a single FlowFile.
+					</li>
+					<li>Default value: none</li>
+                    <li>Supports expression language: false</li>
+				</ul>
+			</li>
+        </ul>
+
+        <p>
+            <strong>Relationships:</strong>
+        </p>
+        <ul>
+            <li>success
+                <ul>
+                    <li>All FlowFiles that are created are routed to this relationship.</li>
+                </ul>
+            </li>
+        </ul>
+    </body>
+</html>
