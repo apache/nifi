@@ -211,6 +211,7 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
             this.required = specDescriptor.required;
             this.sensitive = specDescriptor.sensitive;
             this.dynamic = specDescriptor.dynamic;
+            this.expressionLanguageSupported = specDescriptor.expressionLanguageSupported;
             this.controllerServiceDefinition = specDescriptor.getControllerServiceDefinition();
             this.validators = new ArrayList<>(specDescriptor.validators);
             return this;
