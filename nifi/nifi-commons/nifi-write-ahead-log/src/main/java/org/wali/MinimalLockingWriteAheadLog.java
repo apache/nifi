@@ -500,7 +500,12 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
 
                 swapLocations = new HashSet<>(externalLocations);
                 for (final Partition<T> partition : partitions) {
-                    partition.rollover();
+                    try {
+                        partition.rollover();
+                    } catch (final IOException ioe) {
+                        partition.blackList();
+                        throw ioe;
+                    }
                 }
 
                 // notify global sync with the write lock held. We do this because we don't want the repository to get updated
