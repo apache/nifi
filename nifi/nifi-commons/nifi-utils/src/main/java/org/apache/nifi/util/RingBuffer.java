@@ -185,7 +185,7 @@ public class RingBuffer<T> {
     public T getNewestElement() {
         readLock.lock();
         try {
-            int index = (insertionPointer == 0) ? buffer.length : insertionPointer - 1;
+            int index = (insertionPointer == 0) ? buffer.length - 1 : insertionPointer - 1;
             return getElementData(index);
         } finally {
             readLock.unlock();
