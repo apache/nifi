@@ -25,11 +25,11 @@
         <!-- Processor Documentation ================================================== -->
         <h2> Description:</h2>
         <p>
-        	Runs an operating system command specified by the user and writes the output of that command to a FlowFile. If the command is expected
-        	to be long-running, the Processor can output the partial data on a specified interval. When this option is used, the output is expected to be in textual
+            Runs an operating system command specified by the user and writes the output of that command to a FlowFile. If the command is expected
+            to be long-running, the Processor can output the partial data on a specified interval. When this option is used, the output is expected to be in textual
             format, as it typically does not make sense to split binary data on arbitrary time-based intervals.
         </p>
-        
+
         <p>
             <strong>Properties:</strong>
         </p>
@@ -60,20 +60,30 @@
                     <li>Supports expression language: false</li>
                 </ul>
             </li>
-			<li>
-				Batch Duration>
-				<ul>
-					<li>
-						If the process is expected to be long-running and produce textual output, a batch duration can be specified so 
-						that the output will be captured for this amount of time and a FlowFile will then be sent out with the results
-						and a new FlowFile will be started, rather than waiting for the process to finish before sending out the results.
-						If no value is provided, the process will run to completion and the entire output of the process will be written
-						to a single FlowFile.
-					</li>
-					<li>Default value: none</li>
+            <li>Batch Duration
+                <ul>
+                    <li>
+                        If the process is expected to be long-running and produce textual output, a batch duration can be specified so 
+                        that the output will be captured for this amount of time and a FlowFile will then be sent out with the results
+                        and a new FlowFile will be started, rather than waiting for the process to finish before sending out the results.
+                        If no value is provided, the process will run to completion and the entire output of the process will be written
+                        to a single FlowFile.
+                    </li>
+                    <li>Default value: none</li>
                     <li>Supports expression language: false</li>
-				</ul>
-			</li>
+                </ul>
+            </li>
+            <li>Redirect Error Stream
+                <ul>
+                    <li>
+                        If true will redirect any error stream output of the process to the output stream.
+                        This is particularly helpful for processes which write extensively to the error stream or for troubleshooting.
+                    </li>
+                    <li>Default value: false</li>
+                    <li>Allowed Values: true, false</li>
+                    <li>Supports expression language: false</li>
+                </ul>
+            </li>
         </ul>
 
         <p>
