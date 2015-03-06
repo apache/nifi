@@ -59,12 +59,12 @@ public class TestExecuteProcess {
     }
     
     @Test
-    public void testPing() {
+    public void testEcho() {
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi", "TRACE");
         
         final TestRunner runner = TestRunners.newTestRunner(ExecuteProcess.class);
-        runner.setProperty(ExecuteProcess.COMMAND, "ping");
-        runner.setProperty(ExecuteProcess.COMMAND_ARGUMENTS, "127.0.0.1");
+        runner.setProperty(ExecuteProcess.COMMAND, "echo");
+        runner.setProperty(ExecuteProcess.COMMAND_ARGUMENTS, "test-args");
         runner.setProperty(ExecuteProcess.BATCH_DURATION, "500 millis");
         
         runner.run();
