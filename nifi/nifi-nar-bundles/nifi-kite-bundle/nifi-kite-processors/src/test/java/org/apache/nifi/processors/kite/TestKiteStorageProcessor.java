@@ -20,8 +20,10 @@
 package org.apache.nifi.processors.kite;
 
 import com.google.common.collect.Lists;
+
 import java.io.IOException;
 import java.util.List;
+
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData.Record;
@@ -30,6 +32,7 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -41,6 +44,7 @@ import static org.apache.nifi.processors.kite.TestUtil.invalidStreamFor;
 import static org.apache.nifi.processors.kite.TestUtil.streamFor;
 import static org.apache.nifi.processors.kite.TestUtil.user;
 
+@Ignore("Does not work on windows")
 public class TestKiteStorageProcessor {
 
   @Rule

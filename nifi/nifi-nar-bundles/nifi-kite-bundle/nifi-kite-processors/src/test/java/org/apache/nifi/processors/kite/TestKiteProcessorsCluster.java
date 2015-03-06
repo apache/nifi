@@ -20,10 +20,12 @@
 package org.apache.nifi.processors.kite;
 
 import com.google.common.collect.Lists;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.util.List;
+
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData.Record;
@@ -34,6 +36,7 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.kitesdk.data.Dataset;
 import org.kitesdk.data.DatasetDescriptor;
@@ -48,6 +51,7 @@ import static org.apache.nifi.processors.kite.TestUtil.bytesFor;
 import static org.apache.nifi.processors.kite.TestUtil.streamFor;
 import static org.apache.nifi.processors.kite.TestUtil.user;
 
+@Ignore("Does not work on windows")
 public class TestKiteProcessorsCluster {
 
   public static MiniCluster cluster = null;
