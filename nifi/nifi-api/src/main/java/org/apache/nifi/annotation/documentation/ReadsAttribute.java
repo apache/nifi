@@ -36,6 +36,15 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited
 public @interface ReadsAttribute {
+    /**
+     * The FlowFile attribute that is being read
+     * @return
+     */
     public String attribute();
+    
+    /**
+     * The description of how the attribute is being used
+     * @return
+     */
     public String description() default "";
 }
