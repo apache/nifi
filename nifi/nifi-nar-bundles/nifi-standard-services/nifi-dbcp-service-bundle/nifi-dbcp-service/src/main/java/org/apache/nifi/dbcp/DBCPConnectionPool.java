@@ -16,11 +16,15 @@
  */
 package org.apache.nifi.dbcp;
 
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.dbcp.BasicDataSource;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -78,6 +82,14 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
     .build();
 
+    public static final PropertyDescriptor DB_DRIVER_JAR_URL = new PropertyDescriptor.Builder()
+    .name("Database Driver Jar Url")
+    .description("Optional database driver jar file path url. For example 'file:///var/tmp/mariadb-java-client-1.1.7.jar'")
+    .defaultValue(null)
+    .required(false)
+    .addValidator(StandardValidators.URL_VALIDATOR)
+    .build();
+
     public static final PropertyDescriptor DB_NAME = new PropertyDescriptor.Builder()
     .name("Database Name")
     .description("Database name")
@@ -103,14 +115,14 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
     .sensitive(true)
     .build();
 
-    public static final PropertyDescriptor MAX_WAIT_MILLIS = new PropertyDescriptor.Builder()
-    .name("Max Wait Millis")
-    .description("The maximum number of milliseconds that the pool will wait (when there are no available connections) " 
-     + " for a connection to be returned before throwing an exception, or -1 to wait indefinitely. ")
-    .defaultValue("500")
+    public static final PropertyDescriptor MAX_WAIT_TIME = new PropertyDescriptor.Builder()
+    .name("Max Wait Time")
+    .description("The maximum amount of time that the pool will wait (when there are no available connections) " 
+     + " for a connection to be returned before failing, or -1 to wait indefinitely. ")
+    .defaultValue("500 millis")
     .required(true)
-    .addValidator(StandardValidators.LONG_VALIDATOR)
-    .sensitive(true)
+    .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+    .sensitive(false)
     .build();
 
     public static final PropertyDescriptor MAX_TOTAL_CONNECTIONS = new PropertyDescriptor.Builder()
@@ -131,14 +143,16 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         props.add(DB_HOST);
         props.add(DB_PORT);
         props.add(DB_DRIVERNAME);
+        props.add(DB_DRIVER_JAR_URL);
         props.add(DB_NAME);
         props.add(DB_USER);
         props.add(DB_PASSWORD);
+        props.add(MAX_WAIT_TIME);
+        props.add(MAX_TOTAL_CONNECTIONS);
         
         properties = Collections.unmodifiableList(props);
     }
     
-    private ConfigurationContext configContext;
     private volatile BasicDataSource dataSource;
 
     @Override
@@ -153,7 +167,6 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
      */
     @OnEnabled
     public void onConfigured(final ConfigurationContext context) throws InitializationException {
-        configContext = context;
 
         DatabaseSystemDescriptor dbsystem = DatabaseSystems.getDescriptor( context.getProperty(DATABASE_SYSTEM).getValue() );
         
@@ -163,23 +176,25 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         String dbname = context.getProperty(DB_NAME).getValue();
         String user   = context.getProperty(DB_USER).getValue();
         String passw  = context.getProperty(DB_PASSWORD).getValue();
-        Long maxWaitMillis = context.getProperty(MAX_WAIT_MILLIS).asLong();
+        Long maxWaitMillis = context.getProperty(MAX_WAIT_TIME).asTimePeriod(TimeUnit.MILLISECONDS);
         Integer maxTotal  = context.getProperty(MAX_TOTAL_CONNECTIONS).asInteger();
+        
+        dataSource = new BasicDataSource();        
+        dataSource.setDriverClassName(drv);
+        
+        // Optional driver URL, when exist, this URL will be used to locate driver jar file location
+        String urlString	= context.getProperty(DB_DRIVER_JAR_URL).getValue();
+        dataSource.setDriverClassLoader( getDriverClassLoader(urlString) );
         
         String dburl  = dbsystem.buildUrl(host, port, dbname);
         
-        dataSource = new BasicDataSource();
         dataSource.setMaxWait(maxWaitMillis);
         dataSource.setMaxActive(maxTotal);
 
         dataSource.setUrl(dburl);
-        dataSource.setDriverClassName(drv);
         dataSource.setUsername(user);
         dataSource.setPassword(passw);
         
-        // That will ensure that you are using the ClassLoader for you NAR. 
-        dataSource.setDriverClassLoader(Thread.currentThread().getContextClassLoader());
-
         // verify connection can be established.
         try {
 			Connection con = dataSource.getConnection();
@@ -191,6 +206,25 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
 		}
     }
     
+    /**	
+     * 	using Thread.currentThread().getContextClassLoader();
+     * will ensure that you are using the ClassLoader for you NAR.
+     * @throws InitializationException 
+     */    
+    protected ClassLoader getDriverClassLoader(String urlString) throws InitializationException {
+        if (urlString!=null && urlString.length()>0) {
+        	try {
+				URL[] urls = new URL[] { new URL(urlString) };
+				return new URLClassLoader(urls);
+			} catch (MalformedURLException e) {
+				throw new InitializationException("Invalid Database Driver Jar Url", e);
+			}
+        }
+        else 
+            // That will ensure that you are using the ClassLoader for you NAR. 
+            return Thread.currentThread().getContextClassLoader();
+    }
+
     /**
      *  Shutdown pool, close all open connections.
      */
@@ -216,7 +250,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
 
     @Override
     public String toString() {
-        return "DBCPServiceApacheDBCP14[id=" + getIdentifier() + "]";
+        return "DBCPConnectionPool[id=" + getIdentifier() + "]";
     }
 
 }
