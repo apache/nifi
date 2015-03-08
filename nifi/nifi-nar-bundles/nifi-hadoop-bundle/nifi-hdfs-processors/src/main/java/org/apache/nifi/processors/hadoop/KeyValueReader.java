@@ -24,13 +24,6 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.io.OutputStreamCallback;
-import org.apache.nifi.processors.hadoop.util.OutputStreamWritable;
-import org.apache.nifi.processors.hadoop.util.SequenceFileReader;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -39,6 +32,13 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.SequenceFile.Reader;
 import org.apache.hadoop.io.Text;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.OutputStreamCallback;
+import org.apache.nifi.processors.hadoop.util.OutputStreamWritable;
+import org.apache.nifi.processors.hadoop.util.SequenceFileReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -90,7 +90,7 @@ public class KeyValueReader implements SequenceFileReader<Set<FlowFile>> {
                 try {
                     flowFile = session.write(flowFile, callback);
                     flowFiles.add(flowFile);
-                } catch (Exception e) {
+                } catch (ProcessException e) {
                     LOG.error("Could not write to flowfile {}", new Object[]{flowFile}, e);
                     session.remove(flowFile);
                 }
