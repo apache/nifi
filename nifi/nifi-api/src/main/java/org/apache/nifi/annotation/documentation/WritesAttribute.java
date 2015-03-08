@@ -36,6 +36,16 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited
 public @interface WritesAttribute {
+    
+    /**
+     * The FlowFile attribute that is being created or updated
+     * @return
+     */
     public String attribute();
+    
+    /**
+     * A description of what is being written to the FlowFile attribute
+     * @return
+     */
     public String description() default "";
 }

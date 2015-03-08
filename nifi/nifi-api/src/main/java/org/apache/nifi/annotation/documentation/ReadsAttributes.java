@@ -35,5 +35,9 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited
 public @interface ReadsAttributes {
+    /**
+     * A list of attributes that may be read
+     * @return
+     */
     public ReadsAttribute[] value();
 }
