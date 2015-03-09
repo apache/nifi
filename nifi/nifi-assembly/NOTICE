@@ -90,6 +90,11 @@ The following binary components are provided under the Apache Software License v
       This product includes software from the Spring Framework,
       under the Apache License 2.0 (see: StringUtils.containsWhitespace())
 
+  (ASLv2) Apache Commons JEXL
+    The following NOTICE information applies:
+      Apache Commons JEXL
+      Copyright 2001-2011 The Apache Software Foundation
+
   (ASLv2) Spring Framework
     The following NOTICE information applies:
       Spring Framework 4.1.4.RELEASE
@@ -469,6 +474,28 @@ The following binary components are provided under the Apache Software License v
    (ASLv2) JsonPath
      The following NOTICE information applies:
        Copyright 2011 JsonPath authors
+
+  (ASLv2) Kite SDK
+    The following NOTICE information applies:
+      This product includes software developed by Cloudera, Inc.
+      (http://www.cloudera.com/).
+
+      This product includes software developed at
+      The Apache Software Foundation (http://www.apache.org/).
+
+      This product includes software developed by
+      Saxonica (http://www.saxonica.com/).
+
+  (ASLv2) Parquet MR
+    The following NOTICE information applies:
+      Parquet MR
+      Copyright 2012 Twitter, Inc.
+
+      This project includes code from https://github.com/lemire/JavaFastPFOR
+      parquet-column/src/main/java/parquet/column/values/bitpacking/LemireBitPacking.java
+      Apache License Version 2.0 http://www.apache.org/licenses/.
+      (c) Daniel Lemire, http://lemire.me/en/
+
 
 ************************
 Common Development and Distribution License 1.1

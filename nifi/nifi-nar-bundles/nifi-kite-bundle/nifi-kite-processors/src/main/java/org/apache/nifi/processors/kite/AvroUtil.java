@@ -20,13 +20,10 @@
 package org.apache.nifi.processors.kite;
 
 import org.apache.avro.Schema;
-import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData;
-import org.apache.avro.generic.IndexedRecord;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DatumWriter;
 
-import static org.apache.avro.generic.GenericData.StringType;
 
 class AvroUtil {
 
