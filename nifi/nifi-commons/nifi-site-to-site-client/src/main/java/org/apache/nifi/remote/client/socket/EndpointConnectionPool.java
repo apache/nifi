@@ -314,7 +314,6 @@ public class EndpointConnectionPool {
                         if ( protocol.isDestinationFull() ) {
                             logger.warn("{} {} indicates that port's destination is full; penalizing peer", this, peer);
                             penalize(peer, penalizationMillis);
-                            connectionQueue.offer(connection);
                             continue;
                         } else if ( protocol.isPortInvalid() ) {
                         	penalize(peer, penalizationMillis);
