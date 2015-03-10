@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>0.0.2-incubating</version>
+        <version>0.0.3-incubating-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-jetty-bundle</artifactId>
     <packaging>nar</packaging>
