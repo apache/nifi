@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>0.0.2-incubating-SNAPSHOT</version>
+        <version>0.0.2-incubating</version>
     </parent>
 
     <artifactId>nifi-kite-bundle</artifactId>
@@ -50,7 +50,7 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-kite-processors</artifactId>
-                <version>0.0.2-incubating-SNAPSHOT</version>
+                <version>0.0.2-incubating</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

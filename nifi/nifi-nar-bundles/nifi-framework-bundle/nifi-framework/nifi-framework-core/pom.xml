@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-framework</artifactId>
-        <version>0.0.2-incubating-SNAPSHOT</version>
+        <version>0.0.2-incubating</version>
     </parent>
     <artifactId>nifi-framework-core</artifactId>
     <packaging>jar</packaging>

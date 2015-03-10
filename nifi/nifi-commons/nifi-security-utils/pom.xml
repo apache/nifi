@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-commons</artifactId>
-        <version>0.0.2-incubating-SNAPSHOT</version>
+        <version>0.0.2-incubating</version>
     </parent>
     <artifactId>nifi-security-utils</artifactId>
     <description>Contains security functionality.</description>
