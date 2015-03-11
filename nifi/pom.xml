@@ -88,7 +88,7 @@
         <lucene.version>4.10.3</lucene.version>
         <spring.version>4.1.4.RELEASE</spring.version>
         <spring.security.version>3.2.5.RELEASE</spring.security.version>
-        <jersey.version>1.18.3</jersey.version>
+        <jersey.version>1.19</jersey.version>
         <hadoop.version>2.6.0</hadoop.version>
         <inceptionYear>2014</inceptionYear>
     </properties>
