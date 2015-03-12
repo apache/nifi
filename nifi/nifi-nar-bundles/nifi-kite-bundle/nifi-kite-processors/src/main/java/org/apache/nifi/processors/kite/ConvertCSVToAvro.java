@@ -42,7 +42,6 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.exception.FlowFileAccessException;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -59,9 +58,9 @@ import static org.apache.nifi.processor.util.StandardValidators.createLongValida
 @CapabilityDescription(
     "Converts CSV files to Avro according to an Avro Schema")
 public class ConvertCSVToAvro extends AbstractKiteProcessor {
-  private static CSVProperties DEFAULTS = new CSVProperties.Builder().build();
+  private static final CSVProperties DEFAULTS = new CSVProperties.Builder().build();
 
-  private static Validator CHAR_VALIDATOR = new Validator() {
+  private static final Validator CHAR_VALIDATOR = new Validator() {
     @Override
     public ValidationResult validate(String subject, String input,
                                      ValidationContext context) {
@@ -74,12 +73,12 @@ public class ConvertCSVToAvro extends AbstractKiteProcessor {
     }
   };
 
-  private static Relationship SUCCESS = new Relationship.Builder()
+  private static final Relationship SUCCESS = new Relationship.Builder()
       .name("success")
       .description("FlowFile content has been successfully saved")
       .build();
 
-  private static Relationship FAILURE = new Relationship.Builder()
+  private static final Relationship FAILURE = new Relationship.Builder()
       .name("failure")
       .description("FlowFile content could not be processed")
       .build();

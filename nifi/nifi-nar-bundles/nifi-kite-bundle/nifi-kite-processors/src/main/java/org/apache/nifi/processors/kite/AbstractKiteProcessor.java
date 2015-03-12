@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.nifi.processors.kite;
 
 import com.google.common.base.Splitter;
@@ -47,171 +46,171 @@ import org.kitesdk.data.spi.DefaultConfiguration;
 
 abstract class AbstractKiteProcessor extends AbstractProcessor {
 
-  private static final Splitter COMMA = Splitter.on(',').trimResults();
-  protected static final Validator FILES_EXIST = new Validator() {
-    @Override
-    public ValidationResult validate(String subject, String configFiles,
-                                     ValidationContext context) {
-      if (configFiles != null && !configFiles.isEmpty()) {
-        for (String file : COMMA.split(configFiles)) {
-          ValidationResult result = StandardValidators.FILE_EXISTS_VALIDATOR
-              .validate(subject, file, context);
-          if (!result.isValid()) {
-            return result;
-          }
+    private static final Splitter COMMA = Splitter.on(',').trimResults();
+    protected static final Validator FILES_EXIST = new Validator() {
+        @Override
+        public ValidationResult validate(String subject, String configFiles,
+                ValidationContext context) {
+            if (configFiles != null && !configFiles.isEmpty()) {
+                for (String file : COMMA.split(configFiles)) {
+                    ValidationResult result = StandardValidators.FILE_EXISTS_VALIDATOR
+                            .validate(subject, file, context);
+                    if (!result.isValid()) {
+                        return result;
+                    }
+                }
+            }
+            return new ValidationResult.Builder()
+                    .subject(subject)
+                    .input(configFiles)
+                    .explanation("Files exist")
+                    .valid(true)
+                    .build();
         }
-      }
-      return new ValidationResult.Builder()
-          .subject(subject)
-          .input(configFiles)
-          .explanation("Files exist")
-          .valid(true)
-          .build();
-    }
-  };
+    };
 
-  protected static final PropertyDescriptor CONF_XML_FILES =
-      new PropertyDescriptor.Builder()
-          .name("Hadoop configuration files")
-          .description("A comma-separated list of Hadoop configuration files")
-          .addValidator(FILES_EXIST)
-          .build();
+    protected static final PropertyDescriptor CONF_XML_FILES
+            = new PropertyDescriptor.Builder()
+            .name("Hadoop configuration files")
+            .description("A comma-separated list of Hadoop configuration files")
+            .addValidator(FILES_EXIST)
+            .build();
 
-  protected static final Validator RECOGNIZED_URI = new Validator() {
-    @Override
-    public ValidationResult validate(String subject, String uri,
-                                     ValidationContext context) {
-      String message = "not set";
-      boolean isValid = true;
-      if (uri == null || uri.isEmpty()) {
-        isValid = false;
-      } else {
+    protected static final Validator RECOGNIZED_URI = new Validator() {
+        @Override
+        public ValidationResult validate(String subject, String uri,
+                ValidationContext context) {
+            String message = "not set";
+            boolean isValid = true;
+            if (uri == null || uri.isEmpty()) {
+                isValid = false;
+            } else {
+                try {
+                    new URIBuilder(URI.create(uri)).build();
+                } catch (RuntimeException e) {
+                    message = e.getMessage();
+                    isValid = false;
+                }
+            }
+            return new ValidationResult.Builder()
+                    .subject(subject)
+                    .input(uri)
+                    .explanation("Dataset URI is invalid: " + message)
+                    .valid(isValid)
+                    .build();
+        }
+    };
+
+    /**
+     * Resolves a {@link Schema} for the given string, either a URI or a JSON
+     * literal.
+     */
+    protected static Schema getSchema(String uriOrLiteral, Configuration conf) {
+        URI uri;
         try {
-          new URIBuilder(URI.create(uri)).build();
-        } catch (RuntimeException e) {
-          message = e.getMessage();
-          isValid = false;
+            uri = new URI(uriOrLiteral);
+        } catch (URISyntaxException e) {
+            // try to parse the schema as a literal
+            return parseSchema(uriOrLiteral);
         }
-      }
-      return new ValidationResult.Builder()
-          .subject(subject)
-          .input(uri)
-          .explanation("Dataset URI is invalid: " + message)
-          .valid(isValid)
-          .build();
+
+        try {
+            if ("dataset".equals(uri.getScheme()) || "view".equals(uri.getScheme())) {
+                return Datasets.load(uri).getDataset().getDescriptor().getSchema();
+            } else if ("resource".equals(uri.getScheme())) {
+                InputStream in = Resources.getResource(uri.getSchemeSpecificPart())
+                        .openStream();
+                return parseSchema(uri, in);
+            } else {
+                // try to open the file
+                Path schemaPath = new Path(uri);
+                FileSystem fs = schemaPath.getFileSystem(conf);
+                return parseSchema(uri, fs.open(schemaPath));
+            }
+
+        } catch (DatasetNotFoundException e) {
+            throw new SchemaNotFoundException(
+                    "Cannot read schema of missing dataset: " + uri, e);
+        } catch (IOException e) {
+            throw new SchemaNotFoundException(
+                    "Failed while reading " + uri + ": " + e.getMessage(), e);
+        }
     }
-  };
 
-  /**
-   * Resolves a {@link Schema} for the given string, either a URI or a JSON
-   * literal.
-   */
-  protected static Schema getSchema(String uriOrLiteral, Configuration conf) {
-    URI uri;
-    try {
-      uri = new URI(uriOrLiteral);
-    } catch (URISyntaxException e) {
-      // try to parse the schema as a literal
-      return parseSchema(uriOrLiteral);
+    private static Schema parseSchema(String literal) {
+        try {
+            return new Schema.Parser().parse(literal);
+        } catch (RuntimeException e) {
+            throw new SchemaNotFoundException(
+                    "Failed to parse schema: " + literal, e);
+        }
     }
 
-    try {
-      if ("dataset".equals(uri.getScheme()) || "view".equals(uri.getScheme())) {
-        return Datasets.load(uri).getDataset().getDescriptor().getSchema();
-      } else if ("resource".equals(uri.getScheme())) {
-        InputStream in = Resources.getResource(uri.getSchemeSpecificPart())
-            .openStream();
-        return parseSchema(uri, in);
-      } else {
-        // try to open the file
-        Path schemaPath = new Path(uri);
-        FileSystem fs = schemaPath.getFileSystem(conf);
-        return parseSchema(uri, fs.open(schemaPath));
-      }
-
-    } catch (DatasetNotFoundException e) {
-      throw new SchemaNotFoundException(
-          "Cannot read schema of missing dataset: " + uri, e);
-    } catch (IOException e) {
-      throw new SchemaNotFoundException(
-          "Failed while reading " + uri + ": " + e.getMessage(), e);
+    private static Schema parseSchema(URI uri, InputStream in) throws IOException {
+        try {
+            return new Schema.Parser().parse(in);
+        } catch (RuntimeException e) {
+            throw new SchemaNotFoundException("Failed to parse schema at " + uri, e);
+        }
     }
-  }
 
-  private static Schema parseSchema(String literal) {
-    try {
-      return new Schema.Parser().parse(literal);
-    } catch (RuntimeException e) {
-      throw new SchemaNotFoundException(
-          "Failed to parse schema: " + literal, e);
+    protected static final Validator SCHEMA_VALIDATOR = new Validator() {
+        @Override
+        public ValidationResult validate(String subject, String uri, ValidationContext context) {
+            Configuration conf = getConfiguration(
+                    context.getProperty(CONF_XML_FILES).getValue());
+
+            String error = null;
+            try {
+                getSchema(uri, conf);
+            } catch (SchemaNotFoundException e) {
+                error = e.getMessage();
+            }
+            return new ValidationResult.Builder()
+                    .subject(subject)
+                    .input(uri)
+                    .explanation(error)
+                    .valid(error == null)
+                    .build();
+        }
+    };
+
+    protected static final List<PropertyDescriptor> ABSTRACT_KITE_PROPS
+            = ImmutableList.<PropertyDescriptor>builder()
+            .add(CONF_XML_FILES)
+            .build();
+
+    static List<PropertyDescriptor> getProperties() {
+        return ABSTRACT_KITE_PROPS;
     }
-  }
 
-  private static Schema parseSchema(URI uri, InputStream in) throws IOException {
-    try {
-      return new Schema.Parser().parse(in);
-    } catch (RuntimeException e) {
-      throw new SchemaNotFoundException("Failed to parse schema at " + uri, e);
+    @OnScheduled
+    protected void setDefaultConfiguration(ProcessContext context)
+            throws IOException {
+        DefaultConfiguration.set(getConfiguration(
+                context.getProperty(CONF_XML_FILES).getValue()));
     }
-  }
 
-  protected static final Validator SCHEMA_VALIDATOR = new Validator() {
+    protected static Configuration getConfiguration(String configFiles) {
+        Configuration conf = DefaultConfiguration.get();
+
+        if (configFiles == null || configFiles.isEmpty()) {
+            return conf;
+        }
+
+        for (String file : COMMA.split(configFiles)) {
+            // process each resource only once
+            if (conf.getResource(file) == null) {
+                // use Path instead of String to get the file from the FS
+                conf.addResource(new Path(file));
+            }
+        }
+
+        return conf;
+    }
+
     @Override
-    public ValidationResult validate(String subject, String uri, ValidationContext context) {
-      Configuration conf = getConfiguration(
-          context.getProperty(CONF_XML_FILES).getValue());
-
-      String error = null;
-      try {
-        getSchema(uri, conf);
-      } catch (SchemaNotFoundException e) {
-        error = e.getMessage();
-      }
-      return new ValidationResult.Builder()
-          .subject(subject)
-          .input(uri)
-          .explanation(error)
-          .valid(error == null)
-          .build();
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return ABSTRACT_KITE_PROPS;
     }
-  };
-
-  protected static final List<PropertyDescriptor> ABSTRACT_KITE_PROPS =
-      ImmutableList.<PropertyDescriptor>builder()
-          .add(CONF_XML_FILES)
-          .build();
-
-  static List<PropertyDescriptor> getProperties() {
-    return ABSTRACT_KITE_PROPS;
-  }
-
-  @OnScheduled
-  protected void setDefaultConfiguration(ProcessContext context)
-      throws IOException {
-    DefaultConfiguration.set(getConfiguration(
-        context.getProperty(CONF_XML_FILES).getValue()));
-  }
-
-  protected static Configuration getConfiguration(String configFiles) {
-    Configuration conf = DefaultConfiguration.get();
-
-    if (configFiles == null || configFiles.isEmpty()) {
-      return conf;
-    }
-
-    for (String file : COMMA.split(configFiles)) {
-      // process each resource only once
-      if (conf.getResource(file) == null) {
-        // use Path instead of String to get the file from the FS
-        conf.addResource(new Path(file));
-      }
-    }
-
-    return conf;
-  }
-
-  @Override
-  protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-    return ABSTRACT_KITE_PROPS;
-  }
 }

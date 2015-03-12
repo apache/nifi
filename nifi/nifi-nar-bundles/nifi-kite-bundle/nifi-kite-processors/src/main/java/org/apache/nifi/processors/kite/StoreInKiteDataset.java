@@ -50,17 +50,17 @@ import org.kitesdk.data.spi.SchemaValidationUtil;
 @Tags({"kite", "avro", "parquet", "hive", "hdfs", "hbase"})
 @CapabilityDescription("Stores Avro records in a Kite dataset")
 public class StoreInKiteDataset extends AbstractKiteProcessor {
-  private static Relationship SUCCESS = new Relationship.Builder()
+  private static final Relationship SUCCESS = new Relationship.Builder()
       .name("success")
       .description("FlowFile content has been successfully saved")
       .build();
 
-  private static Relationship INCOMPATIBLE = new Relationship.Builder()
+  private static final Relationship INCOMPATIBLE = new Relationship.Builder()
       .name("incompatible")
       .description("FlowFile content is not compatible with the target dataset")
       .build();
 
-  private static Relationship FAILURE = new Relationship.Builder()
+  private static final Relationship FAILURE = new Relationship.Builder()
       .name("failure")
       .description("FlowFile content could not be processed")
       .build();

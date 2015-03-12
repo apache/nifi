@@ -18,7 +18,6 @@ package org.apache.nifi.processors.standard;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -43,6 +42,10 @@ import javax.mail.internet.MimeMultipart;
 import javax.mail.internet.PreencodedMimeBodyPart;
 import javax.mail.util.ByteArrayDataSource;
 
+import org.apache.commons.codec.binary.Base64;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -54,13 +57,9 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.behavior.SupportsBatching;
-import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.commons.codec.binary.Base64;
 
 import com.sun.mail.smtp.SMTPTransport;
 
@@ -81,6 +80,19 @@ public class PutEmail extends AbstractProcessor {
             .required(true)
             .defaultValue("25")
             .addValidator(StandardValidators.PORT_VALIDATOR)
+            .build();
+    public static final PropertyDescriptor SMTP_USERNAME = new PropertyDescriptor.Builder()
+            .name("SMTP Username")
+            .description("Username for the SMTP account")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .required(false)
+            .build();
+    public static final PropertyDescriptor SMTP_PASSWORD = new PropertyDescriptor.Builder()
+            .name("SMTP Password")
+            .description("Password for the SMTP account")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .required(false)
+            .sensitive(true)
             .build();
     public static final PropertyDescriptor FROM = new PropertyDescriptor.Builder()
             .name("From")
@@ -152,6 +164,8 @@ public class PutEmail extends AbstractProcessor {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(SMTP_HOSTNAME);
         properties.add(SMTP_PORT);
+        properties.add(SMTP_USERNAME);
+        properties.add(SMTP_PASSWORD);
         properties.add(FROM);
         properties.add(TO);
         properties.add(CC);
@@ -255,7 +269,9 @@ public class PutEmail extends AbstractProcessor {
             final SMTPTransport transport = new SMTPTransport(mailSession, new URLName(smtpHost));
             try {
                 final int smtpPort = context.getProperty(SMTP_PORT).asInteger();
-                transport.connect(new Socket(smtpHost, smtpPort));
+                final String smtpUsername = context.getProperty(SMTP_USERNAME).getValue();
+                final String smtpPassword = context.getProperty(SMTP_PASSWORD).getValue();
+                transport.connect(smtpHost, smtpPort, smtpUsername, smtpPassword);
                 transport.sendMessage(message, message.getAllRecipients());
             } finally {
                 transport.close();
