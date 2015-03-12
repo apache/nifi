@@ -65,6 +65,7 @@ import java.util.logging.Level;
 public class RunNiFi {
 	public static final String DEFAULT_CONFIG_FILE = "./conf/bootstrap.conf";
 	public static final String DEFAULT_NIFI_PROPS_FILE = "./conf/nifi.properties";
+	public static final String DEFAULT_JAVA_CMD = "java";
 
 	public static final String GRACEFUL_SHUTDOWN_PROP = "graceful.shutdown.seconds";
 	public static final String DEFAULT_GRACEFUL_SHUTDOWN_VALUE = "20";
@@ -675,8 +676,19 @@ public class RunNiFi {
 
 		final String classPath = classPathBuilder.toString();
 		String javaCmd = props.get("java");
-		if ( javaCmd == null ) {
-			javaCmd = "java";
+		if (javaCmd == null) {
+			javaCmd = DEFAULT_JAVA_CMD;
+		}
+		if (javaCmd.equals(DEFAULT_JAVA_CMD)) {
+			String javaHome = System.getenv("JAVA_HOME");
+			if (javaHome != null) {
+				String fileExtension = isWindows() ? ".exe" : "";
+				File javaFile = new File(javaHome + File.separatorChar + "bin"
+					+ File.separatorChar + "java" + fileExtension);
+				if (javaFile.exists() && javaFile.canExecute()) {
+					javaCmd = javaFile.getAbsolutePath();
+				}
+			}
 		}
 		
 		final NiFiListener listener = new NiFiListener();
