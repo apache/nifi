@@ -301,7 +301,7 @@ The first section of the _nifi.properties_ file is for the Core Properties. Thes
 |nifi.flowcontroller.autoResumeState|Indicates whether -upon restart- the components on the NiFi graph should return to their last state. The default value is _true_.
 |nifi.flowcontroller.graceful.shutdown.period|Indicates the shutdown period. The default value is 10 sec.
 |nifi.flowservice.writedelay.interval|When many changes are made to the flow.xml, this property specifies how long to wait before writing out the changes, so as to batch the changes into a single write. The default value is 500 ms.
-|nifi.administrative.yield.duration|If a component allows an unexpected Exception to escape, it is considered a bug. As a result, the framework will pause (or administratively yield) the component for this amount of time. This is done so that the component does not use up massive amounts of system resources, since it is known to have problems in the existing state. The default value is 30 sec.
+|nifi.administrative.yield.duration|If a component allows an unexpected exception to escape, it is considered a bug. As a result, the framework will pause (or administratively yield) the component for this amount of time. This is done so that the component does not use up massive amounts of system resources, since it is known to have problems in the existing state. The default value is 30 sec.
 |nifi.authority.provider.configuration.file*|This is the location of the file that specifies how user access is authenticated. The default value is ./conf/authority-providers.xml.
 |nifi.reporting.task.configuration.file*|This is the location of the Reporting Tasks file. The default value is ./conf/reporting-tasks.xml.
 |nifi.controller.service.configuration.file*|This is the location of the Controller Services file. The default value is ./conf/controller-services.xml.
@@ -311,6 +311,7 @@ The first section of the _nifi.properties_ file is for the Core Properties. Thes
 |nifi.nar.library.directory|The location of the nar library. The default value is ./lib and probably should be left as is.
 |nifi.nar.working.directory|The location of the nar working directory. The default value is ./work/nar and probably should be left as is.
 |nifi.documentation.working.directory|The documentation working directory. The default value is ./work/docs/components and probably should be left as is.
+|nifi.bored.yield.duration|When a processor has no work to do (i.e., is "bored"), this is the amount of time it will wait before checking to see if it has data to work on. This way, it does not use up CPU resources by checking for new work too often. When setting this property, be aware that it could add extra latency for processors that constantly have work to do, as they will always wait this amount of time before checking for more work. The default value is 10 millis.
 |====
 
 *H2 Settings* +
