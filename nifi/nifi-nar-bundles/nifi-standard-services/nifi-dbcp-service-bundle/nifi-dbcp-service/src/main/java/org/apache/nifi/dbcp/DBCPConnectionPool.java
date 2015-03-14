@@ -20,6 +20,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.sql.Connection;
+import java.sql.Driver;
+import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -184,7 +186,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         
         // Optional driver URL, when exist, this URL will be used to locate driver jar file location
         String urlString	= context.getProperty(DB_DRIVER_JAR_URL).getValue();
-        dataSource.setDriverClassLoader( getDriverClassLoader(urlString) );
+        dataSource.setDriverClassLoader( getDriverClassLoader(urlString, drv) );
         
         String dburl  = dbsystem.buildUrl(host, port, dbname);
         
@@ -210,14 +212,27 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
      * 	using Thread.currentThread().getContextClassLoader();
      * will ensure that you are using the ClassLoader for you NAR.
      * @throws InitializationException 
-     */    
-    protected ClassLoader getDriverClassLoader(String urlString) throws InitializationException {
+     */
+    protected ClassLoader getDriverClassLoader(String urlString, String drvName) throws InitializationException {
         if (urlString!=null && urlString.length()>0) {
         	try {
 				URL[] urls = new URL[] { new URL(urlString) };
-				return new URLClassLoader(urls);
+				URLClassLoader ucl = new URLClassLoader(urls);
+				
+				// Workaround which allows to use URLClassLoader for JDBC driver loading.
+				// (Because the DriverManager will refuse to use a driver not loaded by the system ClassLoader.) 
+		    	Class<?> clazz = Class.forName(drvName, true, ucl);
+		    	if (clazz==null)
+		    		throw new InitializationException("Can't load Database Driver " + drvName);
+		    	Driver driver = (Driver) clazz.newInstance();
+		    	DriverManager.registerDriver( new DriverShim(driver) );
+				
+				return ucl;
+				
 			} catch (MalformedURLException e) {
 				throw new InitializationException("Invalid Database Driver Jar Url", e);
+			} catch (Exception e) {
+				throw new InitializationException("Can't load Database Driver", e);
 			}
         }
         else 

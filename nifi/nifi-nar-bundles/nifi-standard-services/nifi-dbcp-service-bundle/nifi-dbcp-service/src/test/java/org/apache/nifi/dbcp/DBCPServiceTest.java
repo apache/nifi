@@ -51,7 +51,7 @@ public class DBCPServiceTest {
 	 *	Unknown database system.  
 	 * 
 	 */
-//    @Test
+    @Test
     public void testUnknownDatabaseSystem() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final DBCPConnectionPool service = new DBCPConnectionPool();
@@ -64,7 +64,7 @@ public class DBCPServiceTest {
     /**
      *  Missing property values.
      */    
-//    @Test
+    @Test
     public void testMissingPropertyValues() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final DBCPConnectionPool service = new DBCPConnectionPool();
@@ -78,7 +78,7 @@ public class DBCPServiceTest {
      * Connect, create table, insert, select, drop table. 
      * 
      */
-//    @Test
+    @Test
     public void testCreateInsertSelect() throws InitializationException, SQLException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final DBCPConnectionPool service = new DBCPConnectionPool();
@@ -120,7 +120,7 @@ public class DBCPServiceTest {
      * Connect, create table, insert, select, drop table. 
      * 
      */
-//    @Test
+    @Test
     public void testExternalJDBCDriverUsage() throws InitializationException, SQLException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final DBCPConnectionPool service = new DBCPConnectionPool();
@@ -136,7 +136,7 @@ public class DBCPServiceTest {
         runner.setProperty(service, DBCPConnectionPool.DB_DRIVER_JAR_URL, "file:///var/tmp/mariadb-java-client-1.1.7.jar");
         
         
-        runner.setProperty(service, DBCPConnectionPool.DB_HOST, "127.0.0.1");	// localhost
+        runner.setProperty(service, DBCPConnectionPool.DB_HOST, "localhost");	// localhost
         runner.setProperty(service, DBCPConnectionPool.DB_NAME, "testdb");
         runner.setProperty(service, DBCPConnectionPool.DB_USER, 	"tester");
         runner.setProperty(service, DBCPConnectionPool.DB_PASSWORD, "testerp");
@@ -163,7 +163,7 @@ public class DBCPServiceTest {
      * Get many times, after a while pool should not contain any available connection
      * and getConnection should fail.    
      */
-//    @Test
+    @Test
     public void testExhaustPool() throws InitializationException, SQLException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final DBCPConnectionPool service = new DBCPConnectionPool();
@@ -197,7 +197,7 @@ public class DBCPServiceTest {
      * Get many times, release immediately
      * and getConnection should not fail.    
      */
-//    @Test
+    @Test
     public void testGetManyNormal() throws InitializationException, SQLException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
         final DBCPConnectionPool service = new DBCPConnectionPool();
@@ -226,7 +226,7 @@ public class DBCPServiceTest {
     }
     
     
-//    @Test
+    @Test
     public void testDriverLoad() throws ClassNotFoundException {
     	Class<?> clazz = Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
     	assertNotNull(clazz);
@@ -244,29 +244,36 @@ public class DBCPServiceTest {
     	
     	ClassLoader parent = Thread.currentThread().getContextClassLoader();
     	URLClassLoader ucl = new URLClassLoader(urls,parent);
+//    	URLClassLoader ucl = new URLClassLoader(urls);
     	
     	Class<?> clazz = Class.forName("org.mariadb.jdbc.Driver", true, ucl);
     	assertNotNull(clazz);
     	
     	Driver driver = (Driver) clazz.newInstance();
+    	Driver shim   = new DriverShim(driver);
+    	DriverManager.registerDriver( shim );
     	
     	// Driver is found when using URL ClassLoader
     	assertTrue( isDriverAllowed(driver, ucl) );
     	
     	// Driver is not found when using parent ClassLoader
     	// unfortunately DriverManager will use caller ClassLoadar and driver is not found !!!  
-    	assertTrue( isDriverAllowed(driver, parent) );
+//    	assertTrue( isDriverAllowed(driver, parent) );
     	
-//    	DriverManager.registerDriver( (Driver) clazz.newInstance());
     	Enumeration<Driver> drivers = DriverManager.getDrivers();
     	while (drivers.hasMoreElements()) {
 			driver = (Driver) drivers.nextElement();
 			System.out.println(driver);
 		}
+
+    	Driver driver2 = DriverManager.getDriver("jdbc:mariadb://localhost:3306/testdb");
+    	assertNotNull(driver2);
     	
+    	Connection connection = DriverManager.getConnection("jdbc:mariadb://localhost:3306/testdb","tester","testerp");
+    	assertNotNull(connection);
+    	connection.close();
     	
-   // 	Driver driver = DriverManager.getDriver("jdbc:mariadb://127.0.0.1:3306/testdb");
-   // 	assertNotNull(driver);
+    	DriverManager.deregisterDriver(shim);
     }
 
     
@@ -299,7 +306,7 @@ public class DBCPServiceTest {
     }
 
     //==================================== problem solving - no suitable driver found, mariadb =========================================
-    
+    // method isDriverAllowed is from DriverManager
     private static boolean isDriverAllowed(Driver driver, ClassLoader classLoader) {
         boolean result = false;
         if(driver != null) {
@@ -316,8 +323,6 @@ public class DBCPServiceTest {
 
         return result;
     }
-    
-    
     
     
 }
