@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>0.0.2-incubating-SNAPSHOT</version>
+        <version>0.0.3-incubating-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-standard-bundle</artifactId>
     <packaging>pom</packaging>
@@ -33,17 +33,17 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-processors</artifactId>
-                <version>0.0.2-incubating-SNAPSHOT</version>
+                <version>0.0.3-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-prioritizers</artifactId>
-                <version>0.0.2-incubating-SNAPSHOT</version>
+                <version>0.0.3-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-reporting-tasks</artifactId>
-                <version>0.0.2-incubating-SNAPSHOT</version>
+                <version>0.0.3-incubating-SNAPSHOT</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
