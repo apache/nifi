@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8" />
+        <title>UnpackContent</title>
+
+        <link rel="stylesheet" href="../../css/component-usage.css" type="text/css" />
+    </head>
+
+    <body>
+        <!-- Processor Documentation ================================================== -->
+       
+        <p>
+            <strong>Uses Attributes:</strong>
+        </p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Attribute Name</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>mime.type</td>
+                    <td>
+                        If the &lt;Packaging Format&gt; property is set to <code>use mime.type attribute</code>,
+                        this attribute is used to determine the FlowFile's MIME Type. 
+                        In this case, if the attribute is set to <code>application/tar</code>, the TAR Packaging Format will be used. 
+                        If the attribute is set to <code>application/zip</code>, the ZIP Packaging Format will be used. 
+                        If the attribute is set to <code>application/flowfile-v3</code> or <code>application/flowfile-v2</code> or <code>application/flowfile-v1</code>,
+                        the appropriate FlowFile Packaging Format will be used.
+                        If this attribute is missing, the FlowFile will be routed to 'failure'.
+                        Otherwise, if the attribute's value is not one of those mentioned above, the FlowFile will be
+                        routed to 'success' without being unpacked.
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p>
+            <strong>Modifies Attributes:</strong>
+        </p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Attribute Name</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>mime.type</td>
+                    <td>
+                        If the FlowFile is successfully unpacked, its MIME Type is no longer known, so the
+                        mime.type attribute is set to <code>application/octet-stream</code>.
+                    </td>
+                </tr>
+                <tr>
+                    <td>fragment.identifier</td>
+                    <td>All unpacked FlowFiles produced from the same parent FlowFile will have the same randomly generated
+                        UUID added for this attribute.</td>
+                </tr>
+                <tr>
+                    <td>fragment.index</td>
+                    <td>A one-up number that indicates the ordering of the unpacked FlowFiles that were created from a
+                        single parent FlowFile.</td>
+                </tr>
+                <tr>
+                    <td>fragment.count</td>
+                    <td>The number of unpacked FlowFiles generated from the parent FlowFile.</td>
+                </tr>
+
+                <tr>
+                    <td>segment.original.filename</td>
+                    <td>The filename of the parent FlowFile. Extensions of .tar, .zip or .pkg are removed because the <a
+                            href="../org.apache.nifi.processors.standard.MergeContent/index.html">MergeContent</a> processor automatically adds
+                        those extensions if it is used to rebuild the original FlowFile.
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <p>
+            <strong>See Also:</strong>
+        </p>
+        <ul>
+            <li><a href="../org.apache.nifi.processors.standard.MergeContent/index.html">MergeContent</a> - can repackage FlowFiles
+                that have been unpacked.</li>
+        </ul>
+    </body>
+</html>

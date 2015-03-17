@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8" />
+        <title>GetKafka</title>
+        <link rel="stylesheet" href="../../css/component-usage.css" type="text/css" />
+    </head>
+
+    <body>
+        <!-- Processor Documentation ================================================== -->
+        <h2>Description:</h2>
+        <p>
+        	This Processors polls <a href="http://kafka.apache.org/">Apache Kafka</a>
+        	for data. When a message is received from Kafka, this Processor emits a FlowFile
+        	where the content of the FlowFile is the value of the Kafka message. If the
+        	message has a key associated with it, an attribute named <code>kafka.key</code>
+        	will be added to the FlowFile, with the value being the UTF-8 Encoded value
+        	of the Message's Key.
+        </p>
+        <p>
+        	Kafka supports the notion of a Consumer Group when pulling messages in order to
+        	provide scalability while still offering a publish-subscribe interface. Each
+        	Consumer Group must have a unique identifier. The Consumer Group identifier that
+        	is used by NiFi is the UUID of the Processor. This means that all of the nodes
+        	within a cluster will use the same Consumer Group Identifier so that they do
+        	not receive duplicate data but multiple GetKafka Processors can be used to pull
+        	from multiple Topics, as each Processor will receive a different Processor UUID 
+        	and therefore a different Consumer Group Identifier.
+        </p>
+
+        <p>
+            <strong>Modifies Attributes:</strong>
+        </p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Attribute Name</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                	<td>kafka.topic</td>
+                	<td>The name of the Kafka Topic from which the message was received</td>
+                </tr>
+                <tr>
+                    <td>kafka.key</td>
+                    <td>The key of the Kafka message, if it exists and batch size is 1. If the message does not have a key,
+                    	or if the batch size is greater than 1, this attribute will not be added.</td>
+                </tr>
+                <tr>
+                	<td>kafka.partition</td>
+                	<td>The partition of the Kafka Topic from which the message was received. This attribute is added only
+                		if the batch size is 1.</td>
+                </tr>
+                <tr>
+                	<td>kafka.offset</td>
+                	<td>The offset of the message within the Kafka partition. This attribute is added only
+                		if the batch size is 1.</td>
+                </tr>
+            </tbody>
+        </table>
+    </body>
+</html>

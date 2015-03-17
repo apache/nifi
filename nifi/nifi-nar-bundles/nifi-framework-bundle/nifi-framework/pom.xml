@@ -39,6 +39,7 @@
         <module>nifi-administration</module>
         <module>nifi-web</module>
         <module>nifi-resources</module>
+		<module>nifi-documentation</module>
     </modules>
     <dependencies>
         <dependency>
