@@ -66,6 +66,9 @@ public class TestGetSchema {
   @Ignore("Does not work on windows")
   public void testSchemaFromKiteURIs() throws IOException {
     String location = temp.newFolder("ns", "temp").toString();
+    if (location.endsWith("/")) {
+      location = location.substring(0, location.length() - 1);
+    }
     String datasetUri = "dataset:" + location;
     DatasetDescriptor descriptor = new DatasetDescriptor.Builder()
         .schema(SCHEMA)
