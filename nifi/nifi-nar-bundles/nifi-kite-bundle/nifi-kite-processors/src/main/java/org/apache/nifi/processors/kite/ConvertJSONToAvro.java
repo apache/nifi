@@ -42,7 +42,9 @@ import org.apache.nifi.processor.io.StreamCallback;
 import org.kitesdk.data.DatasetException;
 import org.kitesdk.data.DatasetIOException;
 import org.kitesdk.data.DatasetRecordException;
+import org.kitesdk.data.SchemaNotFoundException;
 import org.kitesdk.data.spi.DefaultConfiguration;
+import org.kitesdk.data.spi.filesystem.JSONFileReader;
 
 @Tags({"kite", "json", "avro"})
 @CapabilityDescription(
@@ -66,6 +68,7 @@ public class ConvertJSONToAvro extends AbstractKiteProcessor {
             .description(
                     "Outgoing Avro schema for each record created from a JSON object")
             .addValidator(SCHEMA_VALIDATOR)
+            .expressionLanguageSupported(true)
             .required(true)
             .build();
 
@@ -102,9 +105,17 @@ public class ConvertJSONToAvro extends AbstractKiteProcessor {
             return;
         }
 
-        final Schema schema = getSchema(
-                context.getProperty(SCHEMA).getValue(),
-                DefaultConfiguration.get());
+        String schemaProperty = context.getProperty(SCHEMA)
+            .evaluateAttributeExpressions(flowFile)
+                .getValue();
+        final Schema schema;
+        try {
+            schema = getSchema(schemaProperty, DefaultConfiguration.get());
+        } catch (SchemaNotFoundException e) {
+            getLogger().error("Cannot find schema: " + schemaProperty);
+            session.transfer(flowFile, FAILURE);
+            return;
+        }
 
         final DataFileWriter<Record> writer = new DataFileWriter<>(
                 AvroUtil.newDatumWriter(schema, Record.class));
