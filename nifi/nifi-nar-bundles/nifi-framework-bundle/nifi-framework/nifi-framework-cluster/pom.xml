@@ -74,8 +74,8 @@
             <artifactId>nifi-site-to-site</artifactId>
         </dependency>
         <dependency>
-        	<groupId>org.apache.nifi</groupId>
-        	<artifactId>nifi-site-to-site-client</artifactId>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-site-to-site-client</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -127,4 +127,18 @@
             <artifactId>spring-context</artifactId>
         </dependency>
     </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.rat</groupId>
+                <artifactId>apache-rat-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>src/test/resources/org/apache/nifi/cluster/firewall/impl/empty.txt</exclude>
+                        <exclude>src/test/resources/org/apache/nifi/cluster/firewall/impl/ips.txt</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>  
 </project>

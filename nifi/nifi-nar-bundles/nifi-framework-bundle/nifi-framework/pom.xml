@@ -30,9 +30,9 @@
         <module>nifi-security</module>
         <module>nifi-site-to-site</module>
         <module>nifi-framework-core</module>
-        <module>nifi-cluster-protocol</module>
-        <module>nifi-cluster-web</module>
-        <module>nifi-cluster</module>
+        <module>nifi-framework-cluster-protocol</module>
+        <module>nifi-framework-cluster-web</module>
+        <module>nifi-framework-cluster</module>
         <module>nifi-file-authorization-provider</module>
         <module>nifi-cluster-authorization-provider</module>
         <module>nifi-user-actions</module>

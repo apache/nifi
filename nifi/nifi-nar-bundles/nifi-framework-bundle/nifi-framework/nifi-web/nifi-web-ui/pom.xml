@@ -588,6 +588,19 @@
                             </packagingIncludes>
                         </configuration>
                     </plugin>
+                    <plugin>
+                        <groupId>org.apache.rat</groupId>
+                        <artifactId>apache-rat-plugin</artifactId>
+                        <configuration>
+                            <excludes>
+                                <exclude>src/main/webapp/js/json2.js</exclude>
+                                <exclude>src/main/webapp/js/jquery/</exclude>
+                                <exclude>src/main/webapp/js/d3/d3.min.js</exclude>
+                                <exclude>src/main/webapp/js/codemirror/</exclude>
+                                <exclude>src/main/webapp/css/reset.css</exclude>
+                            </excludes>
+                        </configuration>
+                    </plugin>
                 </plugins>
             </build>
         </profile>

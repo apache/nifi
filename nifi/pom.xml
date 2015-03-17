@@ -65,7 +65,7 @@
         <module>nifi-assembly</module>
         <module>nifi-docs</module>
         <module>nifi-maven-archetypes</module>
-		<module>nifi-external</module>
+        <module>nifi-external</module>
     </modules>
     <scm>
         <connection>scm:git:git://git.apache.org/incubator-nifi.git</connection>
@@ -538,10 +538,10 @@
                 <version>${hadoop.version}</version>
             </dependency>
             <dependency>
-	        	<groupId>org.apache.avro</groupId>
-	        	<artifactId>avro</artifactId>
-	        	<version>1.7.6</version>
-	        </dependency>
+                <groupId>org.apache.avro</groupId>
+                <artifactId>avro</artifactId>
+                <version>1.7.6</version>
+            </dependency>
             
             <dependency>
                 <groupId>com.sun.jersey</groupId>
@@ -654,11 +654,11 @@
                 <artifactId>nifi-utils</artifactId>
                 <version>0.0.3-incubating-SNAPSHOT</version>
             </dependency>
-			<dependency>
-				<groupId>org.apache.nifi</groupId>
-				<artifactId>nifi-site-to-site-client</artifactId>
-				<version>0.0.3-incubating-SNAPSHOT</version>
-			</dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-site-to-site-client</artifactId>
+                <version>0.0.3-incubating-SNAPSHOT</version>
+            </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-web-utils</artifactId>
@@ -775,7 +775,7 @@
                 <version>0.0.3-incubating-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
-			<dependency>
+            <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-kite-nar</artifactId>
                 <version>0.0.3-incubating-SNAPSHOT</version>
@@ -787,7 +787,7 @@
                 <version>0.0.3-incubating-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
-			<dependency>
+            <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-http-context-map-nar</artifactId>
                 <version>0.0.3-incubating-SNAPSHOT</version>
@@ -1008,15 +1008,9 @@
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
                     <excludes>
-                        <exclude>src/main/webapp/js/json2.js</exclude> <!-- license/notice accounted for -->
-                        <exclude>src/main/webapp/js/jquery/</exclude> <!-- license/notice accounted for -->
-                        <exclude>src/main/webapp/js/d3/d3.min.js</exclude> <!-- license/notice accounted for -->
-                        <exclude>src/main/webapp/js/codemirror/</exclude> <!-- license/notice accounted for -->
-                        <exclude>src/main/webapp/css/reset.css</exclude> <!-- license/notice accounted for -->
-                        <exclude>src/test/resources/</exclude> <!-- Test datasets -->
-                        <exclude>nb-configuration.xml</exclude><!-- courtesy exclude for netbeans users -->
-                        <exclude>nbactions.xml</exclude> <!-- courtesy exclude for netbeans users -->
-                        <exclude>DEPENDENCIES</exclude> <!-- auto generated file by maven while building sources.zip -->
+                        <exclude>nb-configuration.xml</exclude> <!-- courtesy excludes for netbeans users -->
+                        <exclude>nbactions.xml</exclude> <!-- courtesy excludes for netbeans users -->
+                        <exclude>DEPENDENCIES</exclude> <!-- auto generated file by apache's maven config while building sources.zip -->
                     </excludes>
                 </configuration>
             </plugin>
