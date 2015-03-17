@@ -15,32 +15,18 @@ The following binary components are provided under the Apache Software License v
       Apache Avro
       Copyright 2009-2013 The Apache Software Foundation
 
-  (ASLv2) Apache Commons Codec
+  (ASLv2) Apache Commons Lang
     The following NOTICE information applies:
-      Apache Commons Codec
-      Copyright 2002-2014 The Apache Software Foundation
+      Apache Commons Lang
+      Copyright 2001-2014 The Apache Software Foundation
 
-      src/test/org/apache/commons/codec/language/DoubleMetaphoneTest.java
-      contains test data from http://aspell.net/test/orig/batch0.tab.
-      Copyright (C) 2002 Kevin Atkinson (kevina@gnu.org)
-
-      ===============================================================================
-
-      The content of package org.apache.commons.codec.language.bm has been translated
-      from the original php source code available at http://stevemorse.org/phoneticinfo.htm
-      with permission from the original authors.
-      Original source copyright:
-      Copyright (c) 2008 Alexander Beider & Stephen P. Morse.
+      This product includes software from the Spring Framework,
+      under the Apache License 2.0 (see: StringUtils.containsWhitespace())
 
   (ASLv2) Apache Commons JEXL
     The following NOTICE information applies:
       Apache Commons JEXL
       Copyright 2001-2011 The Apache Software Foundation
-
-  (ASLv2) Apache Commons Logging
-    The following NOTICE information applies:
-      Apache Commons Logging
-      Copyright 2003-2013 The Apache Software Foundation
 
   (ASLv2) Kite SDK
     The following NOTICE information applies:
@@ -52,19 +38,6 @@ The following binary components are provided under the Apache Software License v
 
       This product includes software developed by
       Saxonica (http://www.saxonica.com/).
-
-  (ASLv2) Snappy Java
-    The following NOTICE information applies:
-      This product includes software developed by Google
-       Snappy: http://code.google.com/p/snappy/ (New BSD License)
-
-      This product includes software developed by Apache
-       PureJavaCrc32C from apache-hadoop-common http://hadoop.apache.org/
-       (Apache 2.0 license)
-
-      This library contains statically linked libstdc++. This inclusion is allowed by 
-      "GCC RUntime Library Exception" 
-      http://gcc.gnu.org/onlinedocs/libstdc++/manual/license.html
 
   (ASLv2) Parquet MR
     The following NOTICE information applies:

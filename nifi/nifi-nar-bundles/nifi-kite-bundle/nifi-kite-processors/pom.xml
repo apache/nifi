@@ -26,8 +26,6 @@
 
     <properties>
         <kite.version>1.0.0</kite.version>
-        <guava.version>11.0.2</guava.version>
-        <junit.version>4.10</junit.version>
         <findbugs-annotations.version>1.3.9-1</findbugs-annotations.version>
     </properties>
 
@@ -40,15 +38,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-utils</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-processor-utils</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-flowfile-packager</artifactId>
         </dependency>
 
         <!-- Kite -->
@@ -86,8 +76,6 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>${guava.version}</version>
-            <scope>compile</scope>
         </dependency>
 
         <dependency>
@@ -104,7 +92,6 @@
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <scope>test</scope>
-            <version>${junit.version}</version>
         </dependency>
 
         <dependency>
@@ -123,7 +110,6 @@
         <dependency>
             <groupId>com.sun.jersey</groupId>
             <artifactId>jersey-servlet</artifactId>
-            <version>1.14</version>
             <scope>test</scope>
         </dependency>
 
