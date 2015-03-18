@@ -402,7 +402,9 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
         }
         
         final DynamicProperty dynProp = configurableComponent.getClass().getAnnotation(DynamicProperty.class);
-        dynamicProperties.add(dynProp);
+        if (dynProp != null) {
+            dynamicProperties.add(dynProp);
+        }
         
         return dynamicProperties;
     }
