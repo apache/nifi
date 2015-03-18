@@ -94,7 +94,8 @@ import org.xml.sax.InputSource;
         + "flowfile-attribute and the expression matches nothing, attributes will be created with empty strings as the value, and the "
         + "FlowFile will always be routed to 'matched'")
 @WritesAttribute(attribute="user-defined", description="This processor adds user-defined attributes if the <Destination> property is set to flowfile-attribute.")
-@DynamicProperty(name="A FlowFile attribute(if <Destination> is set to 'flowfile-attribute'", description="An XPath expression")
+@DynamicProperty(name="A FlowFile attribute(if <Destination> is set to 'flowfile-attribute'", value="An XPath expression", description="If <Destination>='flowfile-attribute' " + 
+"then the FlowFile attribute is set to the result of the XPath Expression.  If <Destination>='flowfile-content' then the FlowFile content is set to the result of the XPath Expression.")
 public class EvaluateXPath extends AbstractProcessor {
 
     public static final String DESTINATION_ATTRIBUTE = "flowfile-attribute";

@@ -374,11 +374,13 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
             xmlStreamWriter.writeStartElement("table");
             xmlStreamWriter.writeStartElement("tr");
             writeSimpleElement(xmlStreamWriter, "th", "Name");
+            writeSimpleElement(xmlStreamWriter, "th", "Value");
             writeSimpleElement(xmlStreamWriter, "th", "Description");
             xmlStreamWriter.writeEndElement();
             for (final DynamicProperty dynamicProperty : dynamicProperties) {
                 xmlStreamWriter.writeStartElement("tr");    
                 writeSimpleElement(xmlStreamWriter, "td", dynamicProperty.name());
+                writeSimpleElement(xmlStreamWriter, "td", dynamicProperty.value());
                 xmlStreamWriter.writeStartElement("td");
                 xmlStreamWriter.writeCharacters(dynamicProperty.description());
                 if (dynamicProperty.supportsExpressionLanguage()) {

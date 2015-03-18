@@ -63,7 +63,8 @@ import org.apache.nifi.processor.util.StandardValidators;
         + "strategy, the default is to assign each destination a weighting of 1 (evenly distributed). However, optional properties"
         + "can be added to the change this; adding a property with the name '5' and value '10' means that the relationship with name "
         + "'5' will be receive 10 FlowFiles in each iteration instead of 1.")
-@DynamicProperty(name="The relationship name(positive number)", description="The number of FlowFiles to this relationship per iteration")
+@DynamicProperty(name="The relationship name(positive number)", value="The relationship Weight(positive number)", description="adding a property with the name '5' and value '10' means that the relationship with name "
+        + "'5' will be receive 10 FlowFiles in each iteration instead of 1.")
 @DynamicRelationships(name="A number 1..<Number Of Relationships>", description="FlowFiles are sent to this relationship per the <Distribution Strategy>")
 public class DistributeLoad extends AbstractProcessor {
 

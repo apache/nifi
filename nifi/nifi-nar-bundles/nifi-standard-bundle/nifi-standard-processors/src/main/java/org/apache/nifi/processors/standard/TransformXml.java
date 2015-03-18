@@ -65,7 +65,8 @@ import org.apache.nifi.util.Tuple;
 @CapabilityDescription("Applies the provided XSLT file to the flowfile XML payload. A new FlowFile is created "
         + "with transformed content and is routed to the 'success' relationship. If the XSL transform "
         + "fails, the original FlowFile is routed to the 'failure' relationship")
-@DynamicProperty(name="An XSLT transform parameter name", description="An XSLT transform parameter value", supportsExpressionLanguage=true)
+@DynamicProperty(name="An XSLT transform parameter name", value="An XSLT transform parameter value", supportsExpressionLanguage=true, 
+description="These XSLT parameters are passed to the transformer")
 public class TransformXml extends AbstractProcessor {
 
     public static final PropertyDescriptor XSLT_FILE_NAME = new PropertyDescriptor.Builder()

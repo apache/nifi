@@ -66,7 +66,8 @@ import java.util.concurrent.ConcurrentMap;
         + "If Destination is 'flowfile-content' and the JsonPath does not evaluate to a defined path, the FlowFile will be routed to 'unmatched' without having its contents modified. "
         + "If Destination is flowfile-attribute and the expression matches nothing, attributes will be created with "
         + "empty strings as the value, and the FlowFile will always be routed to 'matched.'")
-@DynamicProperty(name="A FlowFile attribute(if <Destination> is set to 'flowfile-attribute')", description="JsonPath expression")
+@DynamicProperty(name="A FlowFile attribute(if <Destination> is set to 'flowfile-attribute')", value="A JsonPath expression", description="If <Destination>='flowfile-attribute' then that FlowFile attribute " + 
+        "will be set to any JSON objects that match the JsonPath.  If <Destination>='flowfile-content' then the FlowFile content will be updated to any JSON objects that match the JsonPath.")
 public class EvaluateJsonPath extends AbstractJsonPathProcessor {
 
     public static final String DESTINATION_ATTRIBUTE = "flowfile-attribute";
