@@ -44,8 +44,16 @@ import org.apache.nifi.processors.standard.util.FTPTransfer;
 @Tags({"remote", "copy", "egress", "put", "ftp", "archive", "files"})
 @CapabilityDescription("Sends FlowFiles to an FTP Server")
 @SeeAlso(GetFTP.class)
-@DynamicProperties({@DynamicProperty(name="pre.cmd._____", value="Not used", description="The command specified in the key will be executed before doing a put"),
-    @DynamicProperty(name="post.cmd._____", value="Not used", description="The command specified in the key will be executed after doing a put")})
+@DynamicProperties({@DynamicProperty(name="pre.cmd._____", value="Not used", description="The command specified in the key will be executed before doing a put.  You may add these optional properties " +
+                        " to send any commands to the FTP server before the file is actually transferred (before the put command)." +
+                        " This option is only available for the PutFTP processor, as only FTP has this functionality. This is" +
+                        " essentially the same as sending quote commands to an FTP server from the command line.  While this is the same as sending a quote command, it is very important that" +
+                        " you leave off the ."),
+    @DynamicProperty(name="post.cmd._____", value="Not used", description="The command specified in the key will be executed after doing a put.  You may add these optional properties " +
+                        " to send any commands to the FTP server before the file is actually transferred (before the put command)." +
+                        " This option is only available for the PutFTP processor, as only FTP has this functionality. This is" +
+                        " essentially the same as sending quote commands to an FTP server from the command line.  While this is the same as sending a quote command, it is very important that" +
+                        " you leave off the .")})
 public class PutFTP extends PutFileTransfer<FTPTransfer> {
 
     private static final Pattern PRE_SEND_CMD_PATTERN = Pattern.compile("^pre\\.cmd\\.(\\d+)$");
