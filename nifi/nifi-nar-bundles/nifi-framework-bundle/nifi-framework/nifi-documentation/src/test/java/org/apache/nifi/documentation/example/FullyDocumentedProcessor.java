@@ -24,6 +24,7 @@ import java.util.Set;
 
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DynamicRelationships;
 import org.apache.nifi.annotation.documentation.ReadsAttribute;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -45,6 +46,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 @ReadsAttribute(attribute = "incoming", description="this specifies the format of the thing")
 @SeeAlso(value={FullyDocumentedControllerService.class, FullyDocumentedReportingTask.class}, classNames={"org.apache.nifi.processor.ExampleProcessor"})
 @DynamicProperty(name="the relationship to route to", supportsExpressionLanguage=true, description="some XPath")
+@DynamicRelationships(name="name from dynamic property", description="all files that match the properties XPath")
 public class FullyDocumentedProcessor extends AbstractProcessor {
 
 	public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder().name("Input Directory")

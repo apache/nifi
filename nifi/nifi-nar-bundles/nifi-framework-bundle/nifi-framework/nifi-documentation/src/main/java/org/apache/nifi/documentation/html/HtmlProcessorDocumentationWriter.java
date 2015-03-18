@@ -23,6 +23,7 @@ import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.documentation.DynamicRelationships;
 import org.apache.nifi.annotation.documentation.ReadsAttribute;
 import org.apache.nifi.annotation.documentation.ReadsAttributes;
 import org.apache.nifi.annotation.documentation.WritesAttribute;
@@ -44,6 +45,7 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
             final XMLStreamWriter xmlStreamWriter) throws XMLStreamException {
         final Processor processor = (Processor) configurableComponent;
         writeRelationships(processor, xmlStreamWriter);
+        writeDynamicRelationships(processor, xmlStreamWriter);
         writeAttributeInfo(processor, xmlStreamWriter);
     }
 
@@ -219,5 +221,45 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
         } else {
             xmlStreamWriter.writeCharacters("This processor has no relationships.");
         }
+    }
+
+    /**
+     * Writes dynamic relationship information
+     * 
+     * @param processor
+     * @param xmlStreamWriter
+     * @throws XMLStreamException 
+     */
+    private void writeDynamicRelationships(final Processor processor, final XMLStreamWriter xmlStreamWriter) throws XMLStreamException {
+        
+        List<DynamicRelationships> dynamicRelationships = getDynamicRelationships(processor);
+
+        if (dynamicRelationships.size() > 0) {
+            writeSimpleElement(xmlStreamWriter, "h3", "Dynamic Relationships: ");
+            xmlStreamWriter.writeStartElement("table");
+            xmlStreamWriter.writeStartElement("tr");
+            writeSimpleElement(xmlStreamWriter, "th", "Name");
+            writeSimpleElement(xmlStreamWriter, "th", "Description");
+            xmlStreamWriter.writeEndElement();
+
+            for (DynamicRelationships dynamicRelationship : dynamicRelationships) {
+                xmlStreamWriter.writeStartElement("tr");
+                writeSimpleElement(xmlStreamWriter, "td", dynamicRelationship.name());
+                writeSimpleElement(xmlStreamWriter, "td", dynamicRelationship.description());
+                xmlStreamWriter.writeEndElement();
+            }
+            xmlStreamWriter.writeEndElement();
+        }
+    }
+
+    private List<DynamicRelationships> getDynamicRelationships(Processor processor) {
+        List<DynamicRelationships> results = new ArrayList<>();
+        
+        DynamicRelationships dynamicRelationships = processor.getClass().getAnnotation(DynamicRelationships.class);
+        if (dynamicRelationships != null) {
+            results.add(dynamicRelationships);
+        }
+        
+        return results;
     }
 }
