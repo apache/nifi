@@ -52,10 +52,9 @@ import org.apache.commons.lang3.StringUtils;
 @EventDriven
 @SideEffectFree
 @SupportsBatching
-@Tags({"deprecated"})
+@Tags({"evaluate", "extract", "Text", "Regular Expression", "regex"})
 @CapabilityDescription(
-        "WARNING: This has been deprecated and will be removed in 0.2.0.  Use ExtractText instead.\n" 
-        + "Evaluates one or more Regular Expressions against the content of a FlowFile.  "
+        "Evaluates one or more Regular Expressions against the content of a FlowFile.  "
         + "The results of those Regular Expressions are assigned to FlowFile Attributes.  "
         + "Regular Expressions are entered by adding user-defined properties; "
         + "the name of the property maps to the Attribute Name into which the result will be placed.  "
@@ -63,8 +62,8 @@ import org.apache.commons.lang3.StringUtils;
         + "If the Regular Expression matches more than once, only the first match will be used.  "
         + "If any provided Regular Expression matches, the FlowFile(s) will be routed to 'matched'. "
         + "If no provided Regular Expression matches, the FlowFile will be routed to 'unmatched' and no attributes will be applied to the FlowFile.")
-@Deprecated
-public class EvaluateRegularExpression extends AbstractProcessor {
+
+public class ExtractText extends AbstractProcessor {
 
     public static final PropertyDescriptor CHARACTER_SET = new PropertyDescriptor.Builder()
             .name("Character Set")
