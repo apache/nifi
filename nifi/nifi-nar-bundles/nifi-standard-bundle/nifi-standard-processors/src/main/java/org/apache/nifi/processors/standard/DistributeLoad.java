@@ -36,7 +36,7 @@ import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.TriggerWhenAnyDestinationAvailable;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.DynamicRelationships;
+import org.apache.nifi.annotation.documentation.DynamicRelationship;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -65,7 +65,7 @@ import org.apache.nifi.processor.util.StandardValidators;
         + "'5' will be receive 10 FlowFiles in each iteration instead of 1.")
 @DynamicProperty(name="The relationship name(positive number)", value="The relationship Weight(positive number)", description="adding a property with the name '5' and value '10' means that the relationship with name "
         + "'5' will be receive 10 FlowFiles in each iteration instead of 1.")
-@DynamicRelationships(name="A number 1..<Number Of Relationships>", description="FlowFiles are sent to this relationship per the <Distribution Strategy>")
+@DynamicRelationship(name="A number 1..<Number Of Relationships>", description="FlowFiles are sent to this relationship per the <Distribution Strategy>")
 public class DistributeLoad extends AbstractProcessor {
 
     public static final String STRATEGY_ROUND_ROBIN = "round robin";

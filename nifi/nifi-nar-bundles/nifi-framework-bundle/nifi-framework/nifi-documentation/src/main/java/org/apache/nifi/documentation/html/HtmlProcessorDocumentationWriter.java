@@ -23,7 +23,7 @@ import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.annotation.documentation.DynamicRelationships;
+import org.apache.nifi.annotation.documentation.DynamicRelationship;
 import org.apache.nifi.annotation.documentation.ReadsAttribute;
 import org.apache.nifi.annotation.documentation.ReadsAttributes;
 import org.apache.nifi.annotation.documentation.WritesAttribute;
@@ -232,7 +232,7 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
      */
     private void writeDynamicRelationships(final Processor processor, final XMLStreamWriter xmlStreamWriter) throws XMLStreamException {
         
-        List<DynamicRelationships> dynamicRelationships = getDynamicRelationships(processor);
+        List<DynamicRelationship> dynamicRelationships = getDynamicRelationships(processor);
 
         if (dynamicRelationships.size() > 0) {
             writeSimpleElement(xmlStreamWriter, "h3", "Dynamic Relationships: ");
@@ -242,7 +242,7 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
             writeSimpleElement(xmlStreamWriter, "th", "Description");
             xmlStreamWriter.writeEndElement();
 
-            for (DynamicRelationships dynamicRelationship : dynamicRelationships) {
+            for (DynamicRelationship dynamicRelationship : dynamicRelationships) {
                 xmlStreamWriter.writeStartElement("tr");
                 writeSimpleElement(xmlStreamWriter, "td", dynamicRelationship.name());
                 writeSimpleElement(xmlStreamWriter, "td", dynamicRelationship.description());
@@ -252,10 +252,10 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
         }
     }
 
-    private List<DynamicRelationships> getDynamicRelationships(Processor processor) {
-        List<DynamicRelationships> results = new ArrayList<>();
+    private List<DynamicRelationship> getDynamicRelationships(Processor processor) {
+        List<DynamicRelationship> results = new ArrayList<>();
         
-        DynamicRelationships dynamicRelationships = processor.getClass().getAnnotation(DynamicRelationships.class);
+        DynamicRelationship dynamicRelationships = processor.getClass().getAnnotation(DynamicRelationship.class);
         if (dynamicRelationships != null) {
             results.add(dynamicRelationships);
         }

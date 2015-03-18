@@ -41,7 +41,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.DynamicRelationships;
+import org.apache.nifi.annotation.documentation.DynamicRelationship;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -62,7 +62,7 @@ import org.apache.nifi.util.IntegerHolder;
         + "literal values, not Regular Expressions")
 @DynamicProperty(name="Relationship Name", value="A Regular Expression", supportsExpressionLanguage=true, description="Routes FlowFiles whose " + 
         "content matches the regular expressoin defined by Dynamic Property's value to the Relationship defined by the Dynamic Property's key")
-@DynamicRelationships(name="Name from Dynamic Property", description="FlowFiles that match the Dynamic Property's Regular Expression")
+@DynamicRelationship(name="Name from Dynamic Property", description="FlowFiles that match the Dynamic Property's Regular Expression")
 public class RouteOnContent extends AbstractProcessor {
 
     public static final String ROUTE_ATTRIBUTE_KEY = "RouteOnContent.Route";
