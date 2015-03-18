@@ -656,6 +656,41 @@ public static final ExampleProcessor extends Processor {
 }
 ----
 
+=== Documenting FlowFile Attribute Interaction
+
+Many times a processor will expect certain FlowFile attributes be set on in-bound FlowFiles in order
+for the processor to function properly.  In other cases a processor may update or
+create FlowFile attributes on the out-bound FlowFile.  Processor developers may document both of these
+behaviors using the `ReadsAttribute` and `WritesAttribute` documentation annotations.  These attributes are used to generate documentation
+that gives users a better understanding of how a processor will interact with the flow.  
+
+Note: Because Java 7 does not support
+repeated annotations on a type, you may need to use `ReadsAttributes` and `WritesAttributes` to indicate
+that a processor reads or writes multiple FlowFile attributes.  This annotation can only be applied to Processors.  An example is listed below:
+
+[source, java]
+----
+@WritesAttributes({ @WritesAttribute(attribute = "invokehttp.status.code", description = "The status code that is returned"),
+        @WritesAttribute(attribute = "invokehttp.status.message", description = "The status message that is returned"),
+        @WritesAttribute(attribute = "invokehttp.response.body", description = "The response body"),
+        @WritesAttribute(attribute = "invokehttp.request.url", description = "The request URL"),
+        @WritesAttribute(attribute = "invokehttp.tx.id", description = "The transaction ID that is returned after reading the response"),
+        @WritesAttribute(attribute = "invokehttp.remote.dn", description = "The DN of the remote server") })
+public final class InvokeHTTP extends AbstractProcessor {
+----
+
+=== Documenting Related Components
+Often Processors and ControllerServices are related to one another.  Sometimes its a put/get relation as in `PutFile` and `GetFile`.  
+Sometimes a Processor uses a ControllerService like `InvokeHTTP` and `StandardSSLContextService`.  Sometimes one ControllerService uses another
+like `DistributedMapCacheClientService` and `DistributedMapCacheServer`.  Developers of these extension points may relate these
+different components using the `SeeAlso` tag.  This annotation links these components in the documentation.  
+`SeeAlso` can be applied to Processors, ControllerServices and ReportingTasks.  An example of how to do this is listed below:
+
+[source, java]
+----
+@SeeAlso(GetFile.class)
+public class PutFile extends AbstractProcessor {
+----
 
 === Advanced Documentation
 

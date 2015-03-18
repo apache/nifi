@@ -23,6 +23,7 @@ import javax.jms.JMSException;
 
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.logging.ProcessorLog;
@@ -35,6 +36,7 @@ import org.apache.nifi.processors.standard.util.WrappedMessageConsumer;
 @TriggerWhenEmpty
 @Tags({"jms", "queue", "listen", "get", "pull", "source", "consume", "consumer"})
 @CapabilityDescription("Pulls messages from a JMS Queue, creating a FlowFile for each JMS Message or bundle of messages, as configured")
+@SeeAlso(PutJMS.class)
 public class GetJMSQueue extends JmsConsumer {
 
     private final Queue<WrappedMessageConsumer> consumerQueue = new LinkedBlockingQueue<>();

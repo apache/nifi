@@ -22,23 +22,38 @@
     </head>
 
     <body>
-        <p>
-            <strong>Modifies Attributes:</strong>
+        <p>The following MIME Types are detected:
         </p>
-        <table>
-            <thead>
-                <tr>
-                    <th>Attribute Name</th>
-                    <th>Description</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>mime.type</td>
-                    <td>This Processor sets the FlowFile's mime.type attribute to the detected MIME Type. If unable to detect
-                        the MIME Type, the attribute's value will be set to <code>application/octet-stream</code>.</td>
-                </tr>
-            </tbody>
-        </table>
-    </body>
+        <ul>
+            <li>application/gzip</li>
+            <li>application/bzip2</li>
+            <li>application/flowfile-v3</li>
+            <li>application/flowfile-v1 (requires Identify TAR be set to true)</li>
+            <li>application/xml</li>
+            <li>video/mp4</li>
+            <li>video/x-m4v</li>
+            <li>video/mp4a-latm</li>
+            <li>video/quicktime</li>
+            <li>video/mpeg</li>
+            <li>audio/wav</li>
+            <li>audio/mp3</li>
+            <li>image/bmp</li>
+            <li>image/png</li>
+            <li>image/jpg</li>
+            <li>image/gif</li>
+            <li>image/tif</li>
+            <li>application/vnd.ms-works</li>
+            <li>application/msexcel</li>
+            <li>application/mspowerpoint</li>
+            <li>application/msaccess</li>
+            <li>application/x-ms-wmv</li>
+            <li>application/pdf</li>
+            <li>application/x-rpm</li>
+            <li>application/tar</li>
+            <li>application/x-7z-compressed</li>
+            <li>application/java-archive</li>
+            <li>application/zip</li>
+            <li>application/x-lzh</li>
+        </ul>
+</body>
 </html>

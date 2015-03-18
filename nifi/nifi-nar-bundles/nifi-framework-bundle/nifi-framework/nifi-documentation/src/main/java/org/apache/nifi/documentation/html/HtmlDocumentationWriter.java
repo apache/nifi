@@ -18,6 +18,7 @@ package org.apache.nifi.documentation.html;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.xml.stream.FactoryConfigurationError;
@@ -26,7 +27,10 @@ import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.DynamicProperties;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigurableComponent;
@@ -105,41 +109,95 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
     /**
      * Writes the body section of the documentation, this consists of the
      * component description, the tags, and the PropertyDescriptors.
-     *
-     * @param configurableComponent the component to describe
-     * @param xmlStreamWriter the stream writer
-     * @param hasAdditionalDetails whether there are additional details present
-     * or not
-     * @throws XMLStreamException thrown if there was a problem writing to the
-     * XML stream
+     * 
+     * @param configurableComponent
+     *            the component to describe
+     * @param xmlStreamWriter
+     *            the stream writer
+     * @param hasAdditionalDetails
+     *            whether there are additional details present or not
+     * @throws XMLStreamException
+     *             thrown if there was a problem writing to the XML stream
      */
-    private void writeBody(final ConfigurableComponent configurableComponent,
+    private final void writeBody(final ConfigurableComponent configurableComponent,
             final XMLStreamWriter xmlStreamWriter, final boolean hasAdditionalDetails)
             throws XMLStreamException {
         xmlStreamWriter.writeStartElement("body");
         writeDescription(configurableComponent, xmlStreamWriter, hasAdditionalDetails);
         writeTags(configurableComponent, xmlStreamWriter);
         writeProperties(configurableComponent, xmlStreamWriter);
+        writeDynamicProperties(configurableComponent, xmlStreamWriter);
         writeAdditionalBodyInfo(configurableComponent, xmlStreamWriter);
+        writeSeeAlso(configurableComponent, xmlStreamWriter);
+
         xmlStreamWriter.writeEndElement();
+    }
+
+    /**
+     * Writes the list of components that may be linked from this component.
+     * 
+     * @param configurableComponent
+     *            the component to describe
+     * @param xmlStreamWriter
+     *            the stream writer to use
+     * @throws XMLStreamException
+     *             thrown if there was a problem writing the XML
+     */
+    private void writeSeeAlso(ConfigurableComponent configurableComponent, XMLStreamWriter xmlStreamWriter)
+            throws XMLStreamException {
+        final SeeAlso seeAlso = configurableComponent.getClass().getAnnotation(SeeAlso.class);
+        if (seeAlso != null) {
+            writeSimpleElement(xmlStreamWriter, "h3", "See Also:");
+            xmlStreamWriter.writeStartElement("p");
+            int index = 0;
+            for (final Class<? extends ConfigurableComponent> linkedComponent : seeAlso.value()) {
+                if (index != 0) {
+                    xmlStreamWriter.writeCharacters(", ");
+                }
+
+                final String link = "../" + linkedComponent.getCanonicalName() + "/index.html";
+
+                writeLink(xmlStreamWriter, linkedComponent.getSimpleName(), link);
+
+                ++index;
+            }
+            
+            for (final String linkedComponent : seeAlso.classNames()) {
+                if (index != 0) {
+                    xmlStreamWriter.writeCharacters(", ");
+                }
+
+                final String link = "../" + linkedComponent + "/index.html";
+
+                final int indexOfLastPeriod = linkedComponent.lastIndexOf(".") + 1;
+                
+                writeLink(xmlStreamWriter, linkedComponent.substring(indexOfLastPeriod), link);
+
+                ++index;
+            }
+            xmlStreamWriter.writeEndElement();
+        }
     }
 
     /**
      * This method may be overridden by sub classes to write additional
      * information to the body of the documentation.
-     *
-     * @param configurableComponent the component to describe
-     * @param xmlStreamWriter the stream writer
-     * @throws XMLStreamException thrown if there was a problem writing to the
-     * XML stream
+     * 
+     * @param configurableComponent
+     *            the component to describe
+     * @param xmlStreamWriter
+     *            the stream writer
+     * @throws XMLStreamException
+     *             thrown if there was a problem writing to the XML stream
      */
     protected void writeAdditionalBodyInfo(final ConfigurableComponent configurableComponent,
             final XMLStreamWriter xmlStreamWriter) throws XMLStreamException {
+
     }
 
     /**
      * Writes the tags attached to a ConfigurableComponent.
-     *
+     * 
      * @param configurableComponent
      * @param xmlStreamWriter
      * @throws XMLStreamException
@@ -289,7 +347,77 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
             writeSimpleElement(xmlStreamWriter, "p", "This component has no required or optional properties.");
         }
     }
+    
+    /**
+     * Writes a list of the dynamic properties that a processor supports
+     * @param configurableComponent
+     * @param xmlStreamWriter
+     * @throws XMLStreamException
+     */
+    private void writeDynamicProperties(final ConfigurableComponent configurableComponent,
+            final XMLStreamWriter xmlStreamWriter) throws XMLStreamException {
 
+        final List<DynamicProperty> dynamicProperties = getDynamicProperties(configurableComponent);
+
+        if (dynamicProperties != null && dynamicProperties.size() > 0) {
+            writeSimpleElement(xmlStreamWriter, "h3", "Dynamic Properties: ");
+            xmlStreamWriter.writeStartElement("p");
+            xmlStreamWriter
+                    .writeCharacters("Dynamic Properties allow the user to specify both the name and value of a property.");
+            xmlStreamWriter.writeStartElement("table");
+            xmlStreamWriter.writeStartElement("tr");
+            writeSimpleElement(xmlStreamWriter, "th", "Name");
+            writeSimpleElement(xmlStreamWriter, "th", "Value");
+            writeSimpleElement(xmlStreamWriter, "th", "Description");
+            xmlStreamWriter.writeEndElement();
+            for (final DynamicProperty dynamicProperty : dynamicProperties) {
+                xmlStreamWriter.writeStartElement("tr");    
+                writeSimpleElement(xmlStreamWriter, "td", dynamicProperty.name());
+                writeSimpleElement(xmlStreamWriter, "td", dynamicProperty.value());
+                xmlStreamWriter.writeStartElement("td");
+                xmlStreamWriter.writeCharacters(dynamicProperty.description());
+                if (dynamicProperty.supportsExpressionLanguage()) {
+                    xmlStreamWriter.writeEmptyElement("br");
+                    writeSimpleElement(xmlStreamWriter, "strong", "Supports Expression Language: true");
+                }
+                xmlStreamWriter.writeEndElement();
+                xmlStreamWriter.writeEndElement();
+            }
+            
+            xmlStreamWriter.writeEndElement();
+            xmlStreamWriter.writeEndElement();
+        }
+    }
+
+    /**
+     * Gets the dynamic properties for a configurable component
+     * @param configurableComponent
+     * @return
+     */
+    private List<DynamicProperty> getDynamicProperties(ConfigurableComponent configurableComponent) {
+        final List<DynamicProperty> dynamicProperties = new ArrayList<>();
+        final DynamicProperties dynProps = configurableComponent.getClass().getAnnotation(DynamicProperties.class);
+        if (dynProps != null) {
+            for (final DynamicProperty dynProp : dynProps.value()) {
+                dynamicProperties.add(dynProp);
+            }
+        }
+        
+        final DynamicProperty dynProp = configurableComponent.getClass().getAnnotation(DynamicProperty.class);
+        if (dynProp != null) {
+            dynamicProperties.add(dynProp);
+        }
+        
+        return dynamicProperties;
+    }
+
+    /**
+     * Writes an info icon with a description.
+     * 
+     * @param xmlStreamWriter
+     * @param description the description of the item
+     * @throws XMLStreamException
+     */
     private void writeValidValueDescription(XMLStreamWriter xmlStreamWriter, String description)
             throws XMLStreamException {
         xmlStreamWriter.writeCharacters(" ");
@@ -309,6 +437,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
      * @param property the property to describe
      * @throws XMLStreamException thrown if there was a problem writing to the
      * XML Stream
+
      */
     protected void writeValidValues(XMLStreamWriter xmlStreamWriter, PropertyDescriptor property)
             throws XMLStreamException {

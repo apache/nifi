@@ -45,7 +45,10 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.documentation.WritesAttribute;
+import org.apache.nifi.annotation.documentation.WritesAttributes;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
@@ -74,6 +77,22 @@ import com.sun.jersey.api.client.ClientResponse.Status;
 
 @Tags({"http", "https", "request", "listen", "ingress", "web service"})
 @CapabilityDescription("Starts an HTTP Server and listens for HTTP Requests. For each request, creates a FlowFile and transfers to 'success'. This Processor is designed to be used in conjunction with the HandleHttpResponse Processor in order to create a Web Service")
+@WritesAttributes({@WritesAttribute(attribute = "http.context.identifier", description="An identifier that allows the HandleHttpRequest and HandleHttpResponse to coordinate which FlowFile belongs to which HTTP Request/Response."),
+    @WritesAttribute(attribute = "mime.type", description="The MIME Type of the data, according to the HTTP Header \"Content-Type\""),
+    @WritesAttribute(attribute = "http.servlet.path", description="The part of the request URL that is considered the Servlet Path"),
+    @WritesAttribute(attribute = "http.context.path", description="The part of the request URL that is considered to be the Context Path"),
+    @WritesAttribute(attribute = "http.method", description="The HTTP Method that was used for the request, such as GET or POST"),
+    @WritesAttribute(attribute = "http.query.string", description="The query string portion of hte Request URL"),
+    @WritesAttribute(attribute = "http.remote.host", description="The hostname of the requestor"),
+    @WritesAttribute(attribute = "http.remote.addr", description="The hostname:port combination of the requestor"),
+    @WritesAttribute(attribute = "http.remote.user", description="The username of the requestor"),
+    @WritesAttribute(attribute = "http.request.uri", description="The full Request URL"),
+    @WritesAttribute(attribute = "http.auth.type", description="The type of HTTP Authorization used"),
+    @WritesAttribute(attribute = "http.principal.name", description="The name of the authenticated user making the request"),
+    @WritesAttribute(attribute = "http.subject.dn", description="The Distinguished Name of the requestor. This value will not be populated unless the Processor is configured to use an SSLContext Service"),
+    @WritesAttribute(attribute = "http.issuer.dn", description="The Distinguished Name of the entity that issued the Subject's certificate. This value will not be populated unless the Processor is configured to use an SSLContext Service"),
+    @WritesAttribute(attribute = "http.headers.XXX", description="Each of the HTTP Headers that is received in the request will be added as an attribute, prefixed with \"http.headers.\" For example, if the request contains an HTTP Header named \"x-my-header\", then the value will be added to an attribute named \"http.headers.x-my-header\"")})
+@SeeAlso(value={HandleHttpResponse.class}, classNames={"org.apache.nifi.http.StandardHttpContextMap", "org.apache.nifi.ssl.StandardSSLContextService"})
 public class HandleHttpRequest extends AbstractProcessor {
     public static final String HTTP_CONTEXT_ID = "http.context.identifier";
     private static final Pattern URL_QUERY_PARAM_DELIMITER = Pattern.compile("&");

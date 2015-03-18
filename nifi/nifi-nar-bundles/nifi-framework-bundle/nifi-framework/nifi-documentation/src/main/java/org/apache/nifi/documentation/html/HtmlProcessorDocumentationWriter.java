@@ -16,9 +16,18 @@
  */
 package org.apache.nifi.documentation.html;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.documentation.DynamicRelationship;
+import org.apache.nifi.annotation.documentation.ReadsAttribute;
+import org.apache.nifi.annotation.documentation.ReadsAttributes;
+import org.apache.nifi.annotation.documentation.WritesAttribute;
+import org.apache.nifi.annotation.documentation.WritesAttributes;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
@@ -35,6 +44,164 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
     protected void writeAdditionalBodyInfo(final ConfigurableComponent configurableComponent,
             final XMLStreamWriter xmlStreamWriter) throws XMLStreamException {
         final Processor processor = (Processor) configurableComponent;
+        writeRelationships(processor, xmlStreamWriter);
+        writeDynamicRelationships(processor, xmlStreamWriter);
+        writeAttributeInfo(processor, xmlStreamWriter);
+    }
+
+    /**
+     * Writes all the attributes that a processor says it reads and writes
+     * 
+     * @param processor
+     *            the processor to describe
+     * @param xmlStreamWriter
+     *            the xml stream writer to use
+     * @throws XMLStreamException
+     *             thrown if there was a problem writing the XML
+     */
+    private void writeAttributeInfo(Processor processor, XMLStreamWriter xmlStreamWriter)
+            throws XMLStreamException {
+
+        handleReadsAttributes(xmlStreamWriter, processor);
+        handleWritesAttributes(xmlStreamWriter, processor);
+    }
+
+    /**
+     * Writes out just the attributes that are being read in a table form.
+     * 
+     * @param xmlStreamWriter
+     *            the xml stream writer to use
+     * @param processor
+     *            the processor to describe
+     * @throws XMLStreamException
+     */
+    private void handleReadsAttributes(XMLStreamWriter xmlStreamWriter, final Processor processor)
+            throws XMLStreamException {
+        List<ReadsAttribute> attributesRead = getReadsAttributes(processor);
+
+        writeSimpleElement(xmlStreamWriter, "h3", "Reads Attributes: ");
+        if (attributesRead.size() > 0) {
+            xmlStreamWriter.writeStartElement("table");
+            xmlStreamWriter.writeStartElement("tr");
+            writeSimpleElement(xmlStreamWriter, "th", "Name");
+            writeSimpleElement(xmlStreamWriter, "th", "Description");
+            xmlStreamWriter.writeEndElement();
+            for (ReadsAttribute attribute : attributesRead) {
+                xmlStreamWriter.writeStartElement("tr");
+                writeSimpleElement(xmlStreamWriter, "td",
+                        StringUtils.defaultIfBlank(attribute.attribute(), "Not Specified"));
+                // TODO allow for HTML characters here.
+                writeSimpleElement(xmlStreamWriter, "td",
+                        StringUtils.defaultIfBlank(attribute.description(), "Not Specified"));
+                xmlStreamWriter.writeEndElement();
+
+            }
+            xmlStreamWriter.writeEndElement();
+
+        } else {
+            xmlStreamWriter.writeCharacters("None specified.");
+        }
+    }
+
+    /**
+     * Writes out just the attributes that are being written to in a table form.
+     * 
+     * @param xmlStreamWriter
+     *            the xml stream writer to use
+     * @param processor
+     *            the processor to describe
+     * @throws XMLStreamException
+     */
+    private void handleWritesAttributes(XMLStreamWriter xmlStreamWriter, final Processor processor)
+            throws XMLStreamException {
+        List<WritesAttribute> attributesRead = getWritesAttributes(processor);
+
+        writeSimpleElement(xmlStreamWriter, "h3", "Writes Attributes: ");
+        if (attributesRead.size() > 0) {
+            xmlStreamWriter.writeStartElement("table");
+            xmlStreamWriter.writeStartElement("tr");
+            writeSimpleElement(xmlStreamWriter, "th", "Name");
+            writeSimpleElement(xmlStreamWriter, "th", "Description");
+            xmlStreamWriter.writeEndElement();
+            for (WritesAttribute attribute : attributesRead) {
+                xmlStreamWriter.writeStartElement("tr");
+                writeSimpleElement(xmlStreamWriter, "td",
+                        StringUtils.defaultIfBlank(attribute.attribute(), "Not Specified"));
+                // TODO allow for HTML characters here.
+                writeSimpleElement(xmlStreamWriter, "td",
+                        StringUtils.defaultIfBlank(attribute.description(), "Not Specified"));
+                xmlStreamWriter.writeEndElement();
+            }
+            xmlStreamWriter.writeEndElement();
+
+        } else {
+            xmlStreamWriter.writeCharacters("None specified.");
+        }
+    }
+
+    /**
+     * Collects the attributes that a processor is reading from.
+     * 
+     * @param processor
+     *            the processor to describe
+     * @return the list of attributes that processor is reading
+     */
+    private List<ReadsAttribute> getReadsAttributes(Processor processor) {
+        List<ReadsAttribute> attributes = new ArrayList<>();
+
+        ReadsAttributes readsAttributes = processor.getClass().getAnnotation(ReadsAttributes.class);
+        if (readsAttributes != null) {
+            for (ReadsAttribute readAttribute : readsAttributes.value()) {
+                attributes.add(readAttribute);
+            }
+        }
+
+        ReadsAttribute readsAttribute = processor.getClass().getAnnotation(ReadsAttribute.class);
+        if (readsAttribute != null) {
+            attributes.add(readsAttribute);
+        }
+
+        return attributes;
+    }
+
+    /**
+     * Collects the attributes that a processor is writing to.
+     * 
+     * @param processor
+     *            the processor to describe
+     * @return the list of attributes the processor is writing
+     */
+    private List<WritesAttribute> getWritesAttributes(Processor processor) {
+        List<WritesAttribute> attributes = new ArrayList<>();
+
+        WritesAttributes writesAttributes = processor.getClass().getAnnotation(WritesAttributes.class);
+        if (writesAttributes != null) {
+            for (WritesAttribute writeAttribute : writesAttributes.value()) {
+                attributes.add(writeAttribute);
+            }
+        }
+
+        WritesAttribute writeAttribute = processor.getClass().getAnnotation(WritesAttribute.class);
+        if (writeAttribute != null) {
+            attributes.add(writeAttribute);
+        }
+
+        return attributes;
+    }
+
+    /**
+     * Writes a table describing the relations a processor has.
+     * 
+     * @param processor
+     *            the processor to describe
+     * @param xmlStreamWriter
+     *            the stream writer to use
+     * @throws XMLStreamException
+     *             thrown if there was a problem writing the xml
+     */
+    private void writeRelationships(final Processor processor, final XMLStreamWriter xmlStreamWriter)
+            throws XMLStreamException {
+
         writeSimpleElement(xmlStreamWriter, "h3", "Relationships: ");
 
         if (processor.getRelationships().size() > 0) {
@@ -54,5 +221,45 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
         } else {
             xmlStreamWriter.writeCharacters("This processor has no relationships.");
         }
+    }
+
+    /**
+     * Writes dynamic relationship information
+     * 
+     * @param processor
+     * @param xmlStreamWriter
+     * @throws XMLStreamException 
+     */
+    private void writeDynamicRelationships(final Processor processor, final XMLStreamWriter xmlStreamWriter) throws XMLStreamException {
+        
+        List<DynamicRelationship> dynamicRelationships = getDynamicRelationships(processor);
+
+        if (dynamicRelationships.size() > 0) {
+            writeSimpleElement(xmlStreamWriter, "h3", "Dynamic Relationships: ");
+            xmlStreamWriter.writeStartElement("table");
+            xmlStreamWriter.writeStartElement("tr");
+            writeSimpleElement(xmlStreamWriter, "th", "Name");
+            writeSimpleElement(xmlStreamWriter, "th", "Description");
+            xmlStreamWriter.writeEndElement();
+
+            for (DynamicRelationship dynamicRelationship : dynamicRelationships) {
+                xmlStreamWriter.writeStartElement("tr");
+                writeSimpleElement(xmlStreamWriter, "td", dynamicRelationship.name());
+                writeSimpleElement(xmlStreamWriter, "td", dynamicRelationship.description());
+                xmlStreamWriter.writeEndElement();
+            }
+            xmlStreamWriter.writeEndElement();
+        }
+    }
+
+    private List<DynamicRelationship> getDynamicRelationships(Processor processor) {
+        List<DynamicRelationship> results = new ArrayList<>();
+        
+        DynamicRelationship dynamicRelationships = processor.getClass().getAnnotation(DynamicRelationship.class);
+        if (dynamicRelationships != null) {
+            results.add(dynamicRelationships);
+        }
+        
+        return results;
     }
 }
