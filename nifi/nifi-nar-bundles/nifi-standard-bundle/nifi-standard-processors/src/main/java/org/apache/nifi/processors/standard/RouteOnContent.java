@@ -60,7 +60,8 @@ import org.apache.nifi.util.IntegerHolder;
         + "of the property is the name of the relationship and the value is a Regular Expression to match against the FlowFile "
         + "content. User-Defined properties do support the Attribute Expression Language, but the results are interpreted as "
         + "literal values, not Regular Expressions")
-@DynamicProperty(name="Relationship", description="A Regular Expression", supportsExpressionLanguage=true)
+@DynamicProperty(name="Relationship Name", value="A Regular Expression", supportsExpressionLanguage=true, description="Routes FlowFiles whose " + 
+        "content matches the regular expressoin defined by Dynamic Property's value to the Relationship defined by the Dynamic Property's key")
 @DynamicRelationships(name="Name from Dynamic Property", description="FlowFiles that match the Dynamic Property's Regular Expression")
 public class RouteOnContent extends AbstractProcessor {
 

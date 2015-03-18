@@ -41,7 +41,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 @Tags({"http", "https", "response", "egress", "web service"})
 @CapabilityDescription("Sends an HTTP Response to the Requestor that generated a FlowFile. This Processor is designed to be used in conjunction with the HandleHttpRequest in order to create a web service.")
-@DynamicProperty(name="An HTTP header name", description="An HTTP header value")
+@DynamicProperty(name="An HTTP header name", value="An HTTP header value", description="These HTTPHeaders are set in the HTTP Response")
 public class HandleHttpResponse extends AbstractProcessor {
     public static final Pattern NUMBER_PATTERN = Pattern.compile("[0-9]+");
     public static final String HTTP_CONTEXT_ID = "http.context.identifier";

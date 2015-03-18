@@ -116,8 +116,7 @@ import org.apache.nifi.processor.util.StandardValidators;
         + "to be used as part of the hash. If the regular expression contains a capturing group, only the value of the capturing "
         + "group will be used.")
 @WritesAttribute(attribute="<Hash Value Attribute Key>", description="This Processor adds an attribute whose value is the result of Hashing the existing FlowFile attributes. The name of this attribute is specified by the <Hash Value Attribute Key> property.")
-@DynamicProperty(name="A flowfile attribute key for attribute inspection", description="A " +
- "valid regular expression. This regular expression is evaluated against the " +
+@DynamicProperty(name="A flowfile attribute key for attribute inspection", value="A Regular Expression", description="This regular expression is evaluated against the " +
  "flowfile attribute values. If the regular expression contains a capturing " +
  "group, the value of that group will be used when comparing flow file " +
  "attributes. Otherwise, the original flow file attribute's value will be used " +

@@ -67,7 +67,8 @@ import org.apache.nifi.processor.util.StandardValidators;
 @SupportsBatching
 @Tags({"attributes", "routing", "Attribute Expression Language", "regexp", "regex", "Regular Expression", "Expression Language"})
 @CapabilityDescription("Routes FlowFiles based on their Attributes using the Attribute Expression Language")
-@DynamicProperty(name="Relationship", description="Attribute Expression Language", supportsExpressionLanguage=true)
+@DynamicProperty(name="Relationship Name", value="Attribute Expression Language", supportsExpressionLanguage=true, description="Routes FlowFiles whose " + 
+"attributes match the Attribute Expression Language specified in the Dynamic Property Value to the Relationship specified in the Dynamic Property Key")
 @DynamicRelationships(name="Name from Dynamic Property", description="FlowFiles that match the Dynamic Property's Attribute Expression Language")
 public class RouteOnAttribute extends AbstractProcessor {
 

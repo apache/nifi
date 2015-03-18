@@ -113,7 +113,8 @@ import org.apache.commons.lang3.StringUtils;
 @SideEffectFree
 @Tags({"attributes", "modification", "update", "Attribute Expression Language"})
 @CapabilityDescription("Updates the Attributes for a FlowFile by using the Attribute Expression Language")
-@DynamicProperty(name="A FlowFile attribute to update", description="The value to set it to", supportsExpressionLanguage=true)
+@DynamicProperty(name="A FlowFile attribute to update", value="The value to set it to", supportsExpressionLanguage=true, description="Updates a " + 
+"FlowFile attribute specified by the Dynamic Property's key with the value specified by the Dynamic Property's value")
 public class UpdateAttribute extends AbstractProcessor implements Searchable {
 
     private final AtomicReference<Criteria> criteriaCache = new AtomicReference<>(null);

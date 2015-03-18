@@ -44,8 +44,8 @@ import org.apache.nifi.processors.standard.util.FTPTransfer;
 @Tags({"remote", "copy", "egress", "put", "ftp", "archive", "files"})
 @CapabilityDescription("Sends FlowFiles to an FTP Server")
 @SeeAlso(GetFTP.class)
-@DynamicProperties({@DynamicProperty(name="pre.cmd.*", description="Not used"),
-    @DynamicProperty(name="post.cmd.*", description="Not used")})
+@DynamicProperties({@DynamicProperty(name="pre.cmd._____", value="Not used", description="The command specified in the key will be executed before doing a put"),
+    @DynamicProperty(name="post.cmd._____", value="Not used", description="The command specified in the key will be executed after doing a put")})
 public class PutFTP extends PutFileTransfer<FTPTransfer> {
 
     private static final Pattern PRE_SEND_CMD_PATTERN = Pattern.compile("^pre\\.cmd\\.(\\d+)$");

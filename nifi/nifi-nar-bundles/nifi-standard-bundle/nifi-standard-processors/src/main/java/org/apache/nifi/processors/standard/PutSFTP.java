@@ -34,7 +34,7 @@ import org.apache.nifi.processors.standard.util.SFTPTransfer;
 @Tags({"remote", "copy", "egress", "put", "sftp", "archive", "files"})
 @CapabilityDescription("Sends FlowFiles to an SFTP Server")
 @SeeAlso(GetSFTP.class)
-@DynamicProperty(name="Disable Directory Listing", description="Disables directory listings before operations which might fail, such as configurations which create directory structures.")
+@DynamicProperty(name="Disable Directory Listing", value="true or false", description="Disables directory listings before operations which might fail, such as configurations which create directory structures.")
 public class PutSFTP extends PutFileTransfer<SFTPTransfer> {
 
     private List<PropertyDescriptor> properties;

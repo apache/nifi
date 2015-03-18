@@ -95,7 +95,8 @@ import org.xml.sax.InputSource;
         + "Destination is 'flowfile-attribute' and the XQueries matche nothing, no attributes will be applied to the "
         + "FlowFile.")
 @WritesAttribute(attribute="user-defined", description="This processor adds user-defined attributes if the <Destination> property is set to flowfile-attribute .")
-@DynamicProperty(name="A FlowFile attribute(if <Destination> is set to 'flowfile-attribute'", description="An XQuery")
+@DynamicProperty(name="A FlowFile attribute(if <Destination> is set to 'flowfile-attribute'", value="An XQuery", description="If <Destination>='flowfile-attribute' " + 
+        "then the FlowFile attribute is set to the result of the XQuery.  If <Destination>='flowfile-content' then the FlowFile content is set to the result of the XQuery.")
 public class EvaluateXQuery extends AbstractProcessor {
 
     public static final String DESTINATION_ATTRIBUTE = "flowfile-attribute";

@@ -62,7 +62,7 @@ import org.apache.commons.lang3.StringUtils;
         + "If the Regular Expression matches more than once, only the first match will be used.  "
         + "If any provided Regular Expression matches, the FlowFile(s) will be routed to 'matched'. "
         + "If no provided Regular Expression matches, the FlowFile will be routed to 'unmatched' and no attributes will be applied to the FlowFile.")
-@DynamicProperty(name="A FlowFile attribute", description="A regular expression with exactly one capturing group")
+@DynamicProperty(name="A FlowFile attribute", value="A regular expression with exactly one capturing group", description="Will update the specified FlowFile attribute with the group captured by the regular expression")
 public class EvaluateRegularExpression extends AbstractProcessor {
 
     public static final PropertyDescriptor CHARACTER_SET = new PropertyDescriptor.Builder()

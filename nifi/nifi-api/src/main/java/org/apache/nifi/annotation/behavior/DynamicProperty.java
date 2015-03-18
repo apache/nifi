@@ -36,7 +36,13 @@ public @interface DynamicProperty {
      *         language
      */
     public boolean supportsExpressionLanguage() default false;
-
+    
+    /**
+     * A description of what the value of the dynamic property may be
+     * @return a description of what the value of the dynamic property may be
+     */
+    public String value();
+    
     /**
      * Provides a description of what the meaning of the property is, and what the expected values are 
      * @return a description of what the meaning of the property is, and what the expected values are
