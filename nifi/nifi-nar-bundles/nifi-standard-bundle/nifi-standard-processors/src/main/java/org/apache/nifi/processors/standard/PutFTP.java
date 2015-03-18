@@ -26,6 +26,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.nifi.annotation.behavior.DynamicProperties;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
@@ -42,6 +44,8 @@ import org.apache.nifi.processors.standard.util.FTPTransfer;
 @Tags({"remote", "copy", "egress", "put", "ftp", "archive", "files"})
 @CapabilityDescription("Sends FlowFiles to an FTP Server")
 @SeeAlso(GetFTP.class)
+@DynamicProperties({@DynamicProperty(name="pre.cmd.*", description="Not used"),
+    @DynamicProperty(name="post.cmd.*", description="Not used")})
 public class PutFTP extends PutFileTransfer<FTPTransfer> {
 
     private static final Pattern PRE_SEND_CMD_PATTERN = Pattern.compile("^pre\\.cmd\\.(\\d+)$");

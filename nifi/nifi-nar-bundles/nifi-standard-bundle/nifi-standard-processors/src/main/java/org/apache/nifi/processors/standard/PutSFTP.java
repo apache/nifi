@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
@@ -33,6 +34,7 @@ import org.apache.nifi.processors.standard.util.SFTPTransfer;
 @Tags({"remote", "copy", "egress", "put", "sftp", "archive", "files"})
 @CapabilityDescription("Sends FlowFiles to an SFTP Server")
 @SeeAlso(GetSFTP.class)
+@DynamicProperty(name="Disable Directory Listing", description="Disables directory listings before operations which might fail, such as configurations which create directory structures.")
 public class PutSFTP extends PutFileTransfer<SFTPTransfer> {
 
     private List<PropertyDescriptor> properties;

@@ -41,6 +41,8 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DynamicRelationships;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -58,6 +60,8 @@ import org.apache.nifi.util.IntegerHolder;
         + "of the property is the name of the relationship and the value is a Regular Expression to match against the FlowFile "
         + "content. User-Defined properties do support the Attribute Expression Language, but the results are interpreted as "
         + "literal values, not Regular Expressions")
+@DynamicProperty(name="Relationship", description="A Regular Expression", supportsExpressionLanguage=true)
+@DynamicRelationships(name="Name from Dynamic Property", description="FlowFiles that match the Dynamic Property's Regular Expression")
 public class RouteOnContent extends AbstractProcessor {
 
     public static final String ROUTE_ATTRIBUTE_KEY = "RouteOnContent.Route";

@@ -49,6 +49,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -77,6 +78,8 @@ import org.joda.time.format.DateTimeFormatter;
         @WritesAttribute(attribute = "invokehttp.request.url", description = "The request URL"),
         @WritesAttribute(attribute = "invokehttp.tx.id", description = "The transaction ID that is returned after reading the response"),
         @WritesAttribute(attribute = "invokehttp.remote.dn", description = "The DN of the remote server") })
+@DynamicProperty(name="Trusted Hostname)", description="Bypass the normal truststore hostname verifier to allow the specified (single) remote hostname as trusted "
+        + "Enabling this property has MITM security implications, use wisely. Only valid with SSL (HTTPS) connections.")
 public final class InvokeHTTP extends AbstractProcessor {
 
     //-- properties --//

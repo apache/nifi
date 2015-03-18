@@ -30,6 +30,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -112,6 +113,7 @@ import org.apache.commons.lang3.StringUtils;
 @SideEffectFree
 @Tags({"attributes", "modification", "update", "Attribute Expression Language"})
 @CapabilityDescription("Updates the Attributes for a FlowFile by using the Attribute Expression Language")
+@DynamicProperty(name="A FlowFile attribute to update", description="The value to set it to", supportsExpressionLanguage=true)
 public class UpdateAttribute extends AbstractProcessor implements Searchable {
 
     private final AtomicReference<Criteria> criteriaCache = new AtomicReference<>(null);
