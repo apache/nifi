@@ -84,7 +84,7 @@ abstract class AbstractKiteProcessor extends AbstractProcessor {
             boolean isValid = true;
             if (uri == null || uri.isEmpty()) {
                 isValid = false;
-            } else {
+            } else if (!uri.contains("$")) {
                 try {
                     new URIBuilder(URI.create(uri)).build();
                 } catch (RuntimeException e) {
@@ -161,10 +161,12 @@ abstract class AbstractKiteProcessor extends AbstractProcessor {
                     context.getProperty(CONF_XML_FILES).getValue());
 
             String error = null;
-            try {
+            if (!uri.contains("$")) {
+              try {
                 getSchema(uri, conf);
-            } catch (SchemaNotFoundException e) {
+              } catch (SchemaNotFoundException e) {
                 error = e.getMessage();
+              }
             }
             return new ValidationResult.Builder()
                     .subject(subject)

@@ -47,7 +47,7 @@ import org.kitesdk.data.ValidationException;
 import org.kitesdk.data.View;
 import org.kitesdk.data.spi.SchemaValidationUtil;
 
-@Tags({"kite", "avro", "parquet", "hive", "hdfs", "hbase"})
+@Tags({"kite", "avro", "parquet", "hadoop", "hive", "hdfs", "hbase"})
 @CapabilityDescription("Stores Avro records in a Kite dataset")
 public class StoreInKiteDataset extends AbstractKiteProcessor {
   private static final Relationship SUCCESS = new Relationship.Builder()
@@ -151,11 +151,6 @@ public class StoreInKiteDataset extends AbstractKiteProcessor {
       getLogger().error(e.getMessage());
       getLogger().debug("Incompatible schema error", e);
       session.transfer(flowFile, INCOMPATIBLE);
-
-    } catch (Throwable t) {
-      getLogger().error("Unknown Throwable", t);
-      session.rollback(true); // penalize just in case
-      context.yield();
     }
   }
 

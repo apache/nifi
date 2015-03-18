@@ -79,9 +79,9 @@ public class HandleHttpRequest extends AbstractProcessor {
     private static final Pattern URL_QUERY_PARAM_DELIMITER = Pattern.compile("&");
     
     // Allowable values for client auth
-    public static final AllowableValue CLIENT_NONE = new AllowableValue("No Authentication", "Processor will not authenticate clients. Anyone can communicate with this Processor anonymously");
-    public static final AllowableValue CLIENT_WANT = new AllowableValue("Want Authentication", "Processor will try to verify the client but if unable to verify will allow the client to communicate anonymously");
-    public static final AllowableValue CLIENT_NEED = new AllowableValue("Need Authentication", "Processor will reject communications from any client unless the client provides a certificate that is trusted by the TrustStore specified in the SSL Context Service");
+    public static final AllowableValue CLIENT_NONE = new AllowableValue("No Authentication", "No Authentication", "Processor will not authenticate clients. Anyone can communicate with this Processor anonymously");
+    public static final AllowableValue CLIENT_WANT = new AllowableValue("Want Authentication", "Want Authentication", "Processor will try to verify the client but if unable to verify will allow the client to communicate anonymously");
+    public static final AllowableValue CLIENT_NEED = new AllowableValue("Need Authentication", "Need Authentication", "Processor will reject communications from any client unless the client provides a certificate that is trusted by the TrustStore specified in the SSL Context Service");
     
     
     public static final PropertyDescriptor PORT = new PropertyDescriptor.Builder()
@@ -208,6 +208,7 @@ public class HandleHttpRequest extends AbstractProcessor {
         descriptors.add(ALLOW_HEAD);
         descriptors.add(ALLOW_OPTIONS);
         descriptors.add(ADDITIONAL_METHODS);
+        descriptors.add(CLIENT_AUTH);
 
         return descriptors;
     }

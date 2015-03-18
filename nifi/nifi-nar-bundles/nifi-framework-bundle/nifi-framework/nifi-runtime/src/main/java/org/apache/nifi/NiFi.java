@@ -31,6 +31,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.nifi.documentation.DocGenerator;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.ExtensionMapping;
 import org.apache.nifi.nar.NarClassLoaders;
@@ -117,6 +118,8 @@ public class NiFi {
         // discover the extensions
         ExtensionManager.discoverExtensions();
         ExtensionManager.logClassLoaderMapping();
+        
+        DocGenerator.generate(properties);
 
         // load the server from the framework classloader
         Thread.currentThread().setContextClassLoader(frameworkClassLoader);
