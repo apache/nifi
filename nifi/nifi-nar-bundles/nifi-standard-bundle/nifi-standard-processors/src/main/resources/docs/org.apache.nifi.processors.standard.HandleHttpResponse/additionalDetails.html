@@ -40,18 +40,5 @@
             This Processor must be configured with the same &lt;HTTP Context Map&gt; service as the corresponding HandleHttpRequest Processor.
             Otherwise, all FlowFiles will be routed to the 'failure' relationship.
         </p>
-
-        <p>
-            All FlowFiles must have an attribute named <code>http.context.identifier</code>. The value of this attribute is used to lookup
-            the HTTP Response so that the proper message can be sent back to the requestor. If this attribute is missing, the FlowFile
-            will be routed to 'failure.'
-        </p>
-        <p>
-            <strong>See Also:</strong><br />
-            <a href="../org.apache.nifi.processors.standard.HandleHttpRequest/index.html">HandleHttpRequest</a><br />
-            <a href="../org.apache.nifi.http.StandardHttpContextMap/index.html">StandardHttpContextMap</a><br />
-            <a href="../org.apache.nifi.ssl.StandardSSLContextService/index.html">StandardSSLContextService</a><br />
-        </p>
-
     </body>
 </html>
