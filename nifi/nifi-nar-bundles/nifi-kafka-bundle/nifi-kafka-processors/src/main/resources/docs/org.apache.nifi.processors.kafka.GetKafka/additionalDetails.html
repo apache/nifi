@@ -41,38 +41,5 @@
         	from multiple Topics, as each Processor will receive a different Processor UUID 
         	and therefore a different Consumer Group Identifier.
         </p>
-
-        <p>
-            <strong>Modifies Attributes:</strong>
-        </p>
-        <table>
-            <thead>
-                <tr>
-                    <th>Attribute Name</th>
-                    <th>Description</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                	<td>kafka.topic</td>
-                	<td>The name of the Kafka Topic from which the message was received</td>
-                </tr>
-                <tr>
-                    <td>kafka.key</td>
-                    <td>The key of the Kafka message, if it exists and batch size is 1. If the message does not have a key,
-                    	or if the batch size is greater than 1, this attribute will not be added.</td>
-                </tr>
-                <tr>
-                	<td>kafka.partition</td>
-                	<td>The partition of the Kafka Topic from which the message was received. This attribute is added only
-                		if the batch size is 1.</td>
-                </tr>
-                <tr>
-                	<td>kafka.offset</td>
-                	<td>The offset of the message within the Kafka partition. This attribute is added only
-                		if the batch size is 1.</td>
-                </tr>
-            </tbody>
-        </table>
     </body>
 </html>
