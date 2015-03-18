@@ -69,6 +69,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.WritesAttribute;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -93,6 +94,7 @@ import org.xml.sax.InputSource;
         + "flowfile-attribute and the expression matches nothing, attributes will be created with empty strings as the value, and the "
         + "FlowFile will always be routed to 'matched'")
 @WritesAttribute(attribute="user-defined", description="This processor adds user-defined attributes if the <Destination> property is set to flowfile-attribute.")
+@DynamicProperty(name="A FlowFile attribute(if <Destination> is set to 'flowfile-attribute'", description="An XPath expression")
 public class EvaluateXPath extends AbstractProcessor {
 
     public static final String DESTINATION_ATTRIBUTE = "flowfile-attribute";

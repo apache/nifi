@@ -40,13 +40,13 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-
 import org.apache.commons.lang3.StringUtils;
 
 @EventDriven
@@ -62,7 +62,7 @@ import org.apache.commons.lang3.StringUtils;
         + "If the Regular Expression matches more than once, only the first match will be used.  "
         + "If any provided Regular Expression matches, the FlowFile(s) will be routed to 'matched'. "
         + "If no provided Regular Expression matches, the FlowFile will be routed to 'unmatched' and no attributes will be applied to the FlowFile.")
-
+@DynamicProperty(name="A FlowFile attribute", description="A regular expression with exactly one capturing group")
 public class EvaluateRegularExpression extends AbstractProcessor {
 
     public static final PropertyDescriptor CHARACTER_SET = new PropertyDescriptor.Builder()
