@@ -25,39 +25,39 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 /**
  * A Mock ReportingInitializationContext that can be used to initialize a
  * ReportingTask for the purposes of documentation generation.
- * 
+ *
  * @author Alligator
  *
  */
 public class MockReportingInitializationContext implements ReportingInitializationContext {
 
-	@Override
-	public String getIdentifier() {
-		return "";
-	}
+    @Override
+    public String getIdentifier() {
+        return "";
+    }
 
-	@Override
-	public String getName() {
-		return "";
-	}
+    @Override
+    public String getName() {
+        return "";
+    }
 
-	@Override
-	public long getSchedulingPeriod(TimeUnit timeUnit) {
-		return 0;
-	}
+    @Override
+    public long getSchedulingPeriod(TimeUnit timeUnit) {
+        return 0;
+    }
 
-	@Override
-	public ControllerServiceLookup getControllerServiceLookup() {
-		return new MockControllerServiceLookup();
-	}
+    @Override
+    public ControllerServiceLookup getControllerServiceLookup() {
+        return new MockControllerServiceLookup();
+    }
 
-	@Override
-	public String getSchedulingPeriod() {
-		return "";
-	}
+    @Override
+    public String getSchedulingPeriod() {
+        return "";
+    }
 
-	@Override
-	public SchedulingStrategy getSchedulingStrategy() {
-		return SchedulingStrategy.TIMER_DRIVEN;
-	}
+    @Override
+    public SchedulingStrategy getSchedulingStrategy() {
+        return SchedulingStrategy.TIMER_DRIVEN;
+    }
 }

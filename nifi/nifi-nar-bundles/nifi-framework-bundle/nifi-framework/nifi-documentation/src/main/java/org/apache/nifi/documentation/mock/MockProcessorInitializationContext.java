@@ -23,23 +23,23 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 /**
  * A Mock ProcessorInitializationContext that can be used so that Processors can
  * be initialized for the purpose of generating documentation.
- * 
+ *
  *
  */
 public class MockProcessorInitializationContext implements ProcessorInitializationContext {
 
-	@Override
-	public String getIdentifier() {
-		return "";
-	}
+    @Override
+    public String getIdentifier() {
+        return "";
+    }
 
-	@Override
-	public ProcessorLog getLogger() {
-		return null;
-	}
+    @Override
+    public ProcessorLog getLogger() {
+        return null;
+    }
 
-	@Override
-	public ControllerServiceLookup getControllerServiceLookup() {
-		return new MockControllerServiceLookup();
-	}
+    @Override
+    public ControllerServiceLookup getControllerServiceLookup() {
+        return new MockControllerServiceLookup();
+    }
 }

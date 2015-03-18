@@ -22,7 +22,7 @@
 
     <body>
         <!-- Processor Documentation ================================================== -->
-        
+
         <p>
             <strong>Optional User-Defined Properties:</strong>
         </p>
@@ -37,30 +37,12 @@
                         essentially the same as sending quote commands to an FTP server from the command line.
                     </li>
                     <li><strong>NOTE</strong>: While this is the same as sending a quote command, it is very important that
-                        you leave off the “quote” part of the command from the text value you enter in. For example, if you want
-                        to mimic the command line ftp command quote stat you would give the text value of stat. You have the
-                        option of sending a number of commands to the FTP server before the file is sent. If you have only one
-                        command, then the name of the optional parameter will be pre.cmd.1. If you have a second command, then
-                        the next optional parameter you give is pre.cmd.2, and so on. There is no limit to the number of pre
-                        commands you can send. The commands will be sent in the order of their number, so pre.cmd.1 will be sent
-                        first, pre.cmd.2 will be sent next, etc. This is true regardless of what order they are added to the
-                        processor properties. The property names determine the order.</li>
-                    <li><strong>NOTE</strong>: If the optional property name does not follow the pattern pre.cmd.<em>integer</em>
-                        - then the command will not be sent. If a command is given which is not recognized by the server, then
-                        that will be logged.</li>
-                    <li>Supports expression language: true. FlowFile attributes can be used in commands using the expression language</li>
-                </ul>
-            </li>
-            <li>post.cmd.#
-                <ul>
-                    <li>Optional properties of this type can be added by the user and should be used for <strong>VERY
-                            RARE</strong> cases only. You will know when you need to use it when the recipient specifies that you must
-                        send FTP commands after the transfer. Otherwise, do not use it. These are the same as the pre commands.
+                        you leave off the .
                         (See pre commands above) except that these commands are sent after the file transfer.
                     </li>
                     <li>Supports expression language: true. FlowFile attributes can be used in commands using the expression language</li>
                 </ul>
             </li>
         </ul>
-</body>
+    </body>
 </html>

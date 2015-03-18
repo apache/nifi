@@ -23,11 +23,11 @@ import org.apache.nifi.components.ConfigurableComponent;
 
 /**
  * Generates documentation for an instance of a ConfigurableComponent
- * 
+ *
  *
  */
 public interface DocumentationWriter {
 
-	void write(ConfigurableComponent configurableComponent, OutputStream streamToWriteTo,
-			boolean includesAdditionalDocumentation) throws IOException;
+    void write(ConfigurableComponent configurableComponent, OutputStream streamToWriteTo,
+            boolean includesAdditionalDocumentation) throws IOException;
 }

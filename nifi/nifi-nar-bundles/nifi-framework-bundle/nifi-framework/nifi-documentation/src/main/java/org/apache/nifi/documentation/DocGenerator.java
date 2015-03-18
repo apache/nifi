@@ -43,140 +43,137 @@ import org.slf4j.LoggerFactory;
 /**
  * Uses the ExtensionManager to get a list of Processor, ControllerService, and
  * Reporting Task classes that were loaded and generate documentation for them.
- * 
+ *
  *
  */
 public class DocGenerator {
 
-	private static final Logger logger = LoggerFactory.getLogger(DocGenerator.class);
+    private static final Logger logger = LoggerFactory.getLogger(DocGenerator.class);
 
-	/**
-	 * Generates documentation into the work/docs dir specified by
-	 * NiFiProperties.
-	 * 
-	 * @param properties
-	 */
-	public static void generate(final NiFiProperties properties) {
-		@SuppressWarnings("rawtypes")
-		final Set<Class> extensionClasses = new HashSet<>();
-		extensionClasses.addAll(ExtensionManager.getExtensions(Processor.class));
-		extensionClasses.addAll(ExtensionManager.getExtensions(ControllerService.class));
-		extensionClasses.addAll(ExtensionManager.getExtensions(ReportingTask.class));
+    /**
+     * Generates documentation into the work/docs dir specified by
+     * NiFiProperties.
+     *
+     * @param properties
+     */
+    public static void generate(final NiFiProperties properties) {
+        @SuppressWarnings("rawtypes")
+        final Set<Class> extensionClasses = new HashSet<>();
+        extensionClasses.addAll(ExtensionManager.getExtensions(Processor.class));
+        extensionClasses.addAll(ExtensionManager.getExtensions(ControllerService.class));
+        extensionClasses.addAll(ExtensionManager.getExtensions(ReportingTask.class));
 
-		final File explodedNiFiDocsDir = properties.getComponentDocumentationWorkingDirectory();
+        final File explodedNiFiDocsDir = properties.getComponentDocumentationWorkingDirectory();
 
-		logger.debug("Generating documentation for: " + extensionClasses.size() + " components in: "
-				+ explodedNiFiDocsDir);
+        logger.debug("Generating documentation for: " + extensionClasses.size() + " components in: "
+                + explodedNiFiDocsDir);
 
-		for (final Class<?> extensionClass : extensionClasses) {
-			if (ConfigurableComponent.class.isAssignableFrom(extensionClass)) {
-				final Class<? extends ConfigurableComponent> componentClass = extensionClass
-						.asSubclass(ConfigurableComponent.class);
-				try {
-					logger.debug("Documenting: " + componentClass);
-					document(explodedNiFiDocsDir, componentClass);
-				} catch (Exception e) {
-					logger.warn("Unable to document: " + componentClass);
-				}
-			}
-		}
-	}
+        for (final Class<?> extensionClass : extensionClasses) {
+            if (ConfigurableComponent.class.isAssignableFrom(extensionClass)) {
+                final Class<? extends ConfigurableComponent> componentClass = extensionClass
+                        .asSubclass(ConfigurableComponent.class);
+                try {
+                    logger.debug("Documenting: " + componentClass);
+                    document(explodedNiFiDocsDir, componentClass);
+                } catch (Exception e) {
+                    logger.warn("Unable to document: " + componentClass);
+                }
+            }
+        }
+    }
 
-	/**
-	 * Generates the documentation for a particular configurable comopnent. Will
-	 * check to see if an "additionalDetails.html" file exists and will link
-	 * that from the generated documentation.
-	 * 
-	 * @param docsDir
-	 *            the work\docs\components dir to stick component documentation
-	 *            in
-	 * @param componentClass
-	 *            the class to document
-	 * @throws InstantiationException
-	 * @throws IllegalAccessException
-	 * @throws IOException
-	 * @throws InitializationException
-	 */
-	private static void document(final File docsDir, final Class<? extends ConfigurableComponent> componentClass)
-			throws InstantiationException, IllegalAccessException, IOException, InitializationException {
+    /**
+     * Generates the documentation for a particular configurable comopnent. Will
+     * check to see if an "additionalDetails.html" file exists and will link
+     * that from the generated documentation.
+     *
+     * @param docsDir the work\docs\components dir to stick component
+     * documentation in
+     * @param componentClass the class to document
+     * @throws InstantiationException
+     * @throws IllegalAccessException
+     * @throws IOException
+     * @throws InitializationException
+     */
+    private static void document(final File docsDir, final Class<? extends ConfigurableComponent> componentClass)
+            throws InstantiationException, IllegalAccessException, IOException, InitializationException {
 
-		final ConfigurableComponent component = componentClass.newInstance();
-		final ConfigurableComponentInitializer initializer = getComponentInitializer(componentClass);
-		initializer.initialize(component);
+        final ConfigurableComponent component = componentClass.newInstance();
+        final ConfigurableComponentInitializer initializer = getComponentInitializer(componentClass);
+        initializer.initialize(component);
 
-		final DocumentationWriter writer = getDocumentWriter(componentClass);
+        final DocumentationWriter writer = getDocumentWriter(componentClass);
 
-		final File directory = new File(docsDir, componentClass.getCanonicalName());
-		directory.mkdirs();
+        final File directory = new File(docsDir, componentClass.getCanonicalName());
+        directory.mkdirs();
 
-		final File baseDocumenationFile = new File(directory, "index.html");
-		if (baseDocumenationFile.exists()) {
-			logger.warn(baseDocumenationFile + " already exists, overwriting!");
-		}
+        final File baseDocumenationFile = new File(directory, "index.html");
+        if (baseDocumenationFile.exists()) {
+            logger.warn(baseDocumenationFile + " already exists, overwriting!");
+        }
 
-		try (final OutputStream output = new BufferedOutputStream(new FileOutputStream(baseDocumenationFile))) {
-			writer.write(component, output, hasAdditionalInfo(directory));
-		}
-	}
+        try (final OutputStream output = new BufferedOutputStream(new FileOutputStream(baseDocumenationFile))) {
+            writer.write(component, output, hasAdditionalInfo(directory));
+        }
+    }
 
-	/**
-	 * Returns the DocumentationWriter for the type of component. Currently
-	 * Processor, ControllerService, and ReportingTask are supported.
-	 * 
-	 * @param componentClass
-	 *            the class that requires a DocumentationWriter
-	 * @return a DocumentationWriter capable of generating documentation for
-	 *         that specific type of class
-	 */
-	private static DocumentationWriter getDocumentWriter(final Class<? extends ConfigurableComponent> componentClass) {
-		if (Processor.class.isAssignableFrom(componentClass)) {
-			return new HtmlProcessorDocumentationWriter();
-		} else if (ControllerService.class.isAssignableFrom(componentClass)) {
-			return new HtmlDocumentationWriter();
-		} else if (ReportingTask.class.isAssignableFrom(componentClass)) {
-			return new HtmlDocumentationWriter();
-		}
+    /**
+     * Returns the DocumentationWriter for the type of component. Currently
+     * Processor, ControllerService, and ReportingTask are supported.
+     *
+     * @param componentClass the class that requires a DocumentationWriter
+     * @return a DocumentationWriter capable of generating documentation for
+     * that specific type of class
+     */
+    private static DocumentationWriter getDocumentWriter(final Class<? extends ConfigurableComponent> componentClass) {
+        if (Processor.class.isAssignableFrom(componentClass)) {
+            return new HtmlProcessorDocumentationWriter();
+        } else if (ControllerService.class.isAssignableFrom(componentClass)) {
+            return new HtmlDocumentationWriter();
+        } else if (ReportingTask.class.isAssignableFrom(componentClass)) {
+            return new HtmlDocumentationWriter();
+        }
 
-		return null;
-	}
+        return null;
+    }
 
-	/**
-	 * Returns a ConfigurableComponentInitializer for the type of component.
-	 * Currently Processor, ControllerService and ReportingTask are supported.
-	 * 
-	 * @param componentClass
-	 *            the class that requires a ConfigurableComponentInitializer
-	 * @return a ConfigurableComponentInitializer capable of initializing that
-	 *         specific type of class
-	 */
-	private static ConfigurableComponentInitializer getComponentInitializer(
-			final Class<? extends ConfigurableComponent> componentClass) {
-		if (Processor.class.isAssignableFrom(componentClass)) {
-			return new ProcessorInitializer();
-		} else if (ControllerService.class.isAssignableFrom(componentClass)) {
-			return new ControllerServiceInitializer();
-		} else if (ReportingTask.class.isAssignableFrom(componentClass)) {
-			return new ReportingTaskingInitializer();
-		}
+    /**
+     * Returns a ConfigurableComponentInitializer for the type of component.
+     * Currently Processor, ControllerService and ReportingTask are supported.
+     *
+     * @param componentClass the class that requires a
+     * ConfigurableComponentInitializer
+     * @return a ConfigurableComponentInitializer capable of initializing that
+     * specific type of class
+     */
+    private static ConfigurableComponentInitializer getComponentInitializer(
+            final Class<? extends ConfigurableComponent> componentClass) {
+        if (Processor.class.isAssignableFrom(componentClass)) {
+            return new ProcessorInitializer();
+        } else if (ControllerService.class.isAssignableFrom(componentClass)) {
+            return new ControllerServiceInitializer();
+        } else if (ReportingTask.class.isAssignableFrom(componentClass)) {
+            return new ReportingTaskingInitializer();
+        }
 
-		return null;
-	}
+        return null;
+    }
 
-	/**
-	 * Checks to see if a directory to write to has an additionalDetails.html in
-	 * it already.
-	 * 
-	 * @param directory
-	 * @return true if additionalDetails.html exists, false otherwise.
-	 */
-	private static boolean hasAdditionalInfo(File directory) {
-		return directory.list(new FilenameFilter() {
+    /**
+     * Checks to see if a directory to write to has an additionalDetails.html in
+     * it already.
+     *
+     * @param directory
+     * @return true if additionalDetails.html exists, false otherwise.
+     */
+    private static boolean hasAdditionalInfo(File directory) {
+        return directory.list(new FilenameFilter() {
 
-			@Override
-			public boolean accept(File dir, String name) {
-				return name.equalsIgnoreCase(HtmlDocumentationWriter.ADDITIONAL_DETAILS_HTML);
-			}
+            @Override
+            public boolean accept(File dir, String name) {
+                return name.equalsIgnoreCase(HtmlDocumentationWriter.ADDITIONAL_DETAILS_HTML);
+            }
 
-		}).length > 0;
-	}
+        }).length > 0;
+    }
 }

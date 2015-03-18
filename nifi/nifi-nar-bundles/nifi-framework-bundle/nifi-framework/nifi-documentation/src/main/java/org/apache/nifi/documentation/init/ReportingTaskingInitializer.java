@@ -24,14 +24,14 @@ import org.apache.nifi.reporting.ReportingTask;
 
 /**
  * Initializes a ReportingTask using a MockReportingInitializationContext;
- * 
+ *
  *
  */
 public class ReportingTaskingInitializer implements ConfigurableComponentInitializer {
 
-	@Override
-	public void initialize(ConfigurableComponent component) throws InitializationException {
-		ReportingTask reportingTask = (ReportingTask) component;
-		reportingTask.initialize(new MockReportingInitializationContext());
-	}
+    @Override
+    public void initialize(ConfigurableComponent component) throws InitializationException {
+        ReportingTask reportingTask = (ReportingTask) component;
+        reportingTask.initialize(new MockReportingInitializationContext());
+    }
 }

@@ -26,30 +26,30 @@ import org.apache.nifi.controller.ControllerServiceLookup;
  * A Mock ControllerServiceLookup that can be used so that
  * ConfigurableComponents can be initialized for the purpose of generating
  * documentation
- * 
+ *
  *
  */
 public class MockControllerServiceLookup implements ControllerServiceLookup {
 
-	@Override
-	public ControllerService getControllerService(String serviceIdentifier) {
-		return null;
-	}
+    @Override
+    public ControllerService getControllerService(String serviceIdentifier) {
+        return null;
+    }
 
-	@Override
-	public boolean isControllerServiceEnabled(String serviceIdentifier) {
-		return false;
-	}
+    @Override
+    public boolean isControllerServiceEnabled(String serviceIdentifier) {
+        return false;
+    }
 
-	@Override
-	public boolean isControllerServiceEnabled(ControllerService service) {
-		return false;
-	}
+    @Override
+    public boolean isControllerServiceEnabled(ControllerService service) {
+        return false;
+    }
 
-	@Override
-	public Set<String> getControllerServiceIdentifiers(Class<? extends ControllerService> serviceType)
-			throws IllegalArgumentException {
-		return Collections.emptySet();
-	}
+    @Override
+    public Set<String> getControllerServiceIdentifiers(Class<? extends ControllerService> serviceType)
+            throws IllegalArgumentException {
+        return Collections.emptySet();
+    }
 
 }

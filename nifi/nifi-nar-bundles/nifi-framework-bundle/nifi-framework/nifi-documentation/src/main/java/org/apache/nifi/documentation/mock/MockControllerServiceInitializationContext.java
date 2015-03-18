@@ -22,19 +22,19 @@ import org.apache.nifi.controller.ControllerServiceLookup;
 /**
  * A Mock ControllerServiceInitializationContext so that ControllerServices can
  * be initialized for the purpose of generating documentation.
- * 
+ *
  *
  */
 public class MockControllerServiceInitializationContext implements ControllerServiceInitializationContext {
 
-	@Override
-	public String getIdentifier() {
-		return "";
-	}
+    @Override
+    public String getIdentifier() {
+        return "";
+    }
 
-	@Override
-	public ControllerServiceLookup getControllerServiceLookup() {
-		return new MockControllerServiceLookup();
-	}
+    @Override
+    public ControllerServiceLookup getControllerServiceLookup() {
+        return new MockControllerServiceLookup();
+    }
 
 }

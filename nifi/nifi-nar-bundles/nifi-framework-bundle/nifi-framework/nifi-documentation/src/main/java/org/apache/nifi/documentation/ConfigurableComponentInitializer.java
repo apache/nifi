@@ -27,12 +27,12 @@ import org.apache.nifi.reporting.InitializationException;
  */
 public interface ConfigurableComponentInitializer {
 
-	/**
-	 * Initializes a configurable component to the point that you can call
-	 * getPropertyDescriptors() on it
-	 * 
-	 * @param component the component to initialize
-	 * @throws InitializationException if the component could not be initialized
-	 */
-	void initialize(ConfigurableComponent component) throws InitializationException;
+    /**
+     * Initializes a configurable component to the point that you can call
+     * getPropertyDescriptors() on it
+     *
+     * @param component the component to initialize
+     * @throws InitializationException if the component could not be initialized
+     */
+    void initialize(ConfigurableComponent component) throws InitializationException;
 }
