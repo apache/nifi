@@ -692,7 +692,11 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             final FunnelDTO funnelDTO = FlowFromDOMFactory.getFunnel(funnelElement);
             final Funnel funnel = controller.createFunnel(funnelDTO.getId());
             funnel.setPosition(toPosition(funnelDTO.getPosition()));
-            processGroup.addFunnel(funnel);
+            
+            // Since this is called during startup, we want to add the funnel without enabling it
+            // and then tell the controller to enable it. This way, if the controller is not fully
+            // initialized, the starting of the funnel is delayed until the controller is ready.
+            processGroup.addFunnel(funnel, false);
             controller.startConnectable(funnel);
         }
 

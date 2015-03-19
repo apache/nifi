@@ -576,40 +576,57 @@ public class FlowController implements EventAccess, ControllerServiceProvider, H
      * flag of true to now start
      * </p>
      */
-    public void startDelayed() {
+    public void onFlowInitialized(final boolean startDelayedComponents) {
         writeLock.lock();
         try {
-            LOG.info("Starting {} processors/ports/funnels", (startConnectablesAfterInitialization.size() + startRemoteGroupPortsAfterInitialization.size()));
-            for (final Connectable connectable : startConnectablesAfterInitialization) {
-                if (connectable.getScheduledState() == ScheduledState.DISABLED) {
-                    continue;
-                }
-
-                try {
-                    if (connectable instanceof ProcessorNode) {
-                        connectable.getProcessGroup().startProcessor((ProcessorNode) connectable);
-                    } else {
-                        startConnectable(connectable);
+            if ( startDelayedComponents ) {
+                LOG.info("Starting {} processors/ports/funnels", (startConnectablesAfterInitialization.size() + startRemoteGroupPortsAfterInitialization.size()));
+                for (final Connectable connectable : startConnectablesAfterInitialization) {
+                    if (connectable.getScheduledState() == ScheduledState.DISABLED) {
+                        continue;
                     }
-                } catch (final Throwable t) {
-                    LOG.error("Unable to start {} due to {}", new Object[]{connectable, t});
+    
+                    try {
+                        if (connectable instanceof ProcessorNode) {
+                            connectable.getProcessGroup().startProcessor((ProcessorNode) connectable);
+                        } else {
+                            startConnectable(connectable);
+                        }
+                    } catch (final Throwable t) {
+                        LOG.error("Unable to start {} due to {}", new Object[]{connectable, t});
+                    }
                 }
-            }
-
-            startConnectablesAfterInitialization.clear();
-
-            int startedTransmitting = 0;
-            for (final RemoteGroupPort remoteGroupPort : startRemoteGroupPortsAfterInitialization) {
-                try {
-                    remoteGroupPort.getRemoteProcessGroup().startTransmitting(remoteGroupPort);
-                    startedTransmitting++;
-                } catch (final Throwable t) {
-                    LOG.error("Unable to start transmitting with {} due to {}", new Object[]{remoteGroupPort, t});
+    
+                startConnectablesAfterInitialization.clear();
+    
+                int startedTransmitting = 0;
+                for (final RemoteGroupPort remoteGroupPort : startRemoteGroupPortsAfterInitialization) {
+                    try {
+                        remoteGroupPort.getRemoteProcessGroup().startTransmitting(remoteGroupPort);
+                        startedTransmitting++;
+                    } catch (final Throwable t) {
+                        LOG.error("Unable to start transmitting with {} due to {}", new Object[]{remoteGroupPort, t});
+                    }
                 }
+    
+                LOG.info("Started {} Remote Group Ports transmitting", startedTransmitting);
+                startRemoteGroupPortsAfterInitialization.clear();
+            } else {
+                // We don't want to start all of the delayed components. However, funnels need to be started anyway
+                // because we don't provide users the ability to start or stop them - they are just notional.
+                for (final Connectable connectable : startConnectablesAfterInitialization) {
+                    try {
+                        if (connectable instanceof Funnel) {
+                            startConnectable(connectable);
+                        }
+                    } catch (final Throwable t) {
+                        LOG.error("Unable to start {} due to {}", new Object[]{connectable, t});
+                    }
+                }
+                
+                startConnectablesAfterInitialization.clear();
+                startRemoteGroupPortsAfterInitialization.clear();
             }
-
-            LOG.info("Started {} Remote Group Ports transmitting", startedTransmitting);
-            startRemoteGroupPortsAfterInitialization.clear();
         } finally {
             writeLock.unlock();
         }
