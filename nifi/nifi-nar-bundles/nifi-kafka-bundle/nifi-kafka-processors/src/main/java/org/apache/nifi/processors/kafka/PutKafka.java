@@ -309,64 +309,61 @@ public class PutKafka extends AbstractProcessor {
                                     data = Arrays.copyOfRange(baos.getUnderlyingBuffer(), 0, baos.size() - delimiterBytes.length);
                                 }
                                 
-                                createMessage: if ( data != null ) {
+                                if ( data != null ) {
                                     // If the message has no data, ignore it.
-                                    if ( data.length == 0 ) {
-                                        data = null;
-                                        baos.reset();
-                                        break createMessage;
-                                    }
-                                    
-                                    // either we ran out of data or we reached the end of the message. 
-                                    // Either way, create the message because it's ready to send.
-                                    final KeyedMessage<byte[], byte[]> message;
-                                    if ( key == null ) {
-                                        message = new KeyedMessage<>(topic, data);
-                                    } else {
-                                        message = new KeyedMessage<>(topic, keyBytes, data);
-                                    }
-                                    
-                                    // Add the message to the list of messages ready to send. If we've reached our
-                                    // threshold of how many we're willing to send (or if we're out of data), go ahead
-                                    // and send the whole List.
-                                    messages.add(message);
-                                    messageBytes += data.length;
-                                    if ( messageBytes >= maxBufferSize || streamFinished ) {
-                                        // send the messages, then reset our state.
-                                        try {
-                                            producer.send(messages);
-                                        } catch (final Exception e) {
-                                            // we wrap the general exception in ProcessException because we want to separate
-                                            // failures in sending messages from general Exceptions that would indicate bugs
-                                            // in the Processor. Failure to send a message should be handled appropriately, but
-                                            // we don't want to catch the general Exception or RuntimeException in order to catch
-                                            // failures from Kafka's Producer.
-                                            throw new ProcessException("Failed to send messages to Kafka", e);
+                                    if ( data.length != 0 ) {
+                                        // either we ran out of data or we reached the end of the message.
+                                        // Either way, create the message because it's ready to send.
+                                        final KeyedMessage<byte[], byte[]> message;
+                                        if (key == null) {
+                                            message = new KeyedMessage<>(topic, data);
+                                        } else {
+                                            message = new KeyedMessage<>(topic, keyBytes, data);
                                         }
-                                        
-                                        messagesSent.addAndGet(messages.size());    // count number of messages sent
-                                        
-                                        // reset state
-                                        messages.clear();
-                                        messageBytes = 0;
-                                        
-                                        // We've successfully sent a batch of messages. Keep track of the byte offset in the
-                                        // FlowFile of the last successfully sent message. This way, if the messages cannot
-                                        // all be successfully sent, we know where to split off the data. This allows us to then
-                                        // split off the first X number of bytes and send to 'success' and then split off the rest
-                                        // and send them to 'failure'.
-                                        lastMessageOffset.set(in.getBytesConsumed());
+
+                                        // Add the message to the list of messages ready to send. If we've reached our
+                                        // threshold of how many we're willing to send (or if we're out of data), go ahead
+                                        // and send the whole List.
+                                        messages.add(message);
+                                        messageBytes += data.length;
+                                        if (messageBytes >= maxBufferSize || streamFinished) {
+                                            // send the messages, then reset our state.
+                                            try {
+                                                producer.send(messages);
+                                            } catch (final Exception e) {
+                                                // we wrap the general exception in ProcessException because we want to separate
+                                                // failures in sending messages from general Exceptions that would indicate bugs
+                                                // in the Processor. Failure to send a message should be handled appropriately, but
+                                                // we don't want to catch the general Exception or RuntimeException in order to catch
+                                                // failures from Kafka's Producer.
+                                                throw new ProcessException("Failed to send messages to Kafka", e);
+                                            }
+
+                                            messagesSent.addAndGet(messages.size());    // count number of messages sent
+
+                                            // reset state
+                                            messages.clear();
+                                            messageBytes = 0;
+
+                                            // We've successfully sent a batch of messages. Keep track of the byte offset in the
+                                            // FlowFile of the last successfully sent message. This way, if the messages cannot
+                                            // all be successfully sent, we know where to split off the data. This allows us to then
+                                            // split off the first X number of bytes and send to 'success' and then split off the rest
+                                            // and send them to 'failure'.
+                                            lastMessageOffset.set(in.getBytesConsumed());
+                                        }
                                     }
-                                    
                                     // reset BAOS so that we can start a new message.
                                     baos.reset();
                                     data = null;
+
                                 }
                             }
 
                             // If there are messages left, send them
                             if ( !messages.isEmpty() ) {
                                 try {
+                                    messagesSent.addAndGet(messages.size());    // add count of messages
                                     producer.send(messages);
                                 } catch (final Exception e) {
                                     throw new ProcessException("Failed to send messages to Kafka", e);
@@ -377,7 +374,6 @@ public class PutKafka extends AbstractProcessor {
                 });
                 
                 final long nanos = System.nanoTime() - start;
-                
                 session.getProvenanceReporter().send(flowFile, "kafka://" + topic, "Sent " + messagesSent.get() + " messages");
                 session.transfer(flowFile, REL_SUCCESS);
                 getLogger().info("Successfully sent {} messages to Kafka for {} in {} millis", new Object[] {messagesSent.get(), flowFile, TimeUnit.NANOSECONDS.toMillis(nanos)});
