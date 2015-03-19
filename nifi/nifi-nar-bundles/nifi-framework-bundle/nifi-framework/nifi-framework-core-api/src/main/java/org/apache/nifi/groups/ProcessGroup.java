@@ -192,12 +192,6 @@ public interface ProcessGroup {
      */
     void stopOutputPort(Port port);
 
-    /**
-     * Stops the given Funnel
-     *
-     * @param processor
-     */
-    void stopFunnel(Funnel funnel);
 
     /**
      * Disables the given Processor

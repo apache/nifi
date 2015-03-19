@@ -1108,8 +1108,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         }
     }
 
-    @Override
-    public void stopFunnel(final Funnel funnel) {
+    private void stopFunnel(final Funnel funnel) {
         readLock.lock();
         try {
             if (!funnels.containsKey(funnel.getIdentifier())) {
