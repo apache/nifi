@@ -22,7 +22,12 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.*;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.ReadsAttribute;
+import org.apache.nifi.annotation.documentation.ReadsAttributes;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.documentation.WritesAttribute;
+import org.apache.nifi.annotation.documentation.WritesAttributes;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
@@ -30,6 +35,9 @@ import java.util.*;
 
 @Tags({"example"})
 @CapabilityDescription("Provide a description")
+@SeeAlso({})
+@ReadsAttributes({@ReadsAttribute(attribute="", description="")})
+@WritesAttributes({@WritesAttribute(attribute="", description="")})
 public class MyProcessor extends AbstractProcessor {
 
     public static final PropertyDescriptor MY_PROPERTY = new PropertyDescriptor
