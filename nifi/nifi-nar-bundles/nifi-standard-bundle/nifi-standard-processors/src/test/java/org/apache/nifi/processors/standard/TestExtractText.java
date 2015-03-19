@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.nifi.processors.standard.ExtractText;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -43,7 +42,7 @@ public class TestExtractText {
         testRunner.setProperty("regex.result1", "(?s)(.*)");
         testRunner.setProperty("regex.result2", "(?s).*(bar1).*");
         testRunner.setProperty("regex.result3", "(?s).*?(bar\\d).*");	// reluctant gets first
-        testRunner.setProperty("regex.result4", "(?s).*?(?:bar\\d).*?(bar\\d).*"); // reluctant w/ repeated pattern gets second
+        testRunner.setProperty("regex.result4", "(?s).*?(?:bar\\d).*?(bar\\d).*?(bar3).*"); // reluctant w/ repeated pattern gets second
         testRunner.setProperty("regex.result5", "(?s).*(bar\\d).*");	// greedy gets last
         testRunner.setProperty("regex.result6", "(?s)^(.*)$");
         testRunner.setProperty("regex.result7", "(?s)(XXX)");
@@ -57,6 +56,10 @@ public class TestExtractText {
         out.assertAttributeEquals("regex.result2", "bar1");
         out.assertAttributeEquals("regex.result3", "bar1");
         out.assertAttributeEquals("regex.result4", "bar2");
+        out.assertAttributeEquals("regex.result4.0", SAMPLE_STRING);
+        out.assertAttributeEquals("regex.result4.1", "bar2");
+        out.assertAttributeEquals("regex.result4.2", "bar3");
+        out.assertAttributeNotExists("regex.result4.3");
         out.assertAttributeEquals("regex.result5", "bar3");
         out.assertAttributeEquals("regex.result6", SAMPLE_STRING);
         out.assertAttributeEquals("regex.result7", null);
@@ -207,14 +210,6 @@ public class TestExtractText {
         testRunner.run();
         testRunner.assertAllFlowFilesTransferred(ExtractText.REL_MATCH, 0);
 
-    }
-
-    @Test(expected = java.lang.AssertionError.class)
-    public void testTooManyCaptureGroups() throws UnsupportedEncodingException {
-        final TestRunner testRunner = TestRunners.newTestRunner(new ExtractText());
-        testRunner.setProperty("regex.result1", "(.)(.)");
-        testRunner.enqueue(SAMPLE_STRING.getBytes("UTF-8"));
-        testRunner.run();
     }
 
     @Test

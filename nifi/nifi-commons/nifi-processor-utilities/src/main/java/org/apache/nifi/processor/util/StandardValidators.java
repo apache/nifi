@@ -287,6 +287,28 @@ public class StandardValidators {
         return createAttributeExpressionLanguageValidator(expectedResultType, true);
     }
 
+    public static Validator createDataSizeBoundsValidator(final long minBytesInclusive, final long maxBytesInclusive) {
+        return new Validator() {
+
+            @Override
+            public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+                final ValidationResult vr = DATA_SIZE_VALIDATOR.validate(subject, input, context);
+                if(!vr.isValid()){
+                    return vr;
+                }
+                final long dataSizeBytes = DataUnit.parseDataSize(input, DataUnit.B).longValue();
+                if(dataSizeBytes < minBytesInclusive){
+                    return new ValidationResult.Builder().subject(subject).input(input).valid(false).explanation("Cannot be smaller than " + minBytesInclusive + " bytes").build();
+                }
+                if(dataSizeBytes > maxBytesInclusive){
+                    return new ValidationResult.Builder().subject(subject).input(input).valid(false).explanation("Cannot be larger than " + maxBytesInclusive + " bytes").build();
+                }
+                return new ValidationResult.Builder().subject(subject).input(input).valid(true).build();
+            }
+        };
+
+    }
+
     public static Validator createRegexMatchingValidator(final Pattern pattern) {
         return new Validator() {
             @Override

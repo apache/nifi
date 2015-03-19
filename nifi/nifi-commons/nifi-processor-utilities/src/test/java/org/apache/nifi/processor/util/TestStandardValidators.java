@@ -51,4 +51,35 @@ public class TestStandardValidators {
         vr = val.validate("TimePeriodTest", "1 sec", null);
         assertTrue(vr.isValid());
     }
+    
+    @Test
+    public void testDataSizeBoundsValidator() {
+        Validator val = StandardValidators.createDataSizeBoundsValidator(100, 1000);
+        ValidationResult vr; 
+        
+        vr = val.validate("DataSizeBounds", "5 GB", null);
+        assertFalse(vr.isValid());
+        
+        vr = val.validate("DataSizeBounds", "0 B", null);
+        assertFalse(vr.isValid());
+
+        vr = val.validate("DataSizeBounds", "99 B", null);
+        assertFalse(vr.isValid());
+        
+        vr = val.validate("DataSizeBounds", "100 B", null);
+        assertTrue(vr.isValid());
+
+        vr = val.validate("DataSizeBounds", "999 B", null);
+        assertTrue(vr.isValid());
+
+        vr = val.validate("DataSizeBounds", "1000 B", null);
+        assertTrue(vr.isValid());
+        
+        vr = val.validate("DataSizeBounds", "1001 B", null);
+        assertFalse(vr.isValid());
+        
+        vr = val.validate("DataSizeBounds", "water", null);
+        assertFalse(vr.isValid());
+        
+    }
 }
