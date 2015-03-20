@@ -236,6 +236,8 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
 
         if (dynamicRelationships.size() > 0) {
             writeSimpleElement(xmlStreamWriter, "h3", "Dynamic Relationships: ");
+            xmlStreamWriter.writeStartElement("p");
+            xmlStreamWriter.writeCharacters("A Dynamic Relationship may be created based on how the user configures the Processor.");
             xmlStreamWriter.writeStartElement("table");
             xmlStreamWriter.writeStartElement("tr");
             writeSimpleElement(xmlStreamWriter, "th", "Name");
@@ -248,6 +250,7 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
                 writeSimpleElement(xmlStreamWriter, "td", dynamicRelationship.description());
                 xmlStreamWriter.writeEndElement();
             }
+            xmlStreamWriter.writeEndElement();
             xmlStreamWriter.writeEndElement();
         }
     }
