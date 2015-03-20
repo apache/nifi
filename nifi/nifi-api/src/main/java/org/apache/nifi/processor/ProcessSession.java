@@ -484,6 +484,9 @@ public interface ProcessSession {
     /**
      * Executes the given callback against the contents corresponding to the
      * given FlowFile.
+     * 
+     * <i>Note</i>: The OutputStream provided to the given OutputStreamCallback 
+     * will not be accessible once this method has completed its execution.
      *
      * @param source
      * @param reader
@@ -498,9 +501,11 @@ public interface ProcessSession {
      * destroyed, and the session is automatically rolled back and what is left
      * of the FlowFile is destroyed.
      * @throws FlowFileAccessException if some IO problem occurs accessing
-     * FlowFile content
+     * FlowFile content; if an attempt is made to access the  InputStream 
+     * provided to the given InputStreamCallback after this method completed its
+     * execution
      */
-    void read(FlowFile source, InputStreamCallback reader);
+    void read(FlowFile source, InputStreamCallback reader) throws FlowFileAccessException;
 
     /**
      * Combines the content of all given source FlowFiles into a single given
@@ -560,7 +565,10 @@ public interface ProcessSession {
 
     /**
      * Executes the given callback against the content corresponding to the
-     * given FlowFile
+     * given FlowFile.
+     * 
+     * <i>Note</i>: The OutputStream provided to the given OutputStreamCallback 
+     * will not be accessible once this method has completed its execution.     
      *
      * @param source
      * @param writer
@@ -576,13 +584,19 @@ public interface ProcessSession {
      * destroyed, and the session is automatically rolled back and what is left
      * of the FlowFile is destroyed.
      * @throws FlowFileAccessException if some IO problem occurs accessing
-     * FlowFile content
+     * FlowFile content; if an attempt is made to access the OutputStream 
+     * provided to the given OutputStreamCallaback after this method completed 
+     * its execution
      */
-    FlowFile write(FlowFile source, OutputStreamCallback writer);
+    FlowFile write(FlowFile source, OutputStreamCallback writer) throws FlowFileAccessException;
 
     /**
      * Executes the given callback against the content corresponding to the
-     * given flow file
+     * given flow file.
+     * 
+     * <i>Note</i>: The InputStream & OutputStream provided to the given 
+     * StreamCallback will not be accessible once this method has completed its 
+     * execution.     
      *
      * @param source
      * @param writer
@@ -598,20 +612,28 @@ public interface ProcessSession {
      * destroyed, and the session is automatically rolled back and what is left
      * of the FlowFile is destroyed.
      * @throws FlowFileAccessException if some IO problem occurs accessing
-     * FlowFile content
+     * FlowFile content; if an attempt is made to access the InputStream or 
+     * OutputStream provided to the given StreamCallback after this method 
+     * completed its execution
      */
-    FlowFile write(FlowFile source, StreamCallback writer);
+    FlowFile write(FlowFile source, StreamCallback writer) throws FlowFileAccessException;
 
     /**
      * Executes the given callback against the content corresponding to the
      * given FlowFile, such that any data written to the OutputStream of the
      * content will be appended to the end of FlowFile.
+     * 
+     * <i>Note</i>: The OutputStream provided to the given OutputStreamCallback 
+     * will not be accessible once this method has completed its execution.
      *
      * @param source
      * @param writer
      * @return
+     * @throws FlowFileAccessException if an attempt is made to access the 
+     * OutputStream provided to the given OutputStreamCallaback after this method
+     * completed its execution
      */
-    FlowFile append(FlowFile source, OutputStreamCallback writer);
+    FlowFile append(FlowFile source, OutputStreamCallback writer) throws FlowFileAccessException;
 
     /**
      * Writes to the given FlowFile all content from the given content path.

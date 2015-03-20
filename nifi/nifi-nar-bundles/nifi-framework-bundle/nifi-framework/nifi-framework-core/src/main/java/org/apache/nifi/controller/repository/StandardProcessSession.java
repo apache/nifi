@@ -46,6 +46,7 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.io.ByteCountingInputStream;
 import org.apache.nifi.controller.repository.io.ByteCountingOutputStream;
+import org.apache.nifi.controller.repository.io.DisableOnCloseInputStream;
 import org.apache.nifi.controller.repository.io.DisableOnCloseOutputStream;
 import org.apache.nifi.controller.repository.io.FlowFileAccessInputStream;
 import org.apache.nifi.controller.repository.io.FlowFileAccessOutputStream;
@@ -1735,7 +1736,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
         try (final InputStream rawIn = getInputStream(source, record.getCurrentClaim(), record.getCurrentClaimOffset());
                 final InputStream limitedIn = new LimitedInputStream(rawIn, source.getSize());
-                final ByteCountingInputStream countingStream = new ByteCountingInputStream(limitedIn, this.bytesRead)) {
+                final InputStream disableOnCloseIn = new DisableOnCloseInputStream(limitedIn);
+                final ByteCountingInputStream countingStream = new ByteCountingInputStream(disableOnCloseIn, this.bytesRead)) {
 
             // We want to differentiate between IOExceptions thrown by the repository and IOExceptions thrown from
             // Processor code. As a result, as have the FlowFileAccessInputStream that catches IOException from the repository
@@ -2180,9 +2182,10 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
                 try (final InputStream rawIn = getInputStream(source, currClaim, record.getCurrentClaimOffset());
                         final InputStream limitedIn = new LimitedInputStream(rawIn, source.getSize());
-                        final InputStream countingIn = new ByteCountingInputStream(limitedIn, bytesRead);
-                        final OutputStream disableOnClose = new DisableOnCloseOutputStream(currentWriteClaimStream);
-                        final OutputStream countingOut = new ByteCountingOutputStream(disableOnClose, writtenHolder)) {
+                        final InputStream disableOnCloseIn = new DisableOnCloseInputStream(limitedIn);
+                        final InputStream countingIn = new ByteCountingInputStream(disableOnCloseIn, bytesRead);
+                        final OutputStream disableOnCloseOut = new DisableOnCloseOutputStream(currentWriteClaimStream);
+                        final OutputStream countingOut = new ByteCountingOutputStream(disableOnCloseOut, writtenHolder)) {
 
                     recursionSet.add(source);
 
