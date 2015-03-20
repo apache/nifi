@@ -41,13 +41,13 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 
 @EventDriven
@@ -67,7 +67,10 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
         + "If any provided Regular Expression matches, the FlowFile(s) will be routed to 'matched'. "
         + "If no provided Regular Expression matches, the FlowFile will be routed to 'unmatched' "
         + "and no attributes will be applied to the FlowFile.")
-
+@DynamicProperty(name="A FlowFile attribute", value="A Regular Expression with one or more capturing group", 
+    description="The first capture group, if any found, will be placed into that attribute name."
+        + "But all catpure groups, including the matching string sequence itself will also be "
+        + "provided at that attribute name with an index value provided.")
 public class ExtractText extends AbstractProcessor {
 
     public static final PropertyDescriptor CHARACTER_SET = new PropertyDescriptor.Builder()
