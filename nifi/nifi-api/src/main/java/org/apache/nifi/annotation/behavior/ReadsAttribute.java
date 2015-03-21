@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.annotation.documentation;
+package org.apache.nifi.annotation.behavior;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;

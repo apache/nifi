@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.annotation.documentation;
+package org.apache.nifi.annotation.behavior;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -25,7 +25,7 @@ import java.lang.annotation.Target;
 
 /**
  * Annotation that may be placed on a {@link org.apache.nifi.processor.Processor Processor} 
- * indicating that this processor writes/updates a specific FlowFile attribute.
+ * indicating that this processor writes/updates specific FlowFile attributes.
  * 
  * @author 
  *
@@ -35,17 +35,10 @@ import java.lang.annotation.Target;
 @Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited
-public @interface WritesAttribute {
-    
+public @interface WritesAttributes {
     /**
-     * The FlowFile attribute that is being created or updated
+     * A list of FlowFile attributes that may be written or updated 
      * @return
      */
-    public String attribute();
-    
-    /**
-     * A description of what is being written to the FlowFile attribute
-     * @return
-     */
-    public String description() default "";
+    public WritesAttribute[] value();
 }

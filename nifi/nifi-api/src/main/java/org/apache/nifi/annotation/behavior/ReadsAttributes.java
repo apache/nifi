@@ -14,8 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.annotation.documentation;
+package org.apache.nifi.annotation.behavior;
 
+import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Inherited;
@@ -23,34 +24,21 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.processor.Processor;
-import org.apache.nifi.processor.Relationship;
-
 /**
- * Annotation to indicate that a {@link Processor} supports dynamic
- * relationship. A dynamic {@link Relationship} is one where the relationship is
- * generated based on a user defined {@link PropertyDescriptor}
+ * Annotation that may be placed on a {@link org.apache.nifi.processor.Processor Processor} 
+ * indicating that this processor reads specific FlowFile attributes.
  * 
- * @author
+ * @author 
  *
  */
 @Documented
-@Target({ ElementType.TYPE })
+@Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited
-public @interface DynamicRelationship {
+public @interface ReadsAttributes {
     /**
-     * Describes the name(s) of the dynamic relationship(s)
-     * 
-     * @return a description of the name(s) of the dynamic relationship(s)
+     * A list of attributes that may be read
+     * @return
      */
-    public String name();
-
-    /**
-     * Describes the data that should be routed to the dynamic relationship(s)
-     * 
-     * @return a description the data that should be routed to the dynamic relationship(s)
-     */
-    public String description();
+    public ReadsAttribute[] value();
 }

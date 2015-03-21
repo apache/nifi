@@ -17,17 +17,18 @@
 package org.apache.nifi.documentation.html;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.annotation.documentation.DynamicRelationship;
-import org.apache.nifi.annotation.documentation.ReadsAttribute;
-import org.apache.nifi.annotation.documentation.ReadsAttributes;
-import org.apache.nifi.annotation.documentation.WritesAttribute;
-import org.apache.nifi.annotation.documentation.WritesAttributes;
+import org.apache.nifi.annotation.behavior.DynamicRelationship;
+import org.apache.nifi.annotation.behavior.ReadsAttribute;
+import org.apache.nifi.annotation.behavior.ReadsAttributes;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
@@ -151,9 +152,7 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
 
         ReadsAttributes readsAttributes = processor.getClass().getAnnotation(ReadsAttributes.class);
         if (readsAttributes != null) {
-            for (ReadsAttribute readAttribute : readsAttributes.value()) {
-                attributes.add(readAttribute);
-            }
+            attributes.addAll(Arrays.asList(readsAttributes.value()));
         }
 
         ReadsAttribute readsAttribute = processor.getClass().getAnnotation(ReadsAttribute.class);
@@ -176,9 +175,7 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
 
         WritesAttributes writesAttributes = processor.getClass().getAnnotation(WritesAttributes.class);
         if (writesAttributes != null) {
-            for (WritesAttribute writeAttribute : writesAttributes.value()) {
-                attributes.add(writeAttribute);
-            }
+            attributes.addAll(Arrays.asList(writesAttributes.value()));
         }
 
         WritesAttribute writeAttribute = processor.getClass().getAnnotation(WritesAttribute.class);

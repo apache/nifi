@@ -122,7 +122,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
      * @throws XMLStreamException
      *             thrown if there was a problem writing to the XML stream
      */
-    private final void writeBody(final ConfigurableComponent configurableComponent,
+    private void writeBody(final ConfigurableComponent configurableComponent,
             final XMLStreamWriter xmlStreamWriter, final boolean hasAdditionalDetails)
             throws XMLStreamException {
         xmlStreamWriter.writeStartElement("body");
