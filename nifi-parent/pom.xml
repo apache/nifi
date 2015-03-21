@@ -116,8 +116,8 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-assembly-plugin</artifactId>
                     <version>2.5.2</version>
-		    <configuration>
-                         <tarLongFileMode>gnu</tarLongFileMode>
+                    <configuration>
+                        <tarLongFileMode>gnu</tarLongFileMode>
                     </configuration>
                 </plugin>
                 <plugin>
@@ -194,6 +194,11 @@
                     <artifactId>antlr3-maven-plugin</artifactId>
                     <version>3.5.2</version>
                 </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-checkstyle-plugin</artifactId>
+                    <version>2.15</version>
+                </plugin>                
             </plugins>
         </pluginManagement>
         <plugins>
@@ -234,6 +239,111 @@
                 </executions>
             </plugin>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <configuration>
+                    <checkstyleRules>
+                        <module name="Checker">
+                            <property name="charset" value="UTF-8" />
+                            <property name="severity" value="warning" />
+                            <!-- Checks for whitespace                               -->
+                            <!-- See http://checkstyle.sf.net/config_whitespace.html -->
+                            <module name="FileTabCharacter">
+                                <property name="eachLine" value="true" />
+                            </module>
+                            <module name="TreeWalker">
+                                <module name="RegexpSinglelineJava">
+                                    <property name="format" value="\s+$" />
+                                    <property name="message" value="Line has trailing whitespace." />
+                                </module>
+                                <module name="RegexpSinglelineJava">
+                                    <property name="format" value="[@]see\s+[{][@]link" />
+                                    <property name="message" value="Javadoc @see does not need @link: pick one or the other." />
+                                </module>
+                                <module name="RegexpSinglelineJava">
+                                    <property name="format" value="jline[.]internal[.]Preconditions" />
+                                    <property name="message" value="Please use Guava Preconditions not JLine" />
+                                </module>
+                                <module name="OuterTypeFilename" />
+                                <module name="LineLength">
+                                    <!-- needs extra, because Eclipse formatter ignores the ending left brace -->
+                                    <property name="max" value="200" />
+                                    <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|ftp://" />
+                                </module>
+                                <module name="AvoidStarImport" />
+                                <module name="UnusedImports">
+                                    <property name="processJavadoc" value="true" />
+                                </module>
+                                <module name="NoLineWrap" />
+                                <module name="LeftCurly">
+                                    <property name="maxLineLength" value="160" />
+                                </module>
+                                <module name="RightCurly" />
+                                <module name="RightCurly">
+                                    <property name="option" value="alone" />
+                                    <property name="tokens" value="CLASS_DEF, METHOD_DEF, CTOR_DEF, LITERAL_FOR, LITERAL_WHILE, LITERAL_DO, STATIC_INIT, INSTANCE_INIT" />
+                                </module>
+                                <module name="SeparatorWrap">
+                                    <property name="tokens" value="DOT" />
+                                    <property name="option" value="nl" />
+                                </module>
+                                <module name="SeparatorWrap">
+                                    <property name="tokens" value="COMMA" />
+                                    <property name="option" value="EOL" />
+                                </module>
+                                <module name="PackageName">
+                                    <property name="format" value="^[a-z]+(\.[a-z][a-zA-Z0-9]*)*$" />
+                                </module>
+                                <module name="MethodTypeParameterName">
+                                    <property name="format" value="(^[A-Z][0-9]?)$|([A-Z][a-zA-Z0-9]*[T]$)" />
+                                </module>
+                                <module name="MethodParamPad" />
+                                <module name="OperatorWrap">
+                                    <property name="option" value="NL" />
+                                    <property name="tokens" value="BAND, BOR, BSR, BXOR, DIV, EQUAL, GE, GT, LAND, LE, LITERAL_INSTANCEOF, LOR, LT, MINUS, MOD, NOT_EQUAL, QUESTION, SL, SR, STAR " />
+                                </module>
+                                <module name="AnnotationLocation">
+                                    <property name="tokens" value="CLASS_DEF, INTERFACE_DEF, ENUM_DEF, METHOD_DEF, CTOR_DEF" />
+                                </module>
+                                <module name="AnnotationLocation">
+                                    <property name="tokens" value="VARIABLE_DEF" />
+                                    <property name="allowSamelineMultipleAnnotations" value="true" />
+                                </module>
+                                <module name="NonEmptyAtclauseDescription" />
+                                <module name="JavadocTagContinuationIndentation" />
+                                <module name="JavadocMethod">
+                                    <property name="allowMissingJavadoc" value="true" />
+                                    <property name="allowMissingParamTags" value="true" />
+                                    <property name="allowMissingThrowsTags" value="true" />
+                                    <property name="allowMissingReturnTag" value="true" />
+                                    <property name="allowedAnnotations" value="Override,Test,BeforeClass,AfterClass,Before,After" />
+                                    <property name="allowThrowsTagsForSubclasses" value="true" />
+                                </module>
+                                <module name="SingleLineJavadoc" />
+                            </module>
+                        </module>
+                    </checkstyleRules>
+                    <violationSeverity>warning</violationSeverity>
+                    <includeTestSourceDirectory>true</includeTestSourceDirectory>
+                    <excludes>**/HelpMojo.java</excludes>
+                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.puppycrawl.tools</groupId>
+                        <artifactId>checkstyle</artifactId>
+                        <version>6.3</version>
+                    </dependency>
+                </dependencies>
+                <executions>
+                    <execution>
+                        <id>check-style</id>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>            
+            <plugin>
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
@@ -243,7 +353,29 @@
                         <exclude>DEPENDENCIES</exclude> <!-- auto generated file by apache's maven config while building sources.zip -->
                     </excludes>
                 </configuration>
-            </plugin>
+                <dependencies>
+                    <!-- workaround for RAT-158 -->
+                    <dependency>
+                        <groupId>org.apache.maven.doxia</groupId>
+                        <artifactId>doxia-core</artifactId>
+                        <version>1.6</version>
+                        <exclusions>
+                            <exclusion>
+                                <groupId>xerces</groupId>
+                                <artifactId>xercesImpl</artifactId>
+                            </exclusion>
+                        </exclusions>
+                    </dependency>
+                </dependencies>
+                <executions>
+                    <execution>
+                        <id>check-licenses</id>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>             
             <plugin>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-nar-maven-plugin</artifactId>
@@ -252,27 +384,4 @@
             </plugin>
         </plugins>
     </build>
-    <profiles>
-        <profile>
-            <!-- Automatically check for licenses.
-            Activate with -P check-licenses -->
-            <id>check-licenses</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.rat</groupId>
-                        <artifactId>apache-rat-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>check</goal>
-                                </goals>
-                                <phase>verify</phase>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
 </project>
