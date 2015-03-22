@@ -39,6 +39,7 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -120,6 +121,7 @@ public class DBCPServiceTest {
      * Connect, create table, insert, select, drop table. 
      * 
      */
+    @Ignore
     @Test
     public void testExternalJDBCDriverUsage() throws InitializationException, SQLException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
@@ -244,7 +246,6 @@ public class DBCPServiceTest {
     	
     	ClassLoader parent = Thread.currentThread().getContextClassLoader();
     	URLClassLoader ucl = new URLClassLoader(urls,parent);
-//    	URLClassLoader ucl = new URLClassLoader(urls);
     	
     	Class<?> clazz = Class.forName("org.mariadb.jdbc.Driver", true, ucl);
     	assertNotNull(clazz);
@@ -253,19 +254,32 @@ public class DBCPServiceTest {
     	Driver shim   = new DriverShim(driver);
     	DriverManager.registerDriver( shim );
     	
-    	// Driver is found when using URL ClassLoader
-    	assertTrue( isDriverAllowed(driver, ucl) );
+    	Driver driver2 = DriverManager.getDriver("jdbc:mariadb://localhost:3306/testdb");
+    	assertNotNull(driver2);
+    }
+    
+    /**
+     *  NB!!!!
+     * 	Prerequisite: file should be present in /var/tmp/mariadb-java-client-1.1.7.jar
+     * 	Prerequisite: access to running MariaDb database server
+     */
+    @Ignore
+    @Test
+    public void testURLClassLoaderGetConnection() throws ClassNotFoundException, MalformedURLException, SQLException, InstantiationException, IllegalAccessException {
     	
-    	// Driver is not found when using parent ClassLoader
-    	// unfortunately DriverManager will use caller ClassLoadar and driver is not found !!!  
-//    	assertTrue( isDriverAllowed(driver, parent) );
+    	URL url = new URL("file:///var/tmp/mariadb-java-client-1.1.7.jar");
+    	URL[] urls = new URL[] { url };
     	
-    	Enumeration<Driver> drivers = DriverManager.getDrivers();
-    	while (drivers.hasMoreElements()) {
-			driver = (Driver) drivers.nextElement();
-			System.out.println(driver);
-		}
-
+    	ClassLoader parent = Thread.currentThread().getContextClassLoader();
+    	URLClassLoader ucl = new URLClassLoader(urls,parent);
+    	
+    	Class<?> clazz = Class.forName("org.mariadb.jdbc.Driver", true, ucl);
+    	assertNotNull(clazz);
+    	
+    	Driver driver = (Driver) clazz.newInstance();
+    	Driver shim   = new DriverShim(driver);
+    	DriverManager.registerDriver( shim );
+    	
     	Driver driver2 = DriverManager.getDriver("jdbc:mariadb://localhost:3306/testdb");
     	assertNotNull(driver2);
     	
@@ -304,25 +318,5 @@ public class DBCPServiceTest {
 
     	st.close();
     }
-
-    //==================================== problem solving - no suitable driver found, mariadb =========================================
-    // method isDriverAllowed is from DriverManager
-    private static boolean isDriverAllowed(Driver driver, ClassLoader classLoader) {
-        boolean result = false;
-        if(driver != null) {
-            Class<?> aClass = null;
-            try {
-                aClass =  Class.forName(driver.getClass().getName(), true, classLoader);
-            } catch (Exception ex) {
-            	System.out.println(ex);
-                result = false;
-            }
-
-             result = ( aClass == driver.getClass() ) ? true : false;
-        }
-
-        return result;
-    }
-    
     
 }
