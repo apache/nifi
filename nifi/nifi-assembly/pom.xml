@@ -45,7 +45,7 @@
                             <tarLongFileMode>posix</tarLongFileMode>
                         </configuration>
                     </execution>
-                </executions>    
+                </executions>
             </plugin>
         </plugins>
     </build>
@@ -166,9 +166,14 @@
             <artifactId>nifi-kite-nar</artifactId>
             <type>nar</type>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-solr-nar</artifactId>
+            <type>nar</type>
+        </dependency>
     </dependencies>
-    
-    <properties>        
+
+    <properties>
         <!--Wrapper Properties-->
         <nifi.wrapper.jvm.heap.initial.mb>256</nifi.wrapper.jvm.heap.initial.mb>
         <nifi.wrapper.jvm.heap.max.mb>512</nifi.wrapper.jvm.heap.max.mb>
@@ -176,7 +181,7 @@
         <nifi.max.permgen.size.mb>128</nifi.max.permgen.size.mb>
         <nifi.wrapper.logfile.maxsize>10m</nifi.wrapper.logfile.maxsize>
         <nifi.wrapper.logfile.maxfiles>10</nifi.wrapper.logfile.maxfiles>
-        
+
         <!-- nifi.properties: core properties -->
         <nifi.version>${project.version}</nifi.version>
         <nifi.flowcontroller.autoResumeState>true</nifi.flowcontroller.autoResumeState>
@@ -204,7 +209,7 @@
         <nifi.swap.in.threads>1</nifi.swap.in.threads>
         <nifi.swap.out.period>5 sec</nifi.swap.out.period>
         <nifi.swap.out.threads>4</nifi.swap.out.threads>
-		
+
         <nifi.content.repository.implementation>org.apache.nifi.controller.repository.FileSystemRepository</nifi.content.repository.implementation>
         <nifi.content.claim.max.appendable.size>10 MB</nifi.content.claim.max.appendable.size>
         <nifi.content.claim.max.flow.files>100</nifi.content.claim.max.flow.files>
@@ -214,21 +219,21 @@
         <nifi.content.repository.archive.enabled>false</nifi.content.repository.archive.enabled>
         <nifi.content.repository.always.sync>false</nifi.content.repository.always.sync>
         <nifi.content.viewer.url />
-        
-        
+
+
         <nifi.restore.directory />
         <nifi.ui.banner.text />
         <nifi.ui.autorefresh.interval>30 sec</nifi.ui.autorefresh.interval>
         <nifi.nar.library.directory>./lib</nifi.nar.library.directory>
         <nifi.nar.working.directory>./work/nar/</nifi.nar.working.directory>
         <nifi.documentation.working.directory>./work/docs/components</nifi.documentation.working.directory>
-        
+
         <nifi.sensitive.props.algorithm>PBEWITHMD5AND256BITAES-CBC-OPENSSL</nifi.sensitive.props.algorithm>
         <nifi.sensitive.props.provider>BC</nifi.sensitive.props.provider>
         <nifi.h2.url.append>;LOCK_TIMEOUT=25000;WRITE_DELAY=0;AUTO_SERVER=FALSE</nifi.h2.url.append>
 
         <nifi.remote.input.socket.port>9990</nifi.remote.input.socket.port>
-        
+
         <!-- persistent provenance repository properties -->
         <nifi.provenance.repository.implementation>org.apache.nifi.provenance.PersistentProvenanceRepository</nifi.provenance.repository.implementation>
         <nifi.provenance.repository.directory.default>./provenance_repository</nifi.provenance.repository.directory.default>
@@ -243,15 +248,15 @@
         <nifi.provenance.repository.index.shard.size>500 MB</nifi.provenance.repository.index.shard.size>
         <nifi.provenance.repository.always.sync>false</nifi.provenance.repository.always.sync>
         <nifi.provenance.repository.journal.count>16</nifi.provenance.repository.journal.count>
-        
+
         <!-- volatile provenance repository properties -->
         <nifi.provenance.repository.buffer.size>100000</nifi.provenance.repository.buffer.size>
-        
+
         <!-- Component status repository properties -->
         <nifi.components.status.repository.implementation>org.apache.nifi.controller.status.history.VolatileComponentStatusRepository</nifi.components.status.repository.implementation>
         <nifi.components.status.repository.buffer.size>288</nifi.components.status.repository.buffer.size>
         <nifi.components.status.snapshot.frequency>5 mins</nifi.components.status.snapshot.frequency>
-        
+
         <!-- nifi.properties: web properties -->
         <nifi.web.war.directory>./lib</nifi.web.war.directory>
         <nifi.web.http.host />
@@ -260,7 +265,7 @@
         <nifi.web.https.port />
         <nifi.jetty.work.dir>./work/jetty</nifi.jetty.work.dir>
         <nifi.web.jetty.threads>200</nifi.web.jetty.threads>
-        
+
         <!-- nifi.properties: security properties -->
         <nifi.security.keystore />
         <nifi.security.keystoreType />
@@ -277,12 +282,12 @@
         <nifi.security.support.new.account.requests />
         <nifi.security.ocsp.responder.url />
         <nifi.security.ocsp.responder.certificate />
-        
+
         <!-- nifi.properties: cluster common properties (cluster manager and nodes must have same values) -->
         <nifi.cluster.protocol.heartbeat.interval>5 sec</nifi.cluster.protocol.heartbeat.interval>
         <nifi.cluster.protocol.is.secure>false</nifi.cluster.protocol.is.secure>
         <nifi.cluster.protocol.socket.timeout>30 sec</nifi.cluster.protocol.socket.timeout>
-        <nifi.cluster.protocol.connection.handshake.timeout>45 sec</nifi.cluster.protocol.connection.handshake.timeout> 
+        <nifi.cluster.protocol.connection.handshake.timeout>45 sec</nifi.cluster.protocol.connection.handshake.timeout>
         <nifi.cluster.protocol.use.multicast>false</nifi.cluster.protocol.use.multicast>
         <nifi.cluster.protocol.multicast.address />
         <nifi.cluster.protocol.multicast.port />
@@ -297,7 +302,7 @@
         <nifi.cluster.node.protocol.threads>2</nifi.cluster.node.protocol.threads>
         <nifi.cluster.node.unicast.manager.address />
         <nifi.cluster.node.unicast.manager.protocol.port />
-        
+
         <!-- nifi.properties: cluster manager properties (only configure for cluster manager) -->
         <nifi.cluster.is.manager>false</nifi.cluster.is.manager>
         <nifi.cluster.manager.address />
@@ -349,7 +354,7 @@
                                 </configuration>
                             </execution>
                         </executions>
-                    </plugin>                    
+                    </plugin>
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>rpm-maven-plugin</artifactId>

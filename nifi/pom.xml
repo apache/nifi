@@ -170,12 +170,12 @@
                 <groupId>org.antlr</groupId>
                 <artifactId>antlr-runtime</artifactId>
                 <version>3.5.2</version>
-            </dependency>  
+            </dependency>
             <dependency>
                 <groupId>commons-codec</groupId>
                 <artifactId>commons-codec</artifactId>
                 <version>1.10</version>
-            </dependency>   
+            </dependency>
             <dependency>
                 <groupId>commons-net</groupId>
                 <artifactId>commons-net</artifactId>
@@ -220,7 +220,7 @@
                 <groupId>net.sf.saxon</groupId>
                 <artifactId>Saxon-HE</artifactId>
                 <version>9.6.0-4</version>
-            </dependency>              
+            </dependency>
             <dependency>
                 <groupId>stax</groupId>
                 <artifactId>stax-api</artifactId>
@@ -231,10 +231,10 @@
                 <artifactId>quartz</artifactId>
                 <version>2.2.1</version>
                 <exclusions>
-                    <!-- 
+                    <!--
                     | Exclude the quartz 2.2.1 bundled version of c3p0 because it is lgpl licensed
                     | We also don't use the JDBC related features of quartz for which the dependency would matter
-                    -->                    
+                    -->
                     <exclusion>
                         <groupId>c3p0</groupId>
                         <artifactId>c3p0</artifactId>
@@ -303,7 +303,7 @@
                 <artifactId>spring-core</artifactId>
                 <version>${spring.version}</version>
                 <exclusions>
-                    <!-- <artifactId>jcl-over-slf4j</artifactId> is used in dependencies 
+                    <!-- <artifactId>jcl-over-slf4j</artifactId> is used in dependencies
                     section -->
                     <exclusion>
                         <groupId>commons-logging</groupId>
@@ -470,7 +470,7 @@
                 <groupId>com.jcraft</groupId>
                 <artifactId>jzlib</artifactId>
                 <version>1.1.3</version>
-            </dependency>      
+            </dependency>
             <dependency>
                 <groupId>joda-time</groupId>
                 <artifactId>joda-time</artifactId>
@@ -516,7 +516,7 @@
                 <artifactId>hadoop-hdfs</artifactId>
                 <version>${hadoop.version}</version>
             </dependency>
-            
+
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-yarn-api</artifactId>
@@ -542,7 +542,7 @@
                 <artifactId>avro</artifactId>
                 <version>1.7.6</version>
             </dependency>
-            
+
             <dependency>
                 <groupId>com.sun.jersey</groupId>
                 <artifactId>jersey-server</artifactId>
@@ -562,7 +562,7 @@
                 <groupId>com.sun.jersey</groupId>
                 <artifactId>jersey-servlet</artifactId>
                 <version>${jersey.version}</version>
-            </dependency>            
+            </dependency>
             <dependency>
                 <groupId>com.sun.jersey</groupId>
                 <artifactId>jersey-client</artifactId>
@@ -627,7 +627,7 @@
                 <artifactId>jetty-jsp-jdt</artifactId>
                 <version>2.3.3</version>
                 <scope>provided</scope>
-            </dependency>        
+            </dependency>
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
@@ -783,6 +783,12 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-solr-nar</artifactId>
+                <version>0.1.0-incubating-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-kafka-nar</artifactId>
                 <version>0.1.0-incubating-SNAPSHOT</version>
                 <type>nar</type>
@@ -802,7 +808,7 @@
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-security-utils</artifactId>
                 <version>0.1.0-incubating-SNAPSHOT</version>
-            </dependency>                             
+            </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-logging-utils</artifactId>
@@ -852,7 +858,7 @@
             <artifactId>slf4j-simple</artifactId>
             <scope>test</scope>
         </dependency>
-    </dependencies>    
+    </dependencies>
     <build>
         <pluginManagement>
             <plugins>
@@ -999,7 +1005,7 @@
                                 <requireMavenVersion>
                                     <version>${maven.min-version}</version>
                                 </requireMavenVersion>
-                            </rules>    
+                            </rules>
                         </configuration>
                     </execution>
                 </executions>

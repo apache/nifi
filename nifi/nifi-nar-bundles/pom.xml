@@ -35,6 +35,7 @@
         <module>nifi-update-attribute-bundle</module>
         <module>nifi-kafka-bundle</module>
 		<module>nifi-kite-bundle</module>
+        <module>nifi-solr-bundle</module>
     </modules>
     <dependencyManagement>
         <dependencies>
