@@ -203,7 +203,7 @@ public final class InvokeHTTP extends AbstractProcessor {
                 .description("Remote URL which will be connected to, including scheme, host, port, path.")
                 .required(true)
                 .expressionLanguageSupported(true)
-                .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+                .addValidator(StandardValidators.URL_VALIDATOR)
                 .build();
 
         PropertyDescriptor PROP_CONNECT_TIMEOUT = new PropertyDescriptor.Builder()

@@ -88,8 +88,7 @@ public class ConvertCSVToAvro extends AbstractKiteProcessor {
   static final PropertyDescriptor SCHEMA =
       new PropertyDescriptor.Builder()
           .name("Record schema")
-          .description(
-              "Outgoing Avro schema for each record created from a CSV row")
+          .description("Outgoing Avro schema for each record created from a CSV row")
           .addValidator(SCHEMA_VALIDATOR)
           .expressionLanguageSupported(true)
           .required(true)
@@ -253,7 +252,6 @@ public class ConvertCSVToAvro extends AbstractKiteProcessor {
     } catch (ProcessException | DatasetIOException e) {
       getLogger().error("Failed reading or writing", e);
       session.transfer(flowFile, FAILURE);
-
     } catch (DatasetException e) {
       getLogger().error("Failed to read FlowFile", e);
       session.transfer(flowFile, FAILURE);
