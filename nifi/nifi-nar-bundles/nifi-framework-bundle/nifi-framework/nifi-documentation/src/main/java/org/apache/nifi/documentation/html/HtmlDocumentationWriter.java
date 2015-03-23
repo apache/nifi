@@ -384,8 +384,8 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
             xmlStreamWriter.writeEndElement();
             for (final DynamicProperty dynamicProperty : dynamicProperties) {
                 xmlStreamWriter.writeStartElement("tr");    
-                writeSimpleElement(xmlStreamWriter, "td", dynamicProperty.name());
-                writeSimpleElement(xmlStreamWriter, "td", dynamicProperty.value());
+                writeSimpleElement(xmlStreamWriter, "td", dynamicProperty.name(), false, "name");
+                writeSimpleElement(xmlStreamWriter, "td", dynamicProperty.value(), false, "value");
                 xmlStreamWriter.writeStartElement("td");
                 xmlStreamWriter.writeCharacters(dynamicProperty.description());
                 if (dynamicProperty.supportsExpressionLanguage()) {
