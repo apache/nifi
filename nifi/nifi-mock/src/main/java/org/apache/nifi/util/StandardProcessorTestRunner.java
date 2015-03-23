@@ -137,14 +137,14 @@ public class StandardProcessorTestRunner implements TestRunner {
     private static void detectDeprecatedAnnotations(final Processor processor) {
         for ( final Class<? extends Annotation> annotationClass : deprecatedTypeAnnotations ) {
             if ( processor.getClass().isAnnotationPresent(annotationClass) ) {
-                logger.warn("Processor is using deprecated Annotation " + annotationClass.getCanonicalName());
+                Assert.fail("Processor is using deprecated Annotation " + annotationClass.getCanonicalName());
             }
         }
         
         for ( final Class<? extends Annotation> annotationClass : deprecatedMethodAnnotations ) {
             for ( final Method method : processor.getClass().getMethods() ) {
                 if ( method.isAnnotationPresent(annotationClass) ) {
-                    logger.warn("Processor is using deprecated Annotation " + annotationClass.getCanonicalName() + " for method " + method);
+                    Assert.fail("Processor is using deprecated Annotation " + annotationClass.getCanonicalName() + " for method " + method);
                 }
             }
         }
