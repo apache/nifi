@@ -21,10 +21,11 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.TimeUnit;
 
+import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
-
 import org.junit.Test;
+import org.mockito.Mockito;
 
 public class TestStandardValidators {
 
@@ -33,22 +34,24 @@ public class TestStandardValidators {
         Validator val = StandardValidators.createTimePeriodValidator(1L, TimeUnit.SECONDS, Long.MAX_VALUE, TimeUnit.NANOSECONDS);
         ValidationResult vr;
 
-        vr = val.validate("TimePeriodTest", "0 sense made", null);
+        final ValidationContext validationContext = Mockito.mock(ValidationContext.class);
+        
+        vr = val.validate("TimePeriodTest", "0 sense made", validationContext);
         assertFalse(vr.isValid());
 
-        vr = val.validate("TimePeriodTest", null, null);
+        vr = val.validate("TimePeriodTest", null, validationContext);
         assertFalse(vr.isValid());
 
-        vr = val.validate("TimePeriodTest", "0 secs", null);
+        vr = val.validate("TimePeriodTest", "0 secs", validationContext);
         assertFalse(vr.isValid());
 
-        vr = val.validate("TimePeriodTest", "999 millis", null);
+        vr = val.validate("TimePeriodTest", "999 millis", validationContext);
         assertFalse(vr.isValid());
 
-        vr = val.validate("TimePeriodTest", "999999999 nanos", null);
+        vr = val.validate("TimePeriodTest", "999999999 nanos", validationContext);
         assertFalse(vr.isValid());
 
-        vr = val.validate("TimePeriodTest", "1 sec", null);
+        vr = val.validate("TimePeriodTest", "1 sec", validationContext);
         assertTrue(vr.isValid());
     }
     
@@ -57,28 +60,29 @@ public class TestStandardValidators {
         Validator val = StandardValidators.createDataSizeBoundsValidator(100, 1000);
         ValidationResult vr; 
         
-        vr = val.validate("DataSizeBounds", "5 GB", null);
+        final ValidationContext validationContext = Mockito.mock(ValidationContext.class);
+        vr = val.validate("DataSizeBounds", "5 GB", validationContext);
         assertFalse(vr.isValid());
         
-        vr = val.validate("DataSizeBounds", "0 B", null);
+        vr = val.validate("DataSizeBounds", "0 B", validationContext);
         assertFalse(vr.isValid());
 
-        vr = val.validate("DataSizeBounds", "99 B", null);
+        vr = val.validate("DataSizeBounds", "99 B", validationContext);
         assertFalse(vr.isValid());
         
-        vr = val.validate("DataSizeBounds", "100 B", null);
+        vr = val.validate("DataSizeBounds", "100 B", validationContext);
         assertTrue(vr.isValid());
 
-        vr = val.validate("DataSizeBounds", "999 B", null);
+        vr = val.validate("DataSizeBounds", "999 B", validationContext);
         assertTrue(vr.isValid());
 
-        vr = val.validate("DataSizeBounds", "1000 B", null);
+        vr = val.validate("DataSizeBounds", "1000 B", validationContext);
         assertTrue(vr.isValid());
         
-        vr = val.validate("DataSizeBounds", "1001 B", null);
+        vr = val.validate("DataSizeBounds", "1001 B", validationContext);
         assertFalse(vr.isValid());
         
-        vr = val.validate("DataSizeBounds", "water", null);
+        vr = val.validate("DataSizeBounds", "water", validationContext);
         assertFalse(vr.isValid());
         
     }
