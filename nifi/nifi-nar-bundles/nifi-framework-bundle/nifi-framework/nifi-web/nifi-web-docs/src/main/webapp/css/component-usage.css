@@ -113,6 +113,10 @@ table tr:last-child td:last-child {
 	border-bottom-right-radius:3px;
 }
 
+td#allowable-values, td#default-value, td#name {
+	white-space:nowrap;
+}
+
 /* links */
 
 a, a:link, a:visited {
