@@ -79,4 +79,23 @@ public interface ValidationContext {
      * @return
      */
     String getAnnotationData();
+    
+    /**
+     * Returns <code>true</code> if the given value contains a NiFi Expression Language expression,
+     * <code>false</code> if it does not
+     * 
+     * @param value
+     * @return
+     */
+    boolean isExpressionLanguagePresent(String value);
+    
+    /**
+     * Returns <code>true</code> if the property with the given name supports the NiFi Expression Language,
+     * <code>false</code> if the property does not support the Expression Language or is not a valid property
+     * name
+     * 
+     * @param propertyName
+     * @return
+     */
+    boolean isExpressionLanguageSupported(String propertyName);
 }

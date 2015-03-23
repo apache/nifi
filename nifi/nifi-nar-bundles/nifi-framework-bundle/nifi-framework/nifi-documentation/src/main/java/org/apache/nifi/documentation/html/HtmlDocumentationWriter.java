@@ -302,12 +302,13 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
         List<PropertyDescriptor> properties = configurableComponent.getPropertyDescriptors();
         if (properties.size() > 0) {
             xmlStreamWriter.writeStartElement("table");
+            xmlStreamWriter.writeAttribute("id", "properties");
 
             // write the header row
             xmlStreamWriter.writeStartElement("tr");
             writeSimpleElement(xmlStreamWriter, "th", "Name");
             writeSimpleElement(xmlStreamWriter, "th", "Default Value");
-            writeSimpleElement(xmlStreamWriter, "th", "Valid Values");
+            writeSimpleElement(xmlStreamWriter, "th", "Allowable Values");
             writeSimpleElement(xmlStreamWriter, "th", "Description");
             xmlStreamWriter.writeEndElement();
 
@@ -315,6 +316,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
             for (PropertyDescriptor property : properties) {
                 xmlStreamWriter.writeStartElement("tr");
                 xmlStreamWriter.writeStartElement("td");
+                xmlStreamWriter.writeAttribute("id", "name");
                 if (property.isRequired()) {
                     writeSimpleElement(xmlStreamWriter, "strong", property.getDisplayName());
                 } else {
@@ -322,11 +324,13 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
                 }
 
                 xmlStreamWriter.writeEndElement();
-                writeSimpleElement(xmlStreamWriter, "td", property.getDefaultValue());
+                writeSimpleElement(xmlStreamWriter, "td", property.getDefaultValue(), false, "default-value");
                 xmlStreamWriter.writeStartElement("td");
+                xmlStreamWriter.writeAttribute("id", "allowable-values");
                 writeValidValues(xmlStreamWriter, property);
                 xmlStreamWriter.writeEndElement();
                 xmlStreamWriter.writeStartElement("td");
+                xmlStreamWriter.writeAttribute("id", "description");
                 if (property.getDescription() != null && property.getDescription().trim().length() > 0) {
                     xmlStreamWriter.writeCharacters(property.getDescription());
                 } else {
@@ -372,6 +376,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
             xmlStreamWriter
                     .writeCharacters("Dynamic Properties allow the user to specify both the name and value of a property.");
             xmlStreamWriter.writeStartElement("table");
+            xmlStreamWriter.writeAttribute("id", "dynamic-properties");
             xmlStreamWriter.writeStartElement("tr");
             writeSimpleElement(xmlStreamWriter, "th", "Name");
             writeSimpleElement(xmlStreamWriter, "th", "Value");
@@ -379,8 +384,8 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
             xmlStreamWriter.writeEndElement();
             for (final DynamicProperty dynamicProperty : dynamicProperties) {
                 xmlStreamWriter.writeStartElement("tr");    
-                writeSimpleElement(xmlStreamWriter, "td", dynamicProperty.name());
-                writeSimpleElement(xmlStreamWriter, "td", dynamicProperty.value());
+                writeSimpleElement(xmlStreamWriter, "td", dynamicProperty.name(), false, "name");
+                writeSimpleElement(xmlStreamWriter, "td", dynamicProperty.value(), false, "value");
                 xmlStreamWriter.writeStartElement("td");
                 xmlStreamWriter.writeCharacters(dynamicProperty.description());
                 if (dynamicProperty.supportsExpressionLanguage()) {
@@ -489,7 +494,26 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
      */
     protected final static void writeSimpleElement(final XMLStreamWriter writer, final String elementName,
             final String characters, boolean strong) throws XMLStreamException {
-        writer.writeStartElement(elementName);
+    	writeSimpleElement(writer, elementName, characters, strong, null);
+    }
+    
+    /**
+     * Writes a begin element, an id attribute(if specified), then text, then end element for
+     * element of the users choosing.  Example: &lt;p id="p-id"&gt;text&lt;/p&gt;
+     * 
+     * @param writer the stream writer to use
+     * @param elementName the name of the element
+     * @param characters the text of the element
+     * @param strong whether to bold the text of the element or not
+     * @param id the id of the element.  specifying null will cause no element to be written.
+     * @throws XMLStreamException
+     */
+    protected final static void writeSimpleElement(final XMLStreamWriter writer, final String elementName,
+            final String characters, boolean strong, String id) throws XMLStreamException {
+    	writer.writeStartElement(elementName);
+    	if (id != null) {
+    		writer.writeAttribute("id", id);
+    	}
         if (strong) {
             writer.writeStartElement("strong");
         }

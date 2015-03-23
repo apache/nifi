@@ -89,7 +89,7 @@ public class StandardNiFiWebContext implements NiFiWebContext {
     }
 
     @Override
-    @PreAuthorize("hasAnyRole('ROLE_DFM')")
+    @PreAuthorize("hasRole('ROLE_DFM')")
     public void saveActions(final Collection<ProcessorConfigurationAction> processorActions) {
         Objects.requireNonNull(processorActions, "Actions cannot be null.");
 

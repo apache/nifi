@@ -83,6 +83,7 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
         writeSimpleElement(xmlStreamWriter, "h3", "Reads Attributes: ");
         if (attributesRead.size() > 0) {
             xmlStreamWriter.writeStartElement("table");
+            xmlStreamWriter.writeAttribute("id", "reads-attributes");
             xmlStreamWriter.writeStartElement("tr");
             writeSimpleElement(xmlStreamWriter, "th", "Name");
             writeSimpleElement(xmlStreamWriter, "th", "Description");
@@ -120,6 +121,7 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
         writeSimpleElement(xmlStreamWriter, "h3", "Writes Attributes: ");
         if (attributesRead.size() > 0) {
             xmlStreamWriter.writeStartElement("table");
+            xmlStreamWriter.writeAttribute("id", "writes-attributes");
             xmlStreamWriter.writeStartElement("tr");
             writeSimpleElement(xmlStreamWriter, "th", "Name");
             writeSimpleElement(xmlStreamWriter, "th", "Description");
@@ -203,6 +205,7 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
 
         if (processor.getRelationships().size() > 0) {
             xmlStreamWriter.writeStartElement("table");
+            xmlStreamWriter.writeAttribute("id", "relationships");
             xmlStreamWriter.writeStartElement("tr");
             writeSimpleElement(xmlStreamWriter, "th", "Name");
             writeSimpleElement(xmlStreamWriter, "th", "Description");
@@ -236,6 +239,7 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
             xmlStreamWriter.writeStartElement("p");
             xmlStreamWriter.writeCharacters("A Dynamic Relationship may be created based on how the user configures the Processor.");
             xmlStreamWriter.writeStartElement("table");
+            xmlStreamWriter.writeAttribute("id", "dynamic-relationships");
             xmlStreamWriter.writeStartElement("tr");
             writeSimpleElement(xmlStreamWriter, "th", "Name");
             writeSimpleElement(xmlStreamWriter, "th", "Description");

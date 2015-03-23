@@ -78,20 +78,24 @@ abstract class AbstractKiteProcessor extends AbstractProcessor {
 
     protected static final Validator RECOGNIZED_URI = new Validator() {
         @Override
-        public ValidationResult validate(String subject, String uri,
-                ValidationContext context) {
+        public ValidationResult validate(String subject, String uri, ValidationContext context) {
             String message = "not set";
             boolean isValid = true;
-            if (uri == null || uri.isEmpty()) {
+            
+            if (uri.trim().isEmpty()) {
                 isValid = false;
-            } else if (!uri.contains("$")) {
-                try {
-                    new URIBuilder(URI.create(uri)).build();
-                } catch (RuntimeException e) {
-                    message = e.getMessage();
-                    isValid = false;
+            } else {
+                final boolean elPresent = context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(uri);
+                if (!elPresent) {
+                    try {
+                        new URIBuilder(URI.create(uri)).build();
+                    } catch (RuntimeException e) {
+                        message = e.getMessage();
+                        isValid = false;
+                    }
                 }
             }
+            
             return new ValidationResult.Builder()
                     .subject(subject)
                     .input(uri)
@@ -157,16 +161,16 @@ abstract class AbstractKiteProcessor extends AbstractProcessor {
     protected static final Validator SCHEMA_VALIDATOR = new Validator() {
         @Override
         public ValidationResult validate(String subject, String uri, ValidationContext context) {
-            Configuration conf = getConfiguration(
-                    context.getProperty(CONF_XML_FILES).getValue());
-
+            Configuration conf = getConfiguration(context.getProperty(CONF_XML_FILES).getValue());
             String error = null;
-            if (!uri.contains("$")) {
-              try {
-                getSchema(uri, conf);
-              } catch (SchemaNotFoundException e) {
-                error = e.getMessage();
-              }
+            
+            final boolean elPresent = context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(uri);
+            if (!elPresent) {
+                try {
+                    getSchema(uri, conf);
+                  } catch (SchemaNotFoundException e) {
+                    error = e.getMessage();
+                  }
             }
             return new ValidationResult.Builder()
                     .subject(subject)
@@ -177,8 +181,7 @@ abstract class AbstractKiteProcessor extends AbstractProcessor {
         }
     };
 
-    protected static final List<PropertyDescriptor> ABSTRACT_KITE_PROPS
-            = ImmutableList.<PropertyDescriptor>builder()
+    protected static final List<PropertyDescriptor> ABSTRACT_KITE_PROPS = ImmutableList.<PropertyDescriptor>builder()
             .add(CONF_XML_FILES)
             .build();
 

@@ -65,7 +65,6 @@ import org.apache.nifi.web.api.dto.status.ControllerStatusDTO;
 import org.apache.nifi.web.api.dto.status.NodeStatusDTO;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
-import org.apache.nifi.web.util.DownloadableContent;
 
 /**
  * Defines the NiFiServiceFacade interface.

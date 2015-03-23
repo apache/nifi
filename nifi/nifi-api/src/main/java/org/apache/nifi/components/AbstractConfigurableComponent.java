@@ -187,9 +187,8 @@ public abstract class AbstractConfigurableComponent implements ConfigurableCompo
     }
 
     public final List<PropertyDescriptor> getPropertyDescriptors() {
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.addAll(getSupportedPropertyDescriptors());
-        return descriptors;
+        final List<PropertyDescriptor> supported = getSupportedPropertyDescriptors();
+        return supported == null ? Collections.<PropertyDescriptor>emptyList() :new ArrayList<>(supported);
     }
 
     @Override

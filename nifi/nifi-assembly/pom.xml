@@ -219,8 +219,7 @@
         <nifi.content.repository.archive.enabled>false</nifi.content.repository.archive.enabled>
         <nifi.content.repository.always.sync>false</nifi.content.repository.always.sync>
         <nifi.content.viewer.url />
-
-
+        
         <nifi.restore.directory />
         <nifi.ui.banner.text />
         <nifi.ui.autorefresh.interval>30 sec</nifi.ui.autorefresh.interval>
