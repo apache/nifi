@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.web;
 
-import org.apache.nifi.web.OptimisticLockingManager;
-import org.apache.nifi.web.ConfigurationSnapshot;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -150,7 +148,6 @@ import org.apache.nifi.web.dao.ProcessorDAO;
 import org.apache.nifi.web.dao.RemoteProcessGroupDAO;
 import org.apache.nifi.web.dao.SnippetDAO;
 import org.apache.nifi.web.dao.TemplateDAO;
-import org.apache.nifi.web.util.DownloadableContent;
 import org.apache.nifi.web.util.SnippetUtils;
 
 import org.apache.commons.collections4.CollectionUtils;

@@ -14,34 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.web.util;
-
-import java.io.InputStream;
+package org.apache.nifi.web;
 
 /**
- *
+ * Provides access to content within NiFi.
+ * 
+ * @author unattributed
  */
-public final class DownloadableContent {
+public interface ContentAccess {
 
-    private final String filename;
-    private final String type;
-    private final InputStream content;
-
-    public DownloadableContent(String filename, String type, InputStream content) {
-        this.filename = filename;
-        this.type = type;
-        this.content = content;
-    }
-
-    public String getFilename() {
-        return filename;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public InputStream getContent() {
-        return content;
-    }
+    /**
+     * Gets the content for the specified claim.
+     *
+     * @param request
+     * @return
+     */
+    DownloadableContent getContent(ContentRequestContext request);
 }
