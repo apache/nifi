@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import javax.xml.stream.FactoryConfigurationError;
 import javax.xml.stream.XMLOutputFactory;
@@ -36,6 +37,7 @@ import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.documentation.DocumentationWriter;
+import org.apache.nifi.nar.ExtensionManager;
 
 /**
  * Generates HTML documentation for a ConfigurableComponent. This class is used
@@ -148,9 +150,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
                     xmlStreamWriter.writeCharacters(", ");
                 }
 
-                final String link = "../" + linkedComponent.getCanonicalName() + "/index.html";
-
-                writeLink(xmlStreamWriter, linkedComponent.getSimpleName(), link);
+                writeLinkForComponent(xmlStreamWriter, linkedComponent);
 
                 ++index;
             }
@@ -434,12 +434,24 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
             }
             xmlStreamWriter.writeEndElement();
         } else if (property.getControllerServiceDefinition() != null) {
-            Class<? extends ControllerService> controllerServiceClass = property
-                    .getControllerServiceDefinition();
+            Class<? extends ControllerService> controllerServiceClass = property.getControllerServiceDefinition();
 
-            writeSimpleElement(xmlStreamWriter, "strong", "Controller Service: ");
+            writeSimpleElement(xmlStreamWriter, "strong", "Controller Service API: ");
             xmlStreamWriter.writeEmptyElement("br");
             xmlStreamWriter.writeCharacters(controllerServiceClass.getSimpleName());
+
+            final List<Class<? extends ControllerService>> implementations = lookupControllerServiceImpls(controllerServiceClass);
+            xmlStreamWriter.writeEmptyElement("br");
+            if (implementations.size() > 0) {
+                final String title = implementations.size() > 1 ? "Implementations: " : "Implementation:";
+                writeSimpleElement(xmlStreamWriter, "strong", title);
+                for (int i = 0; i < implementations.size(); i++) {
+                    xmlStreamWriter.writeEmptyElement("br");
+                    writeLinkForComponent(xmlStreamWriter, implementations.get(i));
+                }
+            } else {
+                xmlStreamWriter.writeCharacters("No implementations found.");
+            }
         }
     }
 
@@ -518,5 +530,38 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
         xmlStreamWriter.writeAttribute("href", location);
         xmlStreamWriter.writeCharacters(text);
         xmlStreamWriter.writeEndElement();
+    }
+    
+    /**
+     * Writes a link to another configurable component
+     * 
+     * @param xmlStreamWriter the xml stream writer
+     * @param clazz the configurable component to link to
+     * @throws XMLStreamException thrown if there is a problem writing the XML
+     */
+    protected void writeLinkForComponent(final XMLStreamWriter xmlStreamWriter, final Class<?> clazz) throws XMLStreamException {
+        writeLink(xmlStreamWriter, clazz.getSimpleName(), "../" + clazz.getCanonicalName() + "/index.html");
+    }
+    
+    /**
+     * Uses the {@link ExtensionManager} to discover any controller service that implement the controller service
+     * API.
+     * 
+     * @param parent the controller service API
+     * @return a list of controller services that implement the controller service API
+     */
+    private List<Class<? extends ControllerService>> lookupControllerServiceImpls(
+            final Class<? extends ControllerService> parent) {
+
+        final Set<Class> controllerServices = ExtensionManager.getExtensions(ControllerService.class);
+
+        final List<Class<? extends ControllerService>> implementations = new ArrayList<>();
+        for (Class<? extends ControllerService> controllerServiceClass : controllerServices) {
+            if (parent.isAssignableFrom(controllerServiceClass)) {
+                implementations.add(controllerServiceClass);
+            }
+        }
+
+        return implementations;
     }
 }

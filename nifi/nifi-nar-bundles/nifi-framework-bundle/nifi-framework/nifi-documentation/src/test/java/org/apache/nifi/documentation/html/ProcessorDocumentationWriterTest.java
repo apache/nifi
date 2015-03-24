@@ -59,7 +59,7 @@ public class ProcessorDocumentationWriterTest {
         assertContains(results, FullyDocumentedProcessor.REL_SUCCESS.getDescription());
         assertContains(results, FullyDocumentedProcessor.REL_FAILURE.getName());
         assertContains(results, FullyDocumentedProcessor.REL_FAILURE.getDescription());
-        assertContains(results, "Controller Service: ");
+        assertContains(results, "Controller Service API: ");
         assertContains(results, "SampleService");
 
         assertNotContains(results, "iconSecure.png");
