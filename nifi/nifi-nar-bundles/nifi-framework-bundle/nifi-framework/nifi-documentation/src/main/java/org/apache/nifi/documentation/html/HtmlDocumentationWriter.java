@@ -544,8 +544,8 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
     }
     
     /**
-     * Uses the {@link ExtensionManager} to discover any controller service that implement the controller service
-     * API.
+     * Uses the {@link ExtensionManager} to discover any {@link ControllerService} implementations that implement a specific 
+     * ControllerService API.
      * 
      * @param parent the controller service API
      * @return a list of controller services that implement the controller service API
@@ -553,10 +553,14 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
     private List<Class<? extends ControllerService>> lookupControllerServiceImpls(
             final Class<? extends ControllerService> parent) {
 
-        final Set<Class> controllerServices = ExtensionManager.getExtensions(ControllerService.class);
-
         final List<Class<? extends ControllerService>> implementations = new ArrayList<>();
-        for (Class<? extends ControllerService> controllerServiceClass : controllerServices) {
+        
+        // first get all ControllerService implementations
+        final Set<Class> controllerServices = ExtensionManager.getExtensions(ControllerService.class);
+        
+        // then iterate over all controller services looking for any that is a child of the parent
+        // ControllerService API that was passed in as a parameter
+        for (final Class<? extends ControllerService> controllerServiceClass : controllerServices) {
             if (parent.isAssignableFrom(controllerServiceClass)) {
                 implementations.add(controllerServiceClass);
             }
