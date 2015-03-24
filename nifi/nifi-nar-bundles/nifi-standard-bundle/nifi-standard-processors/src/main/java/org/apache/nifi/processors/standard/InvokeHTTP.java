@@ -85,19 +85,10 @@ public final class InvokeHTTP extends AbstractProcessor {
     //-- properties --//
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        Set<String> contextIdentifiers = getControllerServiceLookup().getControllerServiceIdentifiers(SSLContextService.class);
 
-        PropertyDescriptor contextServiceSelector = new PropertyDescriptor.Builder()
-                .fromPropertyDescriptor(Config.PROP_SSL_CONTEXT_SERVICE)
-                .allowableValues(contextIdentifiers)
-                .build();
-
-        List<PropertyDescriptor> list = new ArrayList<>(Config.PROPERTIES);
-        list.add(2, contextServiceSelector);
-
-        return Collections.unmodifiableList(list);
+        return Config.PROPERTIES;
     }
-
+    
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(String propertyDescriptorName) {
         if (Config.PROP_TRUSTED_HOSTNAME.getName().equalsIgnoreCase(propertyDescriptorName)) {
@@ -248,23 +239,23 @@ public final class InvokeHTTP extends AbstractProcessor {
                 .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
                 .build();
 
+        PropertyDescriptor PROP_SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
+                .name("SSL Context Service")
+                .description("The SSL Context Service used to provide client certificate information for TLS/SSL (https) connections.")
+                .required(false)
+                .identifiesControllerService(SSLContextService.class)
+                .build();
+        
         List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
                 PROP_METHOD,
                 PROP_URL,
+                PROP_SSL_CONTEXT_SERVICE,
                 PROP_CONNECT_TIMEOUT,
                 PROP_READ_TIMEOUT,
                 PROP_DATE_HEADER,
                 PROP_FOLLOW_REDIRECTS,
                 PROP_ATTRIBUTES_TO_SEND
         ));
-
-        // The allowableValues of the SSL Context Service property is dynamically populated at run time.
-        PropertyDescriptor PROP_SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
-                .name("SSL Context Service")
-                .description("The SSL Context Service used to provide client certificate information for TLS/SSL (https) connections.")
-                .required(false)
-                .addValidator(StandardValidators.createControllerServiceExistsValidator(SSLContextService.class))
-                .build();
 
         // property to allow the hostname verifier to be overridden
         // this is a "hidden" property - it's configured using a dynamic user property
