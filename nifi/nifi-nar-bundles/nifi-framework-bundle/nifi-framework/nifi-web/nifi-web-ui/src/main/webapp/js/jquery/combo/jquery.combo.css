@@ -86,3 +86,11 @@ div.combo-nifi-tooltip {
     background-color: #FFFFA3;
     color: #454545;
 }
+
+div.button-normal {
+    background: transparent url(../../../images/bgButton.png) repeat-x center center;
+}
+
+div.button-over {
+    background: transparent url(../../../images/bgButtonOver.png) repeat-x center center;
+}

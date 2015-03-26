@@ -155,7 +155,7 @@ public class ControlRate extends AbstractProcessor {
                 break;
         }
 
-        final ValidationResult rateResult = rateValidator.validate("Maximum Rate", context.getProperty(MAX_RATE).getValue(), null);
+        final ValidationResult rateResult = rateValidator.validate("Maximum Rate", context.getProperty(MAX_RATE).getValue(), context);
         if (!rateResult.isValid()) {
             validationResults.add(rateResult);
         }

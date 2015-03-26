@@ -29,8 +29,10 @@
         <module>nifi-web-api</module>
         <module>nifi-web-error</module>
         <module>nifi-web-docs</module>
+        <module>nifi-web-content-viewer</module>
         <module>nifi-web-ui</module>
         <module>nifi-jetty</module>
+        <module>nifi-web-content-access</module>
     </modules>
     <dependencyManagement>
         <dependencies>
@@ -49,6 +51,12 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-web-docs</artifactId>
+                <type>war</type>
+                <version>0.1.0-incubating-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-web-content-viewer</artifactId>
                 <type>war</type>
                 <version>0.1.0-incubating-SNAPSHOT</version>
             </dependency>

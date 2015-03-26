@@ -16,9 +16,13 @@
  */
 package org.apache.nifi.util;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.nifi.attribute.expression.language.Query;
+import org.apache.nifi.attribute.expression.language.Query.Range;
 import org.apache.nifi.attribute.expression.language.StandardExpressionLanguageCompiler;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -30,9 +34,16 @@ import org.apache.nifi.expression.ExpressionLanguageCompiler;
 public class MockValidationContext implements ValidationContext, ControllerServiceLookup {
 
     private final MockProcessContext context;
+    private final Map<String, Boolean> expressionLanguageSupported;
 
     public MockValidationContext(final MockProcessContext processContext) {
         this.context = processContext;
+        
+        final Map<PropertyDescriptor, String> properties = processContext.getProperties();
+        expressionLanguageSupported = new HashMap<>(properties.size());
+        for ( final PropertyDescriptor descriptor : properties.keySet() ) {
+            expressionLanguageSupported.put(descriptor.getName(), descriptor.isExpressionLanguageSupported());
+        }
     }
 
     @Override
@@ -89,5 +100,21 @@ public class MockValidationContext implements ValidationContext, ControllerServi
     @Override
     public boolean isControllerServiceEnabled(final ControllerService service) {
         return context.isControllerServiceEnabled(service);
+    }
+    
+    @Override
+    public boolean isExpressionLanguagePresent(final String value) {
+        if ( value == null ) {
+            return false;
+        }
+        
+        final List<Range> elRanges = Query.extractExpressionRanges(value);
+        return (elRanges != null && !elRanges.isEmpty());
+    }
+    
+    @Override
+    public boolean isExpressionLanguageSupported(final String propertyName) {
+        final Boolean supported = expressionLanguageSupported.get(propertyName);
+        return Boolean.TRUE.equals(supported);
     }
 }

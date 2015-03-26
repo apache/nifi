@@ -74,7 +74,7 @@ import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.DateTimeParameter;
 import org.apache.nifi.web.api.request.IntegerParameter;
 import org.apache.nifi.web.api.request.LongParameter;
-import org.apache.nifi.web.util.DownloadableContent;
+import org.apache.nifi.web.DownloadableContent;
 
 import org.apache.commons.lang3.StringUtils;
 import org.codehaus.enunciate.jaxrs.TypeHint;

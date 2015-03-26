@@ -54,7 +54,7 @@ public class HandleHttpResponse extends AbstractProcessor {
         .name("HTTP Status Code")
         .description("The HTTP Status Code to use when responding to the HTTP Request. See Section 10 of RFC 2616 for more information.")
         .required(true)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
         .expressionLanguageSupported(true)
         .build();
     public static final PropertyDescriptor HTTP_CONTEXT_MAP = new PropertyDescriptor.Builder()

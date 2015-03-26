@@ -30,6 +30,13 @@
             <bean class="org.apache.nifi.web.StandardOptimisticLockingManager" />
         </constructor-arg>
     </bean>
+    
+    <!-- content access -->
+    <bean id="contentAccess" class="org.apache.nifi.web.StandardNiFiContentAccess">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="properties" ref="nifiProperties"/>
+        <property name="clusterManager" ref="clusterManager"/>
+    </bean>
 
     <!-- dto factory -->
     <bean id="dtoFactory" class="org.apache.nifi.web.api.dto.DtoFactory">
