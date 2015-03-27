@@ -51,7 +51,6 @@ public abstract class SolrProcessor extends AbstractProcessor {
             .Builder().name("Solr Type")
             .description("The type of Solr instance, Cloud or Standard.")
             .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .allowableValues(SOLR_TYPE_CLOUD, SOLR_TYPE_STANDARD)
             .defaultValue(SOLR_TYPE_STANDARD.getValue())
             .build();
@@ -64,58 +63,48 @@ public abstract class SolrProcessor extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor DEFAULT_COLLECTION = new PropertyDescriptor
-            .Builder().name("Default Collection")
+    public static final PropertyDescriptor COLLECTION = new PropertyDescriptor
+            .Builder().name("Collection")
             .description("The Solr collection name, only used with a Solr Type of Cloud")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
             .build();
 
-    private volatile SolrClient solrServer;
+    private volatile SolrClient solrClient;
 
     @OnScheduled
     public final void onScheduled(final ProcessContext context) throws IOException {
-        this.solrServer = createSolrServer(context);
-        additionalOnScheduled(context);
+        this.solrClient = createSolrClient(context);
     }
 
     /**
-     * Create a SolrServer based on the type of Solr specified.
+     * Create a SolrClient based on the type of Solr specified.
      *
      * @param context
      *          The context
-     * @return an HttpSolrServer or CloudSolrServer
+     * @return an HttpSolrClient or CloudSolrClient
      */
-    protected SolrClient createSolrServer(final ProcessContext context) {
+    protected SolrClient createSolrClient(final ProcessContext context) {
         if (SOLR_TYPE_STANDARD.equals(context.getProperty(SOLR_TYPE).getValue())) {
             return new HttpSolrClient(context.getProperty(SOLR_LOCATION).getValue());
         } else {
             CloudSolrClient cloudSolrServer = new CloudSolrClient(
                     context.getProperty(SOLR_LOCATION).getValue());
             cloudSolrServer.setDefaultCollection(
-                    context.getProperty(DEFAULT_COLLECTION).getValue());
+                    context.getProperty(COLLECTION).evaluateAttributeExpressions().getValue());
             return cloudSolrServer;
         }
     }
 
     /**
      * Returns the {@link org.apache.solr.client.solrj.SolrClient} that was created by the
-     * {@link #createSolrServer(org.apache.nifi.processor.ProcessContext)} method
+     * {@link #createSolrClient(org.apache.nifi.processor.ProcessContext)} method
      *
      * @return
      */
-    protected final SolrClient getSolrServer() {
-        return solrServer;
-    }
-
-    /**
-     * Allows additional action to be taken during scheduling of processor.
-     *
-     * @param context
-     *          The context
-     */
-    protected void additionalOnScheduled(final ProcessContext context) {
-
+    protected final SolrClient getSolrClient() {
+        return solrClient;
     }
 
     @Override
@@ -123,10 +112,10 @@ public abstract class SolrProcessor extends AbstractProcessor {
         final List<ValidationResult> problems = new ArrayList<>();
 
         if (SOLR_TYPE_CLOUD.equals(context.getProperty(SOLR_TYPE).getValue())) {
-            final String collection = context.getProperty(DEFAULT_COLLECTION).getValue();
+            final String collection = context.getProperty(COLLECTION).getValue();
             if (collection == null || collection.trim().isEmpty()) {
                 problems.add(new ValidationResult.Builder()
-                        .subject(DEFAULT_COLLECTION.getName())
+                        .subject(COLLECTION.getName())
                         .input(collection).valid(false)
                         .explanation("A collection must specified for Solr Type of Cloud")
                         .build());

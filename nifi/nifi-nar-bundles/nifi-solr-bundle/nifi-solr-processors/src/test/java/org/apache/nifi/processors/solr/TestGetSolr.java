@@ -183,7 +183,7 @@ public class TestGetSolr {
     }
 
 
-    // Override createSolrServer and return the passed in SolrClient
+    // Override createSolrClient and return the passed in SolrClient
     private class TestableProcessor extends GetSolr {
         private SolrClient solrClient;
 
@@ -191,7 +191,7 @@ public class TestGetSolr {
             this.solrClient = solrClient;
         }
         @Override
-        protected SolrClient createSolrServer(ProcessContext context) {
+        protected SolrClient createSolrClient(ProcessContext context) {
             return solrClient;
         }
     }

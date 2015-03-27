@@ -18,9 +18,10 @@
  */
 package org.apache.nifi.processors.solr;
 
-import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
@@ -48,13 +49,16 @@ import java.util.concurrent.TimeUnit;
 
 @Tags({"Apache", "Solr", "Put", "Send"})
 @CapabilityDescription("Sends the contents of a FlowFile as a ContentStream to Solr")
+@DynamicProperty(name="A Solr request parameter name", value="A Solr request parameter value",
+        description="These parameters will be passed to Solr on the request")
 public class PutSolrContentStream extends SolrProcessor {
 
-    public static final PropertyDescriptor CONTENT_STREAM_URL = new PropertyDescriptor
-            .Builder().name("Content Stream URL")
-            .description("The URL in Solr to post the ContentStream")
+    public static final PropertyDescriptor CONTENT_STREAM_PATH = new PropertyDescriptor
+            .Builder().name("Content Stream Path")
+            .description("The path in Solr to post the ContentStream")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
             .defaultValue("/update/json/docs")
             .build();
 
@@ -63,7 +67,16 @@ public class PutSolrContentStream extends SolrProcessor {
             .description("Content-Type being sent to Solr")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
             .defaultValue("application/json")
+            .build();
+
+    public static final PropertyDescriptor COMMIT_WITHIN = new PropertyDescriptor
+            .Builder().name("Commit Within")
+            .description("The number of milliseconds before the given update is committed")
+            .required(false)
+            .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
+            .expressionLanguageSupported(true)
             .build();
 
     public static final PropertyDescriptor REQUEST_PARAMS = new PropertyDescriptor
@@ -74,8 +87,8 @@ public class PutSolrContentStream extends SolrProcessor {
             .defaultValue("json.command=false&split=/&f=id:/field1")
             .build();
 
-    public static final Relationship REL_ORIGINAL = new Relationship.Builder()
-            .name("original")
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
             .description("The original FlowFile")
             .build();
 
@@ -89,10 +102,8 @@ public class PutSolrContentStream extends SolrProcessor {
             .description("FlowFiles that failed because Solr is unreachable")
             .build();
 
-    /**
-     * The name of a FlowFile attribute used for specifying a Solr collection.
-     */
-    public static final String SOLR_COLLECTION_ATTR = "solr.collection";
+    public static final String COLLECTION_PARAM_NAME = "collection";
+    public static final String COMMIT_WITHIN_PARAM_NAME = "commitWithin";
 
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> descriptors;
@@ -105,14 +116,15 @@ public class PutSolrContentStream extends SolrProcessor {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
         descriptors.add(SOLR_TYPE);
         descriptors.add(SOLR_LOCATION);
-        descriptors.add(DEFAULT_COLLECTION);
-        descriptors.add(CONTENT_STREAM_URL);
+        descriptors.add(COLLECTION);
+        descriptors.add(CONTENT_STREAM_PATH);
         descriptors.add(CONTENT_TYPE);
+        descriptors.add(COMMIT_WITHIN);
         descriptors.add(REQUEST_PARAMS);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
         final Set<Relationship> relationships = new HashSet<>();
-        relationships.add(REL_ORIGINAL);
+        relationships.add(REL_SUCCESS);
         relationships.add(REL_FAILURE);
         relationships.add(REL_CONNECTION_FAILURE);
         this.relationships = Collections.unmodifiableSet(relationships);
@@ -129,7 +141,18 @@ public class PutSolrContentStream extends SolrProcessor {
     }
 
     @Override
-    protected void additionalOnScheduled(ProcessContext context) {
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+        return new PropertyDescriptor.Builder()
+                .description("Specifies the value to send for the '" + propertyDescriptorName + "' request parameter")
+                .name(propertyDescriptorName)
+                .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+                .dynamic(true)
+                .expressionLanguageSupported(true)
+                .build();
+    }
+
+    @OnScheduled
+    public void initializeRequestParams(ProcessContext context) {
         final String requestParamsVal = context.getProperty(REQUEST_PARAMS).getValue();
         this.requestParams = RequestParamsUtil.parse(requestParamsVal);
     }
@@ -143,17 +166,19 @@ public class PutSolrContentStream extends SolrProcessor {
 
         final ObjectHolder<SolrException> error = new ObjectHolder<>(null);
         final ObjectHolder<SolrServerException> connectionError = new ObjectHolder<>(null);
-        final ObjectHolder<String> collectionUsed = new ObjectHolder<>(null);
 
-        final String collectionAttrVal = flowFile.getAttribute(SOLR_COLLECTION_ATTR);
         final boolean isSolrCloud = SOLR_TYPE_CLOUD.equals(context.getProperty(SOLR_TYPE).getValue());
+        final String collection = context.getProperty(COLLECTION_PARAM_NAME).evaluateAttributeExpressions(flowFile).getValue();
+        final Long commitWithin = context.getProperty(COMMIT_WITHIN).evaluateAttributeExpressions(flowFile).asLong();
 
         StopWatch timer = new StopWatch(true);
         session.read(flowFile, new InputStreamCallback() {
             @Override
             public void process(final InputStream in) throws IOException {
-                ContentStreamUpdateRequest request = new ContentStreamUpdateRequest(
-                        context.getProperty(CONTENT_STREAM_URL).getValue());
+                final String contentStreamPath = context.getProperty(CONTENT_STREAM_PATH)
+                        .evaluateAttributeExpressions().getValue();
+
+                ContentStreamUpdateRequest request = new ContentStreamUpdateRequest(contentStreamPath);
                 request.setParams(new ModifiableSolrParams());
 
                 // add the extra params, don't use 'set' in case of repeating params
@@ -165,14 +190,13 @@ public class PutSolrContentStream extends SolrProcessor {
                     }
                 }
 
-                // send the request to the specified collection, or to the default collection
+                // specify the collection for SolrCloud
                 if (isSolrCloud) {
-                    String collection = collectionAttrVal;
-                    if (StringUtils.isBlank(collection)) {
-                        collection = context.getProperty(DEFAULT_COLLECTION).getValue();
-                    }
-                    request.setParam("collection", collection);
-                    collectionUsed.set(collection);
+                    request.setParam(COLLECTION_PARAM_NAME, collection);
+                }
+
+                if (commitWithin != null && commitWithin > 0) {
+                    request.setParam(COMMIT_WITHIN_PARAM_NAME, commitWithin.toString());
                 }
 
                 try (final BufferedInputStream bufferedIn = new BufferedInputStream(in)) {
@@ -185,11 +209,11 @@ public class PutSolrContentStream extends SolrProcessor {
 
                         @Override
                         public String getContentType() {
-                            return context.getProperty(CONTENT_TYPE).getValue();
+                            return context.getProperty(CONTENT_TYPE).evaluateAttributeExpressions().getValue();
                         }
                     });
 
-                    UpdateResponse response = request.process(getSolrServer());
+                    UpdateResponse response = request.process(getSolrClient());
                     getLogger().debug("Got {} response from Solr", new Object[]{response.getStatus()});
                 } catch (SolrException e) {
                     error.set(e);
@@ -213,14 +237,32 @@ public class PutSolrContentStream extends SolrProcessor {
             StringBuilder transitUri = new StringBuilder("solr://");
             transitUri.append(context.getProperty(SOLR_LOCATION).getValue());
             if (isSolrCloud) {
-                transitUri.append(":").append(collectionUsed.get());
+                transitUri.append(":").append(collection);
             }
 
             final long duration = timer.getDuration(TimeUnit.MILLISECONDS);
             session.getProvenanceReporter().send(flowFile, transitUri.toString(), duration, true);
             getLogger().info("Successfully sent {} to Solr in {} millis", new Object[]{flowFile, duration});
-            session.transfer(flowFile, REL_ORIGINAL);
+            session.transfer(flowFile, REL_SUCCESS);
         }
+    }
+
+    // get all of the dynamic properties and values into a Map for later adding to the Solr request
+    private Map<String, String[]> getRequestParams(ProcessContext context, FlowFile flowFile) {
+        final Map<String,String[]> paramsMap = new HashMap<>();
+
+        for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
+            final PropertyDescriptor descriptor = entry.getKey();
+            if (descriptor.isDynamic()) {
+                final String paramName = descriptor.getName();
+                final String paramValue = context.getProperty(descriptor).evaluateAttributeExpressions(flowFile).getValue();
+
+                if (!paramValue.trim().isEmpty()) {
+                    MultiMapSolrParams.addParam(paramName, paramValue, paramsMap);
+                }
+            }
+        }
+        return paramsMap;
     }
 
 }

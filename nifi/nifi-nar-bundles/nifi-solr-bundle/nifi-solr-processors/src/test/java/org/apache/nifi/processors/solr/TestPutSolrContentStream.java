@@ -82,7 +82,7 @@ public class TestPutSolrContentStream {
         final EmbeddedSolrServerProcessor proc = new EmbeddedSolrServerProcessor(DEFAULT_SOLR_CORE);
 
         final TestRunner runner = createDefaultTestRunner(proc);
-        runner.setProperty(PutSolrContentStream.CONTENT_STREAM_URL, "/update/json/docs");
+        runner.setProperty(PutSolrContentStream.CONTENT_STREAM_PATH, "/update/json/docs");
         runner.setProperty(PutSolrContentStream.REQUEST_PARAMS,"json.command=false");
 
         try (FileInputStream fileIn = new FileInputStream(SOLR_JSON_MULTIPLE_DOCS_FILE)) {
@@ -91,11 +91,11 @@ public class TestPutSolrContentStream {
             runner.run();
             runner.assertTransferCount(PutSolrContentStream.REL_FAILURE, 0);
             runner.assertTransferCount(PutSolrContentStream.REL_CONNECTION_FAILURE, 0);
-            runner.assertTransferCount(PutSolrContentStream.REL_ORIGINAL, 1);
+            runner.assertTransferCount(PutSolrContentStream.REL_SUCCESS, 1);
 
-            verifySolrDocuments(proc.getSolrServer(), Arrays.asList(expectedDoc1, expectedDoc2));
+            verifySolrDocuments(proc.getSolrClient(), Arrays.asList(expectedDoc1, expectedDoc2));
         } finally {
-            try { proc.getSolrServer().shutdown(); } catch (Exception e) { }
+            try { proc.getSolrClient().shutdown(); } catch (Exception e) { }
         }
     }
 
@@ -104,7 +104,7 @@ public class TestPutSolrContentStream {
         final EmbeddedSolrServerProcessor proc = new EmbeddedSolrServerProcessor(DEFAULT_SOLR_CORE);
 
         final TestRunner runner = createDefaultTestRunner(proc);
-        runner.setProperty(PutSolrContentStream.CONTENT_STREAM_URL, "/update/json/docs");
+        runner.setProperty(PutSolrContentStream.CONTENT_STREAM_PATH, "/update/json/docs");
         runner.setProperty(PutSolrContentStream.REQUEST_PARAMS,
                 "split=/exams" +
                 "&f=first:/first" +
@@ -120,11 +120,11 @@ public class TestPutSolrContentStream {
             runner.run();
             runner.assertTransferCount(PutSolrContentStream.REL_FAILURE, 0);
             runner.assertTransferCount(PutSolrContentStream.REL_CONNECTION_FAILURE, 0);
-            runner.assertTransferCount(PutSolrContentStream.REL_ORIGINAL, 1);
+            runner.assertTransferCount(PutSolrContentStream.REL_SUCCESS, 1);
 
-            verifySolrDocuments(proc.getSolrServer(), Arrays.asList(expectedDoc1, expectedDoc2));
+            verifySolrDocuments(proc.getSolrClient(), Arrays.asList(expectedDoc1, expectedDoc2));
         } finally {
-            try { proc.getSolrServer().shutdown(); } catch (Exception e) { }
+            try { proc.getSolrClient().shutdown(); } catch (Exception e) { }
         }
     }
 
@@ -133,7 +133,7 @@ public class TestPutSolrContentStream {
         final EmbeddedSolrServerProcessor proc = new EmbeddedSolrServerProcessor(DEFAULT_SOLR_CORE);
 
         final TestRunner runner = createDefaultTestRunner(proc);
-        runner.setProperty(PutSolrContentStream.CONTENT_STREAM_URL, "/update/csv");
+        runner.setProperty(PutSolrContentStream.CONTENT_STREAM_PATH, "/update/csv");
         runner.setProperty(PutSolrContentStream.REQUEST_PARAMS,
                 "fieldnames=first,last,grade,subject,test,marks");
 
@@ -143,11 +143,11 @@ public class TestPutSolrContentStream {
             runner.run();
             runner.assertTransferCount(PutSolrContentStream.REL_FAILURE, 0);
             runner.assertTransferCount(PutSolrContentStream.REL_CONNECTION_FAILURE, 0);
-            runner.assertTransferCount(PutSolrContentStream.REL_ORIGINAL, 1);
+            runner.assertTransferCount(PutSolrContentStream.REL_SUCCESS, 1);
 
-            verifySolrDocuments(proc.getSolrServer(), Arrays.asList(expectedDoc1, expectedDoc2));
+            verifySolrDocuments(proc.getSolrClient(), Arrays.asList(expectedDoc1, expectedDoc2));
         } finally {
-            try { proc.getSolrServer().shutdown(); } catch (Exception e) { }
+            try { proc.getSolrClient().shutdown(); } catch (Exception e) { }
         }
     }
 
@@ -156,7 +156,7 @@ public class TestPutSolrContentStream {
         final EmbeddedSolrServerProcessor proc = new EmbeddedSolrServerProcessor(DEFAULT_SOLR_CORE);
 
         final TestRunner runner = createDefaultTestRunner(proc);
-        runner.setProperty(PutSolrContentStream.CONTENT_STREAM_URL, "/update");
+        runner.setProperty(PutSolrContentStream.CONTENT_STREAM_PATH, "/update");
         runner.setProperty(PutSolrContentStream.CONTENT_TYPE, "application/xml");
 
         try (FileInputStream fileIn = new FileInputStream(XML_MULTIPLE_DOCS_FILE)) {
@@ -165,11 +165,11 @@ public class TestPutSolrContentStream {
             runner.run();
             runner.assertTransferCount(PutSolrContentStream.REL_FAILURE, 0);
             runner.assertTransferCount(PutSolrContentStream.REL_CONNECTION_FAILURE, 0);
-            runner.assertTransferCount(PutSolrContentStream.REL_ORIGINAL, 1);
+            runner.assertTransferCount(PutSolrContentStream.REL_SUCCESS, 1);
 
-            verifySolrDocuments(proc.getSolrServer(), Arrays.asList(expectedDoc1, expectedDoc2));
+            verifySolrDocuments(proc.getSolrClient(), Arrays.asList(expectedDoc1, expectedDoc2));
         } finally {
-            try { proc.getSolrServer().shutdown(); } catch (Exception e) { }
+            try { proc.getSolrClient().shutdown(); } catch (Exception e) { }
         }
     }
 
@@ -185,7 +185,7 @@ public class TestPutSolrContentStream {
             runner.run();
 
             runner.assertAllFlowFilesTransferred(PutSolrContentStream.REL_CONNECTION_FAILURE, 1);
-            verify(proc.getSolrServer(), times(1)).request(any(SolrRequest.class));
+            verify(proc.getSolrClient(), times(1)).request(any(SolrRequest.class));
         }
     }
 
@@ -201,7 +201,7 @@ public class TestPutSolrContentStream {
             runner.run();
 
             runner.assertAllFlowFilesTransferred(PutSolrContentStream.REL_FAILURE, 1);
-            verify(proc.getSolrServer(), times(1)).request(any(SolrRequest.class));
+            verify(proc.getSolrClient(), times(1)).request(any(SolrRequest.class));
         }
     }
 
@@ -218,7 +218,7 @@ public class TestPutSolrContentStream {
             runner.run();
 
             runner.assertAllFlowFilesTransferred(PutSolrContentStream.REL_FAILURE, 1);
-            verify(proc.getSolrServer(), times(1)).request(any(SolrRequest.class));
+            verify(proc.getSolrClient(), times(1)).request(any(SolrRequest.class));
         }
     }
 
@@ -230,7 +230,7 @@ public class TestPutSolrContentStream {
         runner.setProperty(PutSolrContentStream.SOLR_LOCATION, "http://localhost:8443/solr");
         runner.assertNotValid();
 
-        runner.setProperty(PutSolrContentStream.DEFAULT_COLLECTION, "someCollection1");
+        runner.setProperty(PutSolrContentStream.COLLECTION, "someCollection1");
         runner.assertValid();
     }
 
@@ -264,7 +264,7 @@ public class TestPutSolrContentStream {
         }
 
         @Override
-        protected SolrClient createSolrServer(ProcessContext context) {
+        protected SolrClient createSolrClient(ProcessContext context) {
             mockSolrServer = Mockito.mock(SolrClient.class);
             try {
                 when(mockSolrServer.request(any(SolrRequest.class))).thenThrow(throwable);
@@ -279,7 +279,7 @@ public class TestPutSolrContentStream {
     }
 
     /**
-     * Override the createSolrServer method and create and EmbeddedSolrServer.
+     * Override the createSolrClient method and create and EmbeddedSolrServer.
      */
     private class EmbeddedSolrServerProcessor extends PutSolrContentStream {
 
@@ -291,7 +291,7 @@ public class TestPutSolrContentStream {
         }
 
         @Override
-        protected SolrClient createSolrServer(ProcessContext context) {
+        protected SolrClient createSolrClient(ProcessContext context) {
             try {
                 String relPath = getClass().getProtectionDomain()
                         .getCodeSource().getLocation().getFile()

@@ -117,7 +117,7 @@ public class GetSolr extends SolrProcessor {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
         descriptors.add(SOLR_TYPE);
         descriptors.add(SOLR_LOCATION);
-        descriptors.add(DEFAULT_COLLECTION);
+        descriptors.add(COLLECTION);
         descriptors.add(SOLR_QUERY);
         descriptors.add(RETURN_FIELDS);
         descriptors.add(SORT_CLAUSE);
@@ -153,14 +153,6 @@ public class GetSolr extends SolrProcessor {
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         final ProcessorLog logger = getLogger();
-
-        final FlowFile incomingFlowFile = session.get();
-        if (incomingFlowFile != null) {
-            session.transfer(incomingFlowFile, REL_SUCCESS);
-            logger.warn("found FlowFile {} in input queue; transferring to success",
-                    new Object[]{incomingFlowFile});
-        }
-
         readLastEndDate();
 
         final SimpleDateFormat sdf = new SimpleDateFormat(LAST_END_DATE_PATTERN, Locale.US);
@@ -201,7 +193,7 @@ public class GetSolr extends SolrProcessor {
         try {
             // run the initial query and send out the first page of results
             final StopWatch stopWatch = new StopWatch(true);
-            QueryResponse response = getSolrServer().query(solrQuery);
+            QueryResponse response = getSolrClient().query(solrQuery);
             stopWatch.stop();
 
             long duration = stopWatch.getDuration(TimeUnit.MILLISECONDS);
@@ -218,7 +210,7 @@ public class GetSolr extends SolrProcessor {
                 StringBuilder transitUri = new StringBuilder("solr://");
                 transitUri.append(context.getProperty(SOLR_LOCATION).getValue());
                 if (SOLR_TYPE_CLOUD.equals(context.getProperty(SOLR_TYPE).getValue())) {
-                    transitUri.append("/").append(context.getProperty(DEFAULT_COLLECTION).getValue());
+                    transitUri.append("/").append(context.getProperty(COLLECTION).getValue());
                 }
 
                 session.getProvenanceReporter().receive(flowFile, transitUri.toString(), duration);
@@ -232,7 +224,7 @@ public class GetSolr extends SolrProcessor {
                         solrQuery.setStart(endRow);
 
                         stopWatch.start();
-                        response = getSolrServer().query(solrQuery);
+                        response = getSolrClient().query(solrQuery);
                         stopWatch.stop();
 
                         duration = stopWatch.getDuration(TimeUnit.MILLISECONDS);
