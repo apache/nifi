@@ -132,6 +132,14 @@ public class PutEmail extends AbstractProcessor {
 		    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
 		    .defaultValue("NiFi")
 		    .build();
+    public static final PropertyDescriptor CONTENT_TYPE = new PropertyDescriptor.Builder()
+		    .name("Content Type")
+		    .description("Mime Type used to interpret the contents of the email, such as text/plain or text/html")
+		    .required(true)
+		    .expressionLanguageSupported(true)
+		    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+		    .defaultValue("text/plain")
+		    .build();
     public static final PropertyDescriptor FROM = new PropertyDescriptor.Builder()
             .name("From")
             .description("Specifies the Email address to use as the sender")
@@ -223,6 +231,7 @@ public class PutEmail extends AbstractProcessor {
         properties.add(SMTP_TLS);
         properties.add(SMTP_SOCKET_FACTORY);
         properties.add(HEADER_XMAILER);
+        properties.add(CONTENT_TYPE);
         properties.add(FROM);
         properties.add(TO);
         properties.add(CC);
@@ -297,10 +306,11 @@ public class PutEmail extends AbstractProcessor {
             if (context.getProperty(INCLUDE_ALL_ATTRIBUTES).asBoolean()) {
                 messageText = formatAttributes(flowFile, messageText);
             }
-
-            message.setText(messageText);
+            
+            String contentType = context.getProperty(CONTENT_TYPE).evaluateAttributeExpressions(flowFile).getValue();
+            message.setContent(messageText, contentType);
             message.setSentDate(new Date());
-
+            
             if (context.getProperty(ATTACH_FILE).asBoolean()) {
                 final MimeBodyPart mimeText = new PreencodedMimeBodyPart("base64");
                 mimeText.setDataHandler(new DataHandler(new ByteArrayDataSource(Base64.encodeBase64(messageText.getBytes("UTF-8")), "text/plain; charset=\"utf-8\"")));
