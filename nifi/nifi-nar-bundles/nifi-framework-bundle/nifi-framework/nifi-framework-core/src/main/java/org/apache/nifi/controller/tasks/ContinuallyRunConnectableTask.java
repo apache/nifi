@@ -62,11 +62,11 @@ public class ContinuallyRunConnectableTask implements Callable<Boolean> {
         }
         
         // Connectable should run if the following conditions are met:
-        // 1. It's an Input Port or or is a Remote Input Port or has incoming FlowFiles queued
-        // 2. Any relationship is available (since there's only 1
-        // relationship for a Connectable, we can say "any" or "all" and
-        // it means the same thing)
-        // 3. It is not yielded.
+        // 1. It is not yielded.
+        // 2. It has incoming connections with FlowFiles queued or doesn't expect incoming connections
+        // 3. If it is a funnel, it has an outgoing connection (this is needed because funnels are "always on"; other
+        //    connectable components cannot even be started if they need an outbound connection and don't have one)
+        // 4. There is a connection for each relationship.
         final boolean triggerWhenEmpty = connectable.isTriggerWhenEmpty();
         boolean flowFilesQueued = true;
         final boolean shouldRun = (connectable.getYieldExpiration() < System.currentTimeMillis())
