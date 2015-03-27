@@ -615,6 +615,14 @@ public class StandardValidators {
         }
     }
 
+    /**
+     * Creates a validator based on existence of a {@link ControllerService}.
+     * 
+     * @param serviceClass the controller service API your {@link ConfigurableComponent} depends on
+     * @return a Validator
+     * @deprecated As of release 0.1.0-incubating, replaced by {@link org.apache.nifi.components.PropertyDescriptor.Builder#identifiesControllerService(Class)}
+     */
+    @Deprecated
     public static Validator createControllerServiceExistsValidator(final Class<? extends ControllerService> serviceClass) {
         return new Validator() {
             @Override

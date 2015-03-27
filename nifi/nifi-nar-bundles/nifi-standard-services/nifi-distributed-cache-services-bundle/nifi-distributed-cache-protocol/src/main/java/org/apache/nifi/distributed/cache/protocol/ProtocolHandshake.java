@@ -53,7 +53,7 @@ public class ProtocolHandshake {
         final DataOutputStream dos = new DataOutputStream(out);
         
         try {
-            final byte[] magicHeaderBuffer = new byte[4];
+            final byte[] magicHeaderBuffer = new byte[MAGIC_HEADER.length];
             dis.readFully(magicHeaderBuffer);
             
             receiveVersionNegotiation(versionNegotiator, dis, dos);
