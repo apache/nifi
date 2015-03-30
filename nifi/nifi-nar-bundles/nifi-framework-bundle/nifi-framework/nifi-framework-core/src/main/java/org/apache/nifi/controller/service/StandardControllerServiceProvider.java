@@ -117,6 +117,12 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             final InvocationHandler invocationHandler = new InvocationHandler() {
                 @Override
                 public Object invoke(final Object proxy, final Method method, final Object[] args) throws Throwable {
+
+                	final String methodName = method.getName();
+                	if("initialize".equals(methodName) || "onPropertyModified".equals(methodName)){
+                		throw new UnsupportedOperationException(method + " may only be invoked by the NiFi framework");
+                	}
+                	
                     final ControllerServiceNode node = serviceNodeHolder.get();
                     if (node.isDisabled() && !validDisabledMethods.contains(method)) {
                         // Use nar class loader here because we are implicitly calling toString() on the original implementation.
