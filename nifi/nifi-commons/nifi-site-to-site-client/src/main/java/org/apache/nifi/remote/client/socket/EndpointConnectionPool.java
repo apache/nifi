@@ -700,7 +700,7 @@ public class EndpointConnectionPool {
             final int flowFileCount = nodeInfo.getTotalFlowFiles();
             // don't allow any node to get more than 80% of the data
             final double percentageOfFlowFiles = Math.min(0.8D, ((double) flowFileCount / (double) totalFlowFileCount));
-            final double relativeWeighting = (direction == TransferDirection.RECEIVE) ? (1 - percentageOfFlowFiles) : percentageOfFlowFiles;
+            final double relativeWeighting = (direction == TransferDirection.SEND) ? (1 - percentageOfFlowFiles) : percentageOfFlowFiles;
             final int entries = Math.max(1, (int) (numDestinations * relativeWeighting));
             
             entryCountMap.put(nodeInfo, Math.max(1, entries));

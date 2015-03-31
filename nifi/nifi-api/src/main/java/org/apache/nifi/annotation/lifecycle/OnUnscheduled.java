@@ -47,8 +47,6 @@ import java.lang.annotation.Target;
  * If using 1 argument and the component using the annotation is a Reporting Task, that argument must
  * be of type {@link org.apache.nifi.controller.ConfigurationContext ConfigurationContext}.
  * </p>
- *
- * @author none
  */
 @Documented
 @Target({ElementType.METHOD})

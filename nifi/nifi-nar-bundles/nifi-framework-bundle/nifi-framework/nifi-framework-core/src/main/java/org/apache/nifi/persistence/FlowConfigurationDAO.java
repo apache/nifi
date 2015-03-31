@@ -19,15 +19,12 @@ package org.apache.nifi.persistence;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.List;
 
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.FlowSerializationException;
 import org.apache.nifi.controller.FlowSynchronizationException;
-import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.UninheritableFlowException;
-import org.apache.nifi.controller.service.ControllerServiceNode;
 
 /**
  * Interface to define service methods for FlowController configuration.
@@ -109,27 +106,5 @@ public interface FlowConfigurationDAO {
      * saving
      */
     void save(FlowController flow, boolean archive) throws IOException;
-
-    /**
-     * Instantiates and schedules all controller tasks from the file used in the
-     * constructor
-     *
-     * @param controller
-     * @return 
-     * @throws java.io.IOException
-     * @returns all of the ReportingTasks that were instantiated & scheduled
-     */
-    List<ReportingTaskNode> loadReportingTasks(FlowController controller) throws IOException;
-
-    /**
-     * Instantiates all controller services from the file used in the
-     * constructor
-     *
-     * @param controller
-     * @return 
-     * @throws java.io.IOException
-     * @returns all of the ReportingTasks that were instantiated & scheduled
-     */
-    List<ControllerServiceNode> loadControllerServices(FlowController controller) throws IOException;
 
 }

@@ -14,6 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/* global CodeMirror, nf */
+
 /**
  * Create a new nf editor. The options are specified in the following
  * format:
@@ -30,7 +33,7 @@
  *   minHeight: 150
  * }
  * 
- * This editor requires
+ * @param {type} $
  */
 (function ($) {
 

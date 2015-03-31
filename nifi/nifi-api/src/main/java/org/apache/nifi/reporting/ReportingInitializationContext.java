@@ -19,6 +19,7 @@ package org.apache.nifi.reporting;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 
 /**
@@ -77,4 +78,13 @@ public interface ReportingInitializationContext {
      * @return
      */
     SchedulingStrategy getSchedulingStrategy();
+    
+    
+    /**
+     * Returns a logger that can be used to log important events in a standard way and generate
+     * bulletins when appropriate
+     * 
+     * @return
+     */
+    ComponentLog getLogger();
 }

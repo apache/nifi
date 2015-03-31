@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 /**
  * Create a new dialog. The options are specified in the following
  * format:
@@ -36,10 +37,13 @@
  *      close: closeHandler
  *   }
  * }
+ * 
+ * The content of the dialog should be in a element with the class dialog-content
+ * directly under the dialog.
+ * 
+ * @argument {jQuery} $
  */
 (function ($) {
-
-    var overlayBackground = 'overlay-background';
 
     var isUndefined = function (obj) {
         return typeof obj === 'undefined';
@@ -73,20 +77,12 @@
         }
     };
 
-    // private function for adding the border
-    var addBorder = function (dialog) {
-        var dialogParent = dialog.parent();
-
-        // detach the dialog
-        dialog.detach();
-
-        // create the wrapper
-        $('<div/>').append('<div class="dialog-border"></div>').append(dialog).appendTo(dialogParent);
-    };
-
     var methods = {
+        
         /**
          * Initializes the dialog.
+         * 
+         * @argument {object} options The options for the plugin
          */
         init: function (options) {
             return this.each(function () {
@@ -110,8 +106,10 @@
                     dialog.prepend(dialogHeader);
 
                     // determine whether a dialog border is necessary
-                    if (options.overlayBackground === false) {
-                        addBorder(dialog);
+                    if (options.overlayBackground === true) {
+                        dialog.addClass('overlay');
+                    } else {
+                        dialog.addClass('show-border');
                     }
 
                     // add the buttons
@@ -119,44 +117,44 @@
                 }
             });
         },
+        
         /**
          * Sets the handler that is used when the dialog is closed.
+         * 
+         * @argument {function} handler The function to call when hiding the dialog
          */
         setHandler: function (handler) {
             return this.each(function () {
                 $(this).data('handler', handler);
             });
         },
+        
         /**
          * Sets whether to overlay the background or if a border should be shown around the dialog.
+         * 
+         * @argument {boolean} overlayBackground Whether or not to overlay the background
          */
         setOverlayBackground: function (overlayBackground) {
             return this.each(function () {
                 if (isDefinedAndNotNull(overlayBackground)) {
                     var dialog = $(this);
-                    var prev = dialog.prev();
 
                     // if we should overlay the background
                     if (overlayBackground === true) {
-                        // if we're currently configured for a border
-                        if (prev.hasClass('dialog-border')) {
-                            // detach the dialog
-                            dialog.detach();
-
-                            // reinsert appropriately
-                            prev.parent().replaceWith(dialog);
-                        }
+                        dialog.addClass('overlay');
+                        dialog.removeClass('show-border');
                     } else {
-                        // if we're currently configured to overlay the background
-                        if (!prev.hasClass('dialog-border')) {
-                            addBorder(dialog);
-                        }
+                        dialog.addClass('show-border');
+                        dialog.removeClass('overlay');
                     }
                 }
             });
         },
+        
         /**
          * Updates the button model for the selected dialog.
+         * 
+         * @argument {array} buttons The new button model
          */
         setButtonModel: function (buttons) {
             return this.each(function () {
@@ -171,14 +169,18 @@
                 }
             });
         },
+        
         /**
          * Sets the header text of the dialog.
+         * 
+         * @argument {string} text Text to use a as a header
          */
         setHeaderText: function (text) {
             return this.each(function () {
                 $(this).find('span.dialog-header-text').text(text);
             });
         },
+        
         /**
          * Shows the dialog.
          */
@@ -187,33 +189,19 @@
                 // show the dialog
                 var dialog = $(this);
                 if (!dialog.is(':visible')) {
-                    // position the background/border
-                    var background;
-                    var prev = dialog.prev();
-                    if (!prev.hasClass('dialog-border')) {
-                        // add a marker style so we know how to remove the style when hiding the dialog
-                        dialog.addClass(overlayBackground);
-
-                        // get the faded background
-                        background = $('#faded-background');
+                    var title = dialog.find('span.dialog-header-text').text();
+                    if (isBlank(title)) {
+                        dialog.find('.dialog-content').css('margin-top', '-20px');
                     } else {
-                        // get the dialog border
-                        background = prev;
-
-                        // get the width and the height of the dialog container
-                        var width = parseInt(dialog.css('width'));
-                        var height = parseInt(dialog.css('height'));
-
-                        // set the width and height and center the dialog border
-                        background.css({
-                            'width': (width + 20) + 'px',
-                            'height': (height + 20) + 'px'
-                        }).center();
-
-                        // show the glass pane
-                        $('#glass-pane').show();
+                        dialog.find('.dialog-content').css('margin-top', '0');
                     }
-                    background.show();
+                    
+                    // show the appropriate background
+                    if (dialog.hasClass('show-border')) {
+                        $('#glass-pane').show();
+                    } else {
+                        $('#faded-background').show();
+                    }
 
                     // show the centered dialog - performing these operation in the
                     // opposite order one might expect. for some reason, the call to
@@ -223,6 +211,7 @@
                 }
             });
         },
+        
         /**
          * Hides the dialog.
          */
@@ -230,27 +219,21 @@
             return this.each(function () {
                 var dialog = $(this);
                 if (dialog.is(':visible')) {
-                    // determine how to hide the dialog
-                    if (dialog.hasClass(overlayBackground)) {
-                        dialog.removeClass(overlayBackground);
-
-                        // hide the faded background
-                        $('#faded-background').hide();
-                    } else {
-                        // hide the dialog border
-                        dialog.prev().hide();
-
-                        // hide the glass pane
+                    // hide the appropriate backgroun
+                    if (dialog.hasClass('show-border')) {
                         $('#glass-pane').hide();
-                    }
-
-                    var handler = dialog.data('handler');
-                    if (isDefinedAndNotNull(handler) && typeof handler.close === 'function') {
-                        handler.close.call(dialog);
+                    } else {
+                        $('#faded-background').hide();
                     }
 
                     // hide the dialog
                     dialog.hide();
+                    
+                    // invoke the handler
+                    var handler = dialog.data('handler');
+                    if (isDefinedAndNotNull(handler) && typeof handler.close === 'function') {
+                        handler.close.call(dialog);
+                    }
                 }
             });
         }

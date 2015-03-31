@@ -19,14 +19,17 @@ package org.apache.nifi.web;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Set;
+import org.apache.nifi.controller.ScheduledState;
 
 import org.apache.nifi.controller.repository.claim.ContentDirection;
+import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.web.api.dto.BulletinBoardDTO;
 import org.apache.nifi.web.api.dto.BulletinQueryDTO;
 import org.apache.nifi.web.api.dto.ClusterDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ControllerConfigurationDTO;
 import org.apache.nifi.web.api.dto.ControllerDTO;
+import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.CounterDTO;
 import org.apache.nifi.web.api.dto.CountersDTO;
 import org.apache.nifi.web.api.dto.DocumentedTypeDTO;
@@ -38,9 +41,12 @@ import org.apache.nifi.web.api.dto.NodeSystemDiagnosticsDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
-import org.apache.nifi.web.api.dto.ProcessorHistoryDTO;
+import org.apache.nifi.web.api.dto.ComponentHistoryDTO;
+import org.apache.nifi.web.api.dto.ControllerServiceReferencingComponentDTO;
+import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
+import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.SnippetDTO;
 import org.apache.nifi.web.api.dto.SystemDiagnosticsDTO;
@@ -242,7 +248,21 @@ public interface NiFiServiceFacade {
      * @return The list of available processor types
      */
     Set<DocumentedTypeDTO> getProcessorTypes();
-
+    
+    /**
+     * Returns the list of controller service types.
+     * 
+     * @return The list of available controller types
+     */
+    Set<DocumentedTypeDTO> getControllerServiceTypes();
+    
+    /**
+     * Returns the list of reporting task types.
+     * 
+     * @return The list of available reporting task types
+     */
+    Set<DocumentedTypeDTO> getReportingTaskTypes();
+    
     /**
      * Returns the list of prioritizer types.
      *
@@ -359,6 +379,16 @@ public interface NiFiServiceFacade {
      */
     StatusHistoryDTO getProcessorStatusHistory(String groupId, String id);
 
+    /**
+     * Get the descriptor for the specified property of the specified processor.
+     * 
+     * @param groupId
+     * @param id
+     * @param property
+     * @return 
+     */
+    PropertyDescriptorDTO getProcessorPropertyDescriptor(String groupId, String id, String property);
+    
     /**
      * Gets all the Processor transfer objects for this controller.
      *
@@ -924,6 +954,172 @@ public interface NiFiServiceFacade {
     ConfigurationSnapshot<Void> deleteLabel(Revision revision, String groupId, String labelId);
 
     // ----------------------------------------
+    // Controller Services methods
+    // ----------------------------------------
+    
+    /**
+     * Creates a controller service.
+     *
+     * @param revision Revision to compare with current base revision
+     * @param controllerServiceDTO The controller service DTO
+     * @return The controller service DTO
+     */
+    ConfigurationSnapshot<ControllerServiceDTO> createControllerService(Revision revision, ControllerServiceDTO controllerServiceDTO);
+    
+    /**
+     * Gets all controller services.
+     * 
+     * @return 
+     */
+    Set<ControllerServiceDTO> getControllerServices();
+    
+    /**
+     * Gets the specified controller service.
+     * 
+     * @param controllerServiceId
+     * @return 
+     */
+    ControllerServiceDTO getControllerService(String controllerServiceId);
+    
+    /**
+     * Get the descriptor for the specified property of the specified controller service.
+     * 
+     * @param id
+     * @param property
+     * @return 
+     */
+    PropertyDescriptorDTO getControllerServicePropertyDescriptor(String id, String property);
+    
+    /**
+     * Gets the references for specified controller service.
+     * 
+     * @param controllerServiceId
+     * @return 
+     */
+    Set<ControllerServiceReferencingComponentDTO> getControllerServiceReferencingComponents(String controllerServiceId);
+    
+    /**
+     * Updates the referencing components for the specified controller service.
+     * 
+     * @param revision
+     * @param controllerServiceId
+     * @param scheduledState
+     * @param controllerServiceState the value of state 
+     * @return The referencing component dtos
+     */
+    ConfigurationSnapshot<Set<ControllerServiceReferencingComponentDTO>> updateControllerServiceReferencingComponents(Revision revision, String controllerServiceId, ScheduledState scheduledState, ControllerServiceState controllerServiceState);
+    
+    /**
+     * Updates the specified label.
+     *
+     * @param revision Revision to compare with current base revision
+     * @param controllerServiceDTO The controller service DTO
+     * @return The controller service DTO
+     */
+    ConfigurationSnapshot<ControllerServiceDTO> updateControllerService(Revision revision, ControllerServiceDTO controllerServiceDTO);
+
+    /**
+     * Deletes the specified label.
+     *
+     * @param revision Revision to compare with current base revision
+     * @param controllerServiceId The controller service id
+     * @return 
+     */
+    ConfigurationSnapshot<Void> deleteControllerService(Revision revision, String controllerServiceId);
+    
+    /**
+     * Verifies the specified controller service can be updated.
+     *
+     * @param controllerServiceDTO
+     */
+    void verifyUpdateControllerService(ControllerServiceDTO controllerServiceDTO);
+    
+    /**
+     * Verifies the referencing components of the specified controller service can be updated.
+     * 
+     * @param controllerServiceId
+     * @param scheduledState
+     * @param controllerServiceState 
+     */
+    void verifyUpdateControllerServiceReferencingComponents(String controllerServiceId, ScheduledState scheduledState, ControllerServiceState controllerServiceState);
+    
+    /**
+     * Verifies the specified controller service can be removed.
+     *
+     * @param controllerServiceId
+     */
+    void verifyDeleteControllerService(String controllerServiceId);
+    
+    // ----------------------------------------
+    // Reporting Task methods
+    // ----------------------------------------
+    
+    /**
+     * Creates a reporting task.
+     *
+     * @param revision Revision to compare with current base revision
+     * @param reportingTaskDTO The reporting task DTO
+     * @return The reporting task DTO
+     */
+    ConfigurationSnapshot<ReportingTaskDTO> createReportingTask(Revision revision, ReportingTaskDTO reportingTaskDTO);
+    
+    /**
+     * Gets all reporting tasks.
+     * 
+     * @return 
+     */
+    Set<ReportingTaskDTO> getReportingTasks();
+    
+    /**
+     * Gets the specified reporting task.
+     * 
+     * @param reportingTaskId
+     * @return 
+     */
+    ReportingTaskDTO getReportingTask(String reportingTaskId);
+    
+    /**
+     * Get the descriptor for the specified property of the specified reporting task.
+     * 
+     * @param id
+     * @param property
+     * @return 
+     */
+    PropertyDescriptorDTO getReportingTaskPropertyDescriptor(String id, String property);
+    
+    /**
+     * Updates the specified reporting task.
+     *
+     * @param revision Revision to compare with current base revision
+     * @param reportingTaskDTO The reporting task DTO
+     * @return The reporting task DTO
+     */
+    ConfigurationSnapshot<ReportingTaskDTO> updateReportingTask(Revision revision, ReportingTaskDTO reportingTaskDTO);
+
+    /**
+     * Deletes the specified reporting task.
+     *
+     * @param revision Revision to compare with current base revision
+     * @param reportingTaskId The reporting task id
+     * @return 
+     */
+    ConfigurationSnapshot<Void> deleteReportingTask(Revision revision, String reportingTaskId);
+    
+    /**
+     * Verifies the specified reporting task can be updated.
+     *
+     * @param reportingTaskDTO
+     */
+    void verifyUpdateReportingTask(ReportingTaskDTO reportingTaskDTO);
+
+    /**
+     * Verifies the specified reporting task can be removed.
+     *
+     * @param reportingTaskId
+     */
+    void verifyDeleteReportingTask(String reportingTaskId);
+    
+    // ----------------------------------------
     // History methods
     // ----------------------------------------
     /**
@@ -950,12 +1146,12 @@ public interface NiFiServiceFacade {
     void deleteActions(Date endDate);
 
     /**
-     * Gets the history for the specified property for the specified processor.
+     * Gets the history for the specified property for the specified component.
      *
-     * @param processorId
+     * @param componentId
      * @return
      */
-    ProcessorHistoryDTO getProcessorHistory(String processorId);
+    ComponentHistoryDTO getComponentHistory(String componentId);
 
     // ----------------------------------------
     // Snippet methods

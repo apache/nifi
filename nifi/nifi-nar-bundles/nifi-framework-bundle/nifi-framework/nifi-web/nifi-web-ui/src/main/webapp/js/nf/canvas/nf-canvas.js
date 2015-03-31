@@ -14,6 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/* global nf, d3 */
+
 $(document).ready(function () {
     if (nf.Canvas.SUPPORTS_SVG) {
         // initialize the NiFi
@@ -179,11 +182,30 @@ nf.Canvas = (function () {
                 // changes that need to be updated
                 if (revision.version > currentRevision.version && revision.clientId !== currentRevision.clientId) {
                     var refreshContainer = $('#refresh-required-container');
+                    var settingsRefreshIcon = $('#settings-refresh-required-icon');
 
-                    // insert the refresh needed text - if necessary
+                    // insert the refresh needed text in the canvas - if necessary
                     if (!refreshContainer.is(':visible')) {
                         $('#stats-last-refreshed').addClass('alert');
+                        var refreshMessage = "This flow has been modified by '" + revision.lastModifier + "'. Please refresh.";
+                        
+                        // update the tooltip
+                        var refreshRequiredIcon = $('#refresh-required-icon');
+                        if (refreshRequiredIcon.data('qtip')) {
+                            refreshRequiredIcon.qtip('option', 'content.text', refreshMessage);
+                        } else {
+                            refreshRequiredIcon.qtip($.extend({
+                                content: refreshMessage
+                            }, nf.CanvasUtils.config.systemTooltipConfig));
+                        }
+                    
                         refreshContainer.show();
+                    }
+                    
+                    // insert the refresh needed text in the settings - if necessary
+                    if (!settingsRefreshIcon.is(':visible')) {
+                        $('#settings-last-refreshed').addClass('alert');
+                        settingsRefreshIcon.show();
                     }
                 }
             }
@@ -509,15 +531,25 @@ nf.Canvas = (function () {
         // listen for browser resize events to reset the graph size
         $(window).on('resize', function () {
             updateGraphSize();
+            nf.Settings.resetTableSize();
         }).on('keydown', function (evt) {
             var isCtrl = evt.ctrlKey || evt.metaKey;
             
             // consider escape, before checking dialogs
             if (!isCtrl && evt.keyCode === 27) {
                 // esc
-                nf.Actions.hideDialogs();
+                var target = $(evt.target);
+                if (target.length) {
+                    if (target.get(0) === $('#canvas-body').get(0)) {
+                        nf.Actions.hideDialogs();
+                    } else {
+                        target.closest('.cancellable.dialog:visible').modal('hide');
+                    }
+                    
+                    evt.stopPropagation();
+                    evt.preventDefault();
+                }
 
-                evt.preventDefault();
                 return;
             }
             
@@ -876,7 +908,8 @@ nf.Canvas = (function () {
                 // get the process group to refresh everything
                 var processGroupXhr = reloadProcessGroup(nf.Canvas.getGroupId());
                 var statusXhr = reloadFlowStatus();
-                $.when(processGroupXhr, statusXhr).done(function (processGroupResult) {
+                var settingsXhr = nf.Settings.loadSettings();
+                $.when(processGroupXhr, statusXhr, settingsXhr).done(function (processGroupResult) {
                     // adjust breadcrumbs if necessary
                     var title = $('#data-flow-title-container');
                     var titlePosition = title.position();
@@ -1011,6 +1044,8 @@ nf.Canvas = (function () {
 
                         // initialize components
                         nf.ConnectionConfiguration.init();
+                        nf.ControllerService.init();
+                        nf.ReportingTask.init();
                         nf.ProcessorConfiguration.init();
                         nf.ProcessGroupConfiguration.init();
                         nf.RemoteProcessGroupConfiguration.init();

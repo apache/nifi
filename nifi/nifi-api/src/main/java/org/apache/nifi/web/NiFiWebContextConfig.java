@@ -19,6 +19,7 @@ package org.apache.nifi.web;
 /**
  * Context configuration for methods invoked from the NiFiWebContext.
  */
+@Deprecated
 public interface NiFiWebContextConfig {
 
     /**

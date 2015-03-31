@@ -178,52 +178,54 @@ public abstract class ApplicationResource {
 
         // get cluster context from threadlocal
         ClusterContext clusterCtx = ClusterContextThreadLocal.getContext();
+        if (clusterCtx != null) {
+            
+            // serialize cluster context
+            String serializedClusterContext = WebUtils.serializeObjectToHex(clusterCtx);
+            if (serializedClusterContext.length() > CLUSTER_CONTEXT_HEADER_VALUE_MAX_BYTES) {
+                /*
+                 * Actions is the only field that can vary in size. If we have no
+                 * actions and we exceeded the header size, then basic assumptions
+                 * about the cluster context have been violated.
+                 */
+                if (clusterCtx.getActions().isEmpty()) {
+                    throw new IllegalStateException(
+                            String.format("Serialized Cluster context size '%d' is too big for response header", serializedClusterContext.length()));
+                }
 
-        // serialize cluster context
-        String serializedClusterContext = WebUtils.serializeObjectToHex(clusterCtx);
-        if (serializedClusterContext.length() > CLUSTER_CONTEXT_HEADER_VALUE_MAX_BYTES) {
-            /*
-             * Actions is the only field that can vary in size. If we have no
-             * actions and we exceeded the header size, then basic assumptions
-             * about the cluster context have been violated.
-             */
-            if (clusterCtx.getActions().isEmpty()) {
-                throw new IllegalStateException(
-                        String.format("Serialized Cluster context size '%d' is too big for response header", serializedClusterContext.length()));
+                // use the first action as the prototype for creating the "batch" action
+                Action prototypeAction = clusterCtx.getActions().get(0);
+
+                // log the batched actions
+                StringBuilder loggedActions = new StringBuilder();
+                createBatchedActionLogStatement(loggedActions, clusterCtx.getActions());
+                logger.info(loggedActions.toString());
+
+                // remove current actions and replace with batch action
+                clusterCtx.getActions().clear();
+
+                // create the batch action
+                Action batchAction = new Action();
+                batchAction.setOperation(Operation.Batch);
+
+                // copy values from prototype action 
+                batchAction.setTimestamp(prototypeAction.getTimestamp());
+                batchAction.setUserDn(prototypeAction.getUserDn());
+                batchAction.setUserName(prototypeAction.getUserName());
+                batchAction.setSourceId(prototypeAction.getSourceId());
+                batchAction.setSourceName(prototypeAction.getSourceName());
+                batchAction.setSourceType(prototypeAction.getSourceType());
+
+                // add batch action
+                clusterCtx.getActions().add(batchAction);
+
+                // create the final serialized copy of the cluster context
+                serializedClusterContext = WebUtils.serializeObjectToHex(clusterCtx);
             }
 
-            // use the first action as the prototype for creating the "batch" action
-            Action prototypeAction = clusterCtx.getActions().get(0);
-
-            // log the batched actions
-            StringBuilder loggedActions = new StringBuilder();
-            createBatchedActionLogStatement(loggedActions, clusterCtx.getActions());
-            logger.info(loggedActions.toString());
-
-            // remove current actions and replace with batch action
-            clusterCtx.getActions().clear();
-
-            // create the batch action
-            Action batchAction = new Action();
-            batchAction.setOperation(Operation.Batch);
-
-            // copy values from prototype action 
-            batchAction.setTimestamp(prototypeAction.getTimestamp());
-            batchAction.setUserDn(prototypeAction.getUserDn());
-            batchAction.setUserName(prototypeAction.getUserName());
-            batchAction.setSourceId(prototypeAction.getSourceId());
-            batchAction.setSourceName(prototypeAction.getSourceName());
-            batchAction.setSourceType(prototypeAction.getSourceType());
-
-            // add batch action
-            clusterCtx.getActions().add(batchAction);
-
-            // create the final serialized copy of the cluster context
-            serializedClusterContext = WebUtils.serializeObjectToHex(clusterCtx);
+            // put serialized cluster context in response header
+            response.header(WebClusterManager.CLUSTER_CONTEXT_HTTP_HEADER, serializedClusterContext);
         }
-
-        // put serialized cluster context in response header
-        response.header(WebClusterManager.CLUSTER_CONTEXT_HTTP_HEADER, serializedClusterContext);
 
         return response;
     }

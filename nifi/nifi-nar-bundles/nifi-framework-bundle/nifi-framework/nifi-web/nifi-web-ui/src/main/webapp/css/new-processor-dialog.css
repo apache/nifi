@@ -23,11 +23,10 @@
     display: none;
     width: 800px;
     height: 450px;
-    border: 1px solid #eee;
     line-height: normal;
 }
 
-#tag-cloud-container {
+#processor-tag-cloud-container {
     float: left;
     width: 190px;
     height: 350px;
@@ -69,54 +68,27 @@
 }
 
 /*
-    Tag cloud
+    Processor tag cloud
 */
 
-#tag-cloud {
-    font-size: 90%;
-    padding: 2px;
-    margin-left: -5px;
+#processor-tag-cloud ul.tag-cloud {
     max-height: 257px;
-    overflow: hidden;
 }
 
-#tag-cloud li {
-    float: left;
-    list-style-type: none;
-    margin: 0 3px;
-    height: 20px;
-    line-height: 20px;
+#processor-tag-cloud ul.tag-cloud li {
     max-width: 180px;
-    overflow: hidden;
-    white-space: nowrap;
 }
 
-#tag-cloud-separator {
+#processor-tag-cloud div.tag-cloud-separator {
     width: 180px;
-    height: 1px;
-    border-bottom: 1px solid #aaa;
-    margin: 3px 0;
 }
 
-#tag-filter {
-    overflow: hidden;
+#processor-tag-cloud ul.tag-filter li {
+    width: 180px;
 }
 
-#tag-filter li {
-    width: 185px;
-    height: 18px;
-    line-height: 18px;
-    padding: 2px;
-}
-
-div.selected-tag-text {
-    float: left;
+#processor-tag-cloud div.selected-tag-text {
     width: 160px;
-}
-
-img.remove-selected-tag {
-    float: left;
-    margin-top: 1px;
 }
 
 /*
@@ -150,19 +122,10 @@ img.remove-selected-tag {
     float: left;
 }
 
-input.filter-list {
-    color: #888;
-}
-
 #processor-type-filter-options {
     float: left;
     height: 17px;
     line-height: 17px;
     width: 85px;
     margin-top: 1px;
-}
-
-.no-select {
-    -webkit-user-select: none;
-    -moz-user-select: none;
 }

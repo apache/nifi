@@ -14,6 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/* global nf */
+
 /**
  * Clipboard used for copying and pasting content.
  */

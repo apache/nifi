@@ -27,14 +27,25 @@ import org.apache.nifi.cluster.protocol.StandardDataFlow;
 public class ClusterDataFlow {
 
     private final StandardDataFlow dataFlow;
-
     private final NodeIdentifier primaryNodeId;
+    private final byte[] controllerServices;
+    private final byte[] reportingTasks;
 
-    public ClusterDataFlow(final StandardDataFlow dataFlow, final NodeIdentifier primaryNodeId) {
+    public ClusterDataFlow(final StandardDataFlow dataFlow, final NodeIdentifier primaryNodeId, final byte[] controllerServices, final byte[] reportingTasks) {
         this.dataFlow = dataFlow;
         this.primaryNodeId = primaryNodeId;
+        this.controllerServices = controllerServices;
+        this.reportingTasks = reportingTasks;
     }
 
+    public byte[] getControllerServices() {
+    	return controllerServices;
+    }
+    
+    public byte[] getReportingTasks() {
+    	return reportingTasks;
+    }
+    
     public NodeIdentifier getPrimaryNodeId() {
         return primaryNodeId;
     }

@@ -17,30 +17,29 @@
 package org.apache.nifi.controller.service;
 
 import java.io.BufferedInputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
-import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.nifi.controller.FlowFromDOMFactory;
+import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.util.DomUtils;
-import org.apache.nifi.util.file.FileUtils;
+import org.apache.nifi.web.api.dto.ControllerServiceDTO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
@@ -49,35 +48,14 @@ import org.xml.sax.SAXParseException;
  */
 public class ControllerServiceLoader {
 
-    private static final Log logger = LogFactory.getLog(ControllerServiceLoader.class);
+    private static final Logger logger = LoggerFactory.getLogger(ControllerServiceLoader.class);
 
-    private final Path serviceConfigXmlPath;
 
-    public ControllerServiceLoader(final Path serviceConfigXmlPath) throws IOException {
-        final File serviceConfigXmlFile = serviceConfigXmlPath.toFile();
-        if (!serviceConfigXmlFile.exists() || !serviceConfigXmlFile.canRead()) {
-            throw new IOException(serviceConfigXmlPath + " does not appear to exist or cannot be read. Cannot load configuration.");
-        }
-
-        this.serviceConfigXmlPath = serviceConfigXmlPath;
-    }
-
-    public List<ControllerServiceNode> loadControllerServices(final ControllerServiceProvider provider) throws IOException {
-        final SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+    public static List<ControllerServiceNode> loadControllerServices(final ControllerServiceProvider provider, final InputStream serializedStream, final StringEncryptor encryptor, final BulletinRepository bulletinRepo, final boolean autoResumeState) throws IOException {
         final DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
-        InputStream fis = null;
-        BufferedInputStream bis = null;
         documentBuilderFactory.setNamespaceAware(true);
 
-        final List<ControllerServiceNode> services = new ArrayList<>();
-
-        try {
-            final URL configurationResource = this.getClass().getResource("/ControllerServiceConfiguration.xsd");
-            if (configurationResource == null) {
-                throw new NullPointerException("Unable to load XML Schema for ControllerServiceConfiguration");
-            }
-            final Schema schema = schemaFactory.newSchema(configurationResource);
-            documentBuilderFactory.setSchema(schema);
+        try (final InputStream in = new BufferedInputStream(serializedStream)) {
             final DocumentBuilder builder = documentBuilderFactory.newDocumentBuilder();
 
             builder.setErrorHandler(new org.xml.sax.ErrorHandler() {
@@ -109,43 +87,72 @@ public class ControllerServiceLoader {
                     throw err;
                 }
             });
-
-            //if controllerService.xml does not exist, create an empty file...
-            fis = Files.newInputStream(this.serviceConfigXmlPath, StandardOpenOption.READ);
-            bis = new BufferedInputStream(fis);
-            if (Files.size(this.serviceConfigXmlPath) > 0) {
-                final Document document = builder.parse(bis);
-                final NodeList servicesNodes = document.getElementsByTagName("services");
-                final Element servicesElement = (Element) servicesNodes.item(0);
-
-                final List<Element> serviceNodes = DomUtils.getChildElementsByTagName(servicesElement, "service");
-                for (final Element serviceElement : serviceNodes) {
-                    //get properties for the specific controller task - id, name, class,
-                    //and schedulingPeriod must be set
-                    final String serviceId = DomUtils.getChild(serviceElement, "identifier").getTextContent().trim();
-                    final String serviceClass = DomUtils.getChild(serviceElement, "class").getTextContent().trim();
-
-                    //set the class to be used for the configured controller task
-                    final ControllerServiceNode serviceNode = provider.createControllerService(serviceClass, serviceId, false);
-
-                    //optional task-specific properties
-                    for (final Element optionalProperty : DomUtils.getChildElementsByTagName(serviceElement, "property")) {
-                        final String name = optionalProperty.getAttribute("name").trim();
-                        final String value = optionalProperty.getTextContent().trim();
-                        serviceNode.setProperty(name, value);
-                    }
-
-                    services.add(serviceNode);
-                    provider.enableControllerService(serviceNode);
-                }
-            }
+            
+            final Document document = builder.parse(in);
+            final Element controllerServices = document.getDocumentElement();
+            final List<Element> serviceElements = DomUtils.getChildElementsByTagName(controllerServices, "controllerService");
+            return new ArrayList<ControllerServiceNode>(loadControllerServices(serviceElements, provider, encryptor, bulletinRepo, autoResumeState));
         } catch (SAXException | ParserConfigurationException sxe) {
             throw new IOException(sxe);
-        } finally {
-            FileUtils.closeQuietly(fis);
-            FileUtils.closeQuietly(bis);
         }
+    }
+    
+    public static Collection<ControllerServiceNode> loadControllerServices(final List<Element> serviceElements, final ControllerServiceProvider provider, final StringEncryptor encryptor, final BulletinRepository bulletinRepo, final boolean autoResumeState) {
+        final Map<ControllerServiceNode, Element> nodeMap = new HashMap<>();
+        for ( final Element serviceElement : serviceElements ) {
+            final ControllerServiceNode serviceNode = createControllerService(provider, serviceElement, encryptor);
+            // We need to clone the node because it will be used in a separate thread below, and 
+            // Element is not thread-safe.
+            nodeMap.put(serviceNode, (Element) serviceElement.cloneNode(true));
+        }
+        for ( final Map.Entry<ControllerServiceNode, Element> entry : nodeMap.entrySet() ) {
+            configureControllerService(entry.getKey(), entry.getValue(), encryptor);
+        }
+        
+        // Start services
+        if ( autoResumeState ) {
+            final Set<ControllerServiceNode> nodesToEnable = new HashSet<>();
+            
+            for ( final ControllerServiceNode node : nodeMap.keySet() ) {
+                final Element controllerServiceElement = nodeMap.get(node);
 
-        return services;
+                final ControllerServiceDTO dto;
+                synchronized (controllerServiceElement.getOwnerDocument()) {
+                    dto = FlowFromDOMFactory.getControllerService(controllerServiceElement, encryptor);
+                }
+                
+                final ControllerServiceState state = ControllerServiceState.valueOf(dto.getState());
+                if (state == ControllerServiceState.ENABLED) {
+                    nodesToEnable.add(node);
+                }
+            }
+            
+            provider.enableControllerServices(nodesToEnable);
+        }
+        
+        return nodeMap.keySet();
+    }
+    
+    
+    private static ControllerServiceNode createControllerService(final ControllerServiceProvider provider, final Element controllerServiceElement, final StringEncryptor encryptor) {
+        final ControllerServiceDTO dto = FlowFromDOMFactory.getControllerService(controllerServiceElement, encryptor);
+        
+        final ControllerServiceNode node = provider.createControllerService(dto.getType(), dto.getId(), false);
+        node.setName(dto.getName());
+        node.setComments(dto.getComments());
+        return node;
+    }
+    
+    private static void configureControllerService(final ControllerServiceNode node, final Element controllerServiceElement, final StringEncryptor encryptor) {
+        final ControllerServiceDTO dto = FlowFromDOMFactory.getControllerService(controllerServiceElement, encryptor);
+        node.setAnnotationData(dto.getAnnotationData());
+        
+        for (final Map.Entry<String, String> entry : dto.getProperties().entrySet()) {
+            if (entry.getValue() == null) {
+                node.removeProperty(entry.getKey());
+            } else {
+                node.setProperty(entry.getKey(), entry.getValue());
+            }
+        }
     }
 }

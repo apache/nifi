@@ -40,12 +40,12 @@ public interface AuditService {
 
     /**
      * Finds the previous values for the specified property in the specified
-     * processor. Returns null if there are none.
+     * component. Returns null if there are none.
      *
-     * @param processorId
+     * @param componentId
      * @return
      */
-    Map<String, List<PreviousValue>> getPreviousValues(String processorId);
+    Map<String, List<PreviousValue>> getPreviousValues(String componentId);
 
     /**
      * Get the actions within the given date range.

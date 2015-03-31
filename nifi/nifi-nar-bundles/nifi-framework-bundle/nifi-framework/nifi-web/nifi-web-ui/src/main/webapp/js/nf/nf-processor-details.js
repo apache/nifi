@@ -14,146 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/* global nf */
+
 nf.ProcessorDetails = (function () {
-
-    /**
-     * Shows the property value for the specified row and cell.
-     * 
-     * @param {type} row
-     * @param {type} cell
-     */
-    var showPropertyValue = function (row, cell) {
-        // remove any currently open detail dialogs
-        removeAllPropertyDetailDialogs();
-
-        // get the property in question
-        var propertyGrid = $('#read-only-processor-properties').data('gridInstance');
-        var propertyData = propertyGrid.getData();
-        var property = propertyData.getItem(row);
-
-        // ensure there is a value
-        if (nf.Common.isDefinedAndNotNull(property.value)) {
-
-            // get the processor details to insert the description tooltip
-            var details = $('#processor-details').data('processorDetails');
-            var propertyDescriptor = details.config.descriptors[property.property];
-
-            // ensure we're not dealing with a sensitive property
-            if (!isSensitiveProperty(propertyDescriptor)) {
-
-                // get details about the location of the cell
-                var cellNode = $(propertyGrid.getCellNode(row, cell));
-                var offset = cellNode.offset();
-
-                // create the wrapper
-                var wrapper = $('<div class="processor-property-detail"></div>').css({
-                    'z-index': 100000,
-                    'position': 'absolute',
-                    'background': 'white',
-                    'padding': '5px',
-                    'overflow': 'hidden',
-                    'border': '3px solid #365C6A',
-                    'box-shadow': '4px 4px 6px rgba(0, 0, 0, 0.9)',
-                    'cursor': 'move',
-                    'top': offset.top - 5,
-                    'left': offset.left - 5
-                }).appendTo('body');
-
-                var editor = null;
-
-                // so the nfel editor is appropriate
-                if (supportsEl(propertyDescriptor)) {
-                    var languageId = 'nfel';
-                    var editorClass = languageId + '-editor';
-
-                    // prevent dragging over the nf editor
-                    wrapper.draggable({
-                        cancel: 'input, textarea, pre, .button, .' + editorClass,
-                        containment: 'parent'
-                    });
-
-                    // create the editor
-                    editor = $('<div></div>').addClass(editorClass).appendTo(wrapper).nfeditor({
-                        languageId: languageId,
-                        width: cellNode.width(),
-                        content: property.value,
-                        minWidth: 175,
-                        minHeight: 100,
-                        readOnly: true,
-                        resizable: true
-                    });
-                } else {
-                    // prevent dragging over standard components
-                    wrapper.draggable({
-                        containment: 'parent'
-                    });
-
-                    // create the input field
-                    $('<textarea hidefocus rows="5" readonly="readonly"/>').css({
-                        'background': 'white',
-                        'width': cellNode.width() + 'px',
-                        'height': '80px',
-                        'border-width': '0',
-                        'outline': '0',
-                        'overflow-y': 'auto',
-                        'resize': 'both',
-                        'margin-bottom': '28px'
-                    }).text(property.value).appendTo(wrapper);
-                }
-
-                // add an ok button that will remove the entire pop up
-                var ok = $('<div class="button button-normal">Ok</div>').on('click', function () {
-                    // clean up the editor
-                    if (editor !== null) {
-                        editor.nfeditor('destroy');
-                    }
-                    
-                    // clean up the rest
-                    wrapper.hide().remove();
-                });
-                $('<div></div>').css({
-                    'position': 'absolute',
-                    'bottom': '0',
-                    'left': '0',
-                    'right': '0',
-                    'padding': '0 3px 5px'
-                }).append(ok).append('<div class="clear"></div>').appendTo(wrapper);
-            }
-        }
-    };
-
-    /**
-     * Removes all currently open process property detail dialogs.
-     */
-    var removeAllPropertyDetailDialogs = function () {
-        $('body').children('div.processor-property-detail').hide().remove();
-    };
-
-    /**
-     * Determines if the specified property is sensitive.
-     * 
-     * @argument {object} propertyDescriptor        The property descriptor
-     */
-    var isSensitiveProperty = function (propertyDescriptor) {
-        if (nf.Common.isDefinedAndNotNull(propertyDescriptor)) {
-            return propertyDescriptor.sensitive === true;
-        } else {
-            return false;
-        }
-    };
-
-    /**
-     * Returns whether the specified property supports EL.
-     * 
-     * @param {object} propertyDescriptor           The property descriptor
-     */
-    var supportsEl = function (propertyDescriptor) {
-        if (nf.Common.isDefinedAndNotNull(propertyDescriptor)) {
-            return propertyDescriptor.supportsEl === true;
-        } else {
-            return false;
-        }
-    };
 
     /**
      * Creates an option for the specified relationship name.
@@ -207,10 +71,7 @@ nf.ProcessorDetails = (function () {
                 select: function () {
                     // resize the property grid in case this is the first time its rendered
                     if ($(this).text() === 'Properties') {
-                        var propertyGrid = $('#read-only-processor-properties').data('gridInstance');
-                        if (nf.Common.isDefinedAndNotNull(propertyGrid)) {
-                            propertyGrid.resizeCanvas();
-                        }
+                        $('#read-only-processor-properties').propertytable('resetTableSize');
                     }
 
                     // show the border if processor relationship names if necessary
@@ -230,17 +91,9 @@ nf.ProcessorDetails = (function () {
                         // empty the relationship list
                         $('#read-only-auto-terminate-relationship-names').css('border-width', '0').empty();
 
-                        // get the property grid element
-                        var propertyGridElement = $('#read-only-processor-properties');
+                        // clear the property grid
+                        $('#read-only-processor-properties').propertytable('clear');
             
-                        // clean up any tooltips that may have been generated
-                        nf.Common.cleanUpTooltips(propertyGridElement, 'img.icon-info');
-
-                        // clear the data in the grid
-                        var propertyGrid = propertyGridElement.data('gridInstance');
-                        var propertyData = propertyGrid.getData();
-                        propertyData.setItems([]);
-
                         // clear the processor details
                         nf.Common.clearField('read-only-processor-id');
                         nf.Common.clearField('read-only-processor-type');
@@ -257,9 +110,6 @@ nf.ProcessorDetails = (function () {
                         // removed the cached processor details
                         $('#processor-details').removeData('processorDetails');
                         $('#processor-details').removeData('processorHistory');
-
-                        // remove any currently open detail dialogs
-                        removeAllPropertyDetailDialogs();
                     }
                 }
             });
@@ -271,135 +121,9 @@ nf.ProcessorDetails = (function () {
                 });
             }
 
-            // function for formatting the property name
-            var nameFormatter = function (row, cell, value, columnDef, dataContext) {
-                var nameWidthOffset = 10;
-                var cellContent = $('<div></div>');
-
-                // format the contents
-                var formattedValue = $('<span/>').addClass('table-cell').text(value).appendTo(cellContent);
-                if (dataContext.type === 'required') {
-                    formattedValue.addClass('required');
-                }
-
-                // get the processor details to insert the description tooltip
-                var details = $('#processor-details').data('processorDetails');
-                var propertyDescriptor = details.config.descriptors[dataContext.property];
-
-                // show the property description if applicable
-                if (nf.Common.isDefinedAndNotNull(propertyDescriptor)) {
-                    if (!nf.Common.isBlank(propertyDescriptor.description) || !nf.Common.isBlank(propertyDescriptor.defaultValue) || !nf.Common.isBlank(propertyDescriptor.supportsEl)) {
-                        $('<img class="icon-info" src="images/iconInfo.png" alt="Info" title="" style="float: right; margin-right: 6px; margin-top: 4px;" />').appendTo(cellContent);
-                        nameWidthOffset = 26; // 10 + icon width (10) + icon margin (6)
-                    }
-                }
-
-                // adjust the width accordingly
-                formattedValue.width(columnDef.width - nameWidthOffset).ellipsis();
-
-                // return the cell content
-                return cellContent.html();
-            };
-
-            // function for formatting the property value
-            var valueFormatter = function (row, cell, value, columnDef, dataContext) {
-                var valueMarkup;
-                if (nf.Common.isDefinedAndNotNull(value)) {
-                    // identify the property descriptor
-                    var processorDetails = $('#processor-details').data('processorDetails');
-                    var propertyDescriptor = processorDetails.config.descriptors[dataContext.property];
-
-                    // determine if the property is sensitive
-                    if (isSensitiveProperty(propertyDescriptor)) {
-                        valueMarkup = '<span class="table-cell sensitive">Sensitive value set</span>';
-                    } else {
-                        if (value === '') {
-                            valueMarkup = '<span class="table-cell blank">Empty string set</span>';
-                        } else {
-                            valueMarkup = '<div class="table-cell value"><pre class="ellipsis">' + nf.Common.escapeHtml(value) + '</pre></div>';
-                        }
-                    }
-                } else {
-                    valueMarkup = '<span class="unset">No value set</span>';
-                }
-
-                // format the contents
-                var content = $(valueMarkup);
-                if (dataContext.type === 'required') {
-                    content.addClass('required');
-                }
-                content.find('.ellipsis').width(columnDef.width - 10).ellipsis();
-
-                // return the appropriate markup
-                return $('<div/>').append(content).html();
-            };
-
-            // initialize the processor type table
-            var processorDetailsColumns = [
-                {id: 'property', field: 'property', name: 'Property', sortable: false, resizable: true, rerenderOnResize: true, formatter: nameFormatter},
-                {id: 'value', field: 'value', name: 'Value', sortable: false, resizable: true, cssClass: 'pointer', rerenderOnResize: true, formatter: valueFormatter}
-            ];
-            var processorDetailsOptions = {
-                forceFitColumns: true,
-                enableTextSelectionOnCells: true,
-                enableCellNavigation: false,
-                enableColumnReorder: false,
-                autoEdit: false
-            };
-
-            // initialize the dataview
-            var processorDetailsData = new Slick.Data.DataView({
-                inlineFilters: false
-            });
-            processorDetailsData.setItems([]);
-
-            // initialize the grid
-            var processorDetailsGrid = new Slick.Grid('#read-only-processor-properties', processorDetailsData, processorDetailsColumns, processorDetailsOptions);
-            processorDetailsGrid.setSelectionModel(new Slick.RowSelectionModel());
-            processorDetailsGrid.onClick.subscribe(function (e, args) {
-                // only consider property values
-                if (args.cell === 1) {
-                    // show the property value in a resizable dialog
-                    showPropertyValue(args.row, args.cell);
-
-                    // prevents standard edit logic
-                    e.stopImmediatePropagation();
-                }
-            });
-
-            // wire up the dataview to the grid
-            processorDetailsData.onRowCountChanged.subscribe(function (e, args) {
-                processorDetailsGrid.updateRowCount();
-                processorDetailsGrid.render();
-            });
-            processorDetailsData.onRowsChanged.subscribe(function (e, args) {
-                processorDetailsGrid.invalidateRows(args.rows);
-                processorDetailsGrid.render();
-            });
-
-            // hold onto an instance of the grid and listen for mouse events to add tooltips where appropriate
-            $('#read-only-processor-properties').data('gridInstance', processorDetailsGrid).on('mouseenter', 'div.slick-cell', function (e) {
-                var infoIcon = $(this).find('img.icon-info');
-                if (infoIcon.length && !infoIcon.data('qtip')) {
-                    var property = $(this).find('span.table-cell').text();
-
-                    // get the processor details to insert the description tooltip
-                    var details = $('#processor-details').data('processorDetails');
-                    var propertyDescriptor = details.config.descriptors[property];
-
-                    // get the processor history
-                    var processorHistory = $('#processor-details').data('processorHistory');
-                    var propertyHistory = processorHistory.propertyHistory[property];
-
-                    // format the tooltip
-                    var tooltip = nf.Common.formatPropertyTooltip(propertyDescriptor, propertyHistory);
-
-                    if (nf.Common.isDefinedAndNotNull(tooltip)) {
-                        infoIcon.qtip($.extend({
-                            content: tooltip
-                        }, nf.Common.config.tooltipConfig));
-                    }
-                }
+            // initialize the properties
+            $('#read-only-processor-properties').propertytable({
+                readOnly: true
             });
         },
         
@@ -466,54 +190,6 @@ nf.ProcessorDetails = (function () {
                     } else {
                         $('#read-only-auto-terminate-relationship-names').append('<div class="unset">This processor has no relationships.</div>');
                     }
-
-                    // get the property grid
-                    var propertyGrid = $('#read-only-processor-properties').data('gridInstance');
-                    var propertyData = propertyGrid.getData();
-                    var properties = details.config.properties;
-                    var descriptors = details.config.descriptors;
-
-                    // generate the processor properties
-                    if (nf.Common.isDefinedAndNotNull(properties)) {
-                        propertyData.beginUpdate();
-
-                        var i = 0;
-                        $.each(properties, function (name, value) {
-                            // get the property descriptor
-                            var descriptor = descriptors[name];
-
-                            // determine the property type
-                            var type = 'userDefined';
-                            var displayName = name;
-                            if (nf.Common.isDefinedAndNotNull(descriptor)) {
-                                if (descriptor.required === true) {
-                                    type = 'required';
-                                } else if (descriptor.dynamic === true) {
-                                    type = 'userDefined';
-                                } else {
-                                    type = 'optional';
-                                }
-                                
-                                // use the display name if possible
-                                displayName = descriptor.displayName;
-                                
-                                // determine the value
-                                if (nf.Common.isNull(value) && nf.Common.isDefinedAndNotNull(descriptor.defaultValue)) {
-                                    value = descriptor.defaultValue;
-                                }
-                            }
-
-                            // add the row
-                            propertyData.addItem({
-                                id: i++,
-                                property: displayName,
-                                value: value,
-                                type: type
-                            });
-                        });
-
-                        propertyData.endUpdate();
-                    }
                 }
             });
 
@@ -523,16 +199,21 @@ nf.ProcessorDetails = (function () {
                 url: '../nifi-api/controller/history/processors/' + encodeURIComponent(processorId),
                 dataType: 'json'
             }).done(function (response) {
-                var processorHistory = response.processorHistory;
+                var processorHistory = response.componentHistory;
 
                 // record the processor history
                 $('#processor-details').data('processorHistory', processorHistory);
             });
 
             // show the dialog once we have the processor and its history
-            $.when(getProcessor, getProcessorHistory).done(function (response) {
-                var processorResponse = response[0];
+            $.when(getProcessor, getProcessorHistory).done(function (processorResponse, historyResponse) {
+                var processorResponse = processorResponse[0];
                 var processor = processorResponse.processor;
+                var historyResponse = historyResponse[0];
+                var history = historyResponse.componentHistory;
+
+                // load the properties
+                $('#read-only-processor-properties').propertytable('loadProperties', processor.config.properties, processor.config.descriptors, history.propertyHistory);
 
                 var buttons = [{
                         buttonText: 'Ok',
@@ -545,7 +226,7 @@ nf.ProcessorDetails = (function () {
                     }];
 
                 // determine if we should show the advanced button
-                if (nf.Common.isDefinedAndNotNull(nf.CustomProcessorUi) && nf.Common.isDefinedAndNotNull(processor.config.customUiUrl) && processor.config.customUiUrl !== '') {
+                if (nf.Common.isDefinedAndNotNull(nf.CustomUi) && nf.Common.isDefinedAndNotNull(processor.config.customUiUrl) && processor.config.customUiUrl !== '') {
                     buttons.push({
                         buttonText: 'Advanced',
                         handler: {
@@ -554,7 +235,7 @@ nf.ProcessorDetails = (function () {
                                 $('#processor-details').modal('hide');
 
                                 // show the custom ui
-                                nf.CustomProcessorUi.showCustomUi(processor.id, processor.config.customUiUrl, false);
+                                nf.CustomUi.showCustomUi(processor.id, processor.config.customUiUrl, false);
                             }
                         }
                     });

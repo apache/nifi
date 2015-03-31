@@ -43,7 +43,7 @@ public class StandardControllerServiceProviderTest {
     public void setup() throws Exception {
     	String id = "id";
     	String clazz = "org.apache.nifi.controller.service.util.TestControllerService";  
-    	ControllerServiceProvider provider = new StandardControllerServiceProvider();
+    	ControllerServiceProvider provider = new StandardControllerServiceProvider(null, null);
     	ControllerServiceNode node = provider.createControllerService(clazz,id,true);
     	proxied = node.getProxiedControllerService();
     	implementation = node.getControllerServiceImplementation();

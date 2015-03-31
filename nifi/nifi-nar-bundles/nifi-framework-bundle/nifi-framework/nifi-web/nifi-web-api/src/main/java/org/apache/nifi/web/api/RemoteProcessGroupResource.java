@@ -396,7 +396,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
         // get the updated revision
         final RevisionDTO updatedRevision = new RevisionDTO();
         updatedRevision.setClientId(revision.getClientId());
-        updatedRevision.setVersion(controllerResponse.getRevision());
+        updatedRevision.setVersion(controllerResponse.getVersion());
 
         // build the response entity
         final RemoteProcessGroupEntity entity = new RemoteProcessGroupEntity();
@@ -452,7 +452,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
         // get the updated revision
         final RevisionDTO revision = new RevisionDTO();
         revision.setClientId(clientId.getClientId());
-        revision.setVersion(controllerResponse.getRevision());
+        revision.setVersion(controllerResponse.getVersion());
 
         // create the response entity
         final RemoteProcessGroupEntity entity = new RemoteProcessGroupEntity();
@@ -586,7 +586,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
         // get the updated revision
         final RevisionDTO updatedRevision = new RevisionDTO();
         updatedRevision.setClientId(revision.getClientId());
-        updatedRevision.setVersion(controllerResponse.getRevision());
+        updatedRevision.setVersion(controllerResponse.getVersion());
 
         // build the response entity
         final RemoteProcessGroupPortEntity entity = new RemoteProcessGroupPortEntity();
@@ -720,7 +720,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
         // get the updated revision
         final RevisionDTO updatedRevision = new RevisionDTO();
         updatedRevision.setClientId(revision.getClientId());
-        updatedRevision.setVersion(controllerResponse.getRevision());
+        updatedRevision.setVersion(controllerResponse.getVersion());
 
         // build the response entity
         RemoteProcessGroupPortEntity entity = new RemoteProcessGroupPortEntity();
@@ -890,7 +890,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
         // get the updated revision
         final RevisionDTO updatedRevision = new RevisionDTO();
         updatedRevision.setClientId(revision.getClientId());
-        updatedRevision.setVersion(controllerResponse.getRevision());
+        updatedRevision.setVersion(controllerResponse.getVersion());
 
         // build the response entity
         final RemoteProcessGroupEntity entity = new RemoteProcessGroupEntity();

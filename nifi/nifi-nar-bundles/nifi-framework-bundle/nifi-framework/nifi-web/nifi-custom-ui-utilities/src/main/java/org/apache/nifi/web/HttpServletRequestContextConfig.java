@@ -23,6 +23,7 @@ import javax.servlet.http.HttpServletRequest;
  * An implementation of the NiFiWebContextConfig that retrieves configuration
  * from a HttpServletRequest instance.
  */
+@Deprecated
 public class HttpServletRequestContextConfig implements NiFiWebContextConfig {
 
     public static final String PROCESSOR_ID_PARAM = "processorId";

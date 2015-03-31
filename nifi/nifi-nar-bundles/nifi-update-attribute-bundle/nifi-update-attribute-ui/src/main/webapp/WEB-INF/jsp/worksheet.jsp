@@ -31,7 +31,6 @@
         <link rel="stylesheet" href="../nifi/css/reset.css" type="text/css" />
         <link rel="stylesheet" href="css/main.css" type="text/css" />
         <script type="text/javascript" src="../nifi/js/jquery/jquery-2.1.1.min.js"></script>
-        <script src="http://code.jquery.com/jquery-migrate-1.2.1.js"></script>
         <script type="text/javascript" src="../nifi/js/jquery/jquery.center.js"></script>
         <script type="text/javascript" src="../nifi/js/jquery/jquery.each.js"></script>
         <script type="text/javascript" src="../nifi/js/jquery/jquery.tab.js"></script>
@@ -59,7 +58,7 @@
         <title>Update Attribute</title>
     </head>
     <body>
-        <div id="attribute-updater-processor-id" class="hidden">${param.processorId}</div>
+        <div id="attribute-updater-processor-id" class="hidden">${param.id}</div>
         <div id="attribute-updater-client-id" class="hidden">${param.clientId}</div>
         <div id="attribute-updater-revision" class="hidden">${param.revision}</div>
         <div id="attribute-updater-editable" class="hidden">${param.editable}</div>

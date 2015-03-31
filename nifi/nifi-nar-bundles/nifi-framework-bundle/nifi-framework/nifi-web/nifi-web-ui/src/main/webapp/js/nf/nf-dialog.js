@@ -14,6 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/* global nf */
+
 $(document).ready(function () {
     // setup general button mouse behavior
     nf.Common.addHoverEffect('div.button', 'button-normal', 'button-over');
@@ -35,6 +38,9 @@ $(document).ready(function () {
                 $('#nf-ok-dialog-content').empty();
             }
         }
+    }).draggable({
+        containment: 'parent',
+        handle: '.dialog-header'
     });
 
     // configure the yes/no dialog
@@ -45,6 +51,9 @@ $(document).ready(function () {
                 $('#nf-yes-no-dialog-content').empty();
             }
         }
+    }).draggable({
+        containment: 'parent',
+        handle: '.dialog-header'
     });
 });
 
@@ -67,13 +76,6 @@ nf.Dialog = (function () {
             // regardless of whether the dialog is already visible, the new content will be appended
             var content = $('<p></p>').append(options.dialogContent);
             $('#nf-ok-dialog-content').append(content);
-
-            // conditionally show the header text
-            if (nf.Common.isBlank(options.headerText)) {
-                $('#nf-ok-dialog-content').css('margin-top', '-10px');
-            } else {
-                $('#nf-ok-dialog-content').css('margin-top', '0px');
-            }
 
             // show the dialog
             $('#nf-ok-dialog').modal('setHeaderText', options.headerText).modal('setOverlayBackground', options.overlayBackground).modal('show');
@@ -122,7 +124,7 @@ nf.Dialog = (function () {
                 }]);
 
             // show the dialog
-            $('#nf-yes-no-dialog').modal('setOverlayBackground', options.overlayBackground).modal('show');
+            $('#nf-yes-no-dialog').modal('setHeaderText', options.headerText).modal('setOverlayBackground', options.overlayBackground).modal('show');
         }
     };
 }());

@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.connectable.Connectable;
+import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.processor.Processor;
@@ -77,4 +78,19 @@ public abstract class ProcessorNode extends AbstractConfiguredComponent implemen
 
     public abstract void setStyle(Map<String, String> style);
 
+    /**
+     * Returns the number of threads (concurrent tasks) currently being used by this Processor
+     * @return
+     */
+    public abstract int getActiveThreadCount();
+    
+    /**
+     * Verifies that this Processor can be started if the provided set of
+     * services are enabled. This is introduced because we need to verify that all components
+     * can be started before starting any of them. In order to do that, we need to know that this
+     * component can be started if the given services are enabled, as we will then enable the given 
+     * services before starting this component.
+     * @param ignoredReferences
+     */
+    public abstract void verifyCanStart(Set<ControllerServiceNode> ignoredReferences);
 }

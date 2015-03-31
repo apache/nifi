@@ -44,6 +44,8 @@
      *   }],
      *   select: selectHandler
      * }
+     * 
+     * @argument {object} options 
      */
     $.fn.tabbs = function (options) {
         return this.each(function () {

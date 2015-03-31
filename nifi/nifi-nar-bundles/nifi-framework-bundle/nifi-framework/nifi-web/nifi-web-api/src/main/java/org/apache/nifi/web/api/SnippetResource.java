@@ -340,7 +340,7 @@ public class SnippetResource extends ApplicationResource {
         // get the updated revision
         final RevisionDTO updatedRevision = new RevisionDTO();
         updatedRevision.setClientId(revision.getClientId());
-        updatedRevision.setVersion(response.getRevision());
+        updatedRevision.setVersion(response.getVersion());
 
         // build the response entity
         SnippetEntity entity = new SnippetEntity();
@@ -520,7 +520,7 @@ public class SnippetResource extends ApplicationResource {
         // get the updated revision
         final RevisionDTO updatedRevision = new RevisionDTO();
         updatedRevision.setClientId(revision.getClientId());
-        updatedRevision.setVersion(controllerResponse.getRevision());
+        updatedRevision.setVersion(controllerResponse.getVersion());
 
         // build the response entity
         SnippetEntity entity = new SnippetEntity();
@@ -577,7 +577,7 @@ public class SnippetResource extends ApplicationResource {
         // get the updated revision
         final RevisionDTO revision = new RevisionDTO();
         revision.setClientId(clientId.getClientId());
-        revision.setVersion(controllerResponse.getRevision());
+        revision.setVersion(controllerResponse.getVersion());
 
         // build the response entity
         SnippetEntity entity = new SnippetEntity();

@@ -30,8 +30,13 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
 import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
@@ -45,7 +50,9 @@ import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.controller.exception.ProcessorLifeCycleException;
 import org.apache.nifi.controller.label.Label;
+import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.StandardProcessContext;
@@ -53,11 +60,6 @@ import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
-import org.apache.commons.lang3.builder.ToStringBuilder;
-import org.apache.commons.lang3.builder.ToStringStyle;
-import org.apache.nifi.encrypt.StringEncryptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -329,7 +331,8 @@ public final class StandardProcessGroup implements ProcessGroup {
     private void shutdown(final ProcessGroup procGroup) {
         for (final ProcessorNode node : procGroup.getProcessors()) {
             try (final NarCloseable x = NarCloseable.withNarLoader()) {
-                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, org.apache.nifi.processor.annotation.OnShutdown.class, node.getProcessor());
+                final StandardProcessContext processContext = new StandardProcessContext(node, controllerServiceProvider, encryptor);
+                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, org.apache.nifi.processor.annotation.OnShutdown.class, node.getProcessor(), processContext);
             }
         }
 
@@ -674,6 +677,19 @@ public final class StandardProcessGroup implements ProcessGroup {
                 throw new ProcessorLifeCycleException("Failed to invoke 'OnRemoved' methods of " + processor, e);
             }
 
+            for ( final Map.Entry<PropertyDescriptor, String> entry : processor.getProperties().entrySet() ) {
+                final PropertyDescriptor descriptor = entry.getKey();
+                if (descriptor.getControllerServiceDefinition() != null ) {
+                    final String value = entry.getValue() == null ? descriptor.getDefaultValue() : entry.getValue();
+                    if ( value != null ) {
+                        final ControllerServiceNode serviceNode = controllerServiceProvider.getControllerServiceNode(value);
+                        if ( serviceNode != null ) {
+                            serviceNode.removeReference(processor);
+                        }
+                    }
+                }
+            }
+            
             processors.remove(id);
             LogRepositoryFactory.getRepository(processor.getIdentifier()).removeAllObservers();
 

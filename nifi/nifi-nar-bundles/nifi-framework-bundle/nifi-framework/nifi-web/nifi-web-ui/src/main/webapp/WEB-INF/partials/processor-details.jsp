@@ -138,10 +138,6 @@
                 </div>
             </div>
             <div id="details-processor-properties-tab-content" class="details-tab">
-                <div id="read-only-processor-properties-header">
-                    <div id="read-only-required-property-note">Required field</div>
-                    <div class="clear"></div>
-                </div>
                 <div id="read-only-processor-properties"></div>
             </div>
             <div id="details-processor-comments-tab-content" class="details-tab">

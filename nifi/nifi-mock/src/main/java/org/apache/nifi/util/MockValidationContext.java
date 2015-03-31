@@ -103,6 +103,21 @@ public class MockValidationContext implements ValidationContext, ControllerServi
     }
     
     @Override
+    public String getControllerServiceName(final String serviceIdentifier) {
+    	final ControllerServiceConfiguration configuration = context.getConfiguration(serviceIdentifier);
+    	return configuration == null ? null : serviceIdentifier;
+    }
+    
+    @Override
+    public boolean isValidationRequired(final ControllerService service) {
+        return true;
+    }
+
+    @Override
+    public boolean isControllerServiceEnabling(String serviceIdentifier) {
+        return context.isControllerServiceEnabling(serviceIdentifier);
+    }
+    
     public boolean isExpressionLanguagePresent(final String value) {
         if ( value == null ) {
             return false;

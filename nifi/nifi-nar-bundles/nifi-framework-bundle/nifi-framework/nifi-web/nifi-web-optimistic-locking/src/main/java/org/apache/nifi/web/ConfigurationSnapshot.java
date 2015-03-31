@@ -22,36 +22,36 @@ package org.apache.nifi.web;
  */
 public class ConfigurationSnapshot<T> {
 
-    private Long revision;
+    private Long version;
     private T configuration;
 
     /**
      * Creates a new ConfigurationSnapshot.
      *
-     * @param revision The model revision
+     * @param version The revision version
      */
-    public ConfigurationSnapshot(Long revision) {
-        this(revision, null);
+    public ConfigurationSnapshot(Long version) {
+        this(version, null);
     }
 
     /**
      * Creates a new ConfigurationSnapshot.
      *
-     * @param revision The model revision
+     * @param version The revision version
      * @param configuration The configuration
      */
-    public ConfigurationSnapshot(Long revision, T configuration) {
-        this.revision = revision;
+    public ConfigurationSnapshot(Long version, T configuration) {
+        this.version = version;
         this.configuration = configuration;
     }
 
     /**
-     * Get the new model revision.
+     * Get the revision version.
      *
-     * @return The model revision
+     * @return The revision version
      */
-    public Long getRevision() {
-        return revision;
+    public Long getVersion() {
+        return version;
     }
 
     /**

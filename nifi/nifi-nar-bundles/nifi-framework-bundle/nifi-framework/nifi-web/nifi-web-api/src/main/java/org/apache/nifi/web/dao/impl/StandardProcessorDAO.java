@@ -99,6 +99,11 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
         if (processorDTO.getParentGroupId() != null && !flowController.areGroupsSame(groupId, processorDTO.getParentGroupId())) {
             throw new IllegalArgumentException("Cannot specify a different Parent Group ID than the Group to which the Processor is being added.");
         }
+        
+        // ensure the type is specified
+        if (processorDTO.getType() == null) {
+            throw new IllegalArgumentException("The processor type must be specified.");
+        }
 
         // get the group to add the processor to
         ProcessGroup group = locateProcessGroup(flowController, groupId);

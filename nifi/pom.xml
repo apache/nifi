@@ -676,6 +676,11 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-ui-extension</artifactId>
+                <version>0.1.0-incubating-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-flowfile-packager</artifactId>
                 <version>0.1.0-incubating-SNAPSHOT</version>
             </dependency>
