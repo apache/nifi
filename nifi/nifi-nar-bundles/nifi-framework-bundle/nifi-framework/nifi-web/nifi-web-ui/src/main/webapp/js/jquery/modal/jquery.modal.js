@@ -90,7 +90,7 @@
                 if (isDefinedAndNotNull(options)) {
 
                     // get the combo
-                    var dialog = $(this).addClass('dialog cancellable');
+                    var dialog = $(this).addClass('dialog cancellable modal');
                     var dialogHeaderText = $('<span class="dialog-header-text"></span>');
                     var dialogHeader = $('<div class="dialog-header"></div>').append(dialogHeaderText);
 

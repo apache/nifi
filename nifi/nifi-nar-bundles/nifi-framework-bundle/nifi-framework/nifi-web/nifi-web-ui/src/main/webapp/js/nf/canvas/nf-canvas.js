@@ -538,18 +538,82 @@ nf.Canvas = (function () {
             // consider escape, before checking dialogs
             if (!isCtrl && evt.keyCode === 27) {
                 // esc
-                var target = $(evt.target);
-                if (target.length) {
-                    if (target.get(0) === $('#canvas-body').get(0)) {
-                        nf.Actions.hideDialogs();
-                    } else {
-                        target.closest('.cancellable.dialog:visible').modal('hide');
-                    }
-                    
-                    evt.stopPropagation();
-                    evt.preventDefault();
+
+                // prevent escape when a property value is being edited and it is unable to close itself 
+                // (due to focus loss on field) - allowing this to continue would could cause other
+                // unsaved changes to be lost as it would end up cancel the entire configuration dialog
+                // not just the field itself
+                if ($('div.value-combo').is(':visible') || $('div.slickgrid-nfel-editor').is(':visible') || $('div.slickgrid-editor').is(':visible')) {
+                    return;
                 }
 
+                // first consider read only property detail dialog
+                if ($('div.property-detail').is(':visible')) {
+                    nf.CanvasUtils.removeAllPropertyDetailDialogs();
+                    
+                    // prevent further bubbling as we're already handled it
+                    evt.stopPropagation();
+                    evt.preventDefault();
+                } else {
+                    var target = $(evt.target);
+                    if (target.length) {
+                        var isBody = target.get(0) === $('#canvas-body').get(0);
+                        var inShell = target.closest('#shell-dialog').length;
+
+                        // special handling for body and shell
+                        if (isBody || inShell) {
+                            var cancellables = $('.cancellable');
+                            if (cancellables.length) {
+                                var zIndexMax = null;
+                                var dialogMax = null;
+
+                                // identify the top most cancellable
+                                $.each(cancellables, function(_, cancellable) {
+                                    var dialog = $(cancellable);
+                                    var zIndex = dialog.css('zIndex');
+
+                                    // if the dialog has a zIndex consider it
+                                    if (dialog.is(':visible') && nf.Common.isDefinedAndNotNull(zIndex)) {
+                                        zIndex = parseInt(zIndex, 10);
+                                        if (zIndexMax === null || zIndex > zIndexMax) {
+                                            zIndexMax = zIndex;
+                                            dialogMax = dialog;
+                                        }
+                                    }
+                                });
+
+                                // if we've identified a dialog to close do so and stop propagation
+                                if (dialogMax !== null) {
+                                    // hide the cancellable
+                                    if (dialogMax.hasClass('modal')) {
+                                        dialogMax.modal('hide');
+                                    } else {
+                                        dialogMax.hide();
+                                    }
+
+                                    // prevent further bubbling as we're already handled it
+                                    evt.stopPropagation();
+                                    evt.preventDefault();
+                                }
+                            }
+                        } else {
+                            // otherwise close the closest visible cancellable
+                            var parentDialog = target.closest('.cancellable:visible').first();
+                            if (parentDialog.length) {
+                                if (parentDialog.hasClass('modal')) {
+                                    parentDialog.modal('hide');
+                                } else {
+                                    parentDialog.hide();
+                                }
+
+                                // prevent further bubbling as we're already handled it
+                                evt.stopPropagation();
+                                evt.preventDefault();
+                            }
+                        }
+                    }
+                }
+                
                 return;
             }
             

@@ -679,20 +679,6 @@ nf.Actions = (function () {
         },
         
         /**
-         * Hides and open cancellable dialogs.
-         */
-        hideDialogs: function () {
-            // ensure all cancellable dialogs are closed
-            var cancellable = $('.cancellable');
-            $.each(cancellable, function () {
-                // if this dialog is open, close it 
-                if ($(this).is(':visible')) {
-                    $(this).modal('hide');
-                }
-            });
-        },
-        
-        /**
          * Reloads the status for the entire canvas (components and flow.)
          */
         reloadStatus: function () {

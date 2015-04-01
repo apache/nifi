@@ -58,7 +58,7 @@
             previousValue = args.item[args.column.field];
 
             // create the wrapper
-            wrapper = $('<div></div>').css({
+            wrapper = $('<div></div>').addClass('slickgrid-editor').css({
                 'z-index': 100000,
                 'position': 'absolute',
                 'background': 'white',
@@ -598,7 +598,7 @@
      */
     var showPropertyValue = function (propertyGrid, descriptors, row, cell) {
         // remove any currently open detail dialogs
-        removeAllPropertyDetailDialogs();
+        nf.CanvasUtils.removeAllPropertyDetailDialogs();
 
         // get the property in question
         var propertyData = propertyGrid.getData();
@@ -692,13 +692,6 @@
                 }).append(ok).append('<div class="clear"></div>').appendTo(wrapper);
             }
         }
-    };
-
-    /**
-     * Removes all currently open property detail dialogs.
-     */
-    var removeAllPropertyDetailDialogs = function () {
-        $('body').children('div.property-detail').hide().remove();
     };
 
     var initPropertiesTable = function (table, options) {
@@ -1029,7 +1022,7 @@
     var clear = function (propertyTableContainer) {
         var options = propertyTableContainer.data('options');
         if (options.readOnly === true) {
-            removeAllPropertyDetailDialogs();
+            nf.CanvasUtils.removeAllPropertyDetailDialogs();
         } else {
             // clear any existing new property dialogs
             if (nf.Common.isDefinedAndNotNull(options.newPropertyDialogContainer)) {
@@ -1077,7 +1070,7 @@
                     if (options.readOnly !== true && nf.Common.isDefinedAndNotNull(options.newPropertyDialogContainer)) {
                         // build the new property dialog
                         var newPropertyDialogMarkup = 
-                                '<div class="new-property-dialog dialog">' +
+                                '<div class="new-property-dialog dialog cancellable">' +
                                     '<div>' +
                                         '<div class="setting-name">Property name</div>' +
                                         '<div class="setting-field new-property-name-container">' +
