@@ -69,6 +69,9 @@ nf.ProcessorDetails = (function () {
                         tabContentId: 'details-processor-comments-tab-content'
                     }],
                 select: function () {
+                    // remove all property detail dialogs
+                    nf.Common.removeAllPropertyDetailDialogs();
+                    
                     // resize the property grid in case this is the first time its rendered
                     if ($(this).text() === 'Properties') {
                         $('#read-only-processor-properties').propertytable('resetTableSize');

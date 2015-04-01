@@ -243,6 +243,9 @@ nf.ReportingTask = (function () {
                         tabContentId: 'reporting-task-comments-tab-content'
                     }],
                 select: function () {
+                    // remove all property detail dialogs
+                    nf.Common.removeAllPropertyDetailDialogs();
+                    
                     // update the property table size in case this is the first time its rendered
                     if ($(this).text() === 'Properties') {
                         $('#reporting-task-properties').propertytable('resetTableSize');

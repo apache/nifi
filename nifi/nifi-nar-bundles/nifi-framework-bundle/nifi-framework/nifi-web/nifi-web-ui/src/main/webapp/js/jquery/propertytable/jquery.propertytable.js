@@ -598,7 +598,7 @@
      */
     var showPropertyValue = function (propertyGrid, descriptors, row, cell) {
         // remove any currently open detail dialogs
-        nf.CanvasUtils.removeAllPropertyDetailDialogs();
+        nf.Common.removeAllPropertyDetailDialogs();
 
         // get the property in question
         var propertyData = propertyGrid.getData();
@@ -619,7 +619,7 @@
 
                 // create the wrapper
                 var wrapper = $('<div class="property-detail"></div>').css({
-                    'z-index': 100000,
+                    'z-index': 1999,
                     'position': 'absolute',
                     'background': 'white',
                     'padding': '5px',
@@ -631,65 +631,116 @@
                     'left': offset.left - 5
                 }).appendTo('body');
 
-                var editor = null;
-
-                // so the nfel editor is appropriate
-                if (nf.Common.supportsEl(propertyDescriptor)) {
-                    var languageId = 'nfel';
-                    var editorClass = languageId + '-editor';
-
-                    // prevent dragging over the nf editor
+                var allowableValues = nf.Common.getAllowableValues(propertyDescriptor);
+                if ($.isArray(allowableValues)) {
+                    // prevent dragging over the combo
                     wrapper.draggable({
-                        cancel: 'input, textarea, pre, .button, .' + editorClass,
+                        cancel: '.button, .combo',
                         containment: 'parent'
                     });
 
-                    // create the editor
-                    editor = $('<div></div>').addClass(editorClass).appendTo(wrapper).nfeditor({
-                        languageId: languageId,
-                        width: cellNode.width(),
-                        content: property.value,
-                        minWidth: 175,
-                        minHeight: 100,
-                        readOnly: true,
-                        resizable: true
-                    });
-                } else {
-                    // prevent dragging over standard components
-                    wrapper.draggable({
-                        containment: 'parent'
+                    // create the read only options
+                    var options = [];
+                    $.each(allowableValues, function (i, allowableValue) {
+                        options.push({
+                            text: allowableValue.displayName,
+                            value: allowableValue.value,
+                            description: nf.Common.escapeHtml(allowableValue.description),
+                            disabled: true
+                        });
                     });
 
-                    // create the input field
-                    $('<textarea hidefocus rows="5" readonly="readonly"/>').css({
-                        'background': 'white',
-                        'width': cellNode.width() + 'px',
-                        'height': '80px',
-                        'border-width': '0',
-                        'outline': '0',
-                        'overflow-y': 'auto',
-                        'resize': 'both',
-                        'margin-bottom': '28px'
-                    }).text(property.value).appendTo(wrapper);
-                }
-
-                // add an ok button that will remove the entire pop up
-                var ok = $('<div class="button button-normal">Ok</div>').on('click', function () {
-                    // clean up the editor
-                    if (editor !== null) {
-                        editor.nfeditor('destroy');
+                    // ensure the options there is at least one option
+                    if (options.length === 0) {
+                        options.push({
+                            text: 'No value',
+                            value: null,
+                            optionClass: 'unset',
+                            disabled: true
+                        });
                     }
 
-                    // clean up the rest
-                    wrapper.hide().remove();
-                });
-                $('<div></div>').css({
-                    'position': 'absolute',
-                    'bottom': '0',
-                    'left': '0',
-                    'right': '0',
-                    'padding': '0 3px 5px'
-                }).append(ok).append('<div class="clear"></div>').appendTo(wrapper);
+                    // determine the max height
+                    var windowHeight = $(window).height();
+                    var maxHeight = windowHeight - (offset.top + cellNode.height()) - 16;
+                    var width = cellNode.width() - 16;
+
+                    // build the combo field
+                    $('<div class="value-combo combo"></div>').width(width).combo({
+                        options: options,
+                        maxHeight: maxHeight,
+                        selectedOption: {
+                            value: property.value
+                        }
+                    }).appendTo(wrapper);
+                    
+                    $('<div class="button button-normal">Ok</div>').css({
+                        'margin': '0 0 0 5px',
+                        'float': 'left'
+                    }).on('click', function () {
+                        wrapper.hide().remove();
+                    }).appendTo(wrapper);
+                } else {
+                    var editor = null;
+
+                    // so the nfel editor is appropriate
+                    if (nf.Common.supportsEl(propertyDescriptor)) {
+                        var languageId = 'nfel';
+                        var editorClass = languageId + '-editor';
+
+                        // prevent dragging over the nf editor
+                        wrapper.draggable({
+                            cancel: 'input, textarea, pre, .button, .' + editorClass,
+                            containment: 'parent'
+                        });
+
+                        // create the editor
+                        editor = $('<div></div>').addClass(editorClass).appendTo(wrapper).nfeditor({
+                            languageId: languageId,
+                            width: cellNode.width(),
+                            content: property.value,
+                            minWidth: 175,
+                            minHeight: 100,
+                            readOnly: true,
+                            resizable: true
+                        });
+                    } else {
+                        // prevent dragging over standard components
+                        wrapper.draggable({
+                            containment: 'parent'
+                        });
+
+                        // create the input field
+                        $('<textarea hidefocus rows="5" readonly="readonly"/>').css({
+                            'background': 'white',
+                            'width': cellNode.width() + 'px',
+                            'height': '80px',
+                            'border-width': '0',
+                            'outline': '0',
+                            'overflow-y': 'auto',
+                            'resize': 'both',
+                            'margin-bottom': '28px'
+                        }).text(property.value).appendTo(wrapper);
+                    }
+
+                    // add an ok button that will remove the entire pop up
+                    var ok = $('<div class="button button-normal">Ok</div>').on('click', function () {
+                        // clean up the editor
+                        if (editor !== null) {
+                            editor.nfeditor('destroy');
+                        }
+
+                        // clean up the rest
+                        wrapper.hide().remove();
+                    });
+                    $('<div></div>').css({
+                        'position': 'absolute',
+                        'bottom': '0',
+                        'left': '0',
+                        'right': '0',
+                        'padding': '0 3px 5px'
+                    }).append(ok).append('<div class="clear"></div>').appendTo(wrapper);
+                }
             }
         }
     };
@@ -1022,7 +1073,7 @@
     var clear = function (propertyTableContainer) {
         var options = propertyTableContainer.data('options');
         if (options.readOnly === true) {
-            nf.CanvasUtils.removeAllPropertyDetailDialogs();
+            nf.Common.removeAllPropertyDetailDialogs();
         } else {
             // clear any existing new property dialogs
             if (nf.Common.isDefinedAndNotNull(options.newPropertyDialogContainer)) {

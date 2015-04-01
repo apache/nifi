@@ -404,6 +404,9 @@ nf.ProcessorConfiguration = (function () {
                         tabContentId: 'processor-comments-tab-content'
                     }],
                 select: function () {
+                    // remove all property detail dialogs
+                    nf.Common.removeAllPropertyDetailDialogs();
+                    
                     // update the processor property table size in case this is the first time its rendered
                     if ($(this).text() === 'Properties') {
                         $('#processor-properties').propertytable('resetTableSize');

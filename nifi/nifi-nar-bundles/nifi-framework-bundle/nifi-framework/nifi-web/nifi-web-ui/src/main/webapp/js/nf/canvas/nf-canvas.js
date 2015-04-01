@@ -549,7 +549,7 @@ nf.Canvas = (function () {
 
                 // first consider read only property detail dialog
                 if ($('div.property-detail').is(':visible')) {
-                    nf.CanvasUtils.removeAllPropertyDetailDialogs();
+                    nf.Common.removeAllPropertyDetailDialogs();
                     
                     // prevent further bubbling as we're already handled it
                     evt.stopPropagation();

@@ -1126,6 +1126,9 @@ nf.ControllerService = (function () {
                         tabContentId: 'controller-service-comments-tab-content'
                     }],
                 select: function () {
+                    // remove all property detail dialogs
+                    nf.Common.removeAllPropertyDetailDialogs();
+                    
                     // update the property table size in case this is the first time its rendered
                     if ($(this).text() === 'Properties') {
                         $('#controller-service-properties').propertytable('resetTableSize');

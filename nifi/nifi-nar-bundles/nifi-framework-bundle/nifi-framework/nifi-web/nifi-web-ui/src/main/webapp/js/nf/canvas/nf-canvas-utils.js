@@ -871,15 +871,6 @@ nf.CanvasUtils = (function () {
         },
         
         /**
-         * Removes all read only property detail dialogs.
-         */
-        removeAllPropertyDetailDialogs: function () {
-            var propertyDetails = $('body').children('div.property-detail');
-            propertyDetails.find('div.nfel-editor').nfeditor('destroy');
-            propertyDetails.hide().remove();
-        },
-        
-        /**
          * Persists the current user view.
          */
         persistUserView: function () {
