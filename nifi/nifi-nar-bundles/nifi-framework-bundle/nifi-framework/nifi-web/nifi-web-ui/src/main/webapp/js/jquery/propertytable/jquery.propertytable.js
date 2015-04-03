@@ -1159,8 +1159,9 @@
                                 // add a row for the new property
                                 var propertyGrid = table.data('gridInstance');
                                 var propertyData = propertyGrid.getData();
+                                var id = propertyData.getLength(); 
                                 propertyData.addItem({
-                                    id: propertyData.getLength(),
+                                    id: id,
                                     hidden: false,
                                     property: propertyName,
                                     displayName: propertyName,
@@ -1168,6 +1169,11 @@
                                     value: null,
                                     type: 'userDefined'
                                 });
+                                
+                                // select the new properties row
+                                var row = propertyData.getRowById(id);
+                                propertyGrid.setSelectedRows([row]);
+                                propertyGrid.scrollRowIntoView(row);
                             } else {
                                 nf.Dialog.showOkDialog({
                                     dialogContent: 'Property name must be specified.',
@@ -1182,6 +1188,14 @@
                         var cancel = function () {
                             newPropertyDialog.hide();
                         };
+                        
+                        // enable enter to add
+                        newPropertyNameField.on('keydown', function (e) {
+                            var code = e.keyCode ? e.keyCode : e.which;
+                            if (code === $.ui.keyCode.ENTER) {
+                                add();
+                            }
+                        });
 
                         // make the new property dialog draggable
                         newPropertyDialog.draggable({
