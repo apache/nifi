@@ -32,7 +32,7 @@ import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ValidationContextFactory;
 import org.apache.nifi.controller.annotation.OnConfigured;
-import org.apache.nifi.controller.exception.ProcessorLifeCycleException;
+import org.apache.nifi.controller.exception.ComponentLifeCycleException;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.util.ReflectionUtils;
 
@@ -129,7 +129,7 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
             final ConfigurationContext configContext = new StandardConfigurationContext(this, serviceProvider);
             ReflectionUtils.invokeMethodsWithAnnotation(OnConfigured.class, implementation, configContext);
         } catch (final Exception e) {
-            throw new ProcessorLifeCycleException("Failed to invoke On-Configured Lifecycle methods of " + implementation, e);
+            throw new ComponentLifeCycleException("Failed to invoke On-Configured Lifecycle methods of " + implementation, e);
         }
     }
     

@@ -16,15 +16,15 @@
  */
 package org.apache.nifi.controller.exception;
 
-public class ProcessorLifeCycleException extends RuntimeException {
+public class ComponentLifeCycleException extends RuntimeException {
 
     private static final long serialVersionUID = 8392341500511490941L;
 
-    public ProcessorLifeCycleException(final String message, final Throwable t) {
+    public ComponentLifeCycleException(final String message, final Throwable t) {
         super(message, t);
     }
 
-    public ProcessorLifeCycleException(final Throwable t) {
+    public ComponentLifeCycleException(final Throwable t) {
         super(t);
     }
 }

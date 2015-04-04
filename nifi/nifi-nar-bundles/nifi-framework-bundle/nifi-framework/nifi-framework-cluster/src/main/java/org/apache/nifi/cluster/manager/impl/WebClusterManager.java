@@ -130,7 +130,7 @@ import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.StandardFlowSerializer;
 import org.apache.nifi.controller.ValidationContextFactory;
-import org.apache.nifi.controller.exception.ProcessorLifeCycleException;
+import org.apache.nifi.controller.exception.ComponentLifeCycleException;
 import org.apache.nifi.controller.reporting.ClusteredReportingTaskNode;
 import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.reporting.ReportingTaskProvider;
@@ -1070,7 +1070,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
             try (final NarCloseable x = NarCloseable.withNarLoader()) {
                 ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, task);
             } catch (final Exception e) {
-                throw new ProcessorLifeCycleException("Failed to invoke On-Added Lifecycle methods of " + task, e);
+                throw new ComponentLifeCycleException("Failed to invoke On-Added Lifecycle methods of " + task, e);
             }
         }
         

@@ -48,7 +48,7 @@ import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.Snippet;
-import org.apache.nifi.controller.exception.ProcessorLifeCycleException;
+import org.apache.nifi.controller.exception.ComponentLifeCycleException;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
@@ -674,7 +674,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 final StandardProcessContext processContext = new StandardProcessContext(processor, controllerServiceProvider, encryptor);
                 ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, org.apache.nifi.processor.annotation.OnRemoved.class, processor.getProcessor(), processContext);
             } catch (final Exception e) {
-                throw new ProcessorLifeCycleException("Failed to invoke 'OnRemoved' methods of " + processor, e);
+                throw new ComponentLifeCycleException("Failed to invoke 'OnRemoved' methods of " + processor, e);
             }
 
             for ( final Map.Entry<PropertyDescriptor, String> entry : processor.getProperties().entrySet() ) {

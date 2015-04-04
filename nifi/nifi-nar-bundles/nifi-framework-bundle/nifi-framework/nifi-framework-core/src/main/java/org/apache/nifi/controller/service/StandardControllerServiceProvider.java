@@ -47,7 +47,7 @@ import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.ValidationContextFactory;
 import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
-import org.apache.nifi.controller.exception.ProcessorLifeCycleException;
+import org.apache.nifi.controller.exception.ComponentLifeCycleException;
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
@@ -186,7 +186,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
                 try (final NarCloseable x = NarCloseable.withNarLoader()) {
                     ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, originalService);
                 } catch (final Exception e) {
-                    throw new ProcessorLifeCycleException("Failed to invoke On-Added Lifecycle methods of " + originalService, e);
+                    throw new ComponentLifeCycleException("Failed to invoke On-Added Lifecycle methods of " + originalService, e);
                 }
             }
 
