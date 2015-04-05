@@ -19,7 +19,7 @@
     <div class="processor-configuration-tab-container">
         <div id="processor-configuration-tabs"></div>
         <div id="processor-configuration-tabs-content">
-            <div id="configuration-standard-settings-tab-content" class="configuration-tab">
+            <div id="processor-standard-settings-tab-content" class="configuration-tab">
                 <div class="settings-left">
                     <div class="setting">
                         <div class="setting-name">Name</div>
@@ -71,7 +71,7 @@
                                 <img class="setting-icon icon-info" src="images/iconInfo.png" alt="Info" title="The level at which this processor will generate bulletins."/>
                             </div>
                             <div class="setting-field">
-                                <div type="text" id="bulletin-level-combo"></div>
+                                <div id="bulletin-level-combo"></div>
                             </div>
                         </div>
                         <div class="clear"></div>
@@ -90,7 +90,7 @@
                     </div>
                 </div>
             </div>
-            <div id="configuration-scheduling-tab-content" class="configuration-tab">
+            <div id="processor-scheduling-tab-content" class="configuration-tab">
                 <div class="settings-left">
                     <div class="setting">
                         <div class="scheduling-strategy-setting">
@@ -194,20 +194,13 @@
                     </div>
                 </div>
             </div>
-            <div id="configuration-processor-properties-tab-content" class="configuration-tab">
-                <div id="processor-properties-header">
-                    <div id="required-property-note">Required field</div>
-                    <div id="add-property">
-                        <div id="add-property-icon" class="add-icon-bg"></div>
-                        <div id="add-text">New property</div>
-                    </div>
-                    <div class="clear"></div>
-                </div>
+            <div id="processor-properties-tab-content" class="configuration-tab">
                 <div id="processor-properties"></div>
             </div>
-            <div id="configuration-comments-tab-content" class="configuration-tab">
+            <div id="processor-comments-tab-content" class="configuration-tab">
                 <textarea cols="30" rows="4" id="processor-comments" name="processor-comments" class="setting-input"></textarea>
             </div>
         </div>
     </div>
 </div>
+<div id="new-processor-property-container"></div>

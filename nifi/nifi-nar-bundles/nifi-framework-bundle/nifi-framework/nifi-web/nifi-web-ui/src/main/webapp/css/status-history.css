@@ -19,7 +19,6 @@
 #status-history-dialog {
     display: none;
     z-index: 1301;
-    border: 1px solid #eee;
     padding: 10px;
     border: 3px solid #365C6A;
     box-shadow: 4px 4px 6px rgba(0, 0, 0, 0.9);

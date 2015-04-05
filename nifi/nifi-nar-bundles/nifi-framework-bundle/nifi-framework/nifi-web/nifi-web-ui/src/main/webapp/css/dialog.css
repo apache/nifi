@@ -23,7 +23,6 @@
     display: none;
     width: 350px;
     height: 150px;
-    border: 1px solid #eee;
 }
 
 #new-port-name {
@@ -35,7 +34,6 @@
     display: none;
     width: 350px;
     height: 150px;
-    border: 1px solid #eee;
 }
 
 #new-process-group-name {
@@ -47,7 +45,6 @@
     display: none;
     width: 350px;
     height: 150px;
-    border: 1px solid #eee;
 }
 
 #new-remote-process-group-uri {
@@ -59,21 +56,10 @@
     display: none;
     width: 350px;
     height: 300px;
-    border: 1px solid #eee;
 }
 
 .new-template-field {
     width: 320px;
-}
-
-#processor-property-dialog {
-    z-index: 1301;
-    display: none;
-    border: 1px solid #eee;
-    padding: 10px;
-    border: 3px solid #365C6A;
-    box-shadow: 4px 4px 6px rgba(0, 0, 0, 0.9);
-    cursor: move;
 }
 
 #alias-dialog {
@@ -81,7 +67,6 @@
     display: none;
     width: 350px;
     height: 195px;
-    border: 1px solid #eee;
 }
 
 #fill-color-dialog {
@@ -89,7 +74,6 @@
     display: none;
     width: 195px;
     height: 400px;
-    border: 1px solid #eee;
 }
 
 #fill-color-value {
@@ -156,7 +140,6 @@
     display: none;
     height: 365px;
     width: 646px;
-    border: 1px solid #eee;
 }
 
 div.connections-component-name {
@@ -264,7 +247,6 @@ div.go-to-link {
     display: none;
     height: 450px;
     width: 420px;
-    border: 1px solid #eee;
 }
 
 #instantiate-template-dialog {
@@ -272,7 +254,6 @@ div.go-to-link {
     display: none;
     width: 355px;
     height: 120px;
-    border: 1px solid #eee;
 }
 
 #available-templates {
@@ -286,7 +267,6 @@ div.go-to-link {
     display: none;
     width: 350px;
     height: 195px;
-    border: 1px solid #eee;
 }
 
 #nf-ok-dialog {
@@ -294,14 +274,12 @@ div.go-to-link {
     display: none;
     height: 225px;
     width: 375px;
-    border: 1px solid #eee;
 }
 
 #nf-ok-dialog-content {
     width: 355px;
     height: 130px;
     overflow: auto;
-    margin-top: -10px;
 }
 
 #nf-yes-no-dialog {
@@ -309,7 +287,6 @@ div.go-to-link {
     display: none;
     height: 175px;
     width: 350px;
-    border: 1px solid #eee;
 }
 
 #nf-yes-no-dialog-content {

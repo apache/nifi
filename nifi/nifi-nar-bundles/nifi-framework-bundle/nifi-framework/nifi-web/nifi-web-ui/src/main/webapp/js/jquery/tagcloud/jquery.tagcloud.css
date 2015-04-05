@@ -1,0 +1,62 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+    Styles for the Nifi tag cloud.
+*/
+
+ul.tag-cloud {
+    font-size: 90%;
+    padding: 2px;
+    margin-left: -5px;
+    overflow: hidden;
+}
+
+ul.tag-cloud li {
+    float: left;
+    list-style-type: none;
+    margin: 0 3px;
+    height: 20px;
+    line-height: 20px;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+div.tag-cloud-separator {
+    height: 1px;
+    border-bottom: 1px solid #aaa;
+    margin: 3px 0;
+}
+
+ul.tag-filter {
+    overflow: hidden;
+}
+
+ul.tag-filter li {
+    height: 18px;
+    line-height: 18px;
+    padding: 2px;
+}
+
+div.selected-tag-text {
+    float: left;
+}
+
+img.remove-selected-tag {
+    float: right;
+    margin-top: 1px;
+}

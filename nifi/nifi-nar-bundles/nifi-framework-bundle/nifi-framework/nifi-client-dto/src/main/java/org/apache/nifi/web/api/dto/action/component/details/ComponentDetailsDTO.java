@@ -24,7 +24,7 @@ import javax.xml.bind.annotation.XmlType;
  */
 @XmlType(name = "componentDetails")
 @XmlSeeAlso({
-    ProcessorDetailsDTO.class,
+    ExtensionDetailsDTO.class,
     RemoteProcessGroupDetailsDTO.class
 })
 public class ComponentDetailsDTO {

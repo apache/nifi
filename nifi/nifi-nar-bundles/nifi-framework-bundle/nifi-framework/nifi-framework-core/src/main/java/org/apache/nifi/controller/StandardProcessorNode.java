@@ -52,6 +52,7 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Position;
+import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.LogLevel;
@@ -120,7 +121,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     private SchedulingStrategy schedulingStrategy;  // guarded by read/write lock
 
     @SuppressWarnings("deprecation")
-    StandardProcessorNode(final Processor processor, final String uuid, final ValidationContextFactory validationContextFactory,
+    public StandardProcessorNode(final Processor processor, final String uuid, final ValidationContextFactory validationContextFactory,
             final ProcessScheduler scheduler, final ControllerServiceProvider controllerServiceProvider) {
         super(processor, uuid, validationContextFactory, controllerServiceProvider);
 
@@ -985,6 +986,16 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             readLock.unlock();
         }
     }
+    
+    @Override
+    public int getActiveThreadCount() {
+        readLock.lock();
+        try {
+            return processScheduler.getActiveThreadCount(this);
+        } finally {
+            readLock.unlock();
+        }
+    }
 
     @Override
     public boolean isValid() {
@@ -1182,8 +1193,13 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     public void verifyCanStart() {
         readLock.lock();
         try {
-            if (scheduledState.get() != ScheduledState.STOPPED) {
-                throw new IllegalStateException(this + " is not stopped");
+            switch (getScheduledState()) {
+                case DISABLED:
+                    throw new IllegalStateException(this + " cannot be started because it is disabled");
+                case RUNNING:
+                    throw new IllegalStateException(this + " cannot be started because it is already running");
+                case STOPPED:
+                    break;
             }
             verifyNoActiveThreads();
 
@@ -1192,6 +1208,31 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             }
         } finally {
             readLock.unlock();
+        }
+    }
+    
+    @Override
+    public void verifyCanStart(final Set<ControllerServiceNode> ignoredReferences) {
+        switch (getScheduledState()) {
+            case DISABLED:
+                throw new IllegalStateException(this + " cannot be started because it is disabled");
+            case RUNNING:
+                throw new IllegalStateException(this + " cannot be started because it is already running");
+            case STOPPED:
+                break;
+        }
+        verifyNoActiveThreads();
+        
+        final Set<String> ids = new HashSet<>();
+        for ( final ControllerServiceNode node : ignoredReferences ) {
+            ids.add(node.getIdentifier());
+        }
+        
+        final Collection<ValidationResult> validationResults = getValidationErrors(ids);
+        for ( final ValidationResult result : validationResults ) {
+            if ( !result.isValid() ) {
+                throw new IllegalStateException(this + " cannot be started because it is not valid: " + result);
+            }
         }
     }
 

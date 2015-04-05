@@ -19,6 +19,7 @@ package org.apache.nifi.web;
 /**
  *
  */
+@Deprecated
 public class ProcessorConfigurationAction {
 
     private final String processorId;

@@ -55,15 +55,12 @@ public class ProcessGroupAuditor extends NiFiAuditor {
      * alleviate this issue.
      *
      * @param proceedingJoinPoint
+     * @return 
+     * @throws java.lang.Throwable
      */
-//    @AfterReturning(
-//        pointcut="within(org.apache.nifi.web.dao.ProcessGroupDAO+) && "
-//            + "execution(org.apache.nifi.web.api.dto.ProcessGroupDTO createProcessGroup(java.lang.String, org.apache.nifi.web.api.dto.ProcessGroupDTO))",
-//        returning="processGroup"
-//    )
     @Around("within(org.apache.nifi.web.dao.ProcessGroupDAO+) && "
             + "execution(org.apache.nifi.groups.ProcessGroup createProcessGroup(java.lang.String, org.apache.nifi.web.api.dto.ProcessGroupDTO))")
-    public Object createProcessGroupAdvice(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+    public ProcessGroup createProcessGroupAdvice(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         // create the process group
         ProcessGroup processGroup = (ProcessGroup) proceedingJoinPoint.proceed();
 
@@ -83,13 +80,14 @@ public class ProcessGroupAuditor extends NiFiAuditor {
      * Audits the update of process group configuration.
      *
      * @param proceedingJoinPoint
+     * @param processGroupDTO
      * @return
      * @throws Throwable
      */
     @Around("within(org.apache.nifi.web.dao.ProcessGroupDAO+) && "
             + "execution(org.apache.nifi.groups.ProcessGroup updateProcessGroup(org.apache.nifi.web.api.dto.ProcessGroupDTO)) && "
             + "args(processGroupDTO)")
-    public Object updateProcessGroupAdvice(ProceedingJoinPoint proceedingJoinPoint, ProcessGroupDTO processGroupDTO) throws Throwable {
+    public ProcessGroup updateProcessGroupAdvice(ProceedingJoinPoint proceedingJoinPoint, ProcessGroupDTO processGroupDTO) throws Throwable {
         ProcessGroupDAO processGroupDAO = getProcessGroupDAO();
         ProcessGroup processGroup = processGroupDAO.getProcessGroup(processGroupDTO.getId());
 
@@ -170,7 +168,7 @@ public class ProcessGroupAuditor extends NiFiAuditor {
                 processGroupAction.setTimestamp(new Date());
 
                 // determine the running state
-                if (processGroupDTO.isRunning().booleanValue()) {
+                if (processGroupDTO.isRunning()) {
                     processGroupAction.setOperation(Operation.Start);
                 } else {
                     processGroupAction.setOperation(Operation.Stop);
@@ -194,7 +192,6 @@ public class ProcessGroupAuditor extends NiFiAuditor {
      *
      * @param proceedingJoinPoint
      * @param groupId
-     * @param processGroupDAO
      * @throws Throwable
      */
     @Around("within(org.apache.nifi.web.dao.ProcessGroupDAO+) && "
@@ -222,6 +219,7 @@ public class ProcessGroupAuditor extends NiFiAuditor {
      * Generates an audit record for the creation of a process group.
      *
      * @param processGroup
+     * @param operation
      * @return
      */
     public Action generateAuditRecord(ProcessGroup processGroup, Operation operation) {
@@ -232,6 +230,8 @@ public class ProcessGroupAuditor extends NiFiAuditor {
      * Generates an audit record for the creation of a process group.
      *
      * @param processGroup
+     * @param operation
+     * @param actionDetails
      * @return
      */
     public Action generateAuditRecord(ProcessGroup processGroup, Operation operation, ActionDetails actionDetails) {

@@ -43,11 +43,3 @@
     width: 600px;
     height: 200px;
 }
-
-div.registration-collapsed {
-    background: transparent url(../images/iconTwistArrow.png) no-repeat scroll top left;
-}
-
-div.registration-expanded {
-    background: transparent url(../images/iconTwistArrow.png) no-repeat scroll top right;
-}

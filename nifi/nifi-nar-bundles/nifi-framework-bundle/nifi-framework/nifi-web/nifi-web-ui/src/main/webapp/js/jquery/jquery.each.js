@@ -27,5 +27,5 @@
             return origEach.call(this, object, callback, args);
         }
         return object;
-    }
+    };
 })(jQuery);

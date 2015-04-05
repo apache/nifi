@@ -17,6 +17,7 @@
 package org.apache.nifi.cluster.flow;
 
 import java.util.Set;
+
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 
 /**
@@ -66,6 +67,22 @@ public interface DataFlowManagementService {
      */
     void updatePrimaryNode(NodeIdentifier nodeId) throws DaoException;
 
+    /**
+     * Updates the dataflow with the given serialized form of the Controller Services that are to exist on the NCM.
+     * 
+     * @param serializedControllerServices
+     * @throws DaoException
+     */
+    void updateControllerServices(byte[] serializedControllerServices) throws DaoException;
+    
+    /**
+     * Updates the dataflow with the given serialized form of Reporting Tasks that are to exist on the NCM.
+     * 
+     * @param serviceNodes
+     * @throws DaoException
+     */
+    void updateReportingTasks(byte[] serializedReportingTasks) throws DaoException;
+    
     /**
      * Sets the state of the flow.
      *

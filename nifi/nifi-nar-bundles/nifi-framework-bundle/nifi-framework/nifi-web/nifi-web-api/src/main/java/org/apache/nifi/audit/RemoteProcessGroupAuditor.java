@@ -60,16 +60,13 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
      * advice precedence. By normalizing all advice into Around advice we can
      * alleviate this issue.
      *
-     * @param processor
+     * @param proceedingJoinPoint
+     * @return 
+     * @throws java.lang.Throwable 
      */
-//    @AfterReturning(
-//        pointcut="within(org.apache.nifi.web.dao.RemoteProcessGroupDAO+) && "
-//            + "execution(org.apache.nifi.web.api.dto.RemoteProcessGroupDTO createRemoteProcessGroup(java.lang.String, org.apache.nifi.web.api.dto.RemoteProcessGroupDTO))",
-//        returning="remoteProcessGroup"
-//    )
     @Around("within(org.apache.nifi.web.dao.RemoteProcessGroupDAO+) && "
             + "execution(org.apache.nifi.groups.RemoteProcessGroup createRemoteProcessGroup(java.lang.String, org.apache.nifi.web.api.dto.RemoteProcessGroupDTO))")
-    public Object createRemoteProcessGroupAdvice(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+    public RemoteProcessGroup createRemoteProcessGroupAdvice(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         // create the remote process group
         RemoteProcessGroup remoteProcessGroup = (RemoteProcessGroup) proceedingJoinPoint.proceed();
 
@@ -99,7 +96,7 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
             + "execution(org.apache.nifi.groups.RemoteProcessGroup updateRemoteProcessGroup(java.lang.String, org.apache.nifi.web.api.dto.RemoteProcessGroupDTO)) && "
             + "args(groupId, remoteProcessGroupDTO) && "
             + "target(remoteProcessGroupDAO)")
-    public Object auditUpdateProcessGroupConfiguration(ProceedingJoinPoint proceedingJoinPoint, String groupId, RemoteProcessGroupDTO remoteProcessGroupDTO, RemoteProcessGroupDAO remoteProcessGroupDAO) throws Throwable {
+    public RemoteProcessGroup auditUpdateProcessGroupConfiguration(ProceedingJoinPoint proceedingJoinPoint, String groupId, RemoteProcessGroupDTO remoteProcessGroupDTO, RemoteProcessGroupDAO remoteProcessGroupDAO) throws Throwable {
         final RemoteProcessGroup remoteProcessGroup = remoteProcessGroupDAO.getRemoteProcessGroup(groupId, remoteProcessGroupDTO.getId());
 
         // record the current value of this remoteProcessGroups configuration for comparisons later
@@ -332,7 +329,9 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
     /**
      * Generates an audit record for the specified remote process group.
      *
-     * @param port
+     * @param remoteProcessGroup
+     * @param operation
+     * @return 
      */
     public Action generateAuditRecord(RemoteProcessGroup remoteProcessGroup, Operation operation) {
         return generateAuditRecord(remoteProcessGroup, operation, null);
@@ -341,7 +340,10 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
     /**
      * Generates an audit record for the specified remote process group.
      *
-     * @param port
+     * @param remoteProcessGroup
+     * @param operation
+     * @param actionDetails
+     * @return 
      */
     public Action generateAuditRecord(RemoteProcessGroup remoteProcessGroup, Operation operation, ActionDetails actionDetails) {
         Action action = null;

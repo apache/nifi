@@ -1,0 +1,116 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+    Reporting task configuration styles.
+*/
+
+#reporting-task-configuration {
+    position: absolute;
+    overflow: hidden;
+    width: 800px;
+    height: 450px;
+    font-size: 10px;
+    z-index: 1301;
+    display: none;
+}
+
+div.reporting-task-configuration-tab-container {
+    margin-top: -10px;
+    padding: 5px 11px;
+}
+
+#reporting-task-configuration-advanced {
+    display: none;
+}
+
+#reporting-task-configuration-tabs {
+    background-color: transparent;
+    width: 778px;
+    height: 21px;
+    border-bottom: 3px solid #666;
+}
+
+#reporting-task-configuration div.configuration-tab {
+    height: 320px;
+    overflow: auto;
+    padding: 10px;
+    background: #eee url(../images/bgTabContainer.png) repeat-x;
+    display: none;
+}
+
+/* reporting-task settings */
+
+#reporting-task-configuration div.settings-left {
+    float: left;
+    width: 356px;
+}
+
+#reporting-task-configuration div.settings-right {
+    float: left;
+    width: 356px;
+}
+
+#reporting-task-configuration div.spacer {
+    float: left;
+    margin-right: 40px;
+}
+
+#reporting-task-name {
+    font-size: 11px !important;
+    width: 250px;
+    float: left;
+}
+
+#reporting-task-enabled {
+    width: 12px;
+    height: 12px;
+    float: left;
+    margin-right: 4px;
+}
+
+div.reporting-task-enabled-container {
+    float: left;
+    margin-top: 5px;
+    margin-left: 10px;
+}
+
+div.availability-setting {
+    float: left;
+    width: 140px;
+}
+
+#reporting-task-scheduling-strategy-combo {
+    width: 150px;
+    height: 18px;
+    line-height: 18px;
+}
+
+input.reporting-task-scheduling-period {
+    font-size: 11px !important;
+    width: 150px;
+}
+
+/*
+    Comments
+*/
+
+#reporting-task-comments {
+    height: 250px;
+    width: 748px !important;
+    margin-top: 10px;
+}

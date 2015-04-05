@@ -14,16 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/* global nf, Slick */
+
 nf.CanvasToolbox = (function () {
 
     var config = {
-        /**
-         * Tag properties configuration.
-         */
-        maxTags: 25,
-        maxTagFontSize: 2,
-        minTagFontSize: 1,
-        minWidth: 20,
         filterText: 'Filter',
         type: {
             processor: 'Processor',
@@ -71,7 +67,7 @@ nf.CanvasToolbox = (function () {
                 return $('<div class="toolbox-icon"></div>').addClass(dragCls).appendTo('body');
             },
             'containment': 'body',
-            'start': function(e, ui) {
+            'start': function (e, ui) {
                 // hide the context menu if necessary
                 nf.ContextMenu.hide();
             },
@@ -92,46 +88,9 @@ nf.CanvasToolbox = (function () {
                         x: x,
                         y: y
                     });
-                } 
+                }
             }
         }).appendTo(toolbox);
-    };
-
-    /**
-     * Adds the specified tag filter.
-     * 
-     * @argument {string} tag       The tag to add
-     */
-    var addTagFilter = function (tag) {
-        // ensure this tag hasn't already been added
-        var tagFilter = $('#tag-filter');
-        var tagFilterExists = false;
-        tagFilter.find('li div.selected-tag-text').each(function () {
-            if (tag === $(this).text()) {
-                tagFilterExists = true;
-                return false;
-            }
-        });
-
-        // add this tag filter if applicable
-        if (!tagFilterExists) {
-            // create the list item content
-            var tagText = $('<div class="selected-tag-text"></div>').text(tag);
-            var removeTagIcon = $('<img src="images/iconDelete.png" class="remove-selected-tag pointer"></img>').click(function () {
-                // remove this tag
-                $(this).closest('li').remove();
-
-                // re-apply the filter
-                applyFilter();
-            });
-            var selectedTagItem = $('<div></div>').append(tagText).append(removeTagIcon);
-
-            // create the list item and update the tag filter list
-            $('<li></li>').append(selectedTagItem).appendTo(tagFilter);
-
-            // re-apply the filter
-            applyFilter();
-        }
     };
 
     /**
@@ -192,7 +151,7 @@ nf.CanvasToolbox = (function () {
         // determine if the row matches the selected tags
         var matchesTags = true;
         if (matchesFilter) {
-            var tagFilters = $('#tag-filter li');
+            var tagFilters = $('#processor-tag-cloud').tagcloud('getSelectedTags');
             var hasSelectedTags = tagFilters.length > 0;
             if (hasSelectedTags) {
                 matchesTags = matchesSelectedTags(tagFilters, item['tags']);
@@ -221,13 +180,13 @@ nf.CanvasToolbox = (function () {
     /**
      * Determines if the specified tags match all the tags selected by the user.
      * 
-     * @argument {jQuery} tagFilters    The tag filters
-     * @argument {string} tags          The tags to test
+     * @argument {string[]} tagFilters      The tag filters
+     * @argument {string} tags              The tags to test
      */
     var matchesSelectedTags = function (tagFilters, tags) {
         var selectedTags = [];
-        tagFilters.each(function () {
-            selectedTags.push($(this).text());
+        $.each(tagFilters, function (_, filter) {
+            selectedTags.push(filter);
         });
 
         // normalize the tags
@@ -280,14 +239,13 @@ nf.CanvasToolbox = (function () {
      * Resets the filtered processor types.
      */
     var resetProcessorDialog = function () {
-        // clear and selected tags
-        var tagFilter = $('#tag-filter');
-        tagFilter.empty();
-
+        // clear the selected tag cloud
+        $('#processor-tag-cloud').tagcloud('clearSelectedTags');
+        
         // clear any filter strings
         $('#processor-type-filter').addClass(config.styles.filterList).val(config.filterText);
 
-        // reset the filter before closing
+        // reapply the filter
         applyFilter();
 
         // clear the selected row
@@ -295,7 +253,7 @@ nf.CanvasToolbox = (function () {
         $('#processor-type-name').text('');
         $('#selected-processor-name').text('');
         $('#selected-processor-type').text('');
-
+        
         // unselect any current selection
         var processTypesGrid = $('#processor-types-table').data('gridInstance');
         processTypesGrid.setSelectedRows([]);
@@ -987,6 +945,20 @@ nf.CanvasToolbox = (function () {
                     }
                 });
 
+                // wire up the dataview to the grid
+                processorTypesData.onRowCountChanged.subscribe(function (e, args) {
+                    processorTypesGrid.updateRowCount();
+                    processorTypesGrid.render();
+
+                    // update the total number of displayed processors
+                    $('#displayed-processor-types').text(args.current);
+                });
+                processorTypesData.onRowsChanged.subscribe(function (e, args) {
+                    processorTypesGrid.invalidateRows(args.rows);
+                    processorTypesGrid.render();
+                });
+                processorTypesData.syncGridSelection(processorTypesGrid, false);
+
                 // hold onto an instance of the grid
                 $('#processor-types-table').data('gridInstance', processorTypesGrid);
 
@@ -997,7 +969,6 @@ nf.CanvasToolbox = (function () {
                     url: config.urls.processorTypes,
                     dataType: 'json'
                 }).done(function (response) {
-                    var tagCloud = {};
                     var tags = [];
 
                     // begin the update
@@ -1016,21 +987,9 @@ nf.CanvasToolbox = (function () {
                             tags: documentedType.tags.join(', ')
                         });
 
-
                         // count the frequency of each tag for this type
                         $.each(documentedType.tags, function (i, tag) {
-                            var normalizedTagName = tag.toLowerCase();
-
-                            if (nf.Common.isDefinedAndNotNull(tagCloud[normalizedTagName])) {
-                                tagCloud[normalizedTagName].count = tagCloud[normalizedTagName].count + 1;
-                            } else {
-                                var tagCloudEntry = {
-                                    term: normalizedTagName,
-                                    count: 1
-                                };
-                                tags.push(tagCloudEntry);
-                                tagCloud[normalizedTagName] = tagCloudEntry;
-                            }
+                            tags.push(tag.toLowerCase());
                         });
                     });
 
@@ -1040,65 +999,12 @@ nf.CanvasToolbox = (function () {
                     // set the total number of processors
                     $('#total-processor-types, #displayed-processor-types').text(response.processorTypes.length);
 
-                    // handle the case when no tags are present
-                    if (tags.length > 0) {
-                        // sort the tags by frequency to limit the less frequent tags
-                        tags.sort(function (a, b) {
-                            return b.count - a.count;
-                        });
-
-                        // limit to the most frequest tags
-                        if (tags.length > config.maxTags) {
-                            tags = tags.slice(0, config.maxTags);
-                        }
-
-                        // determine the max frequency
-                        var maxFrequency = tags[0].count;
-
-                        // sort the tags alphabetically
-                        tags.sort(function (a, b) {
-                            var compA = a.term.toUpperCase();
-                            var compB = b.term.toUpperCase();
-                            return (compA < compB) ? -1 : (compA > compB) ? 1 : 0;
-                        });
-
-                        // set the tag content
-                        $.each(tags, function (i, tag) {
-                            // determine the appropriate font size
-                            var fontSize = Math.log(tag.count) / Math.log(maxFrequency) * (config.maxTagFontSize - config.minTagFontSize) + config.minTagFontSize;
-                            var minWidth = config.minWidth * fontSize;
-
-                            // create the tag cloud entry
-                            $('<li></li>').append($('<span class="link"></span>').text(tag.term).css({
-                                'font-size': fontSize + 'em'
-                            })).css({
-                                'min-width': minWidth + 'px'
-                            }).click(function () {
-                                // ensure we don't exceed 5 selected
-                                if ($('#tag-filter').children('li').length < 5) {
-                                    var tagText = $(this).children('span').text();
-                                    addTagFilter(tagText);
-                                }
-                            }).appendTo('#tag-cloud').ellipsis();
-                        });
-                    } else {
-                        // indicate when no tags are found
-                        $('<li><span class="unset">No tags specified</span></li>').appendTo('#tag-cloud');
-                    }
-
-                    // wire up the dataview to the grid
-                    processorTypesData.onRowCountChanged.subscribe(function (e, args) {
-                        processorTypesGrid.updateRowCount();
-                        processorTypesGrid.render();
-
-                        // update the total number of displayed processors
-                        $('#displayed-processor-types').text(args.current);
+                    // create the tag cloud
+                    $('#processor-tag-cloud').tagcloud({
+                        tags: tags,
+                        select: applyFilter,
+                        remove: applyFilter
                     });
-                    processorTypesData.onRowsChanged.subscribe(function (e, args) {
-                        processorTypesGrid.invalidateRows(args.rows);
-                        processorTypesGrid.render();
-                    });
-                    processorTypesData.syncGridSelection(processorTypesGrid, false);
                 }).fail(nf.Common.handleAjaxError);
 
                 // define the function for filtering the list

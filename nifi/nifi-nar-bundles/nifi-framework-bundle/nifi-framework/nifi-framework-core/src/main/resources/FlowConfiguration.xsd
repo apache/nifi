@@ -28,6 +28,10 @@
 
             <!-- Groupings of Processors/Ports -->
             <xs:element name="rootGroup" type="RootProcessGroupType" />
+            
+            <xs:element name="controllerServices" type="ControllerServicesType" minOccurs="0" maxOccurs="1" />
+            
+            <xs:element name="reportingTasks" type="ReportingTasksType" minOccurs="0" maxOccurs="1" />
         </xs:sequence>
     </xs:complexType>
 	
@@ -58,11 +62,6 @@
             IFF schedulingStrategy is EVENT_DRIVEN -->
             <xs:element name="maxConcurrentTasks" type="xs:nonNegativeInteger"/>
 
-            <!-- "schedulingPeriodSeconds" is the maximum number of seconds that should elapse
-            between successive executions of each task for this configured processor.  If a
-            task takes longer than the period specified then the next execution of this
-            task will take place immediately after termination of the previous run and as soon
-            as their is an available thread.-->
             <xs:element name="schedulingPeriod" type="NonEmptyStringType"/>
             
             <xs:element name="penalizationPeriod" type="TimePeriod" />
@@ -332,4 +331,44 @@
             <xs:enumeration value="CRON_DRIVEN"></xs:enumeration>
         </xs:restriction>
     </xs:simpleType>
+    
+    <xs:complexType name="ControllerServicesType">
+    	<xs:sequence>
+    		<xs:element name="controllerService" type="ControllerServiceType" minOccurs="0" maxOccurs="unbounded" />
+    	</xs:sequence>
+    </xs:complexType>
+    
+    <xs:complexType name="ControllerServiceType">
+    	<xs:sequence>
+    		<xs:element name="id" type="NonEmptyStringType" />
+    		<xs:element name="name" type="NonEmptyStringType" />
+    		<xs:element name="comment" type="xs:string" />
+    		<xs:element name="class" type="NonEmptyStringType" />
+    		<xs:element name="enabled" type="xs:boolean" />
+    		
+            <xs:element name="property" type="PropertyType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="annotationData" type="xs:string" minOccurs="0" maxOccurs="1" />
+    	</xs:sequence>
+    </xs:complexType>
+    
+    <xs:complexType name="ReportingTasksType">
+    	<xs:sequence>
+    		<xs:element name="reportingTask" type="ReportingTaskType" minOccurs="0" maxOccurs="unbounded" />
+    	</xs:sequence>
+    </xs:complexType>
+    
+    <xs:complexType name="ReportingTaskType">
+    	<xs:sequence>
+    		<xs:element name="id" type="NonEmptyStringType" />
+    		<xs:element name="name" type="NonEmptyStringType" />
+    		<xs:element name="comment" type="xs:string" />
+    		<xs:element name="class" type="NonEmptyStringType" />
+            <xs:element name="schedulingPeriod" type="NonEmptyStringType"/>
+            <xs:element name="schedulingState" type="ScheduledState" />
+            <xs:element name="schedulingStrategy" type="SchedulingStrategy" />
+    		
+            <xs:element name="property" type="PropertyType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="annotationData" type="xs:string" minOccurs="0" maxOccurs="1" />
+    	</xs:sequence>
+    </xs:complexType>
 </xs:schema>

@@ -18,12 +18,14 @@ package org.apache.nifi.integration.util;
 
 import com.sun.jersey.api.client.Client;
 import java.io.File;
+import java.util.Collections;
 import javax.servlet.ServletContext;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.util.WebUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.framework.security.util.SslContextFactory;
 import org.apache.nifi.services.FlowService;
+import org.apache.nifi.ui.extension.UiExtensionMapping;
 import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.SecureRequestCustomizer;
@@ -160,6 +162,9 @@ public class NiFiTestServer {
      */
     public void startServer() throws Exception {
         jetty.start();
+        
+        // ensure the ui extensions are set
+        webappContext.getServletContext().setAttribute("nifi-ui-extensions", new UiExtensionMapping(Collections.EMPTY_MAP));
     }
 
     /**

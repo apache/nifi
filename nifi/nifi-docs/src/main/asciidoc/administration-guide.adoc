@@ -229,7 +229,7 @@ When the DFM makes changes to the dataflow, the NCM communicates those changes t
 
 *Dealing with Disconnected Nodes* +
 
-A DFM may manually disconnect a node from the cluster. But if a node becomes disconnected for any other reason (such as due to lack of heartbeat), the NCM will show a bulletin on the User Interface, and the DFM will not be able to make any changes to the dataflow until the issue of the disconnected node is resolved. The DFM or the Administrator will need to troubleshoot the issue with the node and resolve it before any new changes may be made to the dataflow. However, it is worth noting that just because a node is disconnected does not mean that it is definitely down; it just means that the NCM cannot communicate with the node.
+A DFM may manually disconnect a node from the cluster. But if a node becomes disconnected for any other reason (such as due to lack of heartbeat), the NCM will show a bulletin on the User Interface, and the DFM will not be able to make any changes to the dataflow until the issue of the disconnected node is resolved. The DFM or the Administrator will need to troubleshoot the issue with the node and resolve it before any new changes may be made to the dataflow. However, it is worth noting that just because a node is disconnected does not mean that it is not working; it just means that the NCM cannot communicate with the node.
  
 
 *Basic Cluster Setup* +
@@ -242,7 +242,7 @@ This section describes the setup for a simple two-node, non-secure, unicast clus
 
 Administrators may install each instance on a separate server; however, it is also perfectly fine to install the NCM and one of the nodes on the same server, as the NCM is very lightweight. Just keep in mind that the ports assigned to each instance must not collide if the NCM and one of the nodes share the same server.
 
-For each instance, the clustering properties in the _nifi.properties_ file will need to be updated. All the clustering properties are described in the <<system_properties>> section of this guide; however, in this section, we will focus on the minimum properties that must be set for simple cluster. 
+For each instance, certain properties in the _nifi.properties_ file will need to be updated. In particular, the Web and Clustering properties should be evaluated for your situation and adjusted accordingly. All the properties are described in the <<system_properties>> section of this guide; however, in this section, we will focus on the minimum properties that must be set for a simple cluster. 
 
 For all three instances, the Cluster Common Properties can be left with the default settings. Note, however, that if you change these settings, they must be set the same on every instance in the cluster (NCM and nodes).
 
@@ -255,18 +255,20 @@ For the NCM, the minimum properties to configure are as follows:
 
 For Node 1, the minimum properties to configure are as follows:
 
-* Under the Web Properties, set either the http or https port that you want Node 1 to run on. If the NCM is running on the same server, choose a different web port for Node 1.
+* Under the Web Properties, set either the http or https port that you want Node 1 to run on. If the NCM is running on the same server, choose a different web port for Node 1. Also, consider whether you need to set the http or https host property.
 * Under Cluster Node Properties, set the following:
 ** nifi.cluster.is.node - Set this to _true_.
+** nifi.cluster.node.address - Set this to the fully qualified hostname of the node. If left blank, it defaults to "localhost".
 ** nifi.cluster.node.protocol.port - Set this to an open port that is higher than 1024 (anything lower requires root). If Node 1 and the NCM are on the same server, make sure this port is different from the nifi.cluster.protocol.manager.port.
 ** nifi.cluster.node.unicast.manager.address - Set this to the NCM's fully qualified hostname.  
 ** nifi.cluster.node.unicast.manager.protocol.port - Set this to exactly the same port that was set on the NCM for the property nifi.cluster.manager.protocol.port.
 
 For Node 2, the minimum properties to configure are as follows:
 
-* Under the Web Properties, set either the http or https port that you want Node 2 to run on.
+* Under the Web Properties, set either the http or https port that you want Node 2 to run on. Also, consider whether you need to set the http or https host property.
 * Under the Cluster Node Properties, set the following:
 ** nifi.cluster.is.node - Set this to _true_.
+** nifi.cluster.node.address - Set this to the fully qualified hostname of the node. If left blank, it defaults to "localhost".
 ** nifi.cluster.node.protocol.port - Set this to an open port that is higher than 1024 (anything lower requires root).
 ** nifi.cluster.node.unicast.manager.address - Set this to the NCM's fully qualified hostname.
 ** nifi.cluster.node.unicast.manager.protocol.port - Set this to exactly the same port that was set on the NCM for the property nifi.cluster.manager.protocol.port.
@@ -274,6 +276,17 @@ For Node 2, the minimum properties to configure are as follows:
 Now, it is possible to start up the cluster. Technically, it does not matter which instance starts up first. However, you could start the NCM first, then Node 1 and then Node 2. Since the first node that connects is automatically elected as the Primary Node, this sequence should create a cluster where Node 1 is the Primary Node. Navigate to the URL for the NCM in your web browser, and the User Interface should look similar to the following:
 
 image:ncm.png["NCM User Interface", width=940] 
+
+*Troubleshooting*
+
+If you encounter issues and your cluster does not work as described, investigate the nifi.app log and nifi.user log on both the NCM and the nodes. If needed, you can change the logging level to DEBUG by editing the conf/logback.xml file. Specifically, set the level="DEBUG" in the following line (instead of "INFO"):
+
+----
+    <logger name="org.apache.nifi.web.api.config" level="INFO"
+additivity="false">
+        <appender-ref ref="USER_FILE"/>
+    </logger>
+----
 
 
 

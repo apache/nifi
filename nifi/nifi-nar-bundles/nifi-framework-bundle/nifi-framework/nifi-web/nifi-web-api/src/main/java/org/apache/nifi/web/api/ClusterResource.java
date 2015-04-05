@@ -379,7 +379,7 @@ public class ClusterResource extends ApplicationResource {
             // update the revision
             RevisionDTO updatedRevision = new RevisionDTO();
             updatedRevision.setClientId(revision.getClientId());
-            updatedRevision.setVersion(controllerResponse.getRevision());
+            updatedRevision.setVersion(controllerResponse.getVersion());
 
             // generate the response entity
             final ProcessorEntity entity = new ProcessorEntity();

@@ -17,28 +17,26 @@
 package org.apache.nifi.util;
 
 import org.apache.nifi.logging.ProcessorLog;
-import org.apache.nifi.processor.Processor;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class MockProcessorLog implements ProcessorLog {
 
     private final Logger logger;
-    private final Processor processor;
+    private final Object component;
 
-    public MockProcessorLog(final String processorId, final Processor processor) {
-        this.logger = LoggerFactory.getLogger(processor.getClass());
-        this.processor = processor;
+    public MockProcessorLog(final String componentId, final Object component) {
+        this.logger = LoggerFactory.getLogger(component.getClass());
+        this.component = component;
     }
 
     private Object[] addProcessor(final Object[] originalArgs) {
-        return prependToArgs(originalArgs, processor);
+        return prependToArgs(originalArgs, component);
     }
 
     private Object[] addProcessorAndThrowable(final Object[] os, final Throwable t) {
         final Object[] modifiedArgs = new Object[os.length + 2];
-        modifiedArgs[0] = processor.toString();
+        modifiedArgs[0] = component.toString();
         for (int i = 0; i < os.length; i++) {
             modifiedArgs[i + 1] = os[i];
         }
@@ -75,7 +73,7 @@ public class MockProcessorLog implements ProcessorLog {
      */
     @Override
     public void warn(final String msg, final Throwable t) {
-        warn("{} " + msg, new Object[]{processor}, t);
+        warn("{} " + msg, new Object[]{component}, t);
     }
 
     /**
@@ -118,7 +116,7 @@ public class MockProcessorLog implements ProcessorLog {
     @Override
     public void warn(String msg) {
         msg = "{} " + msg;
-        logger.warn(msg, processor);
+        logger.warn(msg, component);
     }
 
     /**
@@ -129,7 +127,7 @@ public class MockProcessorLog implements ProcessorLog {
     @Override
     public void trace(String msg, Throwable t) {
         msg = "{} " + msg;
-        final Object[] os = {processor};
+        final Object[] os = {component};
         logger.trace(msg, os, t);
     }
 
@@ -152,7 +150,7 @@ public class MockProcessorLog implements ProcessorLog {
     @Override
     public void trace(String msg) {
         msg = "{} " + msg;
-        final Object[] os = {processor};
+        final Object[] os = {component};
         logger.trace(msg, os);
     }
 
@@ -224,7 +222,7 @@ public class MockProcessorLog implements ProcessorLog {
     @Override
     public void info(String msg, Throwable t) {
         msg = "{} " + msg;
-        final Object[] os = {processor};
+        final Object[] os = {component};
 
         logger.info(msg, os);
         if (logger.isDebugEnabled()) {
@@ -252,7 +250,7 @@ public class MockProcessorLog implements ProcessorLog {
     @Override
     public void info(String msg) {
         msg = "{} " + msg;
-        final Object[] os = {processor};
+        final Object[] os = {component};
 
         logger.info(msg, os);
     }
@@ -291,7 +289,7 @@ public class MockProcessorLog implements ProcessorLog {
     @Override
     public void error(String msg, Throwable t) {
         msg = "{} " + msg;
-        final Object[] os = {processor};
+        final Object[] os = {component};
 
         logger.error(msg, os, t);
         if (logger.isDebugEnabled()) {
@@ -322,7 +320,7 @@ public class MockProcessorLog implements ProcessorLog {
     @Override
     public void error(String msg) {
         msg = "{} " + msg;
-        final Object[] os = {processor};
+        final Object[] os = {component};
 
         logger.error(msg, os);
     }
@@ -352,7 +350,7 @@ public class MockProcessorLog implements ProcessorLog {
     @Override
     public void debug(String msg, Throwable t) {
         msg = "{} " + msg;
-        final Object[] os = {processor};
+        final Object[] os = {component};
 
         logger.debug(msg, os, t);
     }
@@ -394,7 +392,7 @@ public class MockProcessorLog implements ProcessorLog {
     @Override
     public void debug(String msg) {
         msg = "{} " + msg;
-        final Object[] os = {processor};
+        final Object[] os = {component};
 
         logger.debug(msg, os);
     }

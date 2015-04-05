@@ -1,0 +1,269 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+    Controller service configuration styles.
+*/
+
+#controller-service-configuration {
+    position: absolute;
+    overflow: hidden;
+    width: 800px;
+    height: 450px;
+    font-size: 10px;
+    z-index: 1301;
+    display: none;
+}
+
+div.controller-service-configuration-tab-container {
+    margin-top: -10px;
+    padding: 5px 11px;
+}
+
+#controller-service-configuration-advanced {
+    display: none;
+}
+
+#controller-service-configuration-tabs {
+    background-color: transparent;
+    width: 778px;
+    height: 21px;
+    border-bottom: 3px solid #666;
+}
+
+#controller-service-configuration div.configuration-tab {
+    height: 320px;
+    overflow: auto;
+    padding: 10px;
+    background: #eee url(../images/bgTabContainer.png) repeat-x;
+    display: none;
+}
+
+/* controller-service settings */
+
+#controller-service-configuration div.settings-left {
+    float: left;
+    width: 330px;
+}
+
+#controller-service-configuration div.settings-right {
+    float: left;
+    width: 382px;
+}
+
+#controller-service-configuration div.spacer {
+    float: left;
+    margin-right: 40px;
+}
+
+#controller-service-configuration .setting-input {
+    font-size: 11px !important;
+}
+
+#controller-service-name {
+    width: 250px;
+    float: left;
+}
+
+#controller-service-enabled {
+    width: 12px;
+    height: 12px;
+    float: left;
+    margin-right: 4px;
+}
+
+div.controller-service-enabled-container {
+    float: left;
+    margin-top: 5px;
+    margin-left: 10px;
+}
+
+div.availability-setting {
+    float: left;
+    width: 140px;
+}
+
+/*
+    Service references
+*/
+
+#controller-service-referencing-components {
+    border: 0 solid #CCCCCC;
+    height: 280px;
+    overflow: auto;
+    padding: 2px;
+    width: 376px;
+}
+
+div.referencing-component-block {
+    margin-bottom: 6px;
+}
+
+span.referencing-component-title {
+    margin-left: 5px;
+    font-weight: bold
+}
+
+span.referencing-component-count {
+    margin-left: 5px;
+    color: #aaa;
+}
+
+ul.referencing-component-listing {
+    margin-left: 20px;
+    margin-bottom: 6px;
+}
+
+ul.referencing-component-listing li {
+    margin-bottom: 6px;
+    white-space: nowrap;
+}
+
+div.referencing-component-state {
+    margin-top: -2px;
+}
+
+span.service.expansion-button {
+    margin-right: 4px;
+    margin-top: 2px;
+}
+
+span.referencing-component-active-thread-count {
+    margin-left: 5px;
+}
+
+span.referencing-component-name {
+    margin-left: 5px;
+    margin-right: 5px;
+}
+
+span.referencing-component-type {
+    color: #aaa;
+    font-style: italic;
+}
+
+div.referencing-component-references {
+    margin-left: 20px;
+    margin-top: 6px;
+    clear: left;
+}
+
+/*
+    Comments
+*/
+
+#controller-service-comments {
+    height: 250px;
+    width: 748px !important;
+    margin-top: 10px;
+}
+
+/*
+    Disable dialog
+*/
+
+#disable-controller-service-dialog {
+    z-index: 1301;
+    display: none;
+    width: 800px;
+    height: 450px;
+    line-height: normal;
+}
+
+#disable-controller-service-dialog div.settings-left {
+    float: left;
+    width: 300px;
+}
+
+#disable-controller-service-dialog div.settings-right {
+    float: left;
+    width: 435px;
+}
+
+#disable-controller-service-dialog div.spacer {
+    float: left;
+    margin-right: 40px;
+}
+
+#disable-controller-service-referencing-components {
+    border: 0 solid #CCCCCC;
+    padding: 2px;
+    width: 429px;
+    height: 335px;
+    overflow: auto;
+    white-space: nowrap;
+}
+
+/*
+    Enable dialog
+*/
+
+#enable-controller-service-dialog {
+    z-index: 1301;
+    display: none;
+    width: 800px;
+    height: 450px;
+    line-height: normal;
+}
+
+#enable-controller-service-dialog div.settings-left {
+    float: left;
+    width: 300px;
+}
+
+#enable-controller-service-dialog div.settings-right {
+    float: left;
+    width: 435px;
+}
+
+#enable-controller-service-dialog div.spacer {
+    float: left;
+    margin-right: 40px;
+}
+
+#enable-controller-service-scope {
+    float: left;
+    width: 225px;
+    height: 18px;
+    line-height: 18px;
+}
+
+#enable-controller-service-referencing-components {
+    border: 0 solid #ccc;
+    padding: 2px;
+    width: 429px;
+    height: 335px;
+    overflow: auto;
+    white-space: nowrap;
+}
+
+/* enable, disable progress */
+
+div.disable-referencing-components, div.enable-referencing-components {
+    width: 16px;
+    height: 16px;
+    background-color: transparent;
+    float: right;
+}
+
+#enable-controller-service-progress, #disable-controller-service-progress {
+    margin-top: 2px;
+}
+
+#enable-controller-service-progress li, #disable-controller-service-progress li {
+    line-height: 16px;
+}

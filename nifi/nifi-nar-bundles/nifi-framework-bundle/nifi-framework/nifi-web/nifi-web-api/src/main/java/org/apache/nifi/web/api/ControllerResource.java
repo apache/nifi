@@ -72,6 +72,8 @@ import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.IntegerParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.web.api.entity.ControllerServiceTypesEntity;
+import org.apache.nifi.web.api.entity.ReportingTaskTypesEntity;
 import org.codehaus.enunciate.jaxrs.TypeHint;
 import org.springframework.security.access.prepost.PreAuthorize;
 
@@ -149,13 +151,33 @@ public class ControllerResource extends ApplicationResource {
     }
 
     /**
-     * Locates the Template sub-resource.
+     * Locates the Snippets sub-resource.
      *
      * @return
      */
     @Path("/snippets")
     public SnippetResource getSnippetResource() {
         return resourceContext.getResource(SnippetResource.class);
+    }
+    
+    /**
+     * Locates the Controller Services sub-resource.
+     *
+     * @return
+     */
+    @Path("/controller-services")
+    public ControllerServiceResource getControllerServiceResource() {
+        return resourceContext.getResource(ControllerServiceResource.class);
+    }
+    
+    /**
+     * Locates the Reporting Tasks sub-resource.
+     *
+     * @return
+     */
+    @Path("/reporting-tasks")
+    public ReportingTaskResource getReportingTaskResource() {
+        return resourceContext.getResource(ReportingTaskResource.class);
     }
 
     /**
@@ -303,7 +325,7 @@ public class ControllerResource extends ApplicationResource {
         // create the revision
         final RevisionDTO updatedRevision = new RevisionDTO();
         updatedRevision.setClientId(clientId.getClientId());
-        updatedRevision.setVersion(controllerResponse.getRevision());
+        updatedRevision.setVersion(controllerResponse.getVersion());
 
         // create the response entity
         final ProcessGroupEntity controllerEntity = new ProcessGroupEntity();
@@ -325,11 +347,6 @@ public class ControllerResource extends ApplicationResource {
     @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @TypeHint(Entity.class)
     public Response getRevision() {
-        // replicate if cluster manager
-        if (properties.isClusterManager()) {
-            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
-        }
-
         // create the current revision
         final RevisionDTO revision = serviceFacade.getRevision();
 
@@ -595,7 +612,7 @@ public class ControllerResource extends ApplicationResource {
         // get the updated revision
         final RevisionDTO updatedRevision = new RevisionDTO();
         updatedRevision.setClientId(revision.getClientId());
-        updatedRevision.setVersion(controllerResponse.getRevision());
+        updatedRevision.setVersion(controllerResponse.getVersion());
 
         // create the response entity
         final ControllerConfigurationEntity entity = new ControllerConfigurationEntity();
@@ -709,6 +726,72 @@ public class ControllerResource extends ApplicationResource {
         final ProcessorTypesEntity entity = new ProcessorTypesEntity();
         entity.setRevision(revision);
         entity.setProcessorTypes(serviceFacade.getProcessorTypes());
+
+        // generate the response
+        return clusterContext(generateOkResponse(entity)).build();
+    }
+    
+    /**
+     * Retrieves the types of controller services that this NiFi supports.
+     *
+     * @param clientId Optional client id. If the client id is not specified, a
+     * new one will be generated. This value (whether specified or generated) is
+     * included in the response.
+     * @return A controllerServicesTypesEntity.
+     */
+    @GET
+    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Path("/controller-service-types")
+    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    @TypeHint(ControllerServiceTypesEntity.class)
+    public Response getControllerServiceTypes(@QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
+
+        // replicate if cluster manager
+        if (properties.isClusterManager()) {
+            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        }
+
+        // create the revision
+        final RevisionDTO revision = new RevisionDTO();
+        revision.setClientId(clientId.getClientId());
+
+        // create response entity
+        final ControllerServiceTypesEntity entity = new ControllerServiceTypesEntity();
+        entity.setRevision(revision);
+        entity.setControllerServiceTypes(serviceFacade.getControllerServiceTypes());
+
+        // generate the response
+        return clusterContext(generateOkResponse(entity)).build();
+    }
+    
+    /**
+     * Retrieves the types of reporting tasks that this NiFi supports.
+     *
+     * @param clientId Optional client id. If the client id is not specified, a
+     * new one will be generated. This value (whether specified or generated) is
+     * included in the response.
+     * @return A controllerServicesTypesEntity.
+     */
+    @GET
+    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Path("/reporting-task-types")
+    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    @TypeHint(ReportingTaskTypesEntity.class)
+    public Response getReportingTaskTypes(@QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
+
+        // replicate if cluster manager
+        if (properties.isClusterManager()) {
+            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        }
+
+        // create the revision
+        final RevisionDTO revision = new RevisionDTO();
+        revision.setClientId(clientId.getClientId());
+
+        // create response entity
+        final ReportingTaskTypesEntity entity = new ReportingTaskTypesEntity();
+        entity.setRevision(revision);
+        entity.setReportingTaskTypes(serviceFacade.getReportingTaskTypes());
 
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();

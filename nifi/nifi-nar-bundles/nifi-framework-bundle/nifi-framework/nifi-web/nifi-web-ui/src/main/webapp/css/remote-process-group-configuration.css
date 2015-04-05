@@ -26,7 +26,6 @@
     font-size: 10px;
     z-index: 1201;
     display: none;
-    border: 1px solid #eee;
 }
 
 #remote-process-group-details {
@@ -37,7 +36,6 @@
     font-size: 10px;
     z-index: 1201;
     display: none;
-    border: 1px solid #eee;
 }
 
 #remote-process-group-ports {
@@ -48,7 +46,6 @@
     font-size: 10px;
     z-index: 1201;
     display: none;
-    border: 1px solid #eee;
 }
 
 /* remote process group settings */

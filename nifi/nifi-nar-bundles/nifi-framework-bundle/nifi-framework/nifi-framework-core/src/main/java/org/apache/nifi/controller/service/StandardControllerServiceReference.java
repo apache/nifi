@@ -58,23 +58,28 @@ public class StandardControllerServiceReference implements ControllerServiceRefe
     }
 
     @Override
-    public Set<ConfiguredComponent> getRunningReferences() {
-        final Set<ConfiguredComponent> runningReferences = new HashSet<>();
+    public Set<ConfiguredComponent> getActiveReferences() {
+        final Set<ConfiguredComponent> activeReferences = new HashSet<>();
         final Set<ControllerServiceNode> serviceNodes = new HashSet<>();
 
         for (final ConfiguredComponent component : components) {
             if (component instanceof ControllerServiceNode) {
                 serviceNodes.add((ControllerServiceNode) component);
+                
+                final ControllerServiceState state = ((ControllerServiceNode) component).getState();
+                if ( state != ControllerServiceState.DISABLED ) {
+                    activeReferences.add(component);
+                }
             } else if (isRunning(component)) {
-                runningReferences.add(component);
+                activeReferences.add(component);
             }
         }
 
-        runningReferences.addAll(getRunningIndirectReferences(serviceNodes));
-        return runningReferences;
+        activeReferences.addAll(getActiveIndirectReferences(serviceNodes));
+        return activeReferences;
     }
 
-    private Set<ConfiguredComponent> getRunningIndirectReferences(final Set<ControllerServiceNode> referencingServices) {
+    private Set<ConfiguredComponent> getActiveIndirectReferences(final Set<ControllerServiceNode> referencingServices) {
         if (referencingServices.isEmpty()) {
             return Collections.emptySet();
         }
@@ -92,7 +97,7 @@ public class StandardControllerServiceReference implements ControllerServiceRefe
                 }
             }
 
-            references.addAll(getRunningIndirectReferences(serviceNodes));
+            references.addAll(getActiveIndirectReferences(serviceNodes));
         }
 
         return references;

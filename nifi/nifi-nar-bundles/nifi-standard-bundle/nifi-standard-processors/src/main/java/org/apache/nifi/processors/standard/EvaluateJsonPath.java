@@ -269,6 +269,7 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
             switch (destination) {
                 case DESTINATION_ATTRIBUTE:
                     jsonPathResults.put(jsonPathAttrKey, resultRepresentation);
+                    break;
                 case DESTINATION_CONTENT:
                     flowFile = processSession.write(flowFile, new OutputStreamCallback() {
                         @Override

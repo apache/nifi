@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.nifi.attribute.expression.language.PreparedQuery;
 import org.apache.nifi.attribute.expression.language.Query;
@@ -41,11 +42,17 @@ public class StandardValidationContext implements ValidationContext {
     private final Map<PropertyDescriptor, PreparedQuery> preparedQueries;
     private final Map<String, Boolean> expressionLanguageSupported;
     private final String annotationData;
+    private final Set<String> serviceIdentifiersToNotValidate;
 
     public StandardValidationContext(final ControllerServiceProvider controllerServiceProvider, final Map<PropertyDescriptor, String> properties, final String annotationData) {
+        this(controllerServiceProvider, Collections.<String>emptySet(), properties, annotationData);
+    }
+    
+    public StandardValidationContext(final ControllerServiceProvider controllerServiceProvider, final Set<String> serviceIdentifiersToNotValidate, final Map<PropertyDescriptor, String> properties, final String annotationData) {
         this.controllerServiceProvider = controllerServiceProvider;
         this.properties = new HashMap<>(properties);
         this.annotationData = annotationData;
+        this.serviceIdentifiersToNotValidate = serviceIdentifiersToNotValidate;
 
         preparedQueries = new HashMap<>(properties.size());
         for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
@@ -100,6 +107,11 @@ public class StandardValidationContext implements ValidationContext {
     @Override
     public ControllerServiceLookup getControllerServiceLookup() {
         return controllerServiceProvider;
+    }
+
+    @Override
+    public boolean isValidationRequired(final ControllerService service) {
+        return !serviceIdentifiersToNotValidate.contains(service.getIdentifier());
     }
     
     @Override

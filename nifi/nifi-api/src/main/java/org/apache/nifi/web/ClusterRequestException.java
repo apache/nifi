@@ -17,6 +17,7 @@
 package org.apache.nifi.web;
 
 /**
+ * An general error occurred when attempting to communicate with the cluster.
  */
 public class ClusterRequestException extends RuntimeException {
 

@@ -236,7 +236,7 @@ public class StandardValidators {
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
             if ( context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input) ) {
-                return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").build();
+                return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
             }
 
             try {
@@ -254,7 +254,7 @@ public class StandardValidators {
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
             if ( context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input) ) {
-                return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").build();
+                return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
             }
 
             try {
@@ -271,7 +271,7 @@ public class StandardValidators {
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
             if ( context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input) ) {
-                return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").build();
+                return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
             }
 
             if (input == null) {
@@ -289,7 +289,7 @@ public class StandardValidators {
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
             if ( context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input) ) {
-                return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").build();
+                return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
             }
 
             if (input == null) {
@@ -319,7 +319,7 @@ public class StandardValidators {
             @Override
             public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
                 if ( context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input) ) {
-                    return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").build();
+                    return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
                 }
 
                 try {
@@ -347,7 +347,7 @@ public class StandardValidators {
             @Override
             public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
                 if ( context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input) ) {
-                    return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").build();
+                    return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
                 }
 
                 final ValidationResult vr = DATA_SIZE_VALIDATOR.validate(subject, input, context);
@@ -372,7 +372,7 @@ public class StandardValidators {
             @Override
             public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
                 if ( context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input) ) {
-                    return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").build();
+                    return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
                 }
 
                 final boolean matches = pattern.matcher(input).matches();
@@ -457,7 +457,7 @@ public class StandardValidators {
             @Override
             public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
                 if ( context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input) ) {
-                    return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").build();
+                    return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
                 }
 
                 String reason = null;
@@ -503,7 +503,7 @@ public class StandardValidators {
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
             if ( context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input) ) {
-                return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").build();
+                return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
             }
 
             if (input == null) {
@@ -628,7 +628,7 @@ public class StandardValidators {
             @Override
             public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
                 if ( context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input) ) {
-                    return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").build();
+                    return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
                 }
 
                 final ControllerService svc = context.getControllerServiceLookup().getControllerService(input);

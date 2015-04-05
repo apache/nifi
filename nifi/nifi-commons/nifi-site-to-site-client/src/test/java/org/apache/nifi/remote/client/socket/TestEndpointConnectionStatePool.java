@@ -39,7 +39,7 @@ public class TestEndpointConnectionStatePool {
         collection.add(new NodeInformation("ShouldGetMedium", 5, 5555, true, 4096));
 
         clusterNodeInfo.setNodeInformation(collection);
-        final List<PeerStatus> destinations = EndpointConnectionPool.formulateDestinationList(clusterNodeInfo, TransferDirection.SEND);
+        final List<PeerStatus> destinations = EndpointConnectionPool.formulateDestinationList(clusterNodeInfo, TransferDirection.RECEIVE);
         for ( final PeerStatus peerStatus : destinations ) {
             System.out.println(peerStatus.getPeerDescription());
         }
@@ -53,7 +53,7 @@ public class TestEndpointConnectionStatePool {
         collection.add(new NodeInformation("ShouldGetLots", 2, 2222, true, 50000));
 
         clusterNodeInfo.setNodeInformation(collection);
-        final List<PeerStatus> destinations = EndpointConnectionPool.formulateDestinationList(clusterNodeInfo, TransferDirection.SEND);
+        final List<PeerStatus> destinations = EndpointConnectionPool.formulateDestinationList(clusterNodeInfo, TransferDirection.RECEIVE);
         for ( final PeerStatus peerStatus : destinations ) {
             System.out.println(peerStatus.getPeerDescription());
         }

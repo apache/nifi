@@ -14,6 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/* global nf, d3 */
+
 $(document).ready(function () {
     if (nf.Canvas.SUPPORTS_SVG) {
         // initialize the NiFi
@@ -179,11 +182,30 @@ nf.Canvas = (function () {
                 // changes that need to be updated
                 if (revision.version > currentRevision.version && revision.clientId !== currentRevision.clientId) {
                     var refreshContainer = $('#refresh-required-container');
+                    var settingsRefreshIcon = $('#settings-refresh-required-icon');
 
-                    // insert the refresh needed text - if necessary
+                    // insert the refresh needed text in the canvas - if necessary
                     if (!refreshContainer.is(':visible')) {
                         $('#stats-last-refreshed').addClass('alert');
+                        var refreshMessage = "This flow has been modified by '" + revision.lastModifier + "'. Please refresh.";
+                        
+                        // update the tooltip
+                        var refreshRequiredIcon = $('#refresh-required-icon');
+                        if (refreshRequiredIcon.data('qtip')) {
+                            refreshRequiredIcon.qtip('option', 'content.text', refreshMessage);
+                        } else {
+                            refreshRequiredIcon.qtip($.extend({
+                                content: refreshMessage
+                            }, nf.CanvasUtils.config.systemTooltipConfig));
+                        }
+                    
                         refreshContainer.show();
+                    }
+                    
+                    // insert the refresh needed text in the settings - if necessary
+                    if (!settingsRefreshIcon.is(':visible')) {
+                        $('#settings-last-refreshed').addClass('alert');
+                        settingsRefreshIcon.show();
                     }
                 }
             }
@@ -509,15 +531,89 @@ nf.Canvas = (function () {
         // listen for browser resize events to reset the graph size
         $(window).on('resize', function () {
             updateGraphSize();
+            nf.Settings.resetTableSize();
         }).on('keydown', function (evt) {
             var isCtrl = evt.ctrlKey || evt.metaKey;
             
             // consider escape, before checking dialogs
             if (!isCtrl && evt.keyCode === 27) {
                 // esc
-                nf.Actions.hideDialogs();
 
-                evt.preventDefault();
+                // prevent escape when a property value is being edited and it is unable to close itself 
+                // (due to focus loss on field) - allowing this to continue would could cause other
+                // unsaved changes to be lost as it would end up cancel the entire configuration dialog
+                // not just the field itself
+                if ($('div.value-combo').is(':visible') || $('div.slickgrid-nfel-editor').is(':visible') || $('div.slickgrid-editor').is(':visible')) {
+                    return;
+                }
+
+                // first consider read only property detail dialog
+                if ($('div.property-detail').is(':visible')) {
+                    nf.Common.removeAllPropertyDetailDialogs();
+                    
+                    // prevent further bubbling as we're already handled it
+                    evt.stopPropagation();
+                    evt.preventDefault();
+                } else {
+                    var target = $(evt.target);
+                    if (target.length) {
+                        var isBody = target.get(0) === $('#canvas-body').get(0);
+                        var inShell = target.closest('#shell-dialog').length;
+
+                        // special handling for body and shell
+                        if (isBody || inShell) {
+                            var cancellables = $('.cancellable');
+                            if (cancellables.length) {
+                                var zIndexMax = null;
+                                var dialogMax = null;
+
+                                // identify the top most cancellable
+                                $.each(cancellables, function(_, cancellable) {
+                                    var dialog = $(cancellable);
+                                    var zIndex = dialog.css('zIndex');
+
+                                    // if the dialog has a zIndex consider it
+                                    if (dialog.is(':visible') && nf.Common.isDefinedAndNotNull(zIndex)) {
+                                        zIndex = parseInt(zIndex, 10);
+                                        if (zIndexMax === null || zIndex > zIndexMax) {
+                                            zIndexMax = zIndex;
+                                            dialogMax = dialog;
+                                        }
+                                    }
+                                });
+
+                                // if we've identified a dialog to close do so and stop propagation
+                                if (dialogMax !== null) {
+                                    // hide the cancellable
+                                    if (dialogMax.hasClass('modal')) {
+                                        dialogMax.modal('hide');
+                                    } else {
+                                        dialogMax.hide();
+                                    }
+
+                                    // prevent further bubbling as we're already handled it
+                                    evt.stopPropagation();
+                                    evt.preventDefault();
+                                }
+                            }
+                        } else {
+                            // otherwise close the closest visible cancellable
+                            var parentDialog = target.closest('.cancellable:visible').first();
+                            if (parentDialog.length) {
+                                if (parentDialog.hasClass('modal')) {
+                                    parentDialog.modal('hide');
+                                } else {
+                                    parentDialog.hide();
+                                }
+
+                                // prevent further bubbling as we're already handled it
+                                evt.stopPropagation();
+                                evt.preventDefault();
+                            }
+                        }
+                    }
+                }
+                
                 return;
             }
             
@@ -876,7 +972,8 @@ nf.Canvas = (function () {
                 // get the process group to refresh everything
                 var processGroupXhr = reloadProcessGroup(nf.Canvas.getGroupId());
                 var statusXhr = reloadFlowStatus();
-                $.when(processGroupXhr, statusXhr).done(function (processGroupResult) {
+                var settingsXhr = nf.Settings.loadSettings();
+                $.when(processGroupXhr, statusXhr, settingsXhr).done(function (processGroupResult) {
                     // adjust breadcrumbs if necessary
                     var title = $('#data-flow-title-container');
                     var titlePosition = title.position();
@@ -1011,6 +1108,8 @@ nf.Canvas = (function () {
 
                         // initialize components
                         nf.ConnectionConfiguration.init();
+                        nf.ControllerService.init();
+                        nf.ReportingTask.init();
                         nf.ProcessorConfiguration.init();
                         nf.ProcessGroupConfiguration.init();
                         nf.RemoteProcessGroupConfiguration.init();

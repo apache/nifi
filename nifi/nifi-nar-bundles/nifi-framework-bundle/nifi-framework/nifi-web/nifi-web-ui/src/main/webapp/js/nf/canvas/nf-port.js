@@ -14,6 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/* global nf, d3 */
+
 nf.Port = (function () {
 
     var PREVIEW_NAME_LENGTH = 15;
