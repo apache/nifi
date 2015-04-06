@@ -83,7 +83,7 @@ public class TestPutSolrContentStream {
 
         final TestRunner runner = createDefaultTestRunner(proc);
         runner.setProperty(PutSolrContentStream.CONTENT_STREAM_PATH, "/update/json/docs");
-        runner.setProperty(PutSolrContentStream.REQUEST_PARAMS,"json.command=false");
+        runner.setProperty("json.command", "false");
 
         try (FileInputStream fileIn = new FileInputStream(SOLR_JSON_MULTIPLE_DOCS_FILE)) {
             runner.enqueue(fileIn);
@@ -105,14 +105,13 @@ public class TestPutSolrContentStream {
 
         final TestRunner runner = createDefaultTestRunner(proc);
         runner.setProperty(PutSolrContentStream.CONTENT_STREAM_PATH, "/update/json/docs");
-        runner.setProperty(PutSolrContentStream.REQUEST_PARAMS,
-                "split=/exams" +
-                "&f=first:/first" +
-                "&f=last:/last" +
-                "&f=grade:/grade" +
-                "&f=subject:/exams/subject" +
-                "&f=test:/exams/test" +
-                "&f=marks:/exams/marks");
+        runner.setProperty("split", "/exams");
+        runner.setProperty("f.1", "first:/first");
+        runner.setProperty("f.2", "last:/last");
+        runner.setProperty("f.3", "grade:/grade");
+        runner.setProperty("f.4", "subject:/exams/subject");
+        runner.setProperty("f.5", "test:/exams/test");
+        runner.setProperty("f.6", "marks:/exams/marks");
 
         try (FileInputStream fileIn = new FileInputStream(CUSTOM_JSON_SINGLE_DOC_FILE)) {
             runner.enqueue(fileIn);
@@ -134,8 +133,7 @@ public class TestPutSolrContentStream {
 
         final TestRunner runner = createDefaultTestRunner(proc);
         runner.setProperty(PutSolrContentStream.CONTENT_STREAM_PATH, "/update/csv");
-        runner.setProperty(PutSolrContentStream.REQUEST_PARAMS,
-                "fieldnames=first,last,grade,subject,test,marks");
+        runner.setProperty("fieldnames", "first,last,grade,subject,test,marks");
 
         try (FileInputStream fileIn = new FileInputStream(CSV_MULTIPLE_DOCS_FILE)) {
             runner.enqueue(fileIn);
@@ -222,7 +220,6 @@ public class TestPutSolrContentStream {
         }
     }
 
-
     @Test
     public void testSolrTypeCloudShouldRequireCollection() {
         final TestRunner runner = TestRunners.newTestRunner(PutSolrContentStream.class);
@@ -240,15 +237,6 @@ public class TestPutSolrContentStream {
         runner.setProperty(PutSolrContentStream.SOLR_TYPE, PutSolrContentStream.SOLR_TYPE_STANDARD.getValue());
         runner.setProperty(PutSolrContentStream.SOLR_LOCATION, "http://localhost:8443/solr");
         runner.assertValid();
-    }
-
-    @Test
-    public void testRequestParamsShouldBeInvalid() {
-        final TestRunner runner = TestRunners.newTestRunner(PutSolrContentStream.class);
-        runner.setProperty(PutSolrContentStream.SOLR_TYPE, PutSolrContentStream.SOLR_TYPE_STANDARD.getValue());
-        runner.setProperty(PutSolrContentStream.SOLR_LOCATION, "http://localhost:8443/solr");
-        runner.setProperty(PutSolrContentStream.REQUEST_PARAMS, "a=1&b");
-        runner.assertNotValid();
     }
 
     /**

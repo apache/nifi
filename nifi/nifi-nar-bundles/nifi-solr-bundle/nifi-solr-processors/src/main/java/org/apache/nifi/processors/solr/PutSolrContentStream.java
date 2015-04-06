@@ -79,14 +79,6 @@ public class PutSolrContentStream extends SolrProcessor {
             .expressionLanguageSupported(true)
             .build();
 
-    public static final PropertyDescriptor REQUEST_PARAMS = new PropertyDescriptor
-            .Builder().name("Request Parameters")
-            .description("Additional parameters to pass to Solr on each request, i.e. key1=val1&key2=val2")
-            .required(false)
-            .addValidator(RequestParamsUtil.getValidator())
-            .defaultValue("json.command=false&split=/&f=id:/field1")
-            .build();
-
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("The original FlowFile")
@@ -104,10 +96,10 @@ public class PutSolrContentStream extends SolrProcessor {
 
     public static final String COLLECTION_PARAM_NAME = "collection";
     public static final String COMMIT_WITHIN_PARAM_NAME = "commitWithin";
+    public static final String REPEATING_PARAM_PATTERN = "\\w+\\.\\d+";
 
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> descriptors;
-    private volatile MultiMapSolrParams requestParams;
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -120,7 +112,6 @@ public class PutSolrContentStream extends SolrProcessor {
         descriptors.add(CONTENT_STREAM_PATH);
         descriptors.add(CONTENT_TYPE);
         descriptors.add(COMMIT_WITHIN);
-        descriptors.add(REQUEST_PARAMS);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
         final Set<Relationship> relationships = new HashSet<>();
@@ -151,12 +142,6 @@ public class PutSolrContentStream extends SolrProcessor {
                 .build();
     }
 
-    @OnScheduled
-    public void initializeRequestParams(ProcessContext context) {
-        final String requestParamsVal = context.getProperty(REQUEST_PARAMS).getValue();
-        this.requestParams = RequestParamsUtil.parse(requestParamsVal);
-    }
-
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
@@ -170,6 +155,8 @@ public class PutSolrContentStream extends SolrProcessor {
         final boolean isSolrCloud = SOLR_TYPE_CLOUD.equals(context.getProperty(SOLR_TYPE).getValue());
         final String collection = context.getProperty(COLLECTION_PARAM_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final Long commitWithin = context.getProperty(COMMIT_WITHIN).evaluateAttributeExpressions(flowFile).asLong();
+
+        final MultiMapSolrParams requestParams = new MultiMapSolrParams(getRequestParams(context, flowFile));
 
         StopWatch timer = new StopWatch(true);
         session.read(flowFile, new InputStreamCallback() {
@@ -250,6 +237,7 @@ public class PutSolrContentStream extends SolrProcessor {
     // get all of the dynamic properties and values into a Map for later adding to the Solr request
     private Map<String, String[]> getRequestParams(ProcessContext context, FlowFile flowFile) {
         final Map<String,String[]> paramsMap = new HashMap<>();
+        final SortedMap<String,String> repeatingParams = new TreeMap<>();
 
         for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
             final PropertyDescriptor descriptor = entry.getKey();
@@ -258,10 +246,22 @@ public class PutSolrContentStream extends SolrProcessor {
                 final String paramValue = context.getProperty(descriptor).evaluateAttributeExpressions(flowFile).getValue();
 
                 if (!paramValue.trim().isEmpty()) {
-                    MultiMapSolrParams.addParam(paramName, paramValue, paramsMap);
+                    if (paramName.matches(REPEATING_PARAM_PATTERN)) {
+                        repeatingParams.put(paramName, paramValue);
+                    } else {
+                        MultiMapSolrParams.addParam(paramName, paramValue, paramsMap);
+                    }
                 }
             }
         }
+
+        for (final Map.Entry<String,String> entry : repeatingParams.entrySet()) {
+            final String paramName = entry.getKey();
+            final String paramValue = entry.getValue();
+            final int idx = paramName.lastIndexOf(".");
+            MultiMapSolrParams.addParam(paramName.substring(0, idx), paramValue, paramsMap);
+        }
+
         return paramsMap;
     }
 
