@@ -207,6 +207,70 @@ nf.ReportingTask = (function () {
     };
     
     /**
+     * Goes to a service configuration from the property table.
+     */
+    var goToServiceFromProperty = function () {
+        return $.Deferred(function (deferred) {
+            // close all fields currently being edited
+            $('#reporting-task-properties').propertytable('saveRow');
+
+            // determine if changes have been made
+            if (isSaveRequired()) {
+                // see if those changes should be saved
+                nf.Dialog.showYesNoDialog({
+                    dialogContent: 'Save changes before going to this Controller Service?',
+                    overlayBackground: false,
+                    noHandler: function () {
+                        deferred.resolve();
+                    },
+                    yesHandler: function () {
+                        var reportingTask = $('#reporting-task-configuration').data('reportingTaskDetails');
+                        saveReportingTask(reportingTask).done(function () {
+                            deferred.resolve();
+                        }).fail(function () {
+                            deferred.reject();
+                        });
+                    }
+                });
+            } else {
+                deferred.resolve();
+            }
+        }).promise();
+    };
+    
+    /**
+     * Saves the specified reporting task.
+     * 
+     * @param {type} reportingTask
+     */
+    var saveReportingTask = function (reportingTask) {
+        // marshal the settings and properties and update the reporting task
+        var updatedReportingTask = marshalDetails();
+
+        // ensure details are valid as far as we can tell
+        if (validateDetails(updatedReportingTask)) {
+            // update the selected component
+            return $.ajax({
+                type: 'PUT',
+                data: JSON.stringify(updatedReportingTask),
+                url: reportingTask.uri,
+                dataType: 'json',
+                processData: false,
+                contentType: 'application/json'
+            }).done(function (response) {
+                if (nf.Common.isDefinedAndNotNull(response.reportingTask)) {
+                    // update the revision
+                    nf.Client.setRevision(response.revision);
+                }
+            }).fail(handleReportingTaskConfigurationError);
+        } else {
+            return $.Deferred(function (deferred) {
+                deferred.reject();
+            }).promise();
+        }
+    };
+    
+    /**
      * Gets a property descriptor for the controller service currently being configured.
      * 
      * @param {type} propertyName
@@ -288,8 +352,9 @@ nf.ReportingTask = (function () {
             // initialize the property table
             $('#reporting-task-properties').propertytable({
                 readOnly: false,
-                newPropertyDialogContainer: '#new-reporting-task-property-container',
-                deferredDescriptor: getReportingTaskPropertyDescriptor
+                dialogContainer: '#new-reporting-task-property-container',
+                deferredDescriptor: getReportingTaskPropertyDescriptor,
+                goToServiceDeferred: goToServiceFromProperty
             });
         },
         
@@ -308,8 +373,9 @@ nf.ReportingTask = (function () {
                 // initialize the property table
                 $('#reporting-task-properties').propertytable('destroy').propertytable({
                     readOnly: false,
-                    newPropertyDialogContainer: '#new-reporting-task-property-container',
-                    deferredDescriptor: getReportingTaskPropertyDescriptor
+                    dialogContainer: '#new-reporting-task-property-container',
+                    deferredDescriptor: getReportingTaskPropertyDescriptor,
+                    goToServiceDeferred: goToServiceFromProperty
                 });
                 
                 // update the mode
@@ -407,33 +473,15 @@ nf.ReportingTask = (function () {
                                 // close all fields currently being edited
                                 $('#reporting-task-properties').propertytable('saveRow');
 
-                                // marshal the settings and properties and update the reporting task
-                                var updatedReportingTask = marshalDetails();
+                                // save the reporting task
+                                saveReportingTask(reportingTask).done(function (response) {
+                                    // reload the reporting task
+                                    renderReportingTask(response.reportingTask);
+                                    nf.ControllerService.reloadReferencedServices(response.reportingTask);
 
-                                // ensure details are valid as far as we can tell
-                                if (validateDetails(updatedReportingTask)) {
-                                    // update the selected component
-                                    $.ajax({
-                                        type: 'PUT',
-                                        data: JSON.stringify(updatedReportingTask),
-                                        url: reportingTask.uri,
-                                        dataType: 'json',
-                                        processData: false,
-                                        contentType: 'application/json'
-                                    }).done(function (response) {
-                                        if (nf.Common.isDefinedAndNotNull(response.reportingTask)) {
-                                            // update the revision
-                                            nf.Client.setRevision(response.revision);
-
-                                            // reload the reporting task
-                                            renderReportingTask(response.reportingTask);
-                                            nf.ControllerService.reloadReferencedServices(response.reportingTask);
-
-                                            // close the details panel
-                                            $('#reporting-task-configuration').modal('hide');
-                                        }
-                                    }).fail(handleReportingTaskConfigurationError);
-                                }
+                                    // close the details panel
+                                    $('#reporting-task-configuration').modal('hide');
+                                });
                             }
                         }
                     }, {
@@ -481,29 +529,10 @@ nf.ReportingTask = (function () {
                                         overlayBackground: false,
                                         noHandler: openCustomUi,
                                         yesHandler: function () {
-                                            // marshal the settings and properties and update the reporting task
-                                            var updatedReportingTask = marshalDetails();
-
-                                            // ensure details are valid as far as we can tell
-                                            if (validateDetails(updatedReportingTask)) {
-                                                // update the selected component
-                                                $.ajax({
-                                                    type: 'PUT',
-                                                    data: JSON.stringify(updatedReportingTask),
-                                                    url: reportingTask.uri,
-                                                    dataType: 'json',
-                                                    processData: false,
-                                                    contentType: 'application/json'
-                                                }).done(function (response) {
-                                                    if (nf.Common.isDefinedAndNotNull(response.reportingTask)) {
-                                                        // update the revision
-                                                        nf.Client.setRevision(response.revision);
-
-                                                        // open the custom ui
-                                                        openCustomUi();
-                                                    }
-                                                }).fail(handleReportingTaskConfigurationError);
-                                            }
+                                            saveReportingTask(reportingTask).done(function () {
+                                                // open the custom ui
+                                                openCustomUi();
+                                            });
                                         }
                                     });
                                 } else {

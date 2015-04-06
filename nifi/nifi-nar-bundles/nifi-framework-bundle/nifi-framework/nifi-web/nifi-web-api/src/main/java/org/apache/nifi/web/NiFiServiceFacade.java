@@ -252,9 +252,10 @@ public interface NiFiServiceFacade {
     /**
      * Returns the list of controller service types.
      * 
+     * @param serviceType Filters only service types that implement this type
      * @return The list of available controller types
      */
-    Set<DocumentedTypeDTO> getControllerServiceTypes();
+    Set<DocumentedTypeDTO> getControllerServiceTypes(String serviceType);
     
     /**
      * Returns the list of reporting task types.

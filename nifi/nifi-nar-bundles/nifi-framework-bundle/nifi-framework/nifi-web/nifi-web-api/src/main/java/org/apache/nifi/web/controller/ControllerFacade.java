@@ -108,6 +108,7 @@ import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.DownloadableContent;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.admin.service.UserService;
 import org.apache.nifi.authorization.DownloadAuthorization;
@@ -348,12 +349,48 @@ public class ControllerFacade {
     }
     
     /**
+     * Returns whether the specified type implements the specified serviceType.
+     * 
+     * @param baseType
+     * @param type
+     * @return
+     */
+    private boolean implementsServiceType(final String serviceType, final Class type) {
+        final List<Class<?>> interfaces = ClassUtils.getAllInterfaces(type);
+        for (final Class i : interfaces) {
+            if (ControllerService.class.isAssignableFrom(i) && i.getName().equals(serviceType)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
      * Gets the ControllerService types that this controller supports.
      * 
+     * @param serviceType
      * @return 
      */
-    public Set<DocumentedTypeDTO> getControllerServiceTypes() {
-        return dtoFactory.fromDocumentedTypes(ControllerService.class, ExtensionManager.getExtensions(ControllerService.class));
+    public Set<DocumentedTypeDTO> getControllerServiceTypes(final String serviceType) { 
+        final Set<Class> serviceImplementations = ExtensionManager.getExtensions(ControllerService.class);
+        
+        // identify the controller services that implement the specified serviceType if applicable
+        final Set<Class> matchingServiceImplementions;
+        if (serviceType != null) {
+            matchingServiceImplementions = new HashSet<>();
+            
+            // check each type and remove those that aren't in the specified ancestry
+            for (final Class type : serviceImplementations) {
+                if (implementsServiceType(serviceType, type)) {
+                    matchingServiceImplementions.add(type);
+                }
+            }
+        } else {
+            matchingServiceImplementions = serviceImplementations;
+        }
+        
+        return dtoFactory.fromDocumentedTypes(matchingServiceImplementions);
     }
     
     /**
@@ -362,7 +399,7 @@ public class ControllerFacade {
      * @return 
      */
     public Set<DocumentedTypeDTO> getReportingTaskTypes() {
-        return dtoFactory.fromDocumentedTypes(ReportingTask.class, ExtensionManager.getExtensions(ReportingTask.class));
+        return dtoFactory.fromDocumentedTypes(ExtensionManager.getExtensions(ReportingTask.class));
     }
 
     /**
