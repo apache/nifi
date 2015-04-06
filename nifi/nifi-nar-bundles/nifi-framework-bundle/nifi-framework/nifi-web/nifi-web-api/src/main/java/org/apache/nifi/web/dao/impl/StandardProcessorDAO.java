@@ -32,7 +32,7 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
-import org.apache.nifi.controller.exception.ProcessorLifeCycleException;
+import org.apache.nifi.controller.exception.ComponentLifeCycleException;
 import org.apache.nifi.controller.exception.ValidationException;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.LogLevel;
@@ -124,7 +124,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
             return processor;
         } catch (ProcessorInstantiationException pse) {
             throw new NiFiCoreException(String.format("Unable to create processor of type %s due to: %s", processorDTO.getType(), pse.getMessage()), pse);
-        } catch (IllegalStateException | ProcessorLifeCycleException ise) {
+        } catch (IllegalStateException | ComponentLifeCycleException ise) {
             throw new NiFiCoreException(ise.getMessage(), ise);
         }
     }
@@ -460,7 +460,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
                             parentGroup.disableProcessor(processor);
                             break;
                     }
-                } catch (IllegalStateException | ProcessorLifeCycleException ise) {
+                } catch (IllegalStateException | ComponentLifeCycleException ise) {
                     throw new NiFiCoreException(ise.getMessage(), ise);
                 } catch (RejectedExecutionException ree) {
                     throw new NiFiCoreException("Unable to schedule all tasks for the specified processor.", ree);
@@ -496,7 +496,7 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
         try {
             // attempt remove the processor
             group.removeProcessor(processor);
-        } catch (ProcessorLifeCycleException plce) {
+        } catch (ComponentLifeCycleException plce) {
             throw new NiFiCoreException(plce.getMessage(), plce);
         }
     }

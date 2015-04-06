@@ -26,7 +26,7 @@ import java.util.regex.Matcher;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
-import org.apache.nifi.controller.exception.ProcessorLifeCycleException;
+import org.apache.nifi.controller.exception.ComponentLifeCycleException;
 
 import org.apache.nifi.controller.exception.ValidationException;
 import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
@@ -166,7 +166,7 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
                             reportingTaskProvider.disableReportingTask(reportingTask);
                             break;
                     }
-                } catch (IllegalStateException | ProcessorLifeCycleException ise) {
+                } catch (IllegalStateException | ComponentLifeCycleException ise) {
                     throw new NiFiCoreException(ise.getMessage(), ise);
                 } catch (RejectedExecutionException ree) {
                     throw new NiFiCoreException("Unable to schedule all tasks for the specified reporting task.", ree);
