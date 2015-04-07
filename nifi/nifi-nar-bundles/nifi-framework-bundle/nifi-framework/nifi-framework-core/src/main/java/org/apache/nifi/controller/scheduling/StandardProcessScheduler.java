@@ -297,7 +297,9 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                         final Class<? extends ControllerService> serviceDefinition = descriptor.getControllerServiceDefinition();
                         if ( serviceDefinition != null ) {
                             final String serviceId = processContext.getProperty(descriptor).getValue();
-                            serviceIds.add(serviceId);
+                            if ( serviceId != null ) {
+                            	serviceIds.add(serviceId);
+                            }
                         }
                     }
                     
