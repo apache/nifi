@@ -314,6 +314,11 @@ public class EndpointConnectionPool {
                         if ( protocol.isDestinationFull() ) {
                             logger.warn("{} {} indicates that port's destination is full; penalizing peer", this, peer);
                             penalize(peer, penalizationMillis);
+                            try {
+                            	peer.close();
+                            } catch (final IOException ioe) {
+                            }
+                            
                             continue;
                         } else if ( protocol.isPortInvalid() ) {
                         	penalize(peer, penalizationMillis);
@@ -359,6 +364,15 @@ public class EndpointConnectionPool {
                     }
                 }
             } while ( connection == null || codec == null || commsSession == null || protocol == null );
+        } catch (final Throwable t) {
+        	if ( commsSession != null ) {
+        		try {
+        			commsSession.close();
+        		} catch (final IOException ioe) {
+        		}
+        	}
+        	
+        	throw t;
         } finally {
             if ( !addBack.isEmpty() ) {
                 connectionQueue.addAll(addBack);
