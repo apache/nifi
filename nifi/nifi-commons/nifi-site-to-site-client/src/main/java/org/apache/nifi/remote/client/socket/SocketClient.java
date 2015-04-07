@@ -130,8 +130,14 @@ public class SocketClient implements SiteToSiteClient {
 		    return null;
 		}
 		
-		final Transaction transaction = connectionState.getSocketClientProtocol().startTransaction(
+		final Transaction transaction;
+		try {
+			transaction = connectionState.getSocketClientProtocol().startTransaction(
 				connectionState.getPeer(), connectionState.getCodec(), direction);
+		} catch (final Throwable t) {
+			pool.terminate(connectionState);
+			throw t;
+		}
 		
 		// Wrap the transaction in a new one that will return the EndpointConnectionState back to the pool whenever
 		// the transaction is either completed or canceled.

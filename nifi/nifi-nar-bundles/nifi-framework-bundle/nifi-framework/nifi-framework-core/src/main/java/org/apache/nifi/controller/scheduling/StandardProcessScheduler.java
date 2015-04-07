@@ -297,7 +297,9 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                         final Class<? extends ControllerService> serviceDefinition = descriptor.getControllerServiceDefinition();
                         if ( serviceDefinition != null ) {
                             final String serviceId = processContext.getProperty(descriptor).getValue();
-                            serviceIds.add(serviceId);
+                            if ( serviceId != null ) {
+                            	serviceIds.add(serviceId);
+                            }
                         }
                     }
                     
@@ -337,8 +339,8 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                             final ProcessorLog procLog = new SimpleProcessLogger(procNode.getIdentifier(), procNode.getProcessor());
 
                             procLog.error("{} failed to invoke @OnScheduled method due to {}; processor will not be scheduled to run for {}",
-                                    new Object[]{procNode.getProcessor(), cause.getCause(), administrativeYieldDuration}, cause.getCause());
-                            LOG.error("Failed to invoke @OnScheduled method due to {}", cause.getCause().toString(), cause.getCause());
+                                    new Object[]{procNode.getProcessor(), cause, administrativeYieldDuration}, cause);
+                            LOG.error("Failed to invoke @OnScheduled method due to {}", cause.toString(), cause);
 
                             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnUnscheduled.class, procNode.getProcessor(), processContext);
                             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, procNode.getProcessor(), processContext);

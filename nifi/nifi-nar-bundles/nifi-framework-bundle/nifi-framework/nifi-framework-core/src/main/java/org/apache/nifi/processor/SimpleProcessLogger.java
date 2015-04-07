@@ -243,7 +243,7 @@ public class SimpleProcessLogger implements ProcessorLog {
         for (int i = 0; i < os.length; i++) {
             modifiedArgs[i + 1] = os[i];
         }
-        modifiedArgs[modifiedArgs.length - 1] = t.toString();
+        modifiedArgs[modifiedArgs.length - 1] = (t == null) ? "" : t.toString();
 
         return modifiedArgs;
     }
