@@ -53,7 +53,7 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
 
     public StandardControllerServiceNode(final ControllerService proxiedControllerService, final ControllerService implementation, final String id,
             final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider) {
-        super(proxiedControllerService, id, validationContextFactory, serviceProvider);
+        super(implementation, id, validationContextFactory, serviceProvider);
         this.proxedControllerService = proxiedControllerService;
         this.implementation = implementation;
         this.serviceProvider = serviceProvider;
