@@ -222,7 +222,7 @@ public final class SnippetUtils {
                 }
                 
                 final PropertyDescriptorDTO propertyDescriptorDto = descriptors.get(propName);
-                if ( propertyDescriptorDto != null && propertyDescriptorDto.isIdentifiesControllerService() ) {
+                if ( propertyDescriptorDto != null && propertyDescriptorDto.getIdentifiesControllerService() != null ) {
                     final ControllerServiceNode serviceNode = flowController.getControllerServiceNode(propValue);
                     if ( serviceNode != null ) {
                         addControllerServicesToSnippet(snippet, serviceNode);
@@ -363,7 +363,7 @@ public final class SnippetUtils {
                 final Map<String, PropertyDescriptorDTO> descriptors = serviceDTO.getDescriptors();
                 if ( properties != null && descriptors != null ) {
                     for ( final PropertyDescriptorDTO descriptor : descriptors.values() ) {
-                        if ( descriptor.isIdentifiesControllerService() ) {
+                        if ( descriptor.getIdentifiesControllerService() != null ) {
                             final String currentServiceId = properties.get(descriptor.getName());
                             if ( currentServiceId == null ) {
                                 continue;
@@ -558,7 +558,7 @@ public final class SnippetUtils {
         final Map<String, PropertyDescriptorDTO> descriptors = configDto.getDescriptors();
         if ( properties != null && descriptors != null ) {
             for ( final PropertyDescriptorDTO descriptor : descriptors.values() ) {
-                if ( descriptor.isIdentifiesControllerService() ) {
+                if ( descriptor.getIdentifiesControllerService() != null ) {
                     final String currentServiceId = properties.get(descriptor.getName());
                     if ( currentServiceId == null ) {
                         continue;

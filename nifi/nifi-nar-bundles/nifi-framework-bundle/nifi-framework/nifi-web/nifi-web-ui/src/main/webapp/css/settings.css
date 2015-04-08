@@ -43,21 +43,6 @@
     cursor: pointer;
 }
 
-span.expansion-button {
-    width: 10px;
-    height: 10px;
-    float: left;
-}
-
-span.ancestor-type {
-    font-weight: bold;
-}
-
-span.ancestor-type-rollup {
-    margin-left: 3px;
-    color: #aaa;
-}
-
 /* settings tabs */
 
 #settings-tabs-container {

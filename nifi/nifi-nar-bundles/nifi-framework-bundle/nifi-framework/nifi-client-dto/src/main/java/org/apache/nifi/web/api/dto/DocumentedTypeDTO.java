@@ -26,7 +26,6 @@ import javax.xml.bind.annotation.XmlType;
 public class DocumentedTypeDTO {
 
     private String type;
-    private Set<DocumentedTypeDTO> childTypes;
     private String description;
     private Set<String> tags;
 
@@ -69,17 +68,4 @@ public class DocumentedTypeDTO {
         this.tags = tags;
     }
 
-    /**
-     * Child types for this type.
-     * 
-     * @return 
-     */
-    public Set<DocumentedTypeDTO> getChildTypes() {
-        return childTypes;
-    }
-
-    public void setChildTypes(Set<DocumentedTypeDTO> childTypes) {
-        this.childTypes = childTypes;
-    }
-    
 }

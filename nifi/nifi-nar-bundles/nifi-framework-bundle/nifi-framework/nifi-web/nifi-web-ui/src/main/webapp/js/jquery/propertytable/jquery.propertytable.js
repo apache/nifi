@@ -23,7 +23,17 @@
  *
  * {
  *   readOnly: true,
- *   newPropertyDialogContainer: 'body'
+ *   dialogContainer: 'body',
+ *   descriptorDeferred: function () {
+ *      return $.Deferred(function (deferred) {
+ *          deferred.resolve();
+ *      }).promise;
+ *   },
+ *   goToServiceDeferred: function () {
+ *      return $.Deferred(function (deferred) {
+ *          deferred.resolve();
+ *      }).promise;
+ *   }
  * }
  */
 
@@ -443,6 +453,10 @@
             var gridContainer = $(args.grid.getContainerNode());
             var descriptors = gridContainer.data('descriptors');
             propertyDescriptor = descriptors[args.item.property];
+            
+            // get the options
+            var propertyContainer = gridContainer.closest('.property-container');
+            var configurationOptions = propertyContainer.data('options');
 
             // create the wrapper
             wrapper = $('<div></div>').css({
@@ -490,6 +504,15 @@
                     disabled: true
                 });
             }
+            
+            // if this descriptor identifies a controller service, provide a way to create one
+            if (nf.Common.isDefinedAndNotNull(propertyDescriptor.identifiesControllerService)) {
+                options.push({
+                    text: 'Create new service...',
+                    value: undefined,
+                    optionClass: 'unset'
+                });
+            }
 
             // determine the max height
             var position = args.position;
@@ -499,7 +522,16 @@
             // build the combo field
             combo = $('<div class="value-combo combo"></div>').combo({
                 options: options,
-                maxHeight: maxHeight
+                maxHeight: maxHeight,
+                select: function (option) {
+                    if (typeof option.value === 'undefined') {
+                        // cancel the current edit
+                        scope.cancel();
+                        
+                        // prompt for the new service type
+                        promptForNewControllerService(gridContainer, args.grid, args.item, propertyDescriptor.identifiesControllerService, configurationOptions);
+                    }
+                }
             }).width(position.width - 16).appendTo(wrapper);
 
             // add buttons for handling user input
@@ -744,6 +776,154 @@
             }
         }
     };
+    
+    /**
+     * Gets the available controller services that implement the specified type and
+     * prompts the user to create one.
+     * 
+     * @param {jQuery} gridContainer The grid container
+     * @param {slickgrid} grid The grid
+     * @param {object} item The item
+     * @param {type} serviceType The type of service to create
+     * @param {object} configurationOptions The configuration options
+     */
+    var promptForNewControllerService = function (gridContainer, grid, item, serviceType, configurationOptions) {
+        $.ajax({
+            type: 'GET',
+            url: '../nifi-api/controller/controller-service-types',
+            data: {
+                serviceType: serviceType
+            },
+            dataType: 'json'
+        }).done(function (response) {
+            var options = [];
+            $.each(response.controllerServiceTypes, function (i, controllerServiceType) {
+                options.push({
+                    text: nf.Common.substringAfterLast(controllerServiceType.type, '.'),
+                    value: controllerServiceType.type,
+                    description: nf.Common.escapeHtml(controllerServiceType.description)
+                });
+            });
+            
+            // ensure there are some applicable controller services
+            if (options.length === 0) {
+                nf.Dialog.showOkDialog({
+                    dialogContent: 'No controller service types found that are applicable for this property.',
+                    overlayBackground: false
+                });
+            } else {
+                var newControllerServiceDialogMarkup = 
+                        '<div class="new-inline-controller-service-dialog dialog cancellable">' +
+                            '<div>' +
+                                '<div class="setting-name">Controller Service</div>' +
+                                '<div class="setting-field">' +
+                                    '<div class="new-inline-controller-service-combo"></div>' +
+                                '</div>' +
+                            '</div>' +
+                            '<div>' +
+                                '<div class="setting-name">Tags</div>' +
+                                '<div class="setting-field">' +
+                                    '<div class="new-inline-controller-service-tags"></div>' +
+                                '</div>' +
+                            '</div>' +
+                            '<div>' +
+                                '<div class="setting-name">Description</div>' +
+                                '<div class="setting-field">' +
+                                    '<div class="new-inline-controller-service-description"></div>' +
+                                '</div>' +
+                            '</div>' +
+                            '<div class="new-inline-controller-service-button-container">' +
+                                '<div class="new-inline-controller-service-create button button-normal">Create</div>' +
+                                '<div class="new-inline-controller-service-cancel button button-normal">Cancel</div>' +
+                                '<div class="clear"></div>' +
+                            '</div>' +
+                        '</div>';
+
+                var newControllerServiceDialog = $(newControllerServiceDialogMarkup).appendTo(configurationOptions.dialogContainer);
+                var newControllerServiceCombo = newControllerServiceDialog.find('div.new-inline-controller-service-combo');
+                var newControllerServiceTags = newControllerServiceDialog.find('div.new-inline-controller-service-tags');
+                var newControllerServiceDescription = newControllerServiceDialog.find('div.new-inline-controller-service-description');
+                
+                // build the combo field
+                newControllerServiceCombo.combo({
+                    options: options,
+                    select: function (option) {
+                        var service;
+                        $.each(response.controllerServiceTypes, function (i, controllerServiceType) {
+                            if (controllerServiceType.type === option.value) {
+                                service = controllerServiceType;
+                                return false;
+                            }
+                        });
+                        
+                        // set the service details
+                        newControllerServiceTags.text(service.tags.join(', ')).ellipsis();
+                        newControllerServiceDescription.text(service.description);
+                    }
+                });
+                
+                var create = function () {
+                    var newControllerServiceType = newControllerServiceCombo.combo('getSelectedOption').value;
+
+                    // create service of the specified type
+                    var revision = nf.Client.getRevision();
+
+                    // add the new controller service
+                    $.ajax({
+                        type: 'POST',
+                        url: '../nifi-api/controller/controller-services/node',
+                        data: {
+                            version: revision.version,
+                            clientId: revision.clientId,
+                            type: newControllerServiceType
+                        },
+                        dataType: 'json'
+                    }).done(function (response) {
+                        // update the revision
+                        nf.Client.setRevision(response.revision);
+
+                        $.Deferred(function (deferred) {
+                            // load the property descriptor if possible
+                            if (typeof configurationOptions.descriptorDeferred === 'function') {
+                                configurationOptions.descriptorDeferred(item.property).done(function(response) {
+                                    var descriptor = response.propertyDescriptor;
+
+                                    // store the descriptor for use later
+                                    var descriptors = gridContainer.data('descriptors');
+                                    if (!nf.Common.isUndefined(descriptors)) {
+                                        descriptors[descriptor.name] = descriptor;
+                                    }
+
+                                    deferred.resolve();
+                                });
+                            } else {
+                                deferred.resolve();
+                            }
+                        }).done(function() {
+                            // add a row for the new property
+                            var data = grid.getData();
+                            data.updateItem(item.id, $.extend(item, {
+                                value: response.controllerService.id
+                            }));
+
+                            // close the dialog
+                            newControllerServiceDialog.hide();
+                        });
+                    }).fail(nf.Common.handleAjaxError);
+                };
+
+                var cancel = function () {
+                    newControllerServiceDialog.hide();
+                };
+
+                // make the new property dialog draggable
+                newControllerServiceDialog.draggable({
+                    cancel: 'input, textarea, pre, .button, .' + editorClass,
+                    containment: 'body'
+                }).on('click', 'div.new-inline-controller-service-create', create).on('click', 'div.new-inline-controller-service-cancel', cancel).modal('show');
+            }
+        }).fail(nf.Common.handleAjaxError);
+    };
 
     var initPropertiesTable = function (table, options) {
         // function for formatting the property name
@@ -826,20 +1006,37 @@
             {id: 'value', field: 'value', name: 'Value', sortable: false, resizable: true, cssClass: 'pointer', rerenderOnResize: true, formatter: valueFormatter}
         ];
 
-        if (options.readOnly !== true) {
-            // custom formatter for the actions column
-            var actionFormatter = function (row, cell, value, columnDef, dataContext) {
-                var markup = '';
+        // custom formatter for the actions column
+        var actionFormatter = function (row, cell, value, columnDef, dataContext) {
+            var markup = '';
 
-                // allow user defined properties to be removed
-                if (dataContext.type === 'userDefined') {
-                    markup = '<img src="images/iconDelete.png" title="Delete" class="delete-property pointer" style="margin-top: 2px" />';
-                }
+            // get the property descriptor
+            var descriptors = table.data('descriptors');
+            var propertyDescriptor = descriptors[dataContext.property];
+            
+            var identifiesControllerService = nf.Common.isDefinedAndNotNull(propertyDescriptor.identifiesControllerService);
+            var isConfigured = nf.Common.isDefinedAndNotNull(dataContext.value);
+            var isOnCanvas = nf.Common.isDefinedAndNotNull(nf.Canvas);
+            
+            // check to see if we should provide a button for going to a controller service
+            if (identifiesControllerService && isConfigured && isOnCanvas) {
+                // ensure the configured value is referencing a valid service
+                $.each(propertyDescriptor.allowableValues, function (_, allowableValue) {
+                    if (allowableValue.value === dataContext.value) {
+                        markup = '<img src="images/iconGoTo.png" title="Go To" class="go-to-service pointer" style="margin-top: 2px" />';
+                        return false;
+                    }
+                });
+            }
 
-                return markup;
-            };
-            propertyColumns.push({id: "actions", name: "&nbsp;", minWidth: 20, width: 20, formatter: actionFormatter});
-        }
+            // allow user defined properties to be removed
+            if (options.readOnly !== true && dataContext.type === 'userDefined') {
+                markup = '<img src="images/iconDelete.png" title="Delete" class="delete-property pointer" style="margin-top: 2px" />';
+            }
+
+            return markup;
+        };
+        propertyColumns.push({id: "actions", name: "&nbsp;", minWidth: 20, width: 20, formatter: actionFormatter});
 
         var propertyConfigurationOptions = {
             forceFitColumns: true,
@@ -899,6 +1096,39 @@
                 }
             }
         };
+        
+        var goToControllerService = function (property) {
+            // close the dialog
+            var dialog = table.closest('.dialog');
+            if (dialog.hasClass('modal')) {
+                dialog.modal('hide');
+            } else {
+                dialog.hide();
+            }
+
+            $.Deferred(function (deferred) {
+                if ($('#settings').is(':visible')) {
+                    deferred.resolve();
+                } else {
+                    // reload the settings and show
+                    nf.Settings.loadSettings().done(function () {
+                        nf.Settings.showSettings();
+                        deferred.resolve();
+                    });
+                }
+            }).done(function () {
+                var controllerServiceGrid = $('#controller-services-table').data('gridInstance');
+                var controllerServiceData = controllerServiceGrid.getData();
+
+                // select the desired service
+                var row = controllerServiceData.getRowById(property.value);
+                controllerServiceGrid.setSelectedRows([row]);
+                controllerServiceGrid.scrollRowIntoView(row);
+
+                // select the controller services tab
+                $('#settings-tabs').find('li:eq(1)').click();
+            });
+        };
 
         // initialize the grid
         var propertyGrid = new Slick.Grid(table, propertyData, propertyColumns, propertyConfigurationOptions);
@@ -916,10 +1146,11 @@
                 // prevents standard edit logic
                 e.stopImmediatePropagation();
             } else if (propertyGrid.getColumns()[args.cell].id === 'actions') {
+                var property = propertyData.getItem(args.row);
+                
                 var target = $(e.target);
                 if (target.hasClass('delete-property')) {
                     // mark the property in question for removal
-                    var property = propertyData.getItem(args.row);
                     property.hidden = true;
 
                     // refresh the table
@@ -927,6 +1158,17 @@
 
                     // prevents standard edit logic
                     e.stopImmediatePropagation();
+                } else if (target.hasClass('go-to-service')) {
+                    if (options.readOnly === true) {
+                        goToControllerService(property);
+                    } else {
+                        // load the property descriptor if possible
+                        if (typeof options.goToServiceDeferred === 'function') {
+                            options.goToServiceDeferred().done(function() {
+                                goToControllerService(property);
+                            });
+                        }
+                    }
                 }
             }
         });
@@ -1076,8 +1318,8 @@
             nf.Common.removeAllPropertyDetailDialogs();
         } else {
             // clear any existing new property dialogs
-            if (nf.Common.isDefinedAndNotNull(options.newPropertyDialogContainer)) {
-                $(options.newPropertyDialogContainer).children('div.new-property-dialog').hide();
+            if (nf.Common.isDefinedAndNotNull(options.dialogContainer)) {
+                $(options.dialogContainer).children('div.new-property-dialog').hide();
             }
         }
 
@@ -1108,7 +1350,7 @@
                     var propertyTableContainer = $(this);
 
                     // clear any current contents, remote events, and store options
-                    propertyTableContainer.empty().unbind().data('options', options);
+                    propertyTableContainer.empty().unbind().addClass('property-container').data('options', options);
 
                     // build the component
                     var header = $('<div class="properties-header"></div>').appendTo(propertyTableContainer);
@@ -1118,7 +1360,7 @@
                     var table = $('<div class="property-table"></div>').appendTo(propertyTableContainer);
 
                     // optionally add a add new property button
-                    if (options.readOnly !== true && nf.Common.isDefinedAndNotNull(options.newPropertyDialogContainer)) {
+                    if (options.readOnly !== true && nf.Common.isDefinedAndNotNull(options.dialogContainer)) {
                         // build the new property dialog
                         var newPropertyDialogMarkup = 
                                 '<div class="new-property-dialog dialog cancellable">' +
@@ -1135,7 +1377,7 @@
                                     '</div>' +
                                 '</div>';
 
-                        var newPropertyDialog = $(newPropertyDialogMarkup).appendTo(options.newPropertyDialogContainer);
+                        var newPropertyDialog = $(newPropertyDialogMarkup).appendTo(options.dialogContainer);
                         var newPropertyNameField = newPropertyDialog.find('input.new-property-name');
 
                         var add = function () {
@@ -1295,8 +1537,9 @@
                 clear(propertyTableContainer);
                 
                 // clear any existing new property dialogs
-                if (nf.Common.isDefinedAndNotNull(options.newPropertyDialogContainer)) {
-                    $(options.newPropertyDialogContainer).children('div.new-property-dialog').remove();
+                if (nf.Common.isDefinedAndNotNull(options.dialogContainer)) {
+                    $(options.dialogContainer).children('div.new-property-dialog').remove();
+                    $(options.dialogContainer).children('div.new-inline-controller-service-dialog').remove();
                 }
             });
         },

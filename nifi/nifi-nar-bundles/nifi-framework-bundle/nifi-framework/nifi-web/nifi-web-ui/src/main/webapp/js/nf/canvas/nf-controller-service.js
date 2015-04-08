@@ -374,6 +374,7 @@ nf.ControllerService = (function () {
                     // select the selected row
                     var row = controllerServiceData.getRowById(referencingComponent.id);
                     controllerServiceGrid.setSelectedRows([row]);
+                    controllerServiceGrid.scrollRowIntoView(row);
                     
                     // close the dialog and shell
                     referenceContainer.closest('.dialog').modal('hide');
@@ -419,6 +420,7 @@ nf.ControllerService = (function () {
                     // select the selected row
                     var row = reportingTaskData.getRowById(referencingComponent.id);
                     reportingTaskGrid.setSelectedRows([row]);
+                    reportingTaskGrid.scrollRowIntoView(row);
                     
                     // select the reporting task tab
                     $('#settings-tabs').find('li:last').click();
@@ -1070,6 +1072,83 @@ nf.ControllerService = (function () {
     };
     
     /**
+     * Goes to a service configuration from the property table.
+     */
+    var goToServiceFromProperty = function () {
+        return $.Deferred(function (deferred) {
+            // close all fields currently being edited
+            $('#controller-service-properties').propertytable('saveRow');
+
+            // determine if changes have been made
+            if (isSaveRequired()) {
+                // see if those changes should be saved
+                nf.Dialog.showYesNoDialog({
+                    dialogContent: 'Save changes before going to this Controller Service?',
+                    overlayBackground: false,
+                    noHandler: function () {
+                        deferred.resolve();
+                    },
+                    yesHandler: function () {
+                        var controllerService = $('#controller-service-configuration').data('controllerServiceDetails');
+                        saveControllerService(controllerService).done(function () {
+                            deferred.resolve();
+                        }).fail(function () {
+                            deferred.reject();
+                        });
+                    }
+                });
+            } else {
+                deferred.resolve();
+            }
+        }).promise();
+    };
+    
+    var saveControllerService = function (controllerService) {
+        // marshal the settings and properties and update the controller service
+        var updatedControllerService = marshalDetails();
+
+        // ensure details are valid as far as we can tell
+        if (validateDetails(updatedControllerService)) {
+            var previouslyReferencedServiceIds = [];
+            $.each(identifyReferencedServiceDescriptors(controllerService), function (_, descriptor) {
+                var modifyingService = !nf.Common.isUndefined(updatedControllerService.controllerService.properties) && !nf.Common.isUndefined(updatedControllerService.controllerService.properties[descriptor.name]);
+                var isCurrentlyConfigured = nf.Common.isDefinedAndNotNull(controllerService.properties[descriptor.name]);
+
+                // if we are attempting to update a controller service reference
+                if (modifyingService && isCurrentlyConfigured) {
+
+                    // record the current value if set
+                    previouslyReferencedServiceIds.push(controllerService.properties[descriptor.name]);
+                }
+            });
+
+            // update the selected component
+            return $.ajax({
+                type: 'PUT',
+                data: JSON.stringify(updatedControllerService),
+                url: controllerService.uri,
+                dataType: 'json',
+                processData: false,
+                contentType: 'application/json'
+            }).done(function (response) {
+                if (nf.Common.isDefinedAndNotNull(response.controllerService)) {
+                    // update the revision
+                    nf.Client.setRevision(response.revision);
+
+                    // reload all previously referenced controller services
+                    $.each(previouslyReferencedServiceIds, function(_, oldServiceReferenceId) {
+                        reloadControllerService(oldServiceReferenceId);
+                    });
+                }
+            }).fail(handleControllerServiceConfigurationError);
+        } else {
+            return $.Deferred(function (deferred) {
+                deferred.reject();
+            }).promise();
+        }
+    };
+    
+    /**
      * Identifies the descriptors that identify controller services.
      * 
      * @param {object} component
@@ -1078,7 +1157,7 @@ nf.ControllerService = (function () {
         var referencedServiceDescriptors = [];
         
         $.each(component.descriptors, function(_, descriptor) {
-            if (descriptor.identifiesControllerService === true) {
+            if (nf.Common.isDefinedAndNotNull(descriptor.identifiesControllerService)) {
                 referencedServiceDescriptors.push(descriptor);
             }
         });
@@ -1180,8 +1259,9 @@ nf.ControllerService = (function () {
             // initialize the property table
             $('#controller-service-properties').propertytable({
                 readOnly: false,
-                newPropertyDialogContainer: '#new-controller-service-property-container',
-                descriptorDeferred: getControllerServicePropertyDescriptor
+                dialogContainer: '#new-controller-service-property-container',
+                descriptorDeferred: getControllerServicePropertyDescriptor,
+                goToServiceDeferred: goToServiceFromProperty
             });
             
             // initialize the disable service dialog
@@ -1324,8 +1404,9 @@ nf.ControllerService = (function () {
                 // initialize the property table
                 $('#controller-service-properties').propertytable('destroy').propertytable({
                     readOnly: false,
-                    newPropertyDialogContainer: '#new-controller-service-property-container',
-                    descriptorDeferred: getControllerServicePropertyDescriptor
+                    dialogContainer: '#new-controller-service-property-container',
+                    descriptorDeferred: getControllerServicePropertyDescriptor,
+                    goToServiceDeferred: goToServiceFromProperty
                 });
                 
                 // update the mode
@@ -1392,49 +1473,15 @@ nf.ControllerService = (function () {
                                 // close all fields currently being edited
                                 $('#controller-service-properties').propertytable('saveRow');
 
-                                // marshal the settings and properties and update the controller service
-                                var updatedControllerService = marshalDetails();
-
-                                // ensure details are valid as far as we can tell
-                                if (validateDetails(updatedControllerService)) {
-                                    var previouslyReferencedServiceIds = [];
-                                    $.each(identifyReferencedServiceDescriptors(controllerService), function (_, descriptor) {
-                                        var modifyingService = !nf.Common.isUndefined(updatedControllerService.controllerService.properties) && !nf.Common.isUndefined(updatedControllerService.controllerService.properties[descriptor.name]);
-                                        var isCurrentlyConfigured = nf.Common.isDefinedAndNotNull(controllerService.properties[descriptor.name]);
-                                        
-                                        // if we are attempting to update a controller service reference
-                                        if (modifyingService && isCurrentlyConfigured) {
-                                            // record the current value if set
-                                            previouslyReferencedServiceIds.push(controllerService.properties[descriptor.name]);
-                                        }
-                                    });
+                                // save the controller service
+                                saveControllerService(controllerService).done(function (response) {
+                                    // reload the controller service
+                                    renderControllerService(response.controllerService);
+                                    reloadControllerServiceReferences(response.controllerService);
                                     
-                                    // update the selected component
-                                    $.ajax({
-                                        type: 'PUT',
-                                        data: JSON.stringify(updatedControllerService),
-                                        url: controllerService.uri,
-                                        dataType: 'json',
-                                        processData: false,
-                                        contentType: 'application/json'
-                                    }).done(function (response) {
-                                        if (nf.Common.isDefinedAndNotNull(response.controllerService)) {
-                                            nf.Client.setRevision(response.revision);
-
-                                            // reload the controller service
-                                            renderControllerService(response.controllerService);
-                                            reloadControllerServiceReferences(response.controllerService);
-                                            
-                                            // reload all previously referenced controller services
-                                            $.each(previouslyReferencedServiceIds, function(_, oldServiceReferenceId) {
-                                                reloadControllerService(oldServiceReferenceId);
-                                            });
-
-                                            // close the details panel
-                                            controllerServiceDialog.modal('hide');
-                                        }
-                                    }).fail(handleControllerServiceConfigurationError);
-                                }
+                                    // close the details panel
+                                    controllerServiceDialog.modal('hide');
+                                });
                             }
                         }
                     }, {
@@ -1480,47 +1527,10 @@ nf.ControllerService = (function () {
                                         overlayBackground: false,
                                         noHandler: openCustomUi,
                                         yesHandler: function () {
-                                            // marshal the settings and properties and update the controller service
-                                            var updatedControllerService = marshalDetails();
-
-                                            // ensure details are valid as far as we can tell
-                                            if (validateDetails(updatedControllerService)) {
-                                                var previouslyReferencedServiceIds = [];
-                                                $.each(identifyReferencedServiceDescriptors(controllerService), function (_, descriptor) {
-                                                    var modifyingService = !nf.Common.isUndefined(updatedControllerService.controllerService.properties) && !nf.Common.isUndefined(updatedControllerService.controllerService.properties[descriptor.name]);
-                                                    var isCurrentlyConfigured = nf.Common.isDefinedAndNotNull(controllerService.properties[descriptor.name]);
-
-                                                    // if we are attempting to update a controller service reference
-                                                    if (modifyingService && isCurrentlyConfigured) {
-                                                        
-                                                        // record the current value if set
-                                                        previouslyReferencedServiceIds.push(controllerService.properties[descriptor.name]);
-                                                    }
-                                                });
-
-                                                // update the selected component
-                                                $.ajax({
-                                                    type: 'PUT',
-                                                    data: JSON.stringify(updatedControllerService),
-                                                    url: controllerService.uri,
-                                                    dataType: 'json',
-                                                    processData: false,
-                                                    contentType: 'application/json'
-                                                }).done(function (response) {
-                                                    if (nf.Common.isDefinedAndNotNull(response.controllerService)) {
-                                                        // update the revision
-                                                        nf.Client.setRevision(response.revision);
-
-                                                        // reload all previously referenced controller services
-                                                        $.each(previouslyReferencedServiceIds, function(_, oldServiceReferenceId) {
-                                                            reloadControllerService(oldServiceReferenceId);
-                                                        });
-
-                                                        // open the custom ui
-                                                        openCustomUi();
-                                                    }
-                                                }).fail(handleControllerServiceConfigurationError);
-                                            }
+                                            saveControllerService(controllerService).done(function () {
+                                                // open the custom ui
+                                                openCustomUi();
+                                            });
                                         }
                                     });
                                 } else {

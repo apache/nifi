@@ -34,7 +34,7 @@ public class PropertyDescriptorDTO {
     private boolean sensitive;
     private boolean dynamic;
     private boolean supportsEl;
-    private boolean identifiesControllerService;
+    private String identifiesControllerService;
 
     /**
      * The set of allowable values for this property. If empty then the
@@ -158,15 +158,16 @@ public class PropertyDescriptorDTO {
     }
 
     /**
-     * Whether this descriptor represents a controller service.
+     * If this property identifies a controller service, this returns the 
+     * fully qualified type, null otherwise.
      * 
      * @return 
      */
-    public boolean isIdentifiesControllerService() {
+    public String getIdentifiesControllerService() {
         return identifiesControllerService;
     }
 
-    public void setIdentifiesControllerService(boolean identifiesControllerService) {
+    public void setIdentifiesControllerService(String identifiesControllerService) {
         this.identifiesControllerService = identifiesControllerService;
     }
     

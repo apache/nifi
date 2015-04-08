@@ -737,6 +737,7 @@ public class ControllerResource extends ApplicationResource {
      * @param clientId Optional client id. If the client id is not specified, a
      * new one will be generated. This value (whether specified or generated) is
      * included in the response.
+     * @param serviceType Returns only services that implement this type
      * @return A controllerServicesTypesEntity.
      */
     @GET
@@ -744,7 +745,9 @@ public class ControllerResource extends ApplicationResource {
     @Path("/controller-service-types")
     @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @TypeHint(ControllerServiceTypesEntity.class)
-    public Response getControllerServiceTypes(@QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
+    public Response getControllerServiceTypes(
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @QueryParam("serviceType") String serviceType) {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
@@ -758,7 +761,7 @@ public class ControllerResource extends ApplicationResource {
         // create response entity
         final ControllerServiceTypesEntity entity = new ControllerServiceTypesEntity();
         entity.setRevision(revision);
-        entity.setControllerServiceTypes(serviceFacade.getControllerServiceTypes());
+        entity.setControllerServiceTypes(serviceFacade.getControllerServiceTypes(serviceType));
 
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();
