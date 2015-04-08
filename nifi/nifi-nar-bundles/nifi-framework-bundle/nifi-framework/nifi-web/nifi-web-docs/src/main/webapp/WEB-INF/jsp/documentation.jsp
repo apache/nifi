@@ -55,11 +55,11 @@
                 <div id="processor-links" class="component-links">
                     <c:choose>
                         <c:when test="${not empty processors}">
+                            <ul>
                             <c:forEach var="entry" items="${processors}">
-                                <ul>
-                                    <li class="component-item"><a class="component-link" href="components/${entry.value}/index.html" target="component-usage">${entry.key}</a></li>
-                                </ul>
+                                <li class="component-item"><a class="component-link" href="components/${entry.value}/index.html" target="component-usage">${entry.key}</a></li>
                             </c:forEach>
+                            </ul>
                             <span class="no-matching no-components hidden">No matching processors</span>
                         </c:when>
                         <c:otherwise>
@@ -73,11 +73,11 @@
                 <div id="controller-service-links" class="component-links">
                     <c:choose>
                         <c:when test="${not empty controllerServices}">
+                            <ul>
                             <c:forEach var="entry" items="${controllerServices}">
-                                <ul>
-                                    <li class="component-item"><a class="component-link" href="components/${entry.value}/index.html" target="component-usage">${entry.key}</a></li>
-                                </ul>
+                                <li class="component-item"><a class="component-link" href="components/${entry.value}/index.html" target="component-usage">${entry.key}</a></li>
                             </c:forEach>
+                            </ul>
                             <span class="no-matching no-components hidden">No matching controller services</span>
                         </c:when>
                         <c:otherwise>
@@ -91,11 +91,11 @@
                 <div id="reporting-task-links" class="component-links">
                     <c:choose>
                         <c:when test="${not empty reportingTasks}">
+                            <ul>
                             <c:forEach var="entry" items="${reportingTasks}">
-                                <ul>
-                                    <li class="component-item"><a class="component-link" href="components/${entry.value}/index.html" target="component-usage">${entry.key}</a></li>
-                                </ul>
+                                <li class="component-item"><a class="component-link" href="components/${entry.value}/index.html" target="component-usage">${entry.key}</a></li>
                             </c:forEach>
+                            </ul>
                             <span class="no-matching no-components hidden">No matching reporting tasks</span>
                         </c:when>
                         <c:otherwise>
