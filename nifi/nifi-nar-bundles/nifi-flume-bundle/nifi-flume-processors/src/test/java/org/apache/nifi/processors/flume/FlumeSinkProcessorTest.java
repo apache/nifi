@@ -116,6 +116,19 @@ public class FlumeSinkProcessorTest {
         runner.run();
         fis.close();
     }
+
+    @Test
+    public void testBatchSize() throws IOException {
+        TestRunner runner = TestRunners.newTestRunner(FlumeSinkProcessor.class);
+        runner.setProperty(FlumeSinkProcessor.SINK_TYPE, NullSink.class.getName());
+        runner.setProperty(FlumeSinkProcessor.BATCH_SIZE, "1000");
+        runner.setProperty(FlumeSinkProcessor.FLUME_CONFIG,
+            "tier1.sinks.sink-1.batchSize = 1000\n");
+        for (int i = 0; i < 100000; i++) {
+          runner.enqueue(String.valueOf(i).getBytes());
+        }
+        runner.run();
+    }
     
     @Test
     public void testHdfsSink() throws IOException {

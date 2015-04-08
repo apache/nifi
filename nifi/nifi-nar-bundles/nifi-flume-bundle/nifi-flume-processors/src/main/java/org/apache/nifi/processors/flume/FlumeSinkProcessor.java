@@ -19,6 +19,7 @@ package org.apache.nifi.processors.flume;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import java.util.List;
 import java.util.Set;
 import org.apache.flume.Context;
@@ -27,6 +28,7 @@ import org.apache.flume.Sink;
 import org.apache.flume.Transaction;
 import org.apache.flume.channel.MemoryChannel;
 import org.apache.flume.conf.Configurables;
+import org.apache.jasper.compiler.JspUtil;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -81,16 +83,24 @@ public class FlumeSinkProcessor extends AbstractFlumeProcessor {
             .defaultValue("")
             .addValidator(Validator.VALID)
             .build();
+    public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
+            .name("Batch Size")
+            .description("The number of FlowFiles to process in a single batch")
+            .required(true)
+            .defaultValue("100")
+            .addValidator(StandardValidators.INTEGER_VALIDATOR)
+            .build();
 
     public static final Relationship SUCCESS = new Relationship.Builder().name("success").build();
     public static final Relationship FAILURE = new Relationship.Builder().name("failure").build();
 
     private List<PropertyDescriptor> descriptors;
     private Set<Relationship> relationships;
+    private int batchSize;
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
-        this.descriptors = ImmutableList.of(SINK_TYPE, AGENT_NAME, SOURCE_NAME, FLUME_CONFIG);
+        this.descriptors = ImmutableList.of(SINK_TYPE, AGENT_NAME, SOURCE_NAME, FLUME_CONFIG, BATCH_SIZE);
         this.relationships = ImmutableSet.of(SUCCESS, FAILURE);
     }
 
@@ -106,9 +116,14 @@ public class FlumeSinkProcessor extends AbstractFlumeProcessor {
 
     @OnScheduled
     public void onScheduled(final SchedulingContext context) {
+        batchSize = context.getProperty(BATCH_SIZE).asInteger();
+
         try {
             channel = new MemoryChannel();
-            Configurables.configure(channel, new Context());
+            Context memoryChannelContext = new Context();
+            memoryChannelContext.put("capacity", String.valueOf(batchSize*10));
+            memoryChannelContext.put("transactionCapacity", String.valueOf(batchSize*10));
+            Configurables.configure(channel, memoryChannelContext);
             channel.start();
 
             sink = SINK_FACTORY.create(context.getProperty(SOURCE_NAME).getValue(),
@@ -137,12 +152,22 @@ public class FlumeSinkProcessor extends AbstractFlumeProcessor {
     @Override
     public void onTrigger(final ProcessContext context,
             final ProcessSession session) throws ProcessException {
-        FlowFile flowFile = session.get();
+        List<FlowFile> flowFiles = Lists.newArrayListWithExpectedSize(batchSize);
+        for (int i = 0; i < batchSize; i++) {
+            FlowFile flowFile = session.get();
+            if (flowFile == null) {
+              break;
+            }
+
+            flowFiles.add(flowFile);
+        }
 
         Transaction transaction = channel.getTransaction();
         try {
             transaction.begin();
-            channel.put(new FlowFileEvent(flowFile, session));
+            for (FlowFile flowFile : flowFiles) {
+                channel.put(new FlowFileEvent(flowFile, session));
+            }
             transaction.commit();
         } catch (Throwable th) {
             transaction.rollback();
@@ -152,10 +177,17 @@ public class FlumeSinkProcessor extends AbstractFlumeProcessor {
         }
 
         try {
-            sink.process();
-            session.transfer(flowFile, SUCCESS);
+            Sink.Status status;
+            do {
+              status = sink.process();
+            } while(status == Sink.Status.READY);
+            for (FlowFile flowFile : flowFiles) {
+                session.transfer(flowFile, SUCCESS);
+            }
         } catch (EventDeliveryException ex) {
-            session.transfer(flowFile, FAILURE);
+            for (FlowFile flowFile : flowFiles) {
+                session.transfer(flowFile, FAILURE);
+            }
         }
     }
 }
