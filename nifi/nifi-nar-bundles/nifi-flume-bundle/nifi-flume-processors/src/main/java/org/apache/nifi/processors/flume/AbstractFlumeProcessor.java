@@ -20,20 +20,15 @@ import com.google.common.collect.Maps;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.StringReader;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import org.apache.flume.Context;
 import org.apache.flume.Event;
 import org.apache.flume.SinkFactory;
-import org.apache.flume.Source;
 import org.apache.flume.SourceFactory;
 import org.apache.flume.sink.DefaultSinkFactory;
 import org.apache.flume.source.DefaultSourceFactory;
 
-import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
@@ -42,7 +37,6 @@ import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.io.OutputStreamCallback;
-import static org.apache.nifi.processors.flume.FlumeSourceProcessor.FLUME_CONFIG;
 import org.apache.nifi.processors.flume.util.FlowFileEvent;
 
 /**
