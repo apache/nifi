@@ -501,6 +501,38 @@ The following binary components are provided under the Apache Software License v
       Apache License Version 2.0 http://www.apache.org/licenses/.
       (c) Daniel Lemire, http://lemire.me/en/
 
+  (ASLv2) Twitter4J
+    The following NOTICE information applies:
+      Copyright 2007 Yusuke Yamamoto
+      
+      Twitter4J includes software from JSON.org to parse JSON response from the Twitter API. You can see the license term at http://www.JSON.org/license.html
+  
+  (ASLv2) JOAuth
+    The following NOTICE information applies:
+      JOAuth
+      Copyright 2010-2013 Twitter, Inc
+
+      Licensed under the Apache License, Version 2.0: http://www.apache.org/licenses/LICENSE-2.0
+  
+  (ASLv2) Hosebird Client
+    The following NOTICE information applies:
+      Hosebird Client (hbc)
+      Copyright 2013 Twitter, Inc.
+
+      Licensed under the Apache License, Version 2.0: http://www.apache.org/licenses/LICENSE-2.0
+
+  (ASLv2) GeoIP2 Java API
+    The following NOTICE information applies:
+      GeoIP2 Java API
+      This software is Copyright (c) 2013 by MaxMind, Inc.
+      
+      This is free software, licensed under the Apache License, Version 2.0.
+      
+  (ASLv2) Google HTTP Client Library for Java
+    The following NOTICE information applies:
+      Google HTTP Client Library for Java
+      
+      This is free software, licensed under the Apache License, Version 2.0.
 
 ************************
 Common Development and Distribution License 1.1
@@ -541,6 +573,14 @@ The following binary components are provided under the Common Development and Di
     (CDDL 1.0) SR 250 Common Annotations For The JavaTM Platform (javax.annotation:jsr250-api:jar:1.0 - http://jcp.org/aboutJava/communityprocess/final/jsr250/index.html)
 
 ************************
+Creative Commons Attribution-ShareAlike 3.0
+************************
+
+The following binary components are provided under the Creative Commons Attribution-ShareAlike 3.0.  See project link for details.
+
+	(CCAS 3.0) MaxMind DB (https://github.com/maxmind/MaxMind-DB)
+
+************************
 Eclipse Public License 1.0
 ************************
 
@@ -558,6 +598,15 @@ Mozilla Public License v2.0
 The following binary components are provided under the Mozilla Public License v2.0.  See project link for details.
 
     (MPL 2.0) Saxon HE (net.sf.saxon:Saxon-HE:jar:9.6.0-4 - http://www.saxonica.com/)
+
+*****************
+Mozilla Public License v1.1
+*****************
+
+The following binary components are provided under the Mozilla Public License v1.1.  See project link for details.
+
+    (MPL 1.1) HAPI Base (ca.uhn.hapi:hapi-base:2.2 - http://http://hl7api.sourceforge.net/)
+    (MPL 1.1) HAPI Structures (ca.uhn.hapi:hapi-structures-v*:2.2 - http://http://hl7api.sourceforge.net/)
 
 *****************
 Public Domain
