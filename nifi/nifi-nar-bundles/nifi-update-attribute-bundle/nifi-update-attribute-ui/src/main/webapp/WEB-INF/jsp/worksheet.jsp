@@ -59,10 +59,10 @@
         <title>Update Attribute</title>
     </head>
     <body>
-        <div id="attribute-updater-processor-id" class="hidden">${param.id}</div>
-        <div id="attribute-updater-client-id" class="hidden">${param.clientId}</div>
-        <div id="attribute-updater-revision" class="hidden">${param.revision}</div>
-        <div id="attribute-updater-editable" class="hidden">${param.editable}</div>
+        <div id="attribute-updater-processor-id" class="hidden"><%= request.getParameter("id") == null ? "" : org.apache.nifi.util.EscapeUtils.escapeHtml(request.getParameter("id")) %></div>
+        <div id="attribute-updater-client-id" class="hidden"><%= request.getParameter("clientId") == null ? "" : org.apache.nifi.util.EscapeUtils.escapeHtml(request.getParameter("clientId")) %></div>
+        <div id="attribute-updater-revision" class="hidden"><%= request.getParameter("revision") == null ? "" : org.apache.nifi.util.EscapeUtils.escapeHtml(request.getParameter("revision")) %></div>
+        <div id="attribute-updater-editable" class="hidden"><%= request.getParameter("editable") == null ? "" : org.apache.nifi.util.EscapeUtils.escapeHtml(request.getParameter("editable")) %></div>
         <div id="update-attributes-content">
             <div id="rule-list-panel">
                 <div id="flowfile-policy-container">

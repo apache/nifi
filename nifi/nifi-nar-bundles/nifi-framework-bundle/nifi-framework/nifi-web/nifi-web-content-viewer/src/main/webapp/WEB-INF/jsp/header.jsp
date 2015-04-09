@@ -31,8 +31,8 @@
         <script type="text/javascript">
             var $$ = $.noConflict(true);
             $$(document).ready(function () {
-                var url = '${requestUrl}';
-                var ref = '${param.ref}';
+                var url = $$('#requestUrl').text();
+                var ref = $$('#ref').text();
                 
                 // create the parameters
                 var params = {
@@ -40,14 +40,14 @@
                 };
                 
                 // include the cluster node if appropriate
-                var clusterNodeId = '${param.clusterNodeId}';
-                if (clusterNodeId !== null && clusterNodeId !== '') {
+                var clusterNodeId = $$('#clusterNodeId').text();
+                if (clusterNodeId !== '') {
                     params['clusterNodeId'] = clusterNodeId;
                 }
                 
                 // determine the appropriate mode to select initially
-                var initialMode = '${param.mode}';
-                if (initialMode === null && initialMode === '') {
+                var initialMode = $$('#mode').text();
+                if (initialMode === '') {
                     initialMode = 'Original';
                 }
                 
@@ -85,8 +85,12 @@
         </script>
     </head>
     <body class="message-pane">
+        <span id="ref" class="hidden"><%= org.apache.nifi.util.EscapeUtils.escapeHtml(request.getParameter("ref")) %></span>
+        <span id="clusterNodeId" class="hidden"><%= request.getParameter("clusterNodeId") == null ? "" : org.apache.nifi.util.EscapeUtils.escapeHtml(request.getParameter("clusterNodeId")) %></span>
+        <span id="mode" class="hidden"><%= request.getParameter("mode") == null ? "" : org.apache.nifi.util.EscapeUtils.escapeHtml(request.getParameter("mode")) %></span>
+        <span id="requestUrl" class="hidden"><%= org.apache.nifi.util.EscapeUtils.escapeHtml(request.getRequestURL().toString()) %></span>
         <div id="view-as-label">View as</div>
         <div id="view-as" class="pointer button-normal"></div>
-        <div id="content-filename"><span class="content-label">filename</span>${filename}</div>
-        <div id="content-type"><span class="content-label">content type</span>${contentType}</div>
+        <div id="content-filename"><span class="content-label">filename</span><%= request.getAttribute("filename") == null ? "" : org.apache.nifi.util.EscapeUtils.escapeHtml(request.getAttribute("filename").toString()) %></div>
+        <div id="content-type"><span class="content-label">content type</span><%= request.getAttribute("contentType") == null ? "" : org.apache.nifi.util.EscapeUtils.escapeHtml(request.getAttribute("contentType").toString()) %></div>
         <div class="message-pane-message-box">

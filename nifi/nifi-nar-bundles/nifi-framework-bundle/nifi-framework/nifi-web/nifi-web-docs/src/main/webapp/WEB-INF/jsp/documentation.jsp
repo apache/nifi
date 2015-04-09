@@ -30,7 +30,7 @@
     <body id="documentation-body">
         <div id="banner-header" class="main-banner-header"></div>
         <div id="banner-footer" class="main-banner-footer"></div>
-        <span id="initial-selection" style="display: none;">${param.select}</span>
+        <span id="initial-selection" style="display: none;"><%= request.getParameter("select") == null ? "" : org.apache.nifi.util.EscapeUtils.escapeHtml(request.getParameter("select")) %></span>
         <div id="documentation-header" class="documentation-header">
             <div id="nf-title">NiFi Documentation</div>
             <div id="nf-version"></div>

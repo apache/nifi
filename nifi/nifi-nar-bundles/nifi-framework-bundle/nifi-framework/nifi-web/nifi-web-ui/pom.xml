@@ -79,6 +79,7 @@
                             <packageRoot>org.apache.nifi.web.jsp</packageRoot>
                             <keepSources>true</keepSources>
                             <verbose>true</verbose>
+                            <useProvidedScope>true</useProvidedScope>
                             <excludes>
                                 **/canvas.jsp,
                                 **/summary.jsp,
@@ -617,6 +618,11 @@
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-utils</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>
