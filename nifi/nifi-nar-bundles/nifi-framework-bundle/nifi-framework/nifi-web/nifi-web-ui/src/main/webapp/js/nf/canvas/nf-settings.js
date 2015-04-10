@@ -168,34 +168,6 @@ nf.Settings = (function () {
     };
 
     /**
-     * Determines if all of the ancestors of the specified item are expanded.
-     * 
-     * @param {type} item
-     * @returns {Boolean}
-     */
-    var areAncestorsExpanded = function (item) {
-        var documentedType = item;
-        while (documentedType.parent !== null) {
-            if (documentedType.parent.collapsed === true) {
-                return false;
-            }
-            documentedType = documentedType.parent;
-        }
-
-        return true;
-    };
-
-    /**
-     * Determines if the specified item is an ancestor.
-     * 
-     * @param {type} item
-     * @returns {Boolean}
-     */
-    var isAncestor = function (item) {
-        return item.children.length > 0;
-    };
-
-    /**
      * Hides the selected controller service.
      */
     var clearSelectedControllerService = function () {
@@ -232,27 +204,6 @@ nf.Settings = (function () {
      * @returns {Boolean}       Whether or not to include the item
      */
     var filterControllerServiceTypes = function (item, args) {
-        if (!areAncestorsExpanded(item)) {
-            // if this item is currently selected and its parent is not collapsed
-            if ($('#selected-controller-service-type').text() === item['type']) {
-                clearControllerServiceSelection();
-            }
-
-            // update visibility flag
-            item.visible = false;
-
-            return false;
-        }
-
-        // don't allow ancestors to be filtered out (unless any of their ancestors
-        // are collapsed)
-        if (isAncestor(item)) {
-            // update visibility flag
-            item.visible = false;
-
-            return true;
-        }
-
         // determine if the item matches the filter
         var matchesFilter = matchesRegex(item, args);
 
@@ -273,9 +224,6 @@ nf.Settings = (function () {
         if (matches === false && $('#selected-controller-service-type').text() === item['type']) {
             clearControllerServiceSelection();
         }
-
-        // update visibility flag
-        item.visible = matches;
 
         return matches;
     };
@@ -331,64 +279,6 @@ nf.Settings = (function () {
     };
 
     /**
-     * Formats the type by introducing expand/collapse where appropriate.
-     * 
-     * @param {type} row
-     * @param {type} cell
-     * @param {type} value
-     * @param {type} columnDef
-     * @param {type} dataContext
-     */
-    var expandableTypeFormatter = function (row, cell, value, columnDef, dataContext) {
-        var markup = '';
-
-        var indent = 0;
-        var documentedType = dataContext;
-        while (documentedType.parent !== null) {
-            indent += 20;
-            documentedType = documentedType.parent;
-        }
-
-        var padding = 3;
-
-        // create the markup for the row
-        if (dataContext.children.length > 0) {
-            // determine how to render the expansion button
-            var expansionStyle = 'expanded';
-            if (dataContext.collapsed === true) {
-                expansionStyle = 'collapsed';
-            }
-
-            // calculate the number of visible/total children
-            var visibleChildren = 0;
-            var totalChildren = 0;
-            var countChildren = function (item) {
-                $.each(item.children, function (_, child) {
-                    if (child.children.length > 0) {
-                        countChildren(child);
-                    } else {
-                        if (child.visible) {
-                            visibleChildren++;
-                        }
-                        totalChildren++;
-                    }
-                });
-            };
-            countChildren(dataContext);
-
-            markup += ('<span style="margin-top: 5px; margin-left: ' + indent + 'px;" class="expansion-button ' + expansionStyle + '"></span><span class="ancestor-type" style="margin-left: ' + padding + 'px;">' + value + '</span><span class="ancestor-type-rollup">(' + visibleChildren + ' of ' + totalChildren + ')</span>');
-        } else {
-            if (dataContext.parent === null) {
-                padding = 0;
-            }
-
-            markup += ('<span style="margin-left: ' + (indent + padding) + 'px;">' + value + '</span>');
-        }
-
-        return markup;
-    };
-
-    /**
      * Adds a new controller service of the specified type.
      * 
      * @param {string} controllerServiceType
@@ -431,6 +321,7 @@ nf.Settings = (function () {
             // select the new controller service
             var row = controllerServicesData.getRowById(controllerService.id);
             controllerServicesGrid.setSelectedRows([row]);
+            controllerServicesGrid.scrollRowIntoView(row);
         }).fail(nf.Common.handleAjaxError);
 
         // hide the dialog
@@ -488,7 +379,7 @@ nf.Settings = (function () {
 
         // initialize the processor type table
         var controllerServiceTypesColumns = [
-            {id: 'type', name: 'Type', field: 'label', formatter: expandableTypeFormatter, sortable: false, resizable: true},
+            {id: 'type', name: 'Type', field: 'label', sortable: false, resizable: true},
             {id: 'tags', name: 'Tags', field: 'tags', sortable: false, resizable: true}
         ];
 
@@ -502,32 +393,6 @@ nf.Settings = (function () {
             property: $('#controller-service-type-filter-options').combo('getSelectedOption').value
         });
         controllerServiceTypesData.setFilter(filterControllerServiceTypes);
-        controllerServiceTypesData.getItemMetadata = function (index) {
-            var item = controllerServiceTypesData.getItem(index);
-            if (item && item.children.length > 0) {
-                return {
-                    selectable: false,
-                    columns: {
-                        0: {
-                            colspan: '*'
-                        }
-                    }
-                };
-            } else {
-                return {};
-            }
-        };
-
-        var getVisibleControllerServiceCount = function () {
-            var count = 0;
-            for (var i = 0; i < controllerServiceTypesData.getLength(); i++) {
-                var item = controllerServiceTypesData.getItem(i);
-                if (item.children.length === 0) {
-                    count++;
-                }
-            }
-            return count;
-        };
 
         // initialize the grid
         var controllerServiceTypesGrid = new Slick.Grid('#controller-service-types-table', controllerServiceTypesData, controllerServiceTypesColumns, gridOptions);
@@ -539,41 +404,20 @@ nf.Settings = (function () {
                 var controllerServiceTypeIndex = args.rows[0];
                 var controllerServiceType = controllerServiceTypesGrid.getDataItem(controllerServiceTypeIndex);
 
-                // only allow selection of service implementations
-                if (controllerServiceType.children.length === 0) {
-                    // set the controller service type description
-                    if (nf.Common.isBlank(controllerServiceType.description)) {
-                        $('#controller-service-type-description').attr('title', '').html('<span class="unset">No description specified</span>');
-                    } else {
-                        $('#controller-service-type-description').html(controllerServiceType.description).ellipsis();
-                    }
-
-                    // populate the dom
-                    $('#controller-service-type-name').text(controllerServiceType.label).ellipsis();
-                    $('#selected-controller-service-name').text(controllerServiceType.label);
-                    $('#selected-controller-service-type').text(controllerServiceType.type);
-
-                    // show the selected controller service
-                    $('#controller-service-description-container').show();
-                }
-            }
-        });
-        controllerServiceTypesGrid.onClick.subscribe(function (e, args) {
-            var item = controllerServiceTypesData.getItem(args.row);
-            if (item && item.children.length > 0) {
-                // update the grid
-                item.collapsed = !item.collapsed;
-                controllerServiceTypesData.updateItem(item.id, item);
-
-                // update any affected ancestors
-                var parent = item.parent;
-                while (parent !== null) {
-                    controllerServiceTypesData.updateItem(parent.id, parent);
-                    parent = parent.parent;
+                // set the controller service type description
+                if (nf.Common.isBlank(controllerServiceType.description)) {
+                    $('#controller-service-type-description').attr('title', '').html('<span class="unset">No description specified</span>');
+                } else {
+                    $('#controller-service-type-description').html(controllerServiceType.description).ellipsis();
                 }
 
-                // prevent selection within slickgrid
-                e.stopImmediatePropagation();
+                // populate the dom
+                $('#controller-service-type-name').text(controllerServiceType.label).ellipsis();
+                $('#selected-controller-service-name').text(controllerServiceType.label);
+                $('#selected-controller-service-type').text(controllerServiceType.type);
+
+                // show the selected controller service
+                $('#controller-service-description-container').show();
             }
         });
         controllerServiceTypesGrid.onDblClick.subscribe(function (e, args) {
@@ -587,7 +431,7 @@ nf.Settings = (function () {
             controllerServiceTypesGrid.render();
 
             // update the total number of displayed processors
-            $('#displayed-controller-service-types').text(getVisibleControllerServiceCount());
+            $('#displayed-controller-service-types').text(args.current);
         });
         controllerServiceTypesData.onRowsChanged.subscribe(function (e, args) {
             controllerServiceTypesGrid.invalidateRows(args.rows);
@@ -610,46 +454,28 @@ nf.Settings = (function () {
             // begin the update
             controllerServiceTypesData.beginUpdate();
 
-            var addType = function (parentItem, documentedType) {
-                var item = {
+            // go through each controller service type
+            $.each(response.controllerServiceTypes, function (i, documentedType) {
+                // add the documented type
+                controllerServiceTypesData.addItem({
                     id: id++,
                     label: nf.Common.substringAfterLast(documentedType.type, '.'),
                     type: documentedType.type,
                     description: nf.Common.escapeHtml(documentedType.description),
-                    tags: documentedType.tags.join(', '),
-                    parent: parentItem,
-                    children: [],
-                    collapsed: false,
-                    visible: true
-                };
-
-                // add the documented type
-                controllerServiceTypesData.addItem(item);
+                    tags: documentedType.tags.join(', ')
+                });
 
                 // count the frequency of each tag for this type
                 $.each(documentedType.tags, function (i, tag) {
                     tags.push(tag.toLowerCase());
                 });
-
-                // add each of its children
-                $.each(documentedType.childTypes, function (_, documentedChildType) {
-                    var childItem = addType(item, documentedChildType);
-                    item.children.push(childItem);
-                });
-
-                return item;
-            };
-
-            // go through each controller service type
-            $.each(response.controllerServiceTypes, function (i, documentedType) {
-                addType(null, documentedType);
             });
 
             // end the udpate
             controllerServiceTypesData.endUpdate();
             
             // set the total number of processors
-            $('#total-controller-service-types, #displayed-controller-service-types').text(getVisibleControllerServiceCount());
+            $('#total-controller-service-types, #displayed-controller-service-types').text(response.controllerServiceTypes.length);
 
             // create the tag cloud
             $('#controller-service-tag-cloud').tagcloud({
@@ -1098,9 +924,6 @@ nf.Settings = (function () {
             clearReportingTaskSelection();
         }
 
-        // update visibility flag
-        item.visible = matches;
-
         return matches;
     };
 
@@ -1147,6 +970,7 @@ nf.Settings = (function () {
             // select the new reporting task
             var row = reportingTaskData.getRowById(reportingTask.id);
             reportingTaskGrid.setSelectedRows([row]);
+            reportingTaskGrid.scrollRowIntoView(row);
         }).fail(nf.Common.handleAjaxError);
 
         // hide the dialog
@@ -1287,10 +1111,7 @@ nf.Settings = (function () {
                     label: nf.Common.substringAfterLast(documentedType.type, '.'),
                     type: documentedType.type,
                     description: nf.Common.escapeHtml(documentedType.description),
-                    tags: documentedType.tags.join(', '),
-                    children: [],
-                    collapsed: false,
-                    visible: true
+                    tags: documentedType.tags.join(', ')
                 });
 
                 // count the frequency of each tag for this type

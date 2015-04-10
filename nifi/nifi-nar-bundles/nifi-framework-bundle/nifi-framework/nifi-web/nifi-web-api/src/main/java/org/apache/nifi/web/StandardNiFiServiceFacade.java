@@ -1718,8 +1718,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public Set<DocumentedTypeDTO> getControllerServiceTypes() {
-        return controllerFacade.getControllerServiceTypes();
+    public Set<DocumentedTypeDTO> getControllerServiceTypes(final String serviceType) {
+        return controllerFacade.getControllerServiceTypes(serviceType);
     }
 
     @Override

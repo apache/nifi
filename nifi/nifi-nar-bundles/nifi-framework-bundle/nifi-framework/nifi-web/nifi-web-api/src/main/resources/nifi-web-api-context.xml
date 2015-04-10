@@ -270,6 +270,7 @@
     <bean class="org.apache.nifi.web.api.config.NodeReconnectionExceptionMapper" scope="singleton"/>
     <bean class="org.apache.nifi.web.api.config.PrimaryRoleAssignmentExceptionMapper" scope="singleton"/>
     <bean class="org.apache.nifi.web.api.config.ResourceNotFoundExceptionMapper" scope="singleton"/>
+    <bean class="org.apache.nifi.web.api.config.NotFoundExceptionMapper" scope="singleton"/>
     <bean class="org.apache.nifi.web.api.config.UnknownNodeExceptionMapper" scope="singleton"/>
     <bean class="org.apache.nifi.web.api.config.ValidationExceptionMapper" scope="singleton"/>
     <bean class="org.apache.nifi.web.api.config.WebApplicationExceptionMapper" scope="singleton"/>

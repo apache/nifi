@@ -380,6 +380,70 @@ nf.ProcessorConfiguration = (function () {
             }
         });
     };
+    
+    /**
+     * Goes to a service configuration from the property table.
+     */
+    var goToServiceFromProperty = function () {
+        return $.Deferred(function (deferred) {
+            // close all fields currently being edited
+            $('#processor-properties').propertytable('saveRow');
+
+            // determine if changes have been made
+            if (isSaveRequired()) {
+                // see if those changes should be saved
+                nf.Dialog.showYesNoDialog({
+                    dialogContent: 'Save changes before going to this Controller Service?',
+                    overlayBackground: false,
+                    noHandler: function () {
+                        deferred.resolve();
+                    },
+                    yesHandler: function () {
+                        var processor = $('#processor-configuration').data('processorDetails');
+                        saveProcessor(processor).done(function () {
+                            deferred.resolve();
+                        }).fail(function () {
+                            deferred.reject();
+                        });
+                    }
+                });
+            } else {
+                deferred.resolve();
+            }
+        }).promise();
+    };
+    
+    /**
+     * 
+     * @param {type} processor
+     * @returns {undefined}
+     */
+    var saveProcessor = function (processor) {
+        // marshal the settings and properties and update the processor
+        var updatedProcessor = marshalDetails();
+
+        // ensure details are valid as far as we can tell
+        if (validateDetails(updatedProcessor)) {
+            // update the selected component
+            return $.ajax({
+                type: 'PUT',
+                data: JSON.stringify(updatedProcessor),
+                url: processor.uri,
+                dataType: 'json',
+                processData: false,
+                contentType: 'application/json'
+            }).done(function (response) {
+                if (nf.Common.isDefinedAndNotNull(response.processor)) {
+                    // update the revision
+                    nf.Client.setRevision(response.revision);
+                }
+            }).fail(handleProcessorConfigurationError);
+        } else {
+            return $.Deferred(function (deferred) {
+                deferred.reject();
+            }).promise();
+        }
+    };
 
     return {
         /**
@@ -470,7 +534,7 @@ nf.ProcessorConfiguration = (function () {
             // initialize the property table
             $('#processor-properties').propertytable({
                 readOnly: false,
-                newPropertyDialogContainer: '#new-processor-property-container',
+                dialogContainer: '#new-processor-property-container',
                 descriptorDeferred: function(propertyName) {
                     var processor = $('#processor-configuration').data('processorDetails');
                     return $.ajax({
@@ -481,7 +545,8 @@ nf.ProcessorConfiguration = (function () {
                         },
                         dataType: 'json'
                     }).fail(nf.Common.handleAjaxError);
-                }
+                },
+                goToServiceDeferred: goToServiceFromProperty
             });
         },
         
@@ -625,35 +690,17 @@ nf.ProcessorConfiguration = (function () {
                                     // close all fields currently being edited
                                     $('#processor-properties').propertytable('saveRow');
 
-                                    // marshal the settings and properties and update the processor
-                                    var updatedProcessor = marshalDetails();
+                                    // save the processor
+                                    saveProcessor(processor).done(function (response) {
+                                        // set the new processor state based on the response
+                                        nf.Processor.set(response.processor);
 
-                                    // ensure details are valid as far as we can tell
-                                    if (validateDetails(updatedProcessor)) {
-                                        // update the selected component
-                                        $.ajax({
-                                            type: 'PUT',
-                                            data: JSON.stringify(updatedProcessor),
-                                            url: processor.uri,
-                                            dataType: 'json',
-                                            processData: false,
-                                            contentType: 'application/json'
-                                        }).done(function (response) {
-                                            if (nf.Common.isDefinedAndNotNull(response.processor)) {
-                                                // update the revision
-                                                nf.Client.setRevision(response.revision);
+                                        // reload the processor's outgoing connections
+                                        reloadProcessorConnections(processor);
 
-                                                // set the new processor state based on the response
-                                                nf.Processor.set(response.processor);
-
-                                                // reload the processor's outgoing connections
-                                                reloadProcessorConnections(processor);
-
-                                                // close the details panel
-                                                $('#processor-configuration').modal('hide');
-                                            }
-                                        }).fail(handleProcessorConfigurationError);
-                                    }
+                                        // close the details panel
+                                        $('#processor-configuration').modal('hide');
+                                    });
                                 }
                             }
                         }, {
@@ -696,29 +743,10 @@ nf.ProcessorConfiguration = (function () {
                                             overlayBackground: false,
                                             noHandler: openCustomUi,
                                             yesHandler: function () {
-                                                // marshal the settings and properties and update the processor
-                                                var updatedProcessor = marshalDetails();
-
-                                                // ensure details are valid as far as we can tell
-                                                if (validateDetails(updatedProcessor)) {
-                                                    // update the selected component
-                                                    $.ajax({
-                                                        type: 'PUT',
-                                                        data: JSON.stringify(updatedProcessor),
-                                                        url: processor.uri,
-                                                        dataType: 'json',
-                                                        processData: false,
-                                                        contentType: 'application/json'
-                                                    }).done(function (response) {
-                                                        if (nf.Common.isDefinedAndNotNull(response.processor)) {
-                                                            // update the revision
-                                                            nf.Client.setRevision(response.revision);
-
-                                                            // open the custom ui
-                                                            openCustomUi();
-                                                        }
-                                                    }).fail(handleProcessorConfigurationError);
-                                                }
+                                                saveProcessor(processor).done(function (deferred) {
+                                                    // open the custom ui
+                                                    openCustomUi();
+                                                });
                                             }
                                         });
                                     } else {

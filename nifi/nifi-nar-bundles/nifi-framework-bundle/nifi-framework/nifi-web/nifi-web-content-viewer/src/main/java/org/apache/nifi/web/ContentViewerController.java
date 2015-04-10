@@ -68,10 +68,21 @@ public class ContentViewerController extends HttpServlet {
         final ServletContext servletContext = request.getServletContext();
         final ContentAccess contentAccess = (ContentAccess) servletContext.getAttribute("nifi-content-access");
         
+        final ContentRequestContext contentRequest = getContentRequest(request);
+        if (contentRequest.getDataUri() == null) {
+            request.setAttribute("title", "Error");
+            request.setAttribute("messages", "The data reference must be specified.");
+            
+            // forward to the error page
+            final ServletContext viewerContext = servletContext.getContext("/nifi");
+            viewerContext.getRequestDispatcher("/message").forward(request, response);
+            return;
+        }
+        
         // get the content
         final DownloadableContent downloadableContent;
         try {
-            downloadableContent = contentAccess.getContent(getContentRequest(request));
+            downloadableContent = contentAccess.getContent(contentRequest);
         } catch (final ResourceNotFoundException rnfe) {
             request.setAttribute("title", "Error");
             request.setAttribute("messages", "Unable to find the specified content");
@@ -138,9 +149,6 @@ public class ContentViewerController extends HttpServlet {
         final String mimeType = mediatype.toString();
         
         // add attributes needed for the header
-        final StringBuffer requestUrl = request.getRequestURL();
-        request.setAttribute("requestUrl", requestUrl.toString());
-        request.setAttribute("dataRef", request.getParameter("ref"));
         request.setAttribute("filename", downloadableContent.getFilename());
         request.setAttribute("contentType", mimeType);
         
@@ -148,8 +156,6 @@ public class ContentViewerController extends HttpServlet {
         request.getRequestDispatcher("/WEB-INF/jsp/header.jsp").include(request, response);
         
         // remove the attributes needed for the header
-        request.removeAttribute("requestUrl");
-        request.removeAttribute("dataRef");
         request.removeAttribute("filename");
         request.removeAttribute("contentType");
         
