@@ -18,41 +18,100 @@ package org.apache.nifi.processors.yandex;
 
 import static org.junit.Assert.assertEquals;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Properties;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-import org.apache.nifi.processors.yandex.YandexTranslate;
+import javax.ws.rs.core.Response.Status.Family;
+import javax.ws.rs.core.Response.StatusType;
+
+import org.apache.nifi.processors.yandex.model.Translation;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Ignore;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
-@Ignore("For local testing only; requires local file to be populated with Yandex API Key")
+import com.sun.jersey.api.client.ClientResponse;
+import com.sun.jersey.api.client.WebResource;
+import com.sun.jersey.api.client.WebResource.Builder;
+
 public class TestYandexTranslate {
 
-    private TestRunner testRunner;
-    private String apiKey;
+	private static final Map<String, String> translations = new HashMap<>();
+	
+	@BeforeClass
+	public static void setupTranslationMap() {
+		translations.put("bonjour", "hello");
+		translations.put("traduire", "translate");
+		translations.put("amusant", "fun");
+		translations.put("ordinateur", "computer");
+	}
+	
+    private TestRunner createTestRunner(final int statusCode) {
+    	return TestRunners.newTestRunner(new YandexTranslate() {
+        	@Override
+        	protected Builder prepareResource(final String key, final List<String> text, final String sourceLanguage, final String destLanguage) {
+        		final WebResource.Builder builder = Mockito.mock(WebResource.Builder.class);
+        		
+        		Mockito.doAnswer(new Answer<ClientResponse>() {
+					@Override
+					public ClientResponse answer(final InvocationOnMock invocation) throws Throwable {
+						final ClientResponse response = Mockito.mock(ClientResponse.class);
 
-    @Before
-    public void init() throws IOException {
-        testRunner = TestRunners.newTestRunner(YandexTranslate.class);
-        
-        final Properties properties = new Properties();
-        try (final InputStream in = new FileInputStream(new File("C:/dev/notes/yandex-info.txt"))) {
-        	properties.load(in);
-        }
-        apiKey = properties.getProperty("api_key").trim();
+						final StatusType statusType = new StatusType() {
+							@Override
+							public int getStatusCode() {
+								return statusCode;
+							}
+							
+							@Override
+							public String getReasonPhrase() {
+								return String.valueOf(statusCode);
+							}
+							
+							@Override
+							public Family getFamily() {
+								return statusCode == 200 ? Family.SUCCESSFUL : Family.SERVER_ERROR;
+							}
+						};
+						
+						Mockito.when(response.getStatus()).thenReturn(statusCode);
+						Mockito.when(response.getStatusInfo()).thenReturn(statusType);
+						
+						if ( statusCode == 200 ) {
+							final Translation translation = new Translation();
+							translation.setCode(statusCode);
+							translation.setLang(destLanguage);
+							
+							final List<String> translationList = new ArrayList<>();
+							for ( final String original : text ) {
+								final String translated = translations.get(original);
+								translationList.add(translated == null ? original : translated);
+							}
+							
+							translation.setText(translationList);
+							
+							Mockito.when(response.getEntity(Translation.class)).thenReturn(translation);
+						}
+						
+						return response;
+					}
+        		}).when(builder).post(ClientResponse.class);
+        		return builder;
+        	}
+        });
     }
-
+    
     
     @Test
     public void testTranslateContent() {
-    	testRunner.setProperty(YandexTranslate.KEY, apiKey);
+    	final TestRunner testRunner = createTestRunner(200);
+    	testRunner.setProperty(YandexTranslate.KEY, "a");
     	testRunner.setProperty(YandexTranslate.SOURCE_LANGUAGE, "fr");
     	testRunner.setProperty(YandexTranslate.TARGET_LANGUAGE, "en");
     	testRunner.setProperty(YandexTranslate.TRANSLATE_CONTENT, "true");
@@ -71,7 +130,9 @@ public class TestYandexTranslate {
     
     @Test
     public void testTranslateSingleAttribute() {
-    	testRunner.setProperty(YandexTranslate.KEY, apiKey);
+    	final TestRunner testRunner = createTestRunner(200);
+
+    	testRunner.setProperty(YandexTranslate.KEY, "A");
     	testRunner.setProperty(YandexTranslate.SOURCE_LANGUAGE, "fr");
     	testRunner.setProperty(YandexTranslate.TARGET_LANGUAGE, "en");
     	testRunner.setProperty(YandexTranslate.TRANSLATE_CONTENT, "false");
@@ -90,7 +151,9 @@ public class TestYandexTranslate {
     
     @Test
     public void testTranslateMultipleAttributes() {
-    	testRunner.setProperty(YandexTranslate.KEY, apiKey);
+    	final TestRunner testRunner = createTestRunner(200);
+
+    	testRunner.setProperty(YandexTranslate.KEY, "A");
     	testRunner.setProperty(YandexTranslate.SOURCE_LANGUAGE, "fr");
     	testRunner.setProperty(YandexTranslate.TARGET_LANGUAGE, "en");
     	testRunner.setProperty(YandexTranslate.TRANSLATE_CONTENT, "false");
@@ -114,7 +177,9 @@ public class TestYandexTranslate {
     
     @Test
     public void testTranslateContentAndMultipleAttributes() {
-    	testRunner.setProperty(YandexTranslate.KEY, apiKey);
+    	final TestRunner testRunner = createTestRunner(200);
+
+    	testRunner.setProperty(YandexTranslate.KEY, "A");
     	testRunner.setProperty(YandexTranslate.SOURCE_LANGUAGE, "fr");
     	testRunner.setProperty(YandexTranslate.TARGET_LANGUAGE, "en");
     	testRunner.setProperty(YandexTranslate.TRANSLATE_CONTENT, "true");
@@ -136,6 +201,26 @@ public class TestYandexTranslate {
     	out.assertAttributeEquals("translate", "translate");
     	out.assertAttributeEquals("fun", "fun");
     	out.assertAttributeEquals("nifi", "nifi");
+    }
+    
+    @Test
+    public void testFailureResponse() {
+    	final TestRunner testRunner = createTestRunner(403);
+
+    	testRunner.setProperty(YandexTranslate.KEY, "A");
+    	testRunner.setProperty(YandexTranslate.SOURCE_LANGUAGE, "fr");
+    	testRunner.setProperty(YandexTranslate.TARGET_LANGUAGE, "en");
+    	testRunner.setProperty(YandexTranslate.TRANSLATE_CONTENT, "true");
+    	testRunner.setProperty(YandexTranslate.CHARACTER_SET, "UTF-8");
+    	testRunner.setProperty("hello", "bonjour");
+    	testRunner.setProperty("translate", "traduire");
+    	testRunner.setProperty("fun", "amusant");
+    	testRunner.setProperty("nifi", "nifi");
+    	
+    	testRunner.enqueue("ordinateur".getBytes());
+    	testRunner.run();
+    	
+    	testRunner.assertAllFlowFilesTransferred(YandexTranslate.REL_TRANSLATION_FAILED, 1);
     }
 
 }

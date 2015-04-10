@@ -92,7 +92,7 @@ public class YandexTranslate extends AbstractProcessor {
 		.name("Input Language")
 		.description("The language of incoming data")
 		.required(true)
-		.defaultValue("sp")
+		.defaultValue("es")
 		.expressionLanguageSupported(true)
 		.addValidator(new LanguageNameValidator())
 		.build();
@@ -213,6 +213,24 @@ public class YandexTranslate extends AbstractProcessor {
     	}
     }
     
+    
+    protected WebResource.Builder prepareResource(final String key, final List<String> text, final String sourceLanguage, final String destLanguage) {
+		WebResource webResource = client.resource(URL);
+		
+		final MultivaluedMap<String, String> paramMap = new MultivaluedMapImpl();
+		paramMap.put("text", text);
+		paramMap.add("key", key);
+		paramMap.add("lang", sourceLanguage + "-" + destLanguage);
+		
+		WebResource.Builder builder = webResource
+				.accept(MediaType.APPLICATION_JSON)
+				.type(MediaType.APPLICATION_FORM_URLENCODED);
+		builder = builder.entity(paramMap);
+		
+		return builder;
+    }
+    
+    
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
 		FlowFile flowFile = session.get();
@@ -247,17 +265,7 @@ public class YandexTranslate extends AbstractProcessor {
 			textValues.add(content);
 		}
 		
-		WebResource webResource = client.resource(URL);
-		
-		final MultivaluedMap<String, String> paramMap = new MultivaluedMapImpl();
-		paramMap.put("text", textValues);
-		paramMap.add("key", key);
-		paramMap.add("lang", sourceLanguage + "-" + targetLanguage);
-		
-		WebResource.Builder builder = webResource
-				.accept(MediaType.APPLICATION_JSON)
-				.type(MediaType.APPLICATION_FORM_URLENCODED);
-		builder = builder.entity(paramMap);
+		final WebResource.Builder builder = prepareResource(key, textValues, sourceLanguage, targetLanguage);
 		
 		final ClientResponse response;
 		try {
