@@ -46,7 +46,7 @@ import com.maxmind.geoip2.model.IspResponse;
  * This class was copied from 
  * https://raw.githubusercontent.com/maxmind/GeoIP2-java/master/src/main/java/com/maxmind/geoip2/DatabaseReader.java
  * It is written by Maxmind and it is available under Apache Software License V2
- * Copyright (c) 2013 by MaxMind, Inc.
+ * 
  * The modification we're making to the code below is to stop using exceptions for
  * mainline flow control.  Specifically we don't want to throw an exception
  * simply because an address was not found.
