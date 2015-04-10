@@ -29,7 +29,10 @@ import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -48,6 +51,15 @@ import org.apache.nifi.processor.util.StandardValidators;
 @CapabilityDescription("Segments a FlowFile into multiple smaller segments on byte boundaries. Each segment is given the following attributes: "
         + "fragment.identifier, fragment.index, fragment.count, segment.original.filename; these attributes can then be used by the "
         + "MergeContent processor in order to reconstitute the original FlowFile")
+@WritesAttributes({ @WritesAttribute(attribute = "segment.identifier", description = "All segments produced from the same parent FlowFile will have the same randomly generated UUID added for this attribute. This attribute is added to maintain backward compatibility, but the fragment.identifier is preferred, as it is designed to work in conjunction with the MergeContent Processor"),
+        @WritesAttribute(attribute = "segment.index", description = "A one-up number that indicates the ordering of the segments that were created from a single parent FlowFile. This attribute is added to maintain backward compatibility, but the fragment.index is preferred, as it is designed to work in conjunction with the MergeContent Processor"),
+        @WritesAttribute(attribute = "segment.count", description = "The number of segments generated from the parent FlowFile. This attribute is added to maintain backward compatibility, but the fragment.count is preferred, as it is designed to work in conjunction with the MergeContent Processor"),
+        @WritesAttribute(attribute = "fragment.identifier", description = "All segments produced from the same parent FlowFile will have the same randomly generated UUID added for this attribute"),
+        @WritesAttribute(attribute = "fragment.index", description = "A one-up number that indicates the ordering of the segments that were created from a single parent FlowFile"),
+        @WritesAttribute(attribute = "fragment.count", description = "The number of segments generated from the parent FlowFile"),
+        @WritesAttribute(attribute = "segment.original.filename ", description = "The filename of the parent FlowFile"),
+        @WritesAttribute(attribute = "segment.original.filename ", description = "The filename will be updated to include the parent's filename, the segment index, and the segment count") })
+@SeeAlso(MergeContent.class)
 public class SegmentContent extends AbstractProcessor {
 
     public static final String SEGMENT_ID = "segment.identifier";

@@ -50,7 +50,7 @@ import org.apache.nifi.util.StopWatch;
 @SideEffectFree
 @SupportsBatching
 @Tags({"experimental", "encode", "base64"})
-@CapabilityDescription("Encodes the FlowFile content in base64")
+@CapabilityDescription("Encodes or decodes content to and from base64")
 public class Base64EncodeContent extends AbstractProcessor {
 
     public static final String ENCODE_MODE = "Encode";

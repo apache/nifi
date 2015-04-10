@@ -79,4 +79,14 @@ public final class NiFiUserUtils {
 
         return user;
     }
+    
+    public static String getNiFiUserName() {
+        // get the nifi user to extract the username
+        NiFiUser user = NiFiUserUtils.getNiFiUser();
+        if (user == null) {
+            return "unknown";
+        } else {
+            return user.getUserName();
+        }
+    }
 }

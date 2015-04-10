@@ -1,0 +1,216 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/*
+    Styles for the property table.
+*/
+
+div.properties-header {
+    margin-bottom: 10px;
+    height: 19px;
+}
+
+div.required-property-note {
+    font-weight: bold;
+    float: left;
+    height: 19px;
+    line-height: 19px;
+    margin-left: 6px;
+}
+
+div.add-property {
+    float: right;
+    margin-right: 20px;
+}
+
+div.add-property-icon {
+    width: 19px;
+    height: 19px;
+    cursor: pointer;
+    float: left;
+}
+
+div.add-icon-bg {
+    background: transparent url(buttonNewProperty.png) no-repeat scroll top left;
+}
+
+div.add-icon-bg-hover {
+    background: transparent url(buttonNewProperty.png) no-repeat scroll top right;
+}
+
+div.add-property-text {
+    float: left;
+    margin-left: 5px;
+    height: 19px;
+    line-height: 19px;
+}
+
+div.property-table {
+    width: 758px;
+    height: 290px;
+    border-bottom: 1px solid #666;
+    background-color: #fff;
+}
+
+/*
+    New property dialog
+*/
+
+div.new-property-dialog {
+    z-index: 1301;
+    display: none;
+    padding: 10px;
+    border: 3px solid #365C6A;
+    box-shadow: 4px 4px 6px rgba(0, 0, 0, 0.9);
+    cursor: move;
+    width: 300px;
+    height: 72px;
+}
+
+div.new-property-name-container {
+    position: absolute;
+    height: 25px;
+    left: 10px;
+    right: 10px;
+    padding-right: 10px;
+    overflow: hidden; 
+}
+
+input.new-property-name {
+    height: 14px;
+    width: 100%;
+}
+
+div.new-property-button-container {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    padding: 0 8px 10px;
+}
+
+/*
+    New inline controller service dialog
+*/
+
+div.new-inline-controller-service-dialog {
+    z-index: 1301;
+    display: none;
+    padding: 10px;
+    border: 3px solid #365C6A;
+    box-shadow: 4px 4px 6px rgba(0, 0, 0, 0.9);
+    cursor: move;
+    width: 350px;
+    height: 250px;
+}
+
+div.new-inline-controller-service-combo {
+    height: 18px;
+    width: 340px;
+    margin-bottom: 10px;
+}
+
+div.new-inline-controller-service-tags {
+    height: 18px;
+    width: 340px;
+    margin-bottom: 10px;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+div.new-inline-controller-service-description {
+    height: 115px;
+    width: 340px;
+    overflow: auto;
+}
+
+div.new-inline-controller-service-button-container {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    padding: 0 8px 10px;
+}
+
+/*
+    Styles for the property editor.
+*/
+
+div.slickgrid-nfel-editor .nfel-editor, div.property-detail .nfel-editor {
+    margin-bottom: 30px;
+}
+
+div.edit-property-value {
+    height: 20px;
+    padding-right: 60px;
+}
+
+textarea.value-field {
+    float: left;
+    width: 95%;
+    height: 26px;
+    font-size: 11px !important;
+    resize: vertical;
+    overflow-y: auto;
+}
+
+div.string-check-container {
+    float: left;
+    margin-top: 1px;
+    height: 20px;
+    line-height: 20px;
+}
+
+div.string-check {
+    width: 12px;
+    height: 12px;
+    float: left;
+    margin-top: 4px;
+    margin-left: 4px;
+}
+
+span.string-check-label {
+    font-size: 9px;
+    font-weight: normal;
+}
+
+div.value pre {
+    font-family: Verdana, Arial, Helvetica, sans-serif;
+    overflow: hidden;
+}
+
+/*
+    Styles for the property value combo
+*/
+
+div.edit-property-value-combo {
+    height: 22px;
+}
+
+div.value-combo {
+    height: 18px;
+    margin-top: 0px;
+    float: left;
+}
+
+/*
+    Table styles
+*/
+
+td.right-border {
+    border-right: 1px solid #aaa;
+}

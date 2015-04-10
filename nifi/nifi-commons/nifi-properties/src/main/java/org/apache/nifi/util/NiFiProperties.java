@@ -42,8 +42,6 @@ public class NiFiProperties extends Properties {
     public static final String PROPERTIES_FILE_PATH = "nifi.properties.file.path";
     public static final String FLOW_CONFIGURATION_FILE = "nifi.flow.configuration.file";
     public static final String FLOW_CONFIGURATION_ARCHIVE_FILE = "nifi.flow.configuration.archive.file";
-    public static final String TASK_CONFIGURATION_FILE = "nifi.reporting.task.configuration.file";
-    public static final String SERVICE_CONFIGURATION_FILE = "nifi.controller.service.configuration.file";
     public static final String AUTHORITY_PROVIDER_CONFIGURATION_FILE = "nifi.authority.provider.configuration.file";
     public static final String REPOSITORY_DATABASE_DIRECTORY = "nifi.database.directory";
     public static final String RESTORE_DIRECTORY = "nifi.restore.directory";

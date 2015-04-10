@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <!--
       Licensed to the Apache Software Foundation (ASF) under one or more
@@ -17,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>0.0.2-incubating-SNAPSHOT</version>
+        <version>0.1.0-incubating-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-standard-bundle</artifactId>
     <packaging>pom</packaging>
@@ -26,24 +27,31 @@
         <module>nifi-standard-processors</module>
         <module>nifi-standard-prioritizers</module>
         <module>nifi-standard-reporting-tasks</module>
+        <module>nifi-standard-content-viewer</module>
         <module>nifi-standard-nar</module>
-    </modules>
+  </modules>
     <dependencyManagement>
         <dependencies>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-processors</artifactId>
-                <version>0.0.2-incubating-SNAPSHOT</version>
+                <version>0.1.0-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-prioritizers</artifactId>
-                <version>0.0.2-incubating-SNAPSHOT</version>
+                <version>0.1.0-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-reporting-tasks</artifactId>
-                <version>0.0.2-incubating-SNAPSHOT</version>
+                <version>0.1.0-incubating-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-standard-content-viewer</artifactId>
+                <type>war</type>
+                <version>0.1.0-incubating-SNAPSHOT</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

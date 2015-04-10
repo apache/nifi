@@ -16,17 +16,15 @@
  */
 package org.apache.nifi.controller;
 
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 
 public interface ReportingTaskNode extends ConfiguredComponent {
-
-    Availability getAvailability();
-
-    void setAvailability(Availability availability);
 
     void setSchedulingStrategy(SchedulingStrategy schedulingStrategy);
 
@@ -53,6 +51,12 @@ public interface ReportingTaskNode extends ConfiguredComponent {
     ConfigurationContext getConfigurationContext();
 
     boolean isRunning();
+
+    /**
+     * Returns the number of threads (concurrent tasks) currently being used by this ReportingTask
+     * @return
+     */
+    int getActiveThreadCount();
     
     /**
      * Indicates the {@link ScheduledState} of this <code>ReportingTask</code>. A
@@ -67,6 +71,20 @@ public interface ReportingTaskNode extends ConfiguredComponent {
     ScheduledState getScheduledState();
     
     void setScheduledState(ScheduledState state);
+    
+    String getComments();
+    
+    void setComments(String comment);
+    
+    /**
+     * Verifies that this Reporting Task can be enabled if the provided set of
+     * services are enabled. This is introduced because we need to verify that all components
+     * can be started before starting any of them. In order to do that, we need to know that this
+     * component can be started if the given services are enabled, as we will then enable the given 
+     * services before starting this component.
+     * @param ignoredReferences
+     */
+    void verifyCanStart(Set<ControllerServiceNode> ignoredReferences);
     
     void verifyCanStart();
     void verifyCanStop();

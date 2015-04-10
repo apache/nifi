@@ -45,9 +45,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.logging.ConsoleHandler;
+import java.util.logging.FileHandler;
 import java.util.logging.Handler;
 import java.util.logging.Level;
+import java.util.logging.SimpleFormatter;
 
 
 /**
@@ -92,16 +93,82 @@ public class RunNiFi {
 
 	private final java.util.logging.Logger logger;
 	
-	public RunNiFi(final File bootstrapConfigFile, final boolean verbose) {
+	public RunNiFi(final File bootstrapConfigFile, final boolean verbose) throws IOException {
 		this.bootstrapConfigFile = bootstrapConfigFile;
 		logger = java.util.logging.Logger.getLogger("Bootstrap");
+		
+		final Properties bootstrapProps = new Properties();
+		try (final InputStream configIn = new FileInputStream(bootstrapConfigFile)) {
+			bootstrapProps.load(configIn);
+		}
+
+		String logFilename = bootstrapProps.getProperty("bootstrap.log.file");
+		if ( logFilename == null ) {
+			logFilename = "./logs/bootstrap.log";
+		}
+		
+		File logFile = new File(logFilename);
+		if ( !logFile.isAbsolute() ) {
+			final File workDir = getDefaultWorkingDirectory();
+			logFile = new File(workDir, logFilename);
+		}
+		
+		final File logFileDir = logFile.getParentFile();
+		final Handler fileHandler;
+		if ( logFileDir.exists() || logFileDir.mkdirs() ) {
+			final int maxSize = getIntProp(bootstrapProps, "bootstrap.log.max.bytes", 1024 * 1024 * 10);	// 10 MB
+			final int numFiles = getIntProp(bootstrapProps, "bootstrap.log.count", 10);
+			
+			fileHandler = new FileHandler(logFile.getAbsolutePath(), maxSize, numFiles, true);
+			fileHandler.setFormatter(new SimpleFormatter());
+			logger.addHandler(fileHandler);
+		} else {
+			fileHandler = null;
+			logger.severe("Could not create log file directory " + logFileDir + ". Will not log bootstrap info to file or redirect NiFi standard out to file");
+		}
+		
 		if ( verbose ) {
 		    logger.info("Enabling Verbose Output");
 		    
 		    logger.setLevel(Level.FINE);
-		    final Handler handler = new ConsoleHandler();
-		    handler.setLevel(Level.FINE);
-		    logger.addHandler(handler);
+		    
+		    for ( final Handler handler : logger.getHandlers() ) {
+		    	handler.setLevel(Level.FINE);
+		    }
+		}
+	}
+	
+	
+	private File getLogFile() throws IOException {
+		final Properties bootstrapProps = new Properties();
+		try (final InputStream configIn = new FileInputStream(bootstrapConfigFile)) {
+			bootstrapProps.load(configIn);
+		}
+
+		String logFilename = bootstrapProps.getProperty("bootstrap.log.file");
+		if ( logFilename == null ) {
+			logFilename = "./logs/bootstrap.log";
+		}
+		
+		File logFile = new File(logFilename);
+		if ( !logFile.isAbsolute() ) {
+			final File workDir = getDefaultWorkingDirectory();
+			logFile = new File(workDir, logFilename);
+		}
+
+		return logFile;
+	}
+	
+	private static int getIntProp(final Properties properties, final String name, final int defaultValue) {
+		String propVal = properties.getProperty(name);
+		if ( propVal == null || propVal.trim().isEmpty() ) {
+			return defaultValue;
+		}
+		
+		try {
+			return Integer.parseInt(propVal.trim());
+		} catch (final NumberFormatException nfe) {
+			throw new NumberFormatException("Expected bootstrap property '" + name + "' to be an integer but found value: " + propVal);
 		}
 	}
 	
@@ -581,6 +648,35 @@ public class RunNiFi {
 		}
 	}
 	
+	private void redirectOutput(final Process process) {
+		redirectStreamToLogs(process.getInputStream());
+		redirectStreamToLogs(process.getErrorStream());
+	}
+	
+	private void redirectStreamToLogs(final InputStream in) {
+		final Thread t = new Thread(new Runnable() {
+			@Override
+			public void run() {
+				try (final BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
+					String line;
+					while ((line = reader.readLine()) != null) {
+						logger.info(line);
+					}
+				} catch (IOException e) {
+					logger.warning("Failed to read output of NiFi console: " + e);
+				}
+			}
+		});
+		t.setDaemon(true);
+		t.start();
+	}
+	
+	private File getDefaultWorkingDirectory() {
+		final File bootstrapConfigAbsoluteFile = bootstrapConfigFile.getAbsoluteFile();
+		final File binDir = bootstrapConfigAbsoluteFile.getParentFile();
+		return binDir.getParentFile();
+	}
+	
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	public void start(final boolean monitor) throws IOException, InterruptedException {
 		final Integer port = getCurrentPort();
@@ -590,7 +686,6 @@ public class RunNiFi {
 		}
 		
 		final ProcessBuilder builder = new ProcessBuilder();
-
 		if ( !bootstrapConfigFile.exists() ) {
 			throw new FileNotFoundException(bootstrapConfigFile.getAbsolutePath());
 		}
@@ -604,17 +699,16 @@ public class RunNiFi {
 		props.putAll( (Map) properties );
 
 		final String specifiedWorkingDir = props.get("working.dir");
-		if ( specifiedWorkingDir != null ) {
-			builder.directory(new File(specifiedWorkingDir));
-		}
-
-		final File bootstrapConfigAbsoluteFile = bootstrapConfigFile.getAbsoluteFile();
-		final File binDir = bootstrapConfigAbsoluteFile.getParentFile();
-		final File workingDir = binDir.getParentFile();
-		
+		final File workingDir = getDefaultWorkingDirectory();
 		if ( specifiedWorkingDir == null ) {
 			builder.directory(workingDir);
+		} else {
+			builder.directory(new File(specifiedWorkingDir));
 		}
+		
+		final File logDir = getLogFile().getParentFile();
+		builder.redirectError(new File(logDir, "nifi.err"));
+		builder.redirectOutput(new File(logDir, "nifi.out"));
 		
 		final String libFilename = replaceNull(props.get("lib.dir"), "./lib").trim();
 		File libDir = getFile(libFilename, workingDir);
@@ -738,14 +832,15 @@ public class RunNiFi {
 			try {
 				gracefulShutdownSeconds = Integer.parseInt(gracefulShutdown);
 			} catch (final NumberFormatException nfe) {
-				throw new NumberFormatException("The '" + GRACEFUL_SHUTDOWN_PROP + "' property in Bootstrap Config File " + bootstrapConfigAbsoluteFile.getAbsolutePath() + " has an invalid value. Must be a non-negative integer");
+				throw new NumberFormatException("The '" + GRACEFUL_SHUTDOWN_PROP + "' property in Bootstrap Config File " + bootstrapConfigFile.getAbsolutePath() + " has an invalid value. Must be a non-negative integer");
 			}
 			
 			if ( gracefulShutdownSeconds < 0 ) {
-				throw new NumberFormatException("The '" + GRACEFUL_SHUTDOWN_PROP + "' property in Bootstrap Config File " + bootstrapConfigAbsoluteFile.getAbsolutePath() + " has an invalid value. Must be a non-negative integer");
+				throw new NumberFormatException("The '" + GRACEFUL_SHUTDOWN_PROP + "' property in Bootstrap Config File " + bootstrapConfigFile.getAbsolutePath() + " has an invalid value. Must be a non-negative integer");
 			}
 			
 			Process process = builder.start();
+			redirectOutput(process);
 			Long pid = getPid(process);
 		    if ( pid != null ) {
                 nifiPid = pid;
@@ -776,7 +871,8 @@ public class RunNiFi {
 					if (autoRestartNiFi) {
 						logger.warning("Apache NiFi appears to have died. Restarting...");
 						process = builder.start();
-						
+						redirectOutput(process);
+
 						pid = getPid(process);
 						if ( pid != null ) {
 			                nifiPid = pid;
@@ -802,6 +898,7 @@ public class RunNiFi {
 			}
 		} else {
 			final Process process = builder.start();
+			redirectOutput(process);
 			final Long pid = getPid(process);
 			
 			if ( pid != null ) {

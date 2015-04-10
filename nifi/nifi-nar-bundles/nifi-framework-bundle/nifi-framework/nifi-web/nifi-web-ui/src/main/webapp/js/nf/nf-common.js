@@ -14,6 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/* global nf, parseFloat */
+
 $(document).ready(function () {
     // preload the image for the error page - this is preloaded because the system
     // may be unavailable to return the image when the error page is rendered
@@ -55,6 +58,7 @@ $(document).ready(function () {
 // Define a common utility class used across the entire application.
 nf.Common = {
     config: {
+        sensitiveText: 'Sensitive value set',
         tooltipConfig: {
             style: {
                 classes: 'nifi-tooltip'
@@ -312,6 +316,15 @@ nf.Common = {
     },
     
     /**
+     * Removes all read only property detail dialogs.
+     */
+    removeAllPropertyDetailDialogs: function () {
+        var propertyDetails = $('body').children('div.property-detail');
+        propertyDetails.find('div.nfel-editor').nfeditor('destroy');
+        propertyDetails.hide().remove();
+    },
+    
+    /**
      * Formats the tooltip for the specified property.
      * 
      * @param {object} propertyDescriptor      The property descriptor
@@ -406,7 +419,73 @@ nf.Common = {
     }()),
     
     /**
-     * Creates a form inline in order to post the specified params to the specified URL.
+     * Determines if the specified property is sensitive.
+     * 
+     * @argument {object} propertyDescriptor        The property descriptor
+     */
+    isSensitiveProperty: function (propertyDescriptor) {
+        if (nf.Common.isDefinedAndNotNull(propertyDescriptor)) {
+            return propertyDescriptor.sensitive === true;
+        } else {
+            return false;
+        }
+    },
+
+    /**
+     * Determines if the specified property is required.
+     * 
+     * @param {object} propertyDescriptor           The property descriptor
+     */
+    isRequiredProperty: function (propertyDescriptor) {
+        if (nf.Common.isDefinedAndNotNull(propertyDescriptor)) {
+            return propertyDescriptor.required === true;
+        } else {
+            return false;
+        }
+    },
+
+    /**
+     * Determines if the specified property is required.
+     * 
+     * @param {object} propertyDescriptor           The property descriptor
+     */
+    isDynamicProperty: function (propertyDescriptor) {
+        if (nf.Common.isDefinedAndNotNull(propertyDescriptor)) {
+            return propertyDescriptor.dynamic === true;
+        } else {
+            return false;
+        }
+    },
+
+    /**
+     * Gets the allowable values for the specified property.
+     * 
+     * @argument {object} propertyDescriptor        The property descriptor
+     */
+    getAllowableValues: function (propertyDescriptor) {
+        if (nf.Common.isDefinedAndNotNull(propertyDescriptor)) {
+            return propertyDescriptor.allowableValues;
+        } else {
+            return null;
+        }
+    },
+
+    /**
+     * Returns whether the specified property supports EL.
+     * 
+     * @param {object} propertyDescriptor           The property descriptor
+     */
+    supportsEl: function (propertyDescriptor) {
+        if (nf.Common.isDefinedAndNotNull(propertyDescriptor)) {
+            return propertyDescriptor.supportsEl === true;
+        } else {
+            return false;
+        }
+    },
+    
+    /**
+     * Creates a form inline in order to submit the specified params to the specified URL
+     * using the specified method.
      * 
      * @param {string} url          The URL
      * @param {object} params       An object with the params to include in the submission

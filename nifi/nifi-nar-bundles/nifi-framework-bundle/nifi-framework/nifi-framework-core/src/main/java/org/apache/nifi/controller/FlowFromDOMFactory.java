@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.connectable.Size;
+import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.groups.RemoteProcessGroupPortDescriptor;
 import org.apache.nifi.remote.StandardRemoteProcessGroupPortDescriptor;
@@ -33,6 +34,7 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.DomUtils;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
+import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
@@ -42,7 +44,7 @@ import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
-
+import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
@@ -76,6 +78,40 @@ public class FlowFromDOMFactory {
         }
 
         return styles;
+    }
+    
+    public static ControllerServiceDTO getControllerService(final Element element, final StringEncryptor encryptor) {
+    	final ControllerServiceDTO dto = new ControllerServiceDTO();
+    	
+    	dto.setId(getString(element, "id"));
+    	dto.setName(getString(element, "name"));
+    	dto.setComments(getString(element, "comment"));
+    	dto.setType(getString(element, "class"));
+
+    	final boolean enabled = getBoolean(element, "enabled");
+    	dto.setState(enabled ? ControllerServiceState.ENABLED.name() : ControllerServiceState.DISABLED.name());
+    	
+        dto.setProperties(getProperties(element, encryptor));
+        dto.setAnnotationData(getString(element, "annotationData"));
+
+        return dto;
+    }
+    
+    public static ReportingTaskDTO getReportingTask(final Element element, final StringEncryptor encryptor) {
+    	final ReportingTaskDTO dto = new ReportingTaskDTO();
+    	
+    	dto.setId(getString(element, "id"));
+    	dto.setName(getString(element, "name"));
+    	dto.setComments(getString(element, "comment"));
+    	dto.setType(getString(element, "class"));
+    	dto.setSchedulingPeriod(getString(element, "schedulingPeriod"));
+    	dto.setState(getString(element, "scheduledState"));
+    	dto.setSchedulingStrategy(getString(element, "schedulingStrategy"));
+    	
+    	dto.setProperties(getProperties(element, encryptor));
+    	dto.setAnnotationData(getString(element, "annotationData"));
+
+    	return dto;
     }
 
     public static ProcessGroupDTO getProcessGroup(final String parentId, final Element element, final StringEncryptor encryptor) {
@@ -310,7 +346,6 @@ public class FlowFromDOMFactory {
         final ProcessorConfigDTO configDto = new ProcessorConfigDTO();
         dto.setConfig(configDto);
         configDto.setComments(getString(element, "comment"));
-        configDto.setAnnotationData(getString(element, "annotationData"));
         configDto.setConcurrentlySchedulableTaskCount(getInt(element, "maxConcurrentTasks"));
         final String schedulingPeriod = getString(element, "schedulingPeriod");
         configDto.setSchedulingPeriod(schedulingPeriod);
@@ -334,14 +369,8 @@ public class FlowFromDOMFactory {
             configDto.setRunDurationMillis(TimeUnit.NANOSECONDS.toMillis(runDurationNanos));
         }
 
-        final LinkedHashMap<String, String> properties = new LinkedHashMap<>();
-        final List<Element> propertyNodeList = getChildrenByTagName(element, "property");
-        for (final Element propertyElement : propertyNodeList) {
-            final String name = getString(propertyElement, "name");
-            final String value = decrypt(getString(propertyElement, "value"), encryptor);
-            properties.put(name, value);
-        }
-        configDto.setProperties(properties);
+        configDto.setProperties(getProperties(element, encryptor));
+        configDto.setAnnotationData(getString(element, "annotationData"));
 
         final Set<String> autoTerminatedRelationships = new HashSet<>();
         final List<Element> autoTerminateList = getChildrenByTagName(element, "autoTerminatedRelationship");
@@ -353,6 +382,17 @@ public class FlowFromDOMFactory {
         return dto;
     }
 
+    private static LinkedHashMap<String, String> getProperties(final Element element, final StringEncryptor encryptor) {
+    	final LinkedHashMap<String, String> properties = new LinkedHashMap<>();
+        final List<Element> propertyNodeList = getChildrenByTagName(element, "property");
+        for (final Element propertyElement : propertyNodeList) {
+            final String name = getString(propertyElement, "name");
+            final String value = decrypt(getString(propertyElement, "value"), encryptor);
+            properties.put(name, value);
+        }
+        return properties;
+    }
+    
     private static String getString(final Element element, final String childElementName) {
         final List<Element> nodeList = getChildrenByTagName(element, childElementName);
         if (nodeList == null || nodeList.isEmpty()) {

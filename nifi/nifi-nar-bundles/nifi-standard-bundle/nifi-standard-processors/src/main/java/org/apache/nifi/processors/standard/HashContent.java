@@ -32,6 +32,7 @@ import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ProcessorLog;
@@ -51,6 +52,7 @@ import org.apache.nifi.util.ObjectHolder;
 @SupportsBatching
 @Tags({"hash", "content", "MD5", "SHA-1", "SHA-256"})
 @CapabilityDescription("Calculates a hash value for the Content of a FlowFile and puts that hash value on the FlowFile as an attribute whose name is determined by the <Hash Attribute Name> property")
+@WritesAttribute(attribute="<Hash Attribute Name>", description="This Processor adds an attribute whose value is the result of Hashing the existing FlowFile attributes. The name of this attribute is specified by the <Hash Attribute Name> property")
 public class HashContent extends AbstractProcessor {
 
     public static final PropertyDescriptor ATTRIBUTE_NAME = new PropertyDescriptor.Builder()

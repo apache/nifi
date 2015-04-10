@@ -30,6 +30,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -59,6 +60,7 @@ import org.apache.nifi.update.attributes.Rule;
 import org.apache.nifi.update.attributes.FlowFilePolicy;
 import org.apache.nifi.update.attributes.serde.CriteriaSerDe;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
 
 /**
  * This processor supports updating flowfile attributes and can do so
@@ -112,6 +114,9 @@ import org.apache.commons.lang3.StringUtils;
 @SideEffectFree
 @Tags({"attributes", "modification", "update", "Attribute Expression Language"})
 @CapabilityDescription("Updates the Attributes for a FlowFile by using the Attribute Expression Language")
+@DynamicProperty(name="A FlowFile attribute to update", value="The value to set it to", supportsExpressionLanguage=true, description="Updates a " + 
+"FlowFile attribute specified by the Dynamic Property's key with the value specified by the Dynamic Property's value")
+@WritesAttribute(attribute = "See additional details", description = "This processor may write zero or more attributes as described in additional details")
 public class UpdateAttribute extends AbstractProcessor implements Searchable {
 
     private final AtomicReference<Criteria> criteriaCache = new AtomicReference<>(null);

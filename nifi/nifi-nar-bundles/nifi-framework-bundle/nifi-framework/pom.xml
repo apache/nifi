@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-framework-bundle</artifactId>
-        <version>0.0.2-incubating-SNAPSHOT</version>
+        <version>0.1.0-incubating-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-framework</artifactId>
     <packaging>pom</packaging>
@@ -30,15 +30,16 @@
         <module>nifi-security</module>
         <module>nifi-site-to-site</module>
         <module>nifi-framework-core</module>
-        <module>nifi-cluster-protocol</module>
-        <module>nifi-cluster-web</module>
-        <module>nifi-cluster</module>
+        <module>nifi-framework-cluster-protocol</module>
+        <module>nifi-framework-cluster-web</module>
+        <module>nifi-framework-cluster</module>
         <module>nifi-file-authorization-provider</module>
         <module>nifi-cluster-authorization-provider</module>
         <module>nifi-user-actions</module>
         <module>nifi-administration</module>
         <module>nifi-web</module>
         <module>nifi-resources</module>
+        <module>nifi-documentation</module>
     </modules>
     <dependencies>
         <dependency>

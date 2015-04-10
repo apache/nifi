@@ -289,8 +289,6 @@ var ua = {
                                     type: 'GET',
                                     data: {
                                         processorId: ua.getProcessorId(),
-                                        revision: ua.getRevision(),
-                                        clientId: ua.getClientId(),
                                         q: copyFromRuleName
                                     },
                                     dataType: 'json',
@@ -420,8 +418,6 @@ var ua = {
                     type: 'GET',
                     data: {
                         processorId: ua.getProcessorId(),
-                        revision: ua.getRevision(),
-                        clientId: ua.getClientId(),
                         q: request.term
                     },
                     dataType: 'json',
@@ -1024,8 +1020,6 @@ var ua = {
             type: 'GET',
             url: 'api/criteria/rules?' + $.param({
                 processorId: ua.getProcessorId(),
-                revision: ua.getRevision(),
-                clientId: ua.getClientId(),
                 verbose: true
             })
         }).done(function (response) {
@@ -1051,9 +1045,7 @@ var ua = {
         var evaluationContext = $.ajax({
             type: 'GET',
             url: 'api/criteria/evaluation-context?' + $.param({
-                processorId: ua.getProcessorId(),
-                revision: ua.getRevision(),
-                clientId: ua.getClientId()
+                processorId: ua.getProcessorId()
             })
         }).done(function (evaluationContext) {
             // record the currently selected value
@@ -1100,8 +1092,6 @@ var ua = {
                     type: 'GET',
                     url: 'api/criteria/rules/' + encodeURIComponent(ruleId) + '?' + $.param({
                         processorId: ua.getProcessorId(),
-                        revision: ua.getRevision(),
-                        clientId: ua.getClientId(),
                         verbose: true
                     })
                 }).then(function (response) {

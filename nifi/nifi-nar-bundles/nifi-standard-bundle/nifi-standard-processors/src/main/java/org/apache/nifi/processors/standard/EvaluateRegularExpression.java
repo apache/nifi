@@ -40,29 +40,26 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 
 @EventDriven
 @SideEffectFree
 @SupportsBatching
-@Tags({"evaluate", "Text", "Regular Expression", "regex", "experimental"})
+@Tags({"deprecated"})
 @CapabilityDescription(
-        "Evaluates one or more Regular Expressions against the content of a FlowFile.  "
-        + "The results of those Regular Expressions are assigned to FlowFile Attributes.  "
-        + "Regular Expressions are entered by adding user-defined properties; "
-        + "the name of the property maps to the Attribute Name into which the result will be placed.  "
-        + "The value of the property must be a valid Regular Expressions with exactly one capturing group.  "
-        + "If the Regular Expression matches more than once, only the first match will be used.  "
-        + "If any provided Regular Expression matches, the FlowFile(s) will be routed to 'matched'. "
-        + "If no provided Regular Expression matches, the FlowFile will be routed to 'unmatched' and no attributes will be applied to the FlowFile.")
-
+        "WARNING: This has been deprecated and will be removed in 0.2.0.  \n\n"
+        + "Use ExtractText instead.")
+@SeeAlso(ExtractText.class)
+@Deprecated
+@DynamicProperty(name = "A FlowFile attribute", value = "A regular expression with exactly one capturing group", description = "Will update the specified FlowFile attribute with the group captured by the regular expression")
 public class EvaluateRegularExpression extends AbstractProcessor {
 
     public static final PropertyDescriptor CHARACTER_SET = new PropertyDescriptor.Builder()

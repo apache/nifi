@@ -25,6 +25,16 @@ import org.w3c.dom.NodeList;
 
 public class DomUtils {
 
+    public static String getChildText(final Element element, final String tagName) {
+        final Element childElement = getChild(element, tagName);
+        if ( childElement == null ) {
+            return null;
+        }
+        
+        final String text = childElement.getTextContent();
+        return (text == null) ? null : text.trim();
+    }
+    
     public static Element getChild(final Element element, final String tagName) {
         final List<Element> children = getChildElementsByTagName(element, tagName);
         if (children.isEmpty()) {

@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-framework</artifactId>
-        <version>0.0.2-incubating-SNAPSHOT</version>
+        <version>0.1.0-incubating-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-framework-core</artifactId>
     <packaging>jar</packaging>
@@ -64,8 +64,8 @@
             <artifactId>nifi-client-dto</artifactId>
         </dependency>
         <dependency>
-        	<groupId>org.apache.nifi</groupId>
-        	<artifactId>nifi-site-to-site-client</artifactId>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-site-to-site-client</artifactId>
         </dependency>
         <dependency>
             <groupId>org.quartz-scheduler</groupId>
@@ -121,4 +121,19 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.rat</groupId>
+                <artifactId>apache-rat-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>src/test/resources/conf/0bytes.xml</exclude>
+                        <exclude>src/test/resources/conf/termination-only.xml</exclude>
+                        <exclude>src/test/resources/hello.txt</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

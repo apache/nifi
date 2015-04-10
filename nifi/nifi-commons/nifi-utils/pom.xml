@@ -18,10 +18,10 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-commons</artifactId>
-        <version>0.0.2-incubating-SNAPSHOT</version>
+        <version>0.1.0-incubating-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-utils</artifactId>
-    <version>0.0.2-incubating-SNAPSHOT</version>
+    <version>0.1.0-incubating-SNAPSHOT</version>
     <packaging>jar</packaging>
     <!--
     This project intentionally has no additional dependencies beyond that pulled in by the parent.  It is a general purpose utility library

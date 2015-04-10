@@ -17,6 +17,7 @@
 package org.apache.nifi.controller;
 
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -24,4 +25,7 @@ import org.apache.nifi.components.ValidationContext;
 public interface ValidationContextFactory {
 
     ValidationContext newValidationContext(Map<PropertyDescriptor, String> properties, String annotationData);
+    
+    ValidationContext newValidationContext(Set<String> serviceIdentifiersToNotValidate, Map<PropertyDescriptor, String> properties, String annotationData);
+    
 }

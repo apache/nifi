@@ -22,6 +22,7 @@ import org.apache.nifi.components.AbstractConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.controller.annotation.OnConfigured;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.reporting.InitializationException;
 
@@ -30,11 +31,13 @@ public abstract class AbstractControllerService extends AbstractConfigurableComp
     private String identifier;
     private ControllerServiceLookup serviceLookup;
     private volatile ConfigurationContext configContext;
-
+    private ComponentLog logger;
+    
     @Override
     public final void initialize(final ControllerServiceInitializationContext context) throws InitializationException {
         this.identifier = context.getIdentifier();
         serviceLookup = context.getControllerServiceLookup();
+        logger = context.getLogger();
         init(context);
     }
 
@@ -87,5 +90,13 @@ public abstract class AbstractControllerService extends AbstractConfigurableComp
      * @throws InitializationException
      */
     protected void init(final ControllerServiceInitializationContext config) throws InitializationException {
+    }
+    
+    /**
+     * Returns the logger that has been provided to the component by the framework in its initialize method.
+     * @return
+     */
+    protected ComponentLog getLogger() {
+        return logger;
     }
 }

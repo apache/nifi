@@ -26,13 +26,11 @@
                 Displaying&nbsp;<span id="displayed-processor-types"></span>&nbsp;of&nbsp;<span id="total-processor-types"></span>
             </div>
         </div>
-        <div id="tag-cloud-container">
+        <div id="processor-tag-cloud-container">
             <div class="setting">
                 <div class="setting-name">Tags</div>
                 <div class="setting-field">
-                    <ul id="tag-cloud"></ul>
-                    <div id="tag-cloud-separator"></div>
-                    <ul id="tag-filter"></ul>
+                    <div id="processor-tag-cloud"></div>
                 </div>
             </div>
         </div>

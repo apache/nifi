@@ -48,12 +48,12 @@ public interface ActionDAO {
 
     /**
      * Finds the previous values for the specified property in the specified
-     * processor. Returns empty list if there are none.
+     * component. Returns empty list if there are none.
      *
-     * @param processorId
+     * @param componentId
      * @return
      */
-    Map<String, List<PreviousValue>> getPreviousValues(String processorId);
+    Map<String, List<PreviousValue>> getPreviousValues(String componentId);
 
     /**
      * Finds the specified action.

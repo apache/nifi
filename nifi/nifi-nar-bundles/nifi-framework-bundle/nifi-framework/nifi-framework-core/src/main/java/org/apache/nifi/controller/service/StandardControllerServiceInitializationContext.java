@@ -21,14 +21,17 @@ import java.util.Set;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.logging.ComponentLog;
 
 public class StandardControllerServiceInitializationContext implements ControllerServiceInitializationContext, ControllerServiceLookup {
 
     private final String id;
     private final ControllerServiceProvider serviceProvider;
+    private final ComponentLog logger;
 
-    public StandardControllerServiceInitializationContext(final String identifier, final ControllerServiceProvider serviceProvider) {
+    public StandardControllerServiceInitializationContext(final String identifier, final ComponentLog logger, final ControllerServiceProvider serviceProvider) {
         this.id = identifier;
+        this.logger = logger;
         this.serviceProvider = serviceProvider;
     }
 
@@ -60,5 +63,20 @@ public class StandardControllerServiceInitializationContext implements Controlle
     @Override
     public boolean isControllerServiceEnabled(final ControllerService service) {
         return serviceProvider.isControllerServiceEnabled(service);
+    }
+    
+    @Override
+    public boolean isControllerServiceEnabling(String serviceIdentifier) {
+        return serviceProvider.isControllerServiceEnabling(serviceIdentifier);
+    }
+    
+    @Override
+    public String getControllerServiceName(final String serviceIdentifier) {
+    	return serviceProvider.getControllerServiceName(serviceIdentifier);
+    }
+
+    @Override
+    public ComponentLog getLogger() {
+        return logger;
     }
 }

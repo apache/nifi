@@ -19,14 +19,12 @@ package org.apache.nifi.controller.tasks;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.scheduling.ScheduleState;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.NarCloseable;
+import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.util.ReflectionUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ReportingTaskWrapper implements Runnable {
-
-    private static final Logger logger = LoggerFactory.getLogger(ReportingTaskWrapper.class);
 
     private final ReportingTaskNode taskNode;
     private final ScheduleState scheduleState;
@@ -43,20 +41,23 @@ public class ReportingTaskWrapper implements Runnable {
         try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
             taskNode.getReportingTask().onTrigger(taskNode.getReportingContext());
         } catch (final Throwable t) {
-            logger.error("Error running task {} due to {}", taskNode.getReportingTask(), t.toString());
-            if (logger.isDebugEnabled()) {
-                logger.error("", t);
+            final ComponentLog componentLog = new SimpleProcessLogger(taskNode.getIdentifier(), taskNode.getReportingTask());
+            componentLog.error("Error running task {} due to {}", new Object[] {taskNode.getReportingTask(), t.toString()});
+            if (componentLog.isDebugEnabled()) {
+                componentLog.error("", t);
             }
         } finally {
-            // if the processor is no longer scheduled to run and this is the last thread,
-            // invoke the OnStopped methods
-            if (!scheduleState.isScheduled() && scheduleState.getActiveThreadCount() == 1 && scheduleState.mustCallOnStoppedMethods()) {
-                try (final NarCloseable x = NarCloseable.withNarLoader()) {
-                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, org.apache.nifi.processor.annotation.OnStopped.class, taskNode.getReportingTask(), taskNode.getReportingContext());
+            try {
+                // if the reporting task is no longer scheduled to run and this is the last thread,
+                // invoke the OnStopped methods
+                if (!scheduleState.isScheduled() && scheduleState.getActiveThreadCount() == 1 && scheduleState.mustCallOnStoppedMethods()) {
+                    try (final NarCloseable x = NarCloseable.withNarLoader()) {
+                        ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, org.apache.nifi.processor.annotation.OnStopped.class, taskNode.getReportingTask(), taskNode.getConfigurationContext());
+                    }
                 }
+            } finally {
+                scheduleState.decrementActiveThreadCount();
             }
-
-            scheduleState.decrementActiveThreadCount();
         }
     }
 

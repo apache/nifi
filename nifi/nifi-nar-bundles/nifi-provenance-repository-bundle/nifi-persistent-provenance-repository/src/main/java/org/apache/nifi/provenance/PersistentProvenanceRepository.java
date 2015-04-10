@@ -130,6 +130,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
     private final RepositoryConfiguration configuration;
     private final IndexConfiguration indexConfig;
     private final boolean alwaysSync;
+    private final int rolloverCheckMillis;
 
     private final ScheduledExecutorService scheduledExecService;
     private final ExecutorService rolloverExecutor;
@@ -156,10 +157,10 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
     private EventReporter eventReporter;
 
     public PersistentProvenanceRepository() throws IOException {
-        this(createRepositoryConfiguration());
+        this(createRepositoryConfiguration(), 10000);
     }
 
-    public PersistentProvenanceRepository(final RepositoryConfiguration configuration) throws IOException {
+    public PersistentProvenanceRepository(final RepositoryConfiguration configuration, final int rolloverCheckMillis) throws IOException {
         if (configuration.getStorageDirectories().isEmpty()) {
             throw new IllegalArgumentException("Must specify at least one storage directory");
         }
@@ -181,7 +182,8 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
         this.maxPartitionBytes = configuration.getMaxEventFileCapacity();
         this.indexConfig = new IndexConfiguration(configuration);
         this.alwaysSync = configuration.isAlwaysSync();
-
+        this.rolloverCheckMillis = rolloverCheckMillis;
+        
         final List<SearchableField> fields = configuration.getSearchableFields();
         if (fields != null && !fields.isEmpty()) {
             indexingAction = new IndexingAction(this, indexConfig);
@@ -244,7 +246,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                         }
                     }
                 }
-            }, 10L, 10L, TimeUnit.SECONDS);
+            }, rolloverCheckMillis, rolloverCheckMillis, TimeUnit.MILLISECONDS);
 
             scheduledExecService.scheduleWithFixedDelay(new RemoveExpiredQueryResults(), 30L, 3L, TimeUnit.SECONDS);
             scheduledExecService.scheduleWithFixedDelay(new Runnable() {

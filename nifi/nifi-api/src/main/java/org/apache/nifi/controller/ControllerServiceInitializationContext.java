@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.controller;
 
+import org.apache.nifi.logging.ComponentLog;
+
 public interface ControllerServiceInitializationContext {
 
     /**
@@ -33,4 +35,12 @@ public interface ControllerServiceInitializationContext {
      * @return
      */
     ControllerServiceLookup getControllerServiceLookup();
+    
+    /**
+     * Returns a logger that can be used to log important events in a standard way and generate
+     * bulletins when appropriate
+     * 
+     * @return
+     */
+    ComponentLog getLogger();
 }

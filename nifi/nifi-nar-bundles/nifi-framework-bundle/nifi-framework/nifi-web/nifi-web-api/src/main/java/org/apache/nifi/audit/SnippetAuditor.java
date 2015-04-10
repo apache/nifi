@@ -25,7 +25,7 @@ import java.util.Set;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
 import org.apache.nifi.action.Operation;
-import org.apache.nifi.action.component.details.ProcessorDetails;
+import org.apache.nifi.action.component.details.ExtensionDetails;
 import org.apache.nifi.action.component.details.RemoteProcessGroupDetails;
 import org.apache.nifi.action.details.ConnectDetails;
 import org.apache.nifi.connectable.ConnectableType;
@@ -94,7 +94,7 @@ public class SnippetAuditor extends NiFiAuditor {
      */
     @Around("within(org.apache.nifi.web.dao.SnippetDAO+) && "
             + "execution(org.apache.nifi.web.api.dto.FlowSnippetDTO copySnippet(java.lang.String, java.lang.String, java.lang.Double, java.lang.Double))")
-    public Object copySnippetAdvice(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+    public FlowSnippetDTO copySnippetAdvice(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         // perform the underlying operation
         FlowSnippetDTO snippet = (FlowSnippetDTO) proceedingJoinPoint.proceed();
         auditSnippet(snippet);
@@ -110,7 +110,7 @@ public class SnippetAuditor extends NiFiAuditor {
      */
     @Around("within(org.apache.nifi.web.dao.TemplateDAO+) && "
             + "execution(org.apache.nifi.web.api.dto.FlowSnippetDTO instantiateTemplate(java.lang.String, java.lang.Double, java.lang.Double, java.lang.String))")
-    public Object instantiateTemplateAdvice(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+    public FlowSnippetDTO instantiateTemplateAdvice(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         // perform the underlying operation
         FlowSnippetDTO snippet = (FlowSnippetDTO) proceedingJoinPoint.proceed();
         auditSnippet(snippet);
@@ -153,7 +153,7 @@ public class SnippetAuditor extends NiFiAuditor {
 
         // processors
         for (final ProcessorDTO processor : snippet.getProcessors()) {
-            final ProcessorDetails processorDetails = new ProcessorDetails();
+            final ExtensionDetails processorDetails = new ExtensionDetails();
             processorDetails.setType(StringUtils.substringAfterLast(processor.getType(), "."));
 
             final Action action = generateAuditRecord(processor.getId(), processor.getName(), Component.Processor, Operation.Add, timestamp);
@@ -256,15 +256,16 @@ public class SnippetAuditor extends NiFiAuditor {
      * Audits a bulk move.
      *
      * @param proceedingJoinPoint
-     * @param snippetId
+     * @param snippetDTO
      * @param snippetDAO
+     * @return 
      * @throws Throwable
      */
     @Around("within(org.apache.nifi.web.dao.SnippetDAO+) && "
             + "execution(org.apache.nifi.controller.Snippet updateSnippet(org.apache.nifi.web.api.dto.SnippetDTO)) && "
             + "args(snippetDTO) && "
             + "target(snippetDAO)")
-    public Object updateSnippetAdvice(ProceedingJoinPoint proceedingJoinPoint, SnippetDTO snippetDTO, SnippetDAO snippetDAO) throws Throwable {
+    public Snippet updateSnippetAdvice(ProceedingJoinPoint proceedingJoinPoint, SnippetDTO snippetDTO, SnippetDAO snippetDAO) throws Throwable {
         // get the snippet before removing it
         Snippet snippet = snippetDAO.getSnippet(snippetDTO.getId());
         final String previousGroupId = snippet.getParentGroupId();

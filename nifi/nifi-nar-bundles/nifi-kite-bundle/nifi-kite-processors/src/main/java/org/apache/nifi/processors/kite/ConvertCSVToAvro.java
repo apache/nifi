@@ -48,8 +48,9 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.kitesdk.data.DatasetException;
 import org.kitesdk.data.DatasetIOException;
 import org.kitesdk.data.DatasetRecordException;
+import org.kitesdk.data.SchemaNotFoundException;
 import org.kitesdk.data.spi.DefaultConfiguration;
-import org.kitesdk.data.spi.filesystem.CSVFileReaderFixed;
+import org.kitesdk.data.spi.filesystem.CSVFileReader;
 import org.kitesdk.data.spi.filesystem.CSVProperties;
 
 import static org.apache.nifi.processor.util.StandardValidators.createLongValidator;
@@ -87,9 +88,9 @@ public class ConvertCSVToAvro extends AbstractKiteProcessor {
   static final PropertyDescriptor SCHEMA =
       new PropertyDescriptor.Builder()
           .name("Record schema")
-          .description(
-              "Outgoing Avro schema for each record created from a CSV row")
+          .description("Outgoing Avro schema for each record created from a CSV row")
           .addValidator(SCHEMA_VALIDATOR)
+          .expressionLanguageSupported(true)
           .required(true)
           .build();
 
@@ -201,9 +202,17 @@ public class ConvertCSVToAvro extends AbstractKiteProcessor {
       return;
     }
 
-    final Schema schema = getSchema(
-        context.getProperty(SCHEMA).getValue(),
-        DefaultConfiguration.get());
+    String schemaProperty = context.getProperty(SCHEMA)
+        .evaluateAttributeExpressions(flowFile)
+        .getValue();
+    final Schema schema;
+    try {
+      schema = getSchema(schemaProperty, DefaultConfiguration.get());
+    } catch (SchemaNotFoundException e) {
+      getLogger().error("Cannot find schema: " + schemaProperty);
+      session.transfer(flowFile, FAILURE);
+      return;
+    }
 
     final DataFileWriter<Record> writer = new DataFileWriter<>(
         AvroUtil.newDatumWriter(schema, Record.class));
@@ -215,7 +224,7 @@ public class ConvertCSVToAvro extends AbstractKiteProcessor {
         public void process(InputStream in, OutputStream out) throws IOException {
           long written = 0L;
           long errors = 0L;
-          try (CSVFileReaderFixed<Record> reader = new CSVFileReaderFixed<>(
+          try (CSVFileReader<Record> reader = new CSVFileReader<>(
               in, props, schema, Record.class)) {
             reader.initialize();
             try (DataFileWriter<Record> w = writer.create(schema, out)) {
@@ -243,15 +252,9 @@ public class ConvertCSVToAvro extends AbstractKiteProcessor {
     } catch (ProcessException | DatasetIOException e) {
       getLogger().error("Failed reading or writing", e);
       session.transfer(flowFile, FAILURE);
-
     } catch (DatasetException e) {
       getLogger().error("Failed to read FlowFile", e);
       session.transfer(flowFile, FAILURE);
-
-    } catch (Throwable t) {
-      getLogger().error("Unknown Throwable", t);
-      session.rollback(true); // penalize just in case
-      context.yield();
     }
   }
 }

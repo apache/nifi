@@ -26,6 +26,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +41,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
 import org.apache.nifi.connectable.Connectable;
@@ -51,23 +53,35 @@ import org.apache.nifi.connectable.Position;
 import org.apache.nifi.connectable.Size;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.label.Label;
+import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
+import org.apache.nifi.controller.reporting.StandardReportingInitializationContext;
+import org.apache.nifi.controller.service.ControllerServiceLoader;
+import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.controller.service.ControllerServiceState;
+import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.events.BulletinFactory;
-import org.apache.nifi.util.file.FileUtils;
 import org.apache.nifi.fingerprint.FingerprintException;
 import org.apache.nifi.fingerprint.FingerprintFactory;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroupPortDescriptor;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.RootGroupPort;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.util.DomUtils;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.util.file.FileUtils;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
+import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
@@ -77,9 +91,7 @@ import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
-
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -96,9 +108,11 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
     private static final Logger logger = LoggerFactory.getLogger(StandardFlowSynchronizer.class);
     public static final URL FLOW_XSD_RESOURCE = StandardFlowSynchronizer.class.getResource("/FlowConfiguration.xsd");
     private final StringEncryptor encryptor;
+    private final boolean autoResumeState;
 
     public StandardFlowSynchronizer(final StringEncryptor encryptor) {
         this.encryptor = encryptor;
+        autoResumeState = NiFiProperties.getInstance().getAutoResumeState();
     }
 
     public static boolean isEmpty(final DataFlow dataFlow, final StringEncryptor encryptor) {
@@ -157,10 +171,26 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                         controller.setMaxEventDrivenThreadCount(maxThreadCount / 3);
                     }
 
+                    final Element reportingTasksElement = (Element) DomUtils.getChild(rootElement, "reportingTasks");
+                    final List<Element> taskElements;
+                    if ( reportingTasksElement == null ) {
+                        taskElements = Collections.emptyList();
+                    } else {
+                        taskElements = DomUtils.getChildElementsByTagName(reportingTasksElement, "reportingTask");
+                    }
+                    
+                    final Element controllerServicesElement = (Element) DomUtils.getChild(rootElement, "controllerServices");
+                    final List<Element> controllerServiceElements;
+                    if ( controllerServicesElement == null ) {
+                        controllerServiceElements = Collections.emptyList();
+                    } else {
+                        controllerServiceElements = DomUtils.getChildElementsByTagName(controllerServicesElement, "controllerService");
+                    }
+                    
                     logger.trace("Parsing process group from DOM");
                     final Element rootGroupElement = (Element) rootElement.getElementsByTagName("rootGroup").item(0);
                     final ProcessGroupDTO rootGroupDto = FlowFromDOMFactory.getProcessGroup(null, rootGroupElement, encryptor);
-                    existingFlowEmpty = isEmpty(rootGroupDto);
+                    existingFlowEmpty = taskElements.isEmpty() && controllerServiceElements.isEmpty() && isEmpty(rootGroupDto);
                     logger.debug("Existing Flow Empty = {}", existingFlowEmpty);
                 }
             }
@@ -200,37 +230,64 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         // create document by parsing proposed flow bytes
         logger.trace("Parsing proposed flow bytes as DOM document");
         final Document configuration = parseFlowBytes(proposedFlow.getFlow());
-
+        
         // attempt to sync controller with proposed flow
         try {
             if (configuration != null) {
-                // get the root element
-                final Element rootElement = (Element) configuration.getElementsByTagName("flowController").item(0);
-
-                // set controller config
-                logger.trace("Updating flow config");
-                final Integer maxThreadCount = getInteger(rootElement, "maxThreadCount");
-                if (maxThreadCount == null) {
-                    controller.setMaxTimerDrivenThreadCount(getInt(rootElement, "maxTimerDrivenThreadCount"));
-                    controller.setMaxEventDrivenThreadCount(getInt(rootElement, "maxEventDrivenThreadCount"));
-                } else {
-                    controller.setMaxTimerDrivenThreadCount(maxThreadCount * 2 / 3);
-                    controller.setMaxEventDrivenThreadCount(maxThreadCount / 3);
-                }
-
-                // get the root group XML element
-                final Element rootGroupElement = (Element) rootElement.getElementsByTagName("rootGroup").item(0);
-
-                // if this controller isn't initialized or its emtpy, add the root group, otherwise update
-                if (!initialized || existingFlowEmpty) {
-                    logger.trace("Adding root process group");
-                    addProcessGroup(controller, /* parent group */ null, rootGroupElement, encryptor);
-                } else {
-                    logger.trace("Updating root process group");
-                    updateProcessGroup(controller, /* parent group */ null, rootGroupElement, encryptor);
+                synchronized (configuration) {
+                    // get the root element
+                    final Element rootElement = (Element) configuration.getElementsByTagName("flowController").item(0);
+    
+                    // set controller config
+                    logger.trace("Updating flow config");
+                    final Integer maxThreadCount = getInteger(rootElement, "maxThreadCount");
+                    if (maxThreadCount == null) {
+                        controller.setMaxTimerDrivenThreadCount(getInt(rootElement, "maxTimerDrivenThreadCount"));
+                        controller.setMaxEventDrivenThreadCount(getInt(rootElement, "maxEventDrivenThreadCount"));
+                    } else {
+                        controller.setMaxTimerDrivenThreadCount(maxThreadCount * 2 / 3);
+                        controller.setMaxEventDrivenThreadCount(maxThreadCount / 3);
+                    }
+    
+                    // get the root group XML element
+                    final Element rootGroupElement = (Element) rootElement.getElementsByTagName("rootGroup").item(0);
+    
+                    final Element controllerServicesElement = (Element) DomUtils.getChild(rootElement, "controllerServices");
+    	            if ( controllerServicesElement != null ) {
+    	                final List<Element> serviceElements = DomUtils.getChildElementsByTagName(controllerServicesElement, "controllerService");
+    	                
+    	                if ( !initialized || existingFlowEmpty ) {
+    	                    ControllerServiceLoader.loadControllerServices(serviceElements, controller, encryptor, controller.getBulletinRepository(), autoResumeState);
+    	                } else {
+    	                    for ( final Element serviceElement : serviceElements ) {
+    	                        updateControllerService(controller, serviceElement, encryptor);
+    	                    }
+    	                }
+                    }
+    
+                    // if this controller isn't initialized or its emtpy, add the root group, otherwise update
+                    if (!initialized || existingFlowEmpty) {
+                        logger.trace("Adding root process group");
+                        addProcessGroup(controller, /* parent group */ null, rootGroupElement, encryptor);
+                    } else {
+                        logger.trace("Updating root process group");
+                        updateProcessGroup(controller, /* parent group */ null, rootGroupElement, encryptor);
+                    }
+    
+                    final Element reportingTasksElement = (Element) DomUtils.getChild(rootElement, "reportingTasks");
+                    if ( reportingTasksElement != null ) {
+                    	final List<Element> taskElements = DomUtils.getChildElementsByTagName(reportingTasksElement, "reportingTask");
+                    	for ( final Element taskElement : taskElements ) {
+                    		if ( !initialized || existingFlowEmpty ) {
+                    			addReportingTask(controller, taskElement, encryptor);
+                    		} else {
+                    			updateReportingTask(controller, taskElement, encryptor);
+                    		}
+                    	}
+                    }
                 }
             }
-
+    
             logger.trace("Synching templates");
             if ((existingTemplates == null || existingTemplates.length == 0) && proposedFlow.getTemplates() != null && proposedFlow.getTemplates().length > 0) {
                 // need to load templates
@@ -313,7 +370,124 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
 
         return baos.toByteArray();
     }
+    
+    
+    private void updateControllerService(final FlowController controller, final Element controllerServiceElement, final StringEncryptor encryptor) {
+    	final ControllerServiceDTO dto = FlowFromDOMFactory.getControllerService(controllerServiceElement, encryptor);
+    	
+    	final ControllerServiceState dtoState = ControllerServiceState.valueOf(dto.getState());
+        final boolean dtoEnabled = (dtoState == ControllerServiceState.ENABLED || dtoState == ControllerServiceState.ENABLING);
+        
+        final ControllerServiceNode serviceNode = controller.getControllerServiceNode(dto.getId());
+        final ControllerServiceState serviceState = serviceNode.getState();
+        final boolean serviceEnabled = (serviceState == ControllerServiceState.ENABLED || serviceState == ControllerServiceState.ENABLING);
+        
+    	if (dtoEnabled && !serviceEnabled) {
+    		controller.enableControllerService(controller.getControllerServiceNode(dto.getId()));
+    	} else if (!dtoEnabled && serviceEnabled) {
+    		controller.disableControllerService(controller.getControllerServiceNode(dto.getId()));
+    	}
+    }
+    
+    private void addReportingTask(final FlowController controller, final Element reportingTaskElement, final StringEncryptor encryptor) throws ReportingTaskInstantiationException {
+    	final ReportingTaskDTO dto = FlowFromDOMFactory.getReportingTask(reportingTaskElement, encryptor);
+    	
+    	final ReportingTaskNode reportingTask = controller.createReportingTask(dto.getType(), dto.getId(), false);
+    	reportingTask.setName(dto.getName());
+    	reportingTask.setComments(dto.getComments());
+    	reportingTask.setScheduldingPeriod(dto.getSchedulingPeriod());
+    	reportingTask.setSchedulingStrategy(SchedulingStrategy.valueOf(dto.getSchedulingStrategy()));
+    	
+    	reportingTask.setAnnotationData(dto.getAnnotationData());
+    	
+        for (final Map.Entry<String, String> entry : dto.getProperties().entrySet()) {
+            if (entry.getValue() == null) {
+            	reportingTask.removeProperty(entry.getKey());
+            } else {
+            	reportingTask.setProperty(entry.getKey(), entry.getValue());
+            }
+        }
+        
+        final ComponentLog componentLog = new SimpleProcessLogger(dto.getId(), reportingTask.getReportingTask());
+        final ReportingInitializationContext config = new StandardReportingInitializationContext(dto.getId(), dto.getName(),
+                SchedulingStrategy.valueOf(dto.getSchedulingStrategy()), dto.getSchedulingPeriod(), componentLog, controller);
+        
+        try {
+            reportingTask.getReportingTask().initialize(config);
+        } catch (final InitializationException ie) {
+            throw new ReportingTaskInstantiationException("Failed to initialize reporting task of type " + dto.getType(), ie);
+        }
+        
+        if ( autoResumeState ) {
+	        if ( ScheduledState.RUNNING.name().equals(dto.getState()) ) {
+	        	try {
+	        		controller.startReportingTask(reportingTask);
+	        	} catch (final Exception e) {
+	        		logger.error("Failed to start {} due to {}", reportingTask, e);
+	        		if ( logger.isDebugEnabled() ) {
+	        			logger.error("", e);
+	        		}
+	        		controller.getBulletinRepository().addBulletin(BulletinFactory.createBulletin(
+	        				"Reporting Tasks", Severity.ERROR.name(), "Failed to start " + reportingTask + " due to " + e));
+	        	}
+	        } else if ( ScheduledState.DISABLED.name().equals(dto.getState()) ) {
+	        	try {
+	        		controller.disableReportingTask(reportingTask);
+	        	} catch (final Exception e) {
+	        		logger.error("Failed to mark {} as disabled due to {}", reportingTask, e);
+	        		if ( logger.isDebugEnabled() ) {
+	        			logger.error("", e);
+	        		}
+	        		controller.getBulletinRepository().addBulletin(BulletinFactory.createBulletin(
+	        				"Reporting Tasks", Severity.ERROR.name(), "Failed to mark " + reportingTask + " as disabled due to " + e));
+	        	}
+	        }
+        }
+    }
 
+    private void updateReportingTask(final FlowController controller, final Element reportingTaskElement, final StringEncryptor encryptor) {
+    	final ReportingTaskDTO dto = FlowFromDOMFactory.getReportingTask(reportingTaskElement, encryptor);
+    	final ReportingTaskNode taskNode = controller.getReportingTaskNode(dto.getId());
+    	
+        if (!taskNode.getScheduledState().name().equals(dto.getState())) {
+            try {
+                switch (ScheduledState.valueOf(dto.getState())) {
+                    case DISABLED:
+                    	if ( taskNode.isRunning() ) {
+                    		controller.stopReportingTask(taskNode);
+                    	}
+                    	controller.disableReportingTask(taskNode);
+                        break;
+                    case RUNNING:
+                    	if ( taskNode.getScheduledState() == ScheduledState.DISABLED ) {
+                    		controller.enableReportingTask(taskNode);
+                    	}
+                    	controller.startReportingTask(taskNode);
+                        break;
+                    case STOPPED:
+                        if (taskNode.getScheduledState() == ScheduledState.DISABLED) {
+                        	controller.enableReportingTask(taskNode);
+                        } else if (taskNode.getScheduledState() == ScheduledState.RUNNING) {
+                        	controller.stopReportingTask(taskNode);
+                        }
+                        break;
+                }
+            } catch (final IllegalStateException ise) {
+                logger.error("Failed to change Scheduled State of {} from {} to {} due to {}", taskNode, taskNode.getScheduledState().name(), dto.getState(), ise.toString());
+                logger.error("", ise);
+
+                // create bulletin for the Processor Node
+                controller.getBulletinRepository().addBulletin(BulletinFactory.createBulletin("Node Reconnection", Severity.ERROR.name(),
+                        "Failed to change Scheduled State of " + taskNode + " from " + taskNode.getScheduledState().name() + " to " + dto.getState() + " due to " + ise.toString()));
+
+                // create bulletin at Controller level.
+                controller.getBulletinRepository().addBulletin(BulletinFactory.createBulletin("Node Reconnection", Severity.ERROR.name(),
+                        "Failed to change Scheduled State of " + taskNode + " from " + taskNode.getScheduledState().name() + " to " + dto.getState() + " due to " + ise.toString()));
+            }
+        }
+    }
+    
+    
     private ProcessGroup updateProcessGroup(final FlowController controller, final ProcessGroup parentGroup, final Element processGroupElement, final StringEncryptor encryptor) throws ProcessorInstantiationException {
 
         // get the parent group ID
@@ -692,7 +866,11 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             final FunnelDTO funnelDTO = FlowFromDOMFactory.getFunnel(funnelElement);
             final Funnel funnel = controller.createFunnel(funnelDTO.getId());
             funnel.setPosition(toPosition(funnelDTO.getPosition()));
-            processGroup.addFunnel(funnel);
+            
+            // Since this is called during startup, we want to add the funnel without enabling it
+            // and then tell the controller to enable it. This way, if the controller is not fully
+            // initialized, the starting of the funnel is delayed until the controller is ready.
+            processGroup.addFunnel(funnel, false);
             controller.startConnectable(funnel);
         }
 

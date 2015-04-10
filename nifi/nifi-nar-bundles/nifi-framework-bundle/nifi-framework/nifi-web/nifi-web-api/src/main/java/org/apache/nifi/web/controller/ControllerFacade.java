@@ -52,8 +52,6 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.repository.ContentNotFoundException;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
-import org.apache.nifi.controller.service.ControllerServiceNode;
-import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
@@ -79,11 +77,11 @@ import org.apache.nifi.provenance.search.SearchableField;
 import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinRepository;
+import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.search.SearchContext;
 import org.apache.nifi.search.SearchResult;
 import org.apache.nifi.search.Searchable;
-import org.apache.nifi.web.security.user.NiFiUserUtils;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.user.NiFiUser;
 import org.apache.nifi.util.FormatUtils;
@@ -108,12 +106,14 @@ import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
 import org.apache.nifi.web.api.dto.status.ControllerStatusDTO;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
-import org.apache.nifi.web.util.DownloadableContent;
+import org.apache.nifi.web.DownloadableContent;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.admin.service.UserService;
 import org.apache.nifi.authorization.DownloadAuthorization;
 import org.apache.nifi.processor.DataUnit;
+import org.apache.nifi.web.security.user.NiFiUserUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
@@ -121,7 +121,7 @@ import org.springframework.security.access.AccessDeniedException;
 /**
  *
  */
-public class ControllerFacade implements ControllerServiceProvider {
+public class ControllerFacade {
 
     private static final Logger logger = LoggerFactory.getLogger(ControllerFacade.class);
 
@@ -347,6 +347,60 @@ public class ControllerFacade implements ControllerServiceProvider {
     public Set<DocumentedTypeDTO> getFlowFileComparatorTypes() {
         return dtoFactory.fromDocumentedTypes(ExtensionManager.getExtensions(FlowFilePrioritizer.class));
     }
+    
+    /**
+     * Returns whether the specified type implements the specified serviceType.
+     * 
+     * @param baseType
+     * @param type
+     * @return
+     */
+    private boolean implementsServiceType(final String serviceType, final Class type) {
+        final List<Class<?>> interfaces = ClassUtils.getAllInterfaces(type);
+        for (final Class i : interfaces) {
+            if (ControllerService.class.isAssignableFrom(i) && i.getName().equals(serviceType)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Gets the ControllerService types that this controller supports.
+     * 
+     * @param serviceType
+     * @return 
+     */
+    public Set<DocumentedTypeDTO> getControllerServiceTypes(final String serviceType) { 
+        final Set<Class> serviceImplementations = ExtensionManager.getExtensions(ControllerService.class);
+        
+        // identify the controller services that implement the specified serviceType if applicable
+        final Set<Class> matchingServiceImplementions;
+        if (serviceType != null) {
+            matchingServiceImplementions = new HashSet<>();
+            
+            // check each type and remove those that aren't in the specified ancestry
+            for (final Class type : serviceImplementations) {
+                if (implementsServiceType(serviceType, type)) {
+                    matchingServiceImplementions.add(type);
+                }
+            }
+        } else {
+            matchingServiceImplementions = serviceImplementations;
+        }
+        
+        return dtoFactory.fromDocumentedTypes(matchingServiceImplementions);
+    }
+    
+    /**
+     * Gets the ReportingTask types that this controller supports.
+     * 
+     * @return 
+     */
+    public Set<DocumentedTypeDTO> getReportingTaskTypes() {
+        return dtoFactory.fromDocumentedTypes(ExtensionManager.getExtensions(ReportingTask.class));
+    }
 
     /**
      * Gets the counters for this controller.
@@ -370,56 +424,6 @@ public class ControllerFacade implements ControllerServiceProvider {
         }
 
         return counter;
-    }
-
-    /**
-     * Return the controller service for the specified identifier.
-     *
-     * @param serviceIdentifier
-     * @return
-     */
-    @Override
-    public ControllerService getControllerService(String serviceIdentifier) {
-        return flowController.getControllerService(serviceIdentifier);
-    }
-
-    @Override
-    public ControllerServiceNode createControllerService(String type, String id, boolean firstTimeAdded) {
-        return flowController.createControllerService(type, id, firstTimeAdded);
-    }
-    
-    public void removeControllerService(ControllerServiceNode serviceNode) {
-        flowController.removeControllerService(serviceNode);
-    }
-
-    @Override
-    public Set<String> getControllerServiceIdentifiers(Class<? extends ControllerService> serviceType) {
-        return flowController.getControllerServiceIdentifiers(serviceType);
-    }
-
-    @Override
-    public ControllerServiceNode getControllerServiceNode(final String id) {
-        return flowController.getControllerServiceNode(id);
-    }
-
-    @Override
-    public boolean isControllerServiceEnabled(final ControllerService service) {
-        return flowController.isControllerServiceEnabled(service);
-    }
-
-    @Override
-    public boolean isControllerServiceEnabled(final String serviceIdentifier) {
-        return flowController.isControllerServiceEnabled(serviceIdentifier);
-    }
-
-    @Override
-    public void enableControllerService(final ControllerServiceNode serviceNode) {
-        flowController.enableControllerService(serviceNode);
-    }
-    
-    @Override
-    public void disableControllerService(ControllerServiceNode serviceNode) {
-        flowController.disableControllerService(serviceNode);
     }
     
     /**

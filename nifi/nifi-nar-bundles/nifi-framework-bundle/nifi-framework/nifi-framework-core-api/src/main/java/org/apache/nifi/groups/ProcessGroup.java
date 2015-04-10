@@ -118,7 +118,7 @@ public interface ProcessGroup {
     void stopProcessing();
 
     /**
-     * Starts the given Processor
+     * Enables the given Processor
      *
      * @param processor the processor to start
      * @throws IllegalStateException if the processor is not valid, or is
@@ -127,25 +127,19 @@ public interface ProcessGroup {
     void enableProcessor(ProcessorNode processor);
 
     /**
-     * Starts the given Input Port
+     * Enables the given Input Port
      *
      * @param port
      */
     void enableInputPort(Port port);
 
     /**
-     * Starts the given Output Port
+     * Enables the given Output Port
      *
      * @param port
      */
     void enableOutputPort(Port port);
 
-    /**
-     * Starts the given Funnel
-     *
-     * @param funnel
-     */
-    void enableFunnel(Funnel funnel);
 
     /**
      * Starts the given Processor
@@ -198,15 +192,9 @@ public interface ProcessGroup {
      */
     void stopOutputPort(Port port);
 
-    /**
-     * Stops the given Funnel
-     *
-     * @param processor
-     */
-    void stopFunnel(Funnel funnel);
 
     /**
-     * Starts the given Processor
+     * Disables the given Processor
      *
      * @param processor the processor to start
      * @throws IllegalStateException if the processor is not valid, or is
@@ -215,25 +203,19 @@ public interface ProcessGroup {
     void disableProcessor(ProcessorNode processor);
 
     /**
-     * Starts the given Input Port
+     * Disables the given Input Port
      *
      * @param port
      */
     void disableInputPort(Port port);
 
     /**
-     * Starts the given Output Port
+     * Disables the given Output Port
      *
      * @param port
      */
     void disableOutputPort(Port port);
 
-    /**
-     * Starts the given Funnel
-     *
-     * @param funnel
-     */
-    void disableFunnel(Funnel funnel);
 
     /**
      * Indicates that the Flow is being shutdown; allows cleanup of resources
@@ -618,11 +600,23 @@ public interface ProcessGroup {
     Port getOutputPortByName(String name);
 
     /**
-     * Adds the given funnel to this ProcessGroup
+     * Adds the given funnel to this ProcessGroup and starts it. While other components
+     * do not automatically start, the funnel does by default because it is intended to be
+     * more of a notional component that users are unable to explicitly start and stop.
+     * However, there is an override available in {@link #addFunnel(Funnel, boolean)} because
+     * we may need to avoid starting the funnel on restart until the flow is completely
+     * initialized.
      *
      * @param funnel
      */
     void addFunnel(Funnel funnel);
+    
+    /**
+     * Adds the given funnel to this ProcessGroup and optionally starts the funnel.
+     * @param funnel
+     * @param autoStart
+     */
+    void addFunnel(Funnel funnel, boolean autoStart);
 
     /**
      * Returns a Set of all Funnels that belong to this ProcessGroup

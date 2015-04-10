@@ -28,16 +28,16 @@ public class SimpleProcessLogger implements ProcessorLog {
 
     private final Logger logger;
     private final LogRepository logRepository;
-    private final Processor processor;
+    private final Object component;
 
-    public SimpleProcessLogger(final String processorId, final Processor processor) {
-        this.logger = LoggerFactory.getLogger(processor.getClass());
-        this.logRepository = LogRepositoryFactory.getRepository(processorId);
-        this.processor = processor;
+    public SimpleProcessLogger(final String componentId, final Object component) {
+        this.logger = LoggerFactory.getLogger(component.getClass());
+        this.logRepository = LogRepositoryFactory.getRepository(componentId);
+        this.component = component;
     }
 
     private Object[] addProcessor(final Object[] originalArgs) {
-        return prependToArgs(originalArgs, processor);
+        return prependToArgs(originalArgs, component);
     }
 
     private Object[] prependToArgs(final Object[] originalArgs, final Object... toAdd) {
@@ -63,7 +63,7 @@ public class SimpleProcessLogger implements ProcessorLog {
 
     @Override
     public void warn(final String msg, final Throwable t) {
-        warn("{} " + msg, new Object[]{processor}, t);
+        warn("{} " + msg, new Object[]{component}, t);
     }
 
     @Override
@@ -93,15 +93,15 @@ public class SimpleProcessLogger implements ProcessorLog {
     @Override
     public void warn(String msg) {
         msg = "{} " + msg;
-        final Object[] os = {processor};
-        logger.warn(msg, processor);
+        final Object[] os = {component};
+        logger.warn(msg, component);
         logRepository.addLogMessage(LogLevel.WARN, msg, os);
     }
 
     @Override
     public void trace(String msg, Throwable t) {
         msg = "{} " + msg;
-        final Object[] os = {processor};
+        final Object[] os = {component};
         logger.trace(msg, os, t);
         logRepository.addLogMessage(LogLevel.TRACE, msg, os, t);
     }
@@ -117,7 +117,7 @@ public class SimpleProcessLogger implements ProcessorLog {
     @Override
     public void trace(String msg) {
         msg = "{} " + msg;
-        final Object[] os = {processor};
+        final Object[] os = {component};
         logger.trace(msg, os);
         logRepository.addLogMessage(LogLevel.TRACE, msg, os);
     }
@@ -160,7 +160,7 @@ public class SimpleProcessLogger implements ProcessorLog {
     @Override
     public void info(String msg, Throwable t) {
         msg = "{} " + msg;
-        final Object[] os = {processor};
+        final Object[] os = {component};
 
         logger.info(msg, os);
         if (logger.isDebugEnabled()) {
@@ -181,7 +181,7 @@ public class SimpleProcessLogger implements ProcessorLog {
     @Override
     public void info(String msg) {
         msg = "{} " + msg;
-        final Object[] os = {processor};
+        final Object[] os = {component};
 
         logger.info(msg, os);
         logRepository.addLogMessage(LogLevel.INFO, msg, os);
@@ -207,7 +207,7 @@ public class SimpleProcessLogger implements ProcessorLog {
     @Override
     public void error(String msg, Throwable t) {
         msg = "{} " + msg;
-        final Object[] os = {processor};
+        final Object[] os = {component};
 
         logger.error(msg, os, t);
         if (logger.isDebugEnabled()) {
@@ -231,7 +231,7 @@ public class SimpleProcessLogger implements ProcessorLog {
     @Override
     public void error(String msg) {
         msg = "{} " + msg;
-        final Object[] os = {processor};
+        final Object[] os = {component};
 
         logger.error(msg, os);
         logRepository.addLogMessage(LogLevel.ERROR, msg, os);
@@ -239,11 +239,11 @@ public class SimpleProcessLogger implements ProcessorLog {
 
     private Object[] addProcessorAndThrowable(final Object[] os, final Throwable t) {
         final Object[] modifiedArgs = new Object[os.length + 2];
-        modifiedArgs[0] = processor.toString();
+        modifiedArgs[0] = component.toString();
         for (int i = 0; i < os.length; i++) {
             modifiedArgs[i + 1] = os[i];
         }
-        modifiedArgs[modifiedArgs.length - 1] = t.toString();
+        modifiedArgs[modifiedArgs.length - 1] = (t == null) ? "" : t.toString();
 
         return modifiedArgs;
     }
@@ -263,7 +263,7 @@ public class SimpleProcessLogger implements ProcessorLog {
     @Override
     public void debug(String msg, Throwable t) {
         msg = "{} " + msg;
-        final Object[] os = {processor};
+        final Object[] os = {component};
 
         logger.debug(msg, os, t);
         logRepository.addLogMessage(LogLevel.DEBUG, msg, os, t);
@@ -298,7 +298,7 @@ public class SimpleProcessLogger implements ProcessorLog {
     @Override
     public void debug(String msg) {
         msg = "{} " + msg;
-        final Object[] os = {processor};
+        final Object[] os = {component};
 
         logger.debug(msg, os);
         logRepository.addLogMessage(LogLevel.DEBUG, msg, os);

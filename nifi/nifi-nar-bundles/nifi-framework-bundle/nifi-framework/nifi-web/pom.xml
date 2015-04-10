@@ -12,13 +12,12 @@
   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
   See the License for the specific language governing permissions and
   limitations under the License.
--->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+--><project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-framework</artifactId>
-        <version>0.0.2-incubating-SNAPSHOT</version>
+        <version>0.1.0-incubating-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-web</artifactId>
     <packaging>pom</packaging>
@@ -29,8 +28,11 @@
         <module>nifi-web-api</module>
         <module>nifi-web-error</module>
         <module>nifi-web-docs</module>
+        <module>nifi-web-content-viewer</module>
         <module>nifi-web-ui</module>
         <module>nifi-jetty</module>
+        <module>nifi-web-content-access</module>
+        <module>nifi-ui-extension</module>
     </modules>
     <dependencyManagement>
         <dependencies>
@@ -38,25 +40,31 @@
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-web-api</artifactId>
                 <type>war</type>
-                <version>0.0.2-incubating-SNAPSHOT</version>
+                <version>0.1.0-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-web-error</artifactId>
                 <type>war</type>
-                <version>0.0.2-incubating-SNAPSHOT</version>
+                <version>0.1.0-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-web-docs</artifactId>
                 <type>war</type>
-                <version>0.0.2-incubating-SNAPSHOT</version>
+                <version>0.1.0-incubating-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-web-content-viewer</artifactId>
+                <type>war</type>
+                <version>0.1.0-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-web-ui</artifactId>
                 <type>war</type>
-                <version>0.0.2-incubating-SNAPSHOT</version>
+                <version>0.1.0-incubating-SNAPSHOT</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

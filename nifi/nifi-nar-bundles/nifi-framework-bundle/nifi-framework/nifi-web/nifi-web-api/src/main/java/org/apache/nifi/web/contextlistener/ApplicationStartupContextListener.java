@@ -91,10 +91,8 @@ public class ApplicationStartupContextListener implements ServletContextListener
                      * reloading actions, the node will start the necessary
                      * processors.
                      */
-                    if (properties.getAutoResumeState()) {
-                        final FlowController flowController = flowService.getController();
-                        flowController.startDelayed();
-                    }
+                    final FlowController flowController = flowService.getController();
+                    flowController.onFlowInitialized(properties.getAutoResumeState());
 
                     logger.info("Flow Controller started successfully.");
                 }

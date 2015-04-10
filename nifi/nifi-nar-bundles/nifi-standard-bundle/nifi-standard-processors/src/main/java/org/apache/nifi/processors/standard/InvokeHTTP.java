@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.apache.commons.lang3.StringUtils.*;
+import static org.apache.commons.lang3.StringUtils.trimToEmpty;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -48,6 +48,13 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ProcessorLog;
@@ -55,38 +62,33 @@ import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.behavior.SupportsBatching;
-import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.ssl.SSLContextService.ClientAuth;
-import org.apache.commons.lang3.StringUtils;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
 @SupportsBatching
 @Tags({"http", "https", "rest", "client"})
 @CapabilityDescription("An HTTP client processor which converts FlowFile attributes to HTTP headers, with configurable HTTP method, url, etc.")
+@WritesAttributes({ @WritesAttribute(attribute = "invokehttp.status.code", description = "The status code that is returned"),
+        @WritesAttribute(attribute = "invokehttp.status.message", description = "The status message that is returned"),
+        @WritesAttribute(attribute = "invokehttp.response.body", description = "The response body"),
+        @WritesAttribute(attribute = "invokehttp.request.url", description = "The request URL"),
+        @WritesAttribute(attribute = "invokehttp.tx.id", description = "The transaction ID that is returned after reading the response"),
+        @WritesAttribute(attribute = "invokehttp.remote.dn", description = "The DN of the remote server") })
+@DynamicProperty(name="Trusted Hostname", value="A hostname", description="Bypass the normal truststore hostname verifier to allow the specified (single) remote hostname as trusted "
+        + "Enabling this property has MITM security implications, use wisely. Only valid with SSL (HTTPS) connections.")
 public final class InvokeHTTP extends AbstractProcessor {
 
     //-- properties --//
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        Set<String> contextIdentifiers = getControllerServiceLookup().getControllerServiceIdentifiers(SSLContextService.class);
 
-        PropertyDescriptor contextServiceSelector = new PropertyDescriptor.Builder()
-                .fromPropertyDescriptor(Config.PROP_SSL_CONTEXT_SERVICE)
-                .allowableValues(contextIdentifiers)
-                .build();
-
-        List<PropertyDescriptor> list = new ArrayList<>(Config.PROPERTIES);
-        list.add(2, contextServiceSelector);
-
-        return Collections.unmodifiableList(list);
+        return Config.PROPERTIES;
     }
-
+    
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(String propertyDescriptorName) {
         if (Config.PROP_TRUSTED_HOSTNAME.getName().equalsIgnoreCase(propertyDescriptorName)) {
@@ -192,7 +194,7 @@ public final class InvokeHTTP extends AbstractProcessor {
                 .description("Remote URL which will be connected to, including scheme, host, port, path.")
                 .required(true)
                 .expressionLanguageSupported(true)
-                .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+                .addValidator(StandardValidators.URL_VALIDATOR)
                 .build();
 
         PropertyDescriptor PROP_CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
@@ -237,23 +239,23 @@ public final class InvokeHTTP extends AbstractProcessor {
                 .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
                 .build();
 
+        PropertyDescriptor PROP_SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
+                .name("SSL Context Service")
+                .description("The SSL Context Service used to provide client certificate information for TLS/SSL (https) connections.")
+                .required(false)
+                .identifiesControllerService(SSLContextService.class)
+                .build();
+        
         List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
                 PROP_METHOD,
                 PROP_URL,
+                PROP_SSL_CONTEXT_SERVICE,
                 PROP_CONNECT_TIMEOUT,
                 PROP_READ_TIMEOUT,
                 PROP_DATE_HEADER,
                 PROP_FOLLOW_REDIRECTS,
                 PROP_ATTRIBUTES_TO_SEND
         ));
-
-        // The allowableValues of the SSL Context Service property is dynamically populated at run time.
-        PropertyDescriptor PROP_SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
-                .name("SSL Context Service")
-                .description("The SSL Context Service used to provide client certificate information for TLS/SSL (https) connections.")
-                .required(false)
-                .addValidator(StandardValidators.createControllerServiceExistsValidator(SSLContextService.class))
-                .build();
 
         // property to allow the hostname verifier to be overridden
         // this is a "hidden" property - it's configured using a dynamic user property

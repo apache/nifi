@@ -56,6 +56,7 @@ import org.apache.nifi.controller.repository.claim.StandardContentClaimManager;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.FlowFileAccessException;
 import org.apache.nifi.processor.exception.MissingFlowFileException;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
@@ -65,6 +66,7 @@ import org.apache.nifi.provenance.MockProvenanceEventRepository;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.provenance.ProvenanceEventType;
+import org.apache.nifi.util.ObjectHolder;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -233,6 +235,147 @@ public class TestStandardProcessSession {
         session.remove(flowFile);
         session.commit();
         assertEquals(0, contentRepo.getExistingClaims().size());
+    }
+
+    private void assertDisabled(final OutputStream outputStream) {
+        try {
+            outputStream.write(new byte[0]);
+            Assert.fail("Expected OutputStream to be disabled; was able to call write(byte[])");
+        } catch (final Exception ex) {
+            Assert.assertEquals(FlowFileAccessException.class, ex.getClass());
+        }
+        try {
+            outputStream.write(0);
+            Assert.fail("Expected OutputStream to be disabled; was able to call write(int)");
+        } catch (final Exception ex) {
+            Assert.assertEquals(FlowFileAccessException.class, ex.getClass());
+        }
+        try {
+            outputStream.write(new byte[0], 0, 0);
+            Assert.fail("Expected OutputStream to be disabled; was able to call write(byte[], int, int)");
+        } catch (final Exception ex) {
+            Assert.assertEquals(FlowFileAccessException.class, ex.getClass());
+        }
+    }
+    
+    private void assertDisabled(final InputStream inputStream) {
+        try {
+            inputStream.read();
+            Assert.fail("Expected InputStream to be disabled; was able to call read()");
+        } catch (final Exception ex) {
+            Assert.assertEquals(FlowFileAccessException.class, ex.getClass());
+        }
+        try {
+            inputStream.read(new byte[0]);
+            Assert.fail("Expected InputStream to be disabled; was able to call read(byte[])");
+        } catch (final Exception ex) {
+            Assert.assertEquals(FlowFileAccessException.class, ex.getClass());
+        }
+        try {
+            inputStream.read(new byte[0], 0, 0);
+            Assert.fail("Expected InputStream to be disabled; was able to call read(byte[], int, int)");
+        } catch (final Exception ex) {
+            Assert.assertEquals(FlowFileAccessException.class, ex.getClass());
+        }
+        try {
+            inputStream.reset();
+            Assert.fail("Expected InputStream to be disabled; was able to call reset()");
+        } catch (final Exception ex) {
+            Assert.assertEquals(FlowFileAccessException.class, ex.getClass());
+        }
+        try {
+            inputStream.skip(1L);
+            Assert.fail("Expected InputStream to be disabled; was able to call skip(long)");
+        } catch (final Exception ex) {
+            Assert.assertEquals(FlowFileAccessException.class, ex.getClass());
+        }
+    }    
+    
+    @Test
+    public void testAppendAfterSessionClosesStream() throws IOException {
+        final ContentClaim claim = contentRepo.create(false);
+        final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
+                .contentClaim(claim)
+                .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+                .entryDate(System.currentTimeMillis())
+                .build();
+        flowFileQueue.put(flowFileRecord);
+        FlowFile flowFile = session.get();
+        assertNotNull(flowFile);
+        final ObjectHolder<OutputStream> outputStreamHolder = new ObjectHolder<>(null);
+        flowFile = session.append(flowFile, new OutputStreamCallback() {
+            @Override
+            public void process(final OutputStream outputStream) throws IOException {
+                outputStreamHolder.set(outputStream);
+            }
+        });
+        assertDisabled(outputStreamHolder.get());
+    }
+
+    @Test
+    public void testReadAfterSessionClosesStream() throws IOException {
+        final ContentClaim claim = contentRepo.create(false);
+        final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
+                .contentClaim(claim)
+                .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+                .entryDate(System.currentTimeMillis())
+                .build();
+        flowFileQueue.put(flowFileRecord);
+        FlowFile flowFile = session.get();
+        assertNotNull(flowFile);
+        final ObjectHolder<InputStream> inputStreamHolder = new ObjectHolder<>(null);
+        session.read(flowFile, new InputStreamCallback() {
+            @Override
+            public void process(final InputStream inputStream) throws IOException {
+                inputStreamHolder.set(inputStream);
+            }
+        });
+        assertDisabled(inputStreamHolder.get());
+    }
+
+    @Test
+    public void testStreamAfterSessionClosesStream() throws IOException {
+        final ContentClaim claim = contentRepo.create(false);
+        final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
+                .contentClaim(claim)
+                .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+                .entryDate(System.currentTimeMillis())
+                .build();
+        flowFileQueue.put(flowFileRecord);
+        FlowFile flowFile = session.get();
+        assertNotNull(flowFile);
+        final ObjectHolder<InputStream> inputStreamHolder = new ObjectHolder<>(null);
+        final ObjectHolder<OutputStream> outputStreamHolder = new ObjectHolder<>(null);
+        flowFile = session.write(flowFile, new StreamCallback() {
+            @Override
+            public void process(final InputStream input, final OutputStream output) throws IOException {
+                inputStreamHolder.set(input);
+                outputStreamHolder.set(output);
+            }
+        });
+        assertDisabled(inputStreamHolder.get());
+        assertDisabled(outputStreamHolder.get());
+   }
+
+    @Test
+    public void testWriteAfterSessionClosesStream() throws IOException {
+        final ContentClaim claim = contentRepo.create(false);
+        final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
+                .contentClaim(claim)
+                .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+                .entryDate(System.currentTimeMillis())
+                .build();
+        flowFileQueue.put(flowFileRecord);
+        FlowFile flowFile = session.get();
+        assertNotNull(flowFile);
+        final ObjectHolder<OutputStream> outputStreamHolder = new ObjectHolder<>(null);
+        flowFile = session.write(flowFile, new OutputStreamCallback() {
+            @Override
+            public void process(final OutputStream out) throws IOException {
+                outputStreamHolder.set(out);
+            }
+        });
+        assertDisabled(outputStreamHolder.get());
     }
 
     @Test
@@ -998,6 +1141,12 @@ public class TestStandardProcessSession {
         public ContentClaim create(boolean lossTolerant) throws IOException {
             final ContentClaim claim = claimManager.newContentClaim("container", "section", String.valueOf(idGenerator.getAndIncrement()), false);
             claimantCounts.put(claim, new AtomicInteger(1));
+            final Path path = getPath(claim);
+            final Path parent = path.getParent();
+            if (Files.exists(parent) == false) {
+                Files.createDirectories(parent);
+            }
+            Files.createFile(getPath(claim));            
             return claim;
         }
 
