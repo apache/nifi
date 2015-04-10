@@ -1015,7 +1015,7 @@
                 // ensure the configured value is referencing a valid service
                 $.each(propertyDescriptor.allowableValues, function (_, allowableValue) {
                     if (allowableValue.value === dataContext.value) {
-                        markup = '<img src="images/iconGoTo.png" title="Go To" class="go-to-service pointer" style="margin-top: 2px" />';
+                        markup += '<img src="images/iconGoTo.png" title="Go To" class="go-to-service pointer" style="margin-top: 2px" />';
                         return false;
                     }
                 });
@@ -1023,7 +1023,7 @@
 
             // allow user defined properties to be removed
             if (options.readOnly !== true && dataContext.type === 'userDefined') {
-                markup = '<img src="images/iconDelete.png" title="Delete" class="delete-property pointer" style="margin-top: 2px" />';
+                markup += '<img src="images/iconDelete.png" title="Delete" class="delete-property pointer" style="margin-top: 2px" />';
             }
 
             return markup;
@@ -1414,8 +1414,8 @@
 
                                         // select the new properties row
                                         var row = propertyData.getRowById(id);
-                                        propertyGrid.setSelectedRows([row]);
-                                        propertyGrid.scrollRowIntoView(row);
+                                        propertyGrid.setActiveCell(row, propertyGrid.getColumnIndex('value'));
+                                        propertyGrid.editActiveCell();
                                     });
                                 } else {
                                     nf.Dialog.showOkDialog({
