@@ -529,9 +529,11 @@ nf.Canvas = (function () {
         };
 
         // listen for browser resize events to reset the graph size
-        $(window).on('resize', function () {
-            updateGraphSize();
-            nf.Settings.resetTableSize();
+        $(window).on('resize', function (e) {
+            if (e.target === window) {
+                updateGraphSize();
+                nf.Settings.resetTableSize();
+            }
         }).on('keydown', function (evt) {
             var isCtrl = evt.ctrlKey || evt.metaKey;
             
