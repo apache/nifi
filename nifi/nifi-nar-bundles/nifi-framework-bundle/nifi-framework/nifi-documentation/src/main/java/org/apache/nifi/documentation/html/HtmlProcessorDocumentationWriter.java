@@ -23,7 +23,6 @@ import java.util.List;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicRelationship;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
@@ -67,6 +66,13 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
         handleWritesAttributes(xmlStreamWriter, processor);
     }
 
+    private String defaultIfBlank(final String test, final String defaultValue) {
+    	if ( test == null || test.trim().isEmpty() ) {
+    		return defaultValue;
+    	}
+    	return test;
+    }
+    
     /**
      * Writes out just the attributes that are being read in a table form.
      * 
@@ -91,10 +97,10 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
             for (ReadsAttribute attribute : attributesRead) {
                 xmlStreamWriter.writeStartElement("tr");
                 writeSimpleElement(xmlStreamWriter, "td",
-                        StringUtils.defaultIfBlank(attribute.attribute(), "Not Specified"));
+                        defaultIfBlank(attribute.attribute(), "Not Specified"));
                 // TODO allow for HTML characters here.
                 writeSimpleElement(xmlStreamWriter, "td",
-                        StringUtils.defaultIfBlank(attribute.description(), "Not Specified"));
+                        defaultIfBlank(attribute.description(), "Not Specified"));
                 xmlStreamWriter.writeEndElement();
                 
             }
@@ -129,10 +135,10 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
             for (WritesAttribute attribute : attributesRead) {
                 xmlStreamWriter.writeStartElement("tr");
                 writeSimpleElement(xmlStreamWriter, "td",
-                        StringUtils.defaultIfBlank(attribute.attribute(), "Not Specified"));
+                        defaultIfBlank(attribute.attribute(), "Not Specified"));
                 // TODO allow for HTML characters here.
                 writeSimpleElement(xmlStreamWriter, "td",
-                        StringUtils.defaultIfBlank(attribute.description(), "Not Specified"));
+                        defaultIfBlank(attribute.description(), "Not Specified"));
                 xmlStreamWriter.writeEndElement();
             }
             xmlStreamWriter.writeEndElement();

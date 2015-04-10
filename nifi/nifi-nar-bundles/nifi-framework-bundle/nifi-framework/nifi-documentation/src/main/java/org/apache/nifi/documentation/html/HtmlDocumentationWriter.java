@@ -26,7 +26,6 @@ import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperties;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -212,13 +211,23 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
         xmlStreamWriter.writeEndElement();
         xmlStreamWriter.writeStartElement("p");
         if (tags != null) {
-            final String tagString = StringUtils.join(tags.value(), ", ");
+            final String tagString = join(tags.value(), ", ");
             xmlStreamWriter.writeCharacters(tagString);
         } else {
             xmlStreamWriter.writeCharacters("None.");
         }
         xmlStreamWriter.writeEndElement();
-
+    }
+    
+    static String join(final String[] toJoin, final String delimiter) {
+    	final StringBuilder sb = new StringBuilder();
+    	for (int i=0; i < toJoin.length; i++) {
+    		sb.append(toJoin[i]);
+    		if ( i < toJoin.length - 1 ) {
+    			sb.append(delimiter);
+    		}
+    	}
+    	return sb.toString();
     }
 
     /**
