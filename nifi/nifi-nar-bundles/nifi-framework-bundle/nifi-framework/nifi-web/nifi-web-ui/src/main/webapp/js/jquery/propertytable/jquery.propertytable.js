@@ -882,24 +882,16 @@
                         // update the revision
                         nf.Client.setRevision(response.revision);
 
-                        $.Deferred(function (deferred) {
-                            // load the property descriptor if possible
-                            if (typeof configurationOptions.descriptorDeferred === 'function') {
-                                configurationOptions.descriptorDeferred(item.property).done(function(response) {
-                                    var descriptor = response.propertyDescriptor;
+                        // load the descriptor and update the property
+                        configurationOptions.descriptorDeferred(item.property).done(function(descriptorResponse) {
+                            var descriptor = descriptorResponse.propertyDescriptor;
 
-                                    // store the descriptor for use later
-                                    var descriptors = gridContainer.data('descriptors');
-                                    if (!nf.Common.isUndefined(descriptors)) {
-                                        descriptors[descriptor.name] = descriptor;
-                                    }
-
-                                    deferred.resolve();
-                                });
-                            } else {
-                                deferred.resolve();
+                            // store the descriptor for use later
+                            var descriptors = gridContainer.data('descriptors');
+                            if (!nf.Common.isUndefined(descriptors)) {
+                                descriptors[descriptor.name] = descriptor;
                             }
-                        }).done(function() {
+
                             // add a row for the new property
                             var data = grid.getData();
                             data.updateItem(item.id, $.extend(item, {
@@ -1385,37 +1377,35 @@
 
                             // ensure the property name and value is specified
                             if (propertyName !== '') {
-                                // load the property descriptor if possible
-                                if (typeof options.descriptorDeferred === 'function') {
-                                    options.descriptorDeferred(propertyName).done(function(response) {
-                                        var descriptor = response.propertyDescriptor;
-                                        
-                                        // store the descriptor for use later
-                                        var descriptors = table.data('descriptors');
-                                        if (!nf.Common.isUndefined(descriptors)) {
-                                            descriptors[descriptor.name] = descriptor;
-                                        }
+                                // load the descriptor and add the property
+                                options.descriptorDeferred(propertyName).done(function(response) {
+                                    var descriptor = response.propertyDescriptor;
+
+                                    // store the descriptor for use later
+                                    var descriptors = table.data('descriptors');
+                                    if (!nf.Common.isUndefined(descriptors)) {
+                                        descriptors[descriptor.name] = descriptor;
+                                    }
+
+                                    // add a row for the new property
+                                    var propertyGrid = table.data('gridInstance');
+                                    var propertyData = propertyGrid.getData();
+                                    var id = propertyData.getLength(); 
+                                    propertyData.addItem({
+                                        id: id,
+                                        hidden: false,
+                                        property: propertyName,
+                                        displayName: propertyName,
+                                        previousValue: null,
+                                        value: null,
+                                        type: 'userDefined'
                                     });
-                                }
-                                
-                                // add a row for the new property
-                                var propertyGrid = table.data('gridInstance');
-                                var propertyData = propertyGrid.getData();
-                                var id = propertyData.getLength(); 
-                                propertyData.addItem({
-                                    id: id,
-                                    hidden: false,
-                                    property: propertyName,
-                                    displayName: propertyName,
-                                    previousValue: null,
-                                    value: null,
-                                    type: 'userDefined'
+
+                                    // select the new properties row
+                                    var row = propertyData.getRowById(id);
+                                    propertyGrid.setSelectedRows([row]);
+                                    propertyGrid.scrollRowIntoView(row);
                                 });
-                                
-                                // select the new properties row
-                                var row = propertyData.getRowById(id);
-                                propertyGrid.setSelectedRows([row]);
-                                propertyGrid.scrollRowIntoView(row);
                             } else {
                                 nf.Dialog.showOkDialog({
                                     dialogContent: 'Property name must be specified.',
