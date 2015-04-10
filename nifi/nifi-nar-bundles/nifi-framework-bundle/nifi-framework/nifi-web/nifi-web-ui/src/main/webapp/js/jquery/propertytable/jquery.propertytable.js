@@ -1375,37 +1375,59 @@
                         var add = function () {
                             var propertyName = $.trim(newPropertyNameField.val());
 
-                            // ensure the property name and value is specified
+                            // ensure the property name is specified
                             if (propertyName !== '') {
-                                // load the descriptor and add the property
-                                options.descriptorDeferred(propertyName).done(function(response) {
-                                    var descriptor = response.propertyDescriptor;
-
-                                    // store the descriptor for use later
-                                    var descriptors = table.data('descriptors');
-                                    if (!nf.Common.isUndefined(descriptors)) {
-                                        descriptors[descriptor.name] = descriptor;
+                                var propertyGrid = table.data('gridInstance');
+                                var propertyData = propertyGrid.getData();
+                                
+                                // ensure the property name is unique
+                                var existingPropertyId = null;
+                                $.each(propertyData.getItems(), function (_, item) {
+                                    if (propertyName === item.property) {
+                                        existingPropertyId = item.id;
+                                        return false;
                                     }
+                                });
+                                
+                                if (existingPropertyId === null) {
+                                    // load the descriptor and add the property
+                                    options.descriptorDeferred(propertyName).done(function(response) {
+                                        var descriptor = response.propertyDescriptor;
 
-                                    // add a row for the new property
-                                    var propertyGrid = table.data('gridInstance');
-                                    var propertyData = propertyGrid.getData();
-                                    var id = propertyData.getLength(); 
-                                    propertyData.addItem({
-                                        id: id,
-                                        hidden: false,
-                                        property: propertyName,
-                                        displayName: propertyName,
-                                        previousValue: null,
-                                        value: null,
-                                        type: 'userDefined'
+                                        // store the descriptor for use later
+                                        var descriptors = table.data('descriptors');
+                                        if (!nf.Common.isUndefined(descriptors)) {
+                                            descriptors[descriptor.name] = descriptor;
+                                        }
+
+                                        // add a row for the new property
+                                        var id = propertyData.getLength(); 
+                                        propertyData.addItem({
+                                            id: id,
+                                            hidden: false,
+                                            property: propertyName,
+                                            displayName: propertyName,
+                                            previousValue: null,
+                                            value: null,
+                                            type: 'userDefined'
+                                        });
+
+                                        // select the new properties row
+                                        var row = propertyData.getRowById(id);
+                                        propertyGrid.setSelectedRows([row]);
+                                        propertyGrid.scrollRowIntoView(row);
                                     });
-
-                                    // select the new properties row
-                                    var row = propertyData.getRowById(id);
+                                } else {
+                                    nf.Dialog.showOkDialog({
+                                        dialogContent: 'A property with this name already exists.',
+                                        overlayBackground: false
+                                    });
+                                    
+                                    // select the existing properties row
+                                    var row = propertyData.getRowById(existingPropertyId);
                                     propertyGrid.setSelectedRows([row]);
                                     propertyGrid.scrollRowIntoView(row);
-                                });
+                                }
                             } else {
                                 nf.Dialog.showOkDialog({
                                     dialogContent: 'Property name must be specified.',
