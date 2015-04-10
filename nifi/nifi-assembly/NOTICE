@@ -605,8 +605,8 @@ Mozilla Public License v1.1
 
 The following binary components are provided under the Mozilla Public License v1.1.  See project link for details.
 
-    (MPL 1.1) HAPI Base (ca.uhn.hapi:hapi-base:2.2 - http://http://hl7api.sourceforge.net/)
-    (MPL 1.1) HAPI Structures (ca.uhn.hapi:hapi-structures-v*:2.2 - http://http://hl7api.sourceforge.net/)
+    (MPL 1.1) HAPI Base (ca.uhn.hapi:hapi-base:2.2 - http://hl7api.sourceforge.net/)
+    (MPL 1.1) HAPI Structures (ca.uhn.hapi:hapi-structures-v*:2.2 - http://hl7api.sourceforge.net/)
 
 *****************
 Public Domain
