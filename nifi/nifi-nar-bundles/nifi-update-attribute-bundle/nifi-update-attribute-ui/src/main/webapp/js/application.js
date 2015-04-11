@@ -14,6 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/* global Slick */
+
 $(document).ready(function () {
     ua.editable = $('#attribute-updater-editable').text() === 'true';
     ua.init();
@@ -43,10 +46,12 @@ var ua = {
         var actionsGrid = ua.initActionsGrid();
 
         // enable grid resizing
-        $(window).resize(function () {
-            conditionsGrid.resizeCanvas();
-            actionsGrid.resizeCanvas();
-            ua.resizeSelectedRuleNameField();
+        $(window).resize(function (e) {
+            if (e.target === window) {
+                conditionsGrid.resizeCanvas();
+                actionsGrid.resizeCanvas();
+                ua.resizeSelectedRuleNameField();
+            }
         });
 
         // initialize the rule list

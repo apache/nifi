@@ -23,7 +23,6 @@ import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -32,8 +31,6 @@ import java.util.Map;
 import org.apache.nifi.hl7.hapi.HapiMessage;
 import org.apache.nifi.hl7.model.HL7Field;
 import org.apache.nifi.hl7.model.HL7Message;
-import org.apache.nifi.hl7.query.HL7Query;
-import org.apache.nifi.hl7.query.QueryResult;
 import org.junit.Test;
 
 import ca.uhn.hl7v2.DefaultHapiContext;
@@ -99,7 +96,7 @@ public class TestHL7Query {
 	@Test
 	public void testSelectMessage() throws HL7Exception, IOException {
 		final HL7Query query = HL7Query.compile("SELECT MESSAGE");
-		final HL7Message msg = createMessage(new File("src/test/resources/vaers-message-long"));
+		final HL7Message msg = createMessage(new File("src/test/resources/hypoglycemia"));
 		final QueryResult result = query.evaluate(msg);
 		assertTrue(result.isMatch());
 		final List<String> labels = result.getLabels();
@@ -114,7 +111,7 @@ public class TestHL7Query {
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public void testSelectField() throws HL7Exception, IOException {
 		final HL7Query query = HL7Query.compile("SELECT PID.5");
-		final HL7Message msg = createMessage(new File("src/test/resources/unsolicited-vaccine-update-short"));
+		final HL7Message msg = createMessage(new File("src/test/resources/hypoglycemia"));
 		final QueryResult result = query.evaluate(msg);
 		assertTrue(result.isMatch());
 		final List<String> labels = result.getLabels();
@@ -126,7 +123,7 @@ public class TestHL7Query {
 		final List<Object> nameList = (List) names;
 		assertEquals(1, nameList.size());
 		final HL7Field nameField = (HL7Field) nameList.get(0);
-		assertEquals("KENNEDY^JOHN^FITZGERALD^JR", nameField.getValue());
+		assertEquals("SMITH^JOHN", nameField.getValue());
 	}
 	
 	@Test
@@ -134,8 +131,8 @@ public class TestHL7Query {
 		final String query = "DECLARE result AS REQUIRED OBX SELECT result WHERE result.7 != 'N' AND result.1 = 1";
 		
 		final HL7Query hl7Query = HL7Query.compile(query);
-		final QueryResult result = hl7Query.evaluate(createMessage(new File("src/test/resources/vaers-message-long")));
-		assertFalse( result.isMatch() );
+		final QueryResult result = hl7Query.evaluate(createMessage(new File("src/test/resources/hypoglycemia")));
+		assertTrue( result.isMatch() );
 	}
 	
 	
@@ -224,18 +221,6 @@ public class TestHL7Query {
 		QueryResult result = hl7Query.evaluate(createMessage(new File("src/test/resources/hypoglycemia")));
 		assertTrue( result.isMatch() );
 		assertEquals(1, result.getHitCount());
-		
-		hl7Query = HL7Query.compile("DECLARE result AS REQUIRED OBX SELECT result WHERE result.1 = 1");
-		HL7Message msg = createMessage(new File("src/test/resources/vaers-message-long"));
-		result = hl7Query.evaluate(msg);
-		assertTrue( result.isMatch() );
-		assertEquals(9, result.getHitCount());
-		
-		hl7Query = HL7Query.compile("DECLARE result AS REQUIRED OBX SELECT result WHERE result.1 = 1 AND result.3.1.1 = '30961-7'");
-		result = hl7Query.evaluate(msg);
-		assertTrue( result.isMatch() );
-		assertEquals(1, result.getHitCount());
-
 	}
 	
 	@Test
@@ -288,10 +273,6 @@ public class TestHL7Query {
 		hl7Query = HL7Query.compile("SELECT MESSAGE WHERE OBX IS NULL");
 		result = hl7Query.evaluate(createMessage(new File("src/test/resources/hypoglycemia")));
 		assertFalse( result.isMatch() );
-
-		hl7Query = HL7Query.compile("SELECT MESSAGE WHERE NK1.1 = '1' AND NK1.8 IS NULL");
-		result = hl7Query.evaluate(createMessage(new File("src/test/resources/unsolicited-vaccine-update-long")));
-		assertTrue( result.isMatch() );
 	}
 	
 	
@@ -312,14 +293,6 @@ public class TestHL7Query {
 		hl7Query = HL7Query.compile("SELECT MESSAGE WHERE OBX NOT NULL");
 		result = hl7Query.evaluate(createMessage(new File("src/test/resources/hypoglycemia")));
 		assertTrue( result.isMatch() );
-
-		hl7Query = HL7Query.compile("SELECT MESSAGE WHERE NK1.1 = '1' AND NK1.33 NOT NULL");
-		result = hl7Query.evaluate(createMessage(new File("src/test/resources/unsolicited-vaccine-update-long")));
-		assertTrue( result.isMatch() );
-		
-		hl7Query = HL7Query.compile("SELECT MESSAGE WHERE NK1.1 = 1 AND NK1.33 NOT NULL");
-		result = hl7Query.evaluate(createMessage(new File("src/test/resources/unsolicited-vaccine-update-long")));
-		assertTrue( result.isMatch() );
 	}
 	
 	private HL7Message createMessage(final File file) throws HL7Exception, IOException {
@@ -332,21 +305,6 @@ public class TestHL7Query {
 		final PipeParser parser = hapiContext.getPipeParser();
 		final Message message = parser.parse(msgText);
 		return new HapiMessage(message);
-	}
-	
-	@Test
-	@SuppressWarnings("unused")
-	public void createMessage() throws IOException, HL7Exception {
-		final byte[] bytes = Files.readAllBytes(Paths.get("src/test/resources/vaers-message-long"));
-		final String msgText = new String(bytes, "UTF-8");
-		
-		final HapiContext hapiContext = new DefaultHapiContext();
-		hapiContext.setValidationContext(ValidationContextFactory.noValidation());
-		
-		final PipeParser parser = hapiContext.getPipeParser();
-		final Message message = parser.parse(msgText);
-		
-		final HL7Message hl7Msg = new HapiMessage(message);
 	}
 	
 }

@@ -34,7 +34,7 @@ public class TestExtractHL7Attributes {
 	public void testExtract() throws IOException {
 		System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi", "DEBUG");
 		final TestRunner runner = TestRunners.newTestRunner(ExtractHL7Attributes.class);
-		runner.enqueue(Paths.get("src/test/resources/1.hl7"));
+		runner.enqueue(Paths.get("src/test/resources/hypoglycemia.hl7"));
 		
 		runner.run();
 		runner.assertAllFlowFilesTransferred(ExtractHL7Attributes.REL_SUCCESS, 1);
