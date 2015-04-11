@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.nifi.processors.aws.s3;
 
 import java.io.BufferedInputStream;
@@ -11,7 +27,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.nifi.annotation.behavior.DynamicProperty;
+import org.apache.nifi.annotation.behavior.ReadsAttribute;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
@@ -30,11 +52,21 @@ import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.PutObjectResult;
 import com.amazonaws.services.s3.model.StorageClass;
 
-
+@SupportsBatching
+@SeeAlso({FetchS3Object.class})
 @Tags({"Amazon", "S3", "AWS", "Archive", "Put"})
 @CapabilityDescription("Puts FlowFiles to an Amazon S3 Bucket")
+@DynamicProperty(name="The name of a User-Defined Metadata field to add to the S3 Object", 
+	value="The value of a User-Defined Metadata field to add to the S3 Object", 
+	description="Allows user-defined metadata to be added to the S3 object as key/value pairs",
+	supportsExpressionLanguage=true)
+@ReadsAttribute(attribute="filename", description="Uses the FlowFile's filename as the filename for the S3 object")
+@WritesAttributes({
+	@WritesAttribute(attribute="s3.version", description="The version of the S3 Object that was put to S3"),
+	@WritesAttribute(attribute="s3.etag", description="The ETag of the S3 Object"),
+	@WritesAttribute(attribute="s3.expiration", description="A human-readable form of the expiration date of the S3 object, if one is set")
+})
 public class PutS3Object extends AbstractS3Processor {
-
     public static final PropertyDescriptor EXPIRATION_RULE_ID = new PropertyDescriptor.Builder()
         .name("Expiration Time Rule")
         .required(false)

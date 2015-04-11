@@ -19,18 +19,17 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-aws-bundle</artifactId>
-        <version>0.0.2-incubating-SNAPSHOT</version>
+        <version>0.1.0-incubating-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-aws-nar</artifactId>
-    <version>0.0.2-incubating-SNAPSHOT</version>
     <packaging>nar</packaging>
 
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-aws-processors</artifactId>
-            <version>0.0.2-incubating-SNAPSHOT</version>
+            <version>0.1.0-incubating-SNAPSHOT</version>
         </dependency>
     </dependencies>
 

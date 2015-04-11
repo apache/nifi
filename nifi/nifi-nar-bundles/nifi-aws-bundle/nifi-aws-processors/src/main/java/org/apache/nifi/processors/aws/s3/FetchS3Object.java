@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.nifi.processors.aws.s3;
 
 import java.io.IOException;
@@ -8,10 +24,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
@@ -25,11 +44,26 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
 
 
-@Tags({"Amazon", "S3", "AWS", "Get"})
+@SupportsBatching
+@SeeAlso({PutS3Object.class})
+@Tags({"Amazon", "S3", "AWS", "Get", "Fetch"})
 @CapabilityDescription("Retrieves the contents of an S3 Object and writes it to the content of a FlowFile")
-public class GetS3Object extends AbstractS3Processor {
+@WritesAttributes({
+	@WritesAttribute(attribute="s3.bucket", description="The name of the S3 bucket"),
+	@WritesAttribute(attribute="path", description="The path of the file"),
+	@WritesAttribute(attribute="absolute.path", description="The path of the file"),
+	@WritesAttribute(attribute="filename", description="The name of the file"),
+	@WritesAttribute(attribute="hash.value", description="The MD5 sum of the file"),
+	@WritesAttribute(attribute="hash.algorithm", description="MD5"),
+	@WritesAttribute(attribute="mime.type", description="If S3 provides the content type/MIME type, this attribute will hold that file"),
+	@WritesAttribute(attribute="s3.etag", description="The ETag that can be used to see if the file has changed"),
+	@WritesAttribute(attribute="s3.expirationTime", description="If the file has an expiration date, this attribute will be set, containing the milliseconds since epoch in UTC time"),
+	@WritesAttribute(attribute="s3.expirationTimeRuleId", description="The ID of the rule that dictates this object's expiration time"),
+	@WritesAttribute(attribute="s3.version", description="The version of the S3 object"),
+})
+public class FetchS3Object extends AbstractS3Processor {
 
-    public static final PropertyDescriptor VERSION_ID = new PropertyDescriptor.Builder()
+	public static final PropertyDescriptor VERSION_ID = new PropertyDescriptor.Builder()
         .name("Version")
         .description("The Version of the Object to download")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -37,25 +71,8 @@ public class GetS3Object extends AbstractS3Processor {
         .required(false)
         .build();
     
-    public static final PropertyDescriptor BYTE_RANGE_START = new PropertyDescriptor.Builder()
-        .name("First Byte Index")
-        .description("The 0-based index of the first byte to download. If specified, the first N bytes will be skipped, where N is the value of this property. If this value is greater than the size of the object, the FlowFile will be routed to failure.")
-        .required(false)
-        .expressionLanguageSupported(true)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .build();
-    public static final PropertyDescriptor BYTE_RANGE_END = new PropertyDescriptor.Builder()
-        .name("Last Byte Index")
-        .description("The 0-based index of the last byte to download. If specified, last N bytes will be skipped, where N is the size of the object minus the value of this property. If the value is greater than the size of the object, the content will be downloaded to the end of the object.")
-        .required(false)
-        .expressionLanguageSupported(true)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .build();
-    
-    
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-            Arrays.asList(BUCKET, KEY, REGION, ACCESS_KEY, SECRET_KEY, CREDENTAILS_FILE, TIMEOUT, VERSION_ID,
-                    BYTE_RANGE_START, BYTE_RANGE_END) );
+            Arrays.asList(BUCKET, KEY, REGION, ACCESS_KEY, SECRET_KEY, CREDENTAILS_FILE, TIMEOUT, VERSION_ID) );
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -82,30 +99,6 @@ public class GetS3Object extends AbstractS3Processor {
             request = new GetObjectRequest(bucket, key, versionId);
         }
 
-        final Long byteRangeStart;
-        final Long byteRangeEnd;
-        try {
-            final PropertyValue startVal = context.getProperty(BYTE_RANGE_START).evaluateAttributeExpressions(flowFile);
-            byteRangeStart = startVal.isSet() ? startVal.asLong() : 0L;
-            
-            final PropertyValue endVal = context.getProperty(BYTE_RANGE_END).evaluateAttributeExpressions(flowFile);
-            byteRangeEnd = endVal.isSet() ? endVal.asLong() : Long.MAX_VALUE;
-        } catch (final NumberFormatException nfe) {
-            getLogger().error("Failed to determine byte range for download for {} due to {}", new Object[] {flowFile, nfe});
-            session.transfer(flowFile, REL_FAILURE);
-            return;
-        }
-        
-        if ( byteRangeStart != null && byteRangeEnd != null ) {
-            if ( byteRangeEnd.longValue() < byteRangeStart.longValue() ) {
-                getLogger().error("Failed to download object from S3 for {} because Start Byte Range is {} and End Byte Range is {}, which is less", new Object[] {flowFile, byteRangeStart, byteRangeEnd});
-                session.transfer(flowFile, REL_FAILURE);
-                return;
-            }
-            
-            request.setRange(byteRangeStart.longValue(), byteRangeEnd.longValue());
-        }
-        
         final Map<String, String> attributes = new HashMap<>();
         try (final S3Object s3Object = client.getObject(request)) {
             flowFile = session.importFrom(s3Object.getObjectContent(), flowFile);
@@ -160,6 +153,5 @@ public class GetS3Object extends AbstractS3Processor {
         getLogger().info("Successfully retrieved S3 Object for {} in {} millis; routing to success", new Object[] {flowFile, transferMillis});
         session.getProvenanceReporter().receive(flowFile, "http://" + bucket + ".amazonaws.com/" + key, transferMillis);
     }
-
     
 }

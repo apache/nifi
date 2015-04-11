@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.nifi.processors.aws.sqs;
 
 import java.io.IOException;
@@ -12,7 +28,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
@@ -30,10 +50,17 @@ import com.amazonaws.services.sqs.model.MessageAttributeValue;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 
-@Tags({ "Amazon", "SQS", "Queue", "Get", "Fetch", "Poll"})
+@SupportsBatching
+@Tags({ "Amazon", "AWS", "SQS", "Queue", "Get", "Fetch", "Poll"})
+@SeeAlso({PutSQS.class, DeleteSQS.class})
 @CapabilityDescription("Fetches messages from an Amazon Simple Queuing Service Queue")
+@WritesAttributes({
+	@WritesAttribute(attribute="hash.value", description="The MD5 sum of the message"),
+	@WritesAttribute(attribute="hash.algorithm", description="MD5"),
+	@WritesAttribute(attribute="sqs.message.id", description="The unique identifier of the SQS message"),
+	@WritesAttribute(attribute="sqs.receipt.handle", description="The SQS Receipt Handle that is to be used to delete the message from the queue")
+})
 public class GetSQS extends AbstractSQSProcessor {
-
     public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
         .name("Character Set")
         .description("The Character Set that should be used to encode the textual content of the SQS message")

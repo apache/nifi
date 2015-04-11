@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.nifi.processors.aws.sqs;
 
 import java.io.ByteArrayOutputStream;
@@ -11,7 +27,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.nifi.annotation.behavior.DynamicProperty;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -26,8 +45,13 @@ import com.amazonaws.services.sqs.model.SendMessageBatchRequest;
 import com.amazonaws.services.sqs.model.SendMessageBatchRequestEntry;
 
 
-@Tags({"Amazon", "SQS", "Queue", "Put", "Publish"})
+@SupportsBatching
+@Tags({"Amazon", "AWS", "SQS", "Queue", "Put", "Publish"})
+@SeeAlso({GetSQS.class, DeleteSQS.class})
 @CapabilityDescription("Publishes a message to an Amazon Simple Queuing Service Queue")
+@DynamicProperty(name="The name of a Message Attribute to add to the message", value="The value of the Message Attribute", 
+	description="Allows the user to add key/value pairs as Message Attributes by adding a property whose name will become the name of "
+			+ "the Message Attribute and value will become the value of the Message Attribute", supportsExpressionLanguage=true)
 public class PutSQS extends AbstractSQSProcessor {
 
     public static final PropertyDescriptor DELAY = new PropertyDescriptor.Builder()
@@ -71,10 +95,6 @@ public class PutSQS extends AbstractSQSProcessor {
     
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
-        // TODO: Process batch of FlowFiles. To do this, we have to first poll the first
-        // FlowFile and then use session.get(FlowFileFilter) to get up to BATCH_SIZE - 1
-        // more results that have the same Queue URL.
-        
         FlowFile flowFile = session.get();
         if ( flowFile == null ) {
             return;

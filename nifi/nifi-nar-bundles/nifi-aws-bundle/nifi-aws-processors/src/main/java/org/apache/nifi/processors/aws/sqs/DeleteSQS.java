@@ -1,3 +1,19 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.nifi.processors.aws.sqs;
 
 import java.util.ArrayList;
@@ -5,7 +21,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
@@ -17,8 +35,9 @@ import com.amazonaws.services.sqs.AmazonSQSClient;
 import com.amazonaws.services.sqs.model.DeleteMessageBatchRequest;
 import com.amazonaws.services.sqs.model.DeleteMessageBatchRequestEntry;
 
-
-@Tags({"Amazon", "SQS", "Queue", "Delete"})
+@SupportsBatching
+@SeeAlso({GetSQS.class, PutSQS.class})
+@Tags({"Amazon", "AWS", "SQS", "Queue", "Delete"})
 @CapabilityDescription("Deletes a message from an Amazon Simple Queuing Service Queue")
 public class DeleteSQS extends AbstractSQSProcessor {
     public static final PropertyDescriptor RECEIPT_HANDLE = new PropertyDescriptor.Builder()
@@ -41,9 +60,6 @@ public class DeleteSQS extends AbstractSQSProcessor {
     
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
-        // TODO: Process batch of FlowFiles. To do this, we have to first poll the first
-        // FlowFile and then use session.get(FlowFileFilter) to get up to BATCH_SIZE - 1
-        // more results that have the same Queue URL.
         List<FlowFile> flowFiles = session.get(1);
         if ( flowFiles.isEmpty() ) {
             return;
