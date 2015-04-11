@@ -183,7 +183,6 @@ public class GeoEnrichIP extends AbstractProcessor {
         
         if (response == null) {
             session.transfer(flowFile, REL_NOT_FOUND);
-            getLogger().warn("No enrichment data found for ip {} of {}", new Object[]{ipAttributeValue, flowFile});
             return;
         }
 
@@ -204,7 +203,6 @@ public class GeoEnrichIP extends AbstractProcessor {
         flowFile = session.putAllAttributes(flowFile, attrs);
 
         session.transfer(flowFile, REL_FOUND);
-        getLogger().info("Completed lookup of IP geo information for {}", new Object[]{flowFile});
     }
 
 }
