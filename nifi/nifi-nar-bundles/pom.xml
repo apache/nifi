@@ -35,6 +35,10 @@
         <module>nifi-update-attribute-bundle</module>
         <module>nifi-kafka-bundle</module>
 		<module>nifi-kite-bundle</module>
+		<module>nifi-social-media-bundle</module>
+		<module>nifi-geo-bundle</module>
+		<module>nifi-hl7-bundle</module>
+		<module>nifi-language-translation-bundle</module>
     </modules>
     <dependencyManagement>
         <dependencies>

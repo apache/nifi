@@ -27,6 +27,7 @@ import java.util.zip.CRC32;
 import java.util.zip.CheckedInputStream;
 import java.util.zip.CheckedOutputStream;
 
+import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.remote.Communicant;
 import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.Transaction;
@@ -39,6 +40,7 @@ import org.apache.nifi.remote.io.CompressionOutputStream;
 import org.apache.nifi.remote.protocol.DataPacket;
 import org.apache.nifi.remote.protocol.RequestType;
 import org.apache.nifi.remote.util.StandardDataPacket;
+import org.apache.nifi.reporting.Severity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,6 +58,7 @@ public class SocketClientTransaction implements Transaction {
 	private final Peer peer;
 	private final int penaltyMillis;
 	private final String destinationId;
+	private final EventReporter eventReporter;
 	
 	private boolean dataAvailable = false;
 	private int transfers = 0;
@@ -63,7 +66,7 @@ public class SocketClientTransaction implements Transaction {
 	private TransactionState state;
 	
 	SocketClientTransaction(final int protocolVersion, final String destinationId, final Peer peer, final FlowFileCodec codec, 
-			final TransferDirection direction, final boolean useCompression, final int penaltyMillis) throws IOException {
+			final TransferDirection direction, final boolean useCompression, final int penaltyMillis, final EventReporter eventReporter) throws IOException {
 		this.protocolVersion = protocolVersion;
 		this.destinationId = destinationId;
 		this.peer = peer;
@@ -74,6 +77,7 @@ public class SocketClientTransaction implements Transaction {
 		this.compress = useCompression;
 		this.state = TransactionState.TRANSACTION_STARTED;
 		this.penaltyMillis = penaltyMillis;
+		this.eventReporter = eventReporter;
 		
 		initialize();
 	}
@@ -116,11 +120,11 @@ public class SocketClientTransaction implements Transaction {
 	    try {
 	        try {
         		if ( state != TransactionState.DATA_EXCHANGED && state != TransactionState.TRANSACTION_STARTED) {
-        			throw new IllegalStateException("Cannot receive data because Transaction State is " + state);
+        			throw new IllegalStateException("Cannot receive data from " + peer + " because Transaction State is " + state);
         		}
         		
             	if ( direction == TransferDirection.SEND ) {
-            	    throw new IllegalStateException("Attempting to receive data but started a SEND Transaction");
+            	    throw new IllegalStateException("Attempting to receive data from " + peer + " but started a SEND Transaction");
             	}
             	
             	// if we already know there's no data, just return null
@@ -142,7 +146,7 @@ public class SocketClientTransaction implements Transaction {
                             this.dataAvailable = false;
                             break;
                         default:
-                            throw new ProtocolException("Got unexpected response when asking for data: " + dataAvailableCode);
+                            throw new ProtocolException("Got unexpected response from " + peer + " when asking for data: " + dataAvailableCode);
                     }
                 }
             	
@@ -184,11 +188,11 @@ public class SocketClientTransaction implements Transaction {
 	    try {
 	        try {
         		if ( state != TransactionState.DATA_EXCHANGED && state != TransactionState.TRANSACTION_STARTED) {
-        			throw new IllegalStateException("Cannot send data because Transaction State is " + state);
+        			throw new IllegalStateException("Cannot send data to " + peer + " because Transaction State is " + state);
         		}
         
                 if ( direction == TransferDirection.RECEIVE ) {
-                    throw new IllegalStateException("Attempting to send data but started a RECEIVE Transaction");
+                    throw new IllegalStateException("Attempting to send data to " + peer + " but started a RECEIVE Transaction");
                 }
         
         		if ( transfers > 0 ) {
@@ -242,7 +246,7 @@ public class SocketClientTransaction implements Transaction {
 	    try {
 	        try {
         		if ( state != TransactionState.TRANSACTION_CONFIRMED ) {
-        			throw new IllegalStateException("Cannot complete transaction because state is " + state + 
+        			throw new IllegalStateException("Cannot complete transaction with " + peer + " because state is " + state + 
         					"; Transaction can only be completed when state is " + TransactionState.TRANSACTION_CONFIRMED);
         		}
         		
@@ -272,7 +276,7 @@ public class SocketClientTransaction implements Transaction {
                         peer.penalize(destinationId, penaltyMillis);
                         backoff = true;
                     } else if ( transactionResponse.getCode() != ResponseCode.TRANSACTION_FINISHED ) {
-                        throw new ProtocolException("After sending data, expected TRANSACTION_FINISHED response but got " + transactionResponse);
+                        throw new ProtocolException("After sending data to " + peer + ", expected TRANSACTION_FINISHED response but got " + transactionResponse);
                     }
                     
                     state = TransactionState.TRANSACTION_COMPLETED;
@@ -324,7 +328,10 @@ public class SocketClientTransaction implements Transaction {
                     try {
                         confirmTransactionResponse = Response.read(dis);
                     } catch (final IOException ioe) {
-                        logger.error("Failed to receive response code from {} when expected confirmation of transaction", peer);
+                        logger.error("Failed to receive response code from {} when expecting confirmation of transaction", peer);
+                        if ( eventReporter != null ) {
+                        	eventReporter.reportEvent(Severity.ERROR, "Site-to-Site", "Failed to receive response code from " + peer + " when expecting confirmation of transaction");
+                        }
                         throw ioe;
                     }
                     
