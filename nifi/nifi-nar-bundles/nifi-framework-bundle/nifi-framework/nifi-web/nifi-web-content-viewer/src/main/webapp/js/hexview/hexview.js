@@ -148,7 +148,7 @@ $(document).ready(function () {
 
             $("table", div).addClass("hexviewerwindow_table");
             $("table", div).append("<tr></tr>").addClass("hexviewerwindow");
-            $("table tr:last", div).append("<td>" + (decimal_offset ? ("00000000"+offset).slice(-8) : "0x" + dec_to_hex8(offset)) + "</td>");
+            $("table tr:last", div).append("<td>" + escapeHtml((decimal_offset ? ("00000000"+offset).slice(-8) : "0x" + dec_to_hex8(offset))) + "</td>");
             $("table tr td:last", div).addClass("hexviewerwindow_offset");
 
             var runlen = 0;
@@ -162,7 +162,7 @@ $(document).ready(function () {
                     num += dec2_to_hex(line_data.charCodeAt(i+j));
                 }
 
-                $("table tr:last", div).append("<td>" + (hide_0x ? "" : "0x") + num + "</td>");
+                $("table tr:last", div).append("<td>" + escapeHtml((hide_0x ? "" : "0x") + num) + "</td>");
 
                 apply_highlights(offset+i);
             }

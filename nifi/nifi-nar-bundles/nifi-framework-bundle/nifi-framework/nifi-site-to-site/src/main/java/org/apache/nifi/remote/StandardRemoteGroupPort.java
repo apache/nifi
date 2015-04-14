@@ -171,6 +171,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
             this.targetRunning.set(false);
             final String message = String.format("%s failed to communicate with %s because the remote instance indicates that the port is not in a valid state", this, url);
             logger.error(message);
+          	session.rollback();
             remoteGroup.getEventReporter().reportEvent(Severity.ERROR, CATEGORY, message);
             return;
         } catch (final UnknownPortException e) {
@@ -178,21 +179,24 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
             this.targetExists.set(false);
             final String message = String.format("%s failed to communicate with %s because the remote instance indicates that the port no longer exists", this, url);
             logger.error(message);
+          	session.rollback();
             remoteGroup.getEventReporter().reportEvent(Severity.ERROR, CATEGORY, message);
             return;
         } catch (final IOException e) {
+        	context.yield();
             final String message = String.format("%s failed to communicate with %s due to %s", this, url, e.toString());
             logger.error(message);
             if ( logger.isDebugEnabled() ) {
                 logger.error("", e);
             }
+          	session.rollback();
             remoteGroup.getEventReporter().reportEvent(Severity.ERROR, CATEGORY, message);
-            session.rollback();
             return;
         }
         
         if ( transaction == null ) {
             logger.debug("{} Unable to create transaction to communicate with; all peers must be penalized, so yielding context", this);
+            session.rollback();
             context.yield();
             return;
         }

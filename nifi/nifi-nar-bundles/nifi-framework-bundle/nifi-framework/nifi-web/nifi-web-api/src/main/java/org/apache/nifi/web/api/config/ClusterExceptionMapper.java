@@ -35,11 +35,7 @@ public class ClusterExceptionMapper implements ExceptionMapper<ClusterException>
     @Override
     public Response toResponse(ClusterException exception) {
         // log the error
-        logger.info(String.format("%s. Returning %s response.", exception, Response.Status.INTERNAL_SERVER_ERROR));
-
-        if (logger.isDebugEnabled()) {
-            logger.debug(StringUtils.EMPTY, exception);
-        }
+        logger.error(String.format("%s. Returning %s response.", exception, Response.Status.INTERNAL_SERVER_ERROR), exception);
 
         return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(exception.getMessage()).type("text/plain").build();
     }

@@ -882,24 +882,16 @@
                         // update the revision
                         nf.Client.setRevision(response.revision);
 
-                        $.Deferred(function (deferred) {
-                            // load the property descriptor if possible
-                            if (typeof configurationOptions.descriptorDeferred === 'function') {
-                                configurationOptions.descriptorDeferred(item.property).done(function(response) {
-                                    var descriptor = response.propertyDescriptor;
+                        // load the descriptor and update the property
+                        configurationOptions.descriptorDeferred(item.property).done(function(descriptorResponse) {
+                            var descriptor = descriptorResponse.propertyDescriptor;
 
-                                    // store the descriptor for use later
-                                    var descriptors = gridContainer.data('descriptors');
-                                    if (!nf.Common.isUndefined(descriptors)) {
-                                        descriptors[descriptor.name] = descriptor;
-                                    }
-
-                                    deferred.resolve();
-                                });
-                            } else {
-                                deferred.resolve();
+                            // store the descriptor for use later
+                            var descriptors = gridContainer.data('descriptors');
+                            if (!nf.Common.isUndefined(descriptors)) {
+                                descriptors[descriptor.name] = descriptor;
                             }
-                        }).done(function() {
+
                             // add a row for the new property
                             var data = grid.getData();
                             data.updateItem(item.id, $.extend(item, {
@@ -1023,7 +1015,7 @@
                 // ensure the configured value is referencing a valid service
                 $.each(propertyDescriptor.allowableValues, function (_, allowableValue) {
                     if (allowableValue.value === dataContext.value) {
-                        markup = '<img src="images/iconGoTo.png" title="Go To" class="go-to-service pointer" style="margin-top: 2px" />';
+                        markup += '<img src="images/iconGoTo.png" title="Go To" class="go-to-service pointer" style="margin-top: 2px" />';
                         return false;
                     }
                 });
@@ -1031,7 +1023,7 @@
 
             // allow user defined properties to be removed
             if (options.readOnly !== true && dataContext.type === 'userDefined') {
-                markup = '<img src="images/iconDelete.png" title="Delete" class="delete-property pointer" style="margin-top: 2px" />';
+                markup += '<img src="images/iconDelete.png" title="Delete" class="delete-property pointer" style="margin-top: 2px" />';
             }
 
             return markup;
@@ -1383,39 +1375,59 @@
                         var add = function () {
                             var propertyName = $.trim(newPropertyNameField.val());
 
-                            // ensure the property name and value is specified
+                            // ensure the property name is specified
                             if (propertyName !== '') {
-                                // load the property descriptor if possible
-                                if (typeof options.descriptorDeferred === 'function') {
+                                var propertyGrid = table.data('gridInstance');
+                                var propertyData = propertyGrid.getData();
+                                
+                                // ensure the property name is unique
+                                var existingPropertyId = null;
+                                $.each(propertyData.getItems(), function (_, item) {
+                                    if (propertyName === item.property) {
+                                        existingPropertyId = item.id;
+                                        return false;
+                                    }
+                                });
+                                
+                                if (existingPropertyId === null) {
+                                    // load the descriptor and add the property
                                     options.descriptorDeferred(propertyName).done(function(response) {
                                         var descriptor = response.propertyDescriptor;
-                                        
+
                                         // store the descriptor for use later
                                         var descriptors = table.data('descriptors');
                                         if (!nf.Common.isUndefined(descriptors)) {
                                             descriptors[descriptor.name] = descriptor;
                                         }
+
+                                        // add a row for the new property
+                                        var id = propertyData.getLength(); 
+                                        propertyData.addItem({
+                                            id: id,
+                                            hidden: false,
+                                            property: propertyName,
+                                            displayName: propertyName,
+                                            previousValue: null,
+                                            value: null,
+                                            type: 'userDefined'
+                                        });
+
+                                        // select the new properties row
+                                        var row = propertyData.getRowById(id);
+                                        propertyGrid.setActiveCell(row, propertyGrid.getColumnIndex('value'));
+                                        propertyGrid.editActiveCell();
                                     });
+                                } else {
+                                    nf.Dialog.showOkDialog({
+                                        dialogContent: 'A property with this name already exists.',
+                                        overlayBackground: false
+                                    });
+                                    
+                                    // select the existing properties row
+                                    var row = propertyData.getRowById(existingPropertyId);
+                                    propertyGrid.setSelectedRows([row]);
+                                    propertyGrid.scrollRowIntoView(row);
                                 }
-                                
-                                // add a row for the new property
-                                var propertyGrid = table.data('gridInstance');
-                                var propertyData = propertyGrid.getData();
-                                var id = propertyData.getLength(); 
-                                propertyData.addItem({
-                                    id: id,
-                                    hidden: false,
-                                    property: propertyName,
-                                    displayName: propertyName,
-                                    previousValue: null,
-                                    value: null,
-                                    type: 'userDefined'
-                                });
-                                
-                                // select the new properties row
-                                var row = propertyData.getRowById(id);
-                                propertyGrid.setSelectedRows([row]);
-                                propertyGrid.scrollRowIntoView(row);
                             } else {
                                 nf.Dialog.showOkDialog({
                                     dialogContent: 'Property name must be specified.',

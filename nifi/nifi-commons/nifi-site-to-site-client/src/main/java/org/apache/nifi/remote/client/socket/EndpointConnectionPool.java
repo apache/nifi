@@ -88,6 +88,7 @@ import org.apache.nifi.web.api.dto.ControllerDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.helpers.MessageFormatter;
 
 public class EndpointConnectionPool {
     public static final long PEER_REFRESH_PERIOD = 60000L;
@@ -202,6 +203,28 @@ public class EndpointConnectionPool {
     	}, 5, 5, TimeUnit.SECONDS);
     }
     
+    void warn(final String msg, final Object... args) {
+    	logger.warn(msg, args);
+    	if ( eventReporter != null ) {
+    		eventReporter.reportEvent(Severity.WARNING, "Site-to-Site", MessageFormatter.arrayFormat(msg, args).getMessage());
+    	}
+    }
+    
+    void warn(final String msg, final Throwable t) {
+    	logger.warn(msg, t);
+    	
+    	if ( eventReporter != null ) {
+    		eventReporter.reportEvent(Severity.WARNING, "Site-to-Site", msg + ": " + t.toString());
+    	}
+    }
+    
+    void error(final String msg, final Object... args) {
+    	logger.error(msg, args);
+    	if ( eventReporter != null ) {
+    		eventReporter.reportEvent(Severity.ERROR, "Site-to-Site", MessageFormatter.arrayFormat(msg, args).getMessage());
+    	}
+    }
+    
     private String getPortIdentifier(final TransferDirection transferDirection) throws IOException {
         if ( remoteDestination.getIdentifier() != null ) {
             return remoteDestination.getIdentifier();
@@ -271,6 +294,7 @@ public class EndpointConnectionPool {
                     logger.debug("{} No Connection available for Port {}; creating new Connection", this, portId);
                     protocol = new SocketClientProtocol();
                     protocol.setDestination(new IdEnrichedRemoteDestination(remoteDestination, portId));
+                    protocol.setEventReporter(eventReporter);
 
                     final long penalizationMillis = remoteDestination.getYieldPeriod(TimeUnit.MILLISECONDS);
                     try {
@@ -312,8 +336,15 @@ public class EndpointConnectionPool {
                         
                         // handle error cases
                         if ( protocol.isDestinationFull() ) {
-                            logger.warn("{} {} indicates that port's destination is full; penalizing peer", this, peer);
+                            logger.warn("{} {} indicates that port {}'s destination is full; penalizing peer", 
+                            		this, peer, config.getPortName() == null ? config.getPortIdentifier() : config.getPortName());
+                            
                             penalize(peer, penalizationMillis);
+                            try {
+                            	peer.close();
+                            } catch (final IOException ioe) {
+                            }
+                            
                             continue;
                         } else if ( protocol.isPortInvalid() ) {
                         	penalize(peer, penalizationMillis);
@@ -336,7 +367,7 @@ public class EndpointConnectionPool {
                         cleanup(protocol, peer);
                         
                         final String message = String.format("%s failed to communicate with %s due to %s", this, peer == null ? clusterUrl : peer, e.toString());
-                        logger.error(message);
+                        error(message);
                         if ( logger.isDebugEnabled() ) {
                             logger.error("", e);
                         }
@@ -359,6 +390,15 @@ public class EndpointConnectionPool {
                     }
                 }
             } while ( connection == null || codec == null || commsSession == null || protocol == null );
+        } catch (final Throwable t) {
+        	if ( commsSession != null ) {
+        		try {
+        			commsSession.close();
+        		} catch (final IOException ioe) {
+        		}
+        	}
+        	
+        	throw t;
         } finally {
             if ( !addBack.isEmpty() ) {
                 connectionQueue.addAll(addBack);
@@ -449,7 +489,7 @@ public class EndpointConnectionPool {
                         peerList = createPeerStatusList(direction);
                     } catch (final Exception e) {
                         final String message = String.format("%s Failed to update list of peers due to %s", this, e.toString());
-                        logger.warn(message);
+                        warn(message);
                         if ( logger.isDebugEnabled() ) {
                             logger.warn("", e);
                         }
@@ -489,7 +529,7 @@ public class EndpointConnectionPool {
     }
     
     private boolean isPenalized(final PeerStatus peerStatus) {
-        final Long expirationEnd = peerTimeoutExpirations.get(peerStatus);
+        final Long expirationEnd = peerTimeoutExpirations.get(peerStatus.getPeerDescription());
         return (expirationEnd == null ? false : expirationEnd > System.currentTimeMillis() );
     }
     
@@ -573,7 +613,7 @@ public class EndpointConnectionPool {
             clientProtocol.shutdown(peer);
         } catch (final IOException e) {
             final String message = String.format("%s Failed to shutdown protocol when updating list of peers due to %s", this, e.toString());
-            logger.warn(message);
+            warn(message);
             if (logger.isDebugEnabled()) {
                 logger.warn("", e);
             }
@@ -583,7 +623,7 @@ public class EndpointConnectionPool {
             peer.close();
         } catch (final IOException e) {
             final String message = String.format("%s Failed to close resources when updating list of peers due to %s", this, e.toString());
-            logger.warn(message);
+            warn(message);
             if (logger.isDebugEnabled()) {
                 logger.warn("", e);
             }
@@ -608,7 +648,8 @@ public class EndpointConnectionPool {
             }
 
         } catch (final IOException e) {
-            logger.error("Failed to persist list of Peers due to {}; if restarted and peer's NCM is down, may be unable to transfer data until communications with NCM are restored", e.toString(), e);
+            error("Failed to persist list of Peers due to {}; if restarted and peer's NCM is down, may be unable to transfer data until communications with NCM are restored", e.toString());
+            logger.error("", e);
         }
     }
 
@@ -804,7 +845,7 @@ public class EndpointConnectionPool {
             peerStatusCache = new PeerStatusCache(statuses);
             logger.info("{} Successfully refreshed Peer Status; remote instance consists of {} peers", this, statuses.size());
         } catch (Exception e) {
-            logger.warn("{} Unable to refresh Remote Group's peers due to {}", this, e);
+            warn("{} Unable to refresh Remote Group's peers due to {}", this, e);
             if (logger.isDebugEnabled()) {
                 logger.warn("", e);
             }

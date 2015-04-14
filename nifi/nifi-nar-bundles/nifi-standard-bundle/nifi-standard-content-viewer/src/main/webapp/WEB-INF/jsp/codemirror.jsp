@@ -20,13 +20,16 @@
 <script type="text/javascript" src="../nifi/js/codemirror/lib/codemirror-compressed.js"></script>
 <script type="text/javascript" src="../nifi/js/jquery/jquery-2.1.1.min.js"></script>
 
-<textarea id="codemirror-content">${content}</textarea>
+<textarea id="codemirror-content"><%= request.getAttribute("content") == null ? "" : org.apache.nifi.util.EscapeUtils.escapeHtml(request.getAttribute("content").toString()) %></textarea>
+<span id="codemirror-mode" style="display: none;"><%= org.apache.nifi.util.EscapeUtils.escapeHtml(request.getAttribute("mode").toString()) %></span> 
 
 <script type="text/javascript">
     $(document).ready(function() {
+        var mode = $('#codemirror-mode').text();
+        
         var field = document.getElementById('codemirror-content');
         var editor = CodeMirror.fromTextArea(field, {
-            mode: '${mode}',
+            mode: mode,
             lineNumbers: true,
             matchBrackets: true,
             foldGutter: true,

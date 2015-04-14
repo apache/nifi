@@ -121,8 +121,14 @@ public class StandardNiFiContentAccess implements ContentAccess {
             final String rawDirection = StringUtils.substringAfterLast(eventDetails, "/content/");
             
             // get the content type
-            final Long eventId = Long.parseLong(rawEventId);
-            final ContentDirection direction = ContentDirection.valueOf(rawDirection.toUpperCase());
+            final Long eventId;
+            final ContentDirection direction;
+            try {
+                eventId = Long.parseLong(rawEventId);
+                direction = ContentDirection.valueOf(rawDirection.toUpperCase());
+            } catch (final IllegalArgumentException iae) {
+                throw new IllegalArgumentException("The specified data reference URI is not valid.");
+            }
             return serviceFacade.getContent(eventId, request.getDataUri(), direction);
         }
     }
