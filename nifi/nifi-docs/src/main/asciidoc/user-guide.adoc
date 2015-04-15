@@ -61,24 +61,28 @@ Terminology
 
 *Relationship*: Each Processor has zero or more Relationships defined for it. These Relationships are named to indicate the result of processing a FlowFile.
 	After a Processor has finished processing a FlowFile, it will route (or “transfer”) the FlowFile to one of the Relationships.
-	A DataFlow Manager is then able to connect each of these Relationships to other components in order to specify where the FlowFile should
+	A DFM is then able to connect each of these Relationships to other components in order to specify where the FlowFile should
 	go next under each potential processing result.
 
-*Connection*: A DataFlow Manager creates an automated dataflow by dragging components from the Components part of the NiFi toolbar to the canvas
+*Connection*: A DFM creates an automated dataflow by dragging components from the Components part of the NiFi toolbar to the canvas
 	and then connecting the components together via Connections. Each connection consists of one or more Relationships.
-	For each Connection that is drawn, a DataFlow Manager can determine which Relationships should be used for the Connection.
+	For each Connection that is drawn, a DFM can determine which Relationships should be used for the Connection.
 	This allows data to be routed in different ways based on its processing outcome. Each connection houses a FlowFile Queue.
 	When a FlowFile is transferred to a particular Relationship, it is added to the queue belonging to the associated Connection.
+
+*Controller Service*: Controller Services are extension points that, after being added and configured by a DFM in the User Interface, will start up when NiFi starts up and provide information for use by other components (processors). A common Controller Service used by several processors is the StandardSSLContextService. It provides the ability to configure keystore and/or truststore properties once and reuse that configuration throughout the application. The idea is that, rather than configure this information in every processor that might need it, the controller service provides it for any processor to use as needed.
+
+*Reporting Task*: Reporting Tasks run in the background to provide statistical reports about what is happening in the NiFi instance. The DFM adds and configures Reporting Tasks in the User Interface as desired. Common reporting tasks include the ControllerStatusReportingTask, MonitorDiskUsage reporting task, MonitorMemory reporting task, and the StandardGangliaReporter.
 
 *Funnel*: A funnel is a NiFi component that is used to combine the data from several Connections into a single Connection.
 
 *Process Group*: When a dataflow becomes complex, it often is beneficial to reason about the dataflow at a higher, more abstract level.
 	NiFi allows multiple components, such as Processors, to be grouped together into a Process Group.
-	The NiFi User Interface then makes it easy for a DataFlow Manager to connect together multiple Process Groups into a logical dataflow,
-	as well as allowing the DataFlow Manager to enter a Process Group in order to see and manipulate the components within the Process Group.
+	The NiFi User Interface then makes it easy for a DFM to connect together multiple Process Groups into a logical dataflow,
+	as well as allowing the DFM to enter a Process Group in order to see and manipulate the components within the Process Group.
 
 *Port*: Dataflows that are constructed using one or more Process Groups need a way to connect a Process Group to other dataflow components.
-	This is achieved by using Ports. A DataFlow Manager can add any number of Input Ports and Output Ports to a Process Group and name these ports appropriately.
+	This is achieved by using Ports. A DFM can add any number of Input Ports and Output Ports to a Process Group and name these ports appropriately.
 
 *Remote Process Group*: Just as data is transferred into and out of a Process Group, it is sometimes necessary to transfer data from one instance of NiFi to another.
 	While NiFi provides many different mechanisms for transferring data from one system to another, Remote Process Groups are often the easiest way to accomplish
@@ -91,7 +95,7 @@ Terminology
 	as well as the message of the Bulletin.
 	Bulletins from all components can also be viewed and filtered in the Bulletin Board Page, available in the Management Toolbar.
 
-*Template*: Often times, a dataflow is comprised of many sub-flows that could be reused. NiFi allows DataFlow Managers to select a part of the dataflow
+*Template*: Often times, a dataflow is comprised of many sub-flows that could be reused. NiFi allows DFMs to select a part of the dataflow
 	(or the entire dataflow) and create a Template. This Template is given a name and can then be dragged onto the canvas just like the other components.
 	As a result, several components may be combined together to make a larger building block from which to create a dataflow.
 	These templates can also be exported as XML and imported into another NiFi instance, allowing these building blocks to be shared.
@@ -111,7 +115,7 @@ When the application is started, the user is able to navigate to the User Interf
 `http://<hostname>:8080/nifi` in a web browser. There are no permissions configured by default, so anyone is
 able to view and modify the dataflow. For information on securing the system, see the Systems Administrator guide.
 
-When a DataFlow Manager navigates to the UI for the first time, a blank canvas is provided on which a dataflow can be built:
+When a DFM navigates to the UI for the first time, a blank canvas is provided on which a dataflow can be built:
 
 image::new-flow.png["Empty Flow"]
 
@@ -124,7 +128,7 @@ Search field that allows users to easily find components on the graph. Users are
 type, identifier, configuration properties, and their values.
 
 The Management Toolbar sits to the right-hand side of the screen. This toolbar consists of buttons that are
-used by DataFlow Managers to manage the flow as well as by administrators who manage user access
+used by DFMs to manage the flow as well as by administrators who manage user access
 and configure system properties, such as how many system resources should be provided to the application.
 
 image::nifi-toolbar-components.png["NiFi Components Toolbar"]
@@ -155,7 +159,7 @@ image::status-bar.png["NiFi Status Bar"]
 Building a DataFlow
 -------------------
 
-A DataFlow Manager (DFM) is able to build an automated dataflow using the NiFi User Interface (UI). Simply drag components from the toolbar to the canvas, configure the components to meet specific needs, and connect
+A DFM is able to build an automated dataflow using the NiFi User Interface (UI). Simply drag components from the toolbar to the canvas, configure the components to meet specific needs, and connect
 the components together.
 
 
@@ -240,7 +244,7 @@ one Connection, rather than prioritizing the data on each Connection independent
 
 
 image:iconTemplate.png["Template", width=32]
-*Template*: Templates can be created by DataFlow Managers from sections of the flow, or they can be imported from other
+*Template*: Templates can be created by DFMs from sections of the flow, or they can be imported from other
 dataflows. These Templates provide larger building blocks for creating a  complex flow quickly. When the Template is
 dragged onto the canvas, the DFM is provided a dialog to choose which Template to add to the canvas:
 
@@ -420,6 +424,10 @@ image:iconDelete.png["Delete Icon"]
 
 Some processors also have an Advanced User Interface (UI) built into them. For example, the UpdateAttribute processor has an Advanced UI. To access the Advanced UI, click the `Advanced` button that appears at the bottom of the Configure Processor window. Only processors that have an Advanced UI will have this button. 
 
+Some processors have properties that refer to other components, such as Controller Services, which also need to be configured. For example, the GetHTTP processor has an SSLContextService property, which refers to the StandardSSLContextService controller service. When DFMs want to configure this property but have not yet created and configured the controller service, they have the option to create the service on the spot, as depicted in the image below. For more information about configuring Controller Services, see the <<Controller_Services_and_Reporting_Tasks>> section.
+
+image:create-service-ssl-context.png["Create Service", width=700]
+
 ==== Comments Tab
 
 The last tab in the Processor configuration dialog is the Comments tab. This tab simply provides an area for users to include
@@ -434,6 +442,64 @@ The user may access additional documentation about each Processor's usage by rig
 on the Processor and then selecting `Usage' from the context menu. Alternatively, clicking the `Help' link in the top-right
 corner of the User Interface will provide a Help page with all of the documentation, including usage documentation
 for all the Processors that are available. Clicking on the desired Processor in the list will display its usage documentation.
+
+
+
+[[Controller_Services_and_Reporting_Tasks]]
+=== Controller Services and Reporting Tasks
+
+While DFMs have the ability to create Controller Services from the Configure Processor window, there is also a central place within the User Interface for adding and configuring both Controller Services and Reporting Tasks. To get there, click on the Controller Settings button in the Management section of the toolbar.
+
+image:controller-settings-button.png["Controller Settings Button", width=200]
+
+The Controller Settings window has three tabs across the top: General, Controller Services, and Reporting Tasks. The General tab is for settings that pertain to general information about the NiFi instance. For example, here, the DFM can provide a unique name for the overall dataflow, as well as comments that describe the flow. Be aware that this information is visible to any other NiFi instance that connects remotely to this instance (using Remote Process Groups, a.k.a., Site-to-Site).
+
+The General tab also provides settings for the overall maximum thread counts of the instance, as well as the ability to click "Back-up flow" to create a backup copy of the current flow, which is saved by default in the /conf/archive directory.
+
+image:settings-general-tab.png["Controller Settings General Tab", width=700]
+
+To the right of the General tab is the Controller Services tab. From this tab, the DFM may click the "+" button in the upper-right corner to create a new Controller Service.
+
+image:controller-services-tab.png["Controller Services Tab", width=900]
+
+The Add Controller Service window opens. This window is similar to the Add Processor window. It provides a list of the available Controller Services on the right and a tag cloud, showing the most common catagory tags used for Controller Services, on the left. The DFM may click any tag in the tag cloud in order to narrow down the list of Controller Services to those that fit the categories desired. The DFM may also use the Filter field at the top of the window to search for the desired Contoller Service. Upon selecting a Controller Service from the list, the DFM can see a description of the the service below. Select the desired controller service and click Add, or simply double-click the name of the service to add it.
+
+image:add-controller-service-window.png["Add Controller Service Window", width=700]
+
+Once a Controller Service has been added, the DFM may configure it by clicking the Edit button (pencil icon) in the far-right column. Other buttons in this column include the Enable button (to enable a configured service), the Remove button, and the Usage button, which links to the documentation for the particular Controller Service.
+
+image:controller-services-edit-buttons.png["Controller Services Buttons"]
+
+When the DFM clicks the Edit button, a Configure Controller Service window opens. It has three tabs: Settings, Properties, and Comments. This window is similar to the Configure Processor window. The Settings tab provides a place for the DFM to give the Controller Service a unique name (if desired). It also lists the UUID for the service and provides a list of other components (processors or other controller services) that reference the service.
+
+image:configure-controller-service-settings.png["Configure Controller Service Settings", width=700]
+
+The Properties tab lists the various properties that apply to the particular controller service. As with configuring processors, the DFM may hover the mouse over the question mark icons to see more information about each property.
+
+image:configure-controller-service-properties.png["Configure Controller Service Properties", width=700]
+
+The Comments tab is just an open-text field, where the DFM may include comments about the service. After configuring a Controller Service, click the Apply button to apply the configuration and close the window, or click the Cancel button to cancel the changes and close the window.
+
+The Reporting Tasks tab behaves exactly the same way as the Controller Services tab. The DFM has the option to add Reporting Tasks and configure them in the same way as Controller Services.
+
+image:reporting-tasks-tab.png["Reporting Tasks Tab", width=900]
+
+Once a Reporting Task has been added, the DFM may configure it by clicking the Edit (pencil icon) in the far-right column. Other buttons in this column include the Start button, Remove button, and Usage button, which links to the documentation for the particular Reporting Task.
+
+image:reporting-tasks-edit-buttons.png["Reporting Tasks Buttons"]
+
+When the DFM clicks the Edit button, a Configure Reporting Task window opens. It has three tabs: Settings, Properties, and Comments. This window is also similar to the Configure Processor window. The Settings tab provides a place for the DFM to give the Reporting Task a unique name (if desired). It also lists a UUID for the Reporting Task and provides settings for the task's Scheduling Strategy and Run Schedule (similar to the same settings in a processor). The DFM may hover the mouse over the question mark icons to see more information about each setting.
+
+image:configure-reporting-task-settings.png["Configure Reporting Task Settings", width=700]
+
+The Properties tab for a Reporting Task lists the properties that may be configured for the task. The DFM may hover the mouse over the question mark icons to see more information about each property.
+
+image:configure-reporting-task-properties.png["Configure Reporting Task Properties", width=700]
+
+The Comments tab is just an open-text field, where the DFM may include comments about the task. After configuring the Reporting Task, click the Apply button to apply the configuration and close the window, or click Cancel to cancel the changes and close the window.
+
+When you want to run the Reporting Task, click the Start button in the far-right column of the Reporting Tasks tab.
+
 
 
 === Connecting Components
@@ -720,7 +786,7 @@ The image outlines the following elements:
 	Processor writes a FlowFile to disk - or ``Puts'' a FlowFile to a File.
 	
 - *Bulletin Indicator*: When a Processor logs that some event has occurred, it generates a Bulletin to notify
-	those who are monitoring NiFi via the User Interface. The DataFlow Manager is able to configure which
+	those who are monitoring NiFi via the User Interface. The DFM is able to configure which
 	bulletins should be displayed in the User Interface by updating the ``Bulletin level'' field in the
 	``Settings'' tab of the Processor configuration dialog. The default value is `WARN`, which means that only
 	warnings and errors will be displayed in the UI. This icon is not present unless a Bulletin exists for this
@@ -1094,7 +1160,7 @@ will remove the selection.
 
 [[templates]]
 == Templates
-DataFlow Managers have the ability to build very large and complex DataFlows using NiFi. This is achieved
+DFMs have the ability to build very large and complex DataFlows using NiFi. This is achieved
 by using the basic components: Processor, Funnel, Input/Output Port, Process Group, and Remote Process Group. These
 can be thought of as the most basic building blocks for constructing a DataFlow. At times, though, using these
 small building blocks can become tedious if the same logic needs to be repeated several times.
@@ -1245,7 +1311,7 @@ image:event-attributes.png["Event Attributes", width=700]
 
 === Replaying a FlowFile
 
-A Dataflow Manager may need to inspect a FlowFile's content at some point in the dataflow to ensure that it is being processed as expected. And if it
+A DFM may need to inspect a FlowFile's content at some point in the dataflow to ensure that it is being processed as expected. And if it
 is not being processed properly, the DFM may need to make adjustments to the dataflow and replay the FlowFile again. The Content tab of the View Details dialog window is where the DFM can do these things. The Content tab shows information about the FlowFile's content, such as its location in the Content Repository
 and its size. In addition, it is here that the user may click the `Download` button in order to download a copy of the FlowFile's content as it existed
 at this point in the flow. The user may also click the `Submit` button to replay the FlowFile at this point in the flow. Upon clicking `Submit`, 
@@ -1287,9 +1353,9 @@ image:expanded-events.png["Expanded Events", width=300]
 Other Management Features
 -------------------------
 
-In addition to the Summary Page, Data Provenance Page, Template Management Page, and Bulletin Board Page, there are other tools in the Management Toolbar (See <<User_Interface>>) that are useful to the Dataflow Manager. The Flow Configuration History, which is available by clicking on the clock icon ( image:iconFlowHistory.png["Flow History", width=28] ) in the Management Toolbar, shows all the changes that have been made to the dataflow graph. The history can aid in troubleshooting if a recent change to the dataflow has caused a problem and needs to be fixed. While NiFi does not have an "undo" feature, the DataFlow Manager can make new changes to the dataflow that will fix the problem.
+In addition to the Summary Page, Data Provenance Page, Template Management Page, and Bulletin Board Page, there are other tools in the Management Toolbar (See <<User_Interface>>) that are useful to the DFM. The Flow Configuration History, which is available by clicking on the clock icon ( image:iconFlowHistory.png["Flow History", width=28] ) in the Management Toolbar, shows all the changes that have been made to the dataflow graph. The history can aid in troubleshooting, such as if a recent change to the dataflow has caused a problem and needs to be fixed. The DFM can see what changes have been made and adjust the flow as needed to fix the problem. While NiFi does not have an "undo" feature, the DFM can make new changes to the dataflow that will fix the problem.
 
-Two other tools in the Management Toolbar are used primarily by Administrators. These are the Flow Settings page ( image:iconSettings.png["Flow Settings", width=28] ) and the Users page ( image:iconUsers.png["Users", width=28] ). The Flow Settings page provides the ability to change the name of the NiFi instance, add comments describing the NiFi instance, set the maximum number of threads that are available to the application, and create a back-up copy of the dataflow(s) currently on the graph. The Users page is used to manage user access, which is described in the Admin Guide. 
+Two other tools in the Management Toolbar are the Controller Settings page ( image:iconSettings.png["Settings", width=28] ) and the Users page ( image:iconUsers.png["Users", width=28] ). The Controller Settings page provides the ability to change the name of the NiFi instance, add comments describing the NiFi instance, set the maximum number of threads that are available to the application, and create a back-up copy of the dataflow(s) currently on the graph. It also provides tabs where DFMs may add and configure Controller Services and Reporting Tasks (see <<Controller_Services_and_Reporting_Tasks>>). The Users page is used to manage user access, which is described in the Admin Guide. 
 
 
 
