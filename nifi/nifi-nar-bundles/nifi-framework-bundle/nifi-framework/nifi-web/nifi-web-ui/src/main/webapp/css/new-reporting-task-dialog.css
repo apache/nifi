@@ -1,0 +1,152 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/* 
+    New controller service dialog.
+*/
+
+#new-reporting-task-dialog {
+    z-index: 1301;
+    display: none;
+    width: 800px;
+    height: 450px;
+    line-height: normal;
+}
+
+#reporting-task-tag-cloud-container {
+    float: left;
+    width: 190px;
+    height: 350px;
+}
+
+#reporting-task-types-container {
+    float: left;
+    width: 588px;
+    height: 350px;
+}
+
+#reporting-task-description-container {
+    width: 588px;
+    height: 100px;
+    margin-top: 10px;
+}
+
+#reporting-task-type-name {
+    font-size: 12pt;
+    font-weight: bold;
+    color: #527991;
+    margin-bottom: 8px;
+    width: 588px;
+}
+
+#reporting-task-type-description {
+    width: 588px;
+    height: 60px;
+}
+
+#reporting-task-availability-container {
+    position: relative;
+    left: 190px;
+    top: 9px;
+}
+
+div.availability-label {
+    float: left;
+    height: 24px;
+    line-height: 24px;
+}
+
+#reporting-task-availability-combo {
+    float: left;
+    margin-left: 6px;
+    width: 125px;
+    height: 18px;
+    line-height: 18px;
+}
+
+#reporting-task-types-table {
+    width: 586px;
+    height: 249px;
+    border: 1px solid #666;
+}
+
+#reporting-task-types-table-container th {
+    vertical-align: middle;
+}
+
+/*
+    Processor tag cloud
+*/
+
+#reporting-task-tag-cloud ul.tag-cloud {
+    max-height: 257px;
+}
+
+#reporting-task-tag-cloud ul.tag-cloud li {
+    max-width: 180px;
+}
+
+#reporting-task-tag-cloud div.tag-cloud-separator {
+    width: 180px;
+}
+
+#reporting-task-tag-cloud ul.tag-filter li {
+    width: 180px;
+}
+
+#reporting-task-tag-cloud div.selected-tag-text {
+    width: 160px;
+}
+
+/*
+    Processor type table filter
+*/
+
+#reporting-task-type-filter-controls {
+    float: right;
+    margin-top: -35px;
+    margin-right: 2px;
+    margin-bottom: 7px;
+}
+
+#reporting-task-type-filter-status {
+    font-size: 9px;
+    font-weight: bold;
+    color: #9f6000;
+    clear: left; 
+    line-height: normal;
+    margin-left: 5px;
+}
+
+#reporting-task-type-filter {
+    padding: 3px 0px 1px 3px;
+    font-size: 12px;
+    height: 18px;
+    line-height: 20px;
+    width: 173px;
+    border: 1px solid #ccc;
+    margin-right: 3px;
+    float: left;
+}
+
+#reporting-task-type-filter-options {
+    float: left;
+    height: 17px;
+    line-height: 17px;
+    width: 85px;
+    margin-top: 1px;
+}

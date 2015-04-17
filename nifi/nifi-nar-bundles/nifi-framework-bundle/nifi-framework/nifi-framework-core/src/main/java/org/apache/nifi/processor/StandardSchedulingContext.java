@@ -25,6 +25,7 @@ import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.controller.service.ControllerServiceState;
 
 public class StandardSchedulingContext implements SchedulingContext {
 
@@ -45,8 +46,8 @@ public class StandardSchedulingContext implements SchedulingContext {
             throw new IllegalArgumentException("Cannot lease Controller Service because no Controller Service exists with identifier " + identifier);
         }
 
-        if (serviceNode.isDisabled()) {
-            throw new IllegalStateException("Cannot lease Controller Service because Controller Service " + serviceNode.getProxiedControllerService() + " is currently disabled");
+        if ( serviceNode.getState() != ControllerServiceState.ENABLED ) {
+            throw new IllegalStateException("Cannot lease Controller Service because Controller Service " + serviceNode.getProxiedControllerService() + " is not currently enabled");
         }
 
         if (!serviceNode.isValid()) {

@@ -14,6 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/* global nf */
+
 nf.Registration = (function () {
 
     var config = {
@@ -35,9 +38,9 @@ nf.Registration = (function () {
             $('#expand-registration-button, #expand-registration-text').click(function () {
                 var registrationForm = $('#registration-form');
                 if (registrationForm.is(':visible')) {
-                    $('#expand-registration-button').removeClass('registration-expanded').addClass('registration-collapsed');
+                    $('#expand-registration-button').removeClass('registration-expanded').addClass('collapsed');
                 } else {
-                    $('#expand-registration-button').removeClass('registration-collapsed').addClass('registration-expanded');
+                    $('#expand-registration-button').removeClass('registration-collapsed').addClass('expanded');
                 }
                 registrationForm.toggle();
             });

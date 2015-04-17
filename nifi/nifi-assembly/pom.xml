@@ -1,459 +1,484 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-  Licensed to the Apache Software Foundation (ASF) under one or more
-  contributor license agreements.  See the NOTICE file distributed with
-  this work for additional information regarding copyright ownership.
-  The ASF licenses this file to You under the Apache License, Version 2.0
-  (the "License"); you may not use this file except in compliance with
-  the License.  You may obtain a copy of the License at
-      http://www.apache.org/licenses/LICENSE-2.0
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
--->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-    <modelVersion>4.0.0</modelVersion>
-    <parent>
-        <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi</artifactId>
-        <version>0.1.0-incubating-SNAPSHOT</version>
-    </parent>
-    <artifactId>nifi-assembly</artifactId>
-    <packaging>pom</packaging>
-    <description>This is the assembly Apache NiFi (incubating)</description>
-    <build>
-        <plugins>
-            <plugin>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <configuration>
-                    <finalName>nifi-${project.version}</finalName>
-                    <attach>false</attach>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>make shared resource</id>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                        <phase>package</phase>
-                        <configuration>
-                            <descriptors>
-                                <descriptor>src/main/assembly/dependencies.xml</descriptor>
-                            </descriptors>
-                            <tarLongFileMode>posix</tarLongFileMode>
-                        </configuration>
-                    </execution>
-                </executions>    
-            </plugin>
-        </plugins>
-    </build>
-    <dependencies>
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>jcl-over-slf4j</artifactId>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>jul-to-slf4j</artifactId>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>log4j-over-slf4j</artifactId>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-runtime</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-bootstrap</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-resources</artifactId>
-            <classifier>resources</classifier>
-            <scope>runtime</scope>
-            <type>zip</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-docs</artifactId>
-            <classifier>resources</classifier>
-            <scope>runtime</scope>
-            <type>zip</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-framework-nar</artifactId>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-provenance-repository-nar</artifactId>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-standard-services-api-nar</artifactId>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-ssl-context-service-nar</artifactId>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-distributed-cache-services-nar</artifactId>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-standard-nar</artifactId>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-jetty-bundle</artifactId>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-update-attribute-nar</artifactId>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-hadoop-libraries-nar</artifactId>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-hadoop-nar</artifactId>
-            <type>nar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-kafka-nar</artifactId>
-            <type>nar</type>
-        </dependency>
+<!-- Licensed to the Apache Software Foundation (ASF) under one or more contributor 
+	license agreements. See the NOTICE file distributed with this work for additional 
+	information regarding copyright ownership. The ASF licenses this file to 
+	You under the Apache License, Version 2.0 (the "License"); you may not use 
+	this file except in compliance with the License. You may obtain a copy of 
+	the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required 
+	by applicable law or agreed to in writing, software distributed under the 
+	License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS 
+	OF ANY KIND, either express or implied. See the License for the specific 
+	language governing permissions and limitations under the License. -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>org.apache.nifi</groupId>
+		<artifactId>nifi</artifactId>
+		<version>0.1.0-incubating-SNAPSHOT</version>
+	</parent>
+	<artifactId>nifi-assembly</artifactId>
+	<packaging>pom</packaging>
+	<description>This is the assembly Apache NiFi (incubating)</description>
+	<build>
+		<plugins>
+			<plugin>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<configuration>
+					<finalName>nifi-${project.version}</finalName>
+					<attach>false</attach>
+				</configuration>
+				<executions>
+					<execution>
+						<id>make shared resource</id>
+						<goals>
+							<goal>single</goal>
+						</goals>
+						<phase>package</phase>
+						<configuration>
+							<descriptors>
+								<descriptor>src/main/assembly/dependencies.xml</descriptor>
+							</descriptors>
+							<tarLongFileMode>posix</tarLongFileMode>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+	<dependencies>
 		<dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-http-context-map-nar</artifactId>
-            <type>nar</type>
-        </dependency>
+			<groupId>ch.qos.logback</groupId>
+			<artifactId>logback-classic</artifactId>
+			<scope>compile</scope>
+		</dependency>
 		<dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-kite-nar</artifactId>
-            <type>nar</type>
-        </dependency>
-    </dependencies>
-    
-    <properties>        
-        <!--Wrapper Properties-->
-        <nifi.wrapper.jvm.heap.initial.mb>256</nifi.wrapper.jvm.heap.initial.mb>
-        <nifi.wrapper.jvm.heap.max.mb>512</nifi.wrapper.jvm.heap.max.mb>
-        <nifi.initial.permgen.size.mb>128</nifi.initial.permgen.size.mb>
-        <nifi.max.permgen.size.mb>128</nifi.max.permgen.size.mb>
-        <nifi.wrapper.logfile.maxsize>10m</nifi.wrapper.logfile.maxsize>
-        <nifi.wrapper.logfile.maxfiles>10</nifi.wrapper.logfile.maxfiles>
-        
-        <!-- nifi.properties: core properties -->
-        <nifi.version>${project.version}</nifi.version>
-        <nifi.flowcontroller.autoResumeState>true</nifi.flowcontroller.autoResumeState>
-        <nifi.flowcontroller.graceful.shutdown.period>10 sec</nifi.flowcontroller.graceful.shutdown.period>
-        <nifi.flowservice.writedelay.interval>500 ms</nifi.flowservice.writedelay.interval>
-        <nifi.administrative.yield.duration>30 sec</nifi.administrative.yield.duration>
-        <nifi.bored.yield.duration>10 millis</nifi.bored.yield.duration>
+			<groupId>org.slf4j</groupId>
+			<artifactId>jcl-over-slf4j</artifactId>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>jul-to-slf4j</artifactId>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>log4j-over-slf4j</artifactId>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.nifi</groupId>
+			<artifactId>nifi-api</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.nifi</groupId>
+			<artifactId>nifi-runtime</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.nifi</groupId>
+			<artifactId>nifi-bootstrap</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.nifi</groupId>
+			<artifactId>nifi-resources</artifactId>
+			<classifier>resources</classifier>
+			<scope>runtime</scope>
+			<type>zip</type>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.nifi</groupId>
+			<artifactId>nifi-docs</artifactId>
+			<classifier>resources</classifier>
+			<scope>runtime</scope>
+			<type>zip</type>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.nifi</groupId>
+			<artifactId>nifi-framework-nar</artifactId>
+			<type>nar</type>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.nifi</groupId>
+			<artifactId>nifi-provenance-repository-nar</artifactId>
+			<type>nar</type>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.nifi</groupId>
+			<artifactId>nifi-standard-services-api-nar</artifactId>
+			<type>nar</type>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.nifi</groupId>
+			<artifactId>nifi-ssl-context-service-nar</artifactId>
+			<type>nar</type>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.nifi</groupId>
+			<artifactId>nifi-distributed-cache-services-nar</artifactId>
+			<type>nar</type>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.nifi</groupId>
+			<artifactId>nifi-standard-nar</artifactId>
+			<type>nar</type>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.nifi</groupId>
+			<artifactId>nifi-jetty-bundle</artifactId>
+			<type>nar</type>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.nifi</groupId>
+			<artifactId>nifi-update-attribute-nar</artifactId>
+			<type>nar</type>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.nifi</groupId>
+			<artifactId>nifi-hadoop-libraries-nar</artifactId>
+			<type>nar</type>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.nifi</groupId>
+			<artifactId>nifi-hadoop-nar</artifactId>
+			<type>nar</type>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.nifi</groupId>
+			<artifactId>nifi-kafka-nar</artifactId>
+			<type>nar</type>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.nifi</groupId>
+			<artifactId>nifi-http-context-map-nar</artifactId>
+			<type>nar</type>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.nifi</groupId>
+			<artifactId>nifi-kite-nar</artifactId>
+			<type>nar</type>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.nifi</groupId>
+			<artifactId>nifi-social-media-nar</artifactId>
+			<version>0.1.0-incubating-SNAPSHOT</version>
+			<type>nar</type>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.nifi</groupId>
+			<artifactId>nifi-hl7-nar</artifactId>
+			<version>0.1.0-incubating-SNAPSHOT</version>
+			<type>nar</type>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.nifi</groupId>
+			<artifactId>nifi-language-translation-nar</artifactId>
+			<version>0.1.0-incubating-SNAPSHOT</version>
+			<type>nar</type>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.nifi</groupId>
+			<artifactId>nifi-geo-nar</artifactId>
+			<version>0.1.0-incubating-SNAPSHOT</version>
+			<type>nar</type>
+		</dependency>
+	</dependencies>
 
-        <nifi.flow.configuration.file>./conf/flow.xml.gz</nifi.flow.configuration.file>
-        <nifi.flow.configuration.archive.dir>./conf/archive/</nifi.flow.configuration.archive.dir>
-        <nifi.reporting.task.configuration.file>./conf/reporting-tasks.xml</nifi.reporting.task.configuration.file>
-        <nifi.controller.service.configuration.file>./conf/controller-services.xml</nifi.controller.service.configuration.file>
-        <nifi.authority.provider.configuration.file>./conf/authority-providers.xml</nifi.authority.provider.configuration.file>
-        <nifi.templates.directory>./conf/templates</nifi.templates.directory>
-        <nifi.database.directory>./database_repository</nifi.database.directory>
+	<properties>
+		<!--Wrapper Properties -->
+		<nifi.wrapper.jvm.heap.initial.mb>256</nifi.wrapper.jvm.heap.initial.mb>
+		<nifi.wrapper.jvm.heap.max.mb>512</nifi.wrapper.jvm.heap.max.mb>
+		<nifi.initial.permgen.size.mb>128</nifi.initial.permgen.size.mb>
+		<nifi.max.permgen.size.mb>128</nifi.max.permgen.size.mb>
+		<nifi.wrapper.logfile.maxsize>10m</nifi.wrapper.logfile.maxsize>
+		<nifi.wrapper.logfile.maxfiles>10</nifi.wrapper.logfile.maxfiles>
 
-        <nifi.flowfile.repository.implementation>org.apache.nifi.controller.repository.WriteAheadFlowFileRepository</nifi.flowfile.repository.implementation>
-        <nifi.flowfile.repository.directory>./flowfile_repository</nifi.flowfile.repository.directory>
-        <nifi.flowfile.repository.partitions>256</nifi.flowfile.repository.partitions>
-        <nifi.flowfile.repository.checkpoint.interval>2 mins</nifi.flowfile.repository.checkpoint.interval>
-        <nifi.flowfile.repository.always.sync>false</nifi.flowfile.repository.always.sync>
-        <nifi.swap.manager.implementation>org.apache.nifi.controller.FileSystemSwapManager</nifi.swap.manager.implementation>
-        <nifi.queue.swap.threshold>20000</nifi.queue.swap.threshold>
-        <nifi.swap.in.period>5 sec</nifi.swap.in.period>
-        <nifi.swap.in.threads>1</nifi.swap.in.threads>
-        <nifi.swap.out.period>5 sec</nifi.swap.out.period>
-        <nifi.swap.out.threads>4</nifi.swap.out.threads>
-		
-        <nifi.content.repository.implementation>org.apache.nifi.controller.repository.FileSystemRepository</nifi.content.repository.implementation>
-        <nifi.content.claim.max.appendable.size>10 MB</nifi.content.claim.max.appendable.size>
-        <nifi.content.claim.max.flow.files>100</nifi.content.claim.max.flow.files>
-        <nifi.content.repository.directory.default>./content_repository</nifi.content.repository.directory.default>
-        <nifi.content.repository.archive.max.retention.period />
-        <nifi.content.repository.archive.max.usage.percentage />
-        <nifi.content.repository.archive.enabled>false</nifi.content.repository.archive.enabled>
-        <nifi.content.repository.always.sync>false</nifi.content.repository.always.sync>
-        <nifi.content.viewer.url />
-        
-        <nifi.restore.directory />
-        <nifi.ui.banner.text />
-        <nifi.ui.autorefresh.interval>30 sec</nifi.ui.autorefresh.interval>
-        <nifi.nar.library.directory>./lib</nifi.nar.library.directory>
-        <nifi.nar.working.directory>./work/nar/</nifi.nar.working.directory>
-        <nifi.documentation.working.directory>./work/docs/components</nifi.documentation.working.directory>
-        
-        <nifi.sensitive.props.algorithm>PBEWITHMD5AND256BITAES-CBC-OPENSSL</nifi.sensitive.props.algorithm>
-        <nifi.sensitive.props.provider>BC</nifi.sensitive.props.provider>
-        <nifi.h2.url.append>;LOCK_TIMEOUT=25000;WRITE_DELAY=0;AUTO_SERVER=FALSE</nifi.h2.url.append>
+		<!-- nifi.properties: core properties -->
+		<nifi.version>${project.version}</nifi.version>
+		<nifi.flowcontroller.autoResumeState>true</nifi.flowcontroller.autoResumeState>
+		<nifi.flowcontroller.graceful.shutdown.period>10 sec</nifi.flowcontroller.graceful.shutdown.period>
+		<nifi.flowservice.writedelay.interval>500 ms</nifi.flowservice.writedelay.interval>
+		<nifi.administrative.yield.duration>30 sec</nifi.administrative.yield.duration>
+		<nifi.bored.yield.duration>10 millis</nifi.bored.yield.duration>
 
-        <nifi.remote.input.socket.port>9990</nifi.remote.input.socket.port>
-        
-        <!-- persistent provenance repository properties -->
-        <nifi.provenance.repository.implementation>org.apache.nifi.provenance.PersistentProvenanceRepository</nifi.provenance.repository.implementation>
-        <nifi.provenance.repository.directory.default>./provenance_repository</nifi.provenance.repository.directory.default>
-        <nifi.provenance.repository.max.storage.time>24 hours</nifi.provenance.repository.max.storage.time>
-        <nifi.provenance.repository.max.storage.size>1 GB</nifi.provenance.repository.max.storage.size>
-        <nifi.provenance.repository.rollover.time>5 mins</nifi.provenance.repository.rollover.time>
-        <nifi.provenance.repository.rollover.size>100 MB</nifi.provenance.repository.rollover.size>
-        <nifi.provenance.repository.query.threads>2</nifi.provenance.repository.query.threads>
-        <nifi.provenance.repository.compress.on.rollover>true</nifi.provenance.repository.compress.on.rollover>
-        <nifi.provenance.repository.indexed.fields>EventType, FlowFileUUID, Filename, ProcessorID</nifi.provenance.repository.indexed.fields>
-        <nifi.provenance.repository.indexed.attributes />
-        <nifi.provenance.repository.index.shard.size>500 MB</nifi.provenance.repository.index.shard.size>
-        <nifi.provenance.repository.always.sync>false</nifi.provenance.repository.always.sync>
-        <nifi.provenance.repository.journal.count>16</nifi.provenance.repository.journal.count>
-        
-        <!-- volatile provenance repository properties -->
-        <nifi.provenance.repository.buffer.size>100000</nifi.provenance.repository.buffer.size>
-        
-        <!-- Component status repository properties -->
-        <nifi.components.status.repository.implementation>org.apache.nifi.controller.status.history.VolatileComponentStatusRepository</nifi.components.status.repository.implementation>
-        <nifi.components.status.repository.buffer.size>288</nifi.components.status.repository.buffer.size>
-        <nifi.components.status.snapshot.frequency>5 mins</nifi.components.status.snapshot.frequency>
-        
-        <!-- nifi.properties: web properties -->
-        <nifi.web.war.directory>./lib</nifi.web.war.directory>
-        <nifi.web.http.host />
-        <nifi.web.http.port>8080</nifi.web.http.port>
-        <nifi.web.https.host />
-        <nifi.web.https.port />
-        <nifi.jetty.work.dir>./work/jetty</nifi.jetty.work.dir>
-        <nifi.web.jetty.threads>200</nifi.web.jetty.threads>
-        
-        <!-- nifi.properties: security properties -->
-        <nifi.security.keystore />
-        <nifi.security.keystoreType />
-        <nifi.security.keystorePasswd />
-        <nifi.security.keyPasswd />
-        <nifi.security.truststore />
-        <nifi.security.truststoreType />
-        <nifi.security.truststorePasswd />
-        <nifi.security.needClientAuth />
-        <nifi.security.authorizedUsers.file>./conf/authorized-users.xml</nifi.security.authorizedUsers.file>
-        <nifi.security.user.credential.cache.duration>24 hours</nifi.security.user.credential.cache.duration>
-        <nifi.security.user.authority.provider>file-provider</nifi.security.user.authority.provider>
-        <nifi.security.x509.principal.extractor />
-        <nifi.security.support.new.account.requests />
-        <nifi.security.ocsp.responder.url />
-        <nifi.security.ocsp.responder.certificate />
-        
-        <!-- nifi.properties: cluster common properties (cluster manager and nodes must have same values) -->
-        <nifi.cluster.protocol.heartbeat.interval>5 sec</nifi.cluster.protocol.heartbeat.interval>
-        <nifi.cluster.protocol.is.secure>false</nifi.cluster.protocol.is.secure>
-        <nifi.cluster.protocol.socket.timeout>30 sec</nifi.cluster.protocol.socket.timeout>
-        <nifi.cluster.protocol.connection.handshake.timeout>45 sec</nifi.cluster.protocol.connection.handshake.timeout> 
-        <nifi.cluster.protocol.use.multicast>false</nifi.cluster.protocol.use.multicast>
-        <nifi.cluster.protocol.multicast.address />
-        <nifi.cluster.protocol.multicast.port />
-        <nifi.cluster.protocol.multicast.service.broadcast.delay>500 ms</nifi.cluster.protocol.multicast.service.broadcast.delay>
-        <nifi.cluster.protocol.multicast.service.locator.attempts>3</nifi.cluster.protocol.multicast.service.locator.attempts>
-        <nifi.cluster.protocol.multicast.service.locator.attempts.delay>1 sec</nifi.cluster.protocol.multicast.service.locator.attempts.delay>
+		<nifi.flow.configuration.file>./conf/flow.xml.gz</nifi.flow.configuration.file>
+		<nifi.flow.configuration.archive.dir>./conf/archive/</nifi.flow.configuration.archive.dir>
+		<nifi.authority.provider.configuration.file>./conf/authority-providers.xml</nifi.authority.provider.configuration.file>
+		<nifi.templates.directory>./conf/templates</nifi.templates.directory>
+		<nifi.database.directory>./database_repository</nifi.database.directory>
 
-        <!-- nifi.properties: cluster node properties (only configure for cluster nodes) -->
-        <nifi.cluster.is.node>false</nifi.cluster.is.node>
-        <nifi.cluster.node.address />
-        <nifi.cluster.node.protocol.port />
-        <nifi.cluster.node.protocol.threads>2</nifi.cluster.node.protocol.threads>
-        <nifi.cluster.node.unicast.manager.address />
-        <nifi.cluster.node.unicast.manager.protocol.port />
-        
-        <!-- nifi.properties: cluster manager properties (only configure for cluster manager) -->
-        <nifi.cluster.is.manager>false</nifi.cluster.is.manager>
-        <nifi.cluster.manager.address />
-        <nifi.cluster.manager.protocol.port />
-        <nifi.cluster.manager.node.firewall.file />
-        <nifi.cluster.manager.node.event.history.size>10</nifi.cluster.manager.node.event.history.size>
-        <nifi.cluster.manager.node.api.connection.timeout>30 sec</nifi.cluster.manager.node.api.connection.timeout>
-        <nifi.cluster.manager.node.api.read.timeout>30 sec</nifi.cluster.manager.node.api.read.timeout>
-        <nifi.cluster.manager.node.api.request.threads>10</nifi.cluster.manager.node.api.request.threads>
-        <nifi.cluster.manager.flow.retrieval.delay>5 sec</nifi.cluster.manager.flow.retrieval.delay>
-        <nifi.cluster.manager.protocol.threads>10</nifi.cluster.manager.protocol.threads>
-        <nifi.cluster.manager.safemode.duration>0 sec</nifi.cluster.manager.safemode.duration>
-    </properties>
-    <profiles>
-        <profile>
-            <id>rpm</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <artifactId>maven-dependency-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <id>unpack-shared-resources</id>
-                                <goals>
-                                    <goal>unpack-dependencies</goal>
-                                </goals>
-                                <phase>generate-resources</phase>
-                                <configuration>
-                                    <outputDirectory>${project.build.directory}/generated-resources</outputDirectory>
-                                    <includeArtifactIds>nifi-resources</includeArtifactIds>
-                                    <includeGroupIds>org.apache.nifi</includeGroupIds>
-                                    <excludeTransitive>false</excludeTransitive>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>unpack-docs</id>
-                                <goals>
-                                    <goal>unpack-dependencies</goal>
-                                </goals>
-                                <phase>generate-resources</phase>
-                                <configuration>
-                                    <outputDirectory>${project.build.directory}/generated-docs</outputDirectory>
-                                    <includeArtifactIds>nifi-docs</includeArtifactIds>
-                                    <includeGroupIds>org.apache.nifi</includeGroupIds>
-                                    <excludeTransitive>false</excludeTransitive>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>                    
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>rpm-maven-plugin</artifactId>
-                        <configuration>
-                            <summary>Apache NiFi (incubating)</summary>
-                            <description>Apache Nifi (incubating) is dataflow system based on the Flow-Based Programming concepts.</description>
-                            <license>Apache License, Version 2.0 and others (see included LICENSE file)</license>
-                            <url>http://nifi.incubator.apache.org</url>
-                            <group>Utilities</group>
-                            <prefix>/opt/nifi</prefix>
-                            <defineStatements>
-                                <defineStatement>_use_internal_dependency_generator 0</defineStatement>
-                            </defineStatements>
-                            <defaultDirmode>750</defaultDirmode>
-                            <defaultFilemode>640</defaultFilemode>
-                            <defaultUsername>root</defaultUsername>
-                            <defaultGroupname>root</defaultGroupname>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <id>build-bin-rpm</id>
-                                <goals>
-                                    <goal>attached-rpm</goal>
-                                </goals>
-                                <configuration>
-                                    <classifier>bin</classifier>
-                                    <provides>
-                                        <provide>nifi</provide>
-                                    </provides>
-                                    <mappings>
-                                        <mapping>
-                                            <directory>/opt/nifi/nifi-${project.version}</directory>
-                                        </mapping>
-                                        <mapping>
-                                            <directory>/opt/nifi/nifi-${project.version}</directory>
-                                            <sources>
-                                                <source>
-                                                    <location>./LICENSE</location>
-                                                </source>
-                                                <source>
-                                                    <location>./NOTICE</location>
-                                                </source>
-                                                <source>
-                                                    <location>../DISCLAIMER</location>
-                                                </source>
-                                                <source>
-                                                    <location>./README.md</location>
-                                                    <destination>README</destination>
-                                                </source>
-                                            </sources>
-                                        </mapping>
-                                        <mapping>
-                                            <directory>/opt/nifi/nifi-${project.version}/bin</directory>
-                                            <filemode>750</filemode>
-                                            <sources>
-                                                <source>
-                                                    <location>${project.build.directory}/generated-resources/bin/nifi.sh</location>
-                                                    <destination>nifi.sh</destination>
-                                                    <filter>true</filter>
-                                                </source>
-                                            </sources>
-                                        </mapping>
-                                        <mapping>
-                                            <directory>/opt/nifi/nifi-${project.version}/conf</directory>
-                                            <configuration>true</configuration>
-                                            <sources>
-                                                <source>
-                                                    <location>${project.build.directory}/generated-resources/conf</location>
-                                                    <filter>true</filter>
-                                                </source>
-                                            </sources>
-                                        </mapping>
-                                        <mapping>
-                                            <directory>/opt/nifi/nifi-${project.version}/lib</directory>
-                                            <dependency>
-                                                <excludes>
-                                                    <exclude>org.apache.nifi:nifi-bootstrap</exclude>
-                                                    <exclude>org.apache.nifi:nifi-resources</exclude>
-                                                    <exclude>org.apache.nifi:nifi-docs</exclude>
-                                                </excludes>
-                                            </dependency>
-                                        </mapping>
-                                        <mapping>
-                                            <directory>/opt/nifi/nifi-${project.version}/lib/bootstrap</directory>
-                                            <dependency>
-                                                <includes>
-                                                    <include>org.apache.nifi:nifi-bootstrap</include>
-                                                </includes>
-                                            </dependency>
-                                        </mapping>
-                                        <mapping>
-                                            <directory>/opt/nifi/nifi-${project.version}/docs</directory>
-                                            <sources>
-                                                <source>
-                                                    <location>${project.build.directory}/generated-docs</location>
-                                                </source>
-                                            </sources>
-                                        </mapping>
-                                    </mappings>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
+		<nifi.flowfile.repository.implementation>org.apache.nifi.controller.repository.WriteAheadFlowFileRepository</nifi.flowfile.repository.implementation>
+		<nifi.flowfile.repository.directory>./flowfile_repository</nifi.flowfile.repository.directory>
+		<nifi.flowfile.repository.partitions>256</nifi.flowfile.repository.partitions>
+		<nifi.flowfile.repository.checkpoint.interval>2 mins</nifi.flowfile.repository.checkpoint.interval>
+		<nifi.flowfile.repository.always.sync>false</nifi.flowfile.repository.always.sync>
+		<nifi.swap.manager.implementation>org.apache.nifi.controller.FileSystemSwapManager</nifi.swap.manager.implementation>
+		<nifi.queue.swap.threshold>20000</nifi.queue.swap.threshold>
+		<nifi.swap.in.period>5 sec</nifi.swap.in.period>
+		<nifi.swap.in.threads>1</nifi.swap.in.threads>
+		<nifi.swap.out.period>5 sec</nifi.swap.out.period>
+		<nifi.swap.out.threads>4</nifi.swap.out.threads>
+
+		<nifi.content.repository.implementation>org.apache.nifi.controller.repository.FileSystemRepository</nifi.content.repository.implementation>
+		<nifi.content.claim.max.appendable.size>10 MB</nifi.content.claim.max.appendable.size>
+		<nifi.content.claim.max.flow.files>100</nifi.content.claim.max.flow.files>
+		<nifi.content.repository.directory.default>./content_repository</nifi.content.repository.directory.default>
+		<nifi.content.repository.archive.max.retention.period />
+		<nifi.content.repository.archive.max.usage.percentage />
+		<nifi.content.repository.archive.enabled>false</nifi.content.repository.archive.enabled>
+		<nifi.content.repository.always.sync>false</nifi.content.repository.always.sync>
+		<nifi.content.viewer.url />
+
+		<nifi.restore.directory />
+		<nifi.ui.banner.text />
+		<nifi.ui.autorefresh.interval>30 sec</nifi.ui.autorefresh.interval>
+		<nifi.nar.library.directory>./lib</nifi.nar.library.directory>
+		<nifi.nar.working.directory>./work/nar/</nifi.nar.working.directory>
+		<nifi.documentation.working.directory>./work/docs/components</nifi.documentation.working.directory>
+
+		<nifi.sensitive.props.algorithm>PBEWITHMD5AND256BITAES-CBC-OPENSSL</nifi.sensitive.props.algorithm>
+		<nifi.sensitive.props.provider>BC</nifi.sensitive.props.provider>
+		<nifi.h2.url.append>;LOCK_TIMEOUT=25000;WRITE_DELAY=0;AUTO_SERVER=FALSE</nifi.h2.url.append>
+
+		<nifi.remote.input.socket.port>9990</nifi.remote.input.socket.port>
+
+		<!-- persistent provenance repository properties -->
+		<nifi.provenance.repository.implementation>org.apache.nifi.provenance.PersistentProvenanceRepository</nifi.provenance.repository.implementation>
+		<nifi.provenance.repository.directory.default>./provenance_repository</nifi.provenance.repository.directory.default>
+		<nifi.provenance.repository.max.storage.time>24 hours</nifi.provenance.repository.max.storage.time>
+		<nifi.provenance.repository.max.storage.size>1 GB</nifi.provenance.repository.max.storage.size>
+		<nifi.provenance.repository.rollover.time>5 mins</nifi.provenance.repository.rollover.time>
+		<nifi.provenance.repository.rollover.size>100 MB</nifi.provenance.repository.rollover.size>
+		<nifi.provenance.repository.query.threads>2</nifi.provenance.repository.query.threads>
+		<nifi.provenance.repository.compress.on.rollover>true</nifi.provenance.repository.compress.on.rollover>
+		<nifi.provenance.repository.indexed.fields>EventType, FlowFileUUID,
+			Filename, ProcessorID</nifi.provenance.repository.indexed.fields>
+		<nifi.provenance.repository.indexed.attributes />
+		<nifi.provenance.repository.index.shard.size>500 MB</nifi.provenance.repository.index.shard.size>
+		<nifi.provenance.repository.always.sync>false</nifi.provenance.repository.always.sync>
+		<nifi.provenance.repository.journal.count>16</nifi.provenance.repository.journal.count>
+
+		<!-- volatile provenance repository properties -->
+		<nifi.provenance.repository.buffer.size>100000</nifi.provenance.repository.buffer.size>
+
+		<!-- Component status repository properties -->
+		<nifi.components.status.repository.implementation>org.apache.nifi.controller.status.history.VolatileComponentStatusRepository</nifi.components.status.repository.implementation>
+		<nifi.components.status.repository.buffer.size>288</nifi.components.status.repository.buffer.size>
+		<nifi.components.status.snapshot.frequency>5 mins</nifi.components.status.snapshot.frequency>
+
+		<!-- nifi.properties: web properties -->
+		<nifi.web.war.directory>./lib</nifi.web.war.directory>
+		<nifi.web.http.host />
+		<nifi.web.http.port>8080</nifi.web.http.port>
+		<nifi.web.https.host />
+		<nifi.web.https.port />
+		<nifi.jetty.work.dir>./work/jetty</nifi.jetty.work.dir>
+		<nifi.web.jetty.threads>200</nifi.web.jetty.threads>
+
+		<!-- nifi.properties: security properties -->
+		<nifi.security.keystore />
+		<nifi.security.keystoreType />
+		<nifi.security.keystorePasswd />
+		<nifi.security.keyPasswd />
+		<nifi.security.truststore />
+		<nifi.security.truststoreType />
+		<nifi.security.truststorePasswd />
+		<nifi.security.needClientAuth />
+		<nifi.security.authorizedUsers.file>./conf/authorized-users.xml</nifi.security.authorizedUsers.file>
+		<nifi.security.user.credential.cache.duration>24 hours</nifi.security.user.credential.cache.duration>
+		<nifi.security.user.authority.provider>file-provider</nifi.security.user.authority.provider>
+		<nifi.security.x509.principal.extractor />
+		<nifi.security.support.new.account.requests />
+		<nifi.security.ocsp.responder.url />
+		<nifi.security.ocsp.responder.certificate />
+
+		<!-- nifi.properties: cluster common properties (cluster manager and nodes 
+			must have same values) -->
+		<nifi.cluster.protocol.heartbeat.interval>5 sec</nifi.cluster.protocol.heartbeat.interval>
+		<nifi.cluster.protocol.is.secure>false</nifi.cluster.protocol.is.secure>
+		<nifi.cluster.protocol.socket.timeout>30 sec</nifi.cluster.protocol.socket.timeout>
+		<nifi.cluster.protocol.connection.handshake.timeout>45 sec</nifi.cluster.protocol.connection.handshake.timeout>
+		<nifi.cluster.protocol.use.multicast>false</nifi.cluster.protocol.use.multicast>
+		<nifi.cluster.protocol.multicast.address />
+		<nifi.cluster.protocol.multicast.port />
+		<nifi.cluster.protocol.multicast.service.broadcast.delay>500 ms</nifi.cluster.protocol.multicast.service.broadcast.delay>
+		<nifi.cluster.protocol.multicast.service.locator.attempts>3</nifi.cluster.protocol.multicast.service.locator.attempts>
+		<nifi.cluster.protocol.multicast.service.locator.attempts.delay>1 sec</nifi.cluster.protocol.multicast.service.locator.attempts.delay>
+
+		<!-- nifi.properties: cluster node properties (only configure for cluster 
+			nodes) -->
+		<nifi.cluster.is.node>false</nifi.cluster.is.node>
+		<nifi.cluster.node.address />
+		<nifi.cluster.node.protocol.port />
+		<nifi.cluster.node.protocol.threads>2</nifi.cluster.node.protocol.threads>
+		<nifi.cluster.node.unicast.manager.address />
+		<nifi.cluster.node.unicast.manager.protocol.port />
+
+		<!-- nifi.properties: cluster manager properties (only configure for cluster 
+			manager) -->
+		<nifi.cluster.is.manager>false</nifi.cluster.is.manager>
+		<nifi.cluster.manager.address />
+		<nifi.cluster.manager.protocol.port />
+		<nifi.cluster.manager.node.firewall.file />
+		<nifi.cluster.manager.node.event.history.size>10</nifi.cluster.manager.node.event.history.size>
+		<nifi.cluster.manager.node.api.connection.timeout>30 sec</nifi.cluster.manager.node.api.connection.timeout>
+		<nifi.cluster.manager.node.api.read.timeout>30 sec</nifi.cluster.manager.node.api.read.timeout>
+		<nifi.cluster.manager.node.api.request.threads>10</nifi.cluster.manager.node.api.request.threads>
+		<nifi.cluster.manager.flow.retrieval.delay>5 sec</nifi.cluster.manager.flow.retrieval.delay>
+		<nifi.cluster.manager.protocol.threads>10</nifi.cluster.manager.protocol.threads>
+		<nifi.cluster.manager.safemode.duration>0 sec</nifi.cluster.manager.safemode.duration>
+	</properties>
+	<profiles>
+		<profile>
+			<id>rpm</id>
+			<activation>
+				<activeByDefault>false</activeByDefault>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<artifactId>maven-dependency-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>unpack-shared-resources</id>
+								<goals>
+									<goal>unpack-dependencies</goal>
+								</goals>
+								<phase>generate-resources</phase>
+								<configuration>
+									<outputDirectory>${project.build.directory}/generated-resources</outputDirectory>
+									<includeArtifactIds>nifi-resources</includeArtifactIds>
+									<includeGroupIds>org.apache.nifi</includeGroupIds>
+									<excludeTransitive>false</excludeTransitive>
+								</configuration>
+							</execution>
+							<execution>
+								<id>unpack-docs</id>
+								<goals>
+									<goal>unpack-dependencies</goal>
+								</goals>
+								<phase>generate-resources</phase>
+								<configuration>
+									<outputDirectory>${project.build.directory}/generated-docs</outputDirectory>
+									<includeArtifactIds>nifi-docs</includeArtifactIds>
+									<includeGroupIds>org.apache.nifi</includeGroupIds>
+									<excludeTransitive>false</excludeTransitive>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>rpm-maven-plugin</artifactId>
+						<configuration>
+							<summary>Apache NiFi (incubating)</summary>
+							<description>Apache Nifi (incubating) is dataflow system based on
+								the Flow-Based Programming concepts.</description>
+							<license>Apache License, Version 2.0 and others (see included
+								LICENSE file)</license>
+							<url>http://nifi.incubator.apache.org</url>
+							<group>Utilities</group>
+							<prefix>/opt/nifi</prefix>
+							<defineStatements>
+								<defineStatement>_use_internal_dependency_generator 0</defineStatement>
+							</defineStatements>
+							<defaultDirmode>750</defaultDirmode>
+							<defaultFilemode>640</defaultFilemode>
+							<defaultUsername>root</defaultUsername>
+							<defaultGroupname>root</defaultGroupname>
+						</configuration>
+						<executions>
+							<execution>
+								<id>build-bin-rpm</id>
+								<goals>
+									<goal>attached-rpm</goal>
+								</goals>
+								<configuration>
+									<classifier>bin</classifier>
+									<provides>
+										<provide>nifi</provide>
+									</provides>
+									<mappings>
+										<mapping>
+											<directory>/opt/nifi/nifi-${project.version}</directory>
+										</mapping>
+										<mapping>
+											<directory>/opt/nifi/nifi-${project.version}</directory>
+											<sources>
+												<source>
+													<location>./LICENSE</location>
+												</source>
+												<source>
+													<location>./NOTICE</location>
+												</source>
+												<source>
+													<location>../DISCLAIMER</location>
+												</source>
+												<source>
+													<location>./README.md</location>
+													<destination>README</destination>
+												</source>
+											</sources>
+										</mapping>
+										<mapping>
+											<directory>/opt/nifi/nifi-${project.version}/bin</directory>
+											<filemode>750</filemode>
+											<sources>
+												<source>
+													<location>${project.build.directory}/generated-resources/bin/nifi.sh</location>
+													<destination>nifi.sh</destination>
+													<filter>true</filter>
+												</source>
+											</sources>
+										</mapping>
+										<mapping>
+											<directory>/opt/nifi/nifi-${project.version}/conf</directory>
+											<configuration>true</configuration>
+											<sources>
+												<source>
+													<location>${project.build.directory}/generated-resources/conf</location>
+													<filter>true</filter>
+												</source>
+											</sources>
+										</mapping>
+										<mapping>
+											<directory>/opt/nifi/nifi-${project.version}/lib</directory>
+											<dependency>
+												<excludes>
+													<exclude>org.apache.nifi:nifi-bootstrap</exclude>
+													<exclude>org.apache.nifi:nifi-resources</exclude>
+													<exclude>org.apache.nifi:nifi-docs</exclude>
+												</excludes>
+											</dependency>
+										</mapping>
+										<mapping>
+											<directory>/opt/nifi/nifi-${project.version}/lib/bootstrap</directory>
+											<dependency>
+												<includes>
+													<include>org.apache.nifi:nifi-bootstrap</include>
+												</includes>
+											</dependency>
+										</mapping>
+										<mapping>
+											<directory>/opt/nifi/nifi-${project.version}/docs</directory>
+											<sources>
+												<source>
+													<location>${project.build.directory}/generated-docs</location>
+												</source>
+											</sources>
+										</mapping>
+									</mappings>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 </project>

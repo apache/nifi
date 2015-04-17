@@ -17,6 +17,7 @@
 package org.apache.nifi.processor;
 
 import org.apache.nifi.processor.StandardPropertyValue;
+
 import static org.junit.Assert.assertEquals;
 
 import java.util.Calendar;
@@ -29,7 +30,6 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.repository.StandardFlowFileRecord;
 import org.apache.nifi.flowfile.FlowFile;
-
 import org.junit.Test;
 
 public class TestStandardPropertyValue {
@@ -163,5 +163,14 @@ public class TestStandardPropertyValue {
             return true;
         }
 
+        @Override
+        public String getControllerServiceName(String serviceIdentifier) {
+        	return null;
+        }
+        
+        @Override
+        public boolean isControllerServiceEnabling(String serviceIdentifier) {
+            return false;
+        }
     }
 }

@@ -24,6 +24,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -41,7 +42,9 @@ import org.apache.nifi.stream.io.DataOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SeeAlso(classNames={"org.apache.nifi.distributed.cache.server.map.DistributedMapCacheServer", "org.apache.nifi.ssl.StandardSSLContextService"})
+@SeeAlso(classNames={"org.apache.nifi.distributed.cache.server.DistributedSetCacheServer", "org.apache.nifi.ssl.StandardSSLContextService"})
+@CapabilityDescription("Provides the ability to communicate with a DistributedSetCacheServer. This can be used in order to share a Set "
+        + "between nodes in a NiFi cluster")
 public class DistributedSetCacheClientService extends AbstractControllerService implements DistributedSetCacheClient {
 
     private static final Logger logger = LoggerFactory.getLogger(DistributedMapCacheClientService.class);
@@ -61,16 +64,15 @@ public class DistributedSetCacheClientService extends AbstractControllerService 
             .build();
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
-            .description(
-                    "If specified, indicates the SSL Context Service that is used to communicate with the remote server. If not specified, communications will not be encrypted")
+            .description("If specified, indicates the SSL Context Service that is used to communicate with the "
+            		+ "remote server. If not specified, communications will not be encrypted")
             .required(false)
-            .addValidator(StandardValidators.createControllerServiceExistsValidator(SSLContextService.class))
-            .defaultValue(null)
+            .identifiesControllerService(SSLContextService.class)
             .build();
     public static final PropertyDescriptor COMMUNICATIONS_TIMEOUT = new PropertyDescriptor.Builder()
             .name("Communications Timeout")
-            .description(
-                    "Specifices how long to wait when communicating with the remote server before determining that there is a communications failure if data cannot be sent or received")
+            .description("Specifices how long to wait when communicating with the remote server before determining "
+            		+ "that there is a communications failure if data cannot be sent or received")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .defaultValue("30 secs")

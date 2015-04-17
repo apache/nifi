@@ -76,16 +76,13 @@ public class RelationshipAuditor extends NiFiAuditor {
      * advice precedence. By normalizing all advice into Around advice we can
      * alleviate this issue.
      *
-     * @param connection
+     * @param proceedingJoinPoint
+     * @return 
+     * @throws java.lang.Throwable
      */
-//    @AfterReturning(
-//        pointcut="within(org.apache.nifi.view.dao.ConnectionDAO+) && "
-//            + "execution(org.apache.nifi.view.model.Connection createConnection(org.apache.nifi.api.dto.ConnectionDTO))",
-//        returning="connection"
-//    )
     @Around("within(org.apache.nifi.web.dao.ConnectionDAO+) && "
             + "execution(org.apache.nifi.connectable.Connection createConnection(java.lang.String, org.apache.nifi.web.api.dto.ConnectionDTO))")
-    public Object createConnectionAdvice(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+    public Connection createConnectionAdvice(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         // perform the underlying operation
         Connection connection = (Connection) proceedingJoinPoint.proceed();
 
@@ -105,6 +102,7 @@ public class RelationshipAuditor extends NiFiAuditor {
      * Audits the creation and removal of relationships via updateConnection().
      *
      * @param proceedingJoinPoint
+     * @param groupId
      * @param connectionDTO
      * @param connectionDAO
      * @return
@@ -114,7 +112,7 @@ public class RelationshipAuditor extends NiFiAuditor {
             + "execution(org.apache.nifi.connectable.Connection updateConnection(java.lang.String, org.apache.nifi.web.api.dto.ConnectionDTO)) && "
             + "args(groupId, connectionDTO) && "
             + "target(connectionDAO)")
-    public Object updateConnectionAdvice(ProceedingJoinPoint proceedingJoinPoint, String groupId, ConnectionDTO connectionDTO, ConnectionDAO connectionDAO) throws Throwable {
+    public Connection updateConnectionAdvice(ProceedingJoinPoint proceedingJoinPoint, String groupId, ConnectionDTO connectionDTO, ConnectionDAO connectionDAO) throws Throwable {
         // get the previous configuration
         Connection connection = connectionDAO.getConnection(groupId, connectionDTO.getId());
         Connectable previousDestination = connection.getDestination();
@@ -218,6 +216,7 @@ public class RelationshipAuditor extends NiFiAuditor {
      * Audits the removal of relationships via deleteConnection().
      *
      * @param proceedingJoinPoint
+     * @param groupId
      * @param id
      * @param connectionDAO
      * @throws Throwable
@@ -251,7 +250,9 @@ public class RelationshipAuditor extends NiFiAuditor {
      * Creates action details for connect/disconnect actions.
      *
      * @param connection
+     * @param source
      * @param relationships
+     * @param destination
      * @return
      */
     public ConnectDetails createConnectDetails(final Connection connection, final Connectable source, final Collection<Relationship> relationships, final Connectable destination) {
@@ -327,6 +328,7 @@ public class RelationshipAuditor extends NiFiAuditor {
      *
      * @param connection
      * @param operation
+     * @param actionDetails
      * @return
      */
     public Action generateAuditRecordForConnection(Connection connection, Operation operation, ActionDetails actionDetails) {

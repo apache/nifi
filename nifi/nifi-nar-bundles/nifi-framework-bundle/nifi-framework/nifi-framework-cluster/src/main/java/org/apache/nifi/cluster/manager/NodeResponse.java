@@ -192,6 +192,20 @@ public class NodeResponse {
     }
 
     /**
+     * If this node response has been merged returns the updated entity, 
+     * otherwise null. Also returns null if hasThrowable() is true. The
+     * intent of this method is to support getting the response entity
+     * when it was already consumed during the merge operation. In this
+     * case the client response rom getClientResponse() will not support 
+     * a getEntity(...) or getEntityInputStream()  call.
+     * 
+     * @return 
+     */
+    public Entity getUpdatedEntity() {
+        return updatedEntity;
+    }
+    
+    /**
      * Creates a Response by mapping the ClientResponse values to it. Since the
      * ClientResponse's input stream can only be read once, this method should
      * only be called once. Furthermore, the caller should not have already read

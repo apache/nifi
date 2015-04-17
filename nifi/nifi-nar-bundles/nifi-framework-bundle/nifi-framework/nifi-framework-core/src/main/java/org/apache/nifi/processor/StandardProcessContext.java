@@ -142,6 +142,11 @@ public class StandardProcessContext implements ProcessContext, ControllerService
     }
 
     @Override
+    public boolean isControllerServiceEnabling(final String serviceIdentifier) {
+        return controllerServiceProvider.isControllerServiceEnabling(serviceIdentifier);
+    }
+    
+    @Override
     public ControllerServiceLookup getControllerServiceLookup() {
         return this;
     }
@@ -170,4 +175,9 @@ public class StandardProcessContext implements ProcessContext, ControllerService
         return set;
     }
     
+    @Override
+    public String getControllerServiceName(final String serviceIdentifier) {
+    	return controllerServiceProvider.getControllerServiceName(serviceIdentifier);
+    }
+
 }

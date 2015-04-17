@@ -14,6 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/* global top */
+
 $(document).ready(function () {
 
     var isUndefined = function (obj) {
@@ -139,7 +142,7 @@ $(document).ready(function () {
                 if (isDefinedAndNotNull(response.banners)) {
                     if (isDefinedAndNotNull(response.banners.headerText) && response.banners.headerText !== '') {
                         // update the header text
-                        var bannerHeader = $('#banner-header').html(response.banners.headerText).show();
+                        var bannerHeader = $('#banner-header').text(response.banners.headerText).show();
 
                         // show the banner
                         var updateTop = function (elementId) {
@@ -155,7 +158,7 @@ $(document).ready(function () {
 
                     if (isDefinedAndNotNull(response.banners.footerText) && response.banners.footerText !== '') {
                         // update the footer text and show it
-                        var bannerFooter = $('#banner-footer').html(response.banners.footerText).show();
+                        var bannerFooter = $('#banner-footer').text(response.banners.footerText).show();
 
                         var updateBottom = function (elementId) {
                             var element = $('#' + elementId);

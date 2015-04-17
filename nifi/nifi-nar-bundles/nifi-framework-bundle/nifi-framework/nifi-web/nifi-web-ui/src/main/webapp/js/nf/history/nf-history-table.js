@@ -14,6 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/* global nf, Slick */
+
 nf.HistoryTable = (function () {
 
     /**
@@ -356,7 +359,7 @@ nf.HistoryTable = (function () {
 
         // inspect the operation to determine if there are any component details
         if (nf.Common.isDefinedAndNotNull(componentDetails)) {
-            if (action.sourceType === 'Processor') {
+            if (action.sourceType === 'Processor' || action.sourceType === 'ControllerService' || action.sourceType === 'ReportingTask') {
                 detailsMarkup.append(
                         $('<div class="action-detail"><div class="history-details-name">Type</div>' + nf.Common.escapeHtml(componentDetails.type) + '</div>'));
             } else if (action.sourceType === 'RemoteProcessGroup') {

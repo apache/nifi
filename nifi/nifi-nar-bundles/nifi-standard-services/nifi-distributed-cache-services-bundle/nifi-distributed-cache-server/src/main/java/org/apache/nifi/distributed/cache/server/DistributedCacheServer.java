@@ -20,8 +20,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
-import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -42,10 +42,10 @@ public abstract class DistributedCacheServer extends AbstractControllerService {
             .build();
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
-            .description(
-                    "If specified, this service will be used to create an SSL Context that will be used to secure communications; if not specified, communications will not be secure")
+            .description("If specified, this service will be used to create an SSL Context that will be used "
+            		+ "to secure communications; if not specified, communications will not be secure")
             .required(false)
-            .addValidator(StandardValidators.createControllerServiceExistsValidator(SSLContextService.class))
+            .identifiesControllerService(SSLContextService.class)
             .build();
     public static final PropertyDescriptor MAX_CACHE_ENTRIES = new PropertyDescriptor.Builder()
             .name("Maximum Cache Entries")
@@ -77,8 +77,7 @@ public abstract class DistributedCacheServer extends AbstractControllerService {
         properties.add(MAX_CACHE_ENTRIES);
         properties.add(EVICTION_POLICY);
         properties.add(PERSISTENCE_PATH);
-        properties.add(new PropertyDescriptor.Builder().fromPropertyDescriptor(SSL_CONTEXT_SERVICE).allowableValues(
-                getControllerServiceLookup().getControllerServiceIdentifiers(SSLContextService.class)).build());
+        properties.add(SSL_CONTEXT_SERVICE);
         return properties;
     }
 
@@ -90,7 +89,7 @@ public abstract class DistributedCacheServer extends AbstractControllerService {
         }
     }
 
-    @OnShutdown
+    @OnDisabled
     public void shutdownServer() throws IOException {
         if (cacheServer != null) {
             cacheServer.stop();

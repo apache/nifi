@@ -50,7 +50,7 @@ public class FunnelAuditor extends NiFiAuditor {
      */
     @Around("within(org.apache.nifi.web.dao.FunnelDAO+) && "
             + "execution(org.apache.nifi.connectable.Funnel createFunnel(java.lang.String, org.apache.nifi.web.api.dto.FunnelDTO))")
-    public Object createFunnelAdvice(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+    public Funnel createFunnelAdvice(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         // perform the underlying operation
         Funnel funnel = (Funnel) proceedingJoinPoint.proceed();
 
@@ -69,6 +69,7 @@ public class FunnelAuditor extends NiFiAuditor {
      * Audits the removal of a funnel.
      *
      * @param proceedingJoinPoint
+     * @param groupId
      * @param funnelId
      * @param funnelDAO
      * @throws Throwable
@@ -97,6 +98,8 @@ public class FunnelAuditor extends NiFiAuditor {
      * Generates an audit record for the creation of the specified funnel.
      *
      * @param funnel
+     * @param operation
+     * @return 
      */
     public Action generateAuditRecord(Funnel funnel, Operation operation) {
         return generateAuditRecord(funnel, operation, null);
@@ -106,6 +109,9 @@ public class FunnelAuditor extends NiFiAuditor {
      * Generates an audit record for the creation of the specified funnel.
      *
      * @param funnel
+     * @param operation
+     * @param actionDetails
+     * @return 
      */
     public Action generateAuditRecord(Funnel funnel, Operation operation, ActionDetails actionDetails) {
         Action action = null;

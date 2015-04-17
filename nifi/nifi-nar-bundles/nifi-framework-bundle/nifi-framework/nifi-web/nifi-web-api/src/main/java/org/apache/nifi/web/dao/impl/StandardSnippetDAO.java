@@ -26,9 +26,11 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.controller.StandardSnippet;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
+import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
+import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
@@ -36,7 +38,6 @@ import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.SnippetDTO;
 import org.apache.nifi.web.dao.SnippetDAO;
 import org.apache.nifi.web.util.SnippetUtils;
-
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -285,9 +286,13 @@ public class StandardSnippetDAO implements SnippetDAO {
         if (snippet != null) {
             // go through each processor if specified
             if (snippet.getProcessors() != null) {
-                lookupSensitiveProperties(snippet.getProcessors());
+                lookupSensitiveProcessorProperties(snippet.getProcessors());
             }
 
+            if ( snippet.getControllerServices() != null ) {
+                lookupSensitiveControllerServiceProperties(snippet.getControllerServices());
+            }
+            
             // go through each process group if specified
             if (snippet.getProcessGroups() != null) {
                 for (final ProcessGroupDTO group : snippet.getProcessGroups()) {
@@ -303,7 +308,7 @@ public class StandardSnippetDAO implements SnippetDAO {
      *
      * @param snippet
      */
-    private void lookupSensitiveProperties(final Set<ProcessorDTO> processors) {
+    private void lookupSensitiveProcessorProperties(final Set<ProcessorDTO> processors) {
         final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
 
         // go through each processor
@@ -326,6 +331,31 @@ public class StandardSnippetDAO implements SnippetDAO {
 
                     if (descriptor.isSensitive()) {
                         processorProperties.put(descriptor.getName(), entry.getValue());
+                    }
+                }
+            }
+        }
+    }
+    
+    private void lookupSensitiveControllerServiceProperties(final Set<ControllerServiceDTO> controllerServices) {
+        // go through each service
+        for (final ControllerServiceDTO serviceDTO : controllerServices) {
+            
+            // ensure that some property configuration have been specified
+            final Map<String, String> serviceProperties = serviceDTO.getProperties();
+            if (serviceProperties != null) {
+                // find the corresponding controller service
+                final ControllerServiceNode serviceNode = flowController.getControllerServiceNode(serviceDTO.getId());
+                if (serviceNode == null) {
+                    throw new IllegalArgumentException(String.format("Unable to create snippet because Controller Service '%s' could not be found", serviceDTO.getId()));
+                }
+
+                // look for sensitive properties get the actual value
+                for (Entry<PropertyDescriptor, String> entry : serviceNode.getProperties().entrySet()) {
+                    final PropertyDescriptor descriptor = entry.getKey();
+
+                    if (descriptor.isSensitive()) {
+                        serviceProperties.put(descriptor.getName(), entry.getValue());
                     }
                 }
             }

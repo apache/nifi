@@ -91,10 +91,14 @@
         <property name="properties" ref="nifiProperties"/>
     </bean>
 
+    <!-- cluster manager optimistic locking manager -->
+    <bean id="clusterManagerOptimisticLockingManager" class="org.apache.nifi.web.StandardOptimisticLockingManager"/>
+
     <!-- cluster manager -->
     <bean id="clusterManager" class="org.apache.nifi.cluster.spring.WebClusterManagerFactoryBean">
         <property name="properties" ref="nifiProperties"/>
         <property name="encryptor" ref="stringEncryptor"/>
+        <property name="optimisticLockingManager" ref="clusterManagerOptimisticLockingManager"/>
     </bean>
     
     <!-- discoverable services -->

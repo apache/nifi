@@ -39,6 +39,9 @@ import org.apache.commons.lang3.StringUtils;
 @WebServlet(name = "DocumenationController", urlPatterns = {"/*"})
 public class DocumentationController extends HttpServlet {
 
+    private static final int GENERAL_LINK_COUNT = 4;
+    private static final int DEVELOPER_LINK_COUNT = 2;
+    
     // context for accessing the extension mapping
     private ServletContext servletContext;
 
@@ -82,7 +85,7 @@ public class DocumentationController extends HttpServlet {
         request.setAttribute("processors", processors);
         request.setAttribute("controllerServices", controllerServices);
         request.setAttribute("reportingTasks", reportingTasks);
-        request.setAttribute("totalComponents", processors.size() + controllerServices.size() + reportingTasks.size());
+        request.setAttribute("totalComponents", GENERAL_LINK_COUNT + processors.size() + controllerServices.size() + reportingTasks.size() + DEVELOPER_LINK_COUNT);
 
         // forward appropriately
         request.getRequestDispatcher("/WEB-INF/jsp/documentation.jsp").forward(request, response);

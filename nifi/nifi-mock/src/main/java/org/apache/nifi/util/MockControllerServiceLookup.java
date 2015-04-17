@@ -77,6 +77,11 @@ public abstract class MockControllerServiceLookup implements ControllerServiceLo
     }
 
     @Override
+    public boolean isControllerServiceEnabling(final String serviceIdentifier) {
+        return false;
+    }
+    
+    @Override
     public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType) {
         final Set<String> ids = new HashSet<>();
         for (final Map.Entry<String, ControllerServiceConfiguration> entry : controllerServiceMap.entrySet()) {
@@ -85,5 +90,11 @@ public abstract class MockControllerServiceLookup implements ControllerServiceLo
             }
         }
         return ids;
+    }
+    
+    @Override
+    public String getControllerServiceName(String serviceIdentifier) {
+    	final ControllerServiceConfiguration status = controllerServiceMap.get(serviceIdentifier);
+    	return status == null ? null : serviceIdentifier;
     }
 }

@@ -14,6 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/* global nf, d3 */
+
 nf.Actions = (function () {
 
     var config = {
@@ -673,20 +676,6 @@ nf.Actions = (function () {
             if (selection.size() === 1 && nf.CanvasUtils.isRemoteProcessGroup(selection)) {
                 nf.RemoteProcessGroupPorts.showPorts(selection);
             }
-        },
-        
-        /**
-         * Hides and open cancellable dialogs.
-         */
-        hideDialogs: function () {
-            // ensure all cancellable dialogs are closed
-            var cancellable = $('.cancellable');
-            $.each(cancellable, function () {
-                // if this dialog is open, close it 
-                if ($(this).is(':visible')) {
-                    $(this).modal('hide');
-                }
-            });
         },
         
         /**

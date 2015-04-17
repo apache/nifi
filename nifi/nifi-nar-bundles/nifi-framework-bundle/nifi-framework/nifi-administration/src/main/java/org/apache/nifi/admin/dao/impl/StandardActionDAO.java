@@ -32,7 +32,7 @@ import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
 import org.apache.nifi.action.Operation;
 import org.apache.nifi.action.component.details.ComponentDetails;
-import org.apache.nifi.action.component.details.ProcessorDetails;
+import org.apache.nifi.action.component.details.ExtensionDetails;
 import org.apache.nifi.action.component.details.RemoteProcessGroupDetails;
 import org.apache.nifi.action.details.ActionDetails;
 import org.apache.nifi.action.details.ConfigureDetails;
@@ -70,7 +70,7 @@ public class StandardActionDAO implements ActionDAO {
     // -----------------
     // component details
     // -----------------
-    private static final String INSERT_PROCESSOR_DETAILS = "INSERT INTO PROCESSOR_DETAILS ("
+    private static final String INSERT_EXTENSION_DETAILS = "INSERT INTO PROCESSOR_DETAILS ("
             + "ACTION_ID, TYPE"
             + ") VALUES ("
             + "?, "
@@ -145,7 +145,7 @@ public class StandardActionDAO implements ActionDAO {
     // -----------------
     // component details
     // -----------------
-    private static final String SELECT_PROCESSOR_DETAILS_FOR_ACTION = "SELECT * FROM PROCESSOR_DETAILS WHERE ACTION_ID = ?";
+    private static final String SELECT_EXTENSION_DETAILS_FOR_ACTION = "SELECT * FROM PROCESSOR_DETAILS WHERE ACTION_ID = ?";
 
     private static final String SELECT_REMOTE_PROCESS_GROUP_DETAILS_FOR_ACTION = "SELECT * FROM REMOTE_PROCESS_GROUP_DETAILS WHERE ACTION_ID = ?";
 
@@ -179,8 +179,8 @@ public class StandardActionDAO implements ActionDAO {
             + "ORDER BY A.ACTION_TIMESTAMP DESC "
             + "LIMIT 4";
 
-    private Connection connection;
-    private Map<String, String> columnMap;
+    private final Connection connection;
+    private final Map<String, String> columnMap;
 
     public StandardActionDAO(Connection connection) {
         this.connection = connection;
@@ -233,8 +233,8 @@ public class StandardActionDAO implements ActionDAO {
 
             // determine the type of component
             ComponentDetails componentDetails = action.getComponentDetails();
-            if (componentDetails instanceof ProcessorDetails) {
-                createProcessorDetails(action.getId(), (ProcessorDetails) componentDetails);
+            if (componentDetails instanceof ExtensionDetails) {
+                createExtensionDetails(action.getId(), (ExtensionDetails) componentDetails);
             } else if (componentDetails instanceof RemoteProcessGroupDetails) {
                 createRemoteProcessGroupDetails(action.getId(), (RemoteProcessGroupDetails) componentDetails);
             }
@@ -260,26 +260,26 @@ public class StandardActionDAO implements ActionDAO {
     }
 
     /**
-     * Persists the processor details.
+     * Persists the extension details.
      *
      * @param actionId
-     * @param processorDetails
+     * @param extensionDetails
      * @throws DataAccessException
      */
-    private void createProcessorDetails(int actionId, ProcessorDetails processorDetails) throws DataAccessException {
+    private void createExtensionDetails(int actionId, ExtensionDetails extensionDetails) throws DataAccessException {
         PreparedStatement statement = null;
         try {
-            // obtain a statement to insert to the processor action table
-            statement = connection.prepareStatement(INSERT_PROCESSOR_DETAILS);
+            // obtain a statement to insert to the extension action table
+            statement = connection.prepareStatement(INSERT_EXTENSION_DETAILS);
             statement.setInt(1, actionId);
-            statement.setString(2, StringUtils.left(processorDetails.getType(), 1000));
+            statement.setString(2, StringUtils.left(extensionDetails.getType(), 1000));
 
             // insert the action
             int updateCount = statement.executeUpdate();
 
             // ensure the operation completed successfully
             if (updateCount != 1) {
-                throw new DataAccessException("Unable to insert processor details.");
+                throw new DataAccessException("Unable to insert extension details.");
             }
         } catch (SQLException sqle) {
             throw new DataAccessException(sqle);
@@ -601,8 +601,8 @@ public class StandardActionDAO implements ActionDAO {
 
                 // get the component details if appropriate
                 ComponentDetails componentDetails = null;
-                if (Component.Processor.equals(component)) {
-                    componentDetails = getProcessorDetails(actionId);
+                if (Component.Processor.equals(component) || Component.ControllerService.equals(component)  || Component.ReportingTask.equals(component)) {
+                    componentDetails = getExtensionDetails(actionId);
                 } else if (Component.RemoteProcessGroup.equals(component)) {
                     componentDetails = getRemoteProcessGroupDetails(actionId);
                 }
@@ -675,8 +675,8 @@ public class StandardActionDAO implements ActionDAO {
 
                 // get the component details if appropriate
                 ComponentDetails componentDetails = null;
-                if (Component.Processor.equals(component)) {
-                    componentDetails = getProcessorDetails(actionId);
+                if (Component.Processor.equals(component) || Component.ControllerService.equals(component) || Component.ReportingTask.equals(component)) {
+                    componentDetails = getExtensionDetails(actionId);
                 } else if (Component.RemoteProcessGroup.equals(component)) {
                     componentDetails = getRemoteProcessGroupDetails(actionId);
                 }
@@ -713,19 +713,19 @@ public class StandardActionDAO implements ActionDAO {
     }
 
     /**
-     * Loads the specified processor details.
+     * Loads the specified extension details.
      *
      * @param actionId
      * @return
      * @throws DataAccessException
      */
-    private ProcessorDetails getProcessorDetails(Integer actionId) throws DataAccessException {
-        ProcessorDetails processorDetails = null;
+    private ExtensionDetails getExtensionDetails(Integer actionId) throws DataAccessException {
+        ExtensionDetails extensionDetails = null;
         PreparedStatement statement = null;
         ResultSet rs = null;
         try {
             // create the statement
-            statement = connection.prepareStatement(SELECT_PROCESSOR_DETAILS_FOR_ACTION);
+            statement = connection.prepareStatement(SELECT_EXTENSION_DETAILS_FOR_ACTION);
             statement.setInt(1, actionId);
 
             // execute the query
@@ -733,8 +733,8 @@ public class StandardActionDAO implements ActionDAO {
 
             // ensure results
             if (rs.next()) {
-                processorDetails = new ProcessorDetails();
-                processorDetails.setType(rs.getString("TYPE"));
+                extensionDetails = new ExtensionDetails();
+                extensionDetails.setType(rs.getString("TYPE"));
             }
         } catch (SQLException sqle) {
             throw new DataAccessException(sqle);
@@ -743,7 +743,7 @@ public class StandardActionDAO implements ActionDAO {
             RepositoryUtils.closeQuietly(statement);
         }
 
-        return processorDetails;
+        return extensionDetails;
     }
 
     /**
@@ -931,7 +931,7 @@ public class StandardActionDAO implements ActionDAO {
     }
 
     @Override
-    public Map<String, List<PreviousValue>> getPreviousValues(String processorId) {
+    public Map<String, List<PreviousValue>> getPreviousValues(String componentId) {
         Map<String, List<PreviousValue>> previousValues = new LinkedHashMap<>();
 
         PreparedStatement statement = null;
@@ -939,7 +939,7 @@ public class StandardActionDAO implements ActionDAO {
         try {
             // create the statement
             statement = connection.prepareStatement(SELECT_PREVIOUSLY_CONFIGURED_FIELDS);
-            statement.setString(1, processorId);
+            statement.setString(1, componentId);
 
             // execute the query
             rs = statement.executeQuery();
@@ -947,7 +947,7 @@ public class StandardActionDAO implements ActionDAO {
             // ensure results
             while (rs.next()) {
                 final String property = rs.getString("NAME");
-                previousValues.put(property, getPreviousValuesForProperty(processorId, property));
+                previousValues.put(property, getPreviousValuesForProperty(componentId, property));
             }
         } catch (SQLException sqle) {
             throw new DataAccessException(sqle);
@@ -959,7 +959,7 @@ public class StandardActionDAO implements ActionDAO {
         return previousValues;
     }
 
-    private List<PreviousValue> getPreviousValuesForProperty(final String processorId, final String property) {
+    private List<PreviousValue> getPreviousValuesForProperty(final String componentId, final String property) {
         List<PreviousValue> previousValues = new ArrayList<>();
 
         PreparedStatement statement = null;
@@ -967,7 +967,7 @@ public class StandardActionDAO implements ActionDAO {
         try {
             // create the statement
             statement = connection.prepareStatement(SELECT_PREVIOUS_VALUES);
-            statement.setString(1, processorId);
+            statement.setString(1, componentId);
             statement.setString(2, property);
 
             // execute the query

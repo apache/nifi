@@ -84,6 +84,7 @@ public class SocketClient implements SiteToSiteClient {
 		    logger.debug("Unable to resolve port [{}] to an identifier", portName);
 		} else {
 		    logger.debug("Resolved port [{}] to identifier [{}]", portName, portId);
+		    this.portIdentifier = portId;
 		}
 		
 		return portId;
@@ -130,8 +131,14 @@ public class SocketClient implements SiteToSiteClient {
 		    return null;
 		}
 		
-		final Transaction transaction = connectionState.getSocketClientProtocol().startTransaction(
+		final Transaction transaction;
+		try {
+			transaction = connectionState.getSocketClientProtocol().startTransaction(
 				connectionState.getPeer(), connectionState.getCodec(), direction);
+		} catch (final Throwable t) {
+			pool.terminate(connectionState);
+			throw new IOException("Unable to create Transaction to communicate with " + connectionState.getPeer(), t);
+		}
 		
 		// Wrap the transaction in a new one that will return the EndpointConnectionState back to the pool whenever
 		// the transaction is either completed or canceled.

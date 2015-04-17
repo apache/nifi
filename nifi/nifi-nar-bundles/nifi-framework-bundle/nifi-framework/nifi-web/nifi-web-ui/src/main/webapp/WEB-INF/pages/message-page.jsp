@@ -18,7 +18,7 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml">
     <head>
-        <title>${title}</title>
+        <title><%= request.getAttribute("title") == null ? "" : org.apache.nifi.util.EscapeUtils.escapeHtml(request.getAttribute("title").toString()) %></title>
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
         <link rel="shortcut icon" href="images/nifi16.ico"/>
         <link href="/nifi/css/message-pane.css" rel="stylesheet" type="text/css" />
@@ -27,8 +27,8 @@
 
     <body class="message-pane">
         <div class="message-pane-message-box">
-            <p class="message-pane-title">${title}</p>
-            <p class="message-pane-content">${messages}</p>
+            <p class="message-pane-title"><%= request.getAttribute("title") == null ? "" : org.apache.nifi.util.EscapeUtils.escapeHtml(request.getAttribute("title").toString()) %></p>
+            <p class="message-pane-content"><%= request.getAttribute("messages") == null ? "" : org.apache.nifi.util.EscapeUtils.escapeHtml(request.getAttribute("messages").toString()) %></p>
         </div>
     </body>
 </html>

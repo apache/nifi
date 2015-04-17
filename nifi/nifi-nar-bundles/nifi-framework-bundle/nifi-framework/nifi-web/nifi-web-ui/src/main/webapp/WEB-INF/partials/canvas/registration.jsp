@@ -20,7 +20,7 @@
         <p id="register-title" class="message-pane-title">You are not authorized to access this data flow</p>
         <p id="register-content" class="message-pane-content">
         <div>
-            <div id="expand-registration-button" class="registration-collapsed pointer"></div>
+            <div id="expand-registration-button" class="collapsed pointer"></div>
             <span id="expand-registration-text" class="link">Request Access</span>
         </div>
         <div id="registration-form" class="settings hidden">

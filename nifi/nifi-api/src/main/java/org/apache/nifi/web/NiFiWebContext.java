@@ -24,6 +24,7 @@ import org.apache.nifi.controller.ControllerService;
  * NiFi web context providing limited access to dataflow configuration for
  * processor custom UIs.
  */
+@Deprecated
 public interface NiFiWebContext {
 
     /**
