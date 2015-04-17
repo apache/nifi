@@ -33,6 +33,8 @@ import org.apache.nifi.provenance.lucene.LuceneUtil;
 public class RecordReaders {
 
     public static RecordReader newRecordReader(File file, final Collection<Path> provenanceLogFiles) throws IOException {
+        final File originalFile = file;
+        
         if (!file.exists()) {
             if (provenanceLogFiles == null) {
                 throw new FileNotFoundException(file.toString());
@@ -47,11 +49,44 @@ public class RecordReaders {
             }
         }
 
-        if (file == null || !file.exists()) {
-            throw new FileNotFoundException(file.toString());
+        InputStream fis = null;
+        if ( file.exists() ) {
+            try {
+                fis = new FileInputStream(file);
+            } catch (final FileNotFoundException fnfe) {
+                fis = null;
+            }
+        }
+        
+        openStream: while ( fis == null ) {
+            final File dir = file.getParentFile();
+            final String baseName = LuceneUtil.substringBefore(file.getName(), ".");
+            
+            // depending on which rollover actions have occurred, we could have 3 possibilities for the
+            // filename that we need. The majority of the time, we will use the extension ".prov.indexed.gz"
+            // because most often we are compressing on rollover and most often we have already finished
+            // compressing by the time that we are querying the data.
+            for ( final String extension : new String[] {".indexed.prov.gz", ".indexed.prov", ".prov"} ) {
+                file = new File(dir, baseName + extension);
+                if ( file.exists() ) {
+                    try {
+                        fis = new FileInputStream(file);
+                        break openStream;
+                    } catch (final FileNotFoundException fnfe) {
+                        // file was modified by a RolloverAction after we verified that it exists but before we could
+                        // create an InputStream for it. Start over.
+                        fis = null;
+                        continue openStream;
+                    }
+                }
+            }
+            
+            break;
         }
 
-        final InputStream fis = new FileInputStream(file);
+        if ( fis == null ) {
+            throw new FileNotFoundException("Unable to locate file " + originalFile);
+        }
         final InputStream readableStream;
         if (file.getName().endsWith(".gz")) {
             readableStream = new BufferedInputStream(new GZIPInputStream(fis));
