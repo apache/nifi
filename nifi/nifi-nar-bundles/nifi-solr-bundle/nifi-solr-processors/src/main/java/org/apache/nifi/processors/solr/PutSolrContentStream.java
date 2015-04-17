@@ -149,8 +149,8 @@ public class PutSolrContentStream extends SolrProcessor {
             return;
         }
 
-        final ObjectHolder<SolrException> error = new ObjectHolder<>(null);
-        final ObjectHolder<SolrServerException> connectionError = new ObjectHolder<>(null);
+        final ObjectHolder<Exception> error = new ObjectHolder<>(null);
+        final ObjectHolder<Exception> connectionError = new ObjectHolder<>(null);
 
         final boolean isSolrCloud = SOLR_TYPE_CLOUD.equals(context.getProperty(SOLR_TYPE).getValue());
         final String collection = context.getProperty(COLLECTION_PARAM_NAME).evaluateAttributeExpressions(flowFile).getValue();
@@ -205,6 +205,12 @@ public class PutSolrContentStream extends SolrProcessor {
                 } catch (SolrException e) {
                     error.set(e);
                 } catch (SolrServerException e) {
+                    if (causedByIOException(e)) {
+                        connectionError.set(e);
+                    } else {
+                        error.set(e);
+                    }
+                } catch (IOException e) {
                     connectionError.set(e);
                 }
             }
@@ -212,8 +218,8 @@ public class PutSolrContentStream extends SolrProcessor {
         timer.stop();
 
         if (error.get() != null) {
-            getLogger().error("Failed to send {} to Solr due to {} with status code {}; routing to failure",
-                    new Object[]{flowFile, error.get(), error.get().code()});
+            getLogger().error("Failed to send {} to Solr due to {}; routing to failure",
+                    new Object[]{flowFile, error.get()});
             session.transfer(flowFile, REL_FAILURE);
         } else if (connectionError.get() != null) {
             getLogger().error("Failed to send {} to Solr due to {}; routing to connection_failure",
@@ -232,6 +238,19 @@ public class PutSolrContentStream extends SolrProcessor {
             getLogger().info("Successfully sent {} to Solr in {} millis", new Object[]{flowFile, duration});
             session.transfer(flowFile, REL_SUCCESS);
         }
+    }
+
+    private boolean causedByIOException(SolrServerException e) {
+        boolean foundIOException = false;
+        Throwable cause = e.getCause();
+        while (cause != null) {
+            if (cause instanceof IOException) {
+                foundIOException = true;
+                break;
+            }
+            cause = cause.getCause();
+        }
+        return foundIOException;
     }
 
     // get all of the dynamic properties and values into a Map for later adding to the Solr request

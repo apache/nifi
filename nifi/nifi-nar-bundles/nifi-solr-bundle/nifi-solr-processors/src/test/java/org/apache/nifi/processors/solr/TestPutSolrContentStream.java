@@ -173,8 +173,24 @@ public class TestPutSolrContentStream {
     }
 
     @Test
-    public void testSolrServerExceptionShouldRouteToConnectionFailure() throws IOException, SolrServerException {
-        final Throwable throwable = new SolrServerException("Error communicating with Solr");
+    public void testSolrServerExceptionShouldRouteToFailure() throws IOException, SolrServerException {
+        final Throwable throwable = new SolrServerException("Invalid Document");
+        final ExceptionThrowingProcessor proc = new ExceptionThrowingProcessor(throwable);
+
+        final TestRunner runner = createDefaultTestRunner(proc);
+
+        try (FileInputStream fileIn = new FileInputStream(CUSTOM_JSON_SINGLE_DOC_FILE)) {
+            runner.enqueue(fileIn);
+            runner.run();
+
+            runner.assertAllFlowFilesTransferred(PutSolrContentStream.REL_FAILURE, 1);
+            verify(proc.getSolrClient(), times(1)).request(any(SolrRequest.class), eq((String)null));
+        }
+    }
+
+    @Test
+    public void testSolrServerExceptionCausedByIOExceptionShouldRouteToConnectionFailure() throws IOException, SolrServerException {
+        final Throwable throwable = new SolrServerException(new IOException("Error communicating with Solr"));
         final ExceptionThrowingProcessor proc = new ExceptionThrowingProcessor(throwable);
 
         final TestRunner runner = createDefaultTestRunner(proc);
@@ -217,6 +233,22 @@ public class TestPutSolrContentStream {
             runner.run();
 
             runner.assertAllFlowFilesTransferred(PutSolrContentStream.REL_FAILURE, 1);
+            verify(proc.getSolrClient(), times(1)).request(any(SolrRequest.class), eq((String)null));
+        }
+    }
+
+    @Test
+    public void testIOExceptionShouldRouteToConnectionFailure() throws IOException, SolrServerException {
+        final Throwable throwable = new IOException("Error communicating with Solr");
+        final ExceptionThrowingProcessor proc = new ExceptionThrowingProcessor(throwable);
+
+        final TestRunner runner = createDefaultTestRunner(proc);
+
+        try (FileInputStream fileIn = new FileInputStream(CUSTOM_JSON_SINGLE_DOC_FILE)) {
+            runner.enqueue(fileIn);
+            runner.run();
+
+            runner.assertAllFlowFilesTransferred(PutSolrContentStream.REL_CONNECTION_FAILURE, 1);
             verify(proc.getSolrClient(), times(1)).request(any(SolrRequest.class), eq((String)null));
         }
     }

@@ -57,8 +57,8 @@ public abstract class SolrProcessor extends AbstractProcessor {
 
     public static final PropertyDescriptor SOLR_LOCATION = new PropertyDescriptor
             .Builder().name("Solr Location")
-            .description("The Solr url for a Solr Type of Standard, " +
-                    "or the ZooKeeper hosts for a Solr Type of Cloud.")
+            .description("The Solr url for a Solr Type of Standard (ex: http://localhost:8984/solr/gettingstarted), " +
+                    "or the ZooKeeper hosts for a Solr Type of Cloud (ex: localhost:9983).")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
