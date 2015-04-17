@@ -241,7 +241,7 @@ public class GetSolr extends SolrProcessor {
 
             lastEndDatedRef.set(currDate);
             writeLastEndDate();
-        } catch (SolrServerException e) {
+        } catch (SolrServerException | IOException e) {
             context.yield();
             session.rollback();
             logger.error("Failed to execute query {} due to {}", new Object[]{query, e}, e);

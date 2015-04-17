@@ -26,6 +26,7 @@ import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrException;
 import org.junit.Assert;
 import org.junit.Test;
+import org.mockito.Matchers;
 import org.mockito.Mockito;
 
 import java.io.FileInputStream;
@@ -95,7 +96,7 @@ public class TestPutSolrContentStream {
 
             verifySolrDocuments(proc.getSolrClient(), Arrays.asList(expectedDoc1, expectedDoc2));
         } finally {
-            try { proc.getSolrClient().shutdown(); } catch (Exception e) { }
+            try { proc.getSolrClient().close(); } catch (Exception e) { }
         }
     }
 
@@ -123,7 +124,7 @@ public class TestPutSolrContentStream {
 
             verifySolrDocuments(proc.getSolrClient(), Arrays.asList(expectedDoc1, expectedDoc2));
         } finally {
-            try { proc.getSolrClient().shutdown(); } catch (Exception e) { }
+            try { proc.getSolrClient().close(); } catch (Exception e) { }
         }
     }
 
@@ -145,7 +146,7 @@ public class TestPutSolrContentStream {
 
             verifySolrDocuments(proc.getSolrClient(), Arrays.asList(expectedDoc1, expectedDoc2));
         } finally {
-            try { proc.getSolrClient().shutdown(); } catch (Exception e) { }
+            try { proc.getSolrClient().close(); } catch (Exception e) { }
         }
     }
 
@@ -167,7 +168,7 @@ public class TestPutSolrContentStream {
 
             verifySolrDocuments(proc.getSolrClient(), Arrays.asList(expectedDoc1, expectedDoc2));
         } finally {
-            try { proc.getSolrClient().shutdown(); } catch (Exception e) { }
+            try { proc.getSolrClient().close(); } catch (Exception e) { }
         }
     }
 
@@ -183,7 +184,7 @@ public class TestPutSolrContentStream {
             runner.run();
 
             runner.assertAllFlowFilesTransferred(PutSolrContentStream.REL_CONNECTION_FAILURE, 1);
-            verify(proc.getSolrClient(), times(1)).request(any(SolrRequest.class));
+            verify(proc.getSolrClient(), times(1)).request(any(SolrRequest.class), eq((String)null));
         }
     }
 
@@ -199,7 +200,7 @@ public class TestPutSolrContentStream {
             runner.run();
 
             runner.assertAllFlowFilesTransferred(PutSolrContentStream.REL_FAILURE, 1);
-            verify(proc.getSolrClient(), times(1)).request(any(SolrRequest.class));
+            verify(proc.getSolrClient(), times(1)).request(any(SolrRequest.class), eq((String)null));
         }
     }
 
@@ -216,7 +217,7 @@ public class TestPutSolrContentStream {
             runner.run();
 
             runner.assertAllFlowFilesTransferred(PutSolrContentStream.REL_FAILURE, 1);
-            verify(proc.getSolrClient(), times(1)).request(any(SolrRequest.class));
+            verify(proc.getSolrClient(), times(1)).request(any(SolrRequest.class), eq((String)null));
         }
     }
 
@@ -244,7 +245,7 @@ public class TestPutSolrContentStream {
      */
     private class ExceptionThrowingProcessor extends PutSolrContentStream {
 
-        private SolrClient mockSolrServer;
+        private SolrClient mockSolrClient;
         private Throwable throwable;
 
         public ExceptionThrowingProcessor(Throwable throwable) {
@@ -253,15 +254,16 @@ public class TestPutSolrContentStream {
 
         @Override
         protected SolrClient createSolrClient(ProcessContext context) {
-            mockSolrServer = Mockito.mock(SolrClient.class);
+            mockSolrClient = Mockito.mock(SolrClient.class);
             try {
-                when(mockSolrServer.request(any(SolrRequest.class))).thenThrow(throwable);
+                when(mockSolrClient.request(any(SolrRequest.class),
+                        eq((String)null))).thenThrow(throwable);
             } catch (SolrServerException e) {
                 Assert.fail(e.getMessage());
             } catch (IOException e) {
                 Assert.fail(e.getMessage());
             }
-            return mockSolrServer;
+            return mockSolrClient;
         }
 
     }
@@ -272,7 +274,7 @@ public class TestPutSolrContentStream {
     private class EmbeddedSolrServerProcessor extends PutSolrContentStream {
 
         private String coreName;
-        private SolrClient embeddedSolrServer;
+        private SolrClient embeddedSolrClient;
 
         public EmbeddedSolrServerProcessor(String coreName) {
             this.coreName = coreName;
@@ -285,14 +287,14 @@ public class TestPutSolrContentStream {
                         .getCodeSource().getLocation().getFile()
                         + "../../target";
 
-                embeddedSolrServer = EmbeddedSolrServerFactory.create(
+                embeddedSolrClient = EmbeddedSolrServerFactory.create(
                         EmbeddedSolrServerFactory.DEFAULT_SOLR_HOME,
                         EmbeddedSolrServerFactory.DEFAULT_CORE_HOME,
                         coreName, relPath);
             } catch (IOException e) {
                 Assert.fail(e.getMessage());
             }
-            return embeddedSolrServer;
+            return embeddedSolrClient;
         }
 
     }

@@ -89,11 +89,11 @@ public abstract class SolrProcessor extends AbstractProcessor {
         if (SOLR_TYPE_STANDARD.equals(context.getProperty(SOLR_TYPE).getValue())) {
             return new HttpSolrClient(context.getProperty(SOLR_LOCATION).getValue());
         } else {
-            CloudSolrClient cloudSolrServer = new CloudSolrClient(
+            CloudSolrClient cloudSolrClient = new CloudSolrClient(
                     context.getProperty(SOLR_LOCATION).getValue());
-            cloudSolrServer.setDefaultCollection(
+            cloudSolrClient.setDefaultCollection(
                     context.getProperty(COLLECTION).evaluateAttributeExpressions().getValue());
-            return cloudSolrServer;
+            return cloudSolrClient;
         }
     }
 
@@ -101,7 +101,7 @@ public abstract class SolrProcessor extends AbstractProcessor {
      * Returns the {@link org.apache.solr.client.solrj.SolrClient} that was created by the
      * {@link #createSolrClient(org.apache.nifi.processor.ProcessContext)} method
      *
-     * @return
+     * @return an HttpSolrClient or CloudSolrClient
      */
     protected final SolrClient getSolrClient() {
         return solrClient;

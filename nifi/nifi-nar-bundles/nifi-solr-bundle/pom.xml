@@ -28,7 +28,7 @@
     <description>A bundle of processors that can store and retrieve data from Apache Solr</description>
 
     <properties>
-        <solr.version>5.0.0</solr.version>
+        <solr.version>5.1.0</solr.version>
     </properties>
 
     <modules>
