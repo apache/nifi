@@ -84,7 +84,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <org.slf4j.version>1.7.10</org.slf4j.version>
-        <jetty.version>9.2.5.v20141112</jetty.version>
+        <jetty.version>9.2.10.v20150310</jetty.version>
         <lucene.version>4.10.3</lucene.version>
         <spring.version>4.1.4.RELEASE</spring.version>
         <spring.security.version>3.2.5.RELEASE</spring.security.version>
