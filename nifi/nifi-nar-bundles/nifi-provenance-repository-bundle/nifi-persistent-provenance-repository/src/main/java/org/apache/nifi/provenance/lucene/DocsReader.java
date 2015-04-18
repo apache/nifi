@@ -48,18 +48,22 @@ public class DocsReader {
             return Collections.emptySet();
         }
 
-        final List<Document> docs = new ArrayList<>();
+        final int numDocs = Math.min(topDocs.scoreDocs.length, maxResults);
+        final List<Document> docs = new ArrayList<>(numDocs);
 
-        for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
+        for (final ScoreDoc scoreDoc : topDocs.scoreDocs) {
             final int docId = scoreDoc.doc;
             final Document d = indexReader.document(docId);
             docs.add(d);
+            if ( retrievalCount.incrementAndGet() >= maxResults ) {
+                break;
+            }
         }
 
-        return read(docs, allProvenanceLogFiles, retrievalCount, maxResults);
+        return read(docs, allProvenanceLogFiles);
     }
 
-    public Set<ProvenanceEventRecord> read(final List<Document> docs, final Collection<Path> allProvenanceLogFiles, final AtomicInteger retrievalCount, final int maxResults) throws IOException {
+    public Set<ProvenanceEventRecord> read(final List<Document> docs, final Collection<Path> allProvenanceLogFiles) throws IOException {
         LuceneUtil.sortDocsForRetrieval(docs);
 
         RecordReader reader = null;
@@ -79,9 +83,6 @@ public class DocsReader {
                             reader.skipTo(byteOffset);
                             final StandardProvenanceEventRecord record = reader.nextRecord();
                             matchingRecords.add(record);
-                            if (retrievalCount.incrementAndGet() >= maxResults) {
-                                break;
-                            }
                         } catch (final IOException e) {
                             throw new FileNotFoundException("Could not find Provenance Log File with basename " + storageFilename + " in the Provenance Repository");
                         }
@@ -91,7 +92,7 @@ public class DocsReader {
                             reader.close();
                         }
 
-                        final List<File> potentialFiles = LuceneUtil.getProvenanceLogFiles(storageFilename, allProvenanceLogFiles);
+                        List<File> potentialFiles = LuceneUtil.getProvenanceLogFiles(storageFilename, allProvenanceLogFiles);
                         if (potentialFiles.isEmpty()) {
                             throw new FileNotFoundException("Could not find Provenance Log File with basename " + storageFilename + " in the Provenance Repository");
                         }
@@ -108,9 +109,6 @@ public class DocsReader {
 
                                 final StandardProvenanceEventRecord record = reader.nextRecord();
                                 matchingRecords.add(record);
-                                if (retrievalCount.incrementAndGet() >= maxResults) {
-                                    break;
-                                }
                             } catch (final IOException e) {
                                 throw new IOException("Failed to retrieve record from Provenance File " + file + " due to " + e, e);
                             }

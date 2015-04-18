@@ -25,9 +25,6 @@
 	
 	<artifactId>nifi-hl7-query-language</artifactId>
 	<packaging>jar</packaging>
-
-	<name>NiFi Health Level 7 (HL7) Query Language</name>
-
 	<build>
 		<plugins>
 			<plugin>

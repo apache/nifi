@@ -16,7 +16,11 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.io.OutputStreamCallback;
+import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.TestRunner;
@@ -24,8 +28,13 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+
+import static org.junit.Assert.assertEquals;
 
 public class TestEvaluateJsonPath {
 
@@ -259,6 +268,83 @@ public class TestEvaluateJsonPath {
 
         testRunner.assertAllFlowFilesTransferred(expectedRel, 1);
         testRunner.getFlowFilesForRelationship(expectedRel).get(0).assertContentEquals(JSON_SNIPPET);
+    }
+
+    @Test
+    public void testNullInput() throws Exception {
+        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateJsonPath());
+        testRunner.setProperty(EvaluateJsonPath.RETURN_TYPE, EvaluateJsonPath.RETURN_TYPE_JSON);
+        testRunner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_ATTRIBUTE);
+        testRunner.setProperty("stringField", "$.stringField");
+        testRunner.setProperty("missingField", "$.missingField");
+        testRunner.setProperty("nullField", "$.nullField");
+
+        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
+        FlowFile ff = session.create();
+
+        ff = session.write(ff, new OutputStreamCallback() {
+            @Override
+            public void process(OutputStream out) throws IOException {
+                try (OutputStream outputStream = new BufferedOutputStream(out)) {
+                    outputStream.write("{\"stringField\": \"String Value\", \"nullField\": null}".getBytes(StandardCharsets.UTF_8));
+                }
+            }
+        });
+
+        testRunner.enqueue(ff);
+        testRunner.run();
+
+        testRunner.assertTransferCount(EvaluateJsonPath.REL_MATCH, 1);
+
+        FlowFile output = testRunner.getFlowFilesForRelationship(EvaluateJsonPath.REL_MATCH).get(0);
+
+        String validFieldValue = output.getAttribute("stringField");
+        assertEquals("String Value", validFieldValue);
+
+        String missingValue = output.getAttribute("missingField");
+        assertEquals("Missing Value", "", missingValue);
+
+        String nullValue = output.getAttribute("nullField");
+        assertEquals("Null Value", "", nullValue);
+    }
+
+    @Test
+    public void testNullInput_nullStringRepresentation() throws Exception {
+        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateJsonPath());
+        testRunner.setProperty(EvaluateJsonPath.RETURN_TYPE, EvaluateJsonPath.RETURN_TYPE_JSON);
+        testRunner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_ATTRIBUTE);
+        testRunner.setProperty(EvaluateJsonPath.NULL_VALUE_DEFAULT_REPRESENTATION, AbstractJsonPathProcessor.NULL_STRING_OPTION);
+        testRunner.setProperty("stringField", "$.stringField");
+        testRunner.setProperty("missingField", "$.missingField");
+        testRunner.setProperty("nullField", "$.nullField");
+
+        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
+        FlowFile ff = session.create();
+
+        ff = session.write(ff, new OutputStreamCallback() {
+            @Override
+            public void process(OutputStream out) throws IOException {
+                try (OutputStream outputStream = new BufferedOutputStream(out)) {
+                    outputStream.write("{\"stringField\": \"String Value\", \"nullField\": null}".getBytes(StandardCharsets.UTF_8));
+                }
+            }
+        });
+
+        testRunner.enqueue(ff);
+        testRunner.run();
+
+        testRunner.assertTransferCount(EvaluateJsonPath.REL_MATCH, 1);
+
+        FlowFile output = testRunner.getFlowFilesForRelationship(EvaluateJsonPath.REL_MATCH).get(0);
+
+        String validFieldValue = output.getAttribute("stringField");
+        assertEquals("String Value", validFieldValue);
+
+        String missingValue = output.getAttribute("missingField");
+        assertEquals("Missing Value", "", missingValue);
+
+        String nullValue = output.getAttribute("nullField");
+        assertEquals("Null Value", "null", nullValue);
     }
 
 }
