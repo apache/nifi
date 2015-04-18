@@ -22,6 +22,7 @@ import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.internal.spi.json.JsonSmartJsonProvider;
 import com.jayway.jsonpath.spi.json.JsonProvider;
 import net.minidev.json.parser.JSONParser;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
@@ -35,8 +36,10 @@ import org.apache.nifi.util.ObjectHolder;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Provides common functionality used for processors interacting and manipulating JSON data via JsonPath.
@@ -50,6 +53,24 @@ public abstract class AbstractJsonPathProcessor extends AbstractProcessor {
             Configuration.builder().jsonProvider(new JsonSmartJsonProvider(JSONParser.MODE_RFC4627)).build();
 
     private static final JsonProvider JSON_PROVIDER = STRICT_PROVIDER_CONFIGURATION.jsonProvider();
+
+    static final Map<String, String> NULL_REPRESENTATION_MAP = new HashMap<>();
+
+    static final String EMPTY_STRING_OPTION = "empty string";
+    static final String NULL_STRING_OPTION = "the string 'null'";
+
+    static {
+        NULL_REPRESENTATION_MAP.put(EMPTY_STRING_OPTION, "");
+        NULL_REPRESENTATION_MAP.put(NULL_STRING_OPTION, "null");
+    }
+
+    public static final PropertyDescriptor NULL_VALUE_DEFAULT_REPRESENTATION = new PropertyDescriptor.Builder()
+            .name("Null Value Representation")
+            .description("Indicates the desired representation of JSON Path expressions resulting in a null value.")
+            .required(true)
+            .allowableValues(NULL_REPRESENTATION_MAP.keySet())
+            .defaultValue(EMPTY_STRING_OPTION)
+            .build();
 
     static DocumentContext validateAndEstablishJsonContext(ProcessSession processSession, FlowFile flowFile) {
         // Parse the document once into an associated context to support multiple path evaluations if specified
@@ -79,9 +100,9 @@ public abstract class AbstractJsonPathProcessor extends AbstractProcessor {
         return !(obj instanceof Map || obj instanceof List);
     }
 
-    static String getResultRepresentation(Object jsonPathResult) {
+    static String getResultRepresentation(Object jsonPathResult, String defaultValue) {
         if (isJsonScalar(jsonPathResult)) {
-            return jsonPathResult.toString();
+            return Objects.toString(jsonPathResult, defaultValue);
         }
         return JSON_PROVIDER.toJson(jsonPathResult);
     }

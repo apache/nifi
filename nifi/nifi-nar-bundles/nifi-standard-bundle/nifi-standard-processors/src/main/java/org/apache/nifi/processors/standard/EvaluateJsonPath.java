@@ -16,20 +16,10 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-
+import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.InvalidJsonException;
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.PathNotFoundException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
@@ -52,10 +42,12 @@ import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.apache.nifi.util.ObjectHolder;
 
-import com.jayway.jsonpath.DocumentContext;
-import com.jayway.jsonpath.InvalidJsonException;
-import com.jayway.jsonpath.JsonPath;
-import com.jayway.jsonpath.PathNotFoundException;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 @EventDriven
 @SideEffectFree
@@ -72,7 +64,7 @@ import com.jayway.jsonpath.PathNotFoundException;
         + "If Destination is 'flowfile-content' and the JsonPath does not evaluate to a defined path, the FlowFile will be routed to 'unmatched' without having its contents modified. "
         + "If Destination is flowfile-attribute and the expression matches nothing, attributes will be created with "
         + "empty strings as the value, and the FlowFile will always be routed to 'matched.'")
-@DynamicProperty(name="A FlowFile attribute(if <Destination> is set to 'flowfile-attribute')", value="A JsonPath expression", description="If <Destination>='flowfile-attribute' then that FlowFile attribute " + 
+@DynamicProperty(name = "A FlowFile attribute(if <Destination> is set to 'flowfile-attribute')", value = "A JsonPath expression", description = "If <Destination>='flowfile-attribute' then that FlowFile attribute " +
         "will be set to any JSON objects that match the JsonPath.  If <Destination>='flowfile-content' then the FlowFile content will be updated to any JSON objects that match the JsonPath.")
 public class EvaluateJsonPath extends AbstractJsonPathProcessor {
 
@@ -119,6 +111,7 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(DESTINATION);
         properties.add(RETURN_TYPE);
+        properties.add(NULL_VALUE_DEFAULT_REPRESENTATION);
         this.properties = Collections.unmodifiableList(properties);
     }
 
@@ -211,6 +204,9 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
 
         final ProcessorLog logger = getLogger();
 
+        String representationOption = processContext.getProperty(NULL_VALUE_DEFAULT_REPRESENTATION).getValue();
+        final String nullDefaultValue = NULL_REPRESENTATION_MAP.get(representationOption);
+
         /* Build the JsonPath expressions from attributes */
         final Map<String, JsonPath> attributeToJsonPathMap = new HashMap<>();
 
@@ -265,7 +261,7 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
                 }
             }
 
-            final String resultRepresentation = getResultRepresentation(resultHolder.get());
+            final String resultRepresentation = getResultRepresentation(resultHolder.get(), nullDefaultValue);
             switch (destination) {
                 case DESTINATION_ATTRIBUTE:
                     jsonPathResults.put(jsonPathAttrKey, resultRepresentation);
