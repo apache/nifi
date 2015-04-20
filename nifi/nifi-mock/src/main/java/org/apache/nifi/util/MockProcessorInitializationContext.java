@@ -63,6 +63,11 @@ public class MockProcessorInitializationContext implements ProcessorInitializati
     }
 
     @Override
+    public String getControllerServiceName(String serviceIdentifier) {
+    	return context.getControllerServiceName(serviceIdentifier);
+    }
+    
+    @Override
     public boolean isControllerServiceEnabled(String serviceIdentifier) {
         return context.isControllerServiceEnabled(serviceIdentifier);
     }
@@ -70,5 +75,10 @@ public class MockProcessorInitializationContext implements ProcessorInitializati
     @Override
     public boolean isControllerServiceEnabled(ControllerService service) {
         return context.isControllerServiceEnabled(service);
+    }
+
+    @Override
+    public boolean isControllerServiceEnabling(String serviceIdentifier) {
+        return context.isControllerServiceEnabling(serviceIdentifier);
     }
 }

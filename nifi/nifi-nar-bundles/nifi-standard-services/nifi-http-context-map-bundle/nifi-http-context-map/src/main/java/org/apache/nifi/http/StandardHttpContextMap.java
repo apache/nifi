@@ -31,6 +31,9 @@ import javax.servlet.AsyncContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
+import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -38,6 +41,12 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processor.util.StandardValidators;
 
+@Tags({"http", "request", "response"})
+@SeeAlso(classNames={
+        "org.apache.nifi.processors.standard.HandleHttpRequest", 
+        "org.apache.nifi.processors.standard.HandleHttpResponse"})
+@CapabilityDescription("Provides the ability to store and retrieve HTTP requests and responses external to a Processor, so that "
+        + "multiple Processors can interact with the same HTTP request.")
 public class StandardHttpContextMap extends AbstractControllerService implements HttpContextMap {
     public static final PropertyDescriptor MAX_OUTSTANDING_REQUESTS = new PropertyDescriptor.Builder()
         .name("Maximum Outstanding Requests")

@@ -60,7 +60,7 @@ public class PortAuditor extends NiFiAuditor {
      */
     @Around("within(org.apache.nifi.web.dao.PortDAO+) && "
             + "execution(org.apache.nifi.connectable.Port createPort(java.lang.String, org.apache.nifi.web.api.dto.PortDTO))")
-    public Object createPortAdvice(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+    public Port createPortAdvice(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         // perform the underlying operation
         Port port = (Port) proceedingJoinPoint.proceed();
 
@@ -79,6 +79,9 @@ public class PortAuditor extends NiFiAuditor {
      * Audits the update of a port.
      *
      * @param proceedingJoinPoint
+     * @param groupId
+     * @param portDTO
+     * @param portDAO
      * @return
      * @throws Throwable
      */
@@ -86,7 +89,7 @@ public class PortAuditor extends NiFiAuditor {
             + "execution(org.apache.nifi.connectable.Port updatePort(java.lang.String, org.apache.nifi.web.api.dto.PortDTO)) && "
             + "args(groupId, portDTO) && "
             + "target(portDAO)")
-    public Object updatePortAdvice(ProceedingJoinPoint proceedingJoinPoint, String groupId, PortDTO portDTO, PortDAO portDAO) throws Throwable {
+    public Port updatePortAdvice(ProceedingJoinPoint proceedingJoinPoint, String groupId, PortDTO portDTO, PortDAO portDAO) throws Throwable {
         final Port port = portDAO.getPort(groupId, portDTO.getId());
         final ScheduledState scheduledState = port.getScheduledState();
         final String name = port.getName();
@@ -261,8 +264,9 @@ public class PortAuditor extends NiFiAuditor {
      * Audits the removal of a processor via deleteProcessor().
      *
      * @param proceedingJoinPoint
-     * @param processorId
-     * @param processorDAO
+     * @param groupId
+     * @param portId
+     * @param portDAO
      * @throws Throwable
      */
     @Around("within(org.apache.nifi.web.dao.PortDAO+) && "
@@ -290,6 +294,8 @@ public class PortAuditor extends NiFiAuditor {
      * Generates an audit record for the creation of the specified port.
      *
      * @param port
+     * @param operation
+     * @return 
      */
     public Action generateAuditRecord(Port port, Operation operation) {
         return generateAuditRecord(port, operation, null);
@@ -299,6 +305,9 @@ public class PortAuditor extends NiFiAuditor {
      * Generates an audit record for the creation of the specified port.
      *
      * @param port
+     * @param operation
+     * @param actionDetails
+     * @return 
      */
     public Action generateAuditRecord(Port port, Operation operation, ActionDetails actionDetails) {
         Action action = null;

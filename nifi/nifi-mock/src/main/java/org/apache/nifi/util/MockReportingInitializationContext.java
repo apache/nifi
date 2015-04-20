@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 
@@ -30,10 +31,12 @@ public class MockReportingInitializationContext extends MockControllerServiceLoo
     private final String identifier;
     private final String name;
     private final Map<PropertyDescriptor, String> properties = new HashMap<>();
+    private final ComponentLog logger;
 
-    public MockReportingInitializationContext(final String identifier, final String name) {
+    public MockReportingInitializationContext(final String identifier, final String name, final ComponentLog logger) {
         this.identifier = identifier;
         this.name = name;
+        this.logger = logger;
     }
 
     @Override
@@ -77,5 +80,10 @@ public class MockReportingInitializationContext extends MockControllerServiceLoo
     @Override
     public SchedulingStrategy getSchedulingStrategy() {
         return SchedulingStrategy.TIMER_DRIVEN;
+    }
+    
+    @Override
+    public ComponentLog getLogger() {
+        return logger;
     }
 }

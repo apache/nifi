@@ -41,12 +41,14 @@ import javax.xml.validation.SchemaFactory;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.FlowFromDOMFactory;
 import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.util.DomUtils;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
+import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
@@ -58,6 +60,7 @@ import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupContentsDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
+import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -250,6 +253,22 @@ public final class FingerprintFactory {
         // root group
         final Element rootGroupElem = (Element) DomUtils.getChildNodesByTagName(flowControllerElem, "rootGroup").item(0);
         addProcessGroupFingerprint(builder, rootGroupElem, controller);
+        
+        final Element controllerServicesElem = DomUtils.getChild(flowControllerElem, "controllerServices");
+        if ( controllerServicesElem != null ) {
+        	for ( final Element serviceElem : DomUtils.getChildElementsByTagName(controllerServicesElem, "controllerService") ) {
+        		addControllerServiceFingerprint(builder, serviceElem);
+        	}
+        }
+        
+        final Element reportingTasksElem = DomUtils.getChild(flowControllerElem, "reportingTasks");
+        if ( reportingTasksElem != null ) {
+        	for ( final Element taskElem : DomUtils.getChildElementsByTagName(reportingTasksElem, "reportingTask") ) {
+        		addReportingTaskFingerprint(builder, taskElem);
+        	}
+        }
+        
+        
         return builder;
     }
 
@@ -831,6 +850,66 @@ public final class FingerprintFactory {
     private StringBuilder addFunnelFingerprint(final StringBuilder builder, final FunnelDTO funnel) {
         builder.append(funnel.getId());
         return builder;
+    }
+    
+    private void addControllerServiceFingerprint(final StringBuilder builder, final Element controllerServiceElem) {
+    	final ControllerServiceDTO dto = FlowFromDOMFactory.getControllerService(controllerServiceElem, encryptor);
+    	addControllerServiceFingerprint(builder, dto);
+    }
+    
+    private void addControllerServiceFingerprint(final StringBuilder builder, final ControllerServiceDTO dto) {
+    	builder.append(dto.getId());
+    	builder.append(dto.getType());
+    	builder.append(dto.getName());
+    	builder.append(dto.getComments());
+    	builder.append(dto.getAnnotationData());
+    	
+    	final Map<String, String> properties = dto.getProperties();
+    	if (properties == null) {
+            builder.append("NO_PROPERTIES");
+        } else {
+            final SortedMap<String, String> sortedProps = new TreeMap<>(properties);
+            for (final Map.Entry<String, String> entry : sortedProps.entrySet()) {
+                final String propName = entry.getKey();
+                final String propValue = entry.getValue();
+                if (propValue == null) {
+                    continue;
+                }
+
+                builder.append(propName).append("=").append(propValue);
+            }
+        }
+    }
+    
+    private void addReportingTaskFingerprint(final StringBuilder builder, final Element element) {
+    	final ReportingTaskDTO dto = FlowFromDOMFactory.getReportingTask(element, encryptor);
+    	addReportingTaskFingerprint(builder, dto);
+    }
+    
+    private void addReportingTaskFingerprint(final StringBuilder builder, final ReportingTaskDTO dto) {
+    	builder.append(dto.getId());
+    	builder.append(dto.getType());
+    	builder.append(dto.getName());
+    	builder.append(dto.getComments());
+    	builder.append(dto.getSchedulingPeriod());
+    	builder.append(dto.getSchedulingStrategy());
+    	builder.append(dto.getAnnotationData());
+    	
+    	final Map<String, String> properties = dto.getProperties();
+    	if (properties == null) {
+            builder.append("NO_PROPERTIES");
+        } else {
+            final SortedMap<String, String> sortedProps = new TreeMap<>(properties);
+            for (final Map.Entry<String, String> entry : sortedProps.entrySet()) {
+                final String propName = entry.getKey();
+                final String propValue = entry.getValue();
+                if (propValue == null) {
+                    continue;
+                }
+
+                builder.append(propName).append("=").append(propValue);
+            }
+        }
     }
 
     private Comparator<Element> getIdsComparator() {

@@ -450,7 +450,7 @@ public class ConnectionResource extends ApplicationResource {
         // get the updated revision
         final RevisionDTO updatedRevision = new RevisionDTO();
         updatedRevision.setClientId(revision.getClientId());
-        updatedRevision.setVersion(controllerResponse.getRevision());
+        updatedRevision.setVersion(controllerResponse.getVersion());
 
         // create the response entity
         ConnectionEntity entity = new ConnectionEntity();
@@ -684,7 +684,7 @@ public class ConnectionResource extends ApplicationResource {
         // get the updated revision
         final RevisionDTO updatedRevision = new RevisionDTO();
         updatedRevision.setClientId(revision.getClientId());
-        updatedRevision.setVersion(controllerResponse.getRevision());
+        updatedRevision.setVersion(controllerResponse.getVersion());
 
         // create the response entity
         ConnectionEntity entity = new ConnectionEntity();
@@ -742,7 +742,7 @@ public class ConnectionResource extends ApplicationResource {
         // create the revision
         final RevisionDTO updatedRevision = new RevisionDTO();
         updatedRevision.setClientId(clientId.getClientId());
-        updatedRevision.setVersion(controllerResponse.getRevision());
+        updatedRevision.setVersion(controllerResponse.getVersion());
 
         // create the response entity
         final ConnectionEntity entity = new ConnectionEntity();

@@ -18,10 +18,13 @@ package org.apache.nifi.processor;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.nifi.attribute.expression.language.PreparedQuery;
 import org.apache.nifi.attribute.expression.language.Query;
+import org.apache.nifi.attribute.expression.language.Query.Range;
 import org.apache.nifi.attribute.expression.language.StandardExpressionLanguageCompiler;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -37,14 +40,21 @@ public class StandardValidationContext implements ValidationContext {
     private final ControllerServiceProvider controllerServiceProvider;
     private final Map<PropertyDescriptor, String> properties;
     private final Map<PropertyDescriptor, PreparedQuery> preparedQueries;
+    private final Map<String, Boolean> expressionLanguageSupported;
     private final String annotationData;
+    private final Set<String> serviceIdentifiersToNotValidate;
 
     public StandardValidationContext(final ControllerServiceProvider controllerServiceProvider, final Map<PropertyDescriptor, String> properties, final String annotationData) {
+        this(controllerServiceProvider, Collections.<String>emptySet(), properties, annotationData);
+    }
+    
+    public StandardValidationContext(final ControllerServiceProvider controllerServiceProvider, final Set<String> serviceIdentifiersToNotValidate, final Map<PropertyDescriptor, String> properties, final String annotationData) {
         this.controllerServiceProvider = controllerServiceProvider;
         this.properties = new HashMap<>(properties);
         this.annotationData = annotationData;
+        this.serviceIdentifiersToNotValidate = serviceIdentifiersToNotValidate;
 
-        preparedQueries = new HashMap<>();
+        preparedQueries = new HashMap<>(properties.size());
         for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
             final PropertyDescriptor desc = entry.getKey();
             String value = entry.getValue();
@@ -56,6 +66,10 @@ public class StandardValidationContext implements ValidationContext {
             preparedQueries.put(desc, pq);
         }
 
+        expressionLanguageSupported = new HashMap<>(properties.size());
+        for ( final PropertyDescriptor descriptor : properties.keySet() ) {
+            expressionLanguageSupported.put(descriptor.getName(), descriptor.isExpressionLanguageSupported());
+        }
     }
 
     @Override
@@ -93,5 +107,26 @@ public class StandardValidationContext implements ValidationContext {
     @Override
     public ControllerServiceLookup getControllerServiceLookup() {
         return controllerServiceProvider;
+    }
+
+    @Override
+    public boolean isValidationRequired(final ControllerService service) {
+        return !serviceIdentifiersToNotValidate.contains(service.getIdentifier());
+    }
+    
+    @Override
+    public boolean isExpressionLanguagePresent(final String value) {
+        if ( value == null ) {
+            return false;
+        }
+        
+        final List<Range> elRanges = Query.extractExpressionRanges(value);
+        return (elRanges != null && !elRanges.isEmpty());
+    }
+    
+    @Override
+    public boolean isExpressionLanguageSupported(final String propertyName) {
+        final Boolean supported = expressionLanguageSupported.get(propertyName);
+        return Boolean.TRUE.equals(supported);
     }
 }

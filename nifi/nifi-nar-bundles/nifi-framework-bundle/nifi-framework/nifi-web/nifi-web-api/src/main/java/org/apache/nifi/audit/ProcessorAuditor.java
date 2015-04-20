@@ -30,7 +30,7 @@ import java.util.Set;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
 import org.apache.nifi.action.Operation;
-import org.apache.nifi.action.component.details.ProcessorDetails;
+import org.apache.nifi.action.component.details.ExtensionDetails;
 import org.apache.nifi.action.details.ActionDetails;
 import org.apache.nifi.action.details.ConfigureDetails;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -78,13 +78,10 @@ public class ProcessorAuditor extends NiFiAuditor {
      * advice precedence. By normalizing all advice into Around advice we can
      * alleviate this issue.
      *
-     * @param processor
+     * @param proceedingJoinPoint
+     * @return 
+     * @throws java.lang.Throwable
      */
-//    @AfterReturning(
-//        pointcut="within(org.apache.nifi.web.dao.ProcessorDAO+) && "
-//            + "execution(org.apache.nifi.web.api.dto.ProcessorDTO createProcessor(org.apache.nifi.web.api.dto.ProcessorDTO))",
-//        returning="processor"
-//    )
     @Around("within(org.apache.nifi.web.dao.ProcessorDAO+) && "
             + "execution(org.apache.nifi.controller.ProcessorNode createProcessor(java.lang.String, org.apache.nifi.web.api.dto.ProcessorDTO))")
     public ProcessorNode createProcessorAdvice(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
@@ -106,6 +103,7 @@ public class ProcessorAuditor extends NiFiAuditor {
      * Audits the configuration of a single processor.
      *
      * @param proceedingJoinPoint
+     * @param groupId
      * @param processorDTO
      * @param processorDAO
      * @return
@@ -115,7 +113,7 @@ public class ProcessorAuditor extends NiFiAuditor {
             + "execution(org.apache.nifi.controller.ProcessorNode updateProcessor(java.lang.String, org.apache.nifi.web.api.dto.ProcessorDTO)) && "
             + "args(groupId, processorDTO) && "
             + "target(processorDAO)")
-    public Object updateProcessorAdvice(ProceedingJoinPoint proceedingJoinPoint, String groupId, ProcessorDTO processorDTO, ProcessorDAO processorDAO) throws Throwable {
+    public ProcessorNode updateProcessorAdvice(ProceedingJoinPoint proceedingJoinPoint, String groupId, ProcessorDTO processorDTO, ProcessorDAO processorDAO) throws Throwable {
         // determine the initial values for each property/setting thats changing
         ProcessorNode processor = processorDAO.getProcessor(groupId, processorDTO.getId());
         final Map<String, String> values = extractConfiguredPropertyValues(processor, processorDTO);
@@ -137,7 +135,7 @@ public class ProcessorAuditor extends NiFiAuditor {
             Map<String, String> updatedValues = extractConfiguredPropertyValues(processor, processorDTO);
 
             // create the processor details
-            ProcessorDetails processorDetails = new ProcessorDetails();
+            ExtensionDetails processorDetails = new ExtensionDetails();
             processorDetails.setType(processor.getProcessor().getClass().getSimpleName());
 
             // create a processor action
@@ -240,6 +238,7 @@ public class ProcessorAuditor extends NiFiAuditor {
      * Audits the removal of a processor via deleteProcessor().
      *
      * @param proceedingJoinPoint
+     * @param groupId
      * @param processorId
      * @param processorDAO
      * @throws Throwable
@@ -281,6 +280,7 @@ public class ProcessorAuditor extends NiFiAuditor {
      *
      * @param processor
      * @param operation
+     * @param actionDetails
      * @return
      */
     public Action generateAuditRecord(ProcessorNode processor, Operation operation, ActionDetails actionDetails) {
@@ -292,7 +292,7 @@ public class ProcessorAuditor extends NiFiAuditor {
         // ensure the user was found
         if (user != null) {
             // create the processor details
-            ProcessorDetails processorDetails = new ProcessorDetails();
+            ExtensionDetails processorDetails = new ExtensionDetails();
             processorDetails.setType(processor.getProcessor().getClass().getSimpleName());
 
             // create the processor action for adding this processor

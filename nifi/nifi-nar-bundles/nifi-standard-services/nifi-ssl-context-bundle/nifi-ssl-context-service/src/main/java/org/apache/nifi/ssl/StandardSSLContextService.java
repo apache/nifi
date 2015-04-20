@@ -62,7 +62,6 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             .description("The Type of the Truststore. Either JKS or PKCS12")
             .allowableValues(STORE_TYPE_JKS, STORE_TYPE_PKCS12)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .defaultValue(STORE_TYPE_JKS)
             .sensitive(false)
             .build();
     public static final PropertyDescriptor TRUSTSTORE_PASSWORD = new PropertyDescriptor.Builder()
@@ -84,7 +83,6 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             .description("The Type of the Keystore")
             .allowableValues(STORE_TYPE_JKS, STORE_TYPE_PKCS12)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .defaultValue(STORE_TYPE_JKS)
             .sensitive(false)
             .build();
     public static final PropertyDescriptor KEYSTORE_PASSWORD = new PropertyDescriptor.Builder()
@@ -96,6 +94,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             .build();
 
     private static final List<PropertyDescriptor> properties;
+    private ConfigurationContext configContext;
 
     static {
         List<PropertyDescriptor> props = new ArrayList<>();
@@ -107,7 +106,6 @@ public class StandardSSLContextService extends AbstractControllerService impleme
         props.add(TRUSTSTORE_TYPE);
         properties = Collections.unmodifiableList(props);
     }
-    private ConfigurationContext configContext;
 
     @OnEnabled
     public void onConfigured(final ConfigurationContext context) throws InitializationException {
@@ -196,7 +194,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
         if (results.isEmpty()) {
             // verify that the filename, password, and type match
             try {
-                createSSLContext(ClientAuth.REQUIRED);
+                verifySslConfig(validationContext);
             } catch (ProcessException e) {
                 results.add(new ValidationResult.Builder()
                         .subject(getClass().getSimpleName() + " : " + getIdentifier())
@@ -207,6 +205,39 @@ public class StandardSSLContextService extends AbstractControllerService impleme
         }
         return results;
     }
+    
+    private void verifySslConfig(final ValidationContext validationContext) throws ProcessException {
+        try {
+            final String keystoreFile = validationContext.getProperty(KEYSTORE).getValue();
+            if (keystoreFile == null) {
+                SslContextFactory.createTrustSslContext(
+                        validationContext.getProperty(TRUSTSTORE).getValue(),
+                        validationContext.getProperty(TRUSTSTORE_PASSWORD).getValue().toCharArray(),
+                        validationContext.getProperty(TRUSTSTORE_TYPE).getValue());
+                return;
+            }
+            final String truststoreFile = validationContext.getProperty(TRUSTSTORE).getValue();
+            if (truststoreFile == null) {
+                SslContextFactory.createSslContext(
+                        validationContext.getProperty(KEYSTORE).getValue(),
+                        validationContext.getProperty(KEYSTORE_PASSWORD).getValue().toCharArray(),
+                        validationContext.getProperty(KEYSTORE_TYPE).getValue());
+                return;
+            }
+
+            SslContextFactory.createSslContext(
+                    validationContext.getProperty(KEYSTORE).getValue(),
+                    validationContext.getProperty(KEYSTORE_PASSWORD).getValue().toCharArray(),
+                    validationContext.getProperty(KEYSTORE_TYPE).getValue(),
+                    validationContext.getProperty(TRUSTSTORE).getValue(),
+                    validationContext.getProperty(TRUSTSTORE_PASSWORD).getValue().toCharArray(),
+                    validationContext.getProperty(TRUSTSTORE_TYPE).getValue(),
+                    org.apache.nifi.security.util.SslContextFactory.ClientAuth.REQUIRED);
+        } catch (final Exception e) {
+            throw new ProcessException(e);
+        }
+    }
+    
 
     @Override
     public SSLContext createSSLContext(final ClientAuth clientAuth) throws ProcessException {

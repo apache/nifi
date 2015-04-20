@@ -19,8 +19,7 @@ package org.apache.nifi.controller;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
-import org.apache.nifi.processor.annotation.OnScheduled;
-import org.apache.nifi.processor.annotation.OnUnscheduled;
+import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 
 public interface ProcessScheduler {
@@ -143,4 +142,28 @@ public interface ProcessScheduler {
      * @param procNode
      */
     void yield(ProcessorNode procNode);
+    
+    /**
+     * Stops scheduling the given Reporting Task to run
+     * @param taskNode
+     */
+    void unschedule(ReportingTaskNode taskNode);
+    
+    /**
+     * Begins scheduling the given Reporting Task to run
+     * @param taskNode
+     */
+    void schedule(ReportingTaskNode taskNode);
+    
+    /**
+     * Enables the Controller Service so that it can be used by Reporting Tasks and Processors
+     * @param service
+     */
+    void enableControllerService(ControllerServiceNode service);
+    
+    /**
+     * Disables the Controller Service so that it can be updated
+     * @param service
+     */
+    void disableControllerService(ControllerServiceNode service);
 }

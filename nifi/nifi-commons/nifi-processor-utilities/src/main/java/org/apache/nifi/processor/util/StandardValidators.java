@@ -46,7 +46,10 @@ public class StandardValidators {
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
             final ValidationResult.Builder builder = new ValidationResult.Builder();
             builder.subject(subject).input(input);
-
+            if ( context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input) ) {
+                return builder.valid(true).explanation("Contains Expression Language").build();
+            }
+            
             try {
                 FlowFile.KeyValidator.validateKey(input);
                 builder.valid(true);
@@ -63,7 +66,10 @@ public class StandardValidators {
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
             final ValidationResult.Builder builder = new ValidationResult.Builder();
             builder.subject("Property Name").input(subject);
-
+            if ( context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input) ) {
+                return builder.valid(true).explanation("Contains Expression Language").build();
+            }
+            
             try {
                 FlowFile.KeyValidator.validateKey(subject);
                 builder.valid(true);
@@ -78,6 +84,10 @@ public class StandardValidators {
     public static final Validator POSITIVE_INTEGER_VALIDATOR = new Validator() {
         @Override
         public ValidationResult validate(final String subject, final String value, final ValidationContext context) {
+            if ( context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(value) ) {
+                return new ValidationResult.Builder().subject(subject).input(value).explanation("Expression Language Present").valid(true).build();
+            }
+            
             String reason = null;
             try {
                 final int intVal = Integer.parseInt(value);
@@ -96,6 +106,10 @@ public class StandardValidators {
     public static final Validator POSITIVE_LONG_VALIDATOR = new Validator() {
         @Override
         public ValidationResult validate(final String subject, final String value, final ValidationContext context) {
+            if ( context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(value) ) {
+                return new ValidationResult.Builder().subject(subject).input(value).explanation("Expression Language Present").valid(true).build();
+            }
+
             String reason = null;
             try {
                 final long longVal = Long.parseLong(value);
@@ -123,6 +137,10 @@ public class StandardValidators {
     public static final Validator BOOLEAN_VALIDATOR = new Validator() {
         @Override
         public ValidationResult validate(final String subject, final String value, final ValidationContext context) {
+            if ( context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(value) ) {
+                return new ValidationResult.Builder().subject(subject).input(value).explanation("Expression Language Present").valid(true).build();
+            }
+
             final boolean valid = "true".equalsIgnoreCase(value) || "false".equalsIgnoreCase(value);
             final String explanation = valid ? null : "Value must be 'true' or 'false'";
             return new ValidationResult.Builder().subject(subject).input(value).valid(valid).explanation(explanation).build();
@@ -132,6 +150,10 @@ public class StandardValidators {
     public static final Validator INTEGER_VALIDATOR = new Validator() {
         @Override
         public ValidationResult validate(final String subject, final String value, final ValidationContext context) {
+            if ( context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(value) ) {
+                return new ValidationResult.Builder().subject(subject).input(value).explanation("Expression Language Present").valid(true).build();
+            }
+
             String reason = null;
             try {
                 Integer.parseInt(value);
@@ -146,6 +168,10 @@ public class StandardValidators {
     public static final Validator LONG_VALIDATOR = new Validator() {
         @Override
         public ValidationResult validate(final String subject, final String value, final ValidationContext context) {
+            if ( context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(value) ) {
+                return new ValidationResult.Builder().subject(subject).input(value).explanation("Expression Language Present").valid(true).build();
+            }
+
             String reason = null;
             try {
                 Long.parseLong(value);
@@ -160,6 +186,10 @@ public class StandardValidators {
     public static final Validator NON_NEGATIVE_INTEGER_VALIDATOR = new Validator() {
         @Override
         public ValidationResult validate(final String subject, final String value, final ValidationContext context) {
+            if ( context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(value) ) {
+                return new ValidationResult.Builder().subject(subject).input(value).explanation("Expression Language Present").valid(true).build();
+            }
+
             String reason = null;
             try {
                 final int intVal = Integer.parseInt(value);
@@ -178,6 +208,10 @@ public class StandardValidators {
     public static final Validator CHARACTER_SET_VALIDATOR = new Validator() {
         @Override
         public ValidationResult validate(final String subject, final String value, final ValidationContext context) {
+            if ( context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(value) ) {
+                return new ValidationResult.Builder().subject(subject).input(value).explanation("Expression Language Present").valid(true).build();
+            }
+
             String reason = null;
             try {
                 if (!Charset.isSupported(value)) {
@@ -201,6 +235,10 @@ public class StandardValidators {
     public static final Validator URI_VALIDATOR = new Validator() {
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+            if ( context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input) ) {
+                return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
+            }
+
             try {
                 new URI(input);
                 return new ValidationResult.Builder().subject(subject).input(input).explanation("Valid URI").valid(true).build();
@@ -215,6 +253,10 @@ public class StandardValidators {
     public static final Validator ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR = new Validator() {
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+            if ( context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input) ) {
+                return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
+            }
+
             try {
                 context.newExpressionLanguageCompiler().compile(input);
                 return new ValidationResult.Builder().subject(subject).input(input).valid(true).build();
@@ -228,6 +270,10 @@ public class StandardValidators {
     public static final Validator TIME_PERIOD_VALIDATOR = new Validator() {
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+            if ( context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input) ) {
+                return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
+            }
+
             if (input == null) {
                 return new ValidationResult.Builder().subject(subject).input(input).valid(false).explanation("Time Period cannot be null").build();
             }
@@ -242,6 +288,10 @@ public class StandardValidators {
     public static final Validator DATA_SIZE_VALIDATOR = new Validator() {
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+            if ( context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input) ) {
+                return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
+            }
+
             if (input == null) {
                 return new ValidationResult.Builder().subject(subject).input(input).valid(false).explanation("Data Size cannot be null").build();
             }
@@ -268,6 +318,10 @@ public class StandardValidators {
         return new Validator() {
             @Override
             public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+                if ( context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input) ) {
+                    return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
+                }
+
                 try {
                     final String evaluatedInput = context.newPropertyValue(input).evaluateAttributeExpressions().getValue();
                     new URL(evaluatedInput);
@@ -292,6 +346,10 @@ public class StandardValidators {
 
             @Override
             public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+                if ( context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input) ) {
+                    return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
+                }
+
                 final ValidationResult vr = DATA_SIZE_VALIDATOR.validate(subject, input, context);
                 if(!vr.isValid()){
                     return vr;
@@ -313,6 +371,10 @@ public class StandardValidators {
         return new Validator() {
             @Override
             public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+                if ( context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input) ) {
+                    return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
+                }
+
                 final boolean matches = pattern.matcher(input).matches();
                 return new ValidationResult.Builder()
                         .input(input)
@@ -394,6 +456,10 @@ public class StandardValidators {
         return new Validator() {
             @Override
             public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+                if ( context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input) ) {
+                    return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
+                }
+
                 String reason = null;
                 try {
                     final long longVal = Long.parseLong(input);
@@ -436,6 +502,10 @@ public class StandardValidators {
 
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+            if ( context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input) ) {
+                return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
+            }
+
             if (input == null) {
                 return new ValidationResult.Builder().subject(subject).input(input).valid(false).explanation("Time Period cannot be null").build();
             }
@@ -469,6 +539,10 @@ public class StandardValidators {
 
         @Override
         public ValidationResult validate(final String subject, final String value, final ValidationContext context) {
+            if ( context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(value) ) {
+                return new ValidationResult.Builder().subject(subject).input(value).explanation("Expression Language Present").valid(true).build();
+            }
+
             final String substituted;
             if (allowEL) {
                 try {
@@ -500,6 +574,10 @@ public class StandardValidators {
 
         @Override
         public ValidationResult validate(final String subject, final String value, final ValidationContext context) {
+            if ( context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(value) ) {
+                return new ValidationResult.Builder().subject(subject).input(value).explanation("Expression Language Present").valid(true).build();
+            }
+
             final String substituted;
             if (allowEL) {
                 try {
@@ -537,10 +615,22 @@ public class StandardValidators {
         }
     }
 
+    /**
+     * Creates a validator based on existence of a {@link ControllerService}.
+     * 
+     * @param serviceClass the controller service API your {@link ConfigurableComponent} depends on
+     * @return a Validator
+     * @deprecated As of release 0.1.0-incubating, replaced by {@link org.apache.nifi.components.PropertyDescriptor.Builder#identifiesControllerService(Class)}
+     */
+    @Deprecated
     public static Validator createControllerServiceExistsValidator(final Class<? extends ControllerService> serviceClass) {
         return new Validator() {
             @Override
             public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+                if ( context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input) ) {
+                    return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
+                }
+
                 final ControllerService svc = context.getControllerServiceLookup().getControllerService(input);
 
                 if (svc == null) {

@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
@@ -63,7 +64,6 @@ import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.user.NiFiUser;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -126,9 +126,14 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
     
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
-        final FlowFileRequest flowFileRequest = requestQueue.poll();
+        final FlowFileRequest flowFileRequest;
+        try {
+            flowFileRequest = requestQueue.poll(100, TimeUnit.MILLISECONDS);
+        } catch (final InterruptedException ie) {
+            return;
+        }
+        
         if ( flowFileRequest == null ) {
-            context.yield();
             return;
         }
 

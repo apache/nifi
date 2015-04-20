@@ -68,8 +68,7 @@ public class StoreInKiteDataset extends AbstractKiteProcessor {
   public static final PropertyDescriptor KITE_DATASET_URI =
       new PropertyDescriptor.Builder()
           .name("Target dataset URI")
-          .description(
-              "URI that identifies a Kite dataset where data will be stored")
+          .description("URI that identifies a Kite dataset where data will be stored")
           .addValidator(RECOGNIZED_URI)
           .expressionLanguageSupported(true)
           .required(true)

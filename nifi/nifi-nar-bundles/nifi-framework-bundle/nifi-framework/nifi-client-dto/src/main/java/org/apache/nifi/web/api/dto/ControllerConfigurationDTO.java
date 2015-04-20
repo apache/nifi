@@ -16,7 +16,10 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import java.util.Date;
 import javax.xml.bind.annotation.XmlType;
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
 /**
  * Details for the controller configuration.
@@ -32,6 +35,7 @@ public class ControllerConfigurationDTO {
     private Long autoRefreshIntervalSeconds;
     private Boolean siteToSiteSecure;
 
+    private Date currentTime;
     private Integer timeOffset;
 
     private String contentViewerUrl;
@@ -115,6 +119,20 @@ public class ControllerConfigurationDTO {
 
     public void setSiteToSiteSecure(Boolean siteToSiteSecure) {
         this.siteToSiteSecure = siteToSiteSecure;
+    }
+
+    /**
+     * The current time on the server.
+     * 
+     * @return 
+     */
+    @XmlJavaTypeAdapter(TimeAdapter.class)
+    public Date getCurrentTime() {
+        return currentTime;
+    }
+
+    public void setCurrentTime(Date currentTime) {
+        this.currentTime = currentTime;
     }
 
     /**

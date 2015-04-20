@@ -81,8 +81,6 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
     private final FlowController controller;
     private final Path flowXml;
-    private final Path taskConfigXml;
-    private final Path serviceConfigXml;
     private final FlowConfigurationDAO dao;
     private final int gracefulShutdownSeconds;
     private final boolean autoResumeState;
@@ -154,14 +152,12 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         this.controller = controller;
         this.encryptor = encryptor;
         flowXml = Paths.get(properties.getProperty(NiFiProperties.FLOW_CONFIGURATION_FILE));
-        taskConfigXml = Paths.get(properties.getProperty(NiFiProperties.TASK_CONFIGURATION_FILE));
-        serviceConfigXml = Paths.get(properties.getProperty(NiFiProperties.SERVICE_CONFIGURATION_FILE));
 
         gracefulShutdownSeconds = (int) FormatUtils.getTimeDuration(properties.getProperty(NiFiProperties.FLOW_CONTROLLER_GRACEFUL_SHUTDOWN_PERIOD), TimeUnit.SECONDS);
         autoResumeState = properties.getAutoResumeState();
         connectionRetryMillis = (int) FormatUtils.getTimeDuration(properties.getClusterManagerFlowRetrievalDelay(), TimeUnit.MILLISECONDS);
 
-        dao = new StandardXMLFlowConfigurationDAO(flowXml, taskConfigXml, serviceConfigXml, encryptor);
+        dao = new StandardXMLFlowConfigurationDAO(flowXml, encryptor);
 
         if (configuredForClustering) {
 
@@ -605,7 +601,6 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         if (firstControllerInitialization) {
             // load the controller services
             logger.debug("Loading controller services");
-            dao.loadControllerServices(controller);
         }
 
         // load the flow
@@ -622,7 +617,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             logger.debug("First controller initialization. Loading reporting tasks and initializing controller.");
 
             // load the controller tasks
-            dao.loadReportingTasks(controller);
+//            dao.loadReportingTasks(controller);
 
             // initialize the flow
             controller.initializeFlow();

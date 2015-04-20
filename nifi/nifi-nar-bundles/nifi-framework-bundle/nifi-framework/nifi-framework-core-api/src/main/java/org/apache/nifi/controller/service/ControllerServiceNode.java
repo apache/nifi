@@ -16,7 +16,8 @@
  */
 package org.apache.nifi.controller.service;
 
-import org.apache.nifi.controller.Availability;
+import java.util.Set;
+
 import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ControllerService;
 
@@ -26,22 +27,42 @@ public interface ControllerServiceNode extends ConfiguredComponent {
     
     ControllerService getControllerServiceImplementation();
 
-    Availability getAvailability();
-
-    void setAvailability(Availability availability);
-
-    boolean isDisabled();
-
-    void setDisabled(boolean disabled);
-
+    ControllerServiceState getState();
+    void setState(ControllerServiceState state);
+    
     ControllerServiceReference getReferences();
 
     void addReference(ConfiguredComponent referringComponent);
 
     void removeReference(ConfiguredComponent referringComponent);
     
+    void setComments(String comment);
+    String getComments();
+    
     void verifyCanEnable();
     void verifyCanDisable();
+    
+    /**
+     * Verifies that this Controller Service can be disabled if the provided set of 
+     * services are also disabled. This is introduced because we can have an instance
+     * where A references B, which references C, which references A and we want
+     * to disable service C. In this case, the cycle needs to not cause us to fail, 
+     * so we want to verify that C can be disabled if A and B also are. 
+     * 
+     * @param ignoredReferences
+     */
+    void verifyCanDisable(Set<ControllerServiceNode> ignoredReferences);
+    
+    /**
+     * Verifies that this Controller Service can be enabled if the provided set of
+     * services are also enabled. This is introduced because we can have an instance where
+     * A reference B, which references C, which references A and we want to enable
+     * Service A. In this case, the cycle needs to not cause us to fail, so we want to verify
+     * that A can be enabled if A and B also are.
+     * @param ignoredReferences
+     */
+    void verifyCanEnable(Set<ControllerServiceNode> ignoredReferences);
+    
     void verifyCanDelete();
     void verifyCanUpdate();
 }

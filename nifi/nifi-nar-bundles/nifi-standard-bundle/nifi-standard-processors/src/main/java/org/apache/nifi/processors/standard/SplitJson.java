@@ -74,6 +74,7 @@ public class SplitJson extends AbstractJsonPathProcessor {
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(ARRAY_JSON_PATH_EXPRESSION);
+        properties.add(NULL_VALUE_DEFAULT_REPRESENTATION);
         this.properties = Collections.unmodifiableList(properties);
 
         final Set<Relationship> relationships = new HashSet<>();
@@ -142,6 +143,8 @@ public class SplitJson extends AbstractJsonPathProcessor {
         }
 
         final JsonPath jsonPath = JSON_PATH_REF.get();
+        String representationOption = processContext.getProperty(NULL_VALUE_DEFAULT_REPRESENTATION).getValue();
+        final String nullDefaultValue = NULL_REPRESENTATION_MAP.get(representationOption);
 
         final List<FlowFile> segments = new ArrayList<>();
 
@@ -168,7 +171,7 @@ public class SplitJson extends AbstractJsonPathProcessor {
             split = processSession.write(split, new OutputStreamCallback() {
                 @Override
                 public void process(OutputStream out) throws IOException {
-                    String resultSegmentContent = getResultRepresentation(resultSegment);
+                    String resultSegmentContent = getResultRepresentation(resultSegment, nullDefaultValue);
                     out.write(resultSegmentContent.getBytes(StandardCharsets.UTF_8));
                 }
             });

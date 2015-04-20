@@ -42,24 +42,25 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.persistence.TemplateDeserializer;
+import org.apache.nifi.persistence.TemplateSerializer;
 import org.apache.nifi.stream.io.ByteArrayInputStream;
 import org.apache.nifi.stream.io.ByteArrayOutputStream;
 import org.apache.nifi.stream.io.DataOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
-import org.apache.nifi.persistence.TemplateDeserializer;
-import org.apache.nifi.persistence.TemplateSerializer;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
+import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
-import org.apache.nifi.web.api.dto.ProcessorConfigDTO.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
+import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupContentsDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.apache.nifi.web.api.dto.TemplateDTO;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -272,6 +273,11 @@ public class TemplateManager {
             if (snippet.getProcessGroups() != null) {
                 scrubProcessGroups(snippet.getProcessGroups());
             }
+            
+            // go through each controller service if specified
+            if (snippet.getControllerServices() != null) {
+                scrubControllerServices(snippet.getControllerServices());
+            }
         }
     }
 
@@ -315,12 +321,29 @@ public class TemplateManager {
                     }
                 }
 
-                processorConfig.setDescriptors(null);
                 processorConfig.setCustomUiUrl(null);
             }
 
             // remove validation errors
             processorDTO.setValidationErrors(null);
+        }
+    }
+    
+    private void scrubControllerServices(final Set<ControllerServiceDTO> controllerServices) {
+        for ( final ControllerServiceDTO serviceDTO : controllerServices ) {
+            final Map<String, String> properties = serviceDTO.getProperties();
+            final Map<String, PropertyDescriptorDTO> descriptors = serviceDTO.getDescriptors();
+            
+            if ( properties != null && descriptors != null ) {
+                for ( final PropertyDescriptorDTO descriptor : descriptors.values() ) {
+                    if ( descriptor.isSensitive() ) {
+                        properties.put(descriptor.getName(), null);
+                    }
+                }
+            }
+            
+            serviceDTO.setCustomUiUrl(null);
+            serviceDTO.setValidationErrors(null);
         }
     }
 

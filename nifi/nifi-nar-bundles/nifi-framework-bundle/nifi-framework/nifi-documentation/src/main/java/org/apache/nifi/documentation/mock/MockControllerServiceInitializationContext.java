@@ -18,6 +18,7 @@ package org.apache.nifi.documentation.mock;
 
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.logging.ComponentLog;
 
 /**
  * A Mock ControllerServiceInitializationContext so that ControllerServices can
@@ -35,6 +36,11 @@ public class MockControllerServiceInitializationContext implements ControllerSer
     @Override
     public ControllerServiceLookup getControllerServiceLookup() {
         return new MockControllerServiceLookup();
+    }
+
+    @Override
+    public ComponentLog getLogger() {
+        return null;
     }
 
 }

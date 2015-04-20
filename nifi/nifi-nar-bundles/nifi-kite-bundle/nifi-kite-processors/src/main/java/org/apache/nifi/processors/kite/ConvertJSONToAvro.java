@@ -65,8 +65,7 @@ public class ConvertJSONToAvro extends AbstractKiteProcessor {
     static final PropertyDescriptor SCHEMA
             = new PropertyDescriptor.Builder()
             .name("Record schema")
-            .description(
-                    "Outgoing Avro schema for each record created from a JSON object")
+            .description("Outgoing Avro schema for each record created from a JSON object")
             .addValidator(SCHEMA_VALIDATOR)
             .expressionLanguageSupported(true)
             .required(true)

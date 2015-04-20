@@ -23,7 +23,7 @@
     </parent>
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-parent</artifactId>
-    <version>1-incubating-SNAPSHOT</version>
+    <version>1.0.0-incubating-SNAPSHOT</version>
     <packaging>pom</packaging>
     <description>The nifi-parent enables each apache nifi project to ensure consistent approaches and DRY</description>
     <url>http://nifi.incubator.apache.org</url>

@@ -23,7 +23,6 @@
     display: none;
     width: 400px;
     height: 375px;
-    border: 1px solid #eee;
 }
 
 #port-name {
@@ -66,7 +65,6 @@ div.port-enabled-container {
     display: none;
     width: 400px;
     height: 450px;
-    border: 1px solid #eee;
 }
 
 #secure-port-configuration div.dialog-content {

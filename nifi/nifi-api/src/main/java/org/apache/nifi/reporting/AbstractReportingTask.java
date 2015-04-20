@@ -20,6 +20,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.components.AbstractConfigurableComponent;
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 
 public abstract class AbstractReportingTask extends AbstractConfigurableComponent implements ReportingTask {
@@ -28,10 +29,12 @@ public abstract class AbstractReportingTask extends AbstractConfigurableComponen
     private String name;
     private long schedulingNanos;
     private ControllerServiceLookup serviceLookup;
+    private ComponentLog logger;
 
     @Override
     public final void initialize(final ReportingInitializationContext config) throws InitializationException {
         identifier = config.getIdentifier();
+        logger = config.getLogger();
         name = config.getName();
         schedulingNanos = config.getSchedulingPeriod(TimeUnit.NANOSECONDS);
         serviceLookup = config.getControllerServiceLookup();
@@ -91,4 +94,11 @@ public abstract class AbstractReportingTask extends AbstractConfigurableComponen
     protected void init(final ReportingInitializationContext config) throws InitializationException {
     }
 
+    /**
+     * Returns the logger that has been provided to the component by the framework in its initialize method.
+     * @return
+     */
+    protected ComponentLog getLogger() {
+        return logger;
+    }
 }

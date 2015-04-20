@@ -34,7 +34,8 @@ public class FlowSnippetDTO {
     private Set<ConnectionDTO> connections = new LinkedHashSet<>();
     private Set<LabelDTO> labels = new LinkedHashSet<>();
     private Set<FunnelDTO> funnels = new LinkedHashSet<>();
-
+    private Set<ControllerServiceDTO> controllerServices = new LinkedHashSet<>();
+    
     /**
      * The connections in this flow snippet.
      *
@@ -137,5 +138,17 @@ public class FlowSnippetDTO {
 
     public void setRemoteProcessGroups(Set<RemoteProcessGroupDTO> remoteProcessGroups) {
         this.remoteProcessGroups = remoteProcessGroups;
+    }
+
+    /**
+     * Returns the Controller Services in this flow snippet
+     * @return
+     */
+    public Set<ControllerServiceDTO> getControllerServices() {
+        return controllerServices;
+    }
+
+    public void setControllerServices(Set<ControllerServiceDTO> controllerServices) {
+        this.controllerServices = controllerServices;
     }
 }

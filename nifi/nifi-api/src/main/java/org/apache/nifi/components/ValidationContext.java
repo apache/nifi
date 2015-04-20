@@ -79,4 +79,32 @@ public interface ValidationContext {
      * @return
      */
     String getAnnotationData();
+    
+    /**
+     * There are times when the framework needs to consider a component valid, even if it
+     * references an invalid ControllerService. This method will return <code>false</code>
+     * if the component is to be considered valid even if the given Controller Service is referenced
+     * and is invalid.
+     * @param service
+     */
+    boolean isValidationRequired(ControllerService service);
+    
+    /**
+     * Returns <code>true</code> if the given value contains a NiFi Expression Language expression,
+     * <code>false</code> if it does not
+     * 
+     * @param value
+     * @return
+     */
+    boolean isExpressionLanguagePresent(String value);
+    
+    /**
+     * Returns <code>true</code> if the property with the given name supports the NiFi Expression Language,
+     * <code>false</code> if the property does not support the Expression Language or is not a valid property
+     * name
+     * 
+     * @param propertyName
+     * @return
+     */
+    boolean isExpressionLanguageSupported(String propertyName);
 }

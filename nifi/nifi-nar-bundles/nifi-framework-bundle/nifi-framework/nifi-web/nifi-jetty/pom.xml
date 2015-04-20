@@ -115,7 +115,17 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-web-content-access</artifactId>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-custom-ui-utilities</artifactId>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-ui-extension</artifactId>
             <scope>compile</scope>
         </dependency>
         <dependency>
@@ -151,6 +161,11 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-web-docs</artifactId>
+            <type>war</type>
+        </dependency> 
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-web-content-viewer</artifactId>
             <type>war</type>
         </dependency>   
         <dependency>
