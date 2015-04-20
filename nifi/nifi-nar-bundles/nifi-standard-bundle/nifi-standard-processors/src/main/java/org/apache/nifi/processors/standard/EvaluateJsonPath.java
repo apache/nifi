@@ -75,6 +75,9 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
     public static final String RETURN_TYPE_JSON = "json";
     public static final String RETURN_TYPE_SCALAR = "scalar";
 
+    public static final String PATH_NOT_FOUND_IGNORE = "ignore";
+    public static final String PATH_NOT_FOUND_WARN = "warn";
+    
     public static final PropertyDescriptor DESTINATION = new PropertyDescriptor.Builder()
             .name("Destination")
             .description("Indicates whether the results of the JsonPath evaluation are written to the FlowFile content or a FlowFile attribute; if using attribute, must specify the Attribute Name property. If set to flowfile-content, only one JsonPath may be specified, and the property name is ignored.")
@@ -89,6 +92,14 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
             .required(true)
             .allowableValues(RETURN_TYPE_AUTO, RETURN_TYPE_JSON, RETURN_TYPE_SCALAR)
             .defaultValue(RETURN_TYPE_AUTO)
+            .build();
+    
+    public static final PropertyDescriptor PATH_NOT_FOUND = new PropertyDescriptor.Builder()
+            .name("Path Not Found Behavior")
+            .description("Indicates how to handle missing JSON path expressions when destination is set to 'flowfile-attribute'. Selecting 'warn' will generate a warning when a JSON path expression is not found.")
+            .required(true)
+            .allowableValues(PATH_NOT_FOUND_WARN, PATH_NOT_FOUND_IGNORE)
+            .defaultValue(PATH_NOT_FOUND_IGNORE)
             .build();
 
     public static final Relationship REL_MATCH = new Relationship.Builder().name("matched").description("FlowFiles are routed to this relationship when the JsonPath is successfully evaluated and the FlowFile is modified as a result").build();
@@ -111,6 +122,7 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(DESTINATION);
         properties.add(RETURN_TYPE);
+        properties.add(PATH_NOT_FOUND);
         properties.add(NULL_VALUE_DEFAULT_REPRESENTATION);
         this.properties = Collections.unmodifiableList(properties);
     }
@@ -239,6 +251,7 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
 
             String jsonPathAttrKey = attributeJsonPathEntry.getKey();
             JsonPath jsonPathExp = attributeJsonPathEntry.getValue();
+            final String pathNotFound = processContext.getProperty(PATH_NOT_FOUND).getValue();
 
             final ObjectHolder<Object> resultHolder = new ObjectHolder<>(null);
             try {
@@ -251,7 +264,11 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
                 }
                 resultHolder.set(result);
             } catch (PathNotFoundException e) {
-                logger.warn("FlowFile {} could not find path {} for attribute key {}.", new Object[]{flowFile.getId(), jsonPathExp.getPath(), jsonPathAttrKey}, e);
+            	
+            	if (pathNotFound.equals(PATH_NOT_FOUND_WARN)) {
+                    logger.warn("FlowFile {} could not find path {} for attribute key {}.", new Object[]{flowFile.getId(), jsonPathExp.getPath(), jsonPathAttrKey}, e);
+            	}
+            	
                 if (destination.equals(DESTINATION_ATTRIBUTE)) {
                     jsonPathResults.put(jsonPathAttrKey, StringUtils.EMPTY);
                     continue;
