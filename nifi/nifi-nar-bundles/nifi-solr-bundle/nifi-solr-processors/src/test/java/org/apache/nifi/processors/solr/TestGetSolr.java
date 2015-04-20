@@ -86,11 +86,7 @@ public class TestGetSolr {
             doc5.addField("created", new Date());
 
             // add the test data to the index
-            solrClient.add(doc1);
-            solrClient.add(doc2);
-            solrClient.add(doc3);
-            solrClient.add(doc4);
-            solrClient.add(doc5);
+            solrClient.add(Arrays.asList(doc1, doc2, doc3, doc4, doc5));
             solrClient.commit();
         } catch (Exception e) {
             Assert.fail(e.getMessage());
