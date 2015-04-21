@@ -29,9 +29,7 @@ public class AttributeDTO {
     private String previousValue;
 
     /**
-     * The attribute name.
-     *
-     * @return
+     * @return attribute name
      */
     public String getName() {
         return name;
@@ -42,9 +40,7 @@ public class AttributeDTO {
     }
 
     /**
-     * The attribute value.
-     *
-     * @return
+     * @return attribute value
      */
     public String getValue() {
         return value;
@@ -55,9 +51,7 @@ public class AttributeDTO {
     }
 
     /**
-     * The value of this attribute before the event took place.
-     *
-     * @return
+     * @return value of this attribute before the event took place
      */
     public String getPreviousValue() {
         return previousValue;

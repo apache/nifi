@@ -40,9 +40,7 @@ public class LineageDTO {
     private LineageResultsDTO results;
 
     /**
-     * The id of this lineage.
-     *
-     * @return
+     * @return id of this lineage
      */
     public String getId() {
         return id;
@@ -53,9 +51,7 @@ public class LineageDTO {
     }
 
     /**
-     * The uri for this lineage.
-     *
-     * @return
+     * @return uri for this lineage
      */
     public String getUri() {
         return uri;
@@ -66,9 +62,7 @@ public class LineageDTO {
     }
 
     /**
-     * The id of the node in the cluster where this lineage originated.
-     *
-     * @return
+     * @return id of the node in the cluster where this lineage originated
      */
     public String getClusterNodeId() {
         return clusterNodeId;
@@ -79,9 +73,7 @@ public class LineageDTO {
     }
 
     /**
-     * The submission time for this lineage.
-     *
-     * @return
+     * @return submission time for this lineage
      */
     @XmlJavaTypeAdapter(TimestampAdapter.class)
     public Date getSubmissionTime() {
@@ -93,9 +85,7 @@ public class LineageDTO {
     }
 
     /**
-     * The expiration of this lineage.
-     *
-     * @return
+     * @return expiration of this lineage
      */
     @XmlJavaTypeAdapter(TimestampAdapter.class)
     public Date getExpiration() {
@@ -107,9 +97,7 @@ public class LineageDTO {
     }
 
     /**
-     * Percent completed for this result.
-     *
-     * @return
+     * @return percent completed for this result
      */
     public Integer getPercentCompleted() {
         return percentCompleted;
@@ -120,9 +108,7 @@ public class LineageDTO {
     }
 
     /**
-     * Whether or not the request is finished running.
-     *
-     * @return
+     * @return whether or not the request is finished running
      */
     public Boolean getFinished() {
         return finished;
@@ -133,9 +119,7 @@ public class LineageDTO {
     }
 
     /**
-     * The lineage request.
-     *
-     * @return
+     * @return the lineage request
      */
     public LineageRequestDTO getRequest() {
         return request;
@@ -146,9 +130,7 @@ public class LineageDTO {
     }
 
     /**
-     * The results of this lineage.
-     *
-     * @return
+     * @return the results of this lineage
      */
     public LineageResultsDTO getResults() {
         return results;

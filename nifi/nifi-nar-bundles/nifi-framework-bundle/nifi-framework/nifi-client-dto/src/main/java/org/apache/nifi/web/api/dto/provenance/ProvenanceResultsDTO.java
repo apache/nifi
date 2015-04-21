@@ -41,9 +41,7 @@ public class ProvenanceResultsDTO {
     private Set<String> errors;
 
     /**
-     * Any error messages.
-     *
-     * @return
+     * @return error messages
      */
     public Set<String> getErrors() {
         return errors;
@@ -54,9 +52,7 @@ public class ProvenanceResultsDTO {
     }
 
     /**
-     * The provenance events that matched the search criteria.
-     *
-     * @return
+     * @return provenance events that matched the search criteria
      */
     public List<ProvenanceEventDTO> getProvenanceEvents() {
         return provenanceEvents;
@@ -67,9 +63,7 @@ public class ProvenanceResultsDTO {
     }
 
     /**
-     * The total number of results formatted.
-     *
-     * @return
+     * @return total number of results formatted
      */
     public String getTotal() {
         return total;
@@ -80,9 +74,7 @@ public class ProvenanceResultsDTO {
     }
 
     /**
-     * The total number of results.
-     *
-     * @return
+     * @return total number of results
      */
     public Long getTotalCount() {
         return totalCount;
@@ -93,9 +85,7 @@ public class ProvenanceResultsDTO {
     }
 
     /**
-     * When the search was performed.
-     *
-     * @return
+     * @return when the search was performed
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
     public Date getGenerated() {
@@ -107,9 +97,7 @@ public class ProvenanceResultsDTO {
     }
 
     /**
-     * The oldest event available in the provenance repository.
-     *
-     * @return
+     * @return oldest event available in the provenance repository
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
     public Date getOldestEvent() {
@@ -121,9 +109,7 @@ public class ProvenanceResultsDTO {
     }
 
     /**
-     * The time offset on the server thats used for event time.
-     *
-     * @return
+     * @return time offset on the server thats used for event time
      */
     public Integer getTimeOffset() {
         return timeOffset;

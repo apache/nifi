@@ -24,42 +24,43 @@ import org.apache.nifi.hl7.query.evaluator.BooleanEvaluator;
 import org.apache.nifi.hl7.query.evaluator.Evaluator;
 
 public class NotNullEvaluator extends BooleanEvaluator {
-	private final Evaluator<?> subjectEvaluator;
-	
-	public NotNullEvaluator(final Evaluator<?> subjectEvaluator) {
-		this.subjectEvaluator = subjectEvaluator;
-	}
-	
-	@Override
-	public Boolean evaluate(final Map<String, Object> objectMap) {
-		Object subjectValue = subjectEvaluator.evaluate(objectMap);
-		if ( subjectValue == null ) {
-			return false;
-		}
-		
-		return isNotNull(subjectValue);
-	}
 
-	private boolean isNotNull(Object subjectValue) {
-		if ( subjectValue instanceof HL7Component ) {
-			subjectValue = ((HL7Component) subjectValue).getValue();
-		}
-		
-		if ( subjectValue instanceof Collection ) {
-			final Collection<?> collection = (Collection<?>) subjectValue;
-			if ( collection.isEmpty() ) {
-				return false;
-			}
-			
-			for ( final Object obj : collection ) {
-				if ( isNotNull(obj) ) {
-					return true;
-				}
-			}
-			
-			return false;
-		}
-		
-		return subjectValue != null;
-	}
+    private final Evaluator<?> subjectEvaluator;
+
+    public NotNullEvaluator(final Evaluator<?> subjectEvaluator) {
+        this.subjectEvaluator = subjectEvaluator;
+    }
+
+    @Override
+    public Boolean evaluate(final Map<String, Object> objectMap) {
+        Object subjectValue = subjectEvaluator.evaluate(objectMap);
+        if (subjectValue == null) {
+            return false;
+        }
+
+        return isNotNull(subjectValue);
+    }
+
+    private boolean isNotNull(Object subjectValue) {
+        if (subjectValue instanceof HL7Component) {
+            subjectValue = ((HL7Component) subjectValue).getValue();
+        }
+
+        if (subjectValue instanceof Collection) {
+            final Collection<?> collection = (Collection<?>) subjectValue;
+            if (collection.isEmpty()) {
+                return false;
+            }
+
+            for (final Object obj : collection) {
+                if (isNotNull(obj)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        return subjectValue != null;
+    }
 }

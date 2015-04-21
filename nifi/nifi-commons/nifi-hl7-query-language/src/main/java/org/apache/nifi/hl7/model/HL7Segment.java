@@ -20,8 +20,8 @@ import java.util.List;
 
 public interface HL7Segment {
 
-	String getName();
-	
-	List<HL7Field> getFields();
-	
+    String getName();
+
+    List<HL7Field> getFields();
+
 }

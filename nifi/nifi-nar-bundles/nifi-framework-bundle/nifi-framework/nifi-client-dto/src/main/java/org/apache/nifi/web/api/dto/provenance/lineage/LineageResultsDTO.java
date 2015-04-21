@@ -32,9 +32,7 @@ public class LineageResultsDTO {
     private List<ProvenanceLinkDTO> links;
 
     /**
-     * Any error messages.
-     *
-     * @return
+     * @return any error messages
      */
     public Set<String> getErrors() {
         return errors;
@@ -45,9 +43,7 @@ public class LineageResultsDTO {
     }
 
     /**
-     * The nodes.
-     *
-     * @return
+     * @return the nodes
      */
     public List<ProvenanceNodeDTO> getNodes() {
         return nodes;
@@ -58,9 +54,7 @@ public class LineageResultsDTO {
     }
 
     /**
-     * The links.
-     *
-     * @return
+     * @return the links
      */
     public List<ProvenanceLinkDTO> getLinks() {
         return links;

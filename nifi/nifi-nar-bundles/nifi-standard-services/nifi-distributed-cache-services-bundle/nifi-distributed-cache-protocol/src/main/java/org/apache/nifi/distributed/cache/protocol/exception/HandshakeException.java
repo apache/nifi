@@ -17,10 +17,11 @@
 package org.apache.nifi.distributed.cache.protocol.exception;
 
 public class HandshakeException extends Exception {
+
     public HandshakeException(final String message) {
         super(message);
     }
-    
+
     public HandshakeException(final Throwable cause) {
         super(cause);
     }

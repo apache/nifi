@@ -28,6 +28,7 @@ import javax.xml.bind.annotation.XmlType;
  */
 @XmlType(name = "controllerServiceReferencingComponent")
 public class ControllerServiceReferencingComponentDTO {
+
     private String groupId;
     private String id;
     private String name;
@@ -36,20 +37,18 @@ public class ControllerServiceReferencingComponentDTO {
 
     private Map<String, String> properties;
     private Map<String, PropertyDescriptorDTO> descriptors;
-    
+
     private Collection<String> validationErrors;
-    
+
     private String referenceType;
     private Integer activeThreadCount;
-    
+
     private Boolean referenceCycle;
     private Set<ControllerServiceReferencingComponentDTO> referencingComponents;
 
     /**
-     * Group id for this component referencing a controller service. If this
-     * component is another service, this field is blank.
-     * 
-     * @return 
+     * @return Group id for this component referencing a controller service. If this
+     * component is another service, this field is blank
      */
     public String getGroupId() {
         return groupId;
@@ -60,9 +59,7 @@ public class ControllerServiceReferencingComponentDTO {
     }
 
     /**
-     * The id for this component referencing a controller service.
-     * 
-     * @return 
+     * @return id for this component referencing a controller service
      */
     public String getId() {
         return id;
@@ -73,9 +70,7 @@ public class ControllerServiceReferencingComponentDTO {
     }
 
     /**
-     * The name for this component referencing a controller service.
-     * 
-     * @return 
+     * @return name for this component referencing a controller service
      */
     public String getName() {
         return name;
@@ -86,9 +81,7 @@ public class ControllerServiceReferencingComponentDTO {
     }
 
     /**
-     * The type for this component referencing a controller service.
-     * 
-     * @return 
+     * @return type for this component referencing a controller service
      */
     public String getType() {
         return type;
@@ -99,10 +92,8 @@ public class ControllerServiceReferencingComponentDTO {
     }
 
     /**
-     * The state of the processor referencing a controller service. If this
-     * component is another service, this field is blank.
-     * 
-     * @return 
+     * @return state of the processor referencing a controller service. If this
+     * component is another service, this field is blank
      */
     public String getState() {
         return state;
@@ -113,8 +104,8 @@ public class ControllerServiceReferencingComponentDTO {
     }
 
     /**
-     * The type of reference this is (Processor, ControllerService, or ReportingTask).
-     * @return 
+     * @return type of reference this is (Processor, ControllerService, or
+     * ReportingTask)
      */
     public String getReferenceType() {
         return referenceType;
@@ -125,9 +116,7 @@ public class ControllerServiceReferencingComponentDTO {
     }
 
     /**
-     * The component properties.
-     * 
-     * @return 
+     * @return component properties
      */
     public Map<String, String> getProperties() {
         return properties;
@@ -138,9 +127,7 @@ public class ControllerServiceReferencingComponentDTO {
     }
 
     /**
-     * The descriptors for the components properties.
-     * 
-     * @return 
+     * @return descriptors for the components properties
      */
     public Map<String, PropertyDescriptorDTO> getDescriptors() {
         return descriptors;
@@ -149,11 +136,9 @@ public class ControllerServiceReferencingComponentDTO {
     public void setDescriptors(Map<String, PropertyDescriptorDTO> descriptors) {
         this.descriptors = descriptors;
     }
-    
+
     /**
-     * Any validation error associated with this component.
-     * 
-     * @return 
+     * @return Any validation error associated with this component
      */
     public Collection<String> getValidationErrors() {
         return validationErrors;
@@ -162,11 +147,9 @@ public class ControllerServiceReferencingComponentDTO {
     public void setValidationErrors(Collection<String> validationErrors) {
         this.validationErrors = validationErrors;
     }
-    
+
     /**
-     * The active thread count for the referencing component.
-     * 
-     * @return 
+     * @return active thread count for the referencing component
      */
     public Integer getActiveThreadCount() {
         return activeThreadCount;
@@ -177,10 +160,8 @@ public class ControllerServiceReferencingComponentDTO {
     }
 
     /**
-     * If this referencing component represents a ControllerService, these
-     * are the components that reference it.
-     * 
-     * @return 
+     * @return If this referencing component represents a ControllerService, these are
+     * the components that reference it
      */
     public Set<ControllerServiceReferencingComponentDTO> getReferencingComponents() {
         return referencingComponents;
@@ -191,10 +172,8 @@ public class ControllerServiceReferencingComponentDTO {
     }
 
     /**
-     * If this referencing component represents a ControllerService, this indicates
-     * whether it has already been represented in this hierarchy.
-     * 
-     * @return 
+     * @return If this referencing component represents a ControllerService, this
+     * indicates whether it has already been represented in this hierarchy
      */
     public Boolean getReferenceCycle() {
         return referenceCycle;

@@ -32,9 +32,7 @@ public class LabelsEntity extends Entity {
     private Set<LabelDTO> labels;
 
     /**
-     * The collection of LabelDTOs that are being serialized.
-     *
-     * @return
+     * @return collection of LabelDTOs that are being serialized
      */
     public Set<LabelDTO> getLabels() {
         return labels;

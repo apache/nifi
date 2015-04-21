@@ -22,72 +22,71 @@ import java.io.IOException;
 import java.io.InputStream;
 
 /**
- * An InputStream that will throw EOFException if the underlying InputStream runs out of data before reaching the
- * configured minimum amount of data
+ * An InputStream that will throw EOFException if the underlying InputStream
+ * runs out of data before reaching the configured minimum amount of data
  */
 public class MinimumLengthInputStream extends FilterInputStream {
 
-	private final long minLength;
-	private long consumedCount = 0L;
-	
-	public MinimumLengthInputStream(final InputStream in, final long minLength) {
-		super(in);
-		this.minLength = minLength;
-	}
+    private final long minLength;
+    private long consumedCount = 0L;
 
-	
-	@Override
-	public int read() throws IOException {
-		final int b = super.read();
-		if ( b < 0 && consumedCount < minLength ) {
-			throw new EOFException();
-		}
-		
-		if ( b >= 0 ) {
-			consumedCount++;
-		}
-		
-		return b;
-	}
-	
-	@Override
-	public int read(byte[] b) throws IOException {
-		return read(b, 0, b.length);
-	}
-	
-	public int read(byte[] b, int off, int len) throws IOException {
-		final int num = super.read(b, off, len);
-		
-		if ( num < 0 && consumedCount < minLength ) {
-			throw new EOFException();
-		}
-		
-		if ( num >= 0 ) {
-			consumedCount += num;
-		}
+    public MinimumLengthInputStream(final InputStream in, final long minLength) {
+        super(in);
+        this.minLength = minLength;
+    }
 
-		return num;
-	}
-	
-	@Override
-	public long skip(final long n) throws IOException {
-		long skipped = super.skip(n);
-		if ( skipped < 1 ) {
-			final int b = super.read();
-			if ( b >= 0 ) {
-				skipped = 1;
-			}
-		}
-		
-		if ( skipped < 0 && consumedCount < minLength ) {
-			throw new EOFException();
-		}
-		
-		if ( skipped >= 0 ) {
-			consumedCount += skipped;
-		}
-		
-		return skipped;
-	}
-	
+    @Override
+    public int read() throws IOException {
+        final int b = super.read();
+        if (b < 0 && consumedCount < minLength) {
+            throw new EOFException();
+        }
+
+        if (b >= 0) {
+            consumedCount++;
+        }
+
+        return b;
+    }
+
+    @Override
+    public int read(byte[] b) throws IOException {
+        return read(b, 0, b.length);
+    }
+
+    public int read(byte[] b, int off, int len) throws IOException {
+        final int num = super.read(b, off, len);
+
+        if (num < 0 && consumedCount < minLength) {
+            throw new EOFException();
+        }
+
+        if (num >= 0) {
+            consumedCount += num;
+        }
+
+        return num;
+    }
+
+    @Override
+    public long skip(final long n) throws IOException {
+        long skipped = super.skip(n);
+        if (skipped < 1) {
+            final int b = super.read();
+            if (b >= 0) {
+                skipped = 1;
+            }
+        }
+
+        if (skipped < 0 && consumedCount < minLength) {
+            throw new EOFException();
+        }
+
+        if (skipped >= 0) {
+            consumedCount += skipped;
+        }
+
+        return skipped;
+    }
+
 }

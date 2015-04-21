@@ -29,9 +29,7 @@ public class RemoteProcessGroupContentsDTO {
     private Set<RemoteProcessGroupPortDTO> outputPorts;
 
     /**
-     * The Controller Input Ports to which data can be sent
-     *
-     * @return
+     * @return Controller Input Ports to which data can be sent
      */
     public Set<RemoteProcessGroupPortDTO> getInputPorts() {
         return inputPorts;
@@ -42,9 +40,7 @@ public class RemoteProcessGroupContentsDTO {
     }
 
     /**
-     * The Controller Output Ports from which data can be retrieved
-     *
-     * @return
+     * @return Controller Output Ports from which data can be retrieved
      */
     public Set<RemoteProcessGroupPortDTO> getOutputPorts() {
         return outputPorts;

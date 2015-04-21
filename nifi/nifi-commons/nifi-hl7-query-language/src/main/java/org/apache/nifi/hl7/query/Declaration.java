@@ -20,10 +20,10 @@ import org.apache.nifi.hl7.model.HL7Message;
 
 public interface Declaration {
 
-	String getAlias();
-	
-	boolean isRequired();
-	
-	Object getDeclaredValue(HL7Message message);
-	
+    String getAlias();
+
+    boolean isRequired();
+
+    Object getDeclaredValue(HL7Message message);
+
 }

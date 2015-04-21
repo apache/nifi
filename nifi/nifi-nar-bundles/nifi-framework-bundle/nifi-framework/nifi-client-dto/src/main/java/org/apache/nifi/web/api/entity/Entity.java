@@ -28,9 +28,7 @@ public class Entity {
     private RevisionDTO revision;
 
     /**
-     * A revision for this request/response.
-     *
-     * @return
+     * @return revision for this request/response
      */
     public RevisionDTO getRevision() {
         return revision;

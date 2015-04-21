@@ -30,9 +30,7 @@ public class CounterEntity extends Entity {
     private CounterDTO counter;
 
     /**
-     * Get the counter.
-     *
-     * @return
+     * @return the counter
      */
     public CounterDTO getCounter() {
         return counter;

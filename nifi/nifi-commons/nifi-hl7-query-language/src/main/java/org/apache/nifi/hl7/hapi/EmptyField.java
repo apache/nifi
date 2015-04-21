@@ -24,14 +24,14 @@ import org.apache.nifi.hl7.model.HL7Field;
 
 public class EmptyField implements HL7Field {
 
-	@Override
-	public String getValue() {
-		return null;
-	}
+    @Override
+    public String getValue() {
+        return null;
+    }
 
-	@Override
-	public List<HL7Component> getComponents() {
-		return Collections.emptyList();
-	}
+    @Override
+    public List<HL7Component> getComponents() {
+        return Collections.emptyList();
+    }
 
 }

@@ -17,21 +17,22 @@
 package org.apache.nifi.hl7.query.exception;
 
 public class HL7QueryParsingException extends RuntimeException {
-	private static final long serialVersionUID = 1L;
 
-	public HL7QueryParsingException() {
-		super();
-	}
-	
-	public HL7QueryParsingException(final Throwable cause) {
-		super(cause);
-	}
-	
-	public HL7QueryParsingException(final String message) {
-		super(message);
-	}
-	
-	public HL7QueryParsingException(final String message, final Throwable cause) {
-		super(message, cause);
-	}
+    private static final long serialVersionUID = 1L;
+
+    public HL7QueryParsingException() {
+        super();
+    }
+
+    public HL7QueryParsingException(final Throwable cause) {
+        super(cause);
+    }
+
+    public HL7QueryParsingException(final String message) {
+        super(message);
+    }
+
+    public HL7QueryParsingException(final String message, final Throwable cause) {
+        super(message, cause);
+    }
 }

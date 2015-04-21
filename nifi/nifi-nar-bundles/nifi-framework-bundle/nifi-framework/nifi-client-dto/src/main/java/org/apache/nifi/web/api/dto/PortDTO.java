@@ -38,9 +38,7 @@ public class PortDTO extends NiFiComponentDTO {
     private Collection<String> validationErrors;
 
     /**
-     * The name of this port.
-     *
-     * @return
+     * @return name of this port
      */
     public String getName() {
         return name;
@@ -51,10 +49,8 @@ public class PortDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The state of this port. Possible states are 'RUNNING', 'STOPPED', and
-     * 'DISABLED'.
-     *
-     * @return
+     * @return The state of this port. Possible states are 'RUNNING', 'STOPPED', and
+     * 'DISABLED'
      */
     public String getState() {
         return state;
@@ -67,7 +63,7 @@ public class PortDTO extends NiFiComponentDTO {
     /**
      * The type of port. Possible values are 'INPUT_PORT' or 'OUTPUT_PORT'.
      *
-     * @return
+     * @return The type of port
      */
     public String getType() {
         return type;
@@ -78,9 +74,7 @@ public class PortDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The number of tasks that should be concurrently scheduled for this port.
-     *
-     * @return
+     * @return number of tasks that should be concurrently scheduled for this port
      */
     public Integer getConcurrentlySchedulableTaskCount() {
         return concurrentlySchedulableTaskCount;
@@ -91,9 +85,7 @@ public class PortDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The comments for this port.
-     *
-     * @return
+     * @return comments for this port
      */
     public String getComments() {
         return comments;
@@ -104,10 +96,8 @@ public class PortDTO extends NiFiComponentDTO {
     }
 
     /**
-     * Whether this port has incoming or outgoing connections to a remote NiFi.
-     * This is only applicable when the port is running on the root group.
-     *
-     * @return
+     * @return whether this port has incoming or outgoing connections to a remote NiFi.
+     * This is only applicable when the port is running on the root group
      */
     public Boolean isTransmitting() {
         return transmitting;
@@ -118,9 +108,7 @@ public class PortDTO extends NiFiComponentDTO {
     }
 
     /**
-     * Groups that are allowed to access this port.
-     *
-     * @return
+     * @return groups that are allowed to access this port
      */
     public Set<String> getGroupAccessControl() {
         return groupAccessControl;
@@ -131,9 +119,7 @@ public class PortDTO extends NiFiComponentDTO {
     }
 
     /**
-     * Users that are allowed to access this port.
-     *
-     * @return
+     * @return users that are allowed to access this port
      */
     public Set<String> getUserAccessControl() {
         return userAccessControl;

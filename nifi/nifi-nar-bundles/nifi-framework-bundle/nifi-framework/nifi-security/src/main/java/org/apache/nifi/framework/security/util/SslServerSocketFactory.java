@@ -25,29 +25,30 @@ import javax.net.ssl.SSLServerSocketFactory;
 import org.apache.nifi.util.NiFiProperties;
 
 /**
- * Implements a server socket factory for creating secure server sockets based on 
- * the application's configuration properties.  If the properties are configured 
- * for SSL (one-way or two-way), then a SSLServerSocketFactory is created and used 
- * based on those properties.  Otherwise, Java's default SSLServerSocketFactory 
- * is used.  Specifically, SSLContext.getDefault().getServerSocketFactory().
+ * Implements a server socket factory for creating secure server sockets based
+ * on the application's configuration properties. If the properties are
+ * configured for SSL (one-way or two-way), then a SSLServerSocketFactory is
+ * created and used based on those properties. Otherwise, Java's default
+ * SSLServerSocketFactory is used. Specifically,
+ * SSLContext.getDefault().getServerSocketFactory().
  */
 public class SslServerSocketFactory extends SSLServerSocketFactory {
-    
+
     private SSLServerSocketFactory sslServerSocketFactory;
 
     public SslServerSocketFactory() {
         final SSLContext sslCtx = SslContextFactory.createSslContext(NiFiProperties.getInstance());
-        if(sslCtx == null) {
+        if (sslCtx == null) {
             try {
                 sslServerSocketFactory = SSLContext.getDefault().getServerSocketFactory();
-            } catch(final NoSuchAlgorithmException nsae) {
+            } catch (final NoSuchAlgorithmException nsae) {
                 throw new SslServerSocketFactoryCreationException(nsae);
             }
         } else {
             sslServerSocketFactory = sslCtx.getServerSocketFactory();
         }
     }
-    
+
     @Override
     public ServerSocket createServerSocket(int i, int i1, InetAddress ia) throws IOException {
         return sslServerSocketFactory.createServerSocket(i, i1, ia);

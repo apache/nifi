@@ -32,21 +32,19 @@ public class ControllerServiceDTO extends NiFiComponentDTO {
     private String comments;
     private String availability;
     private String state;
-    
+
     private Map<String, String> properties;
     private Map<String, PropertyDescriptorDTO> descriptors;
- 
+
     private String customUiUrl;
     private String annotationData;
-    
+
     private Set<ControllerServiceReferencingComponentDTO> referencingComponents;
-    
+
     private Collection<String> validationErrors;
 
     /**
-     * The controller service name.
-     * 
-     * @return 
+     * @return controller service name
      */
     public String getName() {
         return name;
@@ -57,9 +55,7 @@ public class ControllerServiceDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The controller service type.
-     * 
-     * @return 
+     * @return the controller service type
      */
     public String getType() {
         return type;
@@ -68,24 +64,20 @@ public class ControllerServiceDTO extends NiFiComponentDTO {
     public void setType(String type) {
         this.type = type;
     }
-    
 
     /**
-     * The comment for the Controller Service
-     * @return
+     * @return the comment for the Controller Service
      */
     public String getComments() {
-		return comments;
-	}
+        return comments;
+    }
 
-	public void setComments(String comments) {
-		this.comments = comments;
-	}
+    public void setComments(String comments) {
+        this.comments = comments;
+    }
 
-	/**
-     * Where this service is available. Possible values are NCM, NODE.
-     * 
-     * @return 
+    /**
+     * @return Where this service is available. Possible values are NCM, NODE
      */
     public String getAvailability() {
         return availability;
@@ -96,8 +88,8 @@ public class ControllerServiceDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The state of this controller service. Possible values are ENABLED, ENABLING, DISABLED, DISABLING.
-     * @return 
+     * @return The state of this controller service. Possible values are ENABLED,
+     * ENABLING, DISABLED, DISABLING
      */
     public String getState() {
         return state;
@@ -108,9 +100,7 @@ public class ControllerServiceDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The controller service properties.
-     * 
-     * @return 
+     * @return controller service properties
      */
     public Map<String, String> getProperties() {
         return properties;
@@ -121,9 +111,7 @@ public class ControllerServiceDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The descriptors for the controller service properties.
-     * 
-     * @return 
+     * @return descriptors for the controller service properties
      */
     public Map<String, PropertyDescriptorDTO> getDescriptors() {
         return descriptors;
@@ -134,10 +122,8 @@ public class ControllerServiceDTO extends NiFiComponentDTO {
     }
 
     /**
-     * Returns the URL for this controller services custom configuration UI
-     * if applicable. Null otherwise.
-     *
-     * @return
+     * @return the URL for this controller services custom configuration UI if
+     * applicable. Null otherwise
      */
     public String getCustomUiUrl() {
         return customUiUrl;
@@ -148,9 +134,7 @@ public class ControllerServiceDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The annotation data for this controller service.
-     * 
-     * @return 
+     * @return annotation data for this controller service
      */
     public String getAnnotationData() {
         return annotationData;
@@ -161,9 +145,7 @@ public class ControllerServiceDTO extends NiFiComponentDTO {
     }
 
     /**
-     * All components referencing this controller service.
-     * 
-     * @return 
+     * @return all components referencing this controller service
      */
     public Set<ControllerServiceReferencingComponentDTO> getReferencingComponents() {
         return referencingComponents;
@@ -174,9 +156,9 @@ public class ControllerServiceDTO extends NiFiComponentDTO {
     }
 
     /**
-     * Gets the validation errors from this controller service. These validation errors
-     * represent the problems with the controller service that must be resolved before it
-     * can be enabled.
+     * Gets the validation errors from this controller service. These validation
+     * errors represent the problems with the controller service that must be
+     * resolved before it can be enabled.
      *
      * @return The validation errors
      */

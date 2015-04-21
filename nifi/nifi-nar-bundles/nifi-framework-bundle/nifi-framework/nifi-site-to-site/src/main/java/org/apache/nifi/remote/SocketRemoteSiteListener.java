@@ -49,43 +49,42 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class SocketRemoteSiteListener implements RemoteSiteListener {
+
     public static final String DEFAULT_FLOWFILE_PATH = "./";
 
     private final int socketPort;
     private final SSLContext sslContext;
     private final NodeInformant nodeInformant;
     private final AtomicReference<ProcessGroup> rootGroup = new AtomicReference<>();
-    
+
     private final AtomicBoolean stopped = new AtomicBoolean(false);
-    
+
     private static final Logger LOG = LoggerFactory.getLogger(SocketRemoteSiteListener.class);
 
     public SocketRemoteSiteListener(final int socketPort, final SSLContext sslContext) {
         this(socketPort, sslContext, null);
     }
-    
+
     public SocketRemoteSiteListener(final int socketPort, final SSLContext sslContext, final NodeInformant nodeInformant) {
         this.socketPort = socketPort;
         this.sslContext = sslContext;
         this.nodeInformant = nodeInformant;
     }
 
-    
     @Override
     public void setRootGroup(final ProcessGroup rootGroup) {
         this.rootGroup.set(rootGroup);
     }
 
-    
     @Override
     public void start() throws IOException {
         final boolean secure = (sslContext != null);
-        
+
         final ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
         serverSocketChannel.configureBlocking(true);
         serverSocketChannel.bind(new InetSocketAddress(socketPort));
         stopped.set(false);
-        
+
         final Thread listenerThread = new Thread(new Runnable() {
             private int threadCount = 0;
 
@@ -95,19 +94,21 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                     final ProcessGroup processGroup = rootGroup.get();
                     // If nodeInformant is not null, we are in clustered mode, which means that we don't care about
                     // the processGroup.
-                    if ( (nodeInformant == null) && (processGroup == null || (processGroup.getInputPorts().isEmpty() && processGroup.getOutputPorts().isEmpty())) ) {
-                        try { Thread.sleep(2000L); } catch (final Exception e) {}
+                    if ((nodeInformant == null) && (processGroup == null || (processGroup.getInputPorts().isEmpty() && processGroup.getOutputPorts().isEmpty()))) {
+                        try {
+                            Thread.sleep(2000L);
+                        } catch (final Exception e) {
+                        }
                         continue;
                     }
-                    
-                    
+
                     LOG.trace("Accepting Connection...");
                     Socket acceptedSocket = null;
                     try {
                         serverSocketChannel.configureBlocking(false);
                         final ServerSocket serverSocket = serverSocketChannel.socket();
                         serverSocket.setSoTimeout(2000);
-                        while ( !stopped.get() && acceptedSocket == null ) {
+                        while (!stopped.get() && acceptedSocket == null) {
                             try {
                                 acceptedSocket = serverSocket.accept();
                             } catch (final SocketTimeoutException ste) {
@@ -116,14 +117,14 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                         }
                     } catch (final IOException e) {
                         LOG.error("RemoteSiteListener Unable to accept connection due to {}", e.toString());
-                        if ( LOG.isDebugEnabled() ) {
+                        if (LOG.isDebugEnabled()) {
                             LOG.error("", e);
                         }
                         continue;
                     }
                     LOG.trace("Got connection");
-                    
-                    if ( stopped.get() ) {
+
+                    if (stopped.get()) {
                         return;
                     }
                     final Socket socket = acceptedSocket;
@@ -135,25 +136,25 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                             final InetAddress inetAddress = socket.getInetAddress();
                             String hostname = inetAddress.getHostName();
                             final int slashIndex = hostname.indexOf("/");
-                            if ( slashIndex == 0 ) {
+                            if (slashIndex == 0) {
                                 hostname = hostname.substring(1);
-                            } else if ( slashIndex > 0 ) {
+                            } else if (slashIndex > 0) {
                                 hostname = hostname.substring(0, slashIndex);
                             }
 
                             final int port = socket.getPort();
                             final String peerUri = "nifi://" + hostname + ":" + port;
                             LOG.debug("{} Connection URL is {}", this, peerUri);
-                            
+
                             final CommunicationsSession commsSession;
                             final String dn;
                             try {
-                                if ( secure ) {
+                                if (secure) {
                                     final SSLSocketChannel sslSocketChannel = new SSLSocketChannel(sslContext, socketChannel, false);
                                     LOG.trace("Channel is secure; connecting...");
                                     sslSocketChannel.connect();
                                     LOG.trace("Channel connected");
-                                    
+
                                     commsSession = new SSLSocketChannelCommunicationsSession(sslSocketChannel, peerUri);
                                     dn = sslSocketChannel.getDn();
                                     commsSession.setUserDn(dn);
@@ -164,7 +165,7 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                                 }
                             } catch (final Exception e) {
                                 LOG.error("RemoteSiteListener Unable to accept connection from {} due to {}", socket, e.toString());
-                                if ( LOG.isDebugEnabled() ) {
+                                if (LOG.isDebugEnabled()) {
                                     LOG.error("", e);
                                 }
                                 try {
@@ -173,135 +174,136 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                                 }
                                 return;
                             }
-                            
+
                             LOG.info("Received connection from {}, User DN: {}", socket.getInetAddress(), dn);
-                            
+
                             final InputStream socketIn;
                             final OutputStream socketOut;
-                            
+
                             try {
                                 socketIn = commsSession.getInput().getInputStream();
                                 socketOut = commsSession.getOutput().getOutputStream();
                             } catch (final IOException e) {
-                            	LOG.error("Connection dropped from {} before any data was transmitted", peerUri);
-                            	try {
-                            		commsSession.close();
-                            	} catch (final IOException ioe) {}
-                            	
-                            	return;
-                            }
-                            
-                            final DataInputStream dis = new DataInputStream(socketIn);
-                        	final DataOutputStream dos = new DataOutputStream(socketOut);
-                        	
-                        	ServerProtocol protocol = null;
-                        	Peer peer = null;
-                            try {
-                            	// ensure that we are communicating with another NiFi
-                                LOG.debug("Verifying magic bytes...");
-                            	verifyMagicBytes(dis, peerUri);
+                                LOG.error("Connection dropped from {} before any data was transmitted", peerUri);
+                                try {
+                                    commsSession.close();
+                                } catch (final IOException ioe) {
+                                }
 
-                            	LOG.debug("Receiving Server Protocol Negotiation");
-                            	protocol = RemoteResourceFactory.receiveServerProtocolNegotiation(dis, dos);
-                            	protocol.setRootProcessGroup(rootGroup.get());
-                          	    protocol.setNodeInformant(nodeInformant);
-                            	
-                          	    final PeerDescription description = new PeerDescription("localhost", getPort(), sslContext != null);
-                            	peer = new Peer(description, commsSession, peerUri, "nifi://localhost:" + getPort());
-                            	LOG.debug("Handshaking....");
-                            	protocol.handshake(peer);
-                            	
-                            	if (!protocol.isHandshakeSuccessful()) {
-                            	    LOG.error("Handshake failed with {}; closing connection", peer);
-                            	    try {
-                            	        peer.close();
-                            	    } catch (final IOException e) {
-                            	        LOG.warn("Failed to close {} due to {}", peer, e);
-                            	    }
-                            	    
-                            	    // no need to shutdown protocol because we failed to perform handshake
-                            	    return;
-                            	}
-                            	
-                            	commsSession.setTimeout((int) protocol.getRequestExpiration());
-                            	
-                            	LOG.info("Successfully negotiated ServerProtocol {} Version {} with {}", new Object[] {
-                            	    protocol.getResourceName(), protocol.getVersionNegotiator().getVersion(), peer});
-                            	
-                        	    try {
-                        	        while (!protocol.isShutdown()) {
-                        	            LOG.trace("Getting Protocol Request Type...");
-                        	            
+                                return;
+                            }
+
+                            final DataInputStream dis = new DataInputStream(socketIn);
+                            final DataOutputStream dos = new DataOutputStream(socketOut);
+
+                            ServerProtocol protocol = null;
+                            Peer peer = null;
+                            try {
+                                // ensure that we are communicating with another NiFi
+                                LOG.debug("Verifying magic bytes...");
+                                verifyMagicBytes(dis, peerUri);
+
+                                LOG.debug("Receiving Server Protocol Negotiation");
+                                protocol = RemoteResourceFactory.receiveServerProtocolNegotiation(dis, dos);
+                                protocol.setRootProcessGroup(rootGroup.get());
+                                protocol.setNodeInformant(nodeInformant);
+
+                                final PeerDescription description = new PeerDescription("localhost", getPort(), sslContext != null);
+                                peer = new Peer(description, commsSession, peerUri, "nifi://localhost:" + getPort());
+                                LOG.debug("Handshaking....");
+                                protocol.handshake(peer);
+
+                                if (!protocol.isHandshakeSuccessful()) {
+                                    LOG.error("Handshake failed with {}; closing connection", peer);
+                                    try {
+                                        peer.close();
+                                    } catch (final IOException e) {
+                                        LOG.warn("Failed to close {} due to {}", peer, e);
+                                    }
+
+                                    // no need to shutdown protocol because we failed to perform handshake
+                                    return;
+                                }
+
+                                commsSession.setTimeout((int) protocol.getRequestExpiration());
+
+                                LOG.info("Successfully negotiated ServerProtocol {} Version {} with {}", new Object[]{
+                                    protocol.getResourceName(), protocol.getVersionNegotiator().getVersion(), peer});
+
+                                try {
+                                    while (!protocol.isShutdown()) {
+                                        LOG.trace("Getting Protocol Request Type...");
+
                                         int timeoutCount = 0;
                                         RequestType requestType = null;
-                                        
-                                        while ( requestType == null ) {
+
+                                        while (requestType == null) {
                                             try {
                                                 requestType = protocol.getRequestType(peer);
                                             } catch (final SocketTimeoutException e) {
                                                 // Give the timeout a bit longer (twice as long) to receive the Request Type,
                                                 // in order to attempt to receive more data without shutting down the socket if we don't
                                                 // have to.
-                                                LOG.debug("{} Timed out waiting to receive RequestType using {} with {}", new Object[] {this, protocol, peer});
+                                                LOG.debug("{} Timed out waiting to receive RequestType using {} with {}", new Object[]{this, protocol, peer});
                                                 timeoutCount++;
                                                 requestType = null;
-                                                
-                                                if ( timeoutCount >= 2 ) {
+
+                                                if (timeoutCount >= 2) {
                                                     throw e;
                                                 }
                                             }
                                         }
-                                        
+
                                         LOG.debug("Request type from {} is {}", protocol, requestType);
-                                	    switch (requestType) {
-                                	        case NEGOTIATE_FLOWFILE_CODEC:
-                                	            protocol.negotiateCodec(peer);
-                                	            break;
-                                	        case RECEIVE_FLOWFILES:
-                                	            // peer wants to receive FlowFiles, so we will transfer FlowFiles.
-                                	            protocol.getPort().transferFlowFiles(peer, protocol, new HashMap<String, String>());
-                                	            break;
-                                	        case SEND_FLOWFILES:
-                                	            // Peer wants to send FlowFiles, so we will receive.
+                                        switch (requestType) {
+                                            case NEGOTIATE_FLOWFILE_CODEC:
+                                                protocol.negotiateCodec(peer);
+                                                break;
+                                            case RECEIVE_FLOWFILES:
+                                                // peer wants to receive FlowFiles, so we will transfer FlowFiles.
+                                                protocol.getPort().transferFlowFiles(peer, protocol, new HashMap<String, String>());
+                                                break;
+                                            case SEND_FLOWFILES:
+                                                // Peer wants to send FlowFiles, so we will receive.
                                                 protocol.getPort().receiveFlowFiles(peer, protocol, new HashMap<String, String>());
-                                	            break;
-                                	        case REQUEST_PEER_LIST:
-                                	            protocol.sendPeerList(peer);
-                                	            break;
-                                	        case SHUTDOWN:
-                                	            protocol.shutdown(peer);
-                                	            break;
-                                	    }
-                        	        }
-                        	        LOG.debug("Finished communicating with {} ({})", peer, protocol);
-                        	    } catch (final Exception e) {
-                        	        LOG.error("Unable to communicate with remote instance {} ({}) due to {}; closing connection", peer, protocol, e.toString());
-                        	        if ( LOG.isDebugEnabled() ) {
-                        	            LOG.error("", e);
-                        	        }
-                        	    }
+                                                break;
+                                            case REQUEST_PEER_LIST:
+                                                protocol.sendPeerList(peer);
+                                                break;
+                                            case SHUTDOWN:
+                                                protocol.shutdown(peer);
+                                                break;
+                                        }
+                                    }
+                                    LOG.debug("Finished communicating with {} ({})", peer, protocol);
+                                } catch (final Exception e) {
+                                    LOG.error("Unable to communicate with remote instance {} ({}) due to {}; closing connection", peer, protocol, e.toString());
+                                    if (LOG.isDebugEnabled()) {
+                                        LOG.error("", e);
+                                    }
+                                }
                             } catch (final IOException e) {
                                 LOG.error("Unable to communicate with remote instance {} due to {}; closing connection", peer, e.toString());
-                                if ( LOG.isDebugEnabled() ) {
+                                if (LOG.isDebugEnabled()) {
                                     LOG.error("", e);
                                 }
                             } catch (final Throwable t) {
                                 LOG.error("Handshake failed when communicating with {}; closing connection. Reason for failure: {}", peerUri, t.toString());
-                                if ( LOG.isDebugEnabled() ) {
+                                if (LOG.isDebugEnabled()) {
                                     LOG.error("", t);
                                 }
                             } finally {
                                 LOG.trace("Cleaning up");
                                 try {
-                                    if ( protocol != null && peer != null ) {
+                                    if (protocol != null && peer != null) {
                                         protocol.shutdown(peer);
                                     }
                                 } catch (final Exception protocolException) {
                                     LOG.warn("Failed to shutdown protocol due to {}", protocolException.toString());
                                 }
-                                
+
                                 try {
-                                    if ( peer != null ) {
+                                    if (peer != null) {
                                         peer.close();
                                     }
                                 } catch (final Exception peerException) {
@@ -320,30 +322,30 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
         listenerThread.setName("Site-to-Site Listener");
         listenerThread.start();
     }
-    
+
     @Override
     public int getPort() {
         return socketPort;
     }
-    
+
     @Override
     public void stop() {
         stopped.set(true);
     }
-    
+
     private void verifyMagicBytes(final InputStream in, final String peerDescription) throws IOException, HandshakeException {
         final byte[] receivedMagicBytes = new byte[CommunicationsSession.MAGIC_BYTES.length];
 
         // expect magic bytes
         try {
-            for (int i=0; i < receivedMagicBytes.length; i++) {
+            for (int i = 0; i < receivedMagicBytes.length; i++) {
                 receivedMagicBytes[i] = (byte) in.read();
             }
         } catch (final EOFException e) {
             throw new HandshakeException("Handshake failed (not enough bytes) when communicating with " + peerDescription);
         }
-        
-        if ( !Arrays.equals(CommunicationsSession.MAGIC_BYTES, receivedMagicBytes) ) {
+
+        if (!Arrays.equals(CommunicationsSession.MAGIC_BYTES, receivedMagicBytes)) {
             throw new HandshakeException("Handshake with " + peerDescription + " failed because the Magic Header was not present");
         }
     }

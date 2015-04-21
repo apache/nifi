@@ -22,20 +22,21 @@ import java.util.Map;
 import org.apache.nifi.hl7.query.ResultHit;
 
 public class StandardResultHit implements ResultHit {
-	private final Map<String, Object> values;
-	
-	public StandardResultHit(final Map<String, Object> values) {
-		this.values = values;
-	}
-	
-	@Override
-	public Object getValue(final String label) {
-		return values.get(label);
-	}
 
-	@Override
-	public Map<String, Object> getSelectedValues() {
-		return Collections.unmodifiableMap(values);
-	}
+    private final Map<String, Object> values;
+
+    public StandardResultHit(final Map<String, Object> values) {
+        this.values = values;
+    }
+
+    @Override
+    public Object getValue(final String label) {
+        return values.get(label);
+    }
+
+    @Override
+    public Map<String, Object> getSelectedValues() {
+        return Collections.unmodifiableMap(values);
+    }
 
 }

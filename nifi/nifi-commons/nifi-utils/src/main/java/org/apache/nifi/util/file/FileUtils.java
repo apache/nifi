@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.util.file;
 
-import java.io.BufferedInputStream;
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
@@ -53,7 +52,7 @@ public class FileUtils {
     /**
      * Closes the given closeable quietly - no logging, no exceptions...
      *
-     * @param closeable
+     * @param closeable the thing to close
      */
     public static void closeQuietly(final Closeable closeable) {
         if (null != closeable) {
@@ -66,9 +65,9 @@ public class FileUtils {
     }
 
     /**
-     * Releases the given lock quietly - no logging, no exception
+     * Releases the given lock quietly no logging, no exception
      *
-     * @param lock
+     * @param lock the lock to release
      */
     public static void releaseQuietly(final FileLock lock) {
         if (null != lock) {
@@ -98,9 +97,10 @@ public class FileUtils {
      * Deletes the given file. If the given file exists but could not be deleted
      * this will be printed as a warning to the given logger
      *
-     * @param file
-     * @param logger
-     * @return
+     * @param file the file to delete
+     * @param logger the logger to provide logging information to about the
+     * operation
+     * @return true if given file no longer exists
      */
     public static boolean deleteFile(final File file, final Logger logger) {
         return FileUtils.deleteFile(file, logger, 1);
@@ -110,8 +110,8 @@ public class FileUtils {
      * Deletes the given file. If the given file exists but could not be deleted
      * this will be printed as a warning to the given logger
      *
-     * @param file
-     * @param logger
+     * @param file the file to delete
+     * @param logger the logger to write to
      * @param attempts indicates how many times an attempt to delete should be
      * made
      * @return true if given file no longer exists
@@ -192,9 +192,9 @@ public class FileUtils {
      * recursive) that match the given filename filter. If any file cannot be
      * deleted then this is printed at warn to the given logger.
      *
-     * @param directory
+     * @param directory the directory to scan for files to delete
      * @param filter if null then no filter is used
-     * @param logger
+     * @param logger the logger to use
      */
     public static void deleteFilesInDir(final File directory, final FilenameFilter filter, final Logger logger) {
         FileUtils.deleteFilesInDir(directory, filter, logger, false);
@@ -205,10 +205,10 @@ public class FileUtils {
      * that match the given filename filter. If any file cannot be deleted then
      * this is printed at warn to the given logger.
      *
-     * @param directory
+     * @param directory the directory to scan
      * @param filter if null then no filter is used
-     * @param logger
-     * @param recurse
+     * @param logger the logger to use
+     * @param recurse indicates whether to recurse subdirectories
      */
     public static void deleteFilesInDir(final File directory, final FilenameFilter filter, final Logger logger, final boolean recurse) {
         FileUtils.deleteFilesInDir(directory, filter, logger, recurse, false);
@@ -219,10 +219,10 @@ public class FileUtils {
      * that match the given filename filter. If any file cannot be deleted then
      * this is printed at warn to the given logger.
      *
-     * @param directory
+     * @param directory the directory to scan
      * @param filter if null then no filter is used
-     * @param logger
-     * @param recurse
+     * @param logger the logger
+     * @param recurse whether to recurse subdirectories or not
      * @param deleteEmptyDirectories default is false; if true will delete
      * directories found that are empty
      */
@@ -248,9 +248,9 @@ public class FileUtils {
     /**
      * Deletes given files.
      *
-     * @param files
-     * @param recurse will recurse
-     * @throws IOException
+     * @param files the files to delete
+     * @param recurse will recurse if true; false otherwise
+     * @throws IOException if any issues deleting specified files
      */
     public static void deleteFiles(final Collection<File> files, final boolean recurse) throws IOException {
         for (final File file : files) {
@@ -352,8 +352,8 @@ public class FileUtils {
      * Copies the given source file to the given destination file. The given
      * destination will be overwritten if it already exists.
      *
-     * @param source
-     * @param destination
+     * @param source the file to copy
+     * @param destination the file to copy to
      * @param lockInputFile if true will lock input file during copy; if false
      * will not
      * @param lockOutputFile if true will lock output file during copy; if false
@@ -369,11 +369,12 @@ public class FileUtils {
      * indicating the problem.
      * @return long number of bytes copied
      * @throws FileNotFoundException if the source file could not be found
-     * @throws IOException
+     * @throws IOException if unable to read or write the underlying streams
      * @throws SecurityException if a security manager denies the needed file
      * operations
      */
-    public static long copyFile(final File source, final File destination, final boolean lockInputFile, final boolean lockOutputFile, final boolean move, final Logger logger) throws FileNotFoundException, IOException {
+    public static long copyFile(final File source, final File destination, final boolean lockInputFile, final boolean lockOutputFile, final boolean move, final Logger logger)
+            throws FileNotFoundException, IOException {
 
         FileInputStream fis = null;
         FileOutputStream fos = null;
@@ -436,16 +437,16 @@ public class FileUtils {
      * Copies the given source file to the given destination file. The given
      * destination will be overwritten if it already exists.
      *
-     * @param source
-     * @param destination
+     * @param source the file to copy from
+     * @param destination the file to copy to
      * @param lockInputFile if true will lock input file during copy; if false
      * will not
      * @param lockOutputFile if true will lock output file during copy; if false
      * will not
-     * @param logger
+     * @param logger the logger to use
      * @return long number of bytes copied
      * @throws FileNotFoundException if the source file could not be found
-     * @throws IOException
+     * @throws IOException if unable to read or write to file
      * @throws SecurityException if a security manager denies the needed file
      * operations
      */

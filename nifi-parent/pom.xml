@@ -198,6 +198,13 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-checkstyle-plugin</artifactId>
                     <version>2.15</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>com.puppycrawl.tools</groupId>
+                            <artifactId>checkstyle</artifactId>
+                            <version>6.5</version>
+                        </dependency>
+                    </dependencies>
                 </plugin>                
             </plugins>
         </pluginManagement>
@@ -310,7 +317,6 @@
                                     <property name="allowSamelineMultipleAnnotations" value="true" />
                                 </module>
                                 <module name="NonEmptyAtclauseDescription" />
-                                <module name="JavadocTagContinuationIndentation" />
                                 <module name="JavadocMethod">
                                     <property name="allowMissingJavadoc" value="true" />
                                     <property name="allowMissingParamTags" value="true" />
@@ -325,15 +331,8 @@
                     </checkstyleRules>
                     <violationSeverity>warning</violationSeverity>
                     <includeTestSourceDirectory>true</includeTestSourceDirectory>
-                    <excludes>**/HelpMojo.java</excludes>
+                    <excludes>**/HelpMojo.java,**/generated-sources</excludes>
                 </configuration>
-                <dependencies>
-                    <dependency>
-                        <groupId>com.puppycrawl.tools</groupId>
-                        <artifactId>checkstyle</artifactId>
-                        <version>6.3</version>
-                    </dependency>
-                </dependencies>
                 <executions>
                     <execution>
                         <id>check-style</id>
@@ -379,7 +378,7 @@
             <plugin>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-nar-maven-plugin</artifactId>
-                <version>1.0.0-incubating</version>
+                <version>1.0.1-incubating-SNAPSHOT</version>
                 <extensions>true</extensions>
             </plugin>
         </plugins>

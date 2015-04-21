@@ -28,9 +28,7 @@ public class UserSearchResultDTO {
     private String userDn;
 
     /**
-     * The dn of the user that matched.
-     *
-     * @return
+     * @return dn of the user that matched
      */
     public String getUserDn() {
         return userDn;
@@ -41,9 +39,7 @@ public class UserSearchResultDTO {
     }
 
     /**
-     * The username of user that matched.
-     *
-     * @return
+     * @return username of user that matched
      */
     public String getUserName() {
         return userName;

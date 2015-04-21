@@ -31,9 +31,7 @@ public class ClusterSearchResultsEntity {
     private List<NodeSearchResultDTO> nodeResults;
 
     /**
-     * The node search results.
-     *
-     * @return
+     * @return node search results
      */
     public List<NodeSearchResultDTO> getNodeResults() {
         return nodeResults;

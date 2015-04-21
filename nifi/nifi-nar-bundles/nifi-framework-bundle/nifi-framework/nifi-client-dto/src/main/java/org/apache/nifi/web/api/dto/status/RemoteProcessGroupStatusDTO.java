@@ -38,8 +38,6 @@ public class RemoteProcessGroupStatusDTO extends StatusDTO {
     private String received;
 
     /**
-     * The id for the remote process group.
-     *
      * @return The id for the remote process group
      */
     public String getId() {
@@ -51,9 +49,7 @@ public class RemoteProcessGroupStatusDTO extends StatusDTO {
     }
 
     /**
-     * The id of the group this remote process group is in.
-     *
-     * @return
+     * @return id of the group this remote process group is in
      */
     public String getGroupId() {
         return groupId;
@@ -64,9 +60,7 @@ public class RemoteProcessGroupStatusDTO extends StatusDTO {
     }
 
     /**
-     * The URI of the target system.
-     *
-     * @return
+     * @return URI of the target system
      */
     public String getTargetUri() {
         return targetUri;
@@ -77,9 +71,7 @@ public class RemoteProcessGroupStatusDTO extends StatusDTO {
     }
 
     /**
-     * The name of this remote process group.
-     *
-     * @return
+     * @return name of this remote process group
      */
     public String getName() {
         return name;
@@ -90,9 +82,7 @@ public class RemoteProcessGroupStatusDTO extends StatusDTO {
     }
 
     /**
-     * The transmission status of this remote process group.
-     *
-     * @return
+     * @return transmission status of this remote process group
      */
     public String getTransmissionStatus() {
         return transmissionStatus;
@@ -103,9 +93,7 @@ public class RemoteProcessGroupStatusDTO extends StatusDTO {
     }
 
     /**
-     * The number of active threads.
-     *
-     * @return
+     * @return number of active threads
      */
     public Integer getActiveThreadCount() {
         return activeThreadCount;
@@ -116,9 +104,7 @@ public class RemoteProcessGroupStatusDTO extends StatusDTO {
     }
 
     /**
-     * Returns any remote authorization issues for this remote process group.
-     *
-     * @return
+     * @return any remote authorization issues for this remote process group
      */
     public List<String> getAuthorizationIssues() {
         return authorizationIssues;
@@ -129,10 +115,8 @@ public class RemoteProcessGroupStatusDTO extends StatusDTO {
     }
 
     /**
-     * Formatted description of the amount of data sent to this remote process
-     * group.
-     *
-     * @return
+     * @return Formatted description of the amount of data sent to this remote process
+     * group
      */
     public String getSent() {
         return sent;
@@ -143,10 +127,8 @@ public class RemoteProcessGroupStatusDTO extends StatusDTO {
     }
 
     /**
-     * Formatted description of the amount of data received from this remote
-     * process group.
-     *
-     * @return
+     * @return Formatted description of the amount of data received from this remote
+     * process group
      */
     public String getReceived() {
         return received;

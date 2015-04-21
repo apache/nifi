@@ -31,9 +31,7 @@ public class ReportingTasksEntity extends Entity {
     private Set<ReportingTaskDTO> reportingTasks;
 
     /**
-     * The list of reporting tasks that are being serialized.
-     *
-     * @return
+     * @return list of reporting tasks that are being serialized
      */
     public Set<ReportingTaskDTO> getReportingTasks() {
         return reportingTasks;

@@ -17,5 +17,6 @@
 package org.apache.nifi.flowfile.attributes;
 
 public interface FlowFileAttributeKey {
+
     String key();
 }

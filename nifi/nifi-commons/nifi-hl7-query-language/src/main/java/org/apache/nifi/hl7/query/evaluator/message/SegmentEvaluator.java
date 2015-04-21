@@ -27,25 +27,26 @@ import org.apache.nifi.hl7.query.evaluator.StringEvaluator;
 
 @SuppressWarnings("rawtypes")
 public class SegmentEvaluator implements Evaluator<List> {
-	private final StringEvaluator segmentTypeEvaluator;
-	
-	public SegmentEvaluator(final StringEvaluator segmentTypeEvaluator) {
-		this.segmentTypeEvaluator = segmentTypeEvaluator;
-	}
-	
-	public List<HL7Segment> evaluate(final Map<String, Object> objectMap) {
-		final String segmentType = segmentTypeEvaluator.evaluate(objectMap);
-		if ( segmentType == null ) {
-			return Collections.emptyList();
-		}
-		
-		final HL7Message message = (HL7Message) objectMap.get(Evaluator.MESSAGE_KEY);
-		final List<HL7Segment> segments = message.getSegments(segmentType);
-		return (segments == null) ? Collections.<HL7Segment>emptyList() : segments;
-	}
 
-	public Class<? extends List> getType() {
-		return List.class;
-	}
+    private final StringEvaluator segmentTypeEvaluator;
+
+    public SegmentEvaluator(final StringEvaluator segmentTypeEvaluator) {
+        this.segmentTypeEvaluator = segmentTypeEvaluator;
+    }
+
+    public List<HL7Segment> evaluate(final Map<String, Object> objectMap) {
+        final String segmentType = segmentTypeEvaluator.evaluate(objectMap);
+        if (segmentType == null) {
+            return Collections.emptyList();
+        }
+
+        final HL7Message message = (HL7Message) objectMap.get(Evaluator.MESSAGE_KEY);
+        final List<HL7Segment> segments = message.getSegments(segmentType);
+        return (segments == null) ? Collections.<HL7Segment>emptyList() : segments;
+    }
+
+    public Class<? extends List> getType() {
+        return List.class;
+    }
 
 }

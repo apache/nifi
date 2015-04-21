@@ -34,9 +34,7 @@ public class ClusterConnectionStatusDTO {
     private String connectionName;
 
     /**
-     * The time the status were last refreshed.
-     *
-     * @return
+     * @return time the status were last refreshed
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
     public Date getStatsLastRefreshed() {
@@ -48,9 +46,7 @@ public class ClusterConnectionStatusDTO {
     }
 
     /**
-     * The connection id.
-     *
-     * @return
+     * @return connection id
      */
     public String getConnectionId() {
         return connectionId;
@@ -61,9 +57,7 @@ public class ClusterConnectionStatusDTO {
     }
 
     /**
-     * The connection name.
-     *
-     * @return
+     * @return connection name
      */
     public String getConnectionName() {
         return connectionName;
@@ -74,8 +68,6 @@ public class ClusterConnectionStatusDTO {
     }
 
     /**
-     * Collection of node connection status DTO.
-     *
      * @return The collection of node connection status DTO
      */
     public Collection<NodeConnectionStatusDTO> getNodeConnectionStatus() {

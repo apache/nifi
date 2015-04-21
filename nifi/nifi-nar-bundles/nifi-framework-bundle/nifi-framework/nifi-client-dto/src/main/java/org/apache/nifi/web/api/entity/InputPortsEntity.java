@@ -32,9 +32,7 @@ public class InputPortsEntity extends Entity {
     private Set<PortDTO> inputPorts;
 
     /**
-     * The collection of input PortDTOs that are being serialized.
-     *
-     * @return
+     * @return collection of input PortDTOs that are being serialized
      */
     public Set<PortDTO> getInputPorts() {
         return inputPorts;

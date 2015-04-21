@@ -29,9 +29,7 @@ public class NodeStatusDTO {
     private ProcessGroupStatusDTO controllerStatus;
 
     /**
-     * The node.
-     *
-     * @return
+     * @return the node
      */
     public NodeDTO getNode() {
         return node;
@@ -42,9 +40,7 @@ public class NodeStatusDTO {
     }
 
     /**
-     * The controller status.
-     *
-     * @return
+     * @return the controller status
      */
     public ProcessGroupStatusDTO getControllerStatus() {
         return controllerStatus;

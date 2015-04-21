@@ -28,9 +28,7 @@ public class NodeSystemDiagnosticsDTO {
     private SystemDiagnosticsDTO systemDiagnostics;
 
     /**
-     * The node.
-     *
-     * @return
+     * @return the node
      */
     public NodeDTO getNode() {
         return node;
@@ -41,9 +39,7 @@ public class NodeSystemDiagnosticsDTO {
     }
 
     /**
-     * The system diagnostics.
-     *
-     * @return
+     * @return the system diagnostics
      */
     public SystemDiagnosticsDTO getSystemDiagnostics() {
         return systemDiagnostics;

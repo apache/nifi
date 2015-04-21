@@ -54,9 +54,7 @@ public class ControllerStatusDTO {
     }
 
     /**
-     * The queue for the controller.
-     *
-     * @return
+     * @return queue for the controller
      */
     public String getQueued() {
         return queued;
@@ -67,10 +65,8 @@ public class ControllerStatusDTO {
     }
 
     /**
-     * Used in clustering, will report the number of nodes connected vs the
-     * number of nodes in the cluster.
-     *
-     * @return
+     * @return Used in clustering, will report the number of nodes connected vs the
+     * number of nodes in the cluster
      */
     public String getConnectedNodes() {
         return connectedNodes;
@@ -81,9 +77,7 @@ public class ControllerStatusDTO {
     }
 
     /**
-     * System bulletins to be reported to the user.
-     *
-     * @return
+     * @return System bulletins to be reported to the user
      */
     public List<BulletinDTO> getBulletins() {
         return bulletins;
@@ -94,9 +88,7 @@ public class ControllerStatusDTO {
     }
 
     /**
-     * Whether or not there are pending user requests.
-     *
-     * @return
+     * @return whether or not there are pending user requests
      */
     public Boolean getHasPendingAccounts() {
         return hasPendingAccounts;
@@ -107,9 +99,7 @@ public class ControllerStatusDTO {
     }
 
     /**
-     * The number of running components in this controller.
-     *
-     * @return
+     * @return number of running components in this controller
      */
     public Integer getRunningCount() {
         return runningCount;
@@ -120,9 +110,7 @@ public class ControllerStatusDTO {
     }
 
     /**
-     * The number of stopped components in this controller.
-     *
-     * @return
+     * @return number of stopped components in this controller
      */
     public Integer getStoppedCount() {
         return stoppedCount;
@@ -133,9 +121,7 @@ public class ControllerStatusDTO {
     }
 
     /**
-     * The number of invalid components in this controller.
-     *
-     * @return
+     * @return number of invalid components in this controller
      */
     public Integer getInvalidCount() {
         return invalidCount;
@@ -146,9 +132,7 @@ public class ControllerStatusDTO {
     }
 
     /**
-     * The number of disabled components in this controller.
-     *
-     * @return
+     * @return number of disabled components in this controller
      */
     public Integer getDisabledCount() {
         return disabledCount;
@@ -159,9 +143,7 @@ public class ControllerStatusDTO {
     }
 
     /**
-     * The number of active remote ports in this controller.
-     *
-     * @return
+     * @return number of active remote ports in this controller
      */
     public Integer getActiveRemotePortCount() {
         return activeRemotePortCount;
@@ -172,9 +154,7 @@ public class ControllerStatusDTO {
     }
 
     /**
-     * The number of inactive remote ports in this controller.
-     *
-     * @return
+     * @return number of inactive remote ports in this controller
      */
     public Integer getInactiveRemotePortCount() {
         return inactiveRemotePortCount;

@@ -37,9 +37,7 @@ public class HistoryQueryDTO {
     private String sortOrder;
 
     /**
-     * The user name.
-     *
-     * @return
+     * @return user name
      */
     public String getUserName() {
         return userName;
@@ -50,9 +48,7 @@ public class HistoryQueryDTO {
     }
 
     /**
-     * The source component id.
-     *
-     * @return
+     * @return source component id
      */
     public String getSourceId() {
         return sourceId;
@@ -63,9 +59,7 @@ public class HistoryQueryDTO {
     }
 
     /**
-     * The start date.
-     *
-     * @return
+     * @return start date
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
     public Date getStartDate() {
@@ -77,9 +71,7 @@ public class HistoryQueryDTO {
     }
 
     /**
-     * The end date.
-     *
-     * @return
+     * @return end date
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
     public Date getEndDate() {
@@ -91,9 +83,7 @@ public class HistoryQueryDTO {
     }
 
     /**
-     * The offset.
-     *
-     * @return
+     * @return offset
      */
     public Integer getOffset() {
         return offset;
@@ -104,9 +94,7 @@ public class HistoryQueryDTO {
     }
 
     /**
-     * The desired row count.
-     *
-     * @return
+     * @return desired row count
      */
     public Integer getCount() {
         return count;
@@ -117,9 +105,7 @@ public class HistoryQueryDTO {
     }
 
     /**
-     * The desired sort column.
-     *
-     * @return
+     * @return desired sort column
      */
     public String getSortColumn() {
         return sortColumn;
@@ -130,9 +116,7 @@ public class HistoryQueryDTO {
     }
 
     /**
-     * The desired sort order.
-     *
-     * @return
+     * @return desired sort order
      */
     public String getSortOrder() {
         return sortOrder;

@@ -49,8 +49,8 @@ public class FormatUtils {
     /**
      * Formats the specified count by adding commas.
      *
-     * @param count
-     * @return
+     * @param count the value to add commas to
+     * @return the string representation of the given value with commas included
      */
     public static String formatCount(final long count) {
         return NumberFormat.getIntegerInstance().format(count);
@@ -59,9 +59,9 @@ public class FormatUtils {
     /**
      * Formats the specified duration in 'mm:ss.SSS' format.
      *
-     * @param sourceDuration
-     * @param sourceUnit
-     * @return
+     * @param sourceDuration the duration to format
+     * @param sourceUnit the unit to interpret the duration
+     * @return representation of the given time data in minutes/seconds
      */
     public static String formatMinutesSeconds(final long sourceDuration, final TimeUnit sourceUnit) {
         final long millis = TimeUnit.MILLISECONDS.convert(sourceDuration, sourceUnit);
@@ -72,9 +72,9 @@ public class FormatUtils {
     /**
      * Formats the specified duration in 'HH:mm:ss.SSS' format.
      *
-     * @param sourceDuration
-     * @param sourceUnit
-     * @return
+     * @param sourceDuration the duration to format
+     * @param sourceUnit the unit to interpret the duration
+     * @return representation of the given time data in hours/minutes/seconds
      */
     public static String formatHoursMinutesSeconds(final long sourceDuration, final TimeUnit sourceUnit) {
         final long millis = TimeUnit.MILLISECONDS.convert(sourceDuration, sourceUnit);

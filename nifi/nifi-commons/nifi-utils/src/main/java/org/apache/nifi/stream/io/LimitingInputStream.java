@@ -106,6 +106,6 @@ public class LimitingInputStream extends InputStream {
     }
 
     public long getLimit() {
-    	return limit;
+        return limit;
     }
 }

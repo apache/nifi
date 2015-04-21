@@ -30,9 +30,7 @@ public class ProvenanceSearchableFieldDTO {
     private String type;
 
     /**
-     * The id of this searchable field.
-     *
-     * @return
+     * @return id of this searchable field
      */
     public String getId() {
         return id;
@@ -43,9 +41,7 @@ public class ProvenanceSearchableFieldDTO {
     }
 
     /**
-     * The field.
-     *
-     * @return
+     * @return the field
      */
     public String getField() {
         return field;
@@ -56,9 +52,7 @@ public class ProvenanceSearchableFieldDTO {
     }
 
     /**
-     * The label for this field.
-     *
-     * @return
+     * @return label for this field
      */
     public String getLabel() {
         return label;
@@ -69,9 +63,7 @@ public class ProvenanceSearchableFieldDTO {
     }
 
     /**
-     * The type for this field.
-     *
-     * @return
+     * @return type of this field
      */
     public String getType() {
         return type;

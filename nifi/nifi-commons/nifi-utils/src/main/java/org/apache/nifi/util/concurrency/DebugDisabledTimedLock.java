@@ -29,7 +29,7 @@ public class DebugDisabledTimedLock implements DebuggableTimedLock {
 
     /**
      *
-     * @return
+     * @return true if lock obtained; false otherwise
      */
     @Override
     public boolean tryLock() {
@@ -38,9 +38,9 @@ public class DebugDisabledTimedLock implements DebuggableTimedLock {
 
     /**
      *
-     * @param timeout
-     * @param timeUnit
-     * @return
+     * @param timeout the duration of time to wait for the lock
+     * @param timeUnit the unit which provides meaning to the duration
+     * @return true if obtained lock in time; false otherwise
      */
     @Override
     public boolean tryLock(final long timeout, final TimeUnit timeUnit) {
@@ -51,9 +51,6 @@ public class DebugDisabledTimedLock implements DebuggableTimedLock {
         }
     }
 
-    /**
-     *
-     */
     @Override
     public void lock() {
         lock.lock();

@@ -35,8 +35,8 @@ public final class DownloadableContent {
 
     /**
      * The filename of the content.
-     * 
-     * @return 
+     *
+     * @return the filename
      */
     public String getFilename() {
         return filename;
@@ -44,8 +44,8 @@ public final class DownloadableContent {
 
     /**
      * The content type of the content.
-     * 
-     * @return 
+     *
+     * @return the content type
      */
     public String getType() {
         return type;
@@ -53,8 +53,8 @@ public final class DownloadableContent {
 
     /**
      * The content stream.
-     * 
-     * @return 
+     *
+     * @return the intput stream of the content
      */
     public InputStream getContent() {
         return content;

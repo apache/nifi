@@ -32,9 +32,7 @@ public class ProcessorsEntity extends Entity {
     private Set<ProcessorDTO> processors;
 
     /**
-     * The collection of ProcessorDTOs that are being serialized.
-     *
-     * @return
+     * @return collection of ProcessorDTOs that are being serialized
      */
     public Set<ProcessorDTO> getProcessors() {
         return processors;
