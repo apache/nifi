@@ -16,54 +16,51 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.AbstractProcessor;
-import org.apache.nifi.processor.ProcessorInitializationContext;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.stream.io.StreamUtils;
-import org.apache.nifi.logging.ProcessorLog;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import java.security.Security;
+import java.text.Normalizer;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.logging.ProcessorLog;
+import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.ProcessorInitializationContext;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.standard.util.OpenPGPKeyBasedEncryptor;
+import org.apache.nifi.processors.standard.util.OpenPGPPasswordBasedEncryptor;
+import org.apache.nifi.processors.standard.util.PasswordBasedEncryptor;
 import org.apache.nifi.security.util.EncryptionMethod;
 import org.apache.nifi.util.StopWatch;
-
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-
-import javax.crypto.*;
-import javax.crypto.spec.PBEKeySpec;
-import javax.crypto.spec.PBEParameterSpec;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.SecureRandom;
-import java.security.Security;
-import java.text.Normalizer;
-import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 @EventDriven
 @SideEffectFree
 @SupportsBatching
-@Tags({"encryption", "decryption", "password", "JCE"})
-@CapabilityDescription("Encrypts or Decrypts a FlowFile using a randomly generated salt")
+@Tags({"encryption", "decryption", "password", "JCE", "OpenPGP", "PGP", "GPG"})
+@CapabilityDescription("Encrypts or Decrypts a FlowFile using either symmetric encryption with a password and randomly generated salt, or asymmetric encryption using a public and secret key.")
 public class EncryptContent extends AbstractProcessor {
 
     public static final String ENCRYPT_MODE = "Encrypt";
     public static final String DECRYPT_MODE = "Decrypt";
-    public static final String SECURE_RANDOM_ALGORITHM = "SHA1PRNG";
-    public static final int DEFAULT_SALT_SIZE = 8;
 
     public static final PropertyDescriptor MODE = new PropertyDescriptor.Builder()
             .name("Mode")
@@ -82,13 +79,44 @@ public class EncryptContent extends AbstractProcessor {
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
             .name("Password")
             .description("The Password to use for encrypting or decrypting the data")
-            .required(true)
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .sensitive(true)
+            .build();
+    public static final PropertyDescriptor PUBLIC_KEYRING = new PropertyDescriptor.Builder()
+            .name("public-keyring-file")
+            .displayName("Public Keyring File")
+            .description("In a PGP encrypt mode, this keyring contains the public key of the recipient")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+    public static final PropertyDescriptor PUBLIC_KEY_USERID = new PropertyDescriptor.Builder()
+            .name("public-key-user-id")
+            .displayName("Public Key User Id")
+            .description("In a PGP encrypt mode, this user id of the recipient")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+    public static final PropertyDescriptor PRIVATE_KEYRING = new PropertyDescriptor.Builder()
+            .name("private-keyring-file")
+            .displayName("Private Keyring File")
+            .description("In a PGP decrypt mode, this keyring contains the private key of the recipient")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+    public static final PropertyDescriptor PRIVATE_KEYRING_PASSPHRASE = new PropertyDescriptor.Builder()
+            .name("private-keyring-passphrase")
+            .displayName("Private Keyring Passphrase")
+            .description("In a PGP decrypt mode, this is the private keyring passphrase")
+            .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(true)
             .build();
 
-    public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("Any FlowFile that is successfully encrypted or decrypted will be routed to success").build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure").description("Any FlowFile that cannot be encrypted or decrypted will be routed to failure").build();
+    public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
+            .description("Any FlowFile that is successfully encrypted or decrypted will be routed to success").build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure")
+            .description("Any FlowFile that cannot be encrypted or decrypted will be routed to failure").build();
 
     private List<PropertyDescriptor> properties;
     private Set<Relationship> relationships;
@@ -104,6 +132,10 @@ public class EncryptContent extends AbstractProcessor {
         properties.add(MODE);
         properties.add(ENCRYPTION_ALGORITHM);
         properties.add(PASSWORD);
+        properties.add(PUBLIC_KEYRING);
+        properties.add(PUBLIC_KEY_USERID);
+        properties.add(PRIVATE_KEYRING);
+        properties.add(PRIVATE_KEYRING_PASSPHRASE);
         this.properties = Collections.unmodifiableList(properties);
 
         final Set<Relationship> relationships = new HashSet<>();
@@ -122,6 +154,85 @@ public class EncryptContent extends AbstractProcessor {
         return properties;
     }
 
+    public static boolean isPGPAlgorithm(String algorithm) {
+        return algorithm.startsWith("PGP");
+    }
+
+    public static boolean isPGPArmoredAlgorithm(String algorithm) {
+        return isPGPAlgorithm(algorithm) && algorithm.endsWith("ASCII-ARMOR");
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext context) {
+        List<ValidationResult> validationResults = new ArrayList<>(super.customValidate(context));
+        final String method = context.getProperty(ENCRYPTION_ALGORITHM).getValue();
+        final String algorithm = EncryptionMethod.valueOf(method).getAlgorithm();
+        final String password = context.getProperty(PASSWORD).getValue();
+        if (isPGPAlgorithm(algorithm)) {
+            if (password == null) {
+                boolean encrypt = context.getProperty(MODE).getValue().equalsIgnoreCase(ENCRYPT_MODE);
+                if (encrypt) {
+                    // need both public-keyring-file and public-key-user-id set
+                    String publicKeyring = context.getProperty(PUBLIC_KEYRING).getValue();
+                    String publicUserId = context.getProperty(PUBLIC_KEY_USERID).getValue();
+                    if (publicKeyring == null || publicUserId == null) {
+                        validationResults.add(new ValidationResult.Builder().subject(PUBLIC_KEYRING.getDisplayName())
+                                .explanation(algorithm + " encryption without a " + PASSWORD.getDisplayName() + " requires both "
+                                        + PUBLIC_KEYRING.getDisplayName() + " and " + PUBLIC_KEY_USERID.getDisplayName())
+                                .build());
+                    } else {
+                        // verify the public keyring contains the user id
+                        try {
+                            if (OpenPGPKeyBasedEncryptor.getPublicKey(publicUserId, publicKeyring) == null) {
+                                validationResults.add(new ValidationResult.Builder().subject(PUBLIC_KEYRING.getDisplayName())
+                                        .explanation(PUBLIC_KEYRING.getDisplayName() + " " + publicKeyring
+                                                + " does not contain user id " + publicUserId)
+                                        .build());
+                            }
+                        } catch (Exception e) {
+                            validationResults.add(new ValidationResult.Builder().subject(PUBLIC_KEYRING.getDisplayName())
+                                    .explanation("Invalid " + PUBLIC_KEYRING.getDisplayName() + " " + publicKeyring
+                                            + " because " + e.toString())
+                                    .build());
+                        }
+                    }
+                } else {
+                    // need both private-keyring-file and private-keyring-passphrase set
+                    String privateKeyring = context.getProperty(PRIVATE_KEYRING).getValue();
+                    String keyringPassphrase = context.getProperty(PRIVATE_KEYRING_PASSPHRASE).getValue();
+                    if (privateKeyring == null || keyringPassphrase == null) {
+                        validationResults.add(new ValidationResult.Builder().subject(PRIVATE_KEYRING.getName())
+                                .explanation(algorithm + " decryption without a " + PASSWORD.getDisplayName() + " requires both "
+                                        + PRIVATE_KEYRING.getDisplayName() + " and " + PRIVATE_KEYRING_PASSPHRASE.getDisplayName())
+                                .build());
+                    } else {
+                        final String providerName = EncryptionMethod.valueOf(method).getProvider();
+                        // verify the passphrase works on the private keyring
+                        try {
+                            if (!OpenPGPKeyBasedEncryptor.validateKeyring(providerName, privateKeyring, keyringPassphrase.toCharArray())) {
+                                validationResults.add(new ValidationResult.Builder().subject(PRIVATE_KEYRING.getDisplayName())
+                                        .explanation(PRIVATE_KEYRING.getDisplayName() + " " + privateKeyring
+                                                + " could not be opened with the provided " + PRIVATE_KEYRING_PASSPHRASE.getDisplayName())
+                                        .build());
+                            }
+                        } catch (Exception e) {
+                            validationResults.add(new ValidationResult.Builder().subject(PRIVATE_KEYRING.getDisplayName())
+                                    .explanation("Invalid " + PRIVATE_KEYRING.getDisplayName() + " " + privateKeyring
+                                            + " because " + e.toString())
+                                    .build());
+                        }
+                    }
+                }
+            }
+        } else {
+            if (password == null) {
+                validationResults.add(new ValidationResult.Builder().subject(PASSWORD.getName())
+                        .explanation(PASSWORD.getDisplayName() + " is required when using algorithm " + algorithm).build());
+            }
+        }
+        return validationResults;
+    }
+
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
         FlowFile flowFile = session.get();
@@ -134,130 +245,62 @@ public class EncryptContent extends AbstractProcessor {
         final EncryptionMethod encryptionMethod = EncryptionMethod.valueOf(method);
         final String providerName = encryptionMethod.getProvider();
         final String algorithm = encryptionMethod.getAlgorithm();
-
         final String password = context.getProperty(PASSWORD).getValue();
-        final char[] normalizedPassword = Normalizer.normalize(password, Normalizer.Form.NFC).toCharArray();
-        final PBEKeySpec pbeKeySpec = new PBEKeySpec(normalizedPassword);
+        boolean encrypt = context.getProperty(MODE).getValue().equalsIgnoreCase(ENCRYPT_MODE);
 
-        final SecureRandom secureRandom;
-        final SecretKeyFactory factory;
-        final SecretKey secretKey;
-        final Cipher cipher;
+        Encryptor encryptor;
+        StreamCallback callback;
         try {
-            secureRandom = SecureRandom.getInstance(SECURE_RANDOM_ALGORITHM);
-            secureRandom.setSeed(System.currentTimeMillis());
-            factory = SecretKeyFactory.getInstance(algorithm, providerName);
-            secretKey = factory.generateSecret(pbeKeySpec);
-            cipher = Cipher.getInstance(algorithm, providerName);
-        } catch (final Exception e) {
-            logger.error("failed to initialize Encryption/Decryption algorithm due to {}", new Object[]{e});
-            session.transfer(flowFile, REL_FAILURE);
+            if (isPGPAlgorithm(algorithm)) {
+                String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
+                String publicKeyring = context.getProperty(PUBLIC_KEYRING).getValue();
+                String privateKeyring = context.getProperty(PRIVATE_KEYRING).getValue();
+                if (encrypt && publicKeyring != null) {
+                    String publicUserId = context.getProperty(PUBLIC_KEY_USERID).getValue();
+                    encryptor = new OpenPGPKeyBasedEncryptor(algorithm, providerName, publicKeyring, publicUserId, null, filename);
+                } else if (!encrypt && privateKeyring != null) {
+                    char[] keyringPassphrase = context.getProperty(PRIVATE_KEYRING_PASSPHRASE).getValue().toCharArray();
+                    encryptor = new OpenPGPKeyBasedEncryptor(algorithm, providerName, privateKeyring, null, keyringPassphrase,
+                            filename);
+                } else {
+                    char[] passphrase = Normalizer.normalize(password, Normalizer.Form.NFC).toCharArray();
+                    encryptor = new OpenPGPPasswordBasedEncryptor(algorithm, providerName, passphrase, filename);
+                }
+            } else {
+                char[] passphrase = Normalizer.normalize(password, Normalizer.Form.NFC).toCharArray();
+                encryptor = new PasswordBasedEncryptor(algorithm, providerName, passphrase);
+            }
+
+            if (encrypt) {
+                callback = encryptor.getEncryptionCallback();
+            } else {
+                callback = encryptor.getDecryptionCallback();
+            }
+
+        } catch (Exception e) {
+            logger.error("Failed to initialize {}cryption algorithm because - ", new Object[] { encrypt ? "en" : "de", e });
+            session.rollback();
+            context.yield();
             return;
         }
 
-        final int algorithmBlockSize = cipher.getBlockSize();
-        final int saltSize = (algorithmBlockSize > 0) ? algorithmBlockSize : DEFAULT_SALT_SIZE;
-
-        final StopWatch stopWatch = new StopWatch(true);
-        if (context.getProperty(MODE).getValue().equalsIgnoreCase(ENCRYPT_MODE)) {
-            final byte[] salt = new byte[saltSize];
-            secureRandom.nextBytes(salt);
-
-            final PBEParameterSpec parameterSpec = new PBEParameterSpec(salt, 1000);
-            try {
-                cipher.init(Cipher.ENCRYPT_MODE, secretKey, parameterSpec);
-            } catch (final InvalidKeyException | InvalidAlgorithmParameterException e) {
-                logger.error("unable to encrypt {} due to {}", new Object[]{flowFile, e});
-                session.transfer(flowFile, REL_FAILURE);
-                return;
-            }
-
-            flowFile = session.write(flowFile, new EncryptCallback(cipher, salt));
-            logger.info("Successfully encrypted {}", new Object[]{flowFile});
-        } else {
-            if (flowFile.getSize() <= saltSize) {
-                logger.error("Cannot decrypt {} because its file size is not greater than the salt size", new Object[]{flowFile});
-                session.transfer(flowFile, REL_FAILURE);
-                return;
-            }
-
-            flowFile = session.write(flowFile, new DecryptCallback(cipher, secretKey, saltSize));
-            logger.info("successfully decrypted {}", new Object[]{flowFile});
-        }
-
-        session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-        session.transfer(flowFile, REL_SUCCESS);
-    }
-
-    private static class DecryptCallback implements StreamCallback {
-
-        private final Cipher cipher;
-        private final SecretKey secretKey;
-        private final int saltSize;
-
-        public DecryptCallback(final Cipher cipher, final SecretKey secretKey, final int saltSize) {
-            this.cipher = cipher;
-            this.secretKey = secretKey;
-            this.saltSize = saltSize;
-        }
-
-        @Override
-        public void process(final InputStream in, final OutputStream out) throws IOException {
-            final byte[] salt = new byte[saltSize];
-            StreamUtils.fillBuffer(in, salt);
-
-            final PBEParameterSpec parameterSpec = new PBEParameterSpec(salt, 1000);
-            try {
-                cipher.init(Cipher.DECRYPT_MODE, secretKey, parameterSpec);
-            } catch (final Exception e) {
-                throw new ProcessException(e);
-            }
-
-            final byte[] buffer = new byte[65536];
-            int len;
-            while ((len = in.read(buffer)) > 0) {
-                final byte[] decryptedBytes = cipher.update(buffer, 0, len);
-                if (decryptedBytes != null) {
-                    out.write(decryptedBytes);
-                }
-            }
-
-            try {
-                out.write(cipher.doFinal());
-            } catch (final Exception e) {
-                throw new ProcessException(e);
-            }
+        try {
+            final StopWatch stopWatch = new StopWatch(true);
+            flowFile = session.write(flowFile, callback);
+            logger.info("successfully {}crypted {}", new Object[] { encrypt ? "en" : "de", flowFile });
+            session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+            session.transfer(flowFile, REL_SUCCESS);
+        } catch (ProcessException e) {
+            logger.error("Cannot {}crypt {} - ", new Object[] { encrypt ? "en" : "de", flowFile, e });
+            session.transfer(flowFile, REL_FAILURE);
+            return;
         }
     }
 
-    private static class EncryptCallback implements StreamCallback {
+    public static interface Encryptor {
+        public StreamCallback getEncryptionCallback() throws Exception;
 
-        private final Cipher cipher;
-        private final byte[] salt;
-
-        public EncryptCallback(final Cipher cipher, final byte[] salt) {
-            this.cipher = cipher;
-            this.salt = salt;
-        }
-
-        @Override
-        public void process(final InputStream in, final OutputStream out) throws IOException {
-            out.write(salt);
-
-            final byte[] buffer = new byte[65536];
-            int len;
-            while ((len = in.read(buffer)) > 0) {
-                final byte[] encryptedBytes = cipher.update(buffer, 0, len);
-                if (encryptedBytes != null) {
-                    out.write(encryptedBytes);
-                }
-            }
-
-            try {
-                out.write(cipher.doFinal());
-            } catch (final IllegalBlockSizeException | BadPaddingException e) {
-                throw new ProcessException(e);
-            }
-        }
+        public StreamCallback getDecryptionCallback() throws Exception;
     }
+
 }
