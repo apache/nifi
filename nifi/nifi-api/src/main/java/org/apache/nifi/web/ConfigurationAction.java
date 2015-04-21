@@ -38,54 +38,42 @@ public class ConfigurationAction {
     }
 
     /**
-     * The id of the component being modified.
-     * 
-     * @return 
+     * @return id of the component being modified
      */
     public String getId() {
         return id;
     }
 
     /**
-     * The name of the component being modified.
-     * 
-     * @return 
+     * @return name of the component being modified
      */
     public String getName() {
         return name;
     }
 
     /**
-     * The type of the component being modified.
-     * 
-     * @return 
+     * @return type of the component being modified
      */
     public String getType() {
         return type;
     }
 
     /**
-     * Gets the name of the field, property, etc that has been modified.
-     *
-     * @return
+     * @return the name of the field, property, etc that has been modified
      */
     public String getField() {
         return field;
     }
 
     /**
-     * Gets the previous value.
-     *
-     * @return
+     * @return the previous value
      */
     public String getPreviousValue() {
         return previousValue;
     }
 
     /**
-     * Gets the new value.
-     *
-     * @return
+     * @return the new value
      */
     public String getValue() {
         return value;
@@ -104,17 +92,17 @@ public class ConfigurationAction {
             this.id = id;
             return this;
         }
-        
+
         public Builder name(final String name) {
             this.name = name;
             return this;
         }
-        
+
         public Builder type(final String type) {
             this.type = type;
             return this;
         }
-        
+
         public Builder field(final String field) {
             this.field = field;
             return this;

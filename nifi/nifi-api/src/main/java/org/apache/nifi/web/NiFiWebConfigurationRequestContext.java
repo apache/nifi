@@ -17,13 +17,14 @@
 package org.apache.nifi.web;
 
 /**
- * Contextual details required to make a configuration request from a UI extension.
+ * Contextual details required to make a configuration request from a UI
+ * extension.
  */
 public interface NiFiWebConfigurationRequestContext extends NiFiWebRequestContext {
 
     /**
      * The revision to include in the request.
-     * 
+     *
      * @return the revision
      */
     Revision getRevision();

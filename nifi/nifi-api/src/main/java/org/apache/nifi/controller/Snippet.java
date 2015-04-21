@@ -24,89 +24,65 @@ import java.util.Set;
 public interface Snippet {
 
     /**
-     * The id of this snippet.
-     *
-     * @return
+     * @return id of this snippet
      */
     public String getId();
 
     /**
-     * Whether or not this snippet is linked to the data flow. If the Snippet is
+     * @return Whether or not this snippet is linked to the data flow. If the Snippet is
      * deleted and is linked, then the underlying components will also be
      * deleted. If the Snippet is deleted and is NOT linked, only the Snippet is
      * removed
-     *
-     * @return
      */
     public boolean isLinked();
 
     /**
-     * The parent group id of the components in this snippet.
-     *
-     * @return
+     * @return parent group id of the components in this snippet
      */
     public String getParentGroupId();
 
     /**
-     * The connections in this snippet.
-     *
-     * @return
+     * @return connections in this snippet
      */
     public Set<String> getConnections();
 
     /**
-     * The funnels in this snippet.
-     *
-     * @return
+     * @return funnels in this snippet
      */
     public Set<String> getFunnels();
 
     /**
-     * The input ports in this snippet.
-     *
-     * @return
+     * @return input ports in this snippet
      */
     public Set<String> getInputPorts();
 
     /**
-     * The output ports in this snippet.
-     *
-     * @return
+     * @return output ports in this snippet
      */
     public Set<String> getOutputPorts();
 
     /**
-     * The labels in this snippet.
-     *
-     * @return
+     * @return labels in this snippet
      */
     public Set<String> getLabels();
 
     /**
-     * Returns the identifiers of all ProcessGroups in this Snippet
-     *
-     * @return
+     * @return the identifiers of all ProcessGroups in this Snippet
      */
     public Set<String> getProcessGroups();
 
     /**
-     * Returns the identifiers of all Processors in this Snippet
-     *
-     * @return
+     * @return the identifiers of all Processors in this Snippet
      */
     public Set<String> getProcessors();
 
     /**
-     * Returns the identifiers of all RemoteProcessGroups in this Snippet
-     *
-     * @return
+     * @return the identifiers of all RemoteProcessGroups in this Snippet
      */
     public Set<String> getRemoteProcessGroups();
 
     /**
-     * Determines if this snippet is empty.
-     *
-     * @return
+     * @return Determines if this snippet is empty
      */
     public boolean isEmpty();
 

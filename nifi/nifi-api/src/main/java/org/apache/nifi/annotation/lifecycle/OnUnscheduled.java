@@ -26,26 +26,29 @@ import java.lang.annotation.Target;
 /**
  * <p>
  * Marker annotation a {@link org.apache.nifi.processor.Processor Processor} or
- * {@link org.apache.nifi.reporting.ReportingTask ReportingTask} 
- * should be called whenever the component is no longer scheduled to run.
- * Methods marked with this annotation will be invoked each time the framework
- * is notified to stop scheduling the component. This method is invoked as other
- * threads are potentially running. To invoke a method after all threads have
- * finished processing, see the {@link OnStopped} annotation.
+ * {@link org.apache.nifi.reporting.ReportingTask ReportingTask} should be
+ * called whenever the component is no longer scheduled to run. Methods marked
+ * with this annotation will be invoked each time the framework is notified to
+ * stop scheduling the component. This method is invoked as other threads are
+ * potentially running. To invoke a method after all threads have finished
+ * processing, see the {@link OnStopped} annotation.
  * </p>
- * 
+ *
  * <p>
- * Methods using this annotation must take either 0 arguments or a single argument.
+ * Methods using this annotation must take either 0 arguments or a single
+ * argument.
  * </p>
- * 
+ *
  * <p>
- * If using 1 argument and the component using the annotation is a Processor, that argument must
- * be of type {@link org.apache.nifi.processor.ProcessContext ProcessContext}.
+ * If using 1 argument and the component using the annotation is a Processor,
+ * that argument must be of type
+ * {@link org.apache.nifi.processor.ProcessContext ProcessContext}.
  * </p>
- * 
+ *
  * <p>
- * If using 1 argument and the component using the annotation is a Reporting Task, that argument must
- * be of type {@link org.apache.nifi.controller.ConfigurationContext ConfigurationContext}.
+ * If using 1 argument and the component using the annotation is a Reporting
+ * Task, that argument must be of type
+ * {@link org.apache.nifi.controller.ConfigurationContext ConfigurationContext}.
  * </p>
  */
 @Documented

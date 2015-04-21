@@ -39,54 +39,42 @@ public class ProcessorConfigurationAction {
     }
 
     /**
-     * Gets the id of the processor.
-     *
-     * @return
+     * @return the id of the processor
      */
     public String getProcessorId() {
         return processorId;
     }
 
     /**
-     * Gets the name of the processor being modified.
-     *
-     * @return
+     * @return the name of the processor being modified
      */
     public String getProcessorName() {
         return processorName;
     }
 
     /**
-     * Gets the type of the processor being modified.
-     *
-     * @return
+     * @return the type of the processor being modified
      */
     public String getProcessorType() {
         return processorType;
     }
 
     /**
-     * Gets the name of the field, property, etc that has been modified.
-     *
-     * @return
+     * @return the name of the field, property, etc that has been modified.
      */
     public String getName() {
         return name;
     }
 
     /**
-     * Gets the previous value.
-     *
-     * @return
+     * @return the previous value
      */
     public String getPreviousValue() {
         return previousValue;
     }
 
     /**
-     * Gets the new value.
-     *
-     * @return
+     * @return the new value
      */
     public String getValue() {
         return value;

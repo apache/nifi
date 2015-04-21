@@ -26,32 +26,24 @@ import org.apache.nifi.components.PropertyValue;
 public interface SearchContext {
 
     /**
-     * Gets the search term.
-     *
-     * @return
+     * @return the search term
      */
     String getSearchTerm();
 
     /**
-     * Gets the annotation data.
-     *
-     * @return
+     * @return the annotation data
      */
     String getAnnotationData();
 
     /**
-     * Returns a PropertyValue that encapsulates the value configured for the
+     * @param property to get value of
+     * @return a PropertyValue that encapsulates the value configured for the
      * given PropertyDescriptor
-     *
-     * @param property
-     * @return
      */
     PropertyValue getProperty(PropertyDescriptor property);
 
     /**
-     * Returns a Map of all configured Properties.
-     *
-     * @return
+     * @return a Map of all configured Properties
      */
     Map<PropertyDescriptor, String> getProperties();
 }

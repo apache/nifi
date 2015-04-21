@@ -22,12 +22,10 @@ import org.apache.nifi.processor.exception.ProcessException;
 public interface AttributeExpression {
 
     /**
-     * Evaluates the expression without providing any FlowFile Attributes. This
+     * @return Evaluates the expression without providing any FlowFile Attributes. This
      * will evaluate the expression based only on System Properties and JVM
      * Environment properties
-     *
-     * @return
-     * @throws ProcessException
+     * @throws ProcessException if unable to evaluate
      */
     String evaluate() throws ProcessException;
 
@@ -36,9 +34,9 @@ public interface AttributeExpression {
      * will evaluate the expression based only on System Properties and JVM
      * Environment properties but allows the values to be decorated
      *
-     * @param decorator
-     * @return
-     * @throws ProcessException
+     * @param decorator for attribute value
+     * @return evaluated value
+     * @throws ProcessException if failure in evaluation
      */
     String evaluate(AttributeValueDecorator decorator) throws ProcessException;
 
@@ -47,9 +45,9 @@ public interface AttributeExpression {
      * id, etc. of the given FlowFile, as well as System Properties and JVM
      * Environment properties
      *
-     * @param flowFile
-     * @return
-     * @throws ProcessException
+     * @param flowFile to evaluate
+     * @return evaluated value
+     * @throws ProcessException if failure evaluating
      */
     String evaluate(FlowFile flowFile) throws ProcessException;
 
@@ -58,17 +56,15 @@ public interface AttributeExpression {
      * id, etc. of the given FlowFile, as well as System Properties and JVM
      * Environment properties and allows the values to be decorated
      *
-     * @param flowFile
-     * @param decorator
-     * @return
-     * @throws ProcessException
+     * @param flowFile to evaluate
+     * @param decorator for evaluation
+     * @return evaluated value
+     * @throws ProcessException if failed to evaluate
      */
     String evaluate(FlowFile flowFile, AttributeValueDecorator decorator) throws ProcessException;
 
     /**
-     * Returns the type that is returned by the Expression
-     *
-     * @return
+     * @return the type that is returned by the Expression
      */
     ResultType getResultType();
 
