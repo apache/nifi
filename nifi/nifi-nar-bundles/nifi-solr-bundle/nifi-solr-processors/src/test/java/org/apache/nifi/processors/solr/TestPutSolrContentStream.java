@@ -19,20 +19,24 @@ package org.apache.nifi.processors.solr;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.apache.solr.client.solrj.*;
+import org.apache.solr.client.solrj.SolrClient;
+import org.apache.solr.client.solrj.SolrQuery;
+import org.apache.solr.client.solrj.SolrRequest;
+import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.HttpSolrClient;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrException;
+import org.apache.solr.common.SolrInputDocument;
 import org.junit.Assert;
 import org.junit.Test;
-import org.mockito.Matchers;
 import org.mockito.Mockito;
 
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Date;
 
 import static org.mockito.Mockito.*;
 
@@ -69,7 +73,7 @@ public class TestPutSolrContentStream {
     }
 
     /**
-     * Creates a base TestRunner with Solr Type of standard and json update path.
+     * Creates a base TestRunner with Solr Type of standard.
      */
     private static TestRunner createDefaultTestRunner(PutSolrContentStream processor) {
         TestRunner runner = TestRunners.newTestRunner(processor);
@@ -80,7 +84,8 @@ public class TestPutSolrContentStream {
 
     @Test
     public void testUpdateWithSolrJson() throws IOException, SolrServerException {
-        final EmbeddedSolrServerProcessor proc = new EmbeddedSolrServerProcessor(DEFAULT_SOLR_CORE);
+        final SolrClient solrClient = createEmbeddedSolrClient(DEFAULT_SOLR_CORE);
+        final TestableProcessor proc = new TestableProcessor(solrClient);
 
         final TestRunner runner = createDefaultTestRunner(proc);
         runner.setProperty(PutSolrContentStream.CONTENT_STREAM_PATH, "/update/json/docs");
@@ -102,7 +107,8 @@ public class TestPutSolrContentStream {
 
     @Test
     public void testUpdateWithCustomJson() throws IOException, SolrServerException {
-        final EmbeddedSolrServerProcessor proc = new EmbeddedSolrServerProcessor(DEFAULT_SOLR_CORE);
+        final SolrClient solrClient = createEmbeddedSolrClient(DEFAULT_SOLR_CORE);
+        final TestableProcessor proc = new TestableProcessor(solrClient);
 
         final TestRunner runner = createDefaultTestRunner(proc);
         runner.setProperty(PutSolrContentStream.CONTENT_STREAM_PATH, "/update/json/docs");
@@ -130,7 +136,8 @@ public class TestPutSolrContentStream {
 
     @Test
     public void testUpdateWithCsv() throws IOException, SolrServerException {
-        final EmbeddedSolrServerProcessor proc = new EmbeddedSolrServerProcessor(DEFAULT_SOLR_CORE);
+        final SolrClient solrClient = createEmbeddedSolrClient(DEFAULT_SOLR_CORE);
+        final TestableProcessor proc = new TestableProcessor(solrClient);
 
         final TestRunner runner = createDefaultTestRunner(proc);
         runner.setProperty(PutSolrContentStream.CONTENT_STREAM_PATH, "/update/csv");
@@ -152,7 +159,8 @@ public class TestPutSolrContentStream {
 
     @Test
     public void testUpdateWithXml() throws IOException, SolrServerException {
-        final EmbeddedSolrServerProcessor proc = new EmbeddedSolrServerProcessor(DEFAULT_SOLR_CORE);
+        final SolrClient solrClient = createEmbeddedSolrClient(DEFAULT_SOLR_CORE);
+        final TestableProcessor proc = new TestableProcessor(solrClient);
 
         final TestRunner runner = createDefaultTestRunner(proc);
         runner.setProperty(PutSolrContentStream.CONTENT_STREAM_PATH, "/update");
@@ -170,6 +178,39 @@ public class TestPutSolrContentStream {
         } finally {
             try { proc.getSolrClient().close(); } catch (Exception e) { }
         }
+    }
+
+    @Test
+    public void testDeleteWithXml() throws IOException, SolrServerException {
+        final SolrClient solrClient = createEmbeddedSolrClient(DEFAULT_SOLR_CORE);
+        final TestableProcessor proc = new TestableProcessor(solrClient);
+
+        final TestRunner runner = createDefaultTestRunner(proc);
+        runner.setProperty(PutSolrContentStream.CONTENT_STREAM_PATH, "/update");
+        runner.setProperty(PutSolrContentStream.CONTENT_TYPE, "application/xml");
+        runner.setProperty("commit", "true");
+
+        // add a document so there is something to delete
+        SolrInputDocument doc = new SolrInputDocument();
+        doc.addField("first", "bob");
+        doc.addField("last", "smith");
+        doc.addField("created", new Date());
+
+        solrClient.add(doc);
+        solrClient.commit();
+
+        // prove the document got added
+        SolrQuery query = new SolrQuery("*:*");
+        QueryResponse qResponse = solrClient.query(query);
+        Assert.assertEquals(1, qResponse.getResults().getNumFound());
+
+        // run the processor with a delete-by-query command
+        runner.enqueue("<delete><query>first:bob</query></delete>".getBytes("UTF-8"));
+        runner.run();
+
+        // prove the document got deleted
+        qResponse = solrClient.query(query);
+        Assert.assertEquals(0, qResponse.getResults().getNumFound());
     }
 
     @Test
@@ -272,9 +313,8 @@ public class TestPutSolrContentStream {
         runner.assertValid();
     }
 
-    /**
-     * Override the creatrSolrServer method to inject a Mock.
-     */
+
+    // Override the createSolrClient method to inject a Mock.
     private class ExceptionThrowingProcessor extends PutSolrContentStream {
 
         private SolrClient mockSolrClient;
@@ -300,35 +340,29 @@ public class TestPutSolrContentStream {
 
     }
 
-    /**
-     * Override the createSolrClient method and create and EmbeddedSolrServer.
-     */
-    private class EmbeddedSolrServerProcessor extends PutSolrContentStream {
+    // Override createSolrClient and return the passed in SolrClient
+    private class TestableProcessor extends PutSolrContentStream {
+        private SolrClient solrClient;
 
-        private String coreName;
-        private SolrClient embeddedSolrClient;
-
-        public EmbeddedSolrServerProcessor(String coreName) {
-            this.coreName = coreName;
+        public TestableProcessor(SolrClient solrClient) {
+            this.solrClient = solrClient;
         }
-
         @Override
         protected SolrClient createSolrClient(ProcessContext context) {
-            try {
-                String relPath = getClass().getProtectionDomain()
-                        .getCodeSource().getLocation().getFile()
-                        + "../../target";
-
-                embeddedSolrClient = EmbeddedSolrServerFactory.create(
-                        EmbeddedSolrServerFactory.DEFAULT_SOLR_HOME,
-                        EmbeddedSolrServerFactory.DEFAULT_CORE_HOME,
-                        coreName, relPath);
-            } catch (IOException e) {
-                Assert.fail(e.getMessage());
-            }
-            return embeddedSolrClient;
+            return solrClient;
         }
+    }
 
+    // Create an EmbeddedSolrClient with the given core name.
+    private static SolrClient createEmbeddedSolrClient(String coreName) throws IOException {
+        String relPath = TestPutSolrContentStream.class.getProtectionDomain()
+                .getCodeSource().getLocation().getFile()
+                + "../../target";
+
+        return EmbeddedSolrServerFactory.create(
+                EmbeddedSolrServerFactory.DEFAULT_SOLR_HOME,
+                EmbeddedSolrServerFactory.DEFAULT_CORE_HOME,
+                coreName, relPath);
     }
 
     /**
