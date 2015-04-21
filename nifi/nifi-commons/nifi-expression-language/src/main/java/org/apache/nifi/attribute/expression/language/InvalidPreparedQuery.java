@@ -23,21 +23,22 @@ import org.apache.nifi.expression.AttributeValueDecorator;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.exception.ProcessException;
 
-
 /**
- * An implementation of PreparedQuery that throws an {@link AttributeExpressionLanguageException} when attempting
- * to evaluate the query. This allows a PreparedQuery to be created, even though it can't
- * be evaluated.
+ * An implementation of PreparedQuery that throws an
+ * {@link AttributeExpressionLanguageException} when attempting to evaluate the
+ * query. This allows a PreparedQuery to be created, even though it can't be
+ * evaluated.
  */
 public class InvalidPreparedQuery implements PreparedQuery {
+
     private final String query;
     private final String explanation;
-    
+
     public InvalidPreparedQuery(final String query, final String explanation) {
         this.query = query;
         this.explanation = explanation;
     }
-    
+
     @Override
     public String evaluateExpressions(final FlowFile flowFile, final AttributeValueDecorator decorator) throws ProcessException {
         throw new AttributeExpressionLanguageException("Invalid Expression: " + query + " due to " + explanation);

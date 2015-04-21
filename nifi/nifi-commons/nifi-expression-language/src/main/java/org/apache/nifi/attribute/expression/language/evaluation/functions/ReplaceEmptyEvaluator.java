@@ -23,20 +23,21 @@ import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
 
 public class ReplaceEmptyEvaluator extends StringEvaluator {
+
     private final StringEvaluator subjectEvaluator;
     private final StringEvaluator replacementEvaluator;
-    
+
     public ReplaceEmptyEvaluator(final StringEvaluator subjectEvaluator, final StringEvaluator replacementEvaluator) {
         this.subjectEvaluator = subjectEvaluator;
         this.replacementEvaluator = replacementEvaluator;
     }
-    
+
     @Override
     public QueryResult<String> evaluate(final Map<String, String> attributes) {
         final QueryResult<String> subjectResult = subjectEvaluator.evaluate(attributes);
         final String subjectValue = subjectResult.getValue();
         final boolean isEmpty = subjectValue == null || subjectValue.toString().trim().isEmpty();
-        if ( isEmpty ) {
+        if (isEmpty) {
             return replacementEvaluator.evaluate(attributes);
         } else {
             return subjectResult;

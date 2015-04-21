@@ -24,19 +24,20 @@ import org.apache.nifi.attribute.expression.language.evaluation.reduce.ReduceEva
 import org.apache.nifi.expression.AttributeExpression.ResultType;
 
 public class MappingEvaluator<T> implements Evaluator<T> {
+
     private final ReduceEvaluator<T> mappingEvaluator;
     private final MultiAttributeEvaluator multiAttributeEvaluator;
-    
+
     public MappingEvaluator(final ReduceEvaluator<T> mappingEvaluator, final MultiAttributeEvaluator multiAttributeEval) {
         this.mappingEvaluator = mappingEvaluator;
         this.multiAttributeEvaluator = multiAttributeEval;
     }
-    
+
     @Override
     public QueryResult<T> evaluate(final Map<String, String> attributes) {
         QueryResult<T> result = mappingEvaluator.evaluate(attributes);
 
-        while ( multiAttributeEvaluator.getEvaluationsRemaining() > 0 ) {
+        while (multiAttributeEvaluator.getEvaluationsRemaining() > 0) {
             result = mappingEvaluator.evaluate(attributes);
         }
 
