@@ -1143,7 +1143,7 @@ public final class DtoFactory {
                 if (port.isRunning()) {
                     activeRemoteOutputPortCount++;
                 } else {
-                    activeRemoteOutputPortCount++;
+                    inactiveRemoteOutputPortCount++;
                 }
             }
         }
