@@ -32,8 +32,10 @@ import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService;
 import org.apache.nifi.distributed.cache.client.Serializer;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockControllerServiceInitializationContext;
+import org.apache.nifi.util.MockProcessorLog;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
@@ -111,7 +113,8 @@ public class TestDetectDuplicate {
     private DistributedMapCacheClientImpl createClient() throws InitializationException {
 
         final DistributedMapCacheClientImpl client = new DistributedMapCacheClientImpl();
-        MockControllerServiceInitializationContext clientInitContext = new MockControllerServiceInitializationContext(client, "client");
+        final ComponentLog logger = new MockProcessorLog("client", client);
+        MockControllerServiceInitializationContext clientInitContext = new MockControllerServiceInitializationContext(client, "client", logger);
         client.initialize(clientInitContext);
 
         return client;

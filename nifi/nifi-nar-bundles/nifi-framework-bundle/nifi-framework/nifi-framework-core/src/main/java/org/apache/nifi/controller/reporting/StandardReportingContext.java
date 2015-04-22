@@ -124,9 +124,20 @@ public class StandardReportingContext implements ReportingContext, ControllerSer
     public boolean isControllerServiceEnabled(final String serviceIdentifier) {
         return serviceProvider.isControllerServiceEnabled(serviceIdentifier);
     }
+    
+    @Override
+    public boolean isControllerServiceEnabling(final String serviceIdentifier) {
+        return serviceProvider.isControllerServiceEnabling(serviceIdentifier);
+    }
 
     @Override
     public ControllerServiceLookup getControllerServiceLookup() {
         return this;
     }
+
+	@Override
+	public String getControllerServiceName(final String serviceIdentifier) {
+		return serviceProvider.getControllerServiceName(serviceIdentifier);
+	}
+    
 }

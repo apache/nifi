@@ -26,7 +26,6 @@
     font-size: 10px;
     z-index: 1301;
     display: none;
-    border: 1px solid #eee;
 }
 
 div.processor-details-tab-container {
@@ -90,30 +89,4 @@ div.concurrently-schedulable-tasks-setting, div.scheduling-period-setting, div.p
 
 div.scheduling-period-setting, div.yield-duration-setting {
     margin-left: 36px;
-}
-
-/* properties */
-
-#read-only-processor-properties-header {
-    margin-bottom: 10px;
-    height: 19px;
-}
-
-#read-only-required-property-note {
-    font-weight: bold;
-    float: left;
-    height: 19px;
-    line-height: 19px;
-    margin-left: 6px;
-}
-
-#read-only-processor-properties {
-    border-bottom: 1px solid #666;
-    width: 758px;
-    height: 290px;
-    background-color: #fff;
-}
-
-div.processor-property-detail .nfel-editor {
-    margin-bottom: 30px;
 }

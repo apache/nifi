@@ -58,11 +58,7 @@ import org.apache.nifi.update.attributes.entity.ConditionEntity;
 import org.apache.nifi.update.attributes.entity.RuleEntity;
 import org.apache.nifi.update.attributes.entity.RulesEntity;
 import org.apache.nifi.update.attributes.serde.CriteriaSerDe;
-import org.apache.nifi.web.HttpServletRequestContextConfig;
 import org.apache.nifi.web.InvalidRevisionException;
-import org.apache.nifi.web.NiFiWebContext;
-import org.apache.nifi.web.NiFiWebContextConfig;
-import org.apache.nifi.web.ProcessorInfo;
 import org.apache.nifi.web.Revision;
 import org.apache.commons.lang3.StringUtils;
 
@@ -70,6 +66,13 @@ import com.sun.jersey.api.NotFoundException;
 
 import org.apache.nifi.update.attributes.FlowFilePolicy;
 import org.apache.nifi.update.attributes.entity.EvaluationContextEntity;
+import org.apache.nifi.web.ComponentDetails;
+import org.apache.nifi.web.HttpServletConfigurationRequestContext;
+import org.apache.nifi.web.HttpServletRequestContext;
+import org.apache.nifi.web.NiFiWebConfigurationContext;
+import org.apache.nifi.web.NiFiWebConfigurationRequestContext;
+import org.apache.nifi.web.NiFiWebRequestContext;
+import org.apache.nifi.web.UiExtensionType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -90,24 +93,19 @@ public class RuleResource {
     @GET
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/evaluation-context")
-    public Response getEvaluationContext(
-            @QueryParam("processorId") final String processorId,
-            @QueryParam("clientId") final String clientId,
-            @QueryParam("revision") final Long revision) {
+    public Response getEvaluationContext(@QueryParam("processorId") final String processorId) {
 
         // get the web context
-        final NiFiWebContext nifiWebContext = (NiFiWebContext) servletContext.getAttribute("nifi-web-context");
+        final NiFiWebConfigurationContext nifiWebContext = (NiFiWebConfigurationContext) servletContext.getAttribute("nifi-web-configuration-context");
 
         // build the web context config
-        final NiFiWebContextConfig contextConfig = getWebContextConfig(processorId, revision, clientId);
+        final NiFiWebRequestContext contextConfig = getRequestContext(processorId);
 
         // load the criteria 
         final Criteria criteria = getCriteria(nifiWebContext, contextConfig);
 
         // create the response entity
         final EvaluationContextEntity responseEntity = new EvaluationContextEntity();
-        responseEntity.setClientId(clientId);
-        responseEntity.setRevision(revision);
         responseEntity.setProcessorId(processorId);
         responseEntity.setFlowFilePolicy(criteria.getFlowFilePolicy().name());
         responseEntity.setRuleOrder(criteria.getRuleOrder());
@@ -126,7 +124,7 @@ public class RuleResource {
             final EvaluationContextEntity requestEntity) {
 
         // get the web context
-        final NiFiWebContext nifiWebContext = (NiFiWebContext) servletContext.getAttribute("nifi-web-context");
+        final NiFiWebConfigurationContext configurationContext = (NiFiWebConfigurationContext) servletContext.getAttribute("nifi-web-configuration-context");
 
         // ensure the evaluation context has been specified
         if (requestEntity == null) {
@@ -139,11 +137,11 @@ public class RuleResource {
         }
 
         // build the web context config
-        final NiFiWebContextConfig contextConfig = getWebContextConfig(
+        final NiFiWebConfigurationRequestContext requestContext = getConfigurationRequestContext(
                 requestEntity.getProcessorId(), requestEntity.getRevision(), requestEntity.getClientId());
 
         // load the criteria
-        final Criteria criteria = getCriteria(nifiWebContext, contextConfig);
+        final Criteria criteria = getCriteria(configurationContext, requestContext);
 
         // if a new rule order is specified, attempt to set it
         if (requestEntity.getRuleOrder() != null) {
@@ -164,7 +162,7 @@ public class RuleResource {
         }
 
         // save the criteria
-        saveCriteria(contextConfig, criteria);
+        saveCriteria(requestContext, criteria);
 
         // create the response entity
         final EvaluationContextEntity responseEntity = new EvaluationContextEntity();
@@ -188,7 +186,7 @@ public class RuleResource {
             final RuleEntity requestEntity) {
 
         // get the web context
-        final NiFiWebContext nifiWebContext = (NiFiWebContext) servletContext.getAttribute("nifi-web-context");
+        final NiFiWebConfigurationContext configurationContext = (NiFiWebConfigurationContext) servletContext.getAttribute("nifi-web-configuration-context");
 
         // ensure the rule has been specified
         if (requestEntity == null || requestEntity.getRule() == null) {
@@ -215,12 +213,12 @@ public class RuleResource {
         // generate a new id
         final String uuid = UUID.randomUUID().toString();
 
-        // build the web context config
-        final NiFiWebContextConfig contextConfig = getWebContextConfig(
+        // build the request context
+        final NiFiWebConfigurationRequestContext requestContext = getConfigurationRequestContext(
                 requestEntity.getProcessorId(), requestEntity.getRevision(), requestEntity.getClientId());
 
         // load the criteria
-        final Criteria criteria = getCriteria(nifiWebContext, contextConfig);
+        final Criteria criteria = getCriteria(configurationContext, requestContext);
         final UpdateAttributeModelFactory factory = new UpdateAttributeModelFactory();
 
         // create the new rule
@@ -236,7 +234,7 @@ public class RuleResource {
         criteria.addRule(rule);
 
         // save the criteria
-        saveCriteria(contextConfig, criteria);
+        saveCriteria(requestContext, criteria);
 
         // create the response entity
         final RuleEntity responseEntity = new RuleEntity();
@@ -326,18 +324,16 @@ public class RuleResource {
     public Response getRule(
             @PathParam("id") final String ruleId,
             @QueryParam("processorId") final String processorId,
-            @QueryParam("clientId") final String clientId,
-            @QueryParam("revision") final Long revision,
             @DefaultValue("false") @QueryParam("verbose") final Boolean verbose) {
 
         // get the web context
-        final NiFiWebContext nifiWebContext = (NiFiWebContext) servletContext.getAttribute("nifi-web-context");
+        final NiFiWebConfigurationContext configurationContext = (NiFiWebConfigurationContext) servletContext.getAttribute("nifi-web-configuration-context");
 
         // build the web context config
-        final NiFiWebContextConfig contextConfig = getWebContextConfig(processorId, revision, clientId);
+        final NiFiWebRequestContext requestContext = getRequestContext(processorId);
 
         // load the criteria and get the rule
-        final Criteria criteria = getCriteria(nifiWebContext, contextConfig);
+        final Criteria criteria = getCriteria(configurationContext, requestContext);
         final Rule rule = criteria.getRule(ruleId);
 
         if (rule == null) {
@@ -348,15 +344,13 @@ public class RuleResource {
         final RuleDTO ruleDto = DtoFactory.createRuleDTO(rule);
 
         // prune if appropriate
-        if (!verbose.booleanValue()) {
+        if (!verbose) {
             ruleDto.setConditions(null);
             ruleDto.setActions(null);
         }
 
         // create the response entity
         final RuleEntity responseEntity = new RuleEntity();
-        responseEntity.setClientId(clientId);
-        responseEntity.setRevision(revision);
         responseEntity.setProcessorId(processorId);
         responseEntity.setRule(ruleDto);
 
@@ -370,18 +364,16 @@ public class RuleResource {
     @Path("/rules")
     public Response getRules(
             @QueryParam("processorId") final String processorId,
-            @QueryParam("clientId") final String clientId,
-            @QueryParam("revision") final Long revision,
             @DefaultValue("false") @QueryParam("verbose") final Boolean verbose) {
 
         // get the web context
-        final NiFiWebContext nifiWebContext = (NiFiWebContext) servletContext.getAttribute("nifi-web-context");
+        final NiFiWebConfigurationContext configurationContext = (NiFiWebConfigurationContext) servletContext.getAttribute("nifi-web-configuration-context");
 
         // build the web context config
-        final NiFiWebContextConfig contextConfig = getWebContextConfig(processorId, revision, clientId);
+        final NiFiWebRequestContext requestContext = getRequestContext(processorId);
 
         // load the criteria 
-        final Criteria criteria = getCriteria(nifiWebContext, contextConfig);
+        final Criteria criteria = getCriteria(configurationContext, requestContext);
         final List<Rule> rules = criteria.getRules();
 
         // generate the rules
@@ -393,7 +385,7 @@ public class RuleResource {
                 ruleDtos.add(ruleDto);
 
                 // prune if appropriate
-                if (!verbose.booleanValue()) {
+                if (!verbose) {
                     ruleDto.setConditions(null);
                     ruleDto.setActions(null);
                 }
@@ -402,8 +394,6 @@ public class RuleResource {
 
         // create the response entity
         final RulesEntity responseEntity = new RulesEntity();
-        responseEntity.setClientId(clientId);
-        responseEntity.setRevision(revision);
         responseEntity.setProcessorId(processorId);
         responseEntity.setRules(ruleDtos);
 
@@ -417,19 +407,16 @@ public class RuleResource {
     @Path("/rules/search-results")
     public Response searchRules(
             @QueryParam("processorId") final String processorId,
-            @QueryParam("clientId") final String clientId,
-            @QueryParam("revision") final Long revision,
             @QueryParam("q") final String term) {
 
         // get the web context
-        final NiFiWebContext nifiWebContext = (NiFiWebContext) servletContext.getAttribute("nifi-web-context");
+        final NiFiWebConfigurationContext configurationContext = (NiFiWebConfigurationContext) servletContext.getAttribute("nifi-web-context");
 
         // build the web context config
-        final NiFiWebContextConfig contextConfig = getWebContextConfig(
-                processorId, revision, clientId);
+        final NiFiWebRequestContext requestContext = getRequestContext(processorId);
 
         // load the criteria 
-        final Criteria criteria = getCriteria(nifiWebContext, contextConfig);
+        final Criteria criteria = getCriteria(configurationContext, requestContext);
         final List<Rule> rules = criteria.getRules();
 
         // generate the rules
@@ -455,8 +442,6 @@ public class RuleResource {
 
         // create the response entity
         final RulesEntity responseEntity = new RulesEntity();
-        responseEntity.setClientId(clientId);
-        responseEntity.setRevision(revision);
         responseEntity.setProcessorId(processorId);
         responseEntity.setRules(ruleDtos);
 
@@ -475,7 +460,7 @@ public class RuleResource {
             final RuleEntity requestEntity) {
 
         // get the web context
-        final NiFiWebContext nifiWebContext = (NiFiWebContext) servletContext.getAttribute("nifi-web-context");
+        final NiFiWebConfigurationContext nifiWebContext = (NiFiWebConfigurationContext) servletContext.getAttribute("nifi-web-configuration-context");
 
         // ensure the rule has been specified
         if (requestEntity == null || requestEntity.getRule() == null) {
@@ -508,12 +493,12 @@ public class RuleResource {
         }
 
         // build the web context config
-        final NiFiWebContextConfig contextConfig = getWebContextConfig(
+        final NiFiWebConfigurationRequestContext requestContext = getConfigurationRequestContext(
                 requestEntity.getProcessorId(), requestEntity.getRevision(), requestEntity.getClientId());
 
         // load the criteria
         final UpdateAttributeModelFactory factory = new UpdateAttributeModelFactory();
-        final Criteria criteria = getCriteria(nifiWebContext, contextConfig);
+        final Criteria criteria = getCriteria(nifiWebContext, requestContext);
 
         // attempt to locate the rule
         Rule rule = criteria.getRule(ruleId);
@@ -546,7 +531,7 @@ public class RuleResource {
         }
 
         // save the criteria
-        saveCriteria(contextConfig, criteria);
+        saveCriteria(requestContext, criteria);
 
         // create the response entity
         final RuleEntity responseEntity = new RuleEntity();
@@ -576,14 +561,13 @@ public class RuleResource {
             @QueryParam("revision") final Long revision) {
 
         // get the web context
-        final NiFiWebContext nifiWebContext = (NiFiWebContext) servletContext.getAttribute("nifi-web-context");
+        final NiFiWebConfigurationContext configurationContext = (NiFiWebConfigurationContext) servletContext.getAttribute("nifi-web-configuration-context");
 
         // build the web context config
-        final NiFiWebContextConfig contextConfig = getWebContextConfig(
-                processorId, revision, clientId);
+        final NiFiWebConfigurationRequestContext requestContext = getConfigurationRequestContext(processorId, revision, clientId);
 
         // load the criteria and get the rule
-        final Criteria criteria = getCriteria(nifiWebContext, contextConfig);
+        final Criteria criteria = getCriteria(configurationContext, requestContext);
         final Rule rule = criteria.getRule(ruleId);
 
         if (rule == null) {
@@ -594,7 +578,7 @@ public class RuleResource {
         criteria.deleteRule(rule);
 
         // save the criteria
-        saveCriteria(contextConfig, criteria);
+        saveCriteria(requestContext, criteria);
 
         // create the response entity
         final RulesEntity responseEntity = new RulesEntity();
@@ -607,26 +591,26 @@ public class RuleResource {
         return noCache(response).build();
     }
 
-    private Criteria getCriteria(final NiFiWebContext nifiWebContext, final NiFiWebContextConfig contextConfig) {
-        final ProcessorInfo processorInfo;
+    private Criteria getCriteria(final NiFiWebConfigurationContext configurationContext, final NiFiWebRequestContext requestContext) {
+        final ComponentDetails processorDetails;
 
         try {
             // load the processor configuration
-            processorInfo = nifiWebContext.getProcessor(contextConfig);
+            processorDetails = configurationContext.getComponentDetails(requestContext);
         } catch (final InvalidRevisionException ire) {
             throw new WebApplicationException(invalidRevision(ire.getMessage()));
         } catch (final Exception e) {
-            final String message = String.format("Unable to get UpdateAttribute[id=%s] criteria: %s", contextConfig.getProcessorId(), e);
+            final String message = String.format("Unable to get UpdateAttribute[id=%s] criteria: %s", requestContext.getId(), e);
             logger.error(message, e);
             throw new WebApplicationException(error(message));
         }
 
         Criteria criteria = null;
-        if (processorInfo != null) {
+        if (processorDetails != null) {
             try {
-                criteria = CriteriaSerDe.deserialize(processorInfo.getAnnotationData());
+                criteria = CriteriaSerDe.deserialize(processorDetails.getAnnotationData());
             } catch (final IllegalArgumentException iae) {
-                final String message = String.format("Unable to deserialize existing rules for UpdateAttribute[id=%s]. Deserialization error: %s", contextConfig.getProcessorId(), iae);
+                final String message = String.format("Unable to deserialize existing rules for UpdateAttribute[id=%s]. Deserialization error: %s", requestContext.getId(), iae);
                 logger.error(message, iae);
                 throw new WebApplicationException(error(message));
             }
@@ -639,29 +623,38 @@ public class RuleResource {
         return criteria;
     }
 
-    private void saveCriteria(final NiFiWebContextConfig contextConfig, final Criteria criteria) {
+    private void saveCriteria(final NiFiWebConfigurationRequestContext requestContext, final Criteria criteria) {
         // serialize the criteria
         final String annotationData = CriteriaSerDe.serialize(criteria);
 
         // get the web context
-        final NiFiWebContext nifiWebContext = (NiFiWebContext) servletContext.getAttribute("nifi-web-context");
+        final NiFiWebConfigurationContext configurationContext = (NiFiWebConfigurationContext) servletContext.getAttribute("nifi-web-configuration-context");
 
         try {
             // save the annotation data
-            nifiWebContext.setProcessorAnnotationData(contextConfig, annotationData);
+            configurationContext.setAnnotationData(requestContext, annotationData);
         } catch (final InvalidRevisionException ire) {
             throw new WebApplicationException(invalidRevision(ire.getMessage()));
         } catch (final Exception e) {
-            final String message = String.format("Unable to save UpdateAttribute[id=%s] criteria: %s", contextConfig.getProcessorId(), e);
+            final String message = String.format("Unable to save UpdateAttribute[id=%s] criteria: %s", requestContext.getId(), e);
             logger.error(message, e);
             throw new WebApplicationException(error(message));
         }
     }
-
-    private NiFiWebContextConfig getWebContextConfig(final String processorId, final Long revision, final String clientId) {
-        return new HttpServletRequestContextConfig(request) {
+    
+    private NiFiWebRequestContext getRequestContext(final String processorId) {
+        return new HttpServletRequestContext(UiExtensionType.ProcessorConfiguration, request) {
             @Override
-            public String getProcessorId() {
+            public String getId() {
+                return processorId;
+            }
+        };
+    }
+    
+    private NiFiWebConfigurationRequestContext getConfigurationRequestContext(final String processorId, final Long revision, final String clientId) {
+        return new HttpServletConfigurationRequestContext(UiExtensionType.ProcessorConfiguration, request) {
+            @Override
+            public String getId() {
                 return processorId;
             }
 

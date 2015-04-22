@@ -41,7 +41,6 @@ import org.apache.nifi.cluster.protocol.message.FlowRequestMessage;
 import org.apache.nifi.cluster.protocol.message.FlowResponseMessage;
 import org.apache.nifi.logging.NiFiLog;
 import org.apache.nifi.util.FormatUtils;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -154,16 +153,73 @@ public class DataFlowManagementServiceImpl implements DataFlowManagementService 
             final ClusterDataFlow existingClusterDataFlow = flowDao.loadDataFlow();
 
             final StandardDataFlow dataFlow;
+            final byte[] controllerServiceBytes;
+            final byte[] reportingTaskBytes;
             if (existingClusterDataFlow == null) {
                 dataFlow = null;
+                controllerServiceBytes = new byte[0];
+                reportingTaskBytes = new byte[0];
             } else {
                 dataFlow = existingClusterDataFlow.getDataFlow();
+                controllerServiceBytes = existingClusterDataFlow.getControllerServices();
+                reportingTaskBytes = existingClusterDataFlow.getReportingTasks();
             }
 
-            flowDao.saveDataFlow(new ClusterDataFlow(dataFlow, nodeId));
+            flowDao.saveDataFlow(new ClusterDataFlow(dataFlow, nodeId, controllerServiceBytes, reportingTaskBytes));
         } finally {
             resourceLock.unlock("updatePrimaryNode");
         }
+    }
+    
+    
+    @Override
+    public void updateControllerServices(final byte[] controllerServiceBytes) throws DaoException {
+    	resourceLock.lock();
+    	try {
+    		final ClusterDataFlow existingClusterDataFlow = flowDao.loadDataFlow();
+
+            final StandardDataFlow dataFlow;
+            final byte[] reportingTaskBytes;
+            final NodeIdentifier nodeId;
+            if (existingClusterDataFlow == null) {
+                dataFlow = null;
+                nodeId = null;
+                reportingTaskBytes = new byte[0];
+            } else {
+                dataFlow = existingClusterDataFlow.getDataFlow();
+                nodeId = existingClusterDataFlow.getPrimaryNodeId();
+                reportingTaskBytes = existingClusterDataFlow.getReportingTasks();
+            }
+
+            flowDao.saveDataFlow(new ClusterDataFlow(dataFlow, nodeId, controllerServiceBytes, reportingTaskBytes));
+    	} finally {
+    		resourceLock.unlock("updateControllerServices");
+    	}
+    }
+    
+    @Override
+    public void updateReportingTasks(final byte[] reportingTaskBytes) throws DaoException {
+    	resourceLock.lock();
+    	try {
+    		final ClusterDataFlow existingClusterDataFlow = flowDao.loadDataFlow();
+
+            final StandardDataFlow dataFlow;
+            final byte[] controllerServiceBytes;
+            final NodeIdentifier nodeId;
+            if (existingClusterDataFlow == null) {
+                dataFlow = null;
+                nodeId = null;
+                controllerServiceBytes = null;
+            } else {
+                dataFlow = existingClusterDataFlow.getDataFlow();
+                nodeId = existingClusterDataFlow.getPrimaryNodeId();
+                controllerServiceBytes = existingClusterDataFlow.getControllerServices();
+            }
+
+            flowDao.saveDataFlow(new ClusterDataFlow(dataFlow, nodeId, controllerServiceBytes, reportingTaskBytes));
+    	} finally {
+    		resourceLock.unlock("updateControllerServices");
+    	}
     }
 
     @Override
@@ -303,9 +359,10 @@ public class DataFlowManagementServiceImpl implements DataFlowManagementService 
                             final ClusterDataFlow existingClusterDataFlow = flowDao.loadDataFlow();
                             final ClusterDataFlow currentClusterDataFlow;
                             if (existingClusterDataFlow == null) {
-                                currentClusterDataFlow = new ClusterDataFlow(dataFlow, null);
+                                currentClusterDataFlow = new ClusterDataFlow(dataFlow, null, new byte[0], new byte[0]);
                             } else {
-                                currentClusterDataFlow = new ClusterDataFlow(dataFlow, existingClusterDataFlow.getPrimaryNodeId());
+                                currentClusterDataFlow = new ClusterDataFlow(dataFlow, existingClusterDataFlow.getPrimaryNodeId(), 
+                                		existingClusterDataFlow.getControllerServices(), existingClusterDataFlow.getReportingTasks());
                             }
                             flowDao.saveDataFlow(currentClusterDataFlow);
                             flowDao.setPersistedFlowState(PersistedFlowState.CURRENT);

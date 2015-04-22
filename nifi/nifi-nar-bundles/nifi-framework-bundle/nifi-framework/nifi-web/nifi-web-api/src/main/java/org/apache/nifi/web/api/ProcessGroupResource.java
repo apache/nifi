@@ -287,7 +287,7 @@ public class ProcessGroupResource extends ApplicationResource {
         // get the updated revision
         final RevisionDTO revision = new RevisionDTO();
         revision.setClientId(clientId.getClientId());
-        revision.setVersion(controllerResponse.getRevision());
+        revision.setVersion(controllerResponse.getVersion());
 
         // create the response entity
         final ProcessGroupEntity processGroupEntity = new ProcessGroupEntity();
@@ -365,7 +365,7 @@ public class ProcessGroupResource extends ApplicationResource {
         // get the updated revision
         final RevisionDTO revision = new RevisionDTO();
         revision.setClientId(clientId.getClientId());
-        revision.setVersion(controllerResponse.getRevision());
+        revision.setVersion(controllerResponse.getVersion());
 
         // create the response entity
         final FlowSnippetEntity entity = new FlowSnippetEntity();
@@ -441,7 +441,7 @@ public class ProcessGroupResource extends ApplicationResource {
         // get the updated revision
         final RevisionDTO revision = new RevisionDTO();
         revision.setClientId(clientId.getClientId());
-        revision.setVersion(response.getRevision());
+        revision.setVersion(response.getVersion());
 
         // create the response entity
         final FlowSnippetEntity entity = new FlowSnippetEntity();
@@ -559,7 +559,7 @@ public class ProcessGroupResource extends ApplicationResource {
         // get the updated revision
         final RevisionDTO updatedRevision = new RevisionDTO();
         updatedRevision.setClientId(revision.getClientId());
-        updatedRevision.setVersion(response.getRevision());
+        updatedRevision.setVersion(response.getVersion());
 
         // create the response entity
         final ProcessGroupEntity entity = new ProcessGroupEntity();
@@ -616,7 +616,7 @@ public class ProcessGroupResource extends ApplicationResource {
         // create the revision
         final RevisionDTO revision = new RevisionDTO();
         revision.setClientId(clientId.getClientId());
-        revision.setVersion(controllerResponse.getRevision());
+        revision.setVersion(controllerResponse.getVersion());
 
         // create the response entity
         final ProcessGroupEntity processGroupEntity = new ProcessGroupEntity();
@@ -795,7 +795,7 @@ public class ProcessGroupResource extends ApplicationResource {
         // get the updated revision
         final RevisionDTO updatedRevision = new RevisionDTO();
         updatedRevision.setClientId(revision.getClientId());
-        updatedRevision.setVersion(controllerResponse.getRevision());
+        updatedRevision.setVersion(controllerResponse.getVersion());
 
         // create the response entity
         final ProcessGroupEntity entity = new ProcessGroupEntity();
@@ -931,7 +931,7 @@ public class ProcessGroupResource extends ApplicationResource {
         // create the revision
         final RevisionDTO updatedRevision = new RevisionDTO();
         updatedRevision.setClientId(revision.getClientId());
-        updatedRevision.setVersion(response.getRevision());
+        updatedRevision.setVersion(response.getVersion());
 
         // create the response entity
         final ProcessGroupEntity entity = new ProcessGroupEntity();
@@ -989,7 +989,7 @@ public class ProcessGroupResource extends ApplicationResource {
         // get the updated revision
         final RevisionDTO revision = new RevisionDTO();
         revision.setClientId(clientId.getClientId());
-        revision.setVersion(controllerResponse.getRevision());
+        revision.setVersion(controllerResponse.getVersion());
 
         // create the response entity
         final ProcessGroupEntity entity = new ProcessGroupEntity();

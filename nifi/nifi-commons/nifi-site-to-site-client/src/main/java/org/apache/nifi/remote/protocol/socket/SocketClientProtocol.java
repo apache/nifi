@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
@@ -75,6 +76,7 @@ public class SocketClientProtocol implements ClientProtocol {
     private int batchCount;
     private long batchSize;
     private long batchMillis;
+    private EventReporter eventReporter;
 
     private static final long BATCH_SEND_NANOS = TimeUnit.SECONDS.toNanos(5L); // send batches of up to 5 seconds
     
@@ -91,6 +93,10 @@ public class SocketClientProtocol implements ClientProtocol {
     
     public void setPreferredBatchDuration(final long millis) {
         this.batchMillis = millis;
+    }
+    
+    public void setEventReporter(final EventReporter eventReporter) {
+    	this.eventReporter = eventReporter;
     }
     
     public void setDestination(final RemoteDestination destination) {
@@ -272,7 +278,7 @@ public class SocketClientProtocol implements ClientProtocol {
         }
         
         return new SocketClientTransaction(versionNegotiator.getVersion(), destination.getIdentifier(), peer, codec, 
-        		direction, useCompression, (int) destination.getYieldPeriod(TimeUnit.MILLISECONDS));
+        		direction, useCompression, (int) destination.getYieldPeriod(TimeUnit.MILLISECONDS), eventReporter);
     }
 
 

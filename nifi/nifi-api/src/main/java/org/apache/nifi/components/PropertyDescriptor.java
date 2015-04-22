@@ -142,9 +142,19 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
             final Set<String> validIdentifiers = context.getControllerServiceLookup().getControllerServiceIdentifiers(controllerServiceDefinition);
             if (validIdentifiers != null && validIdentifiers.contains(input)) {
                 final ControllerService controllerService = context.getControllerServiceLookup().getControllerService(input);
-                if (!context.getControllerServiceLookup().isControllerServiceEnabled(controllerService)) {
+                if ( !context.isValidationRequired(controllerService) ) {
                     return new ValidationResult.Builder()
-                            .input(input)
+                        .input(input)
+                        .subject(getName())
+                        .valid(true)
+                        .build();
+                }
+                
+                final String serviceId = controllerService.getIdentifier();
+                if (!context.getControllerServiceLookup().isControllerServiceEnabled(serviceId) && 
+                    !context.getControllerServiceLookup().isControllerServiceEnabling(serviceId)) {
+                    return new ValidationResult.Builder()
+                            .input(context.getControllerServiceLookup().getControllerServiceName(serviceId))
                             .subject(getName())
                             .valid(false)
                             .explanation("Controller Service " + controllerService + " is disabled")

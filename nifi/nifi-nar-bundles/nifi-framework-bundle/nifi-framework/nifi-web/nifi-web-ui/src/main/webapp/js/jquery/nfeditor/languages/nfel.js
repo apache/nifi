@@ -14,6 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/* global nf, CodeMirror */
+
 nf.nfel = (function() {
     
     /**
@@ -410,8 +413,8 @@ nf.nfel = (function() {
                             // consume the entire token to better support suggest below
                             stream.match(attributeOrSubjectlessFunctionExpression);
 
-                            // if the result returned a match
-                            if (subjectlessFunctionRegex.test(attributeOrSubjectlessFunctionName)) {
+                            // if the result returned a match and is followed by a (
+                            if (subjectlessFunctionRegex.test(attributeOrSubjectlessFunctionName) && stream.peek() === '(') {
                                 // --------------------
                                 // subjectless function
                                 // --------------------
@@ -550,8 +553,8 @@ nf.nfel = (function() {
                             // against the latter.
                             stream.match(/^[a-zA-Z]+/);
 
-                            // see if this matches a known function
-                            if (functionRegex.test(functionName)) {
+                            // see if this matches a known function and is followed by (
+                            if (functionRegex.test(functionName) && stream.peek() === '(') {
                                 // --------
                                 // function
                                 // --------

@@ -14,6 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/* global nf, d3 */
+
 nf.CanvasUtils = (function () {
 
     var config = {
@@ -308,8 +311,9 @@ nf.CanvasUtils = (function () {
 
                     // if we've reached the last line, use single line ellipsis
                     if (++i >= lineCount) {
-                        // restore the current word
-                        var remainder = [word].concat(words);
+                        // get the remainder using the current word and 
+                        // reversing whats left
+                        var remainder = [word].concat(words.reverse());
 
                         // apply ellipsis to the last line
                         nf.CanvasUtils.ellipsis(tspan, remainder.join(' '));
@@ -319,7 +323,7 @@ nf.CanvasUtils = (function () {
                     } else {
                         tspan.text(word);
 
-                        // other prep the line for the next iteration
+                        // prep the line for the next iteration
                         line = [word];
                     }
                 }

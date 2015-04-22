@@ -84,7 +84,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <org.slf4j.version>1.7.10</org.slf4j.version>
-        <jetty.version>9.2.5.v20141112</jetty.version>
+        <jetty.version>9.2.10.v20150310</jetty.version>
         <lucene.version>4.10.3</lucene.version>
         <spring.version>4.1.4.RELEASE</spring.version>
         <spring.security.version>3.2.5.RELEASE</spring.security.version>
@@ -676,6 +676,11 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-ui-extension</artifactId>
+                <version>0.1.0-incubating-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-flowfile-packager</artifactId>
                 <version>0.1.0-incubating-SNAPSHOT</version>
             </dependency>
@@ -790,6 +795,30 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-http-context-map-nar</artifactId>
+                <version>0.1.0-incubating-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-social-media-nar</artifactId>
+                <version>0.1.0-incubating-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-hl7-nar</artifactId>
+                <version>0.1.0-incubating-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-language-translation-nar</artifactId>
+                <version>0.1.0-incubating-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-geo-nar</artifactId>
                 <version>0.1.0-incubating-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>

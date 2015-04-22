@@ -32,12 +32,7 @@ public class ClusterContextThreadLocal {
     }
     
     public static ClusterContext getContext() {
-        ClusterContext ctx = contextHolder.get();
-        if(ctx == null) {
-            ctx = createEmptyContext();
-            contextHolder.set(ctx);
-        }
-        return ctx;
+        return contextHolder.get();
     }
     
     public static void setContext(final ClusterContext context) {

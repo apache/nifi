@@ -31,7 +31,7 @@
                 <div id="counters-link" class="utility-button" title="Counters"></div>
                 <div id="history-link" class="utility-button" title="Flow Configuration History"></div>
                 <div id="provenance-link" class="utility-button" title="Data Provenance"></div>
-                <div id="flow-settings-link" class="utility-button" title="Flow Settings"></div>
+                <div id="flow-settings-link" class="utility-button" title="Controller Settings"></div>
                 <div id="templates-link" class="utility-button" title="Templates"></div>
                 <div id="users-link" class="utility-button" title="Users"><div id="has-pending-accounts" class="hidden"></div></div>
                 <div id="cluster-link" class="utility-button" title="Cluster"></div>

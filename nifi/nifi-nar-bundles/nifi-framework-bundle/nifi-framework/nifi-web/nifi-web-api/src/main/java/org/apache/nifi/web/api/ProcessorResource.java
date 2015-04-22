@@ -70,6 +70,11 @@ import org.apache.nifi.web.api.request.IntegerParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.ui.extension.UiExtension;
+import org.apache.nifi.ui.extension.UiExtensionMapping;
+import org.apache.nifi.web.UiExtensionType;
+import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
+import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
 import org.codehaus.enunciate.jaxrs.TypeHint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -118,9 +123,21 @@ public class ProcessorResource extends ApplicationResource {
         // get the config details and see if there is a custom ui for this processor type
         ProcessorConfigDTO config = processor.getConfig();
         if (config != null) {
+            // consider legacy custom ui fist
             String customUiUrl = servletContext.getInitParameter(processor.getType());
             if (StringUtils.isNotBlank(customUiUrl)) {
                 config.setCustomUiUrl(customUiUrl);
+            } else {
+                // see if this processor has any ui extensions
+                final UiExtensionMapping uiExtensionMapping = (UiExtensionMapping) servletContext.getAttribute("nifi-ui-extensions");
+                if (uiExtensionMapping.hasUiExtension(processor.getType())) {
+                    final List<UiExtension> uiExtensions = uiExtensionMapping.getUiExtension(processor.getType());
+                    for (final UiExtension uiExtension : uiExtensions) {
+                        if (UiExtensionType.ProcessorConfiguration.equals(uiExtension.getExtensionType())) {
+                            config.setCustomUiUrl(uiExtension.getContextPath() + "/configure");
+                        }
+                    }
+                }
             }
         }
 
@@ -245,6 +262,10 @@ public class ProcessorResource extends ApplicationResource {
         if (processorEntity.getProcessor().getId() != null) {
             throw new IllegalArgumentException("Processor ID cannot be specified.");
         }
+        
+        if (StringUtils.isBlank(processorEntity.getProcessor().getType())) {
+            throw new IllegalArgumentException("The type of processor to create must be specified.");
+        }
 
         // if cluster manager, convert POST to PUT (to maintain same ID across nodes) and replicate
         if (properties.isClusterManager()) {
@@ -288,7 +309,7 @@ public class ProcessorResource extends ApplicationResource {
         // get the updated revision
         final RevisionDTO updatedRevision = new RevisionDTO();
         updatedRevision.setClientId(revision.getClientId());
-        updatedRevision.setVersion(controllerResponse.getRevision());
+        updatedRevision.setVersion(controllerResponse.getVersion());
 
         // generate the response entity
         final ProcessorEntity entity = new ProcessorEntity();
@@ -370,6 +391,51 @@ public class ProcessorResource extends ApplicationResource {
         entity.setRevision(revision);
         entity.setStatusHistory(processorStatusHistory);
 
+        // generate the response
+        return clusterContext(generateOkResponse(entity)).build();
+    }
+    
+    /**
+     * Returns the descriptor for the specified property.
+     * 
+     * @param clientId Optional client id. If the client id is not specified, a
+     * new one will be generated. This value (whether specified or generated) is
+     * included in the response.
+     * @param id The id of the processor
+     * @param propertyName The property
+     * @return a propertyDescriptorEntity
+     */
+    @GET
+    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Path("/{id}/descriptors")
+    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    @TypeHint(PropertyDescriptorEntity.class)
+    public Response getPropertyDescriptor(
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId, 
+            @PathParam("id") String id, @QueryParam("propertyName") String propertyName) {
+        
+        // ensure the property name is specified
+        if (propertyName == null) {
+            throw new IllegalArgumentException("The property name must be specified.");
+        }
+        
+        // replicate if cluster manager
+        if (properties.isClusterManager()) {
+            return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
+        }
+        
+        // get the property descriptor
+        final PropertyDescriptorDTO descriptor = serviceFacade.getProcessorPropertyDescriptor(groupId, id, propertyName);
+        
+        // create the revision
+        final RevisionDTO revision = new RevisionDTO();
+        revision.setClientId(clientId.getClientId());
+        
+        // generate the response entity
+        final PropertyDescriptorEntity entity = new PropertyDescriptorEntity();
+        entity.setRevision(revision);
+        entity.setPropertyDescriptor(descriptor);
+        
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();
     }
@@ -607,7 +673,7 @@ public class ProcessorResource extends ApplicationResource {
         // get the updated revision
         final RevisionDTO updatedRevision = new RevisionDTO();
         updatedRevision.setClientId(revision.getClientId());
-        updatedRevision.setVersion(controllerResponse.getRevision());
+        updatedRevision.setVersion(controllerResponse.getVersion());
 
         // generate the response entity
         final ProcessorEntity entity = new ProcessorEntity();
@@ -664,7 +730,7 @@ public class ProcessorResource extends ApplicationResource {
         // get the updated revision
         final RevisionDTO updatedRevision = new RevisionDTO();
         updatedRevision.setClientId(clientId.getClientId());
-        updatedRevision.setVersion(controllerResponse.getRevision());
+        updatedRevision.setVersion(controllerResponse.getVersion());
 
         // generate the response entity
         final ProcessorEntity entity = new ProcessorEntity();

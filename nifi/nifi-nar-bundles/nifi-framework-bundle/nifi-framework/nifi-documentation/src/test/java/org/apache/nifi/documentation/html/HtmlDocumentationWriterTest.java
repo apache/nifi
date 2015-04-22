@@ -30,9 +30,17 @@ import org.apache.nifi.reporting.ReportingTask;
 import org.junit.Test;
 
 import static org.apache.nifi.documentation.html.XmlValidator.assertContains;
+import static org.junit.Assert.assertEquals;
 
 public class HtmlDocumentationWriterTest {
 
+	@Test
+	public void testJoin() {
+		assertEquals("a, b, c", HtmlDocumentationWriter.join(new String[] {"a",  "b", "c"}, ", "));
+		assertEquals("a, b", HtmlDocumentationWriter.join(new String[] {"a", "b"}, ", "));
+		assertEquals("a", HtmlDocumentationWriter.join(new String[] {"a"}, ", "));
+	}
+	
 	@Test
 	public void testDocumentControllerService() throws InitializationException, IOException {
 

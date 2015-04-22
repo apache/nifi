@@ -37,7 +37,7 @@ import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.action.ActionDTO;
 import org.apache.nifi.web.api.dto.action.HistoryDTO;
 import org.apache.nifi.web.api.dto.action.HistoryQueryDTO;
-import org.apache.nifi.web.api.entity.ProcessorHistoryEntity;
+import org.apache.nifi.web.api.entity.ComponentHistoryEntity;
 import org.codehaus.enunciate.jaxrs.TypeHint;
 import org.springframework.security.access.prepost.PreAuthorize;
 
@@ -245,7 +245,7 @@ public class HistoryResource extends ApplicationResource {
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @Path("/processors/{processorId}")
-    @TypeHint(ProcessorHistoryEntity.class)
+    @TypeHint(ComponentHistoryEntity.class)
     public Response getProcessorHistory(
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
             @PathParam("processorId") final String processorId) {
@@ -255,14 +255,76 @@ public class HistoryResource extends ApplicationResource {
         revision.setClientId(clientId.getClientId());
 
         // create the response entity
-        final ProcessorHistoryEntity entity = new ProcessorHistoryEntity();
+        final ComponentHistoryEntity entity = new ComponentHistoryEntity();
         entity.setRevision(revision);
-        entity.setProcessorHistory(serviceFacade.getProcessorHistory(processorId));
+        entity.setComponentHistory(serviceFacade.getComponentHistory(processorId));
 
         // generate the response
         return generateOkResponse(entity).build();
     }
+    
+    /**
+     * Gets the actions for the specified controller service.
+     *
+     * @param clientId Optional client id. If the client id is not specified, a
+     * new one will be generated. This value (whether specified or generated) is
+     * included in the response.
+     * @param controllerServiceId The id of the controller service.
+     * @return An componentHistoryEntity.
+     */
+    @GET
+    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    @Path("/controller-services/{controllerServiceId}")
+    @TypeHint(ComponentHistoryEntity.class)
+    public Response getControllerServiceHistory(
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @PathParam("controllerServiceId") final String controllerServiceId) {
 
+        // create the revision
+        final RevisionDTO revision = new RevisionDTO();
+        revision.setClientId(clientId.getClientId());
+
+        // create the response entity
+        final ComponentHistoryEntity entity = new ComponentHistoryEntity();
+        entity.setRevision(revision);
+        entity.setComponentHistory(serviceFacade.getComponentHistory(controllerServiceId));
+
+        // generate the response
+        return generateOkResponse(entity).build();
+    }
+    
+    /**
+     * Gets the actions for the specified reporting task.
+     *
+     * @param clientId Optional client id. If the client id is not specified, a
+     * new one will be generated. This value (whether specified or generated) is
+     * included in the response.
+     * @param reportingTaskId The id of the reporting task.
+     * @return An componentHistoryEntity.
+     */
+    @GET
+    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    @Path("/reporting-tasks/{reportingTaskId}")
+    @TypeHint(ComponentHistoryEntity.class)
+    public Response getReportingTaskHistory(
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @PathParam("reportingTaskId") final String reportingTaskId) {
+
+        // create the revision
+        final RevisionDTO revision = new RevisionDTO();
+        revision.setClientId(clientId.getClientId());
+
+        // create the response entity
+        final ComponentHistoryEntity entity = new ComponentHistoryEntity();
+        entity.setRevision(revision);
+        entity.setComponentHistory(serviceFacade.getComponentHistory(reportingTaskId));
+
+        // generate the response
+        return generateOkResponse(entity).build();
+    }
+    
     /* setters */
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;

@@ -116,12 +116,23 @@ public class StandardRepositoryRecord implements RepositoryRecord {
 
     public void setWorking(final FlowFileRecord flowFile, final String attributeKey, final String attributeValue) {
         workingFlowFileRecord = flowFile;
-        updatedAttributes.put(attributeKey, attributeValue);
+        
+        // If setting attribute to same value as original, don't add to updated attributes
+        final String currentValue = originalAttributes.get(attributeKey);
+        if ( currentValue == null || !currentValue.equals(attributeValue) ) {
+        	updatedAttributes.put(attributeKey, attributeValue);
+        }
     }
 
     public void setWorking(final FlowFileRecord flowFile, final Map<String, String> updatedAttribs) {
         workingFlowFileRecord = flowFile;
-        updatedAttributes.putAll(updatedAttribs);
+        
+        for ( final Map.Entry<String, String> entry : updatedAttribs.entrySet() ) {
+        	final String currentValue = originalAttributes.get(entry.getKey());
+        	if ( currentValue == null || !currentValue.equals(entry.getValue()) ) {
+        		updatedAttributes.put(entry.getKey(), entry.getValue());
+        	}
+        }
     }
 
     @Override

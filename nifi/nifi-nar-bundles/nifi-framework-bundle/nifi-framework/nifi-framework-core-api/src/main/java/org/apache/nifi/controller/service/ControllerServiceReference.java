@@ -41,10 +41,11 @@ public interface ControllerServiceReference {
     Set<ConfiguredComponent> getReferencingComponents();
 
     /**
-     * Returns a {@link Set} of all Processors and Reporting Tasks that are
-     * referencing the Controller Service and are running, in addition to all
+     * Returns a {@link Set} of all Processors, Reporting Tasks, and Controller Services that are
+     * referencing the Controller Service and are running (in the case of Processors and Reporting Tasks)
+     * or enabled (in the case of Controller Services)
      *
      * @return
      */
-    Set<ConfiguredComponent> getRunningReferences();
+    Set<ConfiguredComponent> getActiveReferences();
 }

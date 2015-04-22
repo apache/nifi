@@ -163,7 +163,7 @@ public abstract class AbstractCacheServer implements CacheServer {
         stopped = true;
         logger.info("Stopping CacheServer {}", new Object[] { this.identifier });
 
-        if (serverSocketChannel != null) {
+        if (serverSocketChannel != null && serverSocketChannel.isOpen()) {
             serverSocketChannel.close();
         }
         // need to close out the created SocketChannels...this is done by interrupting

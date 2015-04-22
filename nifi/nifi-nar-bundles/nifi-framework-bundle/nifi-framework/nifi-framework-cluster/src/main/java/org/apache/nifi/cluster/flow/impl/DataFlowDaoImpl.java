@@ -111,6 +111,8 @@ public class DataFlowDaoImpl implements DataFlowDao {
     public static final String FLOW_XML_FILENAME = "flow.xml";
     public static final String TEMPLATES_FILENAME = "templates.xml";
     public static final String SNIPPETS_FILENAME = "snippets.xml";
+    public static final String CONTROLLER_SERVICES_FILENAME = "controller-services.xml";
+    public static final String REPORTING_TASKS_FILENAME = "reporting-tasks.xml";
     public static final String CLUSTER_INFO_FILENAME = "cluster-info.xml";
 
     private static final Logger logger = new NiFiLog(LoggerFactory.getLogger(DataFlowDaoImpl.class));
@@ -408,13 +410,7 @@ public class DataFlowDaoImpl implements DataFlowDao {
         final File stateFile = new File(dir, FLOW_PACKAGE);
         stateFile.createNewFile();
 
-        final byte[] flowBytes = getEmptyFlowBytes();
-        final byte[] templateBytes = new byte[0];
-        final byte[] snippetBytes = new byte[0];
-        final DataFlow dataFlow = new StandardDataFlow(flowBytes, templateBytes, snippetBytes);
-
-        final ClusterMetadata clusterMetadata = new ClusterMetadata();
-        writeDataFlow(stateFile, dataFlow, clusterMetadata);
+        writeDataFlow(stateFile, new ClusterDataFlow(null, null, new byte[0], new byte[0]), new ClusterMetadata());
 
         return stateFile;
     }
@@ -479,7 +475,9 @@ public class DataFlowDaoImpl implements DataFlowDao {
         byte[] templateBytes = new byte[0];
         byte[] snippetBytes = new byte[0];
         byte[] clusterInfoBytes = new byte[0];
-
+        byte[] controllerServiceBytes = new byte[0];
+        byte[] reportingTaskBytes = new byte[0];
+        
         try (final InputStream inStream = new FileInputStream(file);
                 final TarArchiveInputStream tarIn = new TarArchiveInputStream(new BufferedInputStream(inStream))) {
             TarArchiveEntry tarEntry;
@@ -501,6 +499,14 @@ public class DataFlowDaoImpl implements DataFlowDao {
                         clusterInfoBytes = new byte[(int) tarEntry.getSize()];
                         StreamUtils.fillBuffer(tarIn, clusterInfoBytes, true);
                         break;
+                    case CONTROLLER_SERVICES_FILENAME:
+                    	controllerServiceBytes = new byte[(int) tarEntry.getSize()];
+                    	StreamUtils.fillBuffer(tarIn, controllerServiceBytes, true);
+                    	break;
+                    case REPORTING_TASKS_FILENAME:
+                    	reportingTaskBytes = new byte[(int) tarEntry.getSize()];
+                    	StreamUtils.fillBuffer(tarIn, reportingTaskBytes, true);
+                    	break;
                     default:
                         throw new DaoException("Found Unexpected file in dataflow configuration: " + tarEntry.getName());
                 }
@@ -518,7 +524,7 @@ public class DataFlowDaoImpl implements DataFlowDao {
         final StandardDataFlow dataFlow = new StandardDataFlow(flowBytes, templateBytes, snippetBytes);
         dataFlow.setAutoStartProcessors(autoStart);
 
-        return new ClusterDataFlow(dataFlow, (clusterMetadata == null) ? null : clusterMetadata.getPrimaryNodeId());
+        return new ClusterDataFlow(dataFlow, (clusterMetadata == null) ? null : clusterMetadata.getPrimaryNodeId(), controllerServiceBytes, reportingTaskBytes);
     }
 
     private void writeDataFlow(final File file, final ClusterDataFlow clusterDataFlow) throws IOException, JAXBException {
@@ -536,7 +542,7 @@ public class DataFlowDaoImpl implements DataFlowDao {
         clusterMetadata.setPrimaryNodeId(clusterDataFlow.getPrimaryNodeId());
 
         // write to disk
-        writeDataFlow(file, dataFlow, clusterMetadata);
+        writeDataFlow(file, clusterDataFlow, clusterMetadata);
     }
 
     private void writeTarEntry(final TarArchiveOutputStream tarOut, final String filename, final byte[] bytes) throws IOException {
@@ -547,14 +553,23 @@ public class DataFlowDaoImpl implements DataFlowDao {
         tarOut.closeArchiveEntry();
     }
 
-    private void writeDataFlow(final File file, final DataFlow dataFlow, final ClusterMetadata clusterMetadata) throws IOException, JAXBException {
+    private void writeDataFlow(final File file, final ClusterDataFlow clusterDataFlow, final ClusterMetadata clusterMetadata) throws IOException, JAXBException {
 
         try (final OutputStream fos = new FileOutputStream(file);
                 final TarArchiveOutputStream tarOut = new TarArchiveOutputStream(new BufferedOutputStream(fos))) {
 
-            writeTarEntry(tarOut, FLOW_XML_FILENAME, dataFlow.getFlow());
-            writeTarEntry(tarOut, TEMPLATES_FILENAME, dataFlow.getTemplates());
-            writeTarEntry(tarOut, SNIPPETS_FILENAME, dataFlow.getSnippets());
+            final DataFlow dataFlow = clusterDataFlow.getDataFlow();
+            if ( dataFlow == null ) {
+                writeTarEntry(tarOut, FLOW_XML_FILENAME, getEmptyFlowBytes());
+                writeTarEntry(tarOut, TEMPLATES_FILENAME, new byte[0]);
+                writeTarEntry(tarOut, SNIPPETS_FILENAME, new byte[0]);
+            } else {
+                writeTarEntry(tarOut, FLOW_XML_FILENAME, dataFlow.getFlow());
+                writeTarEntry(tarOut, TEMPLATES_FILENAME, dataFlow.getTemplates());
+                writeTarEntry(tarOut, SNIPPETS_FILENAME, dataFlow.getSnippets());
+            }
+            writeTarEntry(tarOut, CONTROLLER_SERVICES_FILENAME, clusterDataFlow.getControllerServices());
+            writeTarEntry(tarOut, REPORTING_TASKS_FILENAME, clusterDataFlow.getReportingTasks());
 
             final ByteArrayOutputStream baos = new ByteArrayOutputStream(256);
             writeClusterMetadata(clusterMetadata, baos);

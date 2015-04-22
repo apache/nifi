@@ -14,6 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/* global nf, d3 */
+
 nf.Storage = (function () {
 
     // Store items for two days before being eligible for removal.

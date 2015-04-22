@@ -107,6 +107,6 @@ public class ContinuallyRunConnectableTask implements Callable<Boolean> {
             return true;
         }
         
-        return true;
+        return false;	// do not yield
     }
 }

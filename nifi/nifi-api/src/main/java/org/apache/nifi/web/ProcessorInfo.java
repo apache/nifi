@@ -22,6 +22,7 @@ import java.util.Map;
 /**
  *
  */
+@Deprecated
 public class ProcessorInfo {
 
     private final String id;

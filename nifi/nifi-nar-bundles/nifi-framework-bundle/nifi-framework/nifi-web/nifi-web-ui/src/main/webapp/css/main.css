@@ -126,12 +126,24 @@ div.nifi-tooltip {
     white-space: normal;
 }
 
+input.filter-list {
+    color: #888;
+}
+
 .table-cell {
     overflow: hidden;
     white-space: nowrap;
     line-height: normal;
     float: left;
     margin-top: 4px;
+}
+
+.collapsed {
+    background: transparent url(../images/iconTwistArrow.png) no-repeat scroll top left;
+}
+
+.expanded {
+    background: transparent url(../images/iconTwistArrow.png) no-repeat scroll top right;
 }
 
 input[type=text], textarea {
@@ -177,6 +189,15 @@ div.ajax-loading {
     background-image: url(../images/iconLoading.gif);
 }
 
+div.ajax-complete {
+    background-image: url(../images/iconCommit.png);
+}
+
+div.ajax-error {
+    /*margin-left: -2px;*/
+    background-image: url(../images/iconDelete.png);
+}
+
 div.button-refresh {
     background: transparent url(../images/buttonRefresh.png) no-repeat scroll top left;
 }
@@ -196,6 +217,13 @@ div.disabled {
     width: 16px;
     height: 16px;
     background: transparent url(../images/iconDisable.png) repeat scroll 0 0;
+}
+
+div.enabled {
+    float: left;
+    width: 16px;
+    height: 16px;
+    background: transparent url(../images/iconEnable.png) repeat scroll 0 0;
 }
 
 div.stopped {
@@ -248,20 +276,6 @@ div.has-bulletins {
 /*
     Styles for status/history/user tables.
 */
-
-div.expansion-button {
-    width: 11px;
-    height: 11px;
-    margin-left: 5px;
-}
-
-div.collapsed {
-    background: transparent url(../images/buttonExpandCollapse.png) no-repeat scroll top left;
-}
-
-div.expanded {
-    background: transparent url(../images/buttonExpandCollapse.png) no-repeat scroll top right;
-}
 
 span.label, div.label {
     font-weight: bold;

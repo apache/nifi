@@ -37,10 +37,10 @@
     </servlet>
     <servlet-mapping>
         <servlet-name>worksheet</servlet-name>
-        <url-pattern>/worksheet</url-pattern>
+        <url-pattern>/configure</url-pattern>
     </servlet-mapping>
     
     <welcome-file-list>
-        <welcome-file>worksheet</welcome-file>
+        <welcome-file>configure</welcome-file>
     </welcome-file-list>
 </web-app>
