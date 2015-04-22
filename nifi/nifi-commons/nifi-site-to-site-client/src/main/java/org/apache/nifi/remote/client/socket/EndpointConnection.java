@@ -21,33 +21,34 @@ import org.apache.nifi.remote.codec.FlowFileCodec;
 import org.apache.nifi.remote.protocol.socket.SocketClientProtocol;
 
 public class EndpointConnection {
-	private final Peer peer;
+
+    private final Peer peer;
     private final SocketClientProtocol socketClientProtocol;
     private final FlowFileCodec codec;
     private volatile long lastUsed;
-    
+
     public EndpointConnection(final Peer peer, final SocketClientProtocol socketClientProtocol, final FlowFileCodec codec) {
         this.peer = peer;
         this.socketClientProtocol = socketClientProtocol;
         this.codec = codec;
     }
-    
+
     public FlowFileCodec getCodec() {
         return codec;
     }
-    
+
     public SocketClientProtocol getSocketClientProtocol() {
         return socketClientProtocol;
     }
-    
+
     public Peer getPeer() {
         return peer;
     }
-    
+
     public void setLastTimeUsed() {
         lastUsed = System.currentTimeMillis();
     }
-    
+
     public long getLastTimeUsed() {
         return lastUsed;
     }

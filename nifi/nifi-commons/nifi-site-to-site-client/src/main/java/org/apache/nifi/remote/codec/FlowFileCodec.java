@@ -38,13 +38,13 @@ public interface FlowFileCodec extends VersionedRemoteResource {
      * Returns a List of all versions that this codec is able to support, in the
      * order that they are preferred by the codec
      *
-     * @return
+     * @return all supported versions
      */
     public List<Integer> getSupportedVersions();
 
     /**
-     * Encodes a DataPacket and its content as a single stream of data and writes
-     * that stream to the output.
+     * Encodes a DataPacket and its content as a single stream of data and
+     * writes that stream to the output.
      *
      * @param dataPacket the data to serialize
      * @param outStream the stream to write the data to
@@ -58,12 +58,13 @@ public interface FlowFileCodec extends VersionedRemoteResource {
      * Decodes the contents of the InputStream, interpreting the data to
      * determine the next DataPacket's attributes and content.
      *
-     * @param stream an InputStream containing DataPacket's content and attributes
+     * @param stream an InputStream containing DataPacket's content and
+     * attributes
      *
-     * @return the DataPacket that was created, or <code>null</code> if the stream
-     * was out of data
+     * @return the DataPacket that was created, or <code>null</code> if the
+     * stream was out of data
      *
-     * @throws IOException
+     * @throws IOException if unable to read stream
      * @throws ProtocolException if the input is malformed
      * @throws TransmissionDisabledException if a user terminates the connection
      */

@@ -21,7 +21,8 @@ import java.util.Set;
 import org.apache.nifi.remote.PeerStatus;
 
 public class PeerStatusCache {
-	private final Set<PeerStatus> statuses;
+
+    private final Set<PeerStatus> statuses;
     private final long timestamp;
 
     public PeerStatusCache(final Set<PeerStatus> statuses) {

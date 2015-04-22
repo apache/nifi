@@ -78,7 +78,8 @@ public class TCPClient {
             for (int i = 0; i < 1000; i++) {
                 sock.getOutputStream().write(bytes);
                 totalBytes += bytes.length;
-            }   sock.getOutputStream().flush();
+            }
+            sock.getOutputStream().flush();
         }
         logger.info("Total bytes sent: " + totalBytes + " to port " + port);
     }

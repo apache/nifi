@@ -29,7 +29,7 @@ public class MockControllerServiceInitializationContext extends MockControllerSe
     public MockControllerServiceInitializationContext(final ControllerService controllerService, final String identifier) {
         this(controllerService, identifier, new MockProcessorLog(identifier, controllerService));
     }
-    
+
     public MockControllerServiceInitializationContext(final ControllerService controllerService, final String identifier, final ComponentLog logger) {
         this.identifier = identifier;
         this.logger = logger;
@@ -40,17 +40,17 @@ public class MockControllerServiceInitializationContext extends MockControllerSe
     public String getIdentifier() {
         return identifier;
     }
-    
+
     @Override
     public String getControllerServiceName(final String serviceIdentifier) {
-    	return null;
+        return null;
     }
 
     @Override
     public ControllerServiceLookup getControllerServiceLookup() {
         return this;
     }
-    
+
     @Override
     public ComponentLog getLogger() {
         return logger;

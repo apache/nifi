@@ -22,10 +22,6 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import org.apache.nifi.io.nio.consumer.StreamConsumerFactory;
 
-/**
- *
- * @author none
- */
 public final class SocketChannelReader extends AbstractChannelReader {
 
     public SocketChannelReader(final String id, final SelectionKey key, final BufferPool empties, final StreamConsumerFactory consumerFactory) {
@@ -35,10 +31,10 @@ public final class SocketChannelReader extends AbstractChannelReader {
     /**
      * Receives TCP data from the socket channel for the given key.
      *
-     * @param key
-     * @param buffer
-     * @return
-     * @throws IOException
+     * @param key selection key
+     * @param buffer byte buffer to fill
+     * @return bytes read
+     * @throws IOException if error reading bytes
      */
     @Override
     protected int fillBuffer(final SelectionKey key, final ByteBuffer buffer) throws IOException {

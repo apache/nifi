@@ -81,7 +81,7 @@ public class MockReportingInitializationContext extends MockControllerServiceLoo
     public SchedulingStrategy getSchedulingStrategy() {
         return SchedulingStrategy.TIMER_DRIVEN;
     }
-    
+
     @Override
     public ComponentLog getLogger() {
         return logger;

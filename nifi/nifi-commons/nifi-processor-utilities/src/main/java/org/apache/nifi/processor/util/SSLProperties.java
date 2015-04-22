@@ -130,7 +130,13 @@ public class SSLProperties {
                 try {
                     final boolean storeValid = CertificateUtils.isStoreValid(file.toURI().toURL(), KeystoreType.valueOf(type), password.toCharArray());
                     if (!storeValid) {
-                        results.add(new ValidationResult.Builder().subject(keystoreDesc + " Properties").valid(false).explanation("Invalid KeyStore Password or Type specified for file " + filename).build());
+                        results.add(
+                                new ValidationResult.Builder()
+                                        .subject(keystoreDesc + " Properties")
+                                        .valid(false)
+                                        .explanation("Invalid KeyStore Password or Type specified for file " + filename)
+                                        .build()
+                        );
                     }
                 } catch (MalformedURLException e) {
                     results.add(new ValidationResult.Builder().subject(keystoreDesc + " Properties").valid(false).explanation("Malformed URL from file: " + e).build());

@@ -21,17 +21,18 @@ import java.io.IOException;
 import org.apache.nifi.remote.AbstractCommunicationsSession;
 
 public class SSLSocketChannelCommunicationsSession extends AbstractCommunicationsSession {
+
     private final SSLSocketChannel channel;
     private final SSLSocketChannelInput request;
     private final SSLSocketChannelOutput response;
-    
+
     public SSLSocketChannelCommunicationsSession(final SSLSocketChannel channel, final String uri) {
         super(uri);
         request = new SSLSocketChannelInput(channel);
         response = new SSLSocketChannelOutput(channel);
         this.channel = channel;
     }
-    
+
     @Override
     public SSLSocketChannelInput getInput() {
         return request;
@@ -55,33 +56,33 @@ public class SSLSocketChannelCommunicationsSession extends AbstractCommunication
     @Override
     public void close() throws IOException {
         IOException suppressed = null;
-        
+
         try {
             request.consume();
         } catch (final IOException ioe) {
             suppressed = ioe;
         }
-        
+
         try {
             channel.close();
         } catch (final IOException ioe) {
-            if ( suppressed != null ) {
+            if (suppressed != null) {
                 ioe.addSuppressed(suppressed);
             }
-            
+
             throw ioe;
         }
-        
-        if ( suppressed != null ) {
+
+        if (suppressed != null) {
             throw suppressed;
         }
     }
-    
+
     @Override
     public boolean isClosed() {
         return channel.isClosed();
     }
-    
+
     @Override
     public boolean isDataAvailable() {
         try {
@@ -105,7 +106,7 @@ public class SSLSocketChannelCommunicationsSession extends AbstractCommunication
     public void interrupt() {
         channel.interrupt();
     }
-    
+
     @Override
     public String toString() {
         return super.toString() + "[SSLSocketChannel=" + channel + "]";

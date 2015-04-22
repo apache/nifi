@@ -19,8 +19,8 @@ package org.apache.nifi.remote.exception;
 import java.io.IOException;
 
 /**
- * A ProtocolException occurs when unexpected data is received, for example
- * an invalid Response Code.
+ * A ProtocolException occurs when unexpected data is received, for example an
+ * invalid Response Code.
  */
 public class ProtocolException extends IOException {
 

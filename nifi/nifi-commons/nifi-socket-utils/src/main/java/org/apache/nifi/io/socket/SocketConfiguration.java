@@ -26,9 +26,6 @@ import java.security.cert.CertificateException;
 
 import javax.net.ssl.SSLContext;
 
-/**
- * @author unattributed
- */
 public final class SocketConfiguration {
 
     private Integer socketTimeout;
@@ -41,7 +38,8 @@ public final class SocketConfiguration {
     private Integer trafficClass;
     private SSLContextFactory sslContextFactory;
 
-    public SSLContext createSSLContext() throws KeyManagementException, NoSuchAlgorithmException, UnrecoverableKeyException, KeyStoreException, CertificateException, FileNotFoundException, IOException {
+    public SSLContext createSSLContext()
+            throws KeyManagementException, NoSuchAlgorithmException, UnrecoverableKeyException, KeyStoreException, CertificateException, FileNotFoundException, IOException {
         return sslContextFactory == null ? null : sslContextFactory.createSslContext();
     }
 

@@ -26,61 +26,63 @@ import org.junit.Test;
 @Ignore("This should not be enabled until we actually fail processor unit tests for using deprecated methods, which should happen in 0.1.0")
 public class TestStandardProcessorTestRunner {
 
-    @Test(expected=AssertionError.class)
+    @Test(expected = AssertionError.class)
     public void testFailOnDeprecatedTypeAnnotation() {
         new StandardProcessorTestRunner(new DeprecatedAnnotation());
     }
-    
+
     @Test
     public void testDoesNotFailOnNonDeprecatedTypeAnnotation() {
         new StandardProcessorTestRunner(new NewAnnotation());
     }
-    
-    @Test(expected=AssertionError.class)
+
+    @Test(expected = AssertionError.class)
     public void testFailOnDeprecatedMethodAnnotation() {
         new StandardProcessorTestRunner(new DeprecatedMethodAnnotation());
     }
-    
+
     @Test
     public void testDoesNotFailOnNonDeprecatedMethodAnnotation() {
         new StandardProcessorTestRunner(new NewMethodAnnotation());
     }
 
-    
-    
     @SuppressWarnings("deprecation")
     @org.apache.nifi.processor.annotation.Tags({"deprecated"})
     private static class DeprecatedAnnotation extends AbstractProcessor {
+
         @Override
         public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         }
     }
-    
+
     @org.apache.nifi.annotation.documentation.Tags({"deprecated"})
     private static class NewAnnotation extends AbstractProcessor {
+
         @Override
         public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         }
     }
-    
+
     private static class NewMethodAnnotation extends AbstractProcessor {
+
         @org.apache.nifi.annotation.lifecycle.OnScheduled
         public void dummy() {
-            
+
         }
-        
+
         @Override
         public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         }
     }
-    
+
     private static class DeprecatedMethodAnnotation extends AbstractProcessor {
+
         @SuppressWarnings("deprecation")
         @org.apache.nifi.processor.annotation.OnScheduled
         public void dummy() {
-            
+
         }
-        
+
         @Override
         public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         }
