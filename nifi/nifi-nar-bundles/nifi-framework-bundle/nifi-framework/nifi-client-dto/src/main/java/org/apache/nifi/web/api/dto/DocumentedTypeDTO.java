@@ -30,9 +30,7 @@ public class DocumentedTypeDTO {
     private Set<String> tags;
 
     /**
-     * An optional description of the corresponding type.
-     *
-     * @return
+     * @return An optional description of the corresponding type
      */
     public String getDescription() {
         return description;
@@ -43,9 +41,7 @@ public class DocumentedTypeDTO {
     }
 
     /**
-     * The type is the fully-qualified name of a Java class.
-     *
-     * @return
+     * @return The type is the fully-qualified name of a Java class
      */
     public String getType() {
         return type;
@@ -56,9 +52,7 @@ public class DocumentedTypeDTO {
     }
 
     /**
-     * The tags associated with this type.
-     *
-     * @return
+     * @return The tags associated with this type
      */
     public Set<String> getTags() {
         return tags;

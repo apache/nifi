@@ -30,18 +30,14 @@ public class SearchResult {
     }
 
     /**
-     * Get the label for this search result.
-     *
-     * @return
+     * @return the label for this search result
      */
     public String getLabel() {
         return label;
     }
 
     /**
-     * Get the matching string for this search result.
-     *
-     * @return
+     * @return the matching string for this search result
      */
     public String getMatch() {
         return match;
@@ -55,8 +51,8 @@ public class SearchResult {
         /**
          * Set the label for the search result.
          *
-         * @param label
-         * @return
+         * @param label to set
+         * @return the builder
          */
         public Builder label(final String label) {
             this.label = label;
@@ -66,8 +62,8 @@ public class SearchResult {
         /**
          * Set the matching string for the search result.
          *
-         * @param match
-         * @return
+         * @param match string
+         * @return the builder
          */
         public Builder match(final String match) {
             this.match = match;

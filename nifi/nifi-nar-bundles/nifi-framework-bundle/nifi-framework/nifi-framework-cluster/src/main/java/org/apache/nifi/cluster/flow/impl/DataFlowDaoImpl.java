@@ -187,36 +187,35 @@ public class DataFlowDaoImpl implements DataFlowDao {
             throw new DaoException(ex);
         }
     }
-    
-    
+
     private void syncWithRestore(final File primaryFile, final File restoreFile) throws IOException {
         try (final FileInputStream primaryFis = new FileInputStream(primaryFile);
-             final TarArchiveInputStream primaryIn = new TarArchiveInputStream(primaryFis);
-             final FileInputStream restoreFis = new FileInputStream(restoreFile);
-             final TarArchiveInputStream restoreIn = new TarArchiveInputStream(restoreFis)) {
-            
+                final TarArchiveInputStream primaryIn = new TarArchiveInputStream(primaryFis);
+                final FileInputStream restoreFis = new FileInputStream(restoreFile);
+                final TarArchiveInputStream restoreIn = new TarArchiveInputStream(restoreFis)) {
+
             final ArchiveEntry primaryEntry = primaryIn.getNextEntry();
             final ArchiveEntry restoreEntry = restoreIn.getNextEntry();
 
-            if ( primaryEntry == null && restoreEntry == null ) {
+            if (primaryEntry == null && restoreEntry == null) {
                 return;
             }
 
-            if ( (primaryEntry == null && restoreEntry != null) || (primaryEntry != null && restoreEntry == null) ) {
+            if ((primaryEntry == null && restoreEntry != null) || (primaryEntry != null && restoreEntry == null)) {
                 throw new IllegalStateException(String.format("Primary file '%s' is different than restore file '%s'",
                         primaryFile.getAbsoluteFile(), restoreFile.getAbsolutePath()));
             }
-            
+
             final byte[] primaryMd5 = calculateMd5(primaryIn);
             final byte[] restoreMd5 = calculateMd5(restoreIn);
-            
-            if ( !Arrays.equals(primaryMd5, restoreMd5) ) {
+
+            if (!Arrays.equals(primaryMd5, restoreMd5)) {
                 throw new IllegalStateException(String.format("Primary file '%s' is different than restore file '%s'",
                         primaryFile.getAbsoluteFile(), restoreFile.getAbsolutePath()));
             }
         }
     }
-    
+
     private byte[] calculateMd5(final InputStream in) throws IOException {
         final MessageDigest digest;
         try {
@@ -224,7 +223,7 @@ public class DataFlowDaoImpl implements DataFlowDao {
         } catch (final NoSuchAlgorithmException nsae) {
             throw new IOException(nsae);
         }
-        
+
         int len;
         final byte[] buffer = new byte[8192];
         while ((len = in.read(buffer)) > -1) {
@@ -257,12 +256,14 @@ public class DataFlowDaoImpl implements DataFlowDao {
                     if (primaryStateFile == null) {
                         writeDataFlow(createNewFlowStateFile(restoreDirectory), dataFlow);
                     } else {
-                        throw new DaoException(String.format("Unable to save dataflow because dataflow state file in primary directory '%s' exists, but it does not exist in the restore directory '%s'",
+                        throw new DaoException(String.format("Unable to save dataflow because dataflow state file in primary directory "
+                                + "'%s' exists, but it does not exist in the restore directory '%s'",
                                 primaryDirectory.getAbsolutePath(), restoreDirectory.getAbsolutePath()));
                     }
                 } else {
                     if (primaryStateFile == null) {
-                        throw new DaoException(String.format("Unable to save dataflow because dataflow state file in restore directory '%s' exists, but it does not exist in the primary directory '%s'",
+                        throw new DaoException(String.format("Unable to save dataflow because dataflow state file in restore directory "
+                                + "'%s' exists, but it does not exist in the primary directory '%s'",
                                 restoreDirectory.getAbsolutePath(), primaryDirectory.getAbsolutePath()));
                     } else {
                         final PersistedFlowState primaryFlowState = getPersistedFlowState(primaryStateFile);
@@ -270,14 +271,15 @@ public class DataFlowDaoImpl implements DataFlowDao {
                         if (primaryFlowState == restoreFlowState) {
                             writeDataFlow(restoreStateFile, dataFlow);
                         } else {
-                            throw new DaoException(String.format("Unable to save dataflow because state file in primary directory '%s' has state '%s', but the state file in the restore directory '%s' has state '%s'",
+                            throw new DaoException(String.format("Unable to save dataflow because state file in primary directory "
+                                    + "'%s' has state '%s', but the state file in the restore directory '%s' has state '%s'",
                                     primaryDirectory.getAbsolutePath(), primaryFlowState, restoreDirectory.getAbsolutePath(), restoreFlowState));
                         }
                     }
                 }
             }
 
-            // write dataflow to primary 
+            // write dataflow to primary
             if (primaryStateFile == null) {
                 writeDataFlow(createNewFlowStateFile(primaryDirectory), dataFlow);
             } else {
@@ -477,7 +479,7 @@ public class DataFlowDaoImpl implements DataFlowDao {
         byte[] clusterInfoBytes = new byte[0];
         byte[] controllerServiceBytes = new byte[0];
         byte[] reportingTaskBytes = new byte[0];
-        
+
         try (final InputStream inStream = new FileInputStream(file);
                 final TarArchiveInputStream tarIn = new TarArchiveInputStream(new BufferedInputStream(inStream))) {
             TarArchiveEntry tarEntry;
@@ -500,13 +502,13 @@ public class DataFlowDaoImpl implements DataFlowDao {
                         StreamUtils.fillBuffer(tarIn, clusterInfoBytes, true);
                         break;
                     case CONTROLLER_SERVICES_FILENAME:
-                    	controllerServiceBytes = new byte[(int) tarEntry.getSize()];
-                    	StreamUtils.fillBuffer(tarIn, controllerServiceBytes, true);
-                    	break;
+                        controllerServiceBytes = new byte[(int) tarEntry.getSize()];
+                        StreamUtils.fillBuffer(tarIn, controllerServiceBytes, true);
+                        break;
                     case REPORTING_TASKS_FILENAME:
-                    	reportingTaskBytes = new byte[(int) tarEntry.getSize()];
-                    	StreamUtils.fillBuffer(tarIn, reportingTaskBytes, true);
-                    	break;
+                        reportingTaskBytes = new byte[(int) tarEntry.getSize()];
+                        StreamUtils.fillBuffer(tarIn, reportingTaskBytes, true);
+                        break;
                     default:
                         throw new DaoException("Found Unexpected file in dataflow configuration: " + tarEntry.getName());
                 }
@@ -559,7 +561,7 @@ public class DataFlowDaoImpl implements DataFlowDao {
                 final TarArchiveOutputStream tarOut = new TarArchiveOutputStream(new BufferedOutputStream(fos))) {
 
             final DataFlow dataFlow = clusterDataFlow.getDataFlow();
-            if ( dataFlow == null ) {
+            if (dataFlow == null) {
                 writeTarEntry(tarOut, FLOW_XML_FILENAME, getEmptyFlowBytes());
                 writeTarEntry(tarOut, TEMPLATES_FILENAME, new byte[0]);
                 writeTarEntry(tarOut, SNIPPETS_FILENAME, new byte[0]);

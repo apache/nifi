@@ -27,97 +27,91 @@ import org.apache.nifi.remote.protocol.DataPacket;
 
 public interface SiteToSiteClientConfig extends Serializable {
 
-	/**
-	 * Returns the configured URL for the remote NiFi instance
-	 * @return
-	 */
-	String getUrl();
-
-	/**
-	 * Returns the communications timeout in nanoseconds
-	 * @return
-	 */
-	long getTimeout(final TimeUnit timeUnit);
-	
-	/**
-	 * Returns the amount of time that a connection can remain idle before it is
-	 * "expired" and shut down
-	 * @param timeUnit
-	 * @return
-	 */
-	long getIdleConnectionExpiration(TimeUnit timeUnit);
-
-	/**
-	 * Returns the amount of time that a particular node will be ignored after a
-	 * communications error with that node occurs
-	 * @param timeUnit
-	 * @return
-	 */
-	long getPenalizationPeriod(TimeUnit timeUnit);
-
-	/**
-	 * Returns the SSL Context that is configured for this builder
-	 * @return
-	 */
-	SSLContext getSslContext();
-	
-	/**
-	 * Returns the file that is to be used for persisting the nodes of a remote cluster, if any.
-	 * @return
-	 */
-	File getPeerPersistenceFile();
-
-	/**
-	 * Returns a boolean indicating whether or not compression will be used to transfer data
-	 * to and from the remote instance
-	 * @return
-	 */
-	boolean isUseCompression();
-
-	/**
-	 * Returns the name of the port that the client is to communicate with.
-	 * @return
-	 */
-	String getPortName();
-
-	/**
-	 * Returns the identifier of the port that the client is to communicate with.
-	 * @return
-	 */
-	String getPortIdentifier();
-	
-	/**
-	 * When pulling data from a NiFi instance, the sender chooses how large a Transaction is. However,
-	 * the client has the ability to request a particular batch size/duration. This returns the maximum
-	 * amount of time that we will request a NiFi instance to send data to us in a Transaction.
-	 * 
-	 * @param timeUnit
-	 * @return
-	 */
-	long getPreferredBatchDuration(TimeUnit timeUnit);
-	
     /**
-     * When pulling data from a NiFi instance, the sender chooses how large a Transaction is. However,
-     * the client has the ability to request a particular batch size/duration. This returns the maximum
-     * number of bytes that we will request a NiFi instance to send data to us in a Transaction.
-     * 
-     * @return
+     * @return the configured URL for the remote NiFi instance
      */
-	long getPreferredBatchSize();
-	
-	
-	/**
-     * When pulling data from a NiFi instance, the sender chooses how large a Transaction is. However,
-     * the client has the ability to request a particular batch size/duration. This returns the maximum
-     * number of {@link DataPacket}s that we will request a NiFi instance to send data to us in a Transaction.
-     * 
-     * @return
+    String getUrl();
+
+    /**
+     * @param timeUnit unit over which to report the timeout
+     * @return the communications timeout in given unit
      */
-	int getPreferredBatchCount();
-	
-	/**
-     * Returns the EventReporter that is to be used by clients to report events
-     * @return
+    long getTimeout(final TimeUnit timeUnit);
+
+    /**
+     * @param timeUnit the unit for which to report the time
+     * @return the amount of time that a connection can remain idle before it is
+     * "expired" and shut down
+     */
+    long getIdleConnectionExpiration(TimeUnit timeUnit);
+
+    /**
+     * @param timeUnit unit over which to report the time
+     * @return the amount of time that a particular node will be ignored after a
+     * communications error with that node occurs
+     */
+    long getPenalizationPeriod(TimeUnit timeUnit);
+
+    /**
+     * @return the SSL Context that is configured for this builder
+     */
+    SSLContext getSslContext();
+
+    /**
+     * @return the file that is to be used for persisting the nodes of a remote
+     * cluster, if any
+     */
+    File getPeerPersistenceFile();
+
+    /**
+     * @return a boolean indicating whether or not compression will be used to
+     * transfer data to and from the remote instance
+     */
+    boolean isUseCompression();
+
+    /**
+     * @return the name of the port that the client is to communicate with
+     */
+    String getPortName();
+
+    /**
+     * @return the identifier of the port that the client is to communicate with
+     */
+    String getPortIdentifier();
+
+    /**
+     * When pulling data from a NiFi instance, the sender chooses how large a
+     * Transaction is. However, the client has the ability to request a
+     * particular batch size/duration.
+     *
+     * @param timeUnit unit of time over which to report the duration
+     * @return the maximum amount of time that we will request a NiFi instance
+     * to send data to us in a Transaction
+     */
+    long getPreferredBatchDuration(TimeUnit timeUnit);
+
+    /**
+     * When pulling data from a NiFi instance, the sender chooses how large a
+     * Transaction is. However, the client has the ability to request a
+     * particular batch size/duration.
+     *
+     * @return returns the maximum number of bytes that we will request a NiFi
+     * instance to send data to us in a Transaction
+     */
+    long getPreferredBatchSize();
+
+    /**
+     * When pulling data from a NiFi instance, the sender chooses how large a
+     * Transaction is. However, the client has the ability to request a
+     * particular batch size/duration.
+     *
+     * @return the maximum number of {@link DataPacket}s that we will request a
+     * NiFi instance to send data to us in a Transaction
+     */
+    int getPreferredBatchCount();
+
+    /**
+     * @return the EventReporter that is to be used by clients to report events
      */
     EventReporter getEventReporter();
 

@@ -268,7 +268,7 @@ public class AuthorizeUserActionTest {
     /**
      * Tests AuthorityAccessException in doesDnExist.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test(expected = AdministrationException.class)
     public void testAuthorityAccessExceptionInDoesDnExist() throws Exception {
@@ -279,7 +279,7 @@ public class AuthorizeUserActionTest {
     /**
      * Test unknown user in the authority provider.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test(expected = AccountNotFoundException.class)
     public void testUnknownUser() throws Exception {
@@ -290,7 +290,7 @@ public class AuthorizeUserActionTest {
     /**
      * Test a user thats been removed after checking their existence.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test(expected = AccountNotFoundException.class)
     public void testUserRemovedAfterCheckingExistence() throws Exception {
@@ -301,7 +301,7 @@ public class AuthorizeUserActionTest {
     /**
      * Testing AuthorityAccessException when getting authorities.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test(expected = AdministrationException.class)
     public void testAuthorityAccessException() throws Exception {
@@ -312,7 +312,7 @@ public class AuthorizeUserActionTest {
     /**
      * Testing DataAccessException while creating user accounts.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test(expected = DataAccessException.class)
     public void testErrorCreatingUserAccount() throws Exception {
@@ -323,7 +323,7 @@ public class AuthorizeUserActionTest {
     /**
      * Tests the general case when a user account is created.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testAccountCreation() throws Exception {
@@ -343,7 +343,7 @@ public class AuthorizeUserActionTest {
      * Tests the general case when there is an existing user account that
      * requires verification.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testExistingUserRequiresVerification() throws Exception {
@@ -364,7 +364,7 @@ public class AuthorizeUserActionTest {
      * Tests the general case when there is an existing user account that does
      * not require verification.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testExistingUserNoVerification() throws Exception {
@@ -386,7 +386,7 @@ public class AuthorizeUserActionTest {
     /**
      * Tests existing users whose accounts are in a pending status.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test(expected = AccountPendingException.class)
     public void testExistingPendingUser() throws Exception {
@@ -398,7 +398,7 @@ public class AuthorizeUserActionTest {
     /**
      * Tests existing users whose accounts are in a disabled status.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test(expected = AccountDisabledException.class)
     public void testExistingDisabledUser() throws Exception {
@@ -411,7 +411,7 @@ public class AuthorizeUserActionTest {
      * Tests the general case where there is an active user that has been
      * removed from the authority provider.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testExistingActiveUserNotFoundInProvider() throws Exception {

@@ -25,50 +25,41 @@ import java.io.InputStream;
 public interface ViewableContent {
 
     public static final String CONTENT_REQUEST_ATTRIBUTE = "org.apache.nifi.web.content";
-    
+
     public enum DisplayMode {
+
         Original,
         Formatted,
         Hex;
     }
-    
+
     /**
-     * The stream to the viewable content. The data stream can only be read once so
-     * an extension can call this method or getContent.
-     * 
-     * @return 
+     * @return stream to the viewable content. The data stream can only be read once
+     * so an extension can call this method or getContent
      */
     InputStream getContentStream();
 
     /**
-     * Gets the content as a string. The data stream can only be read once so
-     * an extension can call this method or getContentStream.
-     * 
-     * @return 
-     * @throws java.io.IOException 
+     * @return the content as a string. The data stream can only be read once so an
+     * extension can call this method or getContentStream
+     * @throws java.io.IOException if unable to read content
      */
     String getContent() throws IOException;
-    
+
     /**
-     * Returns the desired play mode. If the mode is Hex the
-     * framework will handle generating the mark up. The only
-     * values that an extension will see is Original or Formatted.
-     * 
-     * @return 
+     * @return the desired display mode. If the mode is Hex the framework will
+     * handle generating the mark up. The only values that an extension will see
+     * is Original or Formatted
      */
     DisplayMode getDisplayMode();
-    
+
     /**
-     * The contents file name.
-     *  
-     * @return 
+     * @return contents file name
      */
     String getFileName();
-    
+
     /**
-     * The mime type of the content.
-     * 
-     * @return 
+     * @return mime type of the content
      */
     String getContentType();
 }

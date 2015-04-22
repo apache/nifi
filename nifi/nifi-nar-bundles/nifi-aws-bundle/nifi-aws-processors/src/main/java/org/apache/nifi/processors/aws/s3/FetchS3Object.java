@@ -43,46 +43,44 @@ import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
 
-
 @SupportsBatching
 @SeeAlso({PutS3Object.class})
 @Tags({"Amazon", "S3", "AWS", "Get", "Fetch"})
 @CapabilityDescription("Retrieves the contents of an S3 Object and writes it to the content of a FlowFile")
 @WritesAttributes({
-	@WritesAttribute(attribute="s3.bucket", description="The name of the S3 bucket"),
-	@WritesAttribute(attribute="path", description="The path of the file"),
-	@WritesAttribute(attribute="absolute.path", description="The path of the file"),
-	@WritesAttribute(attribute="filename", description="The name of the file"),
-	@WritesAttribute(attribute="hash.value", description="The MD5 sum of the file"),
-	@WritesAttribute(attribute="hash.algorithm", description="MD5"),
-	@WritesAttribute(attribute="mime.type", description="If S3 provides the content type/MIME type, this attribute will hold that file"),
-	@WritesAttribute(attribute="s3.etag", description="The ETag that can be used to see if the file has changed"),
-	@WritesAttribute(attribute="s3.expirationTime", description="If the file has an expiration date, this attribute will be set, containing the milliseconds since epoch in UTC time"),
-	@WritesAttribute(attribute="s3.expirationTimeRuleId", description="The ID of the rule that dictates this object's expiration time"),
-	@WritesAttribute(attribute="s3.version", description="The version of the S3 object"),
-})
+    @WritesAttribute(attribute = "s3.bucket", description = "The name of the S3 bucket"),
+    @WritesAttribute(attribute = "path", description = "The path of the file"),
+    @WritesAttribute(attribute = "absolute.path", description = "The path of the file"),
+    @WritesAttribute(attribute = "filename", description = "The name of the file"),
+    @WritesAttribute(attribute = "hash.value", description = "The MD5 sum of the file"),
+    @WritesAttribute(attribute = "hash.algorithm", description = "MD5"),
+    @WritesAttribute(attribute = "mime.type", description = "If S3 provides the content type/MIME type, this attribute will hold that file"),
+    @WritesAttribute(attribute = "s3.etag", description = "The ETag that can be used to see if the file has changed"),
+    @WritesAttribute(attribute = "s3.expirationTime", description = "If the file has an expiration date, this attribute will be set, containing the milliseconds since epoch in UTC time"),
+    @WritesAttribute(attribute = "s3.expirationTimeRuleId", description = "The ID of the rule that dictates this object's expiration time"),
+    @WritesAttribute(attribute = "s3.version", description = "The version of the S3 object"),})
 public class FetchS3Object extends AbstractS3Processor {
 
-	public static final PropertyDescriptor VERSION_ID = new PropertyDescriptor.Builder()
-        .name("Version")
-        .description("The Version of the Object to download")
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(true)
-        .required(false)
-        .build();
-    
+    public static final PropertyDescriptor VERSION_ID = new PropertyDescriptor.Builder()
+            .name("Version")
+            .description("The Version of the Object to download")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
+            .required(false)
+            .build();
+
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-            Arrays.asList(BUCKET, KEY, REGION, ACCESS_KEY, SECRET_KEY, CREDENTAILS_FILE, TIMEOUT, VERSION_ID) );
+            Arrays.asList(BUCKET, KEY, REGION, ACCESS_KEY, SECRET_KEY, CREDENTAILS_FILE, TIMEOUT, VERSION_ID));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return properties;
     }
-    
+
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
         FlowFile flowFile = session.get();
-        if ( flowFile == null ) {
+        if (flowFile == null) {
             return;
         }
 
@@ -90,10 +88,10 @@ public class FetchS3Object extends AbstractS3Processor {
         final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions(flowFile).getValue();
         final String key = context.getProperty(KEY).evaluateAttributeExpressions(flowFile).getValue();
         final String versionId = context.getProperty(VERSION_ID).evaluateAttributeExpressions(flowFile).getValue();
-        
+
         final AmazonS3 client = getClient();
         final GetObjectRequest request;
-        if ( versionId == null ) {
+        if (versionId == null) {
             request = new GetObjectRequest(bucket, key);
         } else {
             request = new GetObjectRequest(bucket, key, versionId);
@@ -103,12 +101,12 @@ public class FetchS3Object extends AbstractS3Processor {
         try (final S3Object s3Object = client.getObject(request)) {
             flowFile = session.importFrom(s3Object.getObjectContent(), flowFile);
             attributes.put("s3.bucket", s3Object.getBucketName());
-            
+
             final ObjectMetadata metadata = s3Object.getObjectMetadata();
-            if ( metadata.getContentDisposition() != null ) {
+            if (metadata.getContentDisposition() != null) {
                 final String fullyQualified = metadata.getContentDisposition();
                 final int lastSlash = fullyQualified.lastIndexOf("/");
-                if ( lastSlash > -1 && lastSlash < fullyQualified.length() - 1 ) {
+                if (lastSlash > -1 && lastSlash < fullyQualified.length() - 1) {
                     attributes.put(CoreAttributes.PATH.key(), fullyQualified.substring(0, lastSlash));
                     attributes.put(CoreAttributes.ABSOLUTE_PATH.key(), fullyQualified);
                     attributes.put(CoreAttributes.FILENAME.key(), fullyQualified.substring(lastSlash + 1));
@@ -116,42 +114,42 @@ public class FetchS3Object extends AbstractS3Processor {
                     attributes.put(CoreAttributes.FILENAME.key(), metadata.getContentDisposition());
                 }
             }
-            if (metadata.getContentMD5() != null ) {
+            if (metadata.getContentMD5() != null) {
                 attributes.put("hash.value", metadata.getContentMD5());
                 attributes.put("hash.algorithm", "MD5");
             }
-            if ( metadata.getContentType() != null ) {
+            if (metadata.getContentType() != null) {
                 attributes.put(CoreAttributes.MIME_TYPE.key(), metadata.getContentType());
             }
-            if ( metadata.getETag() != null ) {
+            if (metadata.getETag() != null) {
                 attributes.put("s3.etag", metadata.getETag());
             }
-            if ( metadata.getExpirationTime() != null ) {
+            if (metadata.getExpirationTime() != null) {
                 attributes.put("s3.expirationTime", String.valueOf(metadata.getExpirationTime().getTime()));
             }
-            if ( metadata.getExpirationTimeRuleId() != null ) {
+            if (metadata.getExpirationTimeRuleId() != null) {
                 attributes.put("s3.expirationTimeRuleId", metadata.getExpirationTimeRuleId());
             }
-            if ( metadata.getUserMetadata() != null ) {
+            if (metadata.getUserMetadata() != null) {
                 attributes.putAll(metadata.getUserMetadata());
             }
-            if ( metadata.getVersionId() != null ) {
+            if (metadata.getVersionId() != null) {
                 attributes.put("s3.version", metadata.getVersionId());
             }
         } catch (final IOException | AmazonClientException ioe) {
-            getLogger().error("Failed to retrieve S3 Object for {}; routing to failure", new Object[] {flowFile, ioe});
+            getLogger().error("Failed to retrieve S3 Object for {}; routing to failure", new Object[]{flowFile, ioe});
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
 
-        if ( !attributes.isEmpty() ) {
+        if (!attributes.isEmpty()) {
             flowFile = session.putAllAttributes(flowFile, attributes);
         }
 
         session.transfer(flowFile, REL_SUCCESS);
         final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-        getLogger().info("Successfully retrieved S3 Object for {} in {} millis; routing to success", new Object[] {flowFile, transferMillis});
+        getLogger().info("Successfully retrieved S3 Object for {} in {} millis; routing to success", new Object[]{flowFile, transferMillis});
         session.getProvenanceReporter().receive(flowFile, "http://" + bucket + ".amazonaws.com/" + key, transferMillis);
     }
-    
+
 }

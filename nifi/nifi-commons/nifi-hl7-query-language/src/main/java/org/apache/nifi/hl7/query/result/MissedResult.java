@@ -24,33 +24,34 @@ import org.apache.nifi.hl7.query.ResultHit;
 import org.apache.nifi.hl7.query.Selection;
 
 public class MissedResult implements QueryResult {
-	private final List<Selection> selections;
-	
-	public MissedResult(final List<Selection> selections) {
-		this.selections = selections;
-	}
-	
-	@Override
-	public List<String> getLabels() {
-		final List<String> labels = new ArrayList<>();
-		for ( final Selection selection : selections ) {
-			labels.add(selection.getName());
-		}
-		return labels;
-	}
 
-	@Override
-	public boolean isMatch() {
-		return false;
-	}
+    private final List<Selection> selections;
 
-	@Override
-	public ResultHit nextHit() {
-		return null;
-	}
-	
-	@Override
-	public int getHitCount() {
-		return 0;
-	}
+    public MissedResult(final List<Selection> selections) {
+        this.selections = selections;
+    }
+
+    @Override
+    public List<String> getLabels() {
+        final List<String> labels = new ArrayList<>();
+        for (final Selection selection : selections) {
+            labels.add(selection.getName());
+        }
+        return labels;
+    }
+
+    @Override
+    public boolean isMatch() {
+        return false;
+    }
+
+    @Override
+    public ResultHit nextHit() {
+        return null;
+    }
+
+    @Override
+    public int getHitCount() {
+        return 0;
+    }
 }

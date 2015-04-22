@@ -20,10 +20,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-/**
- *
- * @author unattributed
- */
 public interface StreamCallback {
 
     /**
@@ -32,9 +28,9 @@ public interface StreamCallback {
      * manually - and quite important if any streams wrapping these streams open
      * resources which should be cleared.
      *
-     * @param in
-     * @param out
-     * @throws IOException
+     * @param in the stream to read bytes from
+     * @param out the stream to write bytes to
+     * @throws IOException if issues occur reading or writing the underlying streams
      */
     void process(InputStream in, OutputStream out) throws IOException;
 

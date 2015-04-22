@@ -21,13 +21,12 @@ import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import org.apache.nifi.cluster.protocol.jaxb.message.ConnectionResponseAdapter;
 
 /**
- * The cluster manager's response to a node's connection request.  If the manager
- * has a current copy of the data flow, then it is returned with a node identifier
- * to the node.  Otherwise, the manager will provide a "try again in X seconds" 
- * response to the node in hopes that a current data flow will be available upon
- * subsequent requests.
- * 
- * @author unattributed
+ * The cluster manager's response to a node's connection request. If the manager
+ * has a current copy of the data flow, then it is returned with a node
+ * identifier to the node. Otherwise, the manager will provide a "try again in X
+ * seconds" response to the node in hopes that a current data flow will be
+ * available upon subsequent requests.
+ *
  */
 @XmlJavaTypeAdapter(ConnectionResponseAdapter.class)
 public class ConnectionResponse {
@@ -40,14 +39,14 @@ public class ConnectionResponse {
     private final Integer managerRemoteInputPort;
     private final Boolean managerRemoteCommsSecure;
     private final String instanceId;
-    
+
     private volatile String clusterManagerDN;
-    
-    public ConnectionResponse(final NodeIdentifier nodeIdentifier, final StandardDataFlow dataFlow, final boolean primary, 
-        final Integer managerRemoteInputPort, final Boolean managerRemoteCommsSecure, final String instanceId) {
-        if(nodeIdentifier == null) {
+
+    public ConnectionResponse(final NodeIdentifier nodeIdentifier, final StandardDataFlow dataFlow, final boolean primary,
+            final Integer managerRemoteInputPort, final Boolean managerRemoteCommsSecure, final String instanceId) {
+        if (nodeIdentifier == null) {
             throw new IllegalArgumentException("Node identifier may not be empty or null.");
-        } else if(dataFlow == null) {
+        } else if (dataFlow == null) {
             throw new IllegalArgumentException("DataFlow may not be null.");
         }
         this.nodeIdentifier = nodeIdentifier;
@@ -59,9 +58,9 @@ public class ConnectionResponse {
         this.managerRemoteCommsSecure = managerRemoteCommsSecure;
         this.instanceId = instanceId;
     }
-    
+
     public ConnectionResponse(final int tryLaterSeconds) {
-        if(tryLaterSeconds <= 0) {
+        if (tryLaterSeconds <= 0) {
             throw new IllegalArgumentException("Try-Later seconds may not be nonnegative: " + tryLaterSeconds);
         }
         this.dataFlow = null;
@@ -84,19 +83,19 @@ public class ConnectionResponse {
         this.managerRemoteCommsSecure = null;
         this.instanceId = null;
     }
-    
+
     public static ConnectionResponse createBlockedByFirewallResponse() {
         return new ConnectionResponse();
     }
-    
+
     public boolean isPrimary() {
         return primary;
     }
-    
+
     public boolean shouldTryLater() {
         return tryLaterSeconds > 0;
     }
-    
+
     public boolean isBlockedByFirewall() {
         return blockedByFirewall;
     }
@@ -104,11 +103,11 @@ public class ConnectionResponse {
     public int getTryLaterSeconds() {
         return tryLaterSeconds;
     }
-    
+
     public StandardDataFlow getDataFlow() {
         return dataFlow;
     }
-    
+
     public NodeIdentifier getNodeIdentifier() {
         return nodeIdentifier;
     }
@@ -116,23 +115,22 @@ public class ConnectionResponse {
     public Integer getManagerRemoteInputPort() {
         return managerRemoteInputPort;
     }
-    
+
     public Boolean isManagerRemoteCommsSecure() {
         return managerRemoteCommsSecure;
     }
-    
+
     public String getInstanceId() {
         return instanceId;
     }
-    
+
     public void setClusterManagerDN(final String dn) {
         this.clusterManagerDN = dn;
     }
-    
+
     /**
-     * Returns the DN of the NCM, if it is available or <code>null</code> otherwise.
-     * 
-     * @return
+     * @return the DN of the NCM, if it is available or <code>null</code>
+     * otherwise
      */
     public String getClusterManagerDN() {
         return clusterManagerDN;

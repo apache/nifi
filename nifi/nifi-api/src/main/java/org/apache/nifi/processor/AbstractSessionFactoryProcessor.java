@@ -41,7 +41,6 @@ import org.apache.nifi.logging.ProcessorLog;
  * <p>
  * Thread safe</p>
  *
- * @author none
  */
 public abstract class AbstractSessionFactoryProcessor extends AbstractConfigurableComponent implements Processor {
 
@@ -62,10 +61,8 @@ public abstract class AbstractSessionFactoryProcessor extends AbstractConfigurab
     }
 
     /**
-     * Returns the {@link ControllerServiceLookup} that was passed to the
+     * @return the {@link ControllerServiceLookup} that was passed to the
      * {@link #init(ProcessorInitializationContext)} method
-     *
-     * @return
      */
     protected final ControllerServiceLookup getControllerServiceLookup() {
         return serviceLookup;
@@ -83,17 +80,15 @@ public abstract class AbstractSessionFactoryProcessor extends AbstractConfigurab
     /**
      * Provides subclasses the ability to perform initialization logic
      *
-     * @param context
+     * @param context in which to perform initialization
      */
     protected void init(final ProcessorInitializationContext context) {
         // Provided for subclasses to override
     }
 
     /**
-     * Returns <code>true</code> if the processor is scheduled to run,
+     * @return <code>true</code> if the processor is scheduled to run,
      * <code>false</code> otherwise
-     *
-     * @return
      */
     protected final boolean isScheduled() {
         return scheduled;

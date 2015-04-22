@@ -33,9 +33,7 @@ public class ClusterDTO {
     private Date generated;
 
     /**
-     * The collection of the node DTOs.
-     *
-     * @return
+     * @return collection of the node DTOs
      */
     public Collection<NodeDTO> getNodes() {
         return nodes;
@@ -46,9 +44,7 @@ public class ClusterDTO {
     }
 
     /**
-     * Gets the date/time that this report was generated.
-     *
-     * @return
+     * @return the date/time that this report was generated
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
     public Date getGenerated() {

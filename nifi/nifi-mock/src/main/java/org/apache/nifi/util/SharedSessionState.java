@@ -32,7 +32,6 @@ public class SharedSessionState {
     private final AtomicLong flowFileIdGenerator;
     private final ConcurrentMap<String, AtomicLong> counterMap = new ConcurrentHashMap<>();
 
-
     public SharedSessionState(final Processor processor, final AtomicLong flowFileIdGenerator) {
         flowFileQueue = new MockFlowFileQueue();
         provenanceReporter = new MockProvenanceReporter();

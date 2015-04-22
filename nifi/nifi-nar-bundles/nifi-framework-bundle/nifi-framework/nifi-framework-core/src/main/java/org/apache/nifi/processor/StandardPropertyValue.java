@@ -49,9 +49,9 @@ public final class StandardPropertyValue implements PropertyValue {
      * information should be provided so that calls to
      * {@link #evaluateAttributeExpressions()} are much more efficient
      *
-     * @param rawValue
-     * @param serviceLookup
-     * @param preparedQuery
+     * @param rawValue value
+     * @param serviceLookup lookup
+     * @param preparedQuery query
      */
     public StandardPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup, final PreparedQuery preparedQuery) {
         this.rawValue = rawValue;

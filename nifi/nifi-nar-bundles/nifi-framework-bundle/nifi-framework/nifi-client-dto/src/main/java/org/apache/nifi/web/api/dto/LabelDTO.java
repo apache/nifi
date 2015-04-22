@@ -53,9 +53,7 @@ public class LabelDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The style for this label.
-     *
-     * @return
+     * @return style for this label
      */
     public Map<String, String> getStyle() {
         return style;
@@ -66,9 +64,7 @@ public class LabelDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The height of the label in pixels when at a 1:1 scale.
-     *
-     * @return
+     * @return height of the label in pixels when at a 1:1 scale
      */
     public Double getHeight() {
         return height;
@@ -79,9 +75,7 @@ public class LabelDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The width of the label in pixels when at a 1:1 scale.
-     *
-     * @return
+     * @return width of the label in pixels when at a 1:1 scale
      */
     public Double getWidth() {
         return width;

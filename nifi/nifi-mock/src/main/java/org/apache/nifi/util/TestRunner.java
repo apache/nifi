@@ -38,29 +38,23 @@ import org.apache.nifi.reporting.InitializationException;
 public interface TestRunner {
 
     /**
-     * Returns the {@link Processor} for which this <code>TestRunner</code> is
+     * @return the {@link Processor} for which this <code>TestRunner</code> is
      * configured
-     *
-     * @return
      */
     Processor getProcessor();
 
     /**
-     * Returns the {@link ProcessSessionFactory} that this
+     * @return the {@link ProcessSessionFactory} that this
      * <code>TestRunner</code> will use to invoke the
      * {@link Processor#onTrigger(ProcessContext, ProcessSessionFactory)} method
-     *
-     * @return
      */
     ProcessSessionFactory getProcessSessionFactory();
 
     /**
-     * Returns the {@Link ProcessContext} that this <code>TestRunner</code> will
+     * @return the {@Link ProcessContext} that this <code>TestRunner</code> will
      * use to invoke the
      * {@link Processor#onTrigger(ProcessContext, ProcessSessionFactory) onTrigger}
      * method
-     *
-     * @return
      */
     ProcessContext getProcessContext();
 
@@ -74,25 +68,26 @@ public interface TestRunner {
      * Performs the same operation as calling {@link #run(int, boolean)} with a
      * value of <code>true</code>
      *
-     * @param iterations
+     * @param iterations number of iterations
      */
     void run(int iterations);
 
     /**
-     * performs the same operation as calling {@link #run(int, boolean, int)} with a value
-     * of {@code iterations}, {@code stopOnFinish}, {@code true}
-     * 
-     * @param iterations
-     * @param stopOnFinish
+     * performs the same operation as calling {@link #run(int, boolean, int)}
+     * with a value of {@code iterations}, {@code stopOnFinish}, {@code true}
+     *
+     * @param iterations number of iterations
+     * @param stopOnFinish flag to stop when finished
      */
     void run(int iterations, boolean stopOnFinish);
-    
+
     /**
      * This method runs the {@link Processor} <code>iterations</code> times,
      * using the sequence of steps below:
      * <ul>
      * <li>
-     * If {@code initialize} is true, run all methods on the Processor that are annotated with the
+     * If {@code initialize} is true, run all methods on the Processor that are
+     * annotated with the
      * {@link nifi.processor.annotation.OnScheduled @OnScheduled} annotation. If
      * any of these methods throws an Exception, the Unit Test will fail.
      * </li>
@@ -122,14 +117,13 @@ public interface TestRunner {
      * </li>
      * </ul>
      *
-     * @param iterations
+     * @param iterations number of iterations
      * @param stopOnFinish whether or not to run the Processor methods that are
      * annotated with {@link nifi.processor.annotation.OnStopped @OnStopped}
+     * @param initialize true if must initialize
      */
     void run(int iterations, boolean stopOnFinish, final boolean initialize);
 
-    
-    
     /**
      * Invokes all methods on the Processor that are annotated with the
      * {@link nifi.processor.annotation.OnShutdown @OnShutdown} annotation. If
@@ -141,16 +135,14 @@ public interface TestRunner {
      * Updates the number of threads that will be used to run the Processor when
      * calling the {@link #run()} or {@link #run(int)} methods.
      *
-     * @param threadCount
+     * @param threadCount num threads
      */
     void setThreadCount(int threadCount);
 
     /**
-     * Returns the currently configured number of threads that will be used to
+     * @return the currently configured number of threads that will be used to
      * runt he Processor when calling the {@link #run()} or {@link #run(int)}
-     * methods.
-     *
-     * @return
+     * methods
      */
     int getThreadCount();
 
@@ -160,9 +152,9 @@ public interface TestRunner {
      * descriptor's validator. Otherwise, Assert.fail() is called, causing the
      * unit test to fail
      *
-     * @param propertyName
-     * @param propertyValue
-     * @return
+     * @param propertyName name
+     * @param propertyValue value
+     * @return result
      */
     ValidationResult setProperty(String propertyName, String propertyValue);
 
@@ -172,9 +164,9 @@ public interface TestRunner {
      * descriptor's validator. Otherwise, Assert.fail() is called, causing the
      * unit test to fail
      *
-     * @param descriptor
-     * @param value
-     * @return
+     * @param descriptor descriptor
+     * @param value value
+     * @return result
      */
     ValidationResult setProperty(PropertyDescriptor descriptor, String value);
 
@@ -184,16 +176,16 @@ public interface TestRunner {
      * descriptor's validator. Otherwise, Assert.fail() is called, causing the
      * unit test to fail
      *
-     * @param descriptor
-     * @param value
-     * @return
+     * @param descriptor descriptor
+     * @param value allowable valu
+     * @return result
      */
     ValidationResult setProperty(PropertyDescriptor descriptor, AllowableValue value);
 
     /**
-     * Sets the annontation data.
+     * Sets the annotation data.
      *
-     * @param annotationData
+     * @param annotationData data
      */
     void setAnnotationData(String annotationData);
 
@@ -201,7 +193,7 @@ public interface TestRunner {
      * Asserts that all FlowFiles that were transferred were transferred to the
      * given relationship
      *
-     * @param relationship
+     * @param relationship to verify
      */
     void assertAllFlowFilesTransferred(String relationship);
 
@@ -209,7 +201,7 @@ public interface TestRunner {
      * Asserts that all FlowFiles that were transferred were transferred to the
      * given relationship
      *
-     * @param relationship
+     * @param relationship to verify
      */
     void assertAllFlowFilesTransferred(Relationship relationship);
 
@@ -218,8 +210,8 @@ public interface TestRunner {
      * given relationship and that the number of FlowFiles transferred is equal
      * to <code>count</code>
      *
-     * @param relationship
-     * @param count
+     * @param relationship to verify
+     * @param count number of expected transfers
      */
     void assertAllFlowFilesTransferred(String relationship, int count);
 
@@ -228,8 +220,8 @@ public interface TestRunner {
      * given relationship and that the number of FlowFiles transferred is equal
      * to <code>count</code>
      *
-     * @param relationship
-     * @param count
+     * @param relationship to verify
+     * @param count number of expected transfers
      */
     void assertAllFlowFilesTransferred(Relationship relationship, int count);
 
@@ -237,8 +229,8 @@ public interface TestRunner {
      * Assert that the number of FlowFiles transferred to the given relationship
      * is equal to the given count
      *
-     * @param relationship
-     * @param count
+     * @param relationship to verify
+     * @param count number of expected transfers
      */
     void assertTransferCount(Relationship relationship, int count);
 
@@ -246,8 +238,8 @@ public interface TestRunner {
      * Assert that the number of FlowFiles transferred to the given relationship
      * is equal to the given count
      *
-     * @param relationship
-     * @param count
+     * @param relationship to verify
+     * @param count number of expected transfers
      */
     void assertTransferCount(String relationship, int count);
 
@@ -257,10 +249,8 @@ public interface TestRunner {
     void assertQueueEmpty();
 
     /**
-     * Returns <code>true</code> if the Input Queue to the Processor is empty,
+     * @return <code>true</code> if the Input Queue to the Processor is empty,
      * <code>false</code> otherwise
-     *
-     * @return
      */
     boolean isQueueEmpty();
 
@@ -293,7 +283,7 @@ public interface TestRunner {
     /**
      * Enqueues the given FlowFiles into the Processor's input queue
      *
-     * @param flowFiles
+     * @param flowFiles to enqueue
      */
     void enqueue(FlowFile... flowFiles);
 
@@ -302,8 +292,8 @@ public interface TestRunner {
      * FlowFile from this content with no attributes and adds this FlowFile to
      * the Processor's Input Queue
      *
-     * @param path
-     * @throws IOException
+     * @param path to read content from
+     * @throws IOException if unable to read content
      */
     void enqueue(Path path) throws IOException;
 
@@ -312,9 +302,9 @@ public interface TestRunner {
      * FlowFile from this content with the given attributes and adds this
      * FlowFile to the Processor's Input Queue
      *
-     * @param path
-     * @param attributes
-     * @throws IOException
+     * @param path to read content from
+     * @param attributes attributes to use for new flow file
+     * @throws IOException if unable to read content
      */
     void enqueue(Path path, Map<String, String> attributes) throws IOException;
 
@@ -323,7 +313,7 @@ public interface TestRunner {
      * FlowFile from this content with no attributes and adds this FlowFile to
      * the Processor's Input Queue
      *
-     * @param data
+     * @param data to enqueue
      */
     void enqueue(byte[] data);
 
@@ -332,8 +322,8 @@ public interface TestRunner {
      * FlowFile from this content with the given attributes and adds this
      * FlowFile to the Processor's Input Queue
      *
-     * @param data
-     * @param attributes
+     * @param data to enqueue
+     * @param attributes to use for enqueued items
      */
     void enqueue(byte[] data, Map<String, String> attributes);
 
@@ -342,7 +332,7 @@ public interface TestRunner {
      * creates a FlowFile from this content with no attributes and adds this
      * FlowFile to the Processor's Input Queue
      *
-     * @param data
+     * @param data to source data from
      */
     void enqueue(InputStream data);
 
@@ -351,8 +341,8 @@ public interface TestRunner {
      * creates a FlowFile from this content with the given attributes and adds
      * this FlowFile to the Processor's Input Queue
      *
-     * @param data
-     * @param attributes
+     * @param data source of data
+     * @param attributes to use for flow files
      */
     void enqueue(InputStream data, Map<String, String> attributes);
 
@@ -360,8 +350,8 @@ public interface TestRunner {
      * Copies the contents of the given {@link MockFlowFile} into a byte array
      * and returns that byte array.
      *
-     * @param flowFile
-     * @return
+     * @param flowFile to get content for
+     * @return byte array of flowfile content
      */
     byte[] getContentAsByteArray(MockFlowFile flowFile);
 
@@ -369,8 +359,8 @@ public interface TestRunner {
      * Returns a List of FlowFiles in the order in which they were transferred
      * to the given relationship
      *
-     * @param relationship
-     * @return
+     * @param relationship to get flowfiles for
+     * @return flowfiles transfered to given relationship
      */
     List<MockFlowFile> getFlowFilesForRelationship(String relationship);
 
@@ -378,39 +368,31 @@ public interface TestRunner {
      * Returns a List of FlowFiles in the order in which they were transferred
      * to the given relationship
      *
-     * @param relationship
-     * @return
+     * @param relationship to get flowfiles for
+     * @return flowfiles transfered to given relationship
      */
     List<MockFlowFile> getFlowFilesForRelationship(Relationship relationship);
 
     /**
-     * Returns the {@link ProvenanceReporter} that will be used by the
-     * configured {@link Processor} for reporting Provenance Events.
-     *
-     * @return
+     * @return the {@link ProvenanceReporter} that will be used by the
+     * configured {@link Processor} for reporting Provenance Events
      */
     ProvenanceReporter getProvenanceReporter();
 
     /**
-     * Returns the current size of the Processor's Input Queue
-     *
-     * @return
+     * @return the current size of the Processor's Input Queue
      */
     QueueSize getQueueSize();
 
     /**
-     * Returns the current value of the counter with the specified name, or null
+     * @param name of counter
+     * @return the current value of the counter with the specified name, or null
      * if no counter exists with the specified name
-     *
-     * @param name
-     * @return
      */
     Long getCounterValue(String name);
 
     /**
-     * Returns the number of FlowFiles that have been removed from the system
-     *
-     * @return
+     * @return the number of FlowFiles that have been removed from the system
      */
     int getRemovedCount();
 
@@ -418,10 +400,11 @@ public interface TestRunner {
      * Indicates to the Framework that the given Relationship should be
      * considered "available", meaning that the queues of all Connections that
      * contain this Relationship are not full. This is generally used only when
-     * dealing with Processors that use the {@link nifi.processor.annotation.TriggerWhenAnyDestinationAvailable
-     * @TriggerWhenAnyDestinationAvailable} annotation.
+     * dealing with Processors that use the
+     * {@link nifi.processor.annotation.TriggerWhenAnyDestinationAvailable}
+     * annotation.
      *
-     * @param relationship
+     * @param relationship to mark as available
      */
     void setRelationshipAvailable(Relationship relationship);
 
@@ -429,9 +412,10 @@ public interface TestRunner {
      * Indicates to the Framework that the given Relationship with the given
      * name should be considered "available", meaning that the queues of all
      * Connections that contain this Relationship are not full. This is
-     * generally used only when dealing with Processors that use the {@link nifi.processor.annotation.TriggerWhenAnyDestinationAvailable
-     * @param relationshipName
-     * @TriggerWhenAnyDestinationAvailable} annotation.
+     * generally used only when dealing with Processors that use the
+     * {@link nifi.processor.annotation.TriggerWhenAnyDestinationAvailable}
+     *
+     * @param relationshipName relationship name
      */
     void setRelationshipAvailable(String relationshipName);
 
@@ -439,10 +423,11 @@ public interface TestRunner {
      * Indicates to the Framework that the given Relationship should NOT be
      * considered "available", meaning that the queue of at least one Connection
      * that contain this Relationship is full. This is generally used only when
-     * dealing with Processors that use the {@link nifi.processor.annotation.TriggerWhenAnyDestinationAvailable
-     * @TriggerWhenAnyDestinationAvailable} annotation.
+     * dealing with Processors that use the
+     * {@link nifi.processor.annotation.TriggerWhenAnyDestinationAvailable}
+     * annotation.
      *
-     * @param relationship
+     * @param relationship to mark as unavailable
      */
     void setRelationshipUnavailable(Relationship relationship);
 
@@ -450,9 +435,10 @@ public interface TestRunner {
      * Indicates to the Framework that the Relationship with the given name
      * should NOT be considered "available", meaning that the queue of at least
      * one Connection that contain this Relationship is full. This is generally
-     * used only when dealing with Processors that use the {@link nifi.processor.annotation.TriggerWhenAnyDestinationAvailable
-     * @param relationshipName
-     * @TriggerWhenAnyDestinationAvailable} annotation.
+     * used only when dealing with Processors that use the
+     * {@link nifi.processor.annotation.TriggerWhenAnyDestinationAvailable}
+     *
+     * @param relationshipName name of relationship.
      */
     void setRelationshipUnavailable(String relationshipName);
 
@@ -464,12 +450,13 @@ public interface TestRunner {
      * {@link nifi.controller.ControllerServiceInitializationContext ControllerServiceInitializationContext}
      * and initialize the ControllerService with no specified properties.
      *
-     * This will call any method on the given Controller Service that is annotated with
-     * the {@link org.apache.nifi.annotation.lifecycle.OnAdded @OnAdded} annotation.
+     * This will call any method on the given Controller Service that is
+     * annotated with the
+     * {@link org.apache.nifi.annotation.lifecycle.OnAdded @OnAdded} annotation.
      *
-     * @param identifier
-     * @param service
-     * @throws InitializationException
+     * @param identifier of service
+     * @param service the service
+     * @throws InitializationException ie
      */
     void addControllerService(String identifier, ControllerService service) throws InitializationException;
 
@@ -481,184 +468,205 @@ public interface TestRunner {
      * {@link nifi.controller.ControllerServiceInitializationContext ControllerServiceInitializationContext}
      * and initialize the ControllerService with the given properties.
      *
-     * This will call any method on the given Controller Service that is annotated with
-     * the {@link org.apache.nifi.annotation.lifecycle.OnAdded @OnAdded} annotation.
-     * 
-     * @param identifier
-     * @param service
-     * @param properties
-     * @throws InitializationException
+     * This will call any method on the given Controller Service that is
+     * annotated with the
+     * {@link org.apache.nifi.annotation.lifecycle.OnAdded @OnAdded} annotation.
+     *
+     * @param identifier of service
+     * @param service the service
+     * @param properties service properties
+     * @throws InitializationException ie
      */
     void addControllerService(String identifier, ControllerService service, Map<String, String> properties) throws InitializationException;
 
     /**
      * <p>
-     * Marks the Controller Service as enabled so that it can be used by other components.
+     * Marks the Controller Service as enabled so that it can be used by other
+     * components.
      * </p>
-     * 
+     *
      * <p>
-     * This method will result in calling any method in the Controller Service that is
-     * annotated with the {@link org.apache.nifi.annotation.lifecycle.OnEnabled @OnEnabled} annotation.
+     * This method will result in calling any method in the Controller Service
+     * that is annotated with the
+     * {@link org.apache.nifi.annotation.lifecycle.OnEnabled @OnEnabled}
+     * annotation.
      * </p>
-     * 
-     * @param service
+     *
+     * @param service the service to enable
      */
     void enableControllerService(ControllerService service);
-    
+
     /**
      * <p>
-     * Marks the Controller Service as disabled so that it cannot be used by other components.
+     * Marks the Controller Service as disabled so that it cannot be used by
+     * other components.
      * </p>
-     * 
+     *
      * <p>
-     * This method will result in calling any method in the Controller Service that is
-     * annotated with the {@link org.apache.nifi.annotation.lifecycle.OnDisabled @OnDisabled} annotation.
+     * This method will result in calling any method in the Controller Service
+     * that is annotated with the
+     * {@link org.apache.nifi.annotation.lifecycle.OnDisabled @OnDisabled}
+     * annotation.
      * </p>
-     * 
-     * @param service
+     *
+     * @param service the service to disable
      */
     void disableControllerService(ControllerService service);
-    
+
     /**
-     * <p>
-     * Returns {@code true} if the given Controller Service is enabled, {@code false} if it is disabled.
-     * </p>
-     * 
-     * @param service
-     * @return
-     * 
-     * @throws IllegalArgumentException if the given ControllerService is not known by this TestRunner
-     * (i.e., it has not been added via the {@link #addControllerService(String, ControllerService)} or
-     * {@link #addControllerService(String, ControllerService, Map)} method or if the Controller Service
-     * has been removed via the {@link #removeControllerService(ControllerService)} method.
+     * @param service the service
+     * @return {@code true} if the given Controller Service is enabled,
+     * {@code false} if it is disabled
+     *
+     * @throws IllegalArgumentException if the given ControllerService is not
+     * known by this TestRunner (i.e., it has not been added via the
+     * {@link #addControllerService(String, ControllerService)} or
+     * {@link #addControllerService(String, ControllerService, Map)} method or
+     * if the Controller Service has been removed via the
+     * {@link #removeControllerService(ControllerService)} method.
      */
     boolean isControllerServiceEnabled(ControllerService service);
-    
+
     /**
      * <p>
-     * Removes the Controller Service from the TestRunner. This will call any method on the ControllerService
-     * that is annotated with the {@link org.apache.nifi.annotation.lifecycle.OnRemoved @OnRemoved} annotation.
+     * Removes the Controller Service from the TestRunner. This will call any
+     * method on the ControllerService that is annotated with the
+     * {@link org.apache.nifi.annotation.lifecycle.OnRemoved @OnRemoved}
+     * annotation.
      * </p>
-     * 
-     * @param service
-     * 
+     *
+     * @param service the service
+     *
      * @throws IllegalStateException if the ControllerService is not disabled
-     * @throws IllegalArgumentException if the given ControllerService is not known by this TestRunner
-     *      (i.e., it has not been added via the {@link #addControllerService(String, ControllerService)} or
-     *      {@link #addControllerService(String, ControllerService, Map)} method or if the Controller Service
-     *      has been removed via the {@link #removeControllerService(ControllerService)} method.
-     * 
+     * @throws IllegalArgumentException if the given ControllerService is not
+     * known by this TestRunner (i.e., it has not been added via the
+     * {@link #addControllerService(String, ControllerService)} or
+     * {@link #addControllerService(String, ControllerService, Map)} method or
+     * if the Controller Service has been removed via the
+     * {@link #removeControllerService(ControllerService)} method.
+     *
      */
     void removeControllerService(ControllerService service);
-    
+
     /**
      * Sets the given property on the given ControllerService
-     * 
-     * @param service
-     * @param property
-     * @param value
-     * 
+     *
+     * @param service to modify
+     * @param property to modify
+     * @param value value to use
+     * @return result
+     *
      * @throws IllegalStateException if the ControllerService is not disabled
-     * @throws IllegalArgumentException if the given ControllerService is not known by this TestRunner
-     *      (i.e., it has not been added via the {@link #addControllerService(String, ControllerService)} or
-     *      {@link #addControllerService(String, ControllerService, Map)} method or if the Controller Service
-     *      has been removed via the {@link #removeControllerService(ControllerService)} method.
-     * 
+     * @throws IllegalArgumentException if the given ControllerService is not
+     * known by this TestRunner (i.e., it has not been added via the
+     * {@link #addControllerService(String, ControllerService)} or
+     * {@link #addControllerService(String, ControllerService, Map)} method or
+     * if the Controller Service has been removed via the
+     * {@link #removeControllerService(ControllerService)} method.
+     *
      */
     ValidationResult setProperty(ControllerService service, PropertyDescriptor property, String value);
-    
-    
+
     /**
      * Sets the given property on the given ControllerService
-     * 
-     * @param service
-     * @param property
-     * @param value
-     * 
+     *
+     * @param service to modify
+     * @param property to modify
+     * @param value value to use
+     * @return result
+     *
      * @throws IllegalStateException if the ControllerService is not disabled
-     * @throws IllegalArgumentException if the given ControllerService is not known by this TestRunner
-     *      (i.e., it has not been added via the {@link #addControllerService(String, ControllerService)} or
-     *      {@link #addControllerService(String, ControllerService, Map)} method or if the Controller Service
-     *      has been removed via the {@link #removeControllerService(ControllerService)} method.
-     * 
+     * @throws IllegalArgumentException if the given ControllerService is not
+     * known by this TestRunner (i.e., it has not been added via the
+     * {@link #addControllerService(String, ControllerService)} or
+     * {@link #addControllerService(String, ControllerService, Map)} method or
+     * if the Controller Service has been removed via the
+     * {@link #removeControllerService(ControllerService)} method.
+     *
      */
     ValidationResult setProperty(ControllerService service, PropertyDescriptor property, AllowableValue value);
-    
-    
+
     /**
      * Sets the property with the given name on the given ControllerService
-     * 
-     * @param service
-     * @param property
-     * @param value
-     * 
+     *
+     * @param service to modify
+     * @param propertyName to modify
+     * @param value value to use
+     * @return result
+     *
      * @throws IllegalStateException if the ControllerService is not disabled
-     * @throws IllegalArgumentException if the given ControllerService is not known by this TestRunner
-     *      (i.e., it has not been added via the {@link #addControllerService(String, ControllerService)} or
-     *      {@link #addControllerService(String, ControllerService, Map)} method or if the Controller Service
-     *      has been removed via the {@link #removeControllerService(ControllerService)} method.
-     * 
+     * @throws IllegalArgumentException if the given ControllerService is not
+     * known by this TestRunner (i.e., it has not been added via the
+     * {@link #addControllerService(String, ControllerService)} or
+     * {@link #addControllerService(String, ControllerService, Map)} method or
+     * if the Controller Service has been removed via the
+     * {@link #removeControllerService(ControllerService)} method.
+     *
      */
     ValidationResult setProperty(ControllerService service, String propertyName, String value);
-    
+
     /**
-     * Sets the annontation data of the given service to the provided annotation data.
+     * Sets the annontation data of the given service to the provided annotation
+     * data.
      *
-     * @param service
-     * @param annotationData
-     * 
+     * @param service to modify
+     * @param annotationData the data
+     *
      * @throws IllegalStateException if the Controller Service is not disabled
      *
-     * @throws IllegalArgumentException if the given ControllerService is not known by this TestRunner
-     *      (i.e., it has not been added via the {@link #addControllerService(String, ControllerService)} or
-     *      {@link #addControllerService(String, ControllerService, Map)} method or if the Controller Service
-     *      has been removed via the {@link #removeControllerService(ControllerService)} method.
+     * @throws IllegalArgumentException if the given ControllerService is not
+     * known by this TestRunner (i.e., it has not been added via the
+     * {@link #addControllerService(String, ControllerService)} or
+     * {@link #addControllerService(String, ControllerService, Map)} method or
+     * if the Controller Service has been removed via the
+     * {@link #removeControllerService(ControllerService)} method.
      */
     void setAnnotationData(ControllerService service, String annotationData);
 
-    
     /**
-     * Returns the {@link ControllerService} that is registered with the given
+     * @param identifier of controller service
+     * @return the {@link ControllerService} that is registered with the given
      * identifier, or <code>null</code> if no Controller Service exists with the
      * given identifier
-     *
-     * @param identifier
-     * @return
      */
     ControllerService getControllerService(String identifier);
 
     /**
      * Assert that the currently configured set of properties/annotation data
      * are valid for the given Controller Service.
-     * 
-     * @throws IllegalArgumentException if the given ControllerService is not known by this TestRunner
-     *      (i.e., it has not been added via the {@link #addControllerService(String, ControllerService)} or
-     *      {@link #addControllerService(String, ControllerService, Map)} method or if the Controller Service
-     *      has been removed via the {@link #removeControllerService(ControllerService)} method.
+     *
+     * @param service the service to validate
+     * @throws IllegalArgumentException if the given ControllerService is not
+     * known by this TestRunner (i.e., it has not been added via the
+     * {@link #addControllerService(String, ControllerService)} or
+     * {@link #addControllerService(String, ControllerService, Map)} method or
+     * if the Controller Service has been removed via the
+     * {@link #removeControllerService(ControllerService)} method.
      */
     void assertValid(ControllerService service);
 
     /**
      * Assert that the currently configured set of properties/annotation data
      * are NOT valid for the given Controller Service.
-     * 
-     * @throws IllegalArgumentException if the given ControllerService is not known by this TestRunner
-     *      (i.e., it has not been added via the {@link #addControllerService(String, ControllerService)} or
-     *      {@link #addControllerService(String, ControllerService, Map)} method or if the Controller Service
-     *      has been removed via the {@link #removeControllerService(ControllerService)} method.
-     * 
+     *
+     * @param service the service to validate
+     * @throws IllegalArgumentException if the given ControllerService is not
+     * known by this TestRunner (i.e., it has not been added via the
+     * {@link #addControllerService(String, ControllerService)} or
+     * {@link #addControllerService(String, ControllerService, Map)} method or
+     * if the Controller Service has been removed via the
+     * {@link #removeControllerService(ControllerService)} method.
+     *
      */
     void assertNotValid(ControllerService service);
 
     /**
-     * Returns the {@link ControllerService} that is registered with the given
+     * @param <T> type of service
+     * @param identifier identifier of service
+     * @param serviceType type of service
+     * @return the {@link ControllerService} that is registered with the given
      * identifier, cast as the provided service type, or <code>null</code> if no
      * Controller Service exists with the given identifier
-     *
-     * @param <T>
-     * @param identifier
-     * @param serviceType
-     * @return
      *
      * @throws ClassCastException if the identifier given is registered for a
      * Controller Service but that Controller Service is not of the type
@@ -682,7 +690,7 @@ public interface TestRunner {
      * </b>{@link PropertyDescriptor.Builder#expressionLanguageSupported(boolean)}
      * </p>
      *
-     * @param validate
+     * @param validate whether there is any need to validate the EL was used
      */
     void setValidateExpressionUsage(boolean validate);
 
@@ -690,8 +698,8 @@ public interface TestRunner {
      * Removes the {@link PropertyDescriptor} from the {@link ProcessContext},
      * effectively setting its value to null.
      *
-     * @param descriptor
-     * @return
+     * @param descriptor of property to remove
+     * @return true if removed
      */
     boolean removeProperty(PropertyDescriptor descriptor);
 }

@@ -16,7 +16,12 @@
  */
 package org.apache.nifi.provenance.search;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+import java.util.Objects;
+
 
 public class Query {
 

@@ -33,20 +33,16 @@ public class StandardSnippet implements Snippet {
     private String parentGroupId;
     private Boolean linked;
 
-    private Set<String> processGroups = new HashSet<>();
-    private Set<String> remoteProcessGroups = new HashSet<>();
-    private Set<String> processors = new HashSet<>();
-    private Set<String> inputPorts = new HashSet<>();
-    private Set<String> outputPorts = new HashSet<>();
-    private Set<String> connections = new HashSet<>();
-    private Set<String> labels = new HashSet<>();
-    private Set<String> funnels = new HashSet<>();
+    private final Set<String> processGroups = new HashSet<>();
+    private final Set<String> remoteProcessGroups = new HashSet<>();
+    private final Set<String> processors = new HashSet<>();
+    private final Set<String> inputPorts = new HashSet<>();
+    private final Set<String> outputPorts = new HashSet<>();
+    private final Set<String> connections = new HashSet<>();
+    private final Set<String> labels = new HashSet<>();
+    private final Set<String> funnels = new HashSet<>();
 
-    /**
-     * The id of this snippet.
-     *
-     * @return
-     */
+    @Override
     public String getId() {
         return id;
     }
@@ -55,11 +51,7 @@ public class StandardSnippet implements Snippet {
         this.id = id;
     }
 
-    /**
-     * Whether or not this snippet is linked to the data flow.
-     *
-     * @return
-     */
+    @Override
     public boolean isLinked() {
         if (linked == null) {
             return false;
@@ -72,11 +64,7 @@ public class StandardSnippet implements Snippet {
         this.linked = linked;
     }
 
-    /**
-     * The parent group id of the components in this snippet.
-     *
-     * @return
-     */
+    @Override
     public String getParentGroupId() {
         return parentGroupId;
     }
@@ -85,11 +73,7 @@ public class StandardSnippet implements Snippet {
         this.parentGroupId = parentGroupId;
     }
 
-    /**
-     * The connections in this snippet.
-     *
-     * @return
-     */
+    @Override
     public Set<String> getConnections() {
         return Collections.unmodifiableSet(connections);
     }
@@ -98,11 +82,7 @@ public class StandardSnippet implements Snippet {
         connections.addAll(ids);
     }
 
-    /**
-     * The funnels in this snippet.
-     *
-     * @return
-     */
+    @Override
     public Set<String> getFunnels() {
         return Collections.unmodifiableSet(funnels);
     }
@@ -111,11 +91,7 @@ public class StandardSnippet implements Snippet {
         funnels.addAll(ids);
     }
 
-    /**
-     * The input ports in this snippet.
-     *
-     * @return
-     */
+    @Override
     public Set<String> getInputPorts() {
         return Collections.unmodifiableSet(inputPorts);
     }
@@ -124,11 +100,7 @@ public class StandardSnippet implements Snippet {
         inputPorts.addAll(ids);
     }
 
-    /**
-     * The output ports in this snippet.
-     *
-     * @return
-     */
+    @Override
     public Set<String> getOutputPorts() {
         return Collections.unmodifiableSet(outputPorts);
     }
@@ -137,11 +109,7 @@ public class StandardSnippet implements Snippet {
         outputPorts.addAll(ids);
     }
 
-    /**
-     * The labels in this snippet.
-     *
-     * @return
-     */
+    @Override
     public Set<String> getLabels() {
         return Collections.unmodifiableSet(labels);
     }
@@ -150,6 +118,7 @@ public class StandardSnippet implements Snippet {
         labels.addAll(ids);
     }
 
+    @Override
     public Set<String> getProcessGroups() {
         return Collections.unmodifiableSet(processGroups);
     }
@@ -158,6 +127,7 @@ public class StandardSnippet implements Snippet {
         processGroups.addAll(ids);
     }
 
+    @Override
     public Set<String> getProcessors() {
         return Collections.unmodifiableSet(processors);
     }
@@ -166,6 +136,7 @@ public class StandardSnippet implements Snippet {
         processors.addAll(ids);
     }
 
+    @Override
     public Set<String> getRemoteProcessGroups() {
         return Collections.unmodifiableSet(remoteProcessGroups);
     }
@@ -174,11 +145,7 @@ public class StandardSnippet implements Snippet {
         remoteProcessGroups.addAll(ids);
     }
 
-    /**
-     * Determines if this snippet is empty.
-     *
-     * @return
-     */
+    @Override
     public boolean isEmpty() {
         return processors.isEmpty() && processGroups.isEmpty() && remoteProcessGroups.isEmpty() && labels.isEmpty()
                 && inputPorts.isEmpty() && outputPorts.isEmpty() && connections.isEmpty() && funnels.isEmpty();

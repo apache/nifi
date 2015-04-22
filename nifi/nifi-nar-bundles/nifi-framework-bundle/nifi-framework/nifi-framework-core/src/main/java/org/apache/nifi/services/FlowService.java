@@ -71,8 +71,8 @@ public interface FlowService extends LifeCycle {
      * that time the latest called state of the flow controller will be used. In
      * database terms this technique is referred to as 'write-delay'.
      *
-     * @param delayUnit
-     * @param delay
+     * @param delayUnit unit of delay
+     * @param delay period of delay
      */
     void saveFlowChanges(TimeUnit delayUnit, long delay);
 
@@ -82,8 +82,8 @@ public interface FlowService extends LifeCycle {
      * that time the latest called state of the flow controller will be used. In
      * database terms this technique is referred to as 'write-delay'.
      *
-     * @param delayUnit
-     * @param delay
+     * @param delayUnit unit of delay
+     * @param delay period of delay
      * @param archive if true means the user wants the flow configuration to be
      * archived as well
      */
@@ -131,8 +131,7 @@ public interface FlowService extends LifeCycle {
     void copyCurrentFlow(OutputStream os) throws IOException;
 
     /**
-     * Returns the managed controller.
-     * @return 
+     * @return the managed controller
      */
     FlowController getController();
 

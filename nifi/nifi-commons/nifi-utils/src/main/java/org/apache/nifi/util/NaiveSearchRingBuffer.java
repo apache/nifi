@@ -60,12 +60,10 @@ public class NaiveSearchRingBuffer {
     }
 
     /**
-     * Returns the contents of the internal buffer, which represents the last X
+     * @return the contents of the internal buffer, which represents the last X
      * bytes added to the buffer, where X is the minimum of the number of bytes
      * added to the buffer or the length of the byte sequence for which we are
      * looking
-     *
-     * @return
      */
     public byte[] getBufferContents() {
         final int contentLength = Math.min(lookingFor.length, bufferSize);
@@ -78,20 +76,16 @@ public class NaiveSearchRingBuffer {
     }
 
     /**
-     * Returns the oldest byte in the buffer
-     *
-     * @return
+     * @return the oldest byte in the buffer
      */
     public int getOldestByte() {
         return buffer[insertionPointer];
     }
 
     /**
-     * Returns <code>true</code> if the number of bytes that have been added to
+     * @return <code>true</code> if the number of bytes that have been added to
      * the buffer is at least equal to the length of the byte sequence for which
      * we are searching
-     *
-     * @return
      */
     public boolean isFilled() {
         return bufferSize >= buffer.length;
@@ -110,7 +104,7 @@ public class NaiveSearchRingBuffer {
      * Add the given byte to the buffer and notify whether or not the byte
      * completes the desired byte sequence.
      *
-     * @param data
+     * @param data the data to add to the buffer
      * @return <code>true</code> if this byte completes the byte sequence,
      * <code>false</code> otherwise.
      */

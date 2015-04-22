@@ -32,7 +32,8 @@ import java.lang.annotation.Target;
  * be added to the graph.
  *
  * @author none
- * @deprecated This Annotation has been replaced by the {@link org.apache.nifi.annotation.lifecycle.OnAdded} annotation.
+ * @deprecated This Annotation has been replaced by the
+ * {@link org.apache.nifi.annotation.lifecycle.OnAdded} annotation.
  */
 @Documented
 @Target({ElementType.METHOD})

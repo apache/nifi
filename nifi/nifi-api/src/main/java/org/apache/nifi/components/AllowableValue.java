@@ -33,7 +33,7 @@ public class AllowableValue {
      * Constructs a new AllowableValue with the given value and and the same
      * display name and no description.
      *
-     * @param value
+     * @param value that is allowed
      */
     public AllowableValue(final String value) {
         this(value, value);
@@ -43,8 +43,8 @@ public class AllowableValue {
      * Constructs a new AllowableValue with the given value and display name and
      * no description
      *
-     * @param value
-     * @param displayName
+     * @param value that is allowed
+     * @param displayName to display for the value
      *
      * @throws NullPointerException if either argument is null
      */
@@ -56,9 +56,9 @@ public class AllowableValue {
      * Constructs a new AllowableValue with the given value, display name, and
      * description
      *
-     * @param value
-     * @param displayName
-     * @param description
+     * @param value that is valid
+     * @param displayName to show for the value
+     * @param description of the value
      *
      * @throws NullPointerException if identifier or value is null
      */
@@ -69,40 +69,33 @@ public class AllowableValue {
     }
 
     /**
-     * Returns the value of this AllowableValue
-     *
-     * @return
+     * @return the value of this AllowableValue
      */
     public String getValue() {
         return value;
     }
 
     /**
-     * Returns a human-readable name for this AllowableValue
-     *
-     * @return
+     * @return a human-readable name for this AllowableValue
      */
     public String getDisplayName() {
         return displayName;
     }
 
     /**
-     * Returns a description for this value, or <code>null</code> if no
+     * @return a description for this value, or <code>null</code> if no
      * description was provided
-     *
-     * @return
      */
     public String getDescription() {
         return description;
     }
 
     /**
-     * <code>this</code> is equal to <code>obj</code> of <code>obj</code> is the
+     * @return true if <code>this</code> is equal to <code>obj</code> of <code>obj</code> is the
      * same object as <code>this</code> or if <code>obj</code> is an instance of
      * <code>AllowableValue</code> and both have the same value, or if
      * <code>obj</code> is a String and is equal to
      * {@link #getValue() this.getValue()}.
-     * @return 
      */
     @Override
     public boolean equals(final Object obj) {
@@ -121,8 +114,7 @@ public class AllowableValue {
     }
 
     /**
-     * Hash Code is based solely off of the value
-     * @return 
+     * @return based solely off of the value
      */
     @Override
     public int hashCode() {

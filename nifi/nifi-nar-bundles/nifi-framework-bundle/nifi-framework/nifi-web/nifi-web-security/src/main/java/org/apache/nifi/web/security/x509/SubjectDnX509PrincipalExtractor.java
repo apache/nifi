@@ -24,12 +24,6 @@ import org.springframework.security.web.authentication.preauth.x509.X509Principa
  */
 public class SubjectDnX509PrincipalExtractor implements X509PrincipalExtractor {
 
-    /**
-     * Extracts the principal from the specified client certificate.
-     *
-     * @param cert
-     * @return
-     */
     @Override
     public Object extractPrincipal(X509Certificate cert) {
         return cert.getSubjectDN().getName().trim();

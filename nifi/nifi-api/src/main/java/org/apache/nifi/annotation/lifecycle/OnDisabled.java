@@ -27,26 +27,29 @@ import org.apache.nifi.controller.ConfigurationContext;
 
 /**
  * <p>
- * Marker annotation a {@link org.apache.nifi.controller.ControllerService ControllerService} 
- * can use to indicate a method should be called whenever the service is disabled. 
- *</p>
+ * Marker annotation a
+ * {@link org.apache.nifi.controller.ControllerService ControllerService} can
+ * use to indicate a method should be called whenever the service is disabled.
+ * </p>
  *
  * <p>
- * Methods using this annotation are permitted to take zero arguments or to take a single
- * argument of type {@link ConfigurationContext}. If a method with this annotation
- * throws a Throwable, a log message and bulletin will be issued for the service, and the
- * service will remain in a 'DISABLING' state. When this occurs, the method with this annotation
- * will be called again after some period of time. This will continue until the method returns
- * without throwing any Throwable. Until that time, the service will remain in a 'DISABLING' state
- * and cannot be enabled again.
+ * Methods using this annotation are permitted to take zero arguments or to take
+ * a single argument of type {@link ConfigurationContext}. If a method with this
+ * annotation throws a Throwable, a log message and bulletin will be issued for
+ * the service, and the service will remain in a 'DISABLING' state. When this
+ * occurs, the method with this annotation will be called again after some
+ * period of time. This will continue until the method returns without throwing
+ * any Throwable. Until that time, the service will remain in a 'DISABLING'
+ * state and cannot be enabled again.
  * </p>
- * 
+ *
  * <p>
- * Note that this annotation will be ignored if applied to a ReportingTask or Processor. For a Controller
- * Service, enabling and disabling are considered lifecycle events, as the action makes them usable or
- * unusable by other components. However, for a Processor and a Reporting
- * Task, these are not lifecycle events but rather a mechanism to allow a component to be excluded when
- * starting or stopping a group of components.
+ * Note that this annotation will be ignored if applied to a ReportingTask or
+ * Processor. For a Controller Service, enabling and disabling are considered
+ * lifecycle events, as the action makes them usable or unusable by other
+ * components. However, for a Processor and a Reporting Task, these are not
+ * lifecycle events but rather a mechanism to allow a component to be excluded
+ * when starting or stopping a group of components.
  * </p>
  *
  */

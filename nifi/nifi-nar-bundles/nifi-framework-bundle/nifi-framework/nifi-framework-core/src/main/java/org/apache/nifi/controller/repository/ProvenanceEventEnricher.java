@@ -25,9 +25,9 @@ public interface ProvenanceEventEnricher {
      * Returns a new Provenance event that has been updated to contain the
      * original and updated FlowFile attributes and content claim information.
      *
-     * @param record
-     * @param flowFile
-     * @return
+     * @param record record
+     * @param flowFile flowfile
+     * @return new event record
      */
     ProvenanceEventRecord enrich(ProvenanceEventRecord record, FlowFile flowFile);
 

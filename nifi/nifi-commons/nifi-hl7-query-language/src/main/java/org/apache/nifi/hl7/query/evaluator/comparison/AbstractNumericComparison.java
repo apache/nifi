@@ -21,47 +21,48 @@ import java.util.regex.Pattern;
 import org.apache.nifi.hl7.query.evaluator.Evaluator;
 
 public abstract class AbstractNumericComparison extends AbstractComparisonEvaluator {
-	private static final Pattern NUMERIC_PATTERN = Pattern.compile("\\d+(\\.\\d+)?");
-	
-	public AbstractNumericComparison(final Evaluator<?> lhs, final Evaluator<?> rhs) {
-		super(lhs, rhs);
-	}
-	
-	@Override
-	protected final boolean compare(final Object lhs, final Object rhs) {
-		final Double lhsDouble = toDouble(lhs);
-		if ( lhsDouble == null ) {
-			return false;
-		}
-		
-		final Double rhsDouble = toDouble(rhs);
-		if ( rhsDouble == null ) {
-			return false;
-		}
-		
-		return compareNumbers(lhsDouble, rhsDouble);
-	}
 
-	private Double toDouble(final Object value) {
-		if ( value == null ) {
-			return null;
-		}
-		
-		if ( value instanceof Double ) {
-			return (Double) value;
-		}
-		if ( value instanceof Number ) {
-			return ((Number) value).doubleValue();
-		}
-		
-		if ( value instanceof String ) {
-			if ( NUMERIC_PATTERN.matcher((String) value).matches() ) {
-				return Double.parseDouble((String) value);
-			}
-		}
-		
-		return null;
-	}
-	
-	protected abstract boolean compareNumbers(final Double lhs, final Double rhs);
+    private static final Pattern NUMERIC_PATTERN = Pattern.compile("\\d+(\\.\\d+)?");
+
+    public AbstractNumericComparison(final Evaluator<?> lhs, final Evaluator<?> rhs) {
+        super(lhs, rhs);
+    }
+
+    @Override
+    protected final boolean compare(final Object lhs, final Object rhs) {
+        final Double lhsDouble = toDouble(lhs);
+        if (lhsDouble == null) {
+            return false;
+        }
+
+        final Double rhsDouble = toDouble(rhs);
+        if (rhsDouble == null) {
+            return false;
+        }
+
+        return compareNumbers(lhsDouble, rhsDouble);
+    }
+
+    private Double toDouble(final Object value) {
+        if (value == null) {
+            return null;
+        }
+
+        if (value instanceof Double) {
+            return (Double) value;
+        }
+        if (value instanceof Number) {
+            return ((Number) value).doubleValue();
+        }
+
+        if (value instanceof String) {
+            if (NUMERIC_PATTERN.matcher((String) value).matches()) {
+                return Double.parseDouble((String) value);
+            }
+        }
+
+        return null;
+    }
+
+    protected abstract boolean compareNumbers(final Double lhs, final Double rhs);
 }

@@ -60,7 +60,6 @@ import org.apache.nifi.provenance.ProvenanceReporter;
  * A process session instance may be used continuously. That is, after each
  * commit or rollback, the session can be used again.</p>
  *
- * @author unattributed
  */
 public interface ProcessSession {
 
@@ -136,7 +135,8 @@ public interface ProcessSession {
      * single call.
      *
      * @param maxResults the maximum number of FlowFiles to return
-     * @return
+     * @return up to <code>maxResults</code> FlowFiles from the work queue. If
+     * no FlowFiles are available, returns an empty list. Will not return null.
      * @throws IllegalArgumentException if <code>maxResults</code> is less than
      * 0
      */
@@ -152,8 +152,9 @@ public interface ProcessSession {
      * returned.
      * </p>
      *
-     * @param filter
-     * @return
+     * @param filter to limit which flow files are returned
+     * @return all FlowFiles from all of the incoming queues for which the given
+     * {@link FlowFileFilter} indicates should be accepted.
      */
     List<FlowFile> get(FlowFileFilter filter);
 
@@ -170,7 +171,7 @@ public interface ProcessSession {
      * linkage to a parent FlowFile. This method is appropriate only when data
      * is received or created from an external system. Otherwise, this method
      * should be avoided and should instead use {@link #create(FlowFile)} or
-     * {@link #create(Collection<FlowFile>)}.
+     * {@see #create(Collection)}.
      *
      * When this method is used, a Provenance CREATE or RECEIVE Event should be
      * generated. See the {@link #getProvenanceReporter()} method and
@@ -188,8 +189,8 @@ public interface ProcessSession {
      * event, depending on whether or not other FlowFiles are generated from the
      * same parent before the ProcessSession is committed.
      *
-     * @param parent
-     * @return
+     * @param parent to base the new flowfile on
+     * @return newly created flowfile
      */
     FlowFile create(FlowFile parent);
 
@@ -201,8 +202,8 @@ public interface ProcessSession {
      * only a single parent exists). This method will automatically generate a
      * Provenance JOIN event.
      *
-     * @param parents
-     * @return
+     * @param parents which the new flowfile should inherit shared attributes from
+     * @return new flowfile
      */
     FlowFile create(Collection<FlowFile> parents);
 
@@ -239,9 +240,9 @@ public interface ProcessSession {
      * Event, if the offset is 0 and the size is exactly equal to the size of
      * the example FlowFile).
      *
-     * @param example
-     * @param offset
-     * @param size
+     * @param parent to base the new flowfile attributes on
+     * @param offset of the parent flowfile to base the child flowfile content on
+     * @param size of the new flowfile from the offset
      * @return a FlowFile with the specified size whose parent is first argument
      * to this function
      *
@@ -250,14 +251,14 @@ public interface ProcessSession {
      * the given FlowFile
      * @throws FlowFileHandlingException if the given FlowFile is already
      * transferred or removed or doesn't belong to this session, or if the
-     * specified offset + size exceeds that of the size of the example FlowFile.
+     * specified offset + size exceeds that of the size of the parent FlowFile.
      * Automatic rollback will occur.
      * @throws MissingFlowFileException if the given FlowFile content cannot be
      * found. The FlowFile should no longer be reference, will be internally
      * destroyed, and the session is automatically rolled back and what is left
      * of the FlowFile is destroyed.
      */
-    FlowFile clone(FlowFile example, long offset, long size);
+    FlowFile clone(FlowFile parent, long offset, long size);
 
     /**
      * Sets a penalty for the given FlowFile which will make it unavailable to
@@ -368,8 +369,8 @@ public interface ProcessSession {
      * destination processor will have immediate visibility of the transferred
      * FlowFiles within the session.
      *
-     * @param flowFile
-     * @param relationship
+     * @param flowFile to transfer
+     * @param relationship to transfer to
      * @throws IllegalStateException if detected that this method is being
      * called from within a callback of another method in this session and for
      * the given FlowFile(s)
@@ -389,7 +390,7 @@ public interface ProcessSession {
      * the FlowFile will be maintained. FlowFiles that are created by the
      * processor cannot be transferred back to themselves via this method.
      *
-     * @param flowFile
+     * @param flowFile to transfer
      * @throws IllegalStateException if detected that this method is being
      * called from within a callback of another method in this session and for
      * the given FlowFile(s)
@@ -410,7 +411,7 @@ public interface ProcessSession {
      * created by the processor cannot be transferred back to themselves via
      * this method.
      *
-     * @param flowFiles
+     * @param flowFiles to transfer
      * @throws IllegalStateException if detected that this method is being
      * called from within a callback of another method in this session and for
      * the given FlowFile(s)
@@ -435,8 +436,8 @@ public interface ProcessSession {
      * destination processor will have immediate visibility of the transferred
      * FlowFiles within the session.
      *
-     * @param flowFiles
-     * @param relationship
+     * @param flowFiles to transfer
+     * @param relationship to transfer to
      * @throws IllegalStateException if detected that this method is being
      * called from within a callback of another method in this session and for
      * the given FlowFile(s)
@@ -455,7 +456,7 @@ public interface ProcessSession {
      * nothing else references it and this FlowFile will no longer be available
      * for further operation.
      *
-     * @param flowFile
+     * @param flowFile to remove
      * @throws IllegalStateException if detected that this method is being
      * called from within a callback of another method in this session and for
      * the given FlowFile(s)
@@ -471,7 +472,7 @@ public interface ProcessSession {
      * nothing else references it and this FlowFile will no longer be available
      * for further operation.
      *
-     * @param flowFiles
+     * @param flowFiles to remove
      * @throws IllegalStateException if detected that this method is being
      * called from within a callback of another method in this session and for
      * the given FlowFile(s)
@@ -484,12 +485,12 @@ public interface ProcessSession {
     /**
      * Executes the given callback against the contents corresponding to the
      * given FlowFile.
-     * 
-     * <i>Note</i>: The OutputStream provided to the given OutputStreamCallback 
+     *
+     * <i>Note</i>: The OutputStream provided to the given OutputStreamCallback
      * will not be accessible once this method has completed its execution.
      *
-     * @param source
-     * @param reader
+     * @param source flowfile to retrieve content of
+     * @param reader that will be called to read the flowfile content
      * @throws IllegalStateException if detected that this method is being
      * called from within a callback of another method in this session and for
      * the given FlowFile(s)
@@ -501,7 +502,7 @@ public interface ProcessSession {
      * destroyed, and the session is automatically rolled back and what is left
      * of the FlowFile is destroyed.
      * @throws FlowFileAccessException if some IO problem occurs accessing
-     * FlowFile content; if an attempt is made to access the  InputStream 
+     * FlowFile content; if an attempt is made to access the InputStream
      * provided to the given InputStreamCallback after this method completed its
      * execution
      */
@@ -511,8 +512,8 @@ public interface ProcessSession {
      * Combines the content of all given source FlowFiles into a single given
      * destination FlowFile.
      *
-     * @param sources
-     * @param destination
+     * @param sources the flowfiles to merge
+     * @param destination the flowfile to use as the merged result
      * @return updated destination FlowFile (new size, etc...)
      * @throws IllegalStateException if detected that this method is being
      * called from within a callback of another method in this session and for
@@ -536,8 +537,8 @@ public interface ProcessSession {
      * Combines the content of all given source FlowFiles into a single given
      * destination FlowFile.
      *
-     * @param sources
-     * @param destination
+     * @param sources to merge together
+     * @param destination to merge to
      * @param header bytes that will be added to the beginning of the merged
      * output. May be null or empty.
      * @param footer bytes that will be added to the end of the merged output.
@@ -566,12 +567,12 @@ public interface ProcessSession {
     /**
      * Executes the given callback against the content corresponding to the
      * given FlowFile.
-     * 
-     * <i>Note</i>: The OutputStream provided to the given OutputStreamCallback 
-     * will not be accessible once this method has completed its execution.     
      *
-     * @param source
-     * @param writer
+     * <i>Note</i>: The OutputStream provided to the given OutputStreamCallback
+     * will not be accessible once this method has completed its execution.
+     *
+     * @param source to write to
+     * @param writer used to write new content
      * @return updated FlowFile
      * @throws IllegalStateException if detected that this method is being
      * called from within a callback of another method in this session and for
@@ -584,8 +585,8 @@ public interface ProcessSession {
      * destroyed, and the session is automatically rolled back and what is left
      * of the FlowFile is destroyed.
      * @throws FlowFileAccessException if some IO problem occurs accessing
-     * FlowFile content; if an attempt is made to access the OutputStream 
-     * provided to the given OutputStreamCallaback after this method completed 
+     * FlowFile content; if an attempt is made to access the OutputStream
+     * provided to the given OutputStreamCallaback after this method completed
      * its execution
      */
     FlowFile write(FlowFile source, OutputStreamCallback writer) throws FlowFileAccessException;
@@ -593,13 +594,13 @@ public interface ProcessSession {
     /**
      * Executes the given callback against the content corresponding to the
      * given flow file.
-     * 
-     * <i>Note</i>: The InputStream & OutputStream provided to the given 
-     * StreamCallback will not be accessible once this method has completed its 
-     * execution.     
      *
-     * @param source
-     * @param writer
+     * <i>Note</i>: The InputStream & OutputStream provided to the given
+     * StreamCallback will not be accessible once this method has completed its
+     * execution.
+     *
+     * @param source to read from and write to
+     * @param writer used to read the old content and write new content
      * @return updated FlowFile
      * @throws IllegalStateException if detected that this method is being
      * called from within a callback of another method in this session and for
@@ -612,8 +613,8 @@ public interface ProcessSession {
      * destroyed, and the session is automatically rolled back and what is left
      * of the FlowFile is destroyed.
      * @throws FlowFileAccessException if some IO problem occurs accessing
-     * FlowFile content; if an attempt is made to access the InputStream or 
-     * OutputStream provided to the given StreamCallback after this method 
+     * FlowFile content; if an attempt is made to access the InputStream or
+     * OutputStream provided to the given StreamCallback after this method
      * completed its execution
      */
     FlowFile write(FlowFile source, StreamCallback writer) throws FlowFileAccessException;
@@ -622,16 +623,16 @@ public interface ProcessSession {
      * Executes the given callback against the content corresponding to the
      * given FlowFile, such that any data written to the OutputStream of the
      * content will be appended to the end of FlowFile.
-     * 
-     * <i>Note</i>: The OutputStream provided to the given OutputStreamCallback 
+     *
+     * <i>Note</i>: The OutputStream provided to the given OutputStreamCallback
      * will not be accessible once this method has completed its execution.
      *
-     * @param source
-     * @param writer
-     * @return
-     * @throws FlowFileAccessException if an attempt is made to access the 
-     * OutputStream provided to the given OutputStreamCallaback after this method
-     * completed its execution
+     * @param source the flowfile for which content should be appended
+     * @param writer used to write new bytes to the flowfile content
+     * @return the updated flowfile reference for the new content
+     * @throws FlowFileAccessException if an attempt is made to access the
+     * OutputStream provided to the given OutputStreamCallaback after this
+     * method completed its execution
      */
     FlowFile append(FlowFile source, OutputStreamCallback writer) throws FlowFileAccessException;
 
@@ -687,8 +688,8 @@ public interface ProcessSession {
     /**
      * Writes the content of the given FlowFile to the given destination path.
      *
-     * @param flowFile
-     * @param destination
+     * @param flowFile to export the content of
+     * @param destination to export the content to
      * @param append if true will append to the current content at the given
      * path; if false will replace any current content
      * @throws IllegalStateException if detected that this method is being
@@ -709,8 +710,8 @@ public interface ProcessSession {
     /**
      * Writes the content of the given FlowFile to the given destination stream
      *
-     * @param flowFile
-     * @param destination
+     * @param flowFile to export the content of
+     * @param destination to export the content to
      * @throws IllegalStateException if detected that this method is being
      * called from within a callback of another method in this session and for
      * the given FlowFile(s)
@@ -729,7 +730,7 @@ public interface ProcessSession {
     /**
      * Returns a ProvenanceReporter that is tied to this ProcessSession.
      *
-     * @return
+     * @return the provenance reporter
      */
     ProvenanceReporter getProvenanceReporter();
 }

@@ -58,120 +58,121 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class SocketClientProtocol implements ClientProtocol {
+
     private final VersionNegotiator versionNegotiator = new StandardVersionNegotiator(5, 4, 3, 2, 1);
 
     private RemoteDestination destination;
     private boolean useCompression = false;
-    
+
     private String commsIdentifier;
     private boolean handshakeComplete = false;
-    
+
     private final Logger logger = LoggerFactory.getLogger(SocketClientProtocol.class);
-    
+
     private Response handshakeResponse = null;
     private boolean readyForFileTransfer = false;
     private String transitUriPrefix = null;
     private int timeoutMillis = 30000;
-    
+
     private int batchCount;
     private long batchSize;
     private long batchMillis;
     private EventReporter eventReporter;
 
     private static final long BATCH_SEND_NANOS = TimeUnit.SECONDS.toNanos(5L); // send batches of up to 5 seconds
-    
+
     public SocketClientProtocol() {
     }
 
     public void setPreferredBatchCount(final int count) {
         this.batchCount = count;
     }
-    
+
     public void setPreferredBatchSize(final long bytes) {
         this.batchSize = bytes;
     }
-    
+
     public void setPreferredBatchDuration(final long millis) {
         this.batchMillis = millis;
     }
-    
+
     public void setEventReporter(final EventReporter eventReporter) {
-    	this.eventReporter = eventReporter;
+        this.eventReporter = eventReporter;
     }
-    
+
     public void setDestination(final RemoteDestination destination) {
         this.destination = destination;
         this.useCompression = destination.isUseCompression();
     }
-    
+
     public void setTimeout(final int timeoutMillis) {
-    	this.timeoutMillis = timeoutMillis;
+        this.timeoutMillis = timeoutMillis;
     }
-    
+
     @Override
     public void handshake(final Peer peer) throws IOException, HandshakeException {
-    	handshake(peer, destination.getIdentifier());
+        handshake(peer, destination.getIdentifier());
     }
-    
+
     public void handshake(final Peer peer, final String destinationId) throws IOException, HandshakeException {
-        if ( handshakeComplete ) {
+        if (handshakeComplete) {
             throw new IllegalStateException("Handshake has already been completed");
         }
         commsIdentifier = UUID.randomUUID().toString();
         logger.debug("{} handshaking with {}", this, peer);
-        
+
         final Map<HandshakeProperty, String> properties = new HashMap<>();
         properties.put(HandshakeProperty.GZIP, String.valueOf(useCompression));
-        
-        if ( destinationId != null ) {
-        	properties.put(HandshakeProperty.PORT_IDENTIFIER, destinationId);
+
+        if (destinationId != null) {
+            properties.put(HandshakeProperty.PORT_IDENTIFIER, destinationId);
         }
-        
-        properties.put(HandshakeProperty.REQUEST_EXPIRATION_MILLIS, String.valueOf(timeoutMillis) );
-        
-        if ( versionNegotiator.getVersion() >= 5 ) {
-            if ( batchCount > 0 ) {
+
+        properties.put(HandshakeProperty.REQUEST_EXPIRATION_MILLIS, String.valueOf(timeoutMillis));
+
+        if (versionNegotiator.getVersion() >= 5) {
+            if (batchCount > 0) {
                 properties.put(HandshakeProperty.BATCH_COUNT, String.valueOf(batchCount));
             }
-            if ( batchSize > 0L ) {
+            if (batchSize > 0L) {
                 properties.put(HandshakeProperty.BATCH_SIZE, String.valueOf(batchSize));
             }
-            if ( batchMillis > 0L ) {
+            if (batchMillis > 0L) {
                 properties.put(HandshakeProperty.BATCH_DURATION, String.valueOf(batchMillis));
             }
         }
-        
+
         final CommunicationsSession commsSession = peer.getCommunicationsSession();
         commsSession.setTimeout(timeoutMillis);
         final DataInputStream dis = new DataInputStream(commsSession.getInput().getInputStream());
         final DataOutputStream dos = new DataOutputStream(commsSession.getOutput().getOutputStream());
-        
+
         dos.writeUTF(commsIdentifier);
-        
-        if ( versionNegotiator.getVersion() >= 3 ) {
+
+        if (versionNegotiator.getVersion() >= 3) {
             dos.writeUTF(peer.getUrl());
             transitUriPrefix = peer.getUrl();
-            
-            if ( !transitUriPrefix.endsWith("/") ) {
+
+            if (!transitUriPrefix.endsWith("/")) {
                 transitUriPrefix = transitUriPrefix + "/";
             }
         }
-        
+
         logger.debug("Handshaking with properties {}", properties);
         dos.writeInt(properties.size());
-        for ( final Map.Entry<HandshakeProperty, String> entry : properties.entrySet() ) {
+        for (final Map.Entry<HandshakeProperty, String> entry : properties.entrySet()) {
             dos.writeUTF(entry.getKey().name());
             dos.writeUTF(entry.getValue());
         }
-        
+
         dos.flush();
-        
+
         try {
             handshakeResponse = Response.read(dis);
         } catch (final ProtocolException e) {
             throw new HandshakeException(e);
         }
-        
+
         switch (handshakeResponse.getCode()) {
             case PORT_NOT_IN_VALID_STATE:
             case UNKNOWN_PORT:
@@ -181,71 +182,75 @@ public class SocketClientProtocol implements ClientProtocol {
                 readyForFileTransfer = true;
                 break;
             default:
-                logger.error("{} received unexpected response {} from {} when negotiating Codec", new Object[] {
+                logger.error("{} received unexpected response {} from {} when negotiating Codec", new Object[]{
                     this, handshakeResponse, peer});
                 peer.close();
                 throw new HandshakeException("Received unexpected response " + handshakeResponse);
         }
-        
+
         logger.debug("{} Finished handshake with {}", this, peer);
         handshakeComplete = true;
     }
-    
+
+    @Override
     public boolean isReadyForFileTransfer() {
         return readyForFileTransfer;
     }
-    
+
+    @Override
     public boolean isPortInvalid() {
-        if ( !handshakeComplete ) {
+        if (!handshakeComplete) {
             throw new IllegalStateException("Handshake has not completed successfully");
         }
         return handshakeResponse.getCode() == ResponseCode.PORT_NOT_IN_VALID_STATE;
     }
-    
+
+    @Override
     public boolean isPortUnknown() {
-        if ( !handshakeComplete ) {
+        if (!handshakeComplete) {
             throw new IllegalStateException("Handshake has not completed successfully");
         }
         return handshakeResponse.getCode() == ResponseCode.UNKNOWN_PORT;
     }
-    
+
+    @Override
     public boolean isDestinationFull() {
-        if ( !handshakeComplete ) {
+        if (!handshakeComplete) {
             throw new IllegalStateException("Handshake has not completed successfully");
         }
         return handshakeResponse.getCode() == ResponseCode.PORTS_DESTINATION_FULL;
     }
-    
+
     @Override
     public Set<PeerStatus> getPeerStatuses(final Peer peer) throws IOException {
-        if ( !handshakeComplete ) {
+        if (!handshakeComplete) {
             throw new IllegalStateException("Handshake has not been performed");
         }
-        
+
         logger.debug("{} Get Peer Statuses from {}", this, peer);
         final CommunicationsSession commsSession = peer.getCommunicationsSession();
         final DataInputStream dis = new DataInputStream(commsSession.getInput().getInputStream());
         final DataOutputStream dos = new DataOutputStream(commsSession.getOutput().getOutputStream());
-        
+
         RequestType.REQUEST_PEER_LIST.writeRequestType(dos);
         dos.flush();
         final int numPeers = dis.readInt();
         final Set<PeerStatus> peers = new HashSet<>(numPeers);
-        for (int i=0; i < numPeers; i++) {
+        for (int i = 0; i < numPeers; i++) {
             final String hostname = dis.readUTF();
             final int port = dis.readInt();
             final boolean secure = dis.readBoolean();
             final int flowFileCount = dis.readInt();
             peers.add(new PeerStatus(new PeerDescription(hostname, port, secure), flowFileCount));
         }
-        
+
         logger.debug("{} Received {} Peer Statuses from {}", this, peers.size(), peer);
         return peers;
     }
-    
+
     @Override
     public FlowFileCodec negotiateCodec(final Peer peer) throws IOException, ProtocolException {
-        if ( !handshakeComplete ) {
+        if (!handshakeComplete) {
             throw new IllegalStateException("Handshake has not been performed");
         }
 
@@ -255,177 +260,174 @@ public class SocketClientProtocol implements ClientProtocol {
         final DataOutputStream dos = new DataOutputStream(commsSession.getOutput().getOutputStream());
 
         RequestType.NEGOTIATE_FLOWFILE_CODEC.writeRequestType(dos);
-        
+
         FlowFileCodec codec = new StandardFlowFileCodec();
         try {
             codec = (FlowFileCodec) RemoteResourceInitiator.initiateResourceNegotiation(codec, dis, dos);
         } catch (HandshakeException e) {
             throw new ProtocolException(e.toString());
         }
-        logger.debug("{} negotiated FlowFileCodec {} with {}", new Object[] {this, codec, commsSession});
+        logger.debug("{} negotiated FlowFileCodec {} with {}", new Object[]{this, codec, commsSession});
 
         return codec;
     }
 
-
     @Override
     public Transaction startTransaction(final Peer peer, final FlowFileCodec codec, final TransferDirection direction) throws IOException, ProtocolException {
-        if ( !handshakeComplete ) {
+        if (!handshakeComplete) {
             throw new IllegalStateException("Handshake has not been performed");
         }
-        if ( !readyForFileTransfer ) {
+        if (!readyForFileTransfer) {
             throw new IllegalStateException("Cannot start transaction; handshake resolution was " + handshakeResponse);
         }
-        
-        return new SocketClientTransaction(versionNegotiator.getVersion(), destination.getIdentifier(), peer, codec, 
-        		direction, useCompression, (int) destination.getYieldPeriod(TimeUnit.MILLISECONDS), eventReporter);
-    }
 
+        return new SocketClientTransaction(versionNegotiator.getVersion(), destination.getIdentifier(), peer, codec,
+                direction, useCompression, (int) destination.getYieldPeriod(TimeUnit.MILLISECONDS), eventReporter);
+    }
 
     @Override
     public int receiveFlowFiles(final Peer peer, final ProcessContext context, final ProcessSession session, final FlowFileCodec codec) throws IOException, ProtocolException {
-    	final String userDn = peer.getCommunicationsSession().getUserDn();
-    	final Transaction transaction = startTransaction(peer, codec, TransferDirection.RECEIVE);
-    	
-    	final StopWatch stopWatch = new StopWatch(true);
-    	final Set<FlowFile> flowFilesReceived = new HashSet<>();
-    	long bytesReceived = 0L;
-    	
-    	while (true) {
-    		final long start = System.nanoTime();
-    		final DataPacket dataPacket = transaction.receive();
-    		if ( dataPacket == null ) {
-    		    if ( flowFilesReceived.isEmpty() ) {
-    		        peer.penalize(destination.getIdentifier(), destination.getYieldPeriod(TimeUnit.MILLISECONDS));
-    		    }
-    			break;
-    		}
-    		
-    		FlowFile flowFile = session.create();
-    		flowFile = session.putAllAttributes(flowFile, dataPacket.getAttributes());
-    		flowFile = session.importFrom(dataPacket.getData(), flowFile);
-    		final long receiveNanos = System.nanoTime() - start;
-    		
-			String sourceFlowFileIdentifier = dataPacket.getAttributes().get(CoreAttributes.UUID.key());
-			if ( sourceFlowFileIdentifier == null ) {
-				sourceFlowFileIdentifier = "<Unknown Identifier>";
-			}
-			
-			final String transitUri = (transitUriPrefix == null) ? peer.getUrl() : transitUriPrefix + sourceFlowFileIdentifier;
-			session.getProvenanceReporter().receive(flowFile, transitUri, "urn:nifi:" + sourceFlowFileIdentifier, "Remote Host=" + peer.getHost() + ", Remote DN=" + userDn, TimeUnit.NANOSECONDS.toMillis(receiveNanos));
+        final String userDn = peer.getCommunicationsSession().getUserDn();
+        final Transaction transaction = startTransaction(peer, codec, TransferDirection.RECEIVE);
 
-    		session.transfer(flowFile, Relationship.ANONYMOUS);
-    		bytesReceived += dataPacket.getSize();
-    	}
+        final StopWatch stopWatch = new StopWatch(true);
+        final Set<FlowFile> flowFilesReceived = new HashSet<>();
+        long bytesReceived = 0L;
 
-    	// Confirm that what we received was the correct data.
-    	transaction.confirm();
-    	
-		// Commit the session so that we have persisted the data
-		session.commit();
+        while (true) {
+            final long start = System.nanoTime();
+            final DataPacket dataPacket = transaction.receive();
+            if (dataPacket == null) {
+                if (flowFilesReceived.isEmpty()) {
+                    peer.penalize(destination.getIdentifier(), destination.getYieldPeriod(TimeUnit.MILLISECONDS));
+                }
+                break;
+            }
 
-		transaction.complete();
-		logger.debug("{} Sending TRANSACTION_FINISHED_BUT_DESTINATION_FULL to {}", this, peer);
+            FlowFile flowFile = session.create();
+            flowFile = session.putAllAttributes(flowFile, dataPacket.getAttributes());
+            flowFile = session.importFrom(dataPacket.getData(), flowFile);
+            final long receiveNanos = System.nanoTime() - start;
 
-		if ( !flowFilesReceived.isEmpty() ) {
-    		stopWatch.stop();
-    		final String flowFileDescription = flowFilesReceived.size() < 20 ? flowFilesReceived.toString() : flowFilesReceived.size() + " FlowFiles";
-    		final String uploadDataRate = stopWatch.calculateDataRate(bytesReceived);
-    		final long uploadMillis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
-    		final String dataSize = FormatUtils.formatDataSize(bytesReceived);
-    		logger.info("{} Successfully receveied {} ({}) from {} in {} milliseconds at a rate of {}", new Object[] { 
-    				this, flowFileDescription, dataSize, peer, uploadMillis, uploadDataRate });
-		}
-		
-		return flowFilesReceived.size();
+            String sourceFlowFileIdentifier = dataPacket.getAttributes().get(CoreAttributes.UUID.key());
+            if (sourceFlowFileIdentifier == null) {
+                sourceFlowFileIdentifier = "<Unknown Identifier>";
+            }
+
+            final String transitUri = (transitUriPrefix == null) ? peer.getUrl() : transitUriPrefix + sourceFlowFileIdentifier;
+            session.getProvenanceReporter().receive(flowFile, transitUri, "urn:nifi:" + sourceFlowFileIdentifier, "Remote Host="
+                    + peer.getHost() + ", Remote DN=" + userDn, TimeUnit.NANOSECONDS.toMillis(receiveNanos));
+
+            session.transfer(flowFile, Relationship.ANONYMOUS);
+            bytesReceived += dataPacket.getSize();
+        }
+
+        // Confirm that what we received was the correct data.
+        transaction.confirm();
+
+        // Commit the session so that we have persisted the data
+        session.commit();
+
+        transaction.complete();
+        logger.debug("{} Sending TRANSACTION_FINISHED_BUT_DESTINATION_FULL to {}", this, peer);
+
+        if (!flowFilesReceived.isEmpty()) {
+            stopWatch.stop();
+            final String flowFileDescription = flowFilesReceived.size() < 20 ? flowFilesReceived.toString() : flowFilesReceived.size() + " FlowFiles";
+            final String uploadDataRate = stopWatch.calculateDataRate(bytesReceived);
+            final long uploadMillis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
+            final String dataSize = FormatUtils.formatDataSize(bytesReceived);
+            logger.info("{} Successfully receveied {} ({}) from {} in {} milliseconds at a rate of {}", new Object[]{
+                this, flowFileDescription, dataSize, peer, uploadMillis, uploadDataRate});
+        }
+
+        return flowFilesReceived.size();
     }
 
-    
     @Override
     public int transferFlowFiles(final Peer peer, final ProcessContext context, final ProcessSession session, final FlowFileCodec codec) throws IOException, ProtocolException {
-		FlowFile flowFile = session.get();
-		if (flowFile == null) {
-			return 0;
-		}
+        FlowFile flowFile = session.get();
+        if (flowFile == null) {
+            return 0;
+        }
 
-		try {
-			final String userDn = peer.getCommunicationsSession().getUserDn();
-			final long startSendingNanos = System.nanoTime();
-			final StopWatch stopWatch = new StopWatch(true);
-			long bytesSent = 0L;
-			
-			final Transaction transaction = startTransaction(peer, codec, TransferDirection.SEND);
-			
-			final Set<FlowFile> flowFilesSent = new HashSet<>();
-	        boolean continueTransaction = true;
-	        while (continueTransaction) {
-	        	final long startNanos = System.nanoTime();
-	            // call codec.encode within a session callback so that we have the InputStream to read the FlowFile
-	            final FlowFile toWrap = flowFile;
-	            session.read(flowFile, new InputStreamCallback() {
-	                @Override
-	                public void process(final InputStream in) throws IOException {
-	                    final DataPacket dataPacket = new StandardDataPacket(toWrap.getAttributes(), in, toWrap.getSize());
-	                    transaction.send(dataPacket);
-	                }
-	            });
-	            
-	            final long transferNanos = System.nanoTime() - startNanos;
-	            final long transferMillis = TimeUnit.MILLISECONDS.convert(transferNanos, TimeUnit.NANOSECONDS);
-	            
-	            flowFilesSent.add(flowFile);
-	            bytesSent += flowFile.getSize();
-	            logger.debug("{} Sent {} to {}", this, flowFile, peer);
-	            
-	            final String transitUri = (transitUriPrefix == null) ? peer.getUrl() : transitUriPrefix + flowFile.getAttribute(CoreAttributes.UUID.key());
-	            session.getProvenanceReporter().send(flowFile, transitUri, "Remote Host=" + peer.getHost() + ", Remote DN=" + userDn, transferMillis, false);
-	            session.remove(flowFile);
-	            
-	            final long sendingNanos = System.nanoTime() - startSendingNanos;
-	            if ( sendingNanos < BATCH_SEND_NANOS ) { 
-	                flowFile = session.get();
-	            } else {
-	                flowFile = null;
-	            }
-	            
-	            continueTransaction = (flowFile != null);
-	        }
-	        
-	        transaction.confirm();
-	        
-	        // consume input stream entirely, ignoring its contents. If we
-	        // don't do this, the Connection will not be returned to the pool
-	        stopWatch.stop();
-	        final String uploadDataRate = stopWatch.calculateDataRate(bytesSent);
-	        final long uploadMillis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
-	        final String dataSize = FormatUtils.formatDataSize(bytesSent);
-	        
-	        session.commit();
-	        transaction.complete();
-	        
-	        final String flowFileDescription = (flowFilesSent.size() < 20) ? flowFilesSent.toString() : flowFilesSent.size() + " FlowFiles";
-	        logger.info("{} Successfully sent {} ({}) to {} in {} milliseconds at a rate of {}", new Object[] {
-	            this, flowFileDescription, dataSize, peer, uploadMillis, uploadDataRate});
-	        
-	        return flowFilesSent.size();
-		} catch (final Exception e) {
-			session.rollback();
-			throw e;
-		}
+        try {
+            final String userDn = peer.getCommunicationsSession().getUserDn();
+            final long startSendingNanos = System.nanoTime();
+            final StopWatch stopWatch = new StopWatch(true);
+            long bytesSent = 0L;
+
+            final Transaction transaction = startTransaction(peer, codec, TransferDirection.SEND);
+
+            final Set<FlowFile> flowFilesSent = new HashSet<>();
+            boolean continueTransaction = true;
+            while (continueTransaction) {
+                final long startNanos = System.nanoTime();
+                // call codec.encode within a session callback so that we have the InputStream to read the FlowFile
+                final FlowFile toWrap = flowFile;
+                session.read(flowFile, new InputStreamCallback() {
+                    @Override
+                    public void process(final InputStream in) throws IOException {
+                        final DataPacket dataPacket = new StandardDataPacket(toWrap.getAttributes(), in, toWrap.getSize());
+                        transaction.send(dataPacket);
+                    }
+                });
+
+                final long transferNanos = System.nanoTime() - startNanos;
+                final long transferMillis = TimeUnit.MILLISECONDS.convert(transferNanos, TimeUnit.NANOSECONDS);
+
+                flowFilesSent.add(flowFile);
+                bytesSent += flowFile.getSize();
+                logger.debug("{} Sent {} to {}", this, flowFile, peer);
+
+                final String transitUri = (transitUriPrefix == null) ? peer.getUrl() : transitUriPrefix + flowFile.getAttribute(CoreAttributes.UUID.key());
+                session.getProvenanceReporter().send(flowFile, transitUri, "Remote Host=" + peer.getHost() + ", Remote DN=" + userDn, transferMillis, false);
+                session.remove(flowFile);
+
+                final long sendingNanos = System.nanoTime() - startSendingNanos;
+                if (sendingNanos < BATCH_SEND_NANOS) {
+                    flowFile = session.get();
+                } else {
+                    flowFile = null;
+                }
+
+                continueTransaction = (flowFile != null);
+            }
+
+            transaction.confirm();
+
+            // consume input stream entirely, ignoring its contents. If we
+            // don't do this, the Connection will not be returned to the pool
+            stopWatch.stop();
+            final String uploadDataRate = stopWatch.calculateDataRate(bytesSent);
+            final long uploadMillis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
+            final String dataSize = FormatUtils.formatDataSize(bytesSent);
+
+            session.commit();
+            transaction.complete();
+
+            final String flowFileDescription = (flowFilesSent.size() < 20) ? flowFilesSent.toString() : flowFilesSent.size() + " FlowFiles";
+            logger.info("{} Successfully sent {} ({}) to {} in {} milliseconds at a rate of {}", new Object[]{
+                this, flowFileDescription, dataSize, peer, uploadMillis, uploadDataRate});
+
+            return flowFilesSent.size();
+        } catch (final Exception e) {
+            session.rollback();
+            throw e;
+        }
     }
-    
-    
+
     @Override
     public VersionNegotiator getVersionNegotiator() {
         return versionNegotiator;
     }
-    
+
     @Override
     public void shutdown(final Peer peer) throws IOException {
         readyForFileTransfer = false;
         final CommunicationsSession commsSession = peer.getCommunicationsSession();
         final DataOutputStream dos = new DataOutputStream(commsSession.getOutput().getOutputStream());
-        
+
         logger.debug("{} Shutting down with {}", this, peer);
         // Indicate that we would like to have some data
         RequestType.SHUTDOWN.writeRequestType(dos);
@@ -436,7 +438,7 @@ public class SocketClientProtocol implements ClientProtocol {
     public String getResourceName() {
         return "SocketFlowFileProtocol";
     }
-    
+
     @Override
     public String toString() {
         return "SocketClientProtocol[CommsID=" + commsIdentifier + "]";

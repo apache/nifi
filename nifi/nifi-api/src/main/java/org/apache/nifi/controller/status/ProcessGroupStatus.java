@@ -425,7 +425,7 @@ public class ProcessGroupStatus implements Cloneable {
             // processor run status is disabled/stopped/running is part of the flow configuration
             // and should not differ amongst nodes. however, whether a processor is invalid
             // can be driven by environmental conditions. this check allows any of those to
-            // take precedence over the configured run status. 
+            // take precedence over the configured run status.
             if (RunStatus.Invalid.equals(statusToMerge.getRunStatus())) {
                 merged.setRunStatus(RunStatus.Invalid);
             }
@@ -454,7 +454,7 @@ public class ProcessGroupStatus implements Cloneable {
                 merged.setTransmitting(true);
             }
 
-            // should be unnecessary here since ports run status should not be affected by 
+            // should be unnecessary here since ports run status should not be affected by
             // environmental conditions but doing so in case that changes
             if (RunStatus.Invalid.equals(statusToMerge.getRunStatus())) {
                 merged.setRunStatus(RunStatus.Invalid);
@@ -484,7 +484,7 @@ public class ProcessGroupStatus implements Cloneable {
                 merged.setTransmitting(true);
             }
 
-            // should be unnecessary here since ports run status not should be affected by 
+            // should be unnecessary here since ports run status not should be affected by
             // environmental conditions but doing so in case that changes
             if (RunStatus.Invalid.equals(statusToMerge.getRunStatus())) {
                 merged.setRunStatus(RunStatus.Invalid);

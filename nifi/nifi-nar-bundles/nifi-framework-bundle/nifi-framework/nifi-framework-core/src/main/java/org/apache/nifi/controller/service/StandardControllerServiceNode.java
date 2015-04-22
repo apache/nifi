@@ -59,12 +59,11 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
         this.serviceProvider = serviceProvider;
     }
 
-    
     @Override
     public ControllerService getProxiedControllerService() {
         return proxedControllerService;
     }
-    
+
     @Override
     public ControllerService getControllerServiceImplementation() {
         return implementation;
@@ -106,23 +105,23 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
             throw new IllegalStateException("Cannot modify Controller Service configuration because it is currently enabled. Please disable the Controller Service first.");
         }
     }
-    
+
     @Override
     public void setProperty(final String name, final String value) {
         super.setProperty(name, value);
         onConfigured();
     }
-    
+
     @Override
     public boolean removeProperty(String name) {
         final boolean removed = super.removeProperty(name);
-        if ( removed ) {
+        if (removed) {
             onConfigured();
         }
-        
+
         return removed;
     }
-    
+
     @SuppressWarnings("deprecation")
     private void onConfigured() {
         try (final NarCloseable x = NarCloseable.withNarLoader()) {
@@ -132,97 +131,97 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
             throw new ComponentLifeCycleException("Failed to invoke On-Configured Lifecycle methods of " + implementation, e);
         }
     }
-    
+
     @Override
     public void verifyCanDelete() {
-        if ( getState() != ControllerServiceState.DISABLED ) {
+        if (getState() != ControllerServiceState.DISABLED) {
             throw new IllegalStateException(implementation + " cannot be deleted because it is not disabled");
         }
     }
-    
+
     @Override
     public void verifyCanDisable() {
         verifyCanDisable(Collections.<ControllerServiceNode>emptySet());
     }
-    
+
     @Override
     public void verifyCanDisable(final Set<ControllerServiceNode> ignoreReferences) {
         final ControllerServiceState state = getState();
-        if ( state != ControllerServiceState.ENABLED && state != ControllerServiceState.ENABLING ) {
+        if (state != ControllerServiceState.ENABLED && state != ControllerServiceState.ENABLING) {
             throw new IllegalStateException("Cannot disable " + getControllerServiceImplementation() + " because it is not enabled");
         }
-        
+
         final ControllerServiceReference references = getReferences();
-        
-        for ( final ConfiguredComponent activeReference : references.getActiveReferences() ) {
-            if ( !ignoreReferences.contains(activeReference) ) {
+
+        for (final ConfiguredComponent activeReference : references.getActiveReferences()) {
+            if (!ignoreReferences.contains(activeReference)) {
                 throw new IllegalStateException(implementation + " cannot be disabled because it is referenced by at least one component that is currently running");
             }
         }
     }
-    
+
     @Override
     public void verifyCanEnable() {
-        if ( getState() != ControllerServiceState.DISABLED ) {
+        if (getState() != ControllerServiceState.DISABLED) {
             throw new IllegalStateException(implementation + " cannot be enabled because it is not disabled");
         }
-        
-        if ( !isValid() ) {
+
+        if (!isValid()) {
             throw new IllegalStateException(implementation + " cannot be enabled because it is not valid: " + getValidationErrors());
         }
     }
-    
+
     @Override
     public void verifyCanEnable(final Set<ControllerServiceNode> ignoredReferences) {
         if (getState() != ControllerServiceState.DISABLED) {
             throw new IllegalStateException(implementation + " cannot be enabled because it is not disabled");
         }
-        
+
         final Set<String> ids = new HashSet<>();
-        for ( final ControllerServiceNode node : ignoredReferences ) {
+        for (final ControllerServiceNode node : ignoredReferences) {
             ids.add(node.getIdentifier());
         }
-        
+
         final Collection<ValidationResult> validationResults = getValidationErrors(ids);
-        for ( final ValidationResult result : validationResults ) {
-            if ( !result.isValid() ) {
+        for (final ValidationResult result : validationResults) {
+            if (!result.isValid()) {
                 throw new IllegalStateException(implementation + " cannot be enabled because it is not valid: " + result);
             }
         }
     }
-    
+
     @Override
     public void verifyCanUpdate() {
-        if ( getState() != ControllerServiceState.DISABLED ) {
+        if (getState() != ControllerServiceState.DISABLED) {
             throw new IllegalStateException(implementation + " cannot be updated because it is not disabled");
         }
     }
-    
+
     @Override
     public String getComments() {
-    	readLock.lock();
-    	try {
-    		return comment;
-    	} finally {
-    		readLock.unlock();
-    	}
+        readLock.lock();
+        try {
+            return comment;
+        } finally {
+            readLock.unlock();
+        }
     }
-    
+
     @Override
     public void setComments(final String comment) {
-    	writeLock.lock();
-    	try {
-    		this.comment = comment;
-    	} finally {
-    		writeLock.unlock();
-    	}
+        writeLock.lock();
+        try {
+            this.comment = comment;
+        } finally {
+            writeLock.unlock();
+        }
     }
-    
+
     @Override
     public ControllerServiceState getState() {
         return stateRef.get();
     }
-    
+
     @Override
     public void setState(final ControllerServiceState state) {
         this.stateRef.set(state);

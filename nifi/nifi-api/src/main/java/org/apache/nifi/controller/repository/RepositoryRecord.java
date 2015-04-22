@@ -26,60 +26,44 @@ import org.apache.nifi.controller.repository.claim.ContentClaim;
 public interface RepositoryRecord {
 
     /**
-     * The FlowFileQueue to which the FlowFile is to be transferred
-     *
-     * @return
+     * @return FlowFileQueue to which the FlowFile is to be transferred
      */
     FlowFileQueue getDestination();
 
     /**
-     * The FlowFileQueue from which the record was pulled
-     *
-     * @return
+     * @return FlowFileQueue from which the record was pulled
      */
     FlowFileQueue getOriginalQueue();
 
     /**
-     * The type of update that this record encapsulates
-     *
-     * @return
+     * @return type of update that this record encapsulates
      */
     RepositoryRecordType getType();
 
     /**
-     * The current ContentClaim for the FlowFile
-     *
-     * @return
+     * @return current ContentClaim for the FlowFile
      */
     ContentClaim getCurrentClaim();
 
     /**
-     * The original ContentClaim for the FlowFile before any changes were made
-     *
-     * @return
+     * @return original ContentClaim for the FlowFile before any changes were made
      */
     ContentClaim getOriginalClaim();
 
     /**
-     * The byte offset into the Content Claim where this FlowFile's content
+     * @return byte offset into the Content Claim where this FlowFile's content
      * begins
-     *
-     * @return
      */
     long getCurrentClaimOffset();
 
     /**
-     * The FlowFile being encapsulated by this record
-     *
-     * @return
+     * @return FlowFile being encapsulated by this record
      */
     FlowFileRecord getCurrent();
 
     /**
-     * Whether or not the FlowFile's attributes have changed since the FlowFile
+     * @return Whether or not the FlowFile's attributes have changed since the FlowFile
      * was pulled from its queue (or created)
-     *
-     * @return
      */
     boolean isAttributesChanged();
 
@@ -90,11 +74,9 @@ public interface RepositoryRecord {
     boolean isMarkedForAbort();
 
     /**
-     * If the FlowFile is swapped out of the Java heap space, provides the
+     * @return If the FlowFile is swapped out of the Java heap space, provides the
      * location of the swap file, or <code>null</code> if the FlowFile is not
      * swapped out
-     *
-     * @return
      */
     String getSwapLocation();
 }

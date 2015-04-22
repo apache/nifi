@@ -27,9 +27,9 @@ public class FlowModification {
 
     /**
      * Creates a new FlowModification.
-     * 
-     * @param revision
-     * @param lastModifier 
+     *
+     * @param revision revision
+     * @param lastModifier modifier
      */
     public FlowModification(Revision revision, String lastModifier) {
         this.revision = revision;
@@ -38,8 +38,8 @@ public class FlowModification {
 
     /**
      * Get the revision.
-     * 
-     * @return 
+     *
+     * @return the revision
      */
     public Revision getRevision() {
         return revision;
@@ -47,11 +47,11 @@ public class FlowModification {
 
     /**
      * Get the last modifier.
-     * 
-     * @return 
+     *
+     * @return the modifier
      */
     public String getLastModifier() {
         return lastModifier;
     }
-    
+
 }

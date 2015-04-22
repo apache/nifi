@@ -19,9 +19,10 @@ package org.apache.nifi.remote.exception;
 import org.apache.nifi.remote.codec.FlowFileCodec;
 
 public class UnsupportedCodecException extends RuntimeException {
-	private static final long serialVersionUID = 198234789237L;
 
-	public UnsupportedCodecException(final String codecName) {
+    private static final long serialVersionUID = 198234789237L;
+
+    public UnsupportedCodecException(final String codecName) {
         super("Codec " + codecName + " is not supported");
     }
 

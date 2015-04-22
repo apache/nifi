@@ -64,12 +64,11 @@ import org.slf4j.LoggerFactory;
 public class DataFlowManagementServiceImpl implements DataFlowManagementService {
 
     /*
-     * Developer Note: 
-     * 
+     * Developer Note:
+     *
      * This class maintains an ExecutorService and a Runnable.
      * Although the class is not externally threadsafe, its internals are protected to
      * accommodate multithread access between the ExecutorServer and the Runnable.
-     * 
      */
     private static final Logger logger = new NiFiLog(LoggerFactory.getLogger(DataFlowManagementServiceImpl.class));
 
@@ -170,13 +169,12 @@ public class DataFlowManagementServiceImpl implements DataFlowManagementService 
             resourceLock.unlock("updatePrimaryNode");
         }
     }
-    
-    
+
     @Override
     public void updateControllerServices(final byte[] controllerServiceBytes) throws DaoException {
-    	resourceLock.lock();
-    	try {
-    		final ClusterDataFlow existingClusterDataFlow = flowDao.loadDataFlow();
+        resourceLock.lock();
+        try {
+            final ClusterDataFlow existingClusterDataFlow = flowDao.loadDataFlow();
 
             final StandardDataFlow dataFlow;
             final byte[] reportingTaskBytes;
@@ -192,16 +190,16 @@ public class DataFlowManagementServiceImpl implements DataFlowManagementService 
             }
 
             flowDao.saveDataFlow(new ClusterDataFlow(dataFlow, nodeId, controllerServiceBytes, reportingTaskBytes));
-    	} finally {
-    		resourceLock.unlock("updateControllerServices");
-    	}
+        } finally {
+            resourceLock.unlock("updateControllerServices");
+        }
     }
-    
+
     @Override
     public void updateReportingTasks(final byte[] reportingTaskBytes) throws DaoException {
-    	resourceLock.lock();
-    	try {
-    		final ClusterDataFlow existingClusterDataFlow = flowDao.loadDataFlow();
+        resourceLock.lock();
+        try {
+            final ClusterDataFlow existingClusterDataFlow = flowDao.loadDataFlow();
 
             final StandardDataFlow dataFlow;
             final byte[] controllerServiceBytes;
@@ -217,9 +215,9 @@ public class DataFlowManagementServiceImpl implements DataFlowManagementService 
             }
 
             flowDao.saveDataFlow(new ClusterDataFlow(dataFlow, nodeId, controllerServiceBytes, reportingTaskBytes));
-    	} finally {
-    		resourceLock.unlock("updateControllerServices");
-    	}
+        } finally {
+            resourceLock.unlock("updateControllerServices");
+        }
     }
 
     @Override
@@ -361,8 +359,8 @@ public class DataFlowManagementServiceImpl implements DataFlowManagementService 
                             if (existingClusterDataFlow == null) {
                                 currentClusterDataFlow = new ClusterDataFlow(dataFlow, null, new byte[0], new byte[0]);
                             } else {
-                                currentClusterDataFlow = new ClusterDataFlow(dataFlow, existingClusterDataFlow.getPrimaryNodeId(), 
-                                		existingClusterDataFlow.getControllerServices(), existingClusterDataFlow.getReportingTasks());
+                                currentClusterDataFlow = new ClusterDataFlow(dataFlow, existingClusterDataFlow.getPrimaryNodeId(),
+                                        existingClusterDataFlow.getControllerServices(), existingClusterDataFlow.getReportingTasks());
                             }
                             flowDao.saveDataFlow(currentClusterDataFlow);
                             flowDao.setPersistedFlowState(PersistedFlowState.CURRENT);

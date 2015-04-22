@@ -23,9 +23,9 @@ import org.apache.nifi.processor.exception.ProcessException;
 
 public class NakedProcessor extends AbstractProcessor {
 
-	@Override
-	public void onTrigger(ProcessContext arg0, ProcessSession arg1) throws ProcessException {
-		
-	}
+    @Override
+    public void onTrigger(ProcessContext arg0, ProcessSession arg1) throws ProcessException {
+
+    }
 
 }

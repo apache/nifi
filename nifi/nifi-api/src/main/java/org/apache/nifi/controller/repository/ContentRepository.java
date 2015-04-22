@@ -31,7 +31,6 @@ import org.apache.nifi.controller.repository.claim.ContentClaimManager;
  * available on the methods but a merge capability is provided which between
  * that and creating new claims a merge is available.
  *
- * @author none
  */
 public interface ContentRepository {
 
@@ -40,46 +39,38 @@ public interface ContentRepository {
      * ContentClaimManager that is to be used for interacting with Content
      * Claims
      *
-     * @param claimManager
-     * @throws java.io.IOException
+     * @param claimManager to handle claims
+     * @throws java.io.IOException if unable to init
      */
     void initialize(ContentClaimManager claimManager) throws IOException;
 
     /**
-     * Shuts down the Content Repository, freeing any resources that may be held.
-     * This is called when an administrator shuts down NiFi.
+     * Shuts down the Content Repository, freeing any resources that may be
+     * held. This is called when an administrator shuts down NiFi.
      */
     void shutdown();
-    
+
     /**
-     * Returns the names of all Containers that exist for this Content
+     * @return the names of all Containers that exist for this Content
      * Repository
-     *
-     * @return
      */
     Set<String> getContainerNames();
 
     /**
-     * Returns the maximum number of bytes that can be stored in the storage
+     * @param containerName name of container to check capacity on
+     * @return the maximum number of bytes that can be stored in the storage
      * mechanism that backs the container with the given name
-     *
-     * @param containerName
-     * @return
-     * @throws java.io.IOException
-     *
+     * @throws java.io.IOException if unable to check capacity
      * @throws IllegalArgumentException if no container exists with the given
      * name
      */
     long getContainerCapacity(String containerName) throws IOException;
 
     /**
-     * Returns the number of bytes available to be used used by the storage
+     * @param containerName to check space on
+     * @return the number of bytes available to be used used by the storage
      * mechanism that backs the container with the given name
-     *
-     * @param containerName
-     * @return
-     * @throws java.io.IOException
-     *
+     * @throws java.io.IOException if unable to check space
      * @throws IllegalArgumentException if no container exists with the given
      * name
      */
@@ -92,14 +83,14 @@ public interface ContentRepository {
      * loss tolerant. If true the repository might choose more volatile storage
      * options which could increase performance for a tradeoff with reliability
      * @return newly created claim
-     * @throws java.io.IOException
+     * @throws java.io.IOException if unable to create claim
      */
     ContentClaim create(boolean lossTolerant) throws IOException;
 
     /**
      * Increments the number of claimants for the given claim
      *
-     * @param claim
+     * @param claim to increment
      * @return the number of claimants after incrementing
      */
     int incrementClaimaintCount(ContentClaim claim);
@@ -107,7 +98,7 @@ public interface ContentRepository {
     /**
      * Obtains the current number of claimants for the given claim
      *
-     * @param claim
+     * @param claim to get count of
      * @return the number of claimants
      */
     int getClaimantCount(ContentClaim claim);
@@ -117,15 +108,15 @@ public interface ContentRepository {
      * claim is null or content cannot be found or removed no exception will be
      * thrown.
      *
-     * @param claim
-     * @return 
+     * @param claim to decrement
+     * @return new claimant count for the given claim
      */
     int decrementClaimantCount(ContentClaim claim);
 
     /**
      * Removes the content indicated by the given claim
      *
-     * @param claim
+     * @param claim to remove
      *
      * @return a boolean indicating whether or not the destruction of the claim
      * was successful
@@ -136,9 +127,9 @@ public interface ContentRepository {
      * Clones the content for the given content claim and returns content claim
      * of the new object
      *
-     * @param original
-     * @param lossTolerant
-     * @return
+     * @param original to clone
+     * @param lossTolerant if can be place in a loss tolerant repository
+     * @return new claim
      * @throws IOException if an IO error occurs. Any content written to the new
      * destination prior to the error will be destroyed
      */
@@ -156,7 +147,7 @@ public interface ContentRepository {
      * @param footer if supplied will be appended to the output
      * @param demarcator if supplied will be placed in between each merged
      * object
-     * @throws IOException
+     * @throws IOException if unable to merge
      * @throws IllegalArgumentException if the given destination is included in
      * the given claims
      */
@@ -167,9 +158,9 @@ public interface ContentRepository {
      * claim within the repository.
      *
      * @return the size of the claim
-     * @param content
+     * @param content to import from
      * @param claim the claim to write imported content to
-     * @throws IOException
+     * @throws IOException if failure to read given content
      */
     long importFrom(Path content, ContentClaim claim) throws IOException;
 
@@ -179,11 +170,11 @@ public interface ContentRepository {
      * argument
      *
      * @return the size of the claim
-     * @param content
+     * @param content to import from
      * @param claim the claim to write imported content to
      * @param append if true, the content will be appended to the claim; if
      * false, the content will replace the contents of the claim
-     * @throws IOException
+     * @throws IOException if unable to read content
      */
     long importFrom(Path content, ContentClaim claim, boolean append) throws IOException;
 
@@ -192,9 +183,9 @@ public interface ContentRepository {
      * claim within the repository.
      *
      * @return the size of the claim
-     * @param content
+     * @param content to import from
      * @param claim the claim to write imported content to
-     * @throws IOException
+     * @throws IOException if unable to read content
      */
     long importFrom(InputStream content, ContentClaim claim) throws IOException;
 
@@ -202,11 +193,11 @@ public interface ContentRepository {
      * Imports content from the given stream, appending or replacing the current
      * claim, according to the value of the appen dargument
      *
-     * @param content
-     * @param claim
-     * @param append
-     * @return
-     * @throws IOException
+     * @param content to import from
+     * @param claim to write to
+     * @param append whether to append or replace
+     * @return length of data imported in bytes
+     * @throws IOException if failure to read or write stream
      */
     long importFrom(InputStream content, ContentClaim claim, boolean append) throws IOException;
 
@@ -214,7 +205,7 @@ public interface ContentRepository {
      * Exports the content of the given claim to the given destination.
      *
      * @return the size of the destination or the claim
-     * @param claim
+     * @param claim to export from
      * @param destination where to export data
      * @param append if true appends to the destination; false overwrites
      * @throws IOException if an IO error occurs. The state of the content for
@@ -227,7 +218,7 @@ public interface ContentRepository {
      * Exports the content of the given claim to the given destination.
      *
      * @return the size of the destination or the claim
-     * @param claim
+     * @param claim to export from
      * @param destination where to export data
      * @param append if true appends to the destination; false overwrites
      * @param offset the offset at which the claim should start being copied
@@ -242,7 +233,7 @@ public interface ContentRepository {
      * Exports the content of the given claim to the given destination.
      *
      * @return the size of the claim
-     * @param claim
+     * @param claim to export from
      * @param destination where to export data
      * @throws IOException if an IO error occurs.
      */
@@ -253,7 +244,7 @@ public interface ContentRepository {
      * and copying length bytes, to the given destination.
      *
      * @return the number of bytes copied
-     * @param claim
+     * @param claim to export from
      * @param destination where to export data
      * @param offset the offset into the claim at which the copy should begin
      * @param length the number of bytes to copy
@@ -262,27 +253,27 @@ public interface ContentRepository {
     long exportTo(ContentClaim claim, OutputStream destination, long offset, long length) throws IOException;
 
     /**
-     * @param claim
+     * @param claim to get size of
      * @return size in bytes of content for given claim
-     * @throws IOException
+     * @throws IOException if size check failed
      */
     long size(ContentClaim claim) throws IOException;
 
     /**
      * Provides access to the input stream for the given claim
      *
-     * @param claim
+     * @param claim to read from
      * @return InputStream over the content of the given claim
-     * @throws IOException
+     * @throws IOException if unable to read
      */
     InputStream read(ContentClaim claim) throws IOException;
 
     /**
      * Obtains an OutputStream to the content for the given claim.
      *
-     * @param claim
-     * @return
-     * @throws IOException
+     * @param claim to write to
+     * @return the stream to write to
+     * @throws IOException if unable to obtain stream
      */
     OutputStream write(ContentClaim claim) throws IOException;
 
@@ -300,15 +291,13 @@ public interface ContentRepository {
     void cleanup();
 
     /**
-     * Returns a boolean indicating whether or not the content specified by the
-     * given claim can be read, regardless of whether the content has been
-     * archived or not. If the ContentRepository does not implement archiving
-     * capabilities, this method will return <code>false</code>.
-     *
      * @param contentClaim the Content Claim to check
-     * @return
+     * @return Returns a boolean indicating whether or not the content specified
+     * by the given claim can be read, regardless of whether the content has
+     * been archived or not. If the ContentRepository does not implement
+     * archiving capabilities, this method will return <code>false</code>
      *
-     * @throws IOException
+     * @throws IOException if unable to determine accessibility
      */
     boolean isAccessible(ContentClaim contentClaim) throws IOException;
 }

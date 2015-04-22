@@ -29,9 +29,7 @@ public class NodeProcessorStatusDTO {
     private ProcessorStatusDTO processorStatus;
 
     /**
-     * The node.
-     *
-     * @return
+     * @return the node
      */
     public NodeDTO getNode() {
         return node;
@@ -42,9 +40,7 @@ public class NodeProcessorStatusDTO {
     }
 
     /**
-     * The processor's status.
-     *
-     * @return
+     * @return processor's status
      */
     public ProcessorStatusDTO getProcessorStatus() {
         return processorStatus;

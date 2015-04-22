@@ -42,7 +42,7 @@ public class BufferStateManager {
      * resizing the buffer if necessary. This operation MAY change the direction
      * of the buffer.
      *
-     * @param requiredSize
+     * @param requiredSize the desired size of the buffer
      */
     public void ensureSize(final int requiredSize) {
         if (buffer.capacity() < requiredSize) {

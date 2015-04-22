@@ -23,20 +23,21 @@ import org.apache.nifi.hl7.model.HL7Component;
 import org.apache.nifi.hl7.model.HL7Field;
 
 public class SingleValueField implements HL7Field {
-	private final String value;
-	
-	public SingleValueField(final String value) {
-		this.value = value;
-	}
-	
-	@Override
-	public String getValue() {
-		return value;
-	}
 
-	@Override
-	public List<HL7Component> getComponents() {
-		return Collections.emptyList();
-	}
+    private final String value;
+
+    public SingleValueField(final String value) {
+        this.value = value;
+    }
+
+    @Override
+    public String getValue() {
+        return value;
+    }
+
+    @Override
+    public List<HL7Component> getComponents() {
+        return Collections.emptyList();
+    }
 
 }

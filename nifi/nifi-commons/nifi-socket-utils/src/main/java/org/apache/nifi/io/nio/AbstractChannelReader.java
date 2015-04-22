@@ -33,10 +33,6 @@ import org.apache.commons.lang3.builder.ToStringStyle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- *
- * @author none
- */
 public abstract class AbstractChannelReader implements Runnable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AbstractChannelReader.class);
@@ -91,12 +87,12 @@ public abstract class AbstractChannelReader implements Runnable {
      * Allows a subclass to specifically handle how it reads from the given
      * key's channel into the given buffer.
      *
-     * @param key
-     * @param buffer
+     * @param key of channel to read from
+     * @param buffer to fill
      * @return the number of bytes read in the final read cycle. A value of zero
      * or more indicates the channel is still open but a value of -1 indicates
      * end of stream.
-     * @throws IOException
+     * @throws IOException if reading from channel causes failure
      */
     protected abstract int fillBuffer(SelectionKey key, ByteBuffer buffer) throws IOException;
 

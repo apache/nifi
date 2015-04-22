@@ -27,7 +27,7 @@ public class ConnectionRequestAdapter extends XmlAdapter<AdaptedConnectionReques
     @Override
     public AdaptedConnectionRequest marshal(final ConnectionRequest cr) {
         final AdaptedConnectionRequest aCr = new AdaptedConnectionRequest();
-        if(cr != null) {
+        if (cr != null) {
             aCr.setNodeIdentifier(cr.getProposedNodeIdentifier());
         }
         return aCr;
@@ -37,5 +37,5 @@ public class ConnectionRequestAdapter extends XmlAdapter<AdaptedConnectionReques
     public ConnectionRequest unmarshal(final AdaptedConnectionRequest aCr) {
         return new ConnectionRequest(aCr.getNodeIdentifier());
     }
- 
+
 }

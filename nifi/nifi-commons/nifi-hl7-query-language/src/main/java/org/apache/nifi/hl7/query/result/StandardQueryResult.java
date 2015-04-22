@@ -27,43 +27,44 @@ import org.apache.nifi.hl7.query.ResultHit;
 import org.apache.nifi.hl7.query.Selection;
 
 public class StandardQueryResult implements QueryResult {
-	private final List<Selection> selections;
-	private final Set<Map<String, Object>> hits;
-	private final Iterator<Map<String, Object>> hitIterator;
-	
-	public StandardQueryResult(final List<Selection> selections, final Set<Map<String, Object>> hits) {
-		this.selections = selections;
-		this.hits = hits;
-		
-		hitIterator = hits.iterator();
-	}
-	
-	@Override
-	public boolean isMatch() {
-		return !hits.isEmpty();
-	}
 
-	@Override
-	public List<String> getLabels() {
-		final List<String> labels = new ArrayList<>();
-		for ( final Selection selection : selections ) {
-			labels.add(selection.getName());
-		}
-		return labels;
-	}
+    private final List<Selection> selections;
+    private final Set<Map<String, Object>> hits;
+    private final Iterator<Map<String, Object>> hitIterator;
 
-	@Override
-	public int getHitCount() {
-		return hits.size();
-	}
-	
-	@Override
-	public ResultHit nextHit() {
-		if ( hitIterator.hasNext() ) {
-			return new StandardResultHit(hitIterator.next());
-		} else {
-			return null;
-		}
-	}
-	
+    public StandardQueryResult(final List<Selection> selections, final Set<Map<String, Object>> hits) {
+        this.selections = selections;
+        this.hits = hits;
+
+        hitIterator = hits.iterator();
+    }
+
+    @Override
+    public boolean isMatch() {
+        return !hits.isEmpty();
+    }
+
+    @Override
+    public List<String> getLabels() {
+        final List<String> labels = new ArrayList<>();
+        for (final Selection selection : selections) {
+            labels.add(selection.getName());
+        }
+        return labels;
+    }
+
+    @Override
+    public int getHitCount() {
+        return hits.size();
+    }
+
+    @Override
+    public ResultHit nextHit() {
+        if (hitIterator.hasNext()) {
+            return new StandardResultHit(hitIterator.next());
+        } else {
+            return null;
+        }
+    }
+
 }

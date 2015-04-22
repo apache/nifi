@@ -34,14 +34,15 @@ public class ReflectionUtils {
      * are supplied by the <code>args</code> parameter than needed, the extra
      * arguments will be ignored.
      *
-     * @param annotation
-     * @param instance
-     * @param args
-     * @throws InvocationTargetException
-     * @throws IllegalArgumentException
-     * @throws IllegalAccessException
+     * @param annotation the annotation to look for
+     * @param instance to invoke a method of
+     * @param args to supply in a method call
+     * @throws InvocationTargetException ite
+     * @throws IllegalArgumentException iae
+     * @throws IllegalAccessException if not allowed to invoke that method
      */
-    public static void invokeMethodsWithAnnotation(final Class<? extends Annotation> annotation, final Object instance, final Object... args) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+    public static void invokeMethodsWithAnnotation(final Class<? extends Annotation> annotation, final Object instance, final Object... args)
+            throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
         for (final Method method : instance.getClass().getMethods()) {
             if (method.isAnnotationPresent(annotation)) {
                 final boolean isAccessible = method.isAccessible();
@@ -90,9 +91,9 @@ public class ReflectionUtils {
      * are supplied by the <code>args</code> parameter than needed, the extra
      * arguments will be ignored.
      *
-     * @param annotation
-     * @param instance
-     * @param args
+     * @param annotation the annotation to look for
+     * @param instance to invoke a method of
+     * @param args to supply in a method call
      * @return <code>true</code> if all appropriate methods were invoked and
      * returned without throwing an Exception, <code>false</code> if one of the
      * methods threw an Exception or could not be invoked; if <code>false</code>

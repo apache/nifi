@@ -48,9 +48,7 @@ public class ControllerDTO {
     private Set<PortDTO> outputPorts;
 
     /**
-     * The id of this NiFi controller.
-     *
-     * @return
+     * @return id of this NiFi controller
      */
     public String getId() {
         return id;
@@ -74,9 +72,7 @@ public class ControllerDTO {
     }
 
     /**
-     * The comments of this NiFi controller.
-     *
-     * @return
+     * @return comments of this NiFi controller
      */
     public String getComments() {
         return comments;
@@ -87,9 +83,7 @@ public class ControllerDTO {
     }
 
     /**
-     * The input ports available to send data to this NiFi controller.
-     *
-     * @return
+     * @return input ports available to send data to this NiFi controller
      */
     public Set<PortDTO> getInputPorts() {
         return inputPorts;
@@ -100,9 +94,7 @@ public class ControllerDTO {
     }
 
     /**
-     * The output ports available to received data from this NiFi controller.
-     *
-     * @return
+     * @return output ports available to received data from this NiFi controller
      */
     public Set<PortDTO> getOutputPorts() {
         return outputPorts;
@@ -113,10 +105,8 @@ public class ControllerDTO {
     }
 
     /**
-     * The Instance ID of the cluster, if this node is connected to a Cluster
+     * @return Instance ID of the cluster, if this node is connected to a Cluster
      * Manager, or of this individual instance of in standalone mode
-     *
-     * @return
      */
     public String getInstanceId() {
         return instanceId;
@@ -143,10 +133,8 @@ public class ControllerDTO {
     }
 
     /**
-     * Indicates whether or not Site-to-Site communications with this instance
+     * @return Indicates whether or not Site-to-Site communications with this instance
      * is secure (2-way authentication)
-     *
-     * @return
      */
     public Boolean isSiteToSiteSecure() {
         return siteToSiteSecure;
@@ -157,9 +145,7 @@ public class ControllerDTO {
     }
 
     /**
-     * The number of running components in this process group.
-     *
-     * @return
+     * @return number of running components in this process group
      */
     public Integer getRunningCount() {
         return runningCount;
@@ -170,9 +156,7 @@ public class ControllerDTO {
     }
 
     /**
-     * The number of stopped components in this process group.
-     *
-     * @return
+     * @return number of stopped components in this process group
      */
     public Integer getStoppedCount() {
         return stoppedCount;
@@ -183,9 +167,7 @@ public class ControllerDTO {
     }
 
     /**
-     * The number of active remote ports contained in this process group.
-     *
-     * @return
+     * @return number of active remote ports contained in this process group
      */
     public Integer getActiveRemotePortCount() {
         return activeRemotePortCount;
@@ -196,9 +178,7 @@ public class ControllerDTO {
     }
 
     /**
-     * The number of inactive remote ports contained in this process group.
-     *
-     * @return
+     * @return number of inactive remote ports contained in this process group
      */
     public Integer getInactiveRemotePortCount() {
         return inactiveRemotePortCount;
@@ -209,9 +189,7 @@ public class ControllerDTO {
     }
 
     /**
-     * The number of input ports contained in this process group.
-     *
-     * @return
+     * @return number of input ports contained in this process group
      */
     public Integer getInputPortCount() {
         return inputPortCount;
@@ -222,9 +200,7 @@ public class ControllerDTO {
     }
 
     /**
-     * The number of invalid components in this process group.
-     *
-     * @return
+     * @return number of invalid components in this process group
      */
     public Integer getInvalidCount() {
         return invalidCount;
@@ -235,9 +211,7 @@ public class ControllerDTO {
     }
 
     /**
-     * The number of disabled components in this process group.
-     *
-     * @return
+     * @return number of disabled components in this process group
      */
     public Integer getDisabledCount() {
         return disabledCount;
@@ -248,9 +222,7 @@ public class ControllerDTO {
     }
 
     /**
-     * The number of output ports in this process group.
-     *
-     * @return
+     * @return number of output ports in this process group
      */
     public Integer getOutputPortCount() {
         return outputPortCount;

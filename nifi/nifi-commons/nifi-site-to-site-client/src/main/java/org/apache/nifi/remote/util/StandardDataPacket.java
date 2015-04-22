@@ -25,26 +25,26 @@ import org.apache.nifi.stream.io.MinimumLengthInputStream;
 
 public class StandardDataPacket implements DataPacket {
 
-	private final Map<String, String> attributes;
-	private final InputStream stream;
-	private final long size;
-	
-	public StandardDataPacket(final Map<String, String> attributes, final InputStream stream, final long size) {
-		this.attributes = attributes;
-		this.stream = new MinimumLengthInputStream(new LimitingInputStream(stream, size), size);
-		this.size = size;
-	}
-	
-	public Map<String, String> getAttributes() {
-		return attributes;
-	}
-	
-	public InputStream getData() {
-		return stream;
-	}
-	
-	public long getSize() {
-		return size;
-	}
-	
+    private final Map<String, String> attributes;
+    private final InputStream stream;
+    private final long size;
+
+    public StandardDataPacket(final Map<String, String> attributes, final InputStream stream, final long size) {
+        this.attributes = attributes;
+        this.stream = new MinimumLengthInputStream(new LimitingInputStream(stream, size), size);
+        this.size = size;
+    }
+
+    public Map<String, String> getAttributes() {
+        return attributes;
+    }
+
+    public InputStream getData() {
+        return stream;
+    }
+
+    public long getSize() {
+        return size;
+    }
+
 }

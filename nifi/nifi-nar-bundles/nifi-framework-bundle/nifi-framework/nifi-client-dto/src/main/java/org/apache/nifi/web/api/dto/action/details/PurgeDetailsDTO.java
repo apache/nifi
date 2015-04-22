@@ -30,9 +30,7 @@ public class PurgeDetailsDTO extends ActionDetailsDTO {
     private Date endDate;
 
     /**
-     * The end date for this purge action.
-     *
-     * @return
+     * @return end date for this purge action
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
     public Date getEndDate() {

@@ -64,15 +64,15 @@ public class StandardControllerServiceInitializationContext implements Controlle
     public boolean isControllerServiceEnabled(final ControllerService service) {
         return serviceProvider.isControllerServiceEnabled(service);
     }
-    
+
     @Override
     public boolean isControllerServiceEnabling(String serviceIdentifier) {
         return serviceProvider.isControllerServiceEnabling(serviceIdentifier);
     }
-    
+
     @Override
     public String getControllerServiceName(final String serviceIdentifier) {
-    	return serviceProvider.getControllerServiceName(serviceIdentifier);
+        return serviceProvider.getControllerServiceName(serviceIdentifier);
     }
 
     @Override

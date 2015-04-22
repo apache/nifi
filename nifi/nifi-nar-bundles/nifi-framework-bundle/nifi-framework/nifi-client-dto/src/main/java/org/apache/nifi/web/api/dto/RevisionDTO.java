@@ -29,7 +29,6 @@ public class RevisionDTO {
     private String lastModifier;
 
     /* getters / setters */
-    
     /**
      * A client identifier used to make a request. By including a client
      * identifier, the API can allow multiple requests without needing the
@@ -63,9 +62,7 @@ public class RevisionDTO {
     }
 
     /**
-     * The user that last modified the flow.
-     * 
-     * @return 
+     * @return The user that last modified the flow
      */
     public String getLastModifier() {
         return lastModifier;

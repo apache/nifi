@@ -54,7 +54,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements S
     /**
      * Creates a new MockProcessContext for the given Processor
      *
-     * @param component
+     * @param component being mocked
      */
     public MockProcessContext(final ConfigurableComponent component) {
         this.component = Objects.requireNonNull(component);
@@ -73,7 +73,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements S
             // do nothing...the service is being loaded
         }
     }
-    
+
     @Override
     public PropertyValue getProperty(final PropertyDescriptor descriptor) {
         return getProperty(descriptor.getName());
@@ -107,9 +107,9 @@ public class MockProcessContext extends MockControllerServiceLookup implements S
      * either case, the ValidationResult is returned, indicating whether or not
      * the property is valid
      *
-     * @param descriptor
-     * @param value
-     * @return
+     * @param descriptor of property to modify
+     * @param value new value
+     * @return result
      */
     public ValidationResult setProperty(final PropertyDescriptor descriptor, final String value) {
         requireNonNull(descriptor);
@@ -154,7 +154,6 @@ public class MockProcessContext extends MockControllerServiceLookup implements S
         config.setProperties(properties);
         config.setAnnotationData(annotationData);
     }
-    
 
     @Override
     public int getMaxConcurrentTasks() {
@@ -268,10 +267,10 @@ public class MockProcessContext extends MockControllerServiceLookup implements S
     }
 
     public Set<Relationship> getAvailableRelationships() {
-        if ( !(component instanceof Processor) ) {
+        if (!(component instanceof Processor)) {
             return Collections.emptySet();
         }
-        
+
         final Set<Relationship> relationships = new HashSet<>(((Processor) component).getRelationships());
         relationships.removeAll(unavailableRelationships);
         return relationships;

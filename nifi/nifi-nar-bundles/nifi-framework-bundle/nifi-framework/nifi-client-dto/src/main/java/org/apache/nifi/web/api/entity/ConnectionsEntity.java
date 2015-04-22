@@ -32,9 +32,7 @@ public class ConnectionsEntity extends Entity {
     private Set<ConnectionDTO> connections;
 
     /**
-     * The list of ConnectionDTOs that are being serialized.
-     *
-     * @return
+     * @return list of ConnectionDTOs that are being serialized
      */
     public Set<ConnectionDTO> getConnections() {
         return connections;

@@ -130,12 +130,6 @@ public class AuthorityProviderFactoryBean implements FactoryBean, ApplicationCon
         return authorityProvider;
     }
 
-    /**
-     * Loads the authority providers configuration.
-     *
-     * @return
-     * @throws Exception
-     */
     private AuthorityProviders loadAuthorityProvidersConfiguration() throws Exception {
         final File authorityProvidersConfigurationFile = properties.getAuthorityProviderConfiguraitonFile();
 
@@ -159,14 +153,6 @@ public class AuthorityProviderFactoryBean implements FactoryBean, ApplicationCon
         }
     }
 
-    /**
-     * Creates the AuthorityProvider instance for the identifier specified.
-     *
-     * @param identifier
-     * @param authorityProviderClassName
-     * @return
-     * @throws Exception
-     */
     private AuthorityProvider createAuthorityProvider(final String identifier, final String authorityProviderClassName) throws Exception {
         // get the classloader for the specified authority provider
         final ClassLoader authorityProviderClassLoader = ExtensionManager.getClassLoader(authorityProviderClassName);
@@ -207,12 +193,6 @@ public class AuthorityProviderFactoryBean implements FactoryBean, ApplicationCon
         return withNarLoader(instance);
     }
 
-    /**
-     * Loads the AuthorityProvider configuration.
-     *
-     * @param provider
-     * @return
-     */
     private AuthorityProviderConfigurationContext loadAuthorityProviderConfiguration(final Provider provider) {
         final Map<String, String> providerProperties = new HashMap<>();
 
@@ -223,15 +203,6 @@ public class AuthorityProviderFactoryBean implements FactoryBean, ApplicationCon
         return new StandardAuthorityProviderConfigurationContext(provider.getIdentifier(), providerProperties);
     }
 
-    /**
-     * Performs method injection.
-     *
-     * @param instance
-     * @param authorityProviderClass
-     * @throws IllegalAccessException
-     * @throws IllegalArgumentException
-     * @throws InvocationTargetException
-     */
     private void performMethodInjection(final AuthorityProvider instance, final Class authorityProviderClass) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
         for (final Method method : authorityProviderClass.getMethods()) {
             if (method.isAnnotationPresent(AuthorityProviderContext.class)) {
@@ -267,14 +238,6 @@ public class AuthorityProviderFactoryBean implements FactoryBean, ApplicationCon
         }
     }
 
-    /**
-     * Performs field injection.
-     *
-     * @param instance
-     * @param authorityProviderClass
-     * @throws IllegalArgumentException
-     * @throws IllegalAccessException
-     */
     private void performFieldInjection(final AuthorityProvider instance, final Class authorityProviderClass) throws IllegalArgumentException, IllegalAccessException {
         for (final Field field : authorityProviderClass.getDeclaredFields()) {
             if (field.isAnnotationPresent(AuthorityProviderContext.class)) {
@@ -311,10 +274,8 @@ public class AuthorityProviderFactoryBean implements FactoryBean, ApplicationCon
     }
 
     /**
-     * Creates a default provider to use when running unsecurely with no
-     * provider configured.
-     *
-     * @return
+     * @return a default provider to use when running unsecurely with no
+     * provider configured
      */
     private AuthorityProvider createDefaultProvider() {
         return new AuthorityProvider() {
@@ -389,8 +350,8 @@ public class AuthorityProviderFactoryBean implements FactoryBean, ApplicationCon
      * Decorates the base provider to ensure the nar context classloader is used
      * when invoking the underlying methods.
      *
-     * @param baseProvider
-     * @return
+     * @param baseProvider base provider
+     * @return provider
      */
     public AuthorityProvider withNarLoader(final AuthorityProvider baseProvider) {
         return new AuthorityProvider() {

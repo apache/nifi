@@ -333,42 +333,42 @@
     </xs:simpleType>
     
     <xs:complexType name="ControllerServicesType">
-    	<xs:sequence>
-    		<xs:element name="controllerService" type="ControllerServiceType" minOccurs="0" maxOccurs="unbounded" />
-    	</xs:sequence>
+        <xs:sequence>
+            <xs:element name="controllerService" type="ControllerServiceType" minOccurs="0" maxOccurs="unbounded" />
+        </xs:sequence>
     </xs:complexType>
     
     <xs:complexType name="ControllerServiceType">
-    	<xs:sequence>
-    		<xs:element name="id" type="NonEmptyStringType" />
-    		<xs:element name="name" type="NonEmptyStringType" />
-    		<xs:element name="comment" type="xs:string" />
-    		<xs:element name="class" type="NonEmptyStringType" />
-    		<xs:element name="enabled" type="xs:boolean" />
+        <xs:sequence>
+            <xs:element name="id" type="NonEmptyStringType" />
+            <xs:element name="name" type="NonEmptyStringType" />
+            <xs:element name="comment" type="xs:string" />
+            <xs:element name="class" type="NonEmptyStringType" />
+            <xs:element name="enabled" type="xs:boolean" />
     		
             <xs:element name="property" type="PropertyType" minOccurs="0" maxOccurs="unbounded"/>
             <xs:element name="annotationData" type="xs:string" minOccurs="0" maxOccurs="1" />
-    	</xs:sequence>
+        </xs:sequence>
     </xs:complexType>
     
     <xs:complexType name="ReportingTasksType">
-    	<xs:sequence>
-    		<xs:element name="reportingTask" type="ReportingTaskType" minOccurs="0" maxOccurs="unbounded" />
-    	</xs:sequence>
+        <xs:sequence>
+            <xs:element name="reportingTask" type="ReportingTaskType" minOccurs="0" maxOccurs="unbounded" />
+        </xs:sequence>
     </xs:complexType>
     
     <xs:complexType name="ReportingTaskType">
-    	<xs:sequence>
-    		<xs:element name="id" type="NonEmptyStringType" />
-    		<xs:element name="name" type="NonEmptyStringType" />
-    		<xs:element name="comment" type="xs:string" />
-    		<xs:element name="class" type="NonEmptyStringType" />
+        <xs:sequence>
+            <xs:element name="id" type="NonEmptyStringType" />
+            <xs:element name="name" type="NonEmptyStringType" />
+            <xs:element name="comment" type="xs:string" />
+            <xs:element name="class" type="NonEmptyStringType" />
             <xs:element name="schedulingPeriod" type="NonEmptyStringType"/>
             <xs:element name="schedulingState" type="ScheduledState" />
             <xs:element name="schedulingStrategy" type="SchedulingStrategy" />
     		
             <xs:element name="property" type="PropertyType" minOccurs="0" maxOccurs="unbounded"/>
             <xs:element name="annotationData" type="xs:string" minOccurs="0" maxOccurs="1" />
-    	</xs:sequence>
+        </xs:sequence>
     </xs:complexType>
 </xs:schema>

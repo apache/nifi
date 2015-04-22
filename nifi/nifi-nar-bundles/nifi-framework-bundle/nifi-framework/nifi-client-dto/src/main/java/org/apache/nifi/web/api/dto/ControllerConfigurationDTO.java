@@ -42,9 +42,7 @@ public class ControllerConfigurationDTO {
     private String uri;
 
     /**
-     * The maximum number of timer driven threads this NiFi has available.
-     *
-     * @return The maximum number of threads
+     * @return maximum number of timer driven threads this NiFi has available
      */
     public Integer getMaxTimerDrivenThreadCount() {
         return maxTimerDrivenThreadCount;
@@ -55,9 +53,7 @@ public class ControllerConfigurationDTO {
     }
 
     /**
-     * The maximum number of event driven thread this NiFi has available.
-     *
-     * @return
+     * @return maximum number of event driven thread this NiFi has available
      */
     public Integer getMaxEventDrivenThreadCount() {
         return maxEventDrivenThreadCount;
@@ -68,9 +64,7 @@ public class ControllerConfigurationDTO {
     }
 
     /**
-     * The name of this NiFi.
-     *
-     * @return The name
+     * @return name of this NiFi
      */
     public String getName() {
         return name;
@@ -81,9 +75,7 @@ public class ControllerConfigurationDTO {
     }
 
     /**
-     * The comments for this NiFi.
-     *
-     * @return
+     * @return comments for this NiFi
      */
     public String getComments() {
         return comments;
@@ -94,10 +86,8 @@ public class ControllerConfigurationDTO {
     }
 
     /**
-     * The interval in seconds between the automatic NiFi refresh requests. This
-     * value is read only.
-     *
-     * @return The interval in seconds
+     * @return interval in seconds between the automatic NiFi refresh requests. This
+     * value is read only
      */
     public Long getAutoRefreshIntervalSeconds() {
         return autoRefreshIntervalSeconds;
@@ -108,10 +98,8 @@ public class ControllerConfigurationDTO {
     }
 
     /**
-     * Indicates whether or not Site-to-Site communications with this instance
-     * is secure (2-way authentication). This value is read only.
-     *
-     * @return
+     * @return Indicates whether or not Site-to-Site communications with this instance
+     * is secure (2-way authentication). This value is read only
      */
     public Boolean isSiteToSiteSecure() {
         return siteToSiteSecure;
@@ -122,9 +110,7 @@ public class ControllerConfigurationDTO {
     }
 
     /**
-     * The current time on the server.
-     * 
-     * @return 
+     * @return current time on the server
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
     public Date getCurrentTime() {
@@ -136,9 +122,7 @@ public class ControllerConfigurationDTO {
     }
 
     /**
-     * The time offset of the server.
-     *
-     * @return
+     * @return time offset of the server
      */
     public Integer getTimeOffset() {
         return timeOffset;
@@ -149,9 +133,7 @@ public class ControllerConfigurationDTO {
     }
 
     /**
-     * Returns the URL for the content viewer if configured.
-     *
-     * @return
+     * @return the URL for the content viewer if configured
      */
     public String getContentViewerUrl() {
         return contentViewerUrl;
@@ -162,9 +144,7 @@ public class ControllerConfigurationDTO {
     }
 
     /**
-     * The URI for this NiFi controller.
-     *
-     * @return
+     * @return URI for this NiFi controller
      */
     public String getUri() {
         return uri;

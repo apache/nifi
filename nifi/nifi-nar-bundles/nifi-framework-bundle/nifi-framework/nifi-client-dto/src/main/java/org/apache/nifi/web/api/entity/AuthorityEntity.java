@@ -32,9 +32,7 @@ public class AuthorityEntity extends Entity {
     private Set<String> authorities;
 
     /**
-     * The current user id.
-     *
-     * @return
+     * @return current user id
      */
     public String getUserId() {
         return userId;
@@ -45,9 +43,7 @@ public class AuthorityEntity extends Entity {
     }
 
     /**
-     * The set of authorities that are being serialized.
-     *
-     * @return
+     * @return set of authorities that are being serialized
      */
     public Set<String> getAuthorities() {
         return authorities;

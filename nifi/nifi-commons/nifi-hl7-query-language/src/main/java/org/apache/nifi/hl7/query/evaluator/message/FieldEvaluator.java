@@ -28,40 +28,41 @@ import org.apache.nifi.hl7.query.evaluator.IntegerEvaluator;
 
 @SuppressWarnings("rawtypes")
 public class FieldEvaluator implements Evaluator<List> {
-	private final SegmentEvaluator segmentEvaluator;
-	private final IntegerEvaluator indexEvaluator;
-	
-	public FieldEvaluator(final SegmentEvaluator segmentEvaluator, final IntegerEvaluator indexEvaluator) {
-		this.segmentEvaluator = segmentEvaluator;
-		this.indexEvaluator = indexEvaluator;
-	}
-	
-	public List<HL7Field> evaluate(final Map<String, Object> objectMap) {
-		final List<HL7Segment> segments = segmentEvaluator.evaluate(objectMap);
-		if ( segments == null ) {
-			return Collections.emptyList();
-		}
-		
-		final Integer index = indexEvaluator.evaluate(objectMap);
-		if ( index == null ) {
-			return Collections.emptyList();
-		}
-		
-		final List<HL7Field> fields = new ArrayList<>();
-		for ( final HL7Segment segment : segments ) {
-			final List<HL7Field> segmentFields = segment.getFields();
-			if ( segmentFields.size() <= index ) {
-				continue;
-			}
-			
-			fields.add(segmentFields.get(index));
-		}
-		
-		return fields;
-	}
 
-	public Class<? extends List> getType() {
-		return List.class;
-	}
+    private final SegmentEvaluator segmentEvaluator;
+    private final IntegerEvaluator indexEvaluator;
+
+    public FieldEvaluator(final SegmentEvaluator segmentEvaluator, final IntegerEvaluator indexEvaluator) {
+        this.segmentEvaluator = segmentEvaluator;
+        this.indexEvaluator = indexEvaluator;
+    }
+
+    public List<HL7Field> evaluate(final Map<String, Object> objectMap) {
+        final List<HL7Segment> segments = segmentEvaluator.evaluate(objectMap);
+        if (segments == null) {
+            return Collections.emptyList();
+        }
+
+        final Integer index = indexEvaluator.evaluate(objectMap);
+        if (index == null) {
+            return Collections.emptyList();
+        }
+
+        final List<HL7Field> fields = new ArrayList<>();
+        for (final HL7Segment segment : segments) {
+            final List<HL7Field> segmentFields = segment.getFields();
+            if (segmentFields.size() <= index) {
+                continue;
+            }
+
+            fields.add(segmentFields.get(index));
+        }
+
+        return fields;
+    }
+
+    public Class<? extends List> getType() {
+        return List.class;
+    }
 
 }

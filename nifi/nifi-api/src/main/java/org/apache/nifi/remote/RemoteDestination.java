@@ -18,36 +18,33 @@ package org.apache.nifi.remote;
 
 import java.util.concurrent.TimeUnit;
 
-
 /**
- * A model object for referring to a remote destination (i.e., a Port) for site-to-site communications
+ * A model object for referring to a remote destination (i.e., a Port) for
+ * site-to-site communications
  */
 public interface RemoteDestination {
+
     /**
-     * Returns the identifier of the remote destination
-     * 
-     * @return
+     * @return the identifier of the remote destination
      */
-	String getIdentifier();
+    String getIdentifier();
 
-	/**
-	 * Returns the human-readable name of the remote destination
-	 * @return
-	 */
-	String getName();
+    /**
+     * @return the human-readable name of the remote destination
+     */
+    String getName();
 
-	/**
-	 * Returns the amount of time that system should pause sending to a particular node if unable to 
-	 * send data to or receive data from this endpoint
-	 * @param timeUnit
-	 * @return
-	 */
-	long getYieldPeriod(TimeUnit timeUnit);
-	
-	/**
-	 * Returns whether or not compression should be used when transferring data to or receiving
-	 * data from the remote endpoint
-	 * @return
-	 */
-	boolean isUseCompression();
+    /**
+     * @param timeUnit to yield
+     * @return the amount of time that system should pause sending to a
+     * particular node if unable to send data to or receive data from this
+     * endpoint
+     */
+    long getYieldPeriod(TimeUnit timeUnit);
+
+    /**
+     * @return whether or not compression should be used when transferring data
+     * to or receiving data from the remote endpoint
+     */
+    boolean isUseCompression();
 }

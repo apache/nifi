@@ -28,23 +28,24 @@ import org.xml.sax.SAXException;
 
 /**
  * A helper class to validate xml documents.
- * 
+ *
  *
  */
 public class XmlValidator {
-	public static void assertXmlValid(String xml) {
-		try {
-			DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(new InputSource(new StringReader(xml)));
-		} catch (SAXException | IOException | ParserConfigurationException e) {
-			Assert.fail(e.getMessage());
-		}
-	}
 
-	public static void assertContains(String original, String subword) {
-		Assert.assertTrue(original + " did not contain: " + subword, original.contains(subword));
-	}
+    public static void assertXmlValid(String xml) {
+        try {
+            DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(new InputSource(new StringReader(xml)));
+        } catch (SAXException | IOException | ParserConfigurationException e) {
+            Assert.fail(e.getMessage());
+        }
+    }
 
-	public static void assertNotContains(String original, String subword) {
-		Assert.assertFalse(original + " did contain: " + subword, original.contains(subword));
-	}
+    public static void assertContains(String original, String subword) {
+        Assert.assertTrue(original + " did not contain: " + subword, original.contains(subword));
+    }
+
+    public static void assertNotContains(String original, String subword) {
+        Assert.assertFalse(original + " did contain: " + subword, original.contains(subword));
+    }
 }

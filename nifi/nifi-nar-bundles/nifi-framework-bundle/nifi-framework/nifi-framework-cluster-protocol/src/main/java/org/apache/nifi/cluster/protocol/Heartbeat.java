@@ -23,44 +23,45 @@ import org.apache.nifi.cluster.protocol.jaxb.message.HeartbeatAdapter;
 
 /**
  * A heartbeat for indicating the status of a node to the cluster.
+ *
  * @author unattributed
  */
 @XmlJavaTypeAdapter(HeartbeatAdapter.class)
 public class Heartbeat {
-    
+
     private final NodeIdentifier nodeIdentifier;
     private final boolean primary;
     private final boolean connected;
     private final long createdTimestamp;
     private final byte[] payload;
-    
+
     public Heartbeat(final NodeIdentifier nodeIdentifier, final boolean primary, final boolean connected, final byte[] payload) {
-        if(nodeIdentifier == null) {
+        if (nodeIdentifier == null) {
             throw new IllegalArgumentException("Node Identifier may not be null.");
-        } 
+        }
         this.nodeIdentifier = nodeIdentifier;
         this.primary = primary;
         this.connected = connected;
         this.payload = payload;
         this.createdTimestamp = new Date().getTime();
     }
-    
+
     public NodeIdentifier getNodeIdentifier() {
         return nodeIdentifier;
     }
-    
+
     public byte[] getPayload() {
         return payload;
     }
-    
+
     public boolean isPrimary() {
         return primary;
     }
-    
+
     public boolean isConnected() {
         return connected;
     }
-    
+
     @XmlTransient
     public long getCreatedTimestamp() {
         return createdTimestamp;

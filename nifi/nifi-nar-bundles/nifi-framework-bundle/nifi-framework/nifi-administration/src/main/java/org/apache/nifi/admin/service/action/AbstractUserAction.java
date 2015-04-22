@@ -26,16 +26,16 @@ import org.apache.nifi.user.NiFiUser;
 
 /**
  *
- * @param <T>
+ * @param <T> type of user action
  */
 public abstract class AbstractUserAction<T> implements AdministrationAction<T> {
 
     /**
      * Determines the authorities that need to be added to the specified user.
      *
-     * @param user
-     * @param authorities
-     * @return
+     * @param user user
+     * @param authorities auths
+     * @return authorities to add
      */
     protected Set<Authority> determineAuthoritiesToAdd(NiFiUser user, Set<Authority> authorities) {
         // not using copyOf since authorities may be empty and copyOf can throw an IllegalArgumentException when empty
@@ -53,9 +53,9 @@ public abstract class AbstractUserAction<T> implements AdministrationAction<T> {
      * Determines the authorities that need to be removed from the specified
      * user.
      *
-     * @param user
-     * @param authorities
-     * @return
+     * @param user user
+     * @param authorities auths
+     * @return auths to remove
      */
     protected Set<Authority> determineAuthoritiesToRemove(NiFiUser user, Set<Authority> authorities) {
         Set<Authority> authoritiesToRemove = EnumSet.copyOf(user.getAuthorities());
@@ -71,8 +71,8 @@ public abstract class AbstractUserAction<T> implements AdministrationAction<T> {
      * Verifies the specified users account. Includes obtaining the authorities
      * and group according to the specified authority provider.
      *
-     * @param authorityProvider
-     * @param user
+     * @param authorityProvider provider
+     * @param user user to verify
      */
     protected void verifyAccount(AuthorityProvider authorityProvider, NiFiUser user) {
         // load the roles for the user

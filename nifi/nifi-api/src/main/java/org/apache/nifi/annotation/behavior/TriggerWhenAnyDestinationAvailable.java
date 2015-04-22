@@ -25,11 +25,10 @@ import java.lang.annotation.Target;
 
 /**
  * Marker annotation a {@link org.apache.nifi.processor.Processor Processor}
- * implementation can use to indicate that the
- * Processor is to be triggered if any of its destinations has available space
- * for incoming FlowFiles. By default, Processors are triggered only when all
- * destinations report that they have available space (i.e., none of the outgoing
- * Connections is full).
+ * implementation can use to indicate that the Processor is to be triggered if
+ * any of its destinations has available space for incoming FlowFiles. By
+ * default, Processors are triggered only when all destinations report that they
+ * have available space (i.e., none of the outgoing Connections is full).
  *
  * @author none
  */

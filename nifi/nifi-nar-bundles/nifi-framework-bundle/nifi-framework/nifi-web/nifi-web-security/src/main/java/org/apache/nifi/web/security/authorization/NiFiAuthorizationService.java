@@ -51,17 +51,17 @@ public class NiFiAuthorizationService implements UserDetailsService {
     private NiFiProperties properties;
 
     /**
-     * Loads the user details for the specified dn. 
-     * 
-     * Synchronizing because we want each request to be authorized atomically since
-     * each may contain any number of DNs. We wanted an access decision made
-     * for each individual request as a whole (without other request potentially
-     * impacting it).
+     * Loads the user details for the specified dn.
      *
-     * @param rawProxyChain
-     * @return
-     * @throws UsernameNotFoundException
-     * @throws org.springframework.dao.DataAccessException
+     * Synchronizing because we want each request to be authorized atomically
+     * since each may contain any number of DNs. We wanted an access decision
+     * made for each individual request as a whole (without other request
+     * potentially impacting it).
+     *
+     * @param rawProxyChain proxy chain
+     * @return user details
+     * @throws UsernameNotFoundException ex
+     * @throws org.springframework.dao.DataAccessException ex
      */
     @Override
     public synchronized UserDetails loadUserByUsername(String rawProxyChain) throws UsernameNotFoundException, DataAccessException {
@@ -75,7 +75,7 @@ public class NiFiAuthorizationService implements UserDetailsService {
         }
 
         NiFiUser proxy = null;
-        
+
         // process each part of the proxy chain
         for (final Iterator<String> dnIter = dnList.iterator(); dnIter.hasNext();) {
             final String dn = dnIter.next();
@@ -92,12 +92,12 @@ public class NiFiAuthorizationService implements UserDetailsService {
                         logger.warn(String.format("Proxy '%s' must have '%s' authority. Current authorities: %s", dn, Authority.ROLE_PROXY.toString(), StringUtils.join(user.getAuthorities(), ", ")));
                         throw new UntrustedProxyException(String.format("Untrusted proxy '%s' must be authorized with '%s'.", dn, Authority.ROLE_PROXY.toString()));
                     }
-                    
+
                     // if we've already encountered a proxy, update the chain
                     if (proxy != null) {
                         user.setChain(proxy);
                     }
-                    
+
                     // record this user as the proxy for the next user in the chain
                     proxy = user;
                 } catch (UsernameNotFoundException unfe) {
@@ -118,7 +118,8 @@ public class NiFiAuthorizationService implements UserDetailsService {
                             // attempting to auto create the user account request
                             final String message = String.format("Account request was already submitted for '%s'", dn);
                             logger.warn(message);
-                            throw new AccountStatusException(message) {};
+                            throw new AccountStatusException(message) {
+                            };
                         }
                     } else {
                         logger.warn(String.format("Untrusted proxy '%s' must be authorized with '%s' authority: %s", dn, Authority.ROLE_PROXY.toString(), unfe.getMessage()));
@@ -130,7 +131,7 @@ public class NiFiAuthorizationService implements UserDetailsService {
                 }
             } else {
                 userDetails = getNiFiUserDetails(dn);
-                
+
                 // if we've already encountered a proxy, update the chain
                 if (proxy != null) {
                     final NiFiUser user = userDetails.getNiFiUser();
@@ -145,8 +146,8 @@ public class NiFiAuthorizationService implements UserDetailsService {
     /**
      * Loads the user details for the specified dn.
      *
-     * @param dn
-     * @return
+     * @param dn user dn
+     * @return user detail
      */
     private NiFiUserDetails getNiFiUserDetails(String dn) {
         try {
@@ -155,7 +156,8 @@ public class NiFiAuthorizationService implements UserDetailsService {
         } catch (AdministrationException ase) {
             throw new AuthenticationServiceException(String.format("An error occurred while accessing the user credentials for '%s': %s", dn, ase.getMessage()), ase);
         } catch (AccountDisabledException | AccountPendingException e) {
-            throw new AccountStatusException(e.getMessage(), e) {};
+            throw new AccountStatusException(e.getMessage(), e) {
+            };
         } catch (AccountNotFoundException anfe) {
             throw new UsernameNotFoundException(anfe.getMessage());
         }

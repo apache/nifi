@@ -21,26 +21,20 @@ import org.apache.nifi.logging.ComponentLog;
 public interface ControllerServiceInitializationContext {
 
     /**
-     * Returns the identifier associated with the {@link ControllerService} with
+     * @return the identifier associated with the {@link ControllerService} with
      * which this context is associated
-     *
-     * @return
      */
     String getIdentifier();
 
     /**
-     * Returns the {@link ControllerServiceLookup} which can be used to obtain
+     * @return the {@link ControllerServiceLookup} which can be used to obtain
      * Controller Services
-     *
-     * @return
      */
     ControllerServiceLookup getControllerServiceLookup();
-    
+
     /**
-     * Returns a logger that can be used to log important events in a standard way and generate
-     * bulletins when appropriate
-     * 
-     * @return
+     * @return a logger that can be used to log important events in a standard
+     * way and generate bulletins when appropriate
      */
     ComponentLog getLogger();
 }

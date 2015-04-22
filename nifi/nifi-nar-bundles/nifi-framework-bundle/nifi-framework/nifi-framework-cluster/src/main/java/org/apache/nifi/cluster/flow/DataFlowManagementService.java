@@ -31,7 +31,6 @@ import org.apache.nifi.cluster.protocol.NodeIdentifier;
  *
  * Clients must call start() and stop() to initialize and stop the instance.
  *
- * @author unattributed
  */
 public interface DataFlowManagementService {
 
@@ -68,21 +67,23 @@ public interface DataFlowManagementService {
     void updatePrimaryNode(NodeIdentifier nodeId) throws DaoException;
 
     /**
-     * Updates the dataflow with the given serialized form of the Controller Services that are to exist on the NCM.
-     * 
-     * @param serializedControllerServices
-     * @throws DaoException
+     * Updates the dataflow with the given serialized form of the Controller
+     * Services that are to exist on the NCM.
+     *
+     * @param serializedControllerServices services
+     * @throws DaoException ex
      */
     void updateControllerServices(byte[] serializedControllerServices) throws DaoException;
-    
+
     /**
-     * Updates the dataflow with the given serialized form of Reporting Tasks that are to exist on the NCM.
-     * 
-     * @param serviceNodes
-     * @throws DaoException
+     * Updates the dataflow with the given serialized form of Reporting Tasks
+     * that are to exist on the NCM.
+     *
+     * @param serializedReportingTasks tasks
+     * @throws DaoException ex
      */
     void updateReportingTasks(byte[] serializedReportingTasks) throws DaoException;
-    
+
     /**
      * Sets the state of the flow.
      *

@@ -28,42 +28,42 @@ import ca.uhn.hl7v2.model.Segment;
 import ca.uhn.hl7v2.model.Type;
 
 public class HapiSegment implements HL7Segment {
-	private final Segment segment;
-	private final List<HL7Field> fields;
-	
-	public HapiSegment(final Segment segment) throws HL7Exception {
-		this.segment = segment;
-		
-		final List<HL7Field> fieldList = new ArrayList<>();
-		for (int i=1; i <= segment.numFields(); i++) {
-			final Type[] types = segment.getField(i);
 
-			if ( types == null || types.length == 0 ) {
-				fieldList.add(new EmptyField());
-				continue;
-			}
-			
-			for ( final Type type : types ) {
-				fieldList.add(new HapiField(type));
-			}
-		}
-		
-		this.fields = Collections.unmodifiableList(fieldList);
-	}
-	
-	
-	@Override
-	public String getName() {
-		return segment.getName();
-	}
+    private final Segment segment;
+    private final List<HL7Field> fields;
 
-	@Override
-	public List<HL7Field> getFields() {
-		return fields;
-	}
+    public HapiSegment(final Segment segment) throws HL7Exception {
+        this.segment = segment;
 
-	@Override
-	public String toString() {
-		return segment.toString();
-	}
+        final List<HL7Field> fieldList = new ArrayList<>();
+        for (int i = 1; i <= segment.numFields(); i++) {
+            final Type[] types = segment.getField(i);
+
+            if (types == null || types.length == 0) {
+                fieldList.add(new EmptyField());
+                continue;
+            }
+
+            for (final Type type : types) {
+                fieldList.add(new HapiField(type));
+            }
+        }
+
+        this.fields = Collections.unmodifiableList(fieldList);
+    }
+
+    @Override
+    public String getName() {
+        return segment.getName();
+    }
+
+    @Override
+    public List<HL7Field> getFields() {
+        return fields;
+    }
+
+    @Override
+    public String toString() {
+        return segment.toString();
+    }
 }

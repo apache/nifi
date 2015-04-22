@@ -26,7 +26,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 /**
  * Thread-safe implementation of a RingBuffer
  *
- * @param <T>
  */
 public class RingBuffer<T> {
 
@@ -46,8 +45,8 @@ public class RingBuffer<T> {
      * Adds the given value to the RingBuffer and returns the value that was
      * removed in order to make room.
      *
-     * @param value
-     * @return
+     * @param value the new value to add
+     * @return value previously in the buffer
      */
     @SuppressWarnings("unchecked")
     public T add(final T value) {
@@ -135,8 +134,8 @@ public class RingBuffer<T> {
     /**
      * Removes all elements from the RingBuffer that match the given filter
      *
-     * @param filter
-     * @return
+     * @param filter to use for deciding what is removed
+     * @return always zero
      */
     public int removeSelectedElements(final Filter<T> filter) {
         int count = 0;
@@ -209,7 +208,7 @@ public class RingBuffer<T> {
      * will skip all remaining elements in the RingBuffer; otherwise, the next
      * element will be evaluated until all elements have been evaluated.
      *
-     * @param evaluator
+     * @param evaluator used to evaluate each item in the ring buffer
      */
     public void forEach(final ForEachEvaluator<T> evaluator) {
         forEach(evaluator, IterationDirection.FORWARD);
@@ -222,7 +221,7 @@ public class RingBuffer<T> {
      * will skip all remaining elements in the RingBuffer; otherwise, the next
      * element will be evaluated until all elements have been evaluated.
      *
-     * @param evaluator
+     * @param evaluator the evaluator
      * @param iterationDirection the order in which to iterate over the elements
      * in the RingBuffer
      */
@@ -270,7 +269,7 @@ public class RingBuffer<T> {
      * Defines an interface that can be used to iterate over all of the elements
      * in the RingBuffer via the {@link #forEach} method
      *
-     * @param <S>
+     * @param <S> the type to evaluate
      */
     public static interface ForEachEvaluator<S> {
 
@@ -278,8 +277,8 @@ public class RingBuffer<T> {
          * Evaluates the given element and returns {@code true} if the next
          * element should be evaluated, {@code false} otherwise
          *
-         * @param value
-         * @return
+         * @param value the value to evaluate
+         * @return true if should continue evaluating; false otherwise
          */
         boolean evaluate(S value);
     }

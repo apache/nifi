@@ -85,7 +85,7 @@ public class ExtensionManager {
         // consider each nar class loader
         for (final ClassLoader ncl : NarClassLoaders.getExtensionClassLoaders()) {
 
-            // Must set the context class loader to the nar classloader itself 
+            // Must set the context class loader to the nar classloader itself
             // so that static initialization techniques that depend on the context class loader will work properly
             Thread.currentThread().setContextClassLoader(ncl);
             loadExtensions(ncl);
@@ -100,7 +100,7 @@ public class ExtensionManager {
     /**
      * Loads extensions from the specified class loader.
      *
-     * @param classLoader
+     * @param classLoader from which to load extensions
      */
     @SuppressWarnings("unchecked")
     private static void loadExtensions(final ClassLoader classLoader) {
@@ -117,10 +117,10 @@ public class ExtensionManager {
      * Registers extension for the specified type from the specified
      * ClassLoader.
      *
-     * @param type
-     * @param classloaderMap
-     * @param classLoader
-     * @param classes
+     * @param type the extension type
+     * @param classloaderMap mapping of classname to classloader
+     * @param classLoader the classloader being mapped to
+     * @param classes to map to this classloader but which come from its ancestors
      */
     private static void registerServiceClass(final Class<?> type, final Map<String, ClassLoader> classloaderMap, final ClassLoader classLoader, final Set<Class> classes) {
         final String className = type.getName();
@@ -157,7 +157,7 @@ public class ExtensionManager {
      * returns null it indicates the given type is not known or was not
      * detected.
      *
-     * @param classType
+     * @param classType to lookup the classloader of
      * @return String of fully qualified class name; null if not a detected type
      */
     public static ClassLoader getClassLoader(final String classType) {

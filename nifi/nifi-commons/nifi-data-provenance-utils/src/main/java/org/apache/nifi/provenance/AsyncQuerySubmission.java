@@ -22,9 +22,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.nifi.provenance.search.Query;
 import org.apache.nifi.provenance.search.QuerySubmission;
 
-/**
- *
- */
 public class AsyncQuerySubmission implements QuerySubmission {
 
     public static final int TTL = (int) TimeUnit.MILLISECONDS.convert(60, TimeUnit.SECONDS);
@@ -40,8 +37,8 @@ public class AsyncQuerySubmission implements QuerySubmission {
      * number of steps, indicating how many results must be added to this
      * AsyncQuerySubmission before it is considered finished
      *
-     * @param query
-     * @param numSteps
+     * @param query the query to execute
+     * @param numSteps how many steps to include
      */
     public AsyncQuerySubmission(final Query query, final int numSteps) {
         this.query = query;

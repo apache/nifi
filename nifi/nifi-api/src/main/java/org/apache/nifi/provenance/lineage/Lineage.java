@@ -25,16 +25,12 @@ import java.util.List;
 public interface Lineage {
 
     /**
-     * Returns all nodes for the graph
-     *
-     * @return
+     * @return all nodes for the graph
      */
     public List<LineageNode> getNodes();
 
     /**
-     * Returns all links for the graph
-     *
-     * @return
+     * @return all links for the graph
      */
     public List<LineageEdge> getEdges();
 

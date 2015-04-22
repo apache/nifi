@@ -98,8 +98,7 @@ public class ByteArrayOutputStream extends OutputStream {
             newCapacity = minCapacity;
         }
         if (newCapacity < 0) {
-            if (minCapacity < 0) // overflow
-            {
+            if (minCapacity < 0) {  // overflow
                 throw new OutOfMemoryError();
             }
             newCapacity = Integer.MAX_VALUE;
@@ -170,8 +169,7 @@ public class ByteArrayOutputStream extends OutputStream {
      * @return the current contents of this output stream, as a byte array.
      * @see java.io.ByteArrayOutputStream#size()
      */
-    public byte toByteArray   () 
-        [] {
+    public byte[] toByteArray() {
         return Arrays.copyOf(buf, count);
     }
 

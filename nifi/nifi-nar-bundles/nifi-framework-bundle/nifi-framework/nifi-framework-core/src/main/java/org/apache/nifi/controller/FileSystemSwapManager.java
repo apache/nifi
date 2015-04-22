@@ -83,7 +83,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
     public static final int MINIMUM_SWAP_COUNT = 10000;
     private static final Pattern SWAP_FILE_PATTERN = Pattern.compile("\\d+-.+\\.swap");
     private static final Pattern TEMP_SWAP_FILE_PATTERN = Pattern.compile("\\d+-.+\\.swap\\.part");
-    
+
     public static final int SWAP_ENCODING_VERSION = 6;
     public static final String EVENT_CATEGORY = "Swap FlowFiles";
 
@@ -99,14 +99,14 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
     private final long swapOutMillis;
     private final int swapOutThreadCount;
 
-    private ContentClaimManager claimManager;	// effectively final
+    private ContentClaimManager claimManager; // effectively final
 
     private static final Logger logger = LoggerFactory.getLogger(FileSystemSwapManager.class);
 
     public FileSystemSwapManager() {
         final NiFiProperties properties = NiFiProperties.getInstance();
         final Path flowFileRepoPath = properties.getFlowFileRepositoryPath();
-        
+
         this.storageDirectory = flowFileRepoPath.resolve("swap").toFile();
         if (!storageDirectory.exists() && !storageDirectory.mkdirs()) {
             throw new RuntimeException("Cannot create Swap Storage directory " + storageDirectory.getAbsolutePath());
@@ -138,6 +138,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
         }
     }
 
+    @Override
     public synchronized void start(final FlowFileRepository flowFileRepository, final QueueProvider connectionProvider, final ContentClaimManager claimManager, final EventReporter eventReporter) {
         this.claimManager = claimManager;
         this.flowFileRepository = flowFileRepository;
@@ -244,7 +245,8 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
         return deserializeFlowFiles(in, numRecords, queue, swapEncodingVersion, false, claimManager);
     }
 
-    static List<FlowFileRecord> deserializeFlowFiles(final DataInputStream in, final int numFlowFiles, final FlowFileQueue queue, final int serializationVersion, final boolean incrementContentClaims, final ContentClaimManager claimManager) throws IOException {
+    static List<FlowFileRecord> deserializeFlowFiles(final DataInputStream in, final int numFlowFiles, final FlowFileQueue queue,
+            final int serializationVersion, final boolean incrementContentClaims, final ContentClaimManager claimManager) throws IOException {
         final List<FlowFileRecord> flowFiles = new ArrayList<>();
         for (int i = 0; i < numFlowFiles; i++) {
             // legacy encoding had an "action" because it used to be couple with FlowFile Repository code
@@ -451,15 +453,15 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
                                 }
                             } catch (final EOFException eof) {
                                 error("Failed to Swap In FlowFiles for " + flowFileQueue + " due to: Corrupt Swap File; will remove this Swap File: " + swapFile);
-                                
-                                if ( !swapFile.delete() ) {
+
+                                if (!swapFile.delete()) {
                                     warn("Failed to remove corrupt Swap File " + swapFile + "; This file should be cleaned up manually");
                                 }
                             } catch (final FileNotFoundException fnfe) {
                                 error("Failed to Swap In FlowFiles for " + flowFileQueue + " due to: Could not find Swap File " + swapFile);
                             } catch (final Exception e) {
                                 error("Failed to Swap In FlowFiles for " + flowFileQueue + " due to " + e, e);
-                                
+
                                 if (swapFile != null) {
                                     queue.add(swapFile);
                                 }
@@ -475,27 +477,27 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
 
     private void error(final String error, final Throwable t) {
         error(error);
-        if ( logger.isDebugEnabled() ) {
+        if (logger.isDebugEnabled()) {
             logger.error("", t);
         }
     }
-    
+
     private void error(final String error) {
         logger.error(error);
-        if ( eventReporter != null ) {
+        if (eventReporter != null) {
             eventReporter.reportEvent(Severity.ERROR, EVENT_CATEGORY, error);
         }
     }
-    
+
     private void warn(final String warning) {
         logger.warn(warning);
-        if ( eventReporter != null ) {
+        if (eventReporter != null) {
             eventReporter.reportEvent(Severity.WARNING, EVENT_CATEGORY, warning);
         }
     }
-    
-    
+
     private class SwapOutTask implements Runnable {
+
         private final BlockingQueue<FlowFileQueue> connectionQueue;
 
         public SwapOutTask(final BlockingQueue<FlowFileQueue> connectionQueue) {
@@ -527,8 +529,8 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
                             recordsSwapped = serializeFlowFiles(toSwap, flowFileQueue, swapLocation, fos);
                             fos.getFD().sync();
                         }
-                        
-                        if ( swapTempFile.renameTo(swapFile) ) {
+
+                        if (swapTempFile.renameTo(swapFile)) {
                             flowFileRepository.swapFlowFilesOut(toSwap, flowFileQueue, swapLocation);
                         } else {
                             error("Failed to swap out FlowFiles from " + flowFileQueue + " due to: Unable to rename swap file from " + swapTempFile + " to " + swapFile);
@@ -563,8 +565,8 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
      * Recovers FlowFiles from all Swap Files, returning the largest FlowFile ID
      * that was recovered.
      *
-     * @param queueProvider
-     * @return
+     * @param queueProvider provider
+     * @return the largest FlowFile ID that was recovered
      */
     @Override
     public long recoverSwappedFlowFiles(final QueueProvider queueProvider, final ContentClaimManager claimManager) {
@@ -591,16 +593,16 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
         long maxRecoveredId = 0L;
 
         for (final File swapFile : swapFiles) {
-            if ( TEMP_SWAP_FILE_PATTERN.matcher(swapFile.getName()).matches() ) {
-                if ( swapFile.delete() ) {
+            if (TEMP_SWAP_FILE_PATTERN.matcher(swapFile.getName()).matches()) {
+                if (swapFile.delete()) {
                     logger.info("Removed incomplete/temporary Swap File " + swapFile);
                 } else {
                     warn("Failed to remove incomplete/temporary Swap File " + swapFile + "; this file should be cleaned up manually");
                 }
-                
+
                 continue;
             }
-            
+
             // read record to disk via the swap file
             try (final InputStream fis = new FileInputStream(swapFile);
                     final InputStream bufferedIn = new BufferedInputStream(fis);
@@ -618,7 +620,8 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
                 final String connectionId = in.readUTF();
                 final FlowFileQueue queue = queueMap.get(connectionId);
                 if (queue == null) {
-                    error("Cannot recover Swapped FlowFiles from Swap File " + swapFile + " because the FlowFiles belong to a Connection with ID " + connectionId + " and that Connection does not exist");
+                    error("Cannot recover Swapped FlowFiles from Swap File " + swapFile + " because the FlowFiles belong to a Connection with ID "
+                            + connectionId + " and that Connection does not exist");
                     continue;
                 }
 

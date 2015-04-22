@@ -263,7 +263,7 @@ public class StandardFunnel implements Funnel {
     /**
      * Throws {@link UnsupportedOperationException}
      *
-     * @param name
+     * @param name new name
      */
     @Override
     public void setName(final String name) {
@@ -403,7 +403,7 @@ public class StandardFunnel implements Funnel {
      * scheduled when the processor calls
      * {@link nifi.processor.ProcessContext#yield() ProcessContext.yield()}
      *
-     * @param yieldPeriod
+     * @param yieldPeriod new period
      */
     @Override
     public void setYieldPeriod(final String yieldPeriod) {
@@ -414,9 +414,6 @@ public class StandardFunnel implements Funnel {
         this.yieldPeriod.set(yieldPeriod);
     }
 
-    /**
-     * @param schedulingPeriod
-     */
     @Override
     public void setScheduldingPeriod(final String schedulingPeriod) {
         final long schedulingNanos = FormatUtils.getTimeDuration(requireNonNull(schedulingPeriod), TimeUnit.NANOSECONDS);

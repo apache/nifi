@@ -44,9 +44,9 @@ public interface Triggerable {
      * be committed or the framework may use the session again for another
      * processor down stream</p>
      *
-     * @param context
-     * @param sessionFactory used to generate {@link ProcessSession}s to use
-     * for operating on flow files within the repository
+     * @param context in which the component is triggered
+     * @param sessionFactory used to generate {@link ProcessSession}s to use for
+     * operating on flow files within the repository
      *
      * @throws ProcessException if processing did not complete normally though
      * indicates the problem is an understood potential outcome of processing.
@@ -81,7 +81,7 @@ public interface Triggerable {
      * <code>Triggerable</code> has any active threads, see
      * {@link ProcessScheduler#getActiveThreadCount(nifi.connectable.Connectable)}.
      *
-     * @return
+     * @return the schedule state
      */
     ScheduledState getScheduledState();
 
@@ -92,12 +92,12 @@ public interface Triggerable {
      * invocation of {@link #onTrigger(ProcessContext, ProcessSessionFactory)}
      * have not yet returned
      *
-     * @return
+     * @return true if running;false otherwise
      */
     boolean isRunning();
 
     /**
-     * @param timeUnit
+     * @param timeUnit for the scheduling period of the component
      * @return the amount of time between each scheduling period
      */
     long getSchedulingPeriod(TimeUnit timeUnit);
@@ -110,7 +110,8 @@ public interface Triggerable {
 
     /**
      * Updates how often this Triggerable should be triggered to run
-     * @param schedulingPeriod
+     *
+     * @param schedulingPeriod to set
      */
     void setScheduldingPeriod(String schedulingPeriod);
 }

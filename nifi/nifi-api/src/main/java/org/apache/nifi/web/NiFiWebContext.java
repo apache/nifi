@@ -28,12 +28,10 @@ import org.apache.nifi.controller.ControllerService;
 public interface NiFiWebContext {
 
     /**
-     * Gets the ControllerService for the specified identifier. If a
+     * @param serviceIdentifier identifier of the service
+     * @return the ControllerService for the specified identifier. If a
      * corresponding service cannot be found, null is returned. If this NiFi is
-     * clustered, the ControllerService is loaded from the NCM.
-     *
-     * @param serviceIdentifier
-     * @return
+     * clustered, the ControllerService is loaded from the NCM
      */
     ControllerService getControllerService(String serviceIdentifier);
 
@@ -48,21 +46,17 @@ public interface NiFiWebContext {
      * been applied to the flow, we cannot revert them because of a failure to
      * insert an audit record.
      *
-     * @param actions
+     * @param actions to save
      */
     void saveActions(Collection<ProcessorConfigurationAction> actions);
 
     /**
-     * Gets the current user dn. Returns null if no user is found.
-     *
-     * @return
+     * @return the current user dn. Returns null if no user is found
      */
     String getCurrentUserDn();
 
     /**
-     * Gets the current user name. Returns null if no user is found.
-     *
-     * @return
+     * @return the current user name. Returns null if no user is found
      */
     String getCurrentUserName();
 

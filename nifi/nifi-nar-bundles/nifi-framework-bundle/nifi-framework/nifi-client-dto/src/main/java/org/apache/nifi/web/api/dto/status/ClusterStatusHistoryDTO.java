@@ -33,9 +33,7 @@ public class ClusterStatusHistoryDTO {
     private Date generated;
 
     /**
-     * When this status history was generated.
-     *
-     * @return
+     * @return when this status history was generated
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
     public Date getGenerated() {
@@ -47,9 +45,7 @@ public class ClusterStatusHistoryDTO {
     }
 
     /**
-     * The status history from each node in the cluster.
-     *
-     * @return
+     * @return status history from each node in the cluster
      */
     public Collection<NodeStatusHistoryDTO> getNodeStatusHistory() {
         return nodeStatusHistory;
@@ -60,9 +56,7 @@ public class ClusterStatusHistoryDTO {
     }
 
     /**
-     * The status history for this component across the entire cluster.
-     *
-     * @return
+     * @return status history for this component across the entire cluster
      */
     public StatusHistoryDTO getClusterStatusHistory() {
         return clusterStatusHistory;

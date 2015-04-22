@@ -41,9 +41,7 @@ public class UserDTO {
     private Set<String> authorities;
 
     /**
-     * The user id.
-     *
-     * @return
+     * @return user id
      */
     public String getId() {
         return id;
@@ -54,9 +52,7 @@ public class UserDTO {
     }
 
     /**
-     * The users authorities.
-     *
-     * @return
+     * @return users authorities
      */
     public Set<String> getAuthorities() {
         return authorities;
@@ -67,9 +63,7 @@ public class UserDTO {
     }
 
     /**
-     * The creation time for this users account.
-     *
-     * @return
+     * @return creation time for this users account
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
     public Date getCreation() {
@@ -81,9 +75,7 @@ public class UserDTO {
     }
 
     /**
-     * The users DN.
-     *
-     * @return
+     * @return users DN
      */
     public String getDn() {
         return dn;
@@ -94,10 +86,8 @@ public class UserDTO {
     }
 
     /**
-     * The users name. If the name could not be extracted from the DN, this
-     * value will be the entire DN.
-     *
-     * @return
+     * @return users name. If the name could not be extracted from the DN, this
+     * value will be the entire DN
      */
     public String getUserName() {
         return userName;
@@ -108,9 +98,7 @@ public class UserDTO {
     }
 
     /**
-     * The user group.
-     *
-     * @return
+     * @return user group
      */
     public String getUserGroup() {
         return userGroup;
@@ -121,9 +109,7 @@ public class UserDTO {
     }
 
     /**
-     * The users account justification.
-     *
-     * @return
+     * @return users account justification
      */
     public String getJustification() {
         return justification;
@@ -134,9 +120,7 @@ public class UserDTO {
     }
 
     /**
-     * The time that the user last accessed the system.
-     *
-     * @return
+     * @return time that the user last accessed the system
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
     public Date getLastAccessed() {
@@ -148,9 +132,7 @@ public class UserDTO {
     }
 
     /**
-     * The time that the users credentials were last verified.
-     *
-     * @return
+     * @return time that the users credentials were last verified
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
     public Date getLastVerified() {
@@ -162,9 +144,7 @@ public class UserDTO {
     }
 
     /**
-     * The status of the users account.
-     *
-     * @return
+     * @return status of the users account
      */
     public String getStatus() {
         return status;

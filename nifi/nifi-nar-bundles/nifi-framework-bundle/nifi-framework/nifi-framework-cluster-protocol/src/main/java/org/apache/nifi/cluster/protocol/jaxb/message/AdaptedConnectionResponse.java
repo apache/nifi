@@ -25,7 +25,7 @@ import org.apache.nifi.cluster.protocol.StandardDataFlow;
  * @author unattributed
  */
 public class AdaptedConnectionResponse {
-    
+
     private StandardDataFlow dataFlow;
     private NodeIdentifier nodeIdentifier;
     private boolean blockedByFirewall;
@@ -34,8 +34,9 @@ public class AdaptedConnectionResponse {
     private Integer managerRemoteInputPort;
     private Boolean managerRemoteCommsSecure;
     private String instanceId;
-    
-    public AdaptedConnectionResponse() {}
+
+    public AdaptedConnectionResponse() {
+    }
 
     @XmlJavaTypeAdapter(DataFlowAdapter.class)
     public StandardDataFlow getDataFlow() {
@@ -82,27 +83,27 @@ public class AdaptedConnectionResponse {
     public boolean shouldTryLater() {
         return tryLaterSeconds > 0;
     }
-    
+
     public void setManagerRemoteInputPort(Integer managerRemoteInputPort) {
         this.managerRemoteInputPort = managerRemoteInputPort;
     }
-    
+
     public Integer getManagerRemoteInputPort() {
         return managerRemoteInputPort;
     }
-    
+
     public void setManagerRemoteCommsSecure(Boolean secure) {
         this.managerRemoteCommsSecure = secure;
     }
-    
+
     public Boolean isManagerRemoteCommsSecure() {
         return managerRemoteCommsSecure;
     }
-    
+
     public void setInstanceId(String instanceId) {
         this.instanceId = instanceId;
     }
-    
+
     public String getInstanceId() {
         return instanceId;
     }

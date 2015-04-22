@@ -47,8 +47,12 @@ public class StandardValidationContext implements ValidationContext {
     public StandardValidationContext(final ControllerServiceProvider controllerServiceProvider, final Map<PropertyDescriptor, String> properties, final String annotationData) {
         this(controllerServiceProvider, Collections.<String>emptySet(), properties, annotationData);
     }
-    
-    public StandardValidationContext(final ControllerServiceProvider controllerServiceProvider, final Set<String> serviceIdentifiersToNotValidate, final Map<PropertyDescriptor, String> properties, final String annotationData) {
+
+    public StandardValidationContext(
+            final ControllerServiceProvider controllerServiceProvider,
+            final Set<String> serviceIdentifiersToNotValidate,
+            final Map<PropertyDescriptor, String> properties,
+            final String annotationData) {
         this.controllerServiceProvider = controllerServiceProvider;
         this.properties = new HashMap<>(properties);
         this.annotationData = annotationData;
@@ -67,7 +71,7 @@ public class StandardValidationContext implements ValidationContext {
         }
 
         expressionLanguageSupported = new HashMap<>(properties.size());
-        for ( final PropertyDescriptor descriptor : properties.keySet() ) {
+        for (final PropertyDescriptor descriptor : properties.keySet()) {
             expressionLanguageSupported.put(descriptor.getName(), descriptor.isExpressionLanguageSupported());
         }
     }
@@ -113,17 +117,17 @@ public class StandardValidationContext implements ValidationContext {
     public boolean isValidationRequired(final ControllerService service) {
         return !serviceIdentifiersToNotValidate.contains(service.getIdentifier());
     }
-    
+
     @Override
     public boolean isExpressionLanguagePresent(final String value) {
-        if ( value == null ) {
+        if (value == null) {
             return false;
         }
-        
+
         final List<Range> elRanges = Query.extractExpressionRanges(value);
         return (elRanges != null && !elRanges.isEmpty());
     }
-    
+
     @Override
     public boolean isExpressionLanguageSupported(final String propertyName) {
         final Boolean supported = expressionLanguageSupported.get(propertyName);

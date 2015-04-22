@@ -59,9 +59,7 @@ public class ProcessGroupStatusDTO extends StatusDTO {
     }
 
     /**
-     * The name of this process group.
-     *
-     * @return
+     * @return name of this process group
      */
     public String getName() {
         return name;
@@ -72,9 +70,7 @@ public class ProcessGroupStatusDTO extends StatusDTO {
     }
 
     /**
-     * The active thread count for this process group.
-     *
-     * @return
+     * @return active thread count for this process group
      */
     public Integer getActiveThreadCount() {
         return activeThreadCount;

@@ -23,10 +23,11 @@ import org.apache.nifi.cluster.protocol.NodeIdentifier;
  * @author unattributed
  */
 public class AdaptedConnectionRequest {
-    
+
     private NodeIdentifier nodeIdentifier;
-    
-    public AdaptedConnectionRequest() {}
+
+    public AdaptedConnectionRequest() {
+    }
 
     @XmlJavaTypeAdapter(NodeIdentifierAdapter.class)
     public NodeIdentifier getNodeIdentifier() {

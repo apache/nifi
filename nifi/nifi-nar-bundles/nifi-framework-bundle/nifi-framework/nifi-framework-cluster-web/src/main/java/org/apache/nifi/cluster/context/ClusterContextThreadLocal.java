@@ -20,23 +20,23 @@ package org.apache.nifi.cluster.context;
  * Manages a cluster context on a threadlocal.
  */
 public class ClusterContextThreadLocal {
-    
+
     private static final ThreadLocal<ClusterContext> contextHolder = new ThreadLocal<>();
-    
+
     public static void removeContext() {
         contextHolder.remove();
     }
-    
+
     public static ClusterContext createEmptyContext() {
         return new ClusterContextImpl();
     }
-    
+
     public static ClusterContext getContext() {
         return contextHolder.get();
     }
-    
+
     public static void setContext(final ClusterContext context) {
         contextHolder.set(context);
     }
-    
+
 }

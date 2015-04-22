@@ -24,10 +24,12 @@ import org.apache.nifi.cluster.protocol.jaxb.message.NodeIdentifierAdapter;
 
 @XmlRootElement(name = "reconnectionFailureMessage")
 public class ReconnectionFailureMessage extends ExceptionMessage {
+
     private NodeIdentifier nodeId;
-    
-    public ReconnectionFailureMessage() {}
-    
+
+    public ReconnectionFailureMessage() {
+    }
+
     @Override
     public MessageType getType() {
         return MessageType.RECONNECTION_FAILURE;
