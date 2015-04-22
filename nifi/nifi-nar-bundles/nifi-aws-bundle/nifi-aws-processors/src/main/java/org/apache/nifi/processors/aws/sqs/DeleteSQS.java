@@ -40,54 +40,54 @@ import com.amazonaws.services.sqs.model.DeleteMessageBatchRequestEntry;
 @Tags({"Amazon", "AWS", "SQS", "Queue", "Delete"})
 @CapabilityDescription("Deletes a message from an Amazon Simple Queuing Service Queue")
 public class DeleteSQS extends AbstractSQSProcessor {
+
     public static final PropertyDescriptor RECEIPT_HANDLE = new PropertyDescriptor.Builder()
-        .name("Receipt Handle")
-        .description("The identifier that specifies the receipt of the message")
-        .expressionLanguageSupported(true)
-        .required(true)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .defaultValue("${sqs.receipt.handle}")
-        .build();
-    
+            .name("Receipt Handle")
+            .description("The identifier that specifies the receipt of the message")
+            .expressionLanguageSupported(true)
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .defaultValue("${sqs.receipt.handle}")
+            .build();
+
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-            Arrays.asList(ACCESS_KEY, SECRET_KEY, REGION, QUEUE_URL, TIMEOUT) );
+            Arrays.asList(ACCESS_KEY, SECRET_KEY, REGION, QUEUE_URL, TIMEOUT));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return properties;
     }
 
-    
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
         List<FlowFile> flowFiles = session.get(1);
-        if ( flowFiles.isEmpty() ) {
+        if (flowFiles.isEmpty()) {
             return;
         }
-        
+
         final FlowFile firstFlowFile = flowFiles.get(0);
         final String queueUrl = context.getProperty(QUEUE_URL).evaluateAttributeExpressions(firstFlowFile).getValue();
-        
+
         final AmazonSQSClient client = getClient();
         final DeleteMessageBatchRequest request = new DeleteMessageBatchRequest();
         request.setQueueUrl(queueUrl);
-        
+
         final List<DeleteMessageBatchRequestEntry> entries = new ArrayList<>(flowFiles.size());
-        
-        for ( final FlowFile flowFile : flowFiles ) {
+
+        for (final FlowFile flowFile : flowFiles) {
             final DeleteMessageBatchRequestEntry entry = new DeleteMessageBatchRequestEntry();
             entry.setReceiptHandle(context.getProperty(RECEIPT_HANDLE).evaluateAttributeExpressions(flowFile).getValue());
             entries.add(entry);
         }
-        
+
         request.setEntries(entries);
-        
+
         try {
             client.deleteMessageBatch(request);
-            getLogger().info("Successfully deleted {} objects from SQS", new Object[] {flowFiles.size()});
+            getLogger().info("Successfully deleted {} objects from SQS", new Object[]{flowFiles.size()});
             session.transfer(flowFiles, REL_SUCCESS);
         } catch (final Exception e) {
-            getLogger().error("Failed to delete {} objects from SQS due to {}", new Object[] {flowFiles.size(), e});
+            getLogger().error("Failed to delete {} objects from SQS due to {}", new Object[]{flowFiles.size(), e});
             session.transfer(flowFiles, REL_FAILURE);
         }
     }
