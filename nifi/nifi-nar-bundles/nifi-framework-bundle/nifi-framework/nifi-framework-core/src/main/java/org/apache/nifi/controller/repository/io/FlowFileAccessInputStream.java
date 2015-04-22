@@ -56,10 +56,8 @@ public class FlowFileAccessInputStream extends FilterInputStream {
     }
 
     /**
-     * Returns the ContentNotFoundException that was thrown by this stream, or
-     * <code>null</code> if no such Exception was thrown.
-     *
-     * @return
+     * @return the ContentNotFoundException that was thrown by this stream, or
+     * <code>null</code> if no such Exception was thrown
      */
     public ContentNotFoundException getContentNotFoundException() {
         return thrown;

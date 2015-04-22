@@ -150,16 +150,16 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
                 final PropertyDescriptor descriptor = component.getPropertyDescriptor(name);
                 String value = null;
                 if (!descriptor.isRequired() && (value = properties.remove(descriptor)) != null) {
-                	
-                	if ( descriptor.getControllerServiceDefinition() != null ) {
-                		if (value != null) {
+
+                    if (descriptor.getControllerServiceDefinition() != null) {
+                        if (value != null) {
                             final ControllerServiceNode oldNode = serviceProvider.getControllerServiceNode(value);
                             if (oldNode != null) {
                                 oldNode.removeReference(this);
                             }
                         }
-                	}
-                	
+                    }
+
                     component.onPropertyModified(descriptor, value, null);
                     return true;
                 }
@@ -261,12 +261,11 @@ public abstract class AbstractConfiguredComponent implements ConfigurableCompone
         return true;
     }
 
-    
     @Override
     public Collection<ValidationResult> getValidationErrors() {
         return getValidationErrors(Collections.<String>emptySet());
     }
-    
+
     public Collection<ValidationResult> getValidationErrors(final Set<String> serviceIdentifiersNotToValidate) {
         final List<ValidationResult> results = new ArrayList<>();
         lock.lock();

@@ -35,7 +35,7 @@ public class DeleteUserAction implements AdministrationAction<Void> {
     /**
      * Creates a new transactions for deleting the specified user.
      *
-     * @param userId
+     * @param userId user identifier
      */
     public DeleteUserAction(String userId) {
         this.userId = userId;

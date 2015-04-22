@@ -26,10 +26,10 @@ import org.apache.nifi.cluster.protocol.jaxb.message.NodeIdentifierAdapter;
  */
 @XmlRootElement(name = "disconnectionMessage")
 public class DisconnectMessage extends ProtocolMessage {
-    
+
     private NodeIdentifier nodeId;
     private String explanation;
- 
+
     @XmlJavaTypeAdapter(NodeIdentifierAdapter.class)
     public NodeIdentifier getNodeId() {
         return nodeId;
@@ -46,10 +46,10 @@ public class DisconnectMessage extends ProtocolMessage {
     public void setExplanation(String explanation) {
         this.explanation = explanation;
     }
-    
+
     @Override
     public MessageType getType() {
         return MessageType.DISCONNECTION_REQUEST;
     }
-    
+
 }

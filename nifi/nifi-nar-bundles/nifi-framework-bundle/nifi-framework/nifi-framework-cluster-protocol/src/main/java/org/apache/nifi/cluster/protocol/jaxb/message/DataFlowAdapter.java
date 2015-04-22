@@ -27,16 +27,16 @@ public class DataFlowAdapter extends XmlAdapter<AdaptedDataFlow, StandardDataFlo
 
     @Override
     public AdaptedDataFlow marshal(final StandardDataFlow df) {
-        
+
         final AdaptedDataFlow aDf = new AdaptedDataFlow();
-        
-        if(df != null) {
+
+        if (df != null) {
             aDf.setFlow(df.getFlow());
             aDf.setTemplates(df.getTemplates());
             aDf.setSnippets(df.getSnippets());
             aDf.setAutoStartProcessors(df.isAutoStartProcessors());
         }
-        
+
         return aDf;
     }
 
@@ -46,5 +46,5 @@ public class DataFlowAdapter extends XmlAdapter<AdaptedDataFlow, StandardDataFlo
         dataFlow.setAutoStartProcessors(aDf.isAutoStartProcessors());
         return dataFlow;
     }
- 
+
 }

@@ -24,9 +24,9 @@ import javax.xml.bind.annotation.XmlRootElement;
  */
 @XmlRootElement(name = "nodeBulletinsMessage")
 public class NodeBulletinsMessage extends ProtocolMessage {
-    
+
     private NodeBulletins bulletins;
-    
+
     @Override
     public MessageType getType() {
         return MessageType.BULLETINS;

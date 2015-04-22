@@ -31,7 +31,8 @@ public class StandardMetricDescriptor<T> implements MetricDescriptor<T> {
         this(field, label, description, formatter, valueFunction, null);
     }
 
-    public StandardMetricDescriptor(final String field, final String label, final String description, final MetricDescriptor.Formatter formatter, final ValueMapper<T> valueFunction, final ValueReducer<StatusSnapshot, Long> reducer) {
+    public StandardMetricDescriptor(final String field, final String label, final String description,
+            final MetricDescriptor.Formatter formatter, final ValueMapper<T> valueFunction, final ValueReducer<StatusSnapshot, Long> reducer) {
         this.field = field;
         this.label = label;
         this.description = description;
@@ -40,41 +41,21 @@ public class StandardMetricDescriptor<T> implements MetricDescriptor<T> {
         this.reducer = reducer == null ? new SumReducer() : reducer;
     }
 
-    /**
-     * The name of this status field.
-     *
-     * @return
-     */
     @Override
     public String getField() {
         return field;
     }
 
-    /**
-     * The label of this status field.
-     *
-     * @return
-     */
     @Override
     public String getLabel() {
         return label;
     }
 
-    /**
-     * The description of this status field.
-     *
-     * @return
-     */
     @Override
     public String getDescription() {
         return description;
     }
 
-    /**
-     * The formatter for this descriptor.
-     *
-     * @return
-     */
     @Override
     public MetricDescriptor.Formatter getFormatter() {
         return formatter;

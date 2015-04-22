@@ -33,26 +33,24 @@ public interface AuditService {
     /**
      * Adds the specified actions.
      *
-     * @param actions
-     * @throws AdministrationException
+     * @param actions to add
+     * @throws AdministrationException if failed to add
      */
     void addActions(Collection<Action> actions);
 
     /**
-     * Finds the previous values for the specified property in the specified
-     * component. Returns null if there are none.
-     *
-     * @param componentId
-     * @return
+     * @param componentId identifier of the component
+     * @return Finds the previous values for the specified property in the
+     * specified component. Returns null if there are none
      */
     Map<String, List<PreviousValue>> getPreviousValues(String componentId);
 
     /**
      * Get the actions within the given date range.
      *
-     * @param actionQuery
-     * @return
-     * @throws AdministrationException
+     * @param actionQuery query
+     * @return history of actions
+     * @throws AdministrationException ae
      */
     History getActions(HistoryQuery actionQuery);
 
@@ -60,17 +58,17 @@ public interface AuditService {
      * Get the details for the specified action id. If the action cannot be
      * found, null is returned.
      *
-     * @param actionId
-     * @return
+     * @param actionId identifier of action
+     * @return the action
      */
     Action getAction(Integer actionId);
 
     /**
      * Purges all action's that occurred before the specified end date.
      *
-     * @param end
-     * @param purgeAction
-     * @throws AdministrationException
+     * @param end the stopper for event purging
+     * @param purgeAction the action
+     * @throws AdministrationException ae
      */
     void purgeActions(Date end, Action purgeAction);
 }

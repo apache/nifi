@@ -45,7 +45,7 @@ public class FlowControllerFactoryBean implements FactoryBean, ApplicationContex
     @Override
     public Object getObject() throws Exception {
         /*
-         * If configured for the cluster manager, then the flow controller is never used.  
+         * If configured for the cluster manager, then the flow controller is never used.
          */
         if (properties.isClusterManager()) {
             return null;

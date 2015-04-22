@@ -23,9 +23,6 @@ import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.TriggerWhenAnyDestinationAvailable;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.controller.ProcessScheduler;
-import org.apache.nifi.controller.ValidationContextFactory;
-import org.apache.nifi.controller.ProcessorNode;
 
 import static java.util.Objects.requireNonNull;
 
@@ -157,9 +154,11 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         sideEffectFree = procClass.isAnnotationPresent(SideEffectFree.class) || procClass.isAnnotationPresent(org.apache.nifi.processor.annotation.SideEffectFree.class);
         batchSupported = procClass.isAnnotationPresent(SupportsBatching.class) || procClass.isAnnotationPresent(org.apache.nifi.processor.annotation.SupportsBatching.class);
         triggeredSerially = procClass.isAnnotationPresent(TriggerSerially.class) || procClass.isAnnotationPresent(org.apache.nifi.processor.annotation.TriggerSerially.class);
-        triggerWhenAnyDestinationAvailable = procClass.isAnnotationPresent(TriggerWhenAnyDestinationAvailable.class) || procClass.isAnnotationPresent(org.apache.nifi.processor.annotation.TriggerWhenAnyDestinationAvailable.class);
+        triggerWhenAnyDestinationAvailable = procClass.isAnnotationPresent(TriggerWhenAnyDestinationAvailable.class)
+                || procClass.isAnnotationPresent(org.apache.nifi.processor.annotation.TriggerWhenAnyDestinationAvailable.class);
         this.validationContextFactory = validationContextFactory;
-        eventDrivenSupported = (procClass.isAnnotationPresent(EventDriven.class) || procClass.isAnnotationPresent(org.apache.nifi.processor.annotation.EventDriven.class) )&& !triggeredSerially && !triggerWhenEmpty;
+        eventDrivenSupported = (procClass.isAnnotationPresent(EventDriven.class)
+                || procClass.isAnnotationPresent(org.apache.nifi.processor.annotation.EventDriven.class)) && !triggeredSerially && !triggerWhenEmpty;
         schedulingStrategy = SchedulingStrategy.TIMER_DRIVEN;
     }
 
@@ -175,7 +174,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
      * Provides and opportunity to retain information about this particular
      * processor instance
      *
-     * @param comments
+     * @param comments new comments
      */
     @Override
     public void setComments(final String comments) {
@@ -205,10 +204,12 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         this.position.set(position);
     }
 
+    @Override
     public Map<String, String> getStyle() {
         return style.get();
     }
 
+    @Override
     public void setStyle(final Map<String, String> style) {
         if (style != null) {
             this.style.set(Collections.unmodifiableMap(new HashMap<>(style)));
@@ -229,9 +230,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         return lossTolerant.get();
     }
 
-    /**
-     * @return if true processor runs only on the primary node
-     */
+    @Override
     public boolean isIsolated() {
         return isolated.get();
     }
@@ -249,6 +248,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
      * @return true if the processor has the {@link SideEffectFree} annotation,
      * false otherwise.
      */
+    @Override
     public boolean isSideEffectFree() {
         return sideEffectFree;
     }
@@ -262,6 +262,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
      * @return true if the processor has the
      * {@link TriggerWhenAnyDestinationAvailable} annotation, false otherwise.
      */
+    @Override
     public boolean isTriggerWhenAnyDestinationAvailable() {
         return triggerWhenAnyDestinationAvailable;
     }
@@ -270,7 +271,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
      * Indicates whether flow file content made by this processor must be
      * persisted
      *
-     * @param lossTolerant
+     * @param lossTolerant tolerant
      */
     @Override
     public void setLossTolerant(final boolean lossTolerant) {
@@ -288,7 +289,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     /**
      * Indicates whether the processor runs on only the primary node.
      *
-     * @param isolated
+     * @param isolated isolated
      */
     public void setIsolated(final boolean isolated) {
         writeLock.lock();
@@ -311,12 +312,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         return terminatable.contains(relationship);
     }
 
-    /**
-     * Indicates whether flow files transferred to undefined relationships
-     * should be terminated
-     *
-     * @param terminate
-     */
     @Override
     public void setAutoTerminatedRelationships(final Set<Relationship> terminate) {
         writeLock.lock();
@@ -340,6 +335,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
      * @return an unmodifiable Set that contains all of the
      * ProcessorRelationship objects that are configured to be auto-terminated
      */
+    @Override
     public Set<Relationship> getAutoTerminatedRelationships() {
         Set<Relationship> relationships = undefinedRelationshipsToTerminate.get();
         if (relationships == null) {
@@ -361,16 +357,16 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     public String getProcessorDescription() {
         CapabilityDescription capDesc = processor.getClass().getAnnotation(CapabilityDescription.class);
         String description = null;
-        if ( capDesc != null ) {
+        if (capDesc != null) {
             description = capDesc.value();
         } else {
-            final org.apache.nifi.processor.annotation.CapabilityDescription deprecatedCapDesc = 
-                    processor.getClass().getAnnotation(org.apache.nifi.processor.annotation.CapabilityDescription.class);
-            if ( deprecatedCapDesc != null ) {
+            final org.apache.nifi.processor.annotation.CapabilityDescription deprecatedCapDesc
+                    = processor.getClass().getAnnotation(org.apache.nifi.processor.annotation.CapabilityDescription.class);
+            if (deprecatedCapDesc != null) {
                 description = deprecatedCapDesc.value();
             }
         }
-        
+
         return description;
     }
 
@@ -399,6 +395,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         return timeUnit.convert(schedulingNanos.get(), TimeUnit.NANOSECONDS);
     }
 
+    @Override
     public boolean isEventDrivenSupported() {
         readLock.lock();
         try {
@@ -411,11 +408,12 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     /**
      * Updates the Scheduling Strategy used for this Processor
      *
-     * @param schedulingStrategy
+     * @param schedulingStrategy strategy
      *
      * @throws IllegalArgumentException if the SchedulingStrategy is not not
      * applicable for this Processor
      */
+    @Override
     public void setSchedulingStrategy(final SchedulingStrategy schedulingStrategy) {
         writeLock.lock();
         try {
@@ -434,10 +432,9 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     /**
-     * Returns the currently configured scheduling strategy
-     *
-     * @return
+     * @return the currently configured scheduling strategy
      */
+    @Override
     public SchedulingStrategy getSchedulingStrategy() {
         readLock.lock();
         try {
@@ -452,12 +449,6 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         return schedulingPeriod.get();
     }
 
-    /**
-     * @param value the number of <code>timeUnit</code>s between scheduling
-     * intervals.
-     * @param timeUnit determines the unit of time to represent the scheduling
-     * period.
-     */
     @Override
     public void setScheduldingPeriod(final String schedulingPeriod) {
         writeLock.lock();
@@ -519,28 +510,16 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         }
     }
 
-    /**
-     * @param timeUnit determines the unit of time to represent the yield
-     * period. If null will be reported in units of
-     * {@link #DEFAULT_SCHEDULING_TIME_UNIT}.
-     * @return
-     */
     @Override
     public long getYieldPeriod(final TimeUnit timeUnit) {
         return FormatUtils.getTimeDuration(getYieldPeriod(), timeUnit == null ? DEFAULT_TIME_UNIT : timeUnit);
     }
 
+    @Override
     public String getYieldPeriod() {
         return yieldPeriod.get();
     }
 
-    /**
-     * Updates the amount of time that this processor should avoid being
-     * scheduled when the processor calls
-     * {@link nifi.processor.ProcessContext#yield() ProcessContext.yield()}
-     *
-     * @param yieldPeriod
-     */
     @Override
     public void setYieldPeriod(final String yieldPeriod) {
         writeLock.lock();
@@ -573,6 +552,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         LoggerFactory.getLogger(processor.getClass()).debug("{} has chosen to yield its resources; will not be scheduled to run again for {}", processor, yieldDuration);
     }
 
+    @Override
     public void yield(final long period, final TimeUnit timeUnit) {
         final long yieldMillis = TimeUnit.MILLISECONDS.convert(period, timeUnit);
         yieldExpiration.set(Math.max(yieldExpiration.get(), System.currentTimeMillis() + yieldMillis));
@@ -642,6 +622,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         }
     }
 
+    @Override
     public boolean isTriggeredSerially() {
         return triggeredSerially;
     }
@@ -655,10 +636,12 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         return concurrentTaskCount.get();
     }
 
+    @Override
     public LogLevel getBulletinLevel() {
         return LogRepositoryFactory.getRepository(getIdentifier()).getObservationLevel(BULLETIN_OBSERVER_ID);
     }
 
+    @Override
     public void setBulletinLevel(final LogLevel level) {
         LogRepositoryFactory.getRepository(getIdentifier()).setObservationLevel(BULLETIN_OBSERVER_ID, level);
     }
@@ -778,7 +761,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                             // if we are running and we do not terminate undefined relationships and this is the only
                             // connection that defines the given relationship, and that relationship is required,
                             // then it is not legal to remove this relationship from this connection.
-                            throw new IllegalStateException("Cannot remove relationship " + rel.getName() + " from Connection because doing so would invalidate Processor " + this + ", which is currently running");
+                            throw new IllegalStateException("Cannot remove relationship " + rel.getName() + " from Connection because doing so would invalidate Processor "
+                                    + this + ", which is currently running");
                         }
                     }
                 }
@@ -872,11 +856,9 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     /**
-     * Gets the relationship for this nodes processor for the given name or
-     * creates a new relationship for the given name.
-     *
-     * @param relationshipName
-     * @return
+     * @param relationshipName name
+     * @return the relationship for this nodes processor for the given name or
+     * creates a new relationship for the given name
      */
     @Override
     public Relationship getRelationship(final String relationshipName) {
@@ -897,15 +879,14 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         return returnRel;
     }
 
+    @Override
     public Processor getProcessor() {
         return this.processor;
     }
 
     /**
-     * Obtains the Set of destination processors for all relationships excluding
+     * @return the Set of destination processors for all relationships excluding
      * any destinations that are this processor itself (self-loops)
-     *
-     * @return
      */
     public Set<Connectable> getDestinations() {
         final Set<Connectable> nonSelfDestinations = new HashSet<>();
@@ -965,7 +946,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     /**
      * Determines if the given node is a destination for this node
      *
-     * @param node
+     * @param node node
      * @return true if is a direct destination node; false otherwise
      */
     boolean isRelated(final ProcessorNode node) {
@@ -986,7 +967,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             readLock.unlock();
         }
     }
-    
+
     @Override
     public int getActiveThreadCount() {
         readLock.lock();
@@ -1067,8 +1048,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     /**
      * Establishes node equality (based on the processor's identifier)
      *
-     * @param other
-     * @return
+     * @param other node
+     * @return true if equal
      */
     @Override
     public boolean equals(final Object other) {
@@ -1125,6 +1106,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         return ConnectableType.PROCESSOR;
     }
 
+    @Override
     public void setScheduledState(final ScheduledState scheduledState) {
         this.scheduledState.set(scheduledState);
         if (!scheduledState.equals(ScheduledState.RUNNING)) {   // if user stops processor, clear yield expiration
@@ -1210,7 +1192,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             readLock.unlock();
         }
     }
-    
+
     @Override
     public void verifyCanStart(final Set<ControllerServiceNode> ignoredReferences) {
         switch (getScheduledState()) {
@@ -1222,15 +1204,15 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                 break;
         }
         verifyNoActiveThreads();
-        
+
         final Set<String> ids = new HashSet<>();
-        for ( final ControllerServiceNode node : ignoredReferences ) {
+        for (final ControllerServiceNode node : ignoredReferences) {
             ids.add(node.getIdentifier());
         }
-        
+
         final Collection<ValidationResult> validationResults = getValidationErrors(ids);
-        for ( final ValidationResult result : validationResults ) {
-            if ( !result.isValid() ) {
+        for (final ValidationResult result : validationResults) {
+            if (!result.isValid()) {
                 throw new IllegalStateException(this + " cannot be started because it is not valid: " + result);
             }
         }

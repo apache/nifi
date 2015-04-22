@@ -87,7 +87,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     public static final int OK_STATUS_CODE = Status.OK.getStatusCode();
     public static final int UNAUTHORIZED_STATUS_CODE = Status.UNAUTHORIZED.getStatusCode();
     public static final int FORBIDDEN_STATUS_CODE = Status.FORBIDDEN.getStatusCode();
-    
+
     private final String id;
 
     private final URI targetUri;
@@ -194,7 +194,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     public void shutdown() {
         backgroundThreadExecutor.shutdown();
     }
-    
+
     @Override
     public String getIdentifier() {
         return id;
@@ -381,7 +381,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
      * Returns a boolean indicating whether or not an Output Port exists with
      * the given ID
      *
-     * @param id
+     * @param id identifier of port
      * @return <code>true</code> if an Output Port exists with the given ID,
      * <code>false</code> otherwise.
      */
@@ -562,11 +562,9 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     }
 
     /**
-     * Returns an {@link RemoteGroupPort} that can be used to send FlowFiles to
-     * the port whose ID is given on the remote instance
-     *
      * @param portIdentifier the ID of the Port to send FlowFiles to
-     * @return
+     * @return {@link RemoteGroupPort} that can be used to send FlowFiles to the
+     * port whose ID is given on the remote instance
      */
     @Override
     public RemoteGroupPort getInputPort(final String portIdentifier) {
@@ -602,7 +600,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
      * Adds an InputPort to this ProcessGroup that is described by the given
      * DTO.
      *
-     * @param descriptor
+     * @param descriptor port descriptor
      *
      * @throws IllegalStateException if an Input Port already exists with the ID
      * given by the ID of the DTO.
@@ -630,13 +628,6 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
         }
     }
 
-    /**
-     * Returns an {@link RemoteGroupPort} that can be used to receive FlowFiles
-     * from the port whose name is given on the remote instance
-     *
-     * @param portIdentifier the name of the Port to receive FlowFiles from
-     * @return
-     */
     @Override
     public RemoteGroupPort getOutputPort(final String portIdentifier) {
         readLock.lock();
@@ -776,7 +767,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
         try {
             // perform the request
             final ClientResponse response = utils.get(uri, getCommunicationsTimeout(TimeUnit.MILLISECONDS));
-            
+
             if (!Response.Status.Family.SUCCESSFUL.equals(response.getStatusInfo().getFamily())) {
                 writeLock.lock();
                 try {
@@ -799,7 +790,8 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
 
                 // consume the entity entirely
                 response.getEntity(String.class);
-                throw new CommunicationsException("Unable to communicate with Remote NiFi at URI " + uriVal + ". Got HTTP Error Code " + response.getStatus() + ": " + response.getStatusInfo().getReasonPhrase());
+                throw new CommunicationsException("Unable to communicate with Remote NiFi at URI " + uriVal + ". Got HTTP Error Code "
+                        + response.getStatus() + ": " + response.getStatusInfo().getReasonPhrase());
             }
 
             final ControllerEntity entity = response.getEntity(ControllerEntity.class);
@@ -873,8 +865,8 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     /**
      * Converts a set of ports into a set of remote process group ports.
      *
-     * @param ports
-     * @return
+     * @param ports to convert
+     * @return descriptors of ports
      */
     private Set<RemoteProcessGroupPortDescriptor> convertRemotePort(final Set<PortDTO> ports) {
         Set<RemoteProcessGroupPortDescriptor> remotePorts = null;
@@ -1084,7 +1076,6 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
         }
     }
 
-
     @Override
     public EventReporter getEventReporter() {
         return eventReporter;
@@ -1097,10 +1088,10 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
             try {
                 final RemoteNiFiUtils utils = new RemoteNiFiUtils(isWebApiSecure() ? sslContext : null);
                 final ClientResponse response = utils.get(new URI(apiUri + CONTROLLER_URI_PATH), getCommunicationsTimeout(TimeUnit.MILLISECONDS));
-                
+
                 final int statusCode = response.getStatus();
-                
-                if ( statusCode == OK_STATUS_CODE ) {
+
+                if (statusCode == OK_STATUS_CODE) {
                     final ControllerEntity entity = response.getEntity(ControllerEntity.class);
                     final ControllerDTO dto = entity.getController();
 
@@ -1121,10 +1112,10 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                     final String remoteInstanceId = dto.getInstanceId();
                     boolean isPointingToCluster = flowController.getInstanceId().equals(remoteInstanceId);
                     pointsToCluster.set(isPointingToCluster);
-                } else if ( statusCode == UNAUTHORIZED_STATUS_CODE ) {
+                } else if (statusCode == UNAUTHORIZED_STATUS_CODE) {
                     try {
                         final ClientResponse requestAccountResponse = utils.issueRegistrationRequest(apiUri.toString());
-                        if (Response.Status.Family.SUCCESSFUL.equals(requestAccountResponse.getStatusInfo().getFamily()) ) {
+                        if (Response.Status.Family.SUCCESSFUL.equals(requestAccountResponse.getStatusInfo().getFamily())) {
                             logger.info("{} Issued a Request to communicate with remote instance", this);
                         } else {
                             logger.error("{} Failed to request account: got unexpected response code of {}:{}", new Object[]{
@@ -1138,7 +1129,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                     }
 
                     authorizationIssue = response.getEntity(String.class);
-                } else if ( statusCode == FORBIDDEN_STATUS_CODE ) {
+                } else if (statusCode == FORBIDDEN_STATUS_CODE) {
                     authorizationIssue = response.getEntity(String.class);
                 } else {
                     final String message = response.getEntity(String.class);
@@ -1158,7 +1149,8 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     public void setYieldDuration(final String yieldDuration) {
         // verify the syntax
         if (!FormatUtils.TIME_DURATION_PATTERN.matcher(yieldDuration).matches()) {
-            throw new IllegalArgumentException("Improperly formatted Time Period; should be of syntax <number> <unit> where <number> is a positive integer and unit is one of the valid Time Units, such as nanos, millis, sec, min, hour, day");
+            throw new IllegalArgumentException("Improperly formatted Time Period; should be of syntax <number> <unit> where "
+                    + "<number> is a positive integer and unit is one of the valid Time Units, such as nanos, millis, sec, min, hour, day");
         }
 
         this.yieldDuration = yieldDuration;
@@ -1168,7 +1160,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     public String getYieldDuration() {
         return yieldDuration;
     }
-    
+
     @Override
     public void verifyCanDelete() {
         verifyCanDelete(false);

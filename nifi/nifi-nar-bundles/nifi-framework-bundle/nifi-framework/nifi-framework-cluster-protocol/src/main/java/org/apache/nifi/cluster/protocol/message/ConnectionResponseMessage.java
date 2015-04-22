@@ -19,16 +19,14 @@ package org.apache.nifi.cluster.protocol.message;
 import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.cluster.protocol.ConnectionResponse;
 
-/**
- * @author unattributed
- */
 @XmlRootElement(name = "connectionResponseMessage")
 public class ConnectionResponseMessage extends ProtocolMessage {
-    
+
     private ConnectionResponse connectionResponse;
     private String clusterManagerDN;
-    
-    public ConnectionResponseMessage() {}
+
+    public ConnectionResponseMessage() {
+    }
 
     public ConnectionResponse getConnectionResponse() {
         return connectionResponse;
@@ -36,23 +34,22 @@ public class ConnectionResponseMessage extends ProtocolMessage {
 
     public void setConnectionResponse(final ConnectionResponse connectionResponse) {
         this.connectionResponse = connectionResponse;
-        
-        if ( clusterManagerDN != null ) {
+
+        if (clusterManagerDN != null) {
             this.connectionResponse.setClusterManagerDN(clusterManagerDN);
         }
     }
-    
+
     public void setClusterManagerDN(final String dn) {
-        if ( connectionResponse != null ) {
+        if (connectionResponse != null) {
             connectionResponse.setClusterManagerDN(dn);
         }
         this.clusterManagerDN = dn;
     }
-    
+
     /**
-     * Returns the DN of the NCM, if it is available or <code>null</code> otherwise.
-     * 
-     * @return
+     * @return the DN of the NCM, if it is available or <code>null</code>
+     * otherwise
      */
     public String getClusterManagerDN() {
         return clusterManagerDN;
@@ -62,5 +59,5 @@ public class ConnectionResponseMessage extends ProtocolMessage {
     public MessageType getType() {
         return MessageType.CONNECTION_RESPONSE;
     }
-    
+
 }

@@ -67,7 +67,7 @@ public class RingBufferEventRepository implements FlowFileEventRepository {
 
     @Override
     public void purgeTransferEvents(final long cutoffEpochMilliseconds) {
-        // This is done so that if a processor is removed from the graph, its events 
+        // This is done so that if a processor is removed from the graph, its events
         // will be removed rather than being kept in memory
         for (final EventContainer container : componentEventMap.values()) {
             container.purgeEvents(cutoffEpochMilliseconds);

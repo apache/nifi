@@ -102,7 +102,7 @@ public class SeedUserAccountsAction extends AbstractUserAction<Void> {
                     CreateUserAction createUser = new CreateUserAction(user);
                     createUser.execute(daoFactory, authorityProvider);
                 } else {
-                    // this is not a new user and we have just verified their 
+                    // this is not a new user and we have just verified their
                     // account, do not revoke...
                     accountsToRevoke.remove(user);
 
@@ -144,7 +144,7 @@ public class SeedUserAccountsAction extends AbstractUserAction<Void> {
             try {
                 logger.info(String.format("User not authorized with configured provider: %s. Disabling account...", user.getDn()));
 
-                // disable the account and reset its last verified timestamp since it was not found 
+                // disable the account and reset its last verified timestamp since it was not found
                 // in the current configured authority provider
                 user.setStatus(AccountStatus.DISABLED);
                 user.setLastVerified(null);

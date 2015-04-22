@@ -21,7 +21,10 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetSocketAddress;
 import java.net.MulticastSocket;
-import java.util.*;
+import java.util.Collections;
+import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 
@@ -39,75 +42,76 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Broadcasts services used by the clustering software using multicast communication.
- * A configurable delay occurs after broadcasting the collection of services.
- * 
+ * Broadcasts services used by the clustering software using multicast
+ * communication. A configurable delay occurs after broadcasting the collection
+ * of services.
+ *
  * The client caller is responsible for starting and stopping the broadcasting.
  * The instance must be stopped before termination of the JVM to ensure proper
  * resource clean-up.
- * 
+ *
  * @author unattributed
  */
 public class ClusterServicesBroadcaster implements MulticastServicesBroadcaster {
-    
+
     private static final Logger logger = new NiFiLog(LoggerFactory.getLogger(ClusterServicesBroadcaster.class));
-    
+
     private final Set<DiscoverableService> services = new CopyOnWriteArraySet<>();
 
     private final InetSocketAddress multicastAddress;
-    
+
     private final MulticastConfiguration multicastConfiguration;
-    
+
     private final ProtocolContext<ProtocolMessage> protocolContext;
-    
+
     private final int broadcastDelayMs;
-    
+
     private Timer broadcaster;
-    
+
     private MulticastSocket multicastSocket;
-    
-    public ClusterServicesBroadcaster(final InetSocketAddress multicastAddress, 
-            final MulticastConfiguration multicastConfiguration, 
+
+    public ClusterServicesBroadcaster(final InetSocketAddress multicastAddress,
+            final MulticastConfiguration multicastConfiguration,
             final ProtocolContext<ProtocolMessage> protocolContext, final String broadcastDelay) {
-        
-        if(multicastAddress == null) {
+
+        if (multicastAddress == null) {
             throw new IllegalArgumentException("Multicast address may not be null.");
-        } else if(multicastAddress.getAddress().isMulticastAddress() == false) {
+        } else if (multicastAddress.getAddress().isMulticastAddress() == false) {
             throw new IllegalArgumentException("Multicast group address is not a Class D IP address.");
-        } else if(protocolContext == null) {
+        } else if (protocolContext == null) {
             throw new IllegalArgumentException("Protocol Context may not be null.");
-        } else if(multicastConfiguration == null) {
+        } else if (multicastConfiguration == null) {
             throw new IllegalArgumentException("Multicast configuration may not be null.");
         }
-        
+
         this.services.addAll(services);
         this.multicastAddress = multicastAddress;
         this.multicastConfiguration = multicastConfiguration;
         this.protocolContext = protocolContext;
         this.broadcastDelayMs = (int) FormatUtils.getTimeDuration(broadcastDelay, TimeUnit.MILLISECONDS);
     }
-    
+
     public void start() throws IOException {
 
-        if(isRunning()) {
+        if (isRunning()) {
             throw new IllegalStateException("Instance is already started.");
         }
-        
+
         // setup socket
         multicastSocket = MulticastUtils.createMulticastSocket(multicastConfiguration);
-        
+
         // setup broadcaster
         broadcaster = new Timer("Cluster Services Broadcaster", /* is daemon */ true);
         broadcaster.schedule(new TimerTask() {
             @Override
             public void run() {
-                for(final DiscoverableService service : services) {
+                for (final DiscoverableService service : services) {
                     try {
 
                         final InetSocketAddress serviceAddress = service.getServiceAddress();
-                        logger.debug(String.format("Broadcasting Cluster Service '%s' at address %s:%d", 
-                            service.getServiceName(), serviceAddress.getHostName(), serviceAddress.getPort()));
-                        
+                        logger.debug(String.format("Broadcasting Cluster Service '%s' at address %s:%d",
+                                service.getServiceName(), serviceAddress.getHostName(), serviceAddress.getPort()));
+
                         // create message
                         final ServiceBroadcastMessage msg = new ServiceBroadcastMessage();
                         msg.setServiceName(service.getServiceName());
@@ -124,37 +128,37 @@ public class ClusterServicesBroadcaster implements MulticastServicesBroadcaster 
                         final DatagramPacket packet = new DatagramPacket(packetBytes, packetBytes.length, multicastAddress);
                         multicastSocket.send(packet);
 
-                    } catch(final Exception ex) {
+                    } catch (final Exception ex) {
                         logger.warn(String.format("Cluster Services Broadcaster failed broadcasting service '%s' due to: %s", service.getServiceName(), ex), ex);
                     }
                 }
             }
         }, 0, broadcastDelayMs);
     }
-    
+
     public boolean isRunning() {
         return (broadcaster != null);
     }
-    
+
     public void stop() {
-        
-        if(isRunning() == false) {
+
+        if (isRunning() == false) {
             throw new IllegalStateException("Instance is already stopped.");
         }
-        
+
         broadcaster.cancel();
         broadcaster = null;
 
         // close socket
         MulticastUtils.closeQuietly(multicastSocket);
-        
+
     }
 
     @Override
     public int getBroadcastDelayMs() {
         return broadcastDelayMs;
     }
-    
+
     @Override
     public Set<DiscoverableService> getServices() {
         return Collections.unmodifiableSet(services);
@@ -164,16 +168,16 @@ public class ClusterServicesBroadcaster implements MulticastServicesBroadcaster 
     public InetSocketAddress getMulticastAddress() {
         return multicastAddress;
     }
-    
+
     @Override
     public boolean addService(final DiscoverableService service) {
         return services.add(service);
     }
-    
+
     @Override
     public boolean removeService(final String serviceName) {
-        for(final DiscoverableService service : services) {
-            if(service.getServiceName().equals(serviceName)) {
+        for (final DiscoverableService service : services) {
+            if (service.getServiceName().equals(serviceName)) {
                 return services.remove(service);
             }
         }

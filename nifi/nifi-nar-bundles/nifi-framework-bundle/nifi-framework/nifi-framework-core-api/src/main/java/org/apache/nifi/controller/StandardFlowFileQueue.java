@@ -212,7 +212,7 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
     /**
      * MUST be called with lock held
      *
-     * @return
+     * @return size of queue
      */
     private QueueSize getQueueSize() {
         final QueueSize unacknowledged = unacknowledgedSizeRef.get();
@@ -350,7 +350,7 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
     /**
      * MUST be called with either the read or write lock held
      *
-     * @return
+     * @return true if full
      */
     private boolean determineIfFull() {
         final long maxSize = maximumQueueObjectCount;
@@ -1011,7 +1011,7 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
             if (record == null || record.isPenalized()) {
                 // not enough unpenalized records to pull. Put all records back and return
                 activeQueue.addAll(buffer);
-                if ( record != null ) {
+                if (record != null) {
                     activeQueue.add(record);
                 }
                 return;

@@ -29,7 +29,7 @@ public class Template {
     /**
      * Returns a TemplateDTO object that describes the contents of this Template
      *
-     * @return
+     * @return template dto
      */
     public TemplateDTO getDetails() {
         return dto;

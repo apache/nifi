@@ -79,7 +79,6 @@ import org.slf4j.LoggerFactory;
 /**
  * Is thread safe
  *
- * @author none
  */
 public class FileSystemRepository implements ContentRepository {
 
@@ -102,7 +101,7 @@ public class FileSystemRepository implements ContentRepository {
     private final boolean alwaysSync;
     private final ScheduledExecutorService containerCleanupExecutor;
 
-    private ContentClaimManager contentClaimManager;	// effectively final
+    private ContentClaimManager contentClaimManager; // effectively final
 
     // Map of contianer to archived files that should be deleted next.
     private final Map<String, BlockingQueue<ArchiveInfo>> archivedFiles = new HashMap<>();
@@ -137,7 +136,8 @@ public class FileSystemRepository implements ContentRepository {
             archiveData = true;
 
             if (maxArchiveSize == null) {
-                throw new RuntimeException("No value specified for property '" + NiFiProperties.CONTENT_ARCHIVE_MAX_USAGE_PERCENTAGE + "' but archiving is enabled. You must configure the max disk usage in order to enable archiving.");
+                throw new RuntimeException("No value specified for property '"
+                        + NiFiProperties.CONTENT_ARCHIVE_MAX_USAGE_PERCENTAGE + "' but archiving is enabled. You must configure the max disk usage in order to enable archiving.");
             }
 
             if (!MAX_ARCHIVE_SIZE_PATTERN.matcher(maxArchiveSize.trim()).matches()) {
@@ -228,7 +228,7 @@ public class FileSystemRepository implements ContentRepository {
         executor.shutdown();
         containerCleanupExecutor.shutdown();
     }
-    
+
     private static double getRatio(final String value) {
         final String trimmed = value.trim();
         final String percentage = trimmed.substring(0, trimmed.length() - 1);
@@ -241,7 +241,7 @@ public class FileSystemRepository implements ContentRepository {
         final List<Future<Long>> futures = new ArrayList<>();
 
         // Run through each of the containers. For each container, create the sections if necessary.
-        // Then, we need to scan through the archived data so that we can determine what the oldest 
+        // Then, we need to scan through the archived data so that we can determine what the oldest
         // archived data is, so that we know when we have to start aging data off.
         for (final Map.Entry<String, Path> container : containers.entrySet()) {
             final String containerName = container.getKey();
@@ -263,7 +263,7 @@ public class FileSystemRepository implements ContentRepository {
             realPathMap.put(containerName, realPath);
 
             // We need to scan the archive directories to find out the oldest timestamp so that know whether or not we
-            // will have to delete archived data based on time threshold. Scanning all of the directories can be very 
+            // will have to delete archived data based on time threshold. Scanning all of the directories can be very
             // expensive because of all of the disk accesses. So we do this in multiple threads. Since containers are
             // often unique to a disk, we just map 1 thread to each container.
             final Callable<Long> scanContainer = new Callable<Long>() {
@@ -765,7 +765,7 @@ public class FileSystemRepository implements ContentRepository {
                 throw new RepositoryPurgeException("File " + path.toFile().getAbsolutePath() + " does not exist");
             }
 
-            // Try up to 10 times to see if the directory is writable, in case another process (like a 
+            // Try up to 10 times to see if the directory is writable, in case another process (like a
             // virus scanner) has the directory temporarily locked
             boolean writable = false;
             for (int i = 0; i < 10; i++) {
@@ -803,17 +803,18 @@ public class FileSystemRepository implements ContentRepository {
                     if (toDestroy.isEmpty()) {
                         return;
                     }
-    
+
                     for (final ContentClaim claim : toDestroy) {
                         final String container = claim.getContainer();
                         final BlockingQueue<ContentClaim> claimQueue = reclaimable.get(container);
-    
+
                         try {
                             while (true) {
                                 if (claimQueue.offer(claim, 10, TimeUnit.MINUTES)) {
                                     break;
                                 } else {
-                                    LOG.warn("Failed to clean up {} because old claims aren't being cleaned up fast enough. This Content Claim will remain in the Content Repository until NiFi is restarted, at which point it will be cleaned up", claim);
+                                    LOG.warn("Failed to clean up {} because old claims aren't being cleaned up fast enough. "
+                                            + "This Content Claim will remain in the Content Repository until NiFi is restarted, at which point it will be cleaned up", claim);
                                 }
                             }
                         } catch (final InterruptedException ie) {
@@ -971,7 +972,8 @@ public class FileSystemRepository implements ContentRepository {
 
                     // Otherwise, we're done. Return the last mod time of the oldest file in the container's archive.
                     final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-                    LOG.info("Deleted {} files from archive for Container {}; oldest Archive Date is now {}; container cleanup took {} millis", deleteCount, containerName, new Date(oldestArchiveDate), millis);
+                    LOG.info("Deleted {} files from archive for Container {}; oldest Archive Date is now {}; container cleanup took {} millis",
+                            deleteCount, containerName, new Date(oldestArchiveDate), millis);
 
                     return oldestArchiveDate;
                 }
@@ -1005,7 +1007,8 @@ public class FileSystemRepository implements ContentRepository {
                             try {
                                 Files.deleteIfExists(file);
                                 containerState.decrementArchiveCount();
-                                LOG.debug("Deleted archived ContentClaim with ID {} from Container {} because it was older than the configured max archival duration", file.toFile().getName(), containerName);
+                                LOG.debug("Deleted archived ContentClaim with ID {} from Container {} because it was older than the configured max archival duration",
+                                        file.toFile().getName(), containerName);
                             } catch (final IOException ioe) {
                                 LOG.warn("Failed to remove archived ContentClaim with ID {} from Container {} due to {}", file.toFile().getName(), containerName, ioe.toString());
                                 if (LOG.isDebugEnabled()) {
@@ -1208,7 +1211,7 @@ public class FileSystemRepository implements ContentRepository {
                     if (minRequiredSpace == null) {
                         return;
                     }
-    
+
                     try {
                         final long usableSpace = getContainerUsableSpace(containerName);
                         if (usableSpace > minRequiredSpace) {
@@ -1277,11 +1280,9 @@ public class FileSystemRepository implements ContentRepository {
         }
 
         /**
-         * Returns {@code true} if wait is required to create claims against
+         * @return {@code true} if wait is required to create claims against
          * this Container, based on whether or not the container has reached its
-         * back pressure threshold.
-         *
-         * @return
+         * back pressure threshold
          */
         public boolean isWaitRequired() {
             if (!archiveEnabled) {
