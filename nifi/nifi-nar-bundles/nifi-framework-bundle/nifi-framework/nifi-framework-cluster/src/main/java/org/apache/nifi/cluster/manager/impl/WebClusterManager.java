@@ -318,13 +318,13 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     public static final String PROVENANCE_URI = "/nifi-api/controller/provenance";
     public static final Pattern PROVENANCE_QUERY_URI = Pattern.compile("/nifi-api/controller/provenance/[a-f0-9\\-]{36}");
     public static final Pattern PROVENANCE_EVENT_URI = Pattern.compile("/nifi-api/controller/provenance/events/[0-9]+");
-    
+
     public static final String CONTROLLER_SERVICES_URI = "/nifi-api/controller/controller-services/node";
     public static final Pattern CONTROLLER_SERVICE_URI_PATTERN = Pattern.compile("/nifi-api/controller/controller-services/node/[a-f0-9\\-]{36}");
     public static final Pattern CONTROLLER_SERVICE_REFERENCES_URI_PATTERN = Pattern.compile("/nifi-api/controller/controller-services/node/[a-f0-9\\-]{36}/references");
     public static final String REPORTING_TASKS_URI = "/nifi-api/controller/reporting-tasks/node";
     public static final Pattern REPORTING_TASK_URI_PATTERN = Pattern.compile("/nifi-api/controller/reporting-tasks/node/[a-f0-9\\-]{36}");
-    
+
     private final NiFiProperties properties;
     private final HttpRequestReplicator httpRequestReplicator;
     private final HttpResponseMapper httpResponseMapper;
@@ -427,14 +427,14 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
             public void heartbeat() {
             }
         }, this, encryptor);
-        
+
         // When we construct the scheduling agents, we can pass null for a lot of the arguments because we are only
         // going to be scheduling Reporting Tasks. Otherwise, it would not be okay.
         processScheduler.setSchedulingAgent(SchedulingStrategy.TIMER_DRIVEN, new TimerDrivenSchedulingAgent(null, reportingTaskEngine, null, encryptor));
         processScheduler.setSchedulingAgent(SchedulingStrategy.CRON_DRIVEN, new QuartzSchedulingAgent(null, reportingTaskEngine, null, encryptor));
         processScheduler.setMaxThreadCount(SchedulingStrategy.TIMER_DRIVEN, 10);
         processScheduler.setMaxThreadCount(SchedulingStrategy.CRON_DRIVEN, 10);
-        
+
         controllerServiceProvider = new StandardControllerServiceProvider(processScheduler, bulletinRepository);
     }
 
@@ -479,10 +479,10 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                 }
 
                 final byte[] serializedServices = clusterDataFlow.getControllerServices();
-                if ( serializedServices != null && serializedServices.length > 0 ) {
-                	ControllerServiceLoader.loadControllerServices(this, new ByteArrayInputStream(serializedServices), encryptor, bulletinRepository, properties.getAutoResumeState());
+                if (serializedServices != null && serializedServices.length > 0) {
+                    ControllerServiceLoader.loadControllerServices(this, new ByteArrayInputStream(serializedServices), encryptor, bulletinRepository, properties.getAutoResumeState());
                 }
-                
+
                 // start multicast broadcasting service, if configured
                 if (servicesBroadcaster != null) {
                     servicesBroadcaster.start();
@@ -493,8 +493,8 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
 
                 // Load and start running Reporting Tasks
                 final byte[] serializedReportingTasks = clusterDataFlow.getReportingTasks();
-                if ( serializedReportingTasks != null && serializedReportingTasks.length > 0 ) {
-                	loadReportingTasks(serializedReportingTasks);
+                if (serializedReportingTasks != null && serializedReportingTasks.length > 0) {
+                    loadReportingTasks(serializedReportingTasks);
                 }
             } catch (final IOException ioe) {
                 logger.warn("Failed to initialize cluster services due to: " + ioe, ioe);
@@ -558,10 +558,10 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                 servicesBroadcaster.stop();
             }
 
-            if ( processScheduler != null ) {
+            if (processScheduler != null) {
                 processScheduler.shutdown();
             }
-            
+
             if (encounteredException) {
                 throw new IOException("Failed to shutdown Cluster Manager because one or more cluster services failed to shutdown.  Check the logs for details.");
             }
@@ -946,7 +946,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
 
                 final String scheduleStateValue = DomUtils.getChild(taskElement, "scheduledState").getTextContent().trim();
                 final ScheduledState scheduledState = ScheduledState.valueOf(scheduleStateValue);
-                
+
                 // Reporting Task Properties
                 for (final Element property : DomUtils.getChildElementsByTagName(taskElement, "property")) {
                     final String name = DomUtils.getChildText(property, "name");
@@ -969,21 +969,21 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                 final ReportingTask reportingTask = reportingTaskNode.getReportingTask();
 
                 final ComponentLog componentLog = new SimpleProcessLogger(taskId, reportingTask);
-                final ReportingInitializationContext config = new StandardReportingInitializationContext(taskId, taskName, 
+                final ReportingInitializationContext config = new StandardReportingInitializationContext(taskId, taskName,
                         schedulingStrategy, taskSchedulingPeriod, componentLog, this);
                 reportingTask.initialize(config);
 
                 final String annotationData = DomUtils.getChildText(taskElement, "annotationData");
-                if ( annotationData != null ) {
+                if (annotationData != null) {
                     reportingTaskNode.setAnnotationData(annotationData.trim());
                 }
-                
+
                 final Map<PropertyDescriptor, String> resolvedProps;
                 try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
                     resolvedProps = new HashMap<>();
                     for (final Map.Entry<String, String> entry : properties.entrySet()) {
                         final PropertyDescriptor descriptor = reportingTask.getPropertyDescriptor(entry.getKey());
-                        if ( entry.getValue() == null ) {
+                        if (entry.getValue() == null) {
                             resolvedProps.put(descriptor, descriptor.getDefaultValue());
                         } else {
                             resolvedProps.put(descriptor, entry.getValue());
@@ -992,24 +992,24 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                 }
 
                 for (final Map.Entry<PropertyDescriptor, String> entry : resolvedProps.entrySet()) {
-                    if ( entry.getValue() != null ) {
+                    if (entry.getValue() != null) {
                         reportingTaskNode.setProperty(entry.getKey().getName(), entry.getValue());
                     }
                 }
-                
+
                 final String comments = DomUtils.getChildText(taskElement, "comment");
-                if ( comments != null ) {
+                if (comments != null) {
                     reportingTaskNode.setComments(comments);
                 }
 
                 reportingTaskNode.setScheduledState(scheduledState);
-                if ( ScheduledState.RUNNING.equals(scheduledState) ) {
-                    if ( reportingTaskNode.isValid() ) {
+                if (ScheduledState.RUNNING.equals(scheduledState)) {
+                    if (reportingTaskNode.isValid()) {
                         try {
                             processScheduler.schedule(reportingTaskNode);
                         } catch (final Exception e) {
                             logger.error("Failed to start {} due to {}", reportingTaskNode, e);
-                            if ( logger.isDebugEnabled() ) {
+                            if (logger.isDebugEnabled()) {
                                 logger.error("", e);
                             }
                         }
@@ -1017,8 +1017,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                         logger.error("Failed to start {} because it is invalid due to {}", reportingTaskNode, reportingTaskNode.getValidationErrors());
                     }
                 }
-                
-                
+
                 tasks.put(reportingTaskNode.getIdentifier(), reportingTaskNode);
             }
         } catch (final SAXException | ParserConfigurationException | IOException | DOMException | NumberFormatException | InitializationException t) {
@@ -1031,7 +1030,6 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         return tasks;
     }
 
-    
     @Override
     public ReportingTaskNode createReportingTask(final String type, final String id, final boolean firstTimeAdded) throws ReportingTaskInstantiationException {
         if (type == null) {
@@ -1064,16 +1062,16 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         final ReportingTaskNode taskNode = new ClusteredReportingTaskNode(task, id, processScheduler,
                 new ClusteredEventAccess(this), bulletinRepository, controllerServiceProvider, validationContextFactory);
         taskNode.setName(task.getClass().getSimpleName());
-        
+
         reportingTasks.put(id, taskNode);
-        if ( firstTimeAdded ) {
+        if (firstTimeAdded) {
             try (final NarCloseable x = NarCloseable.withNarLoader()) {
                 ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, task);
             } catch (final Exception e) {
                 throw new ComponentLifeCycleException("Failed to invoke On-Added Lifecycle methods of " + task, e);
             }
         }
-        
+
         return taskNode;
     }
 
@@ -1372,7 +1370,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
             writeLock.unlock("handleControllerStartupFailure");
         }
     }
-    
+
     /**
      * Adds an instance of a specified controller service.
      *
@@ -1383,7 +1381,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
      */
     @Override
     public ControllerServiceNode createControllerService(final String type, final String id, final boolean firstTimeAdded) {
-    	return controllerServiceProvider.createControllerService(type, id, firstTimeAdded);
+        return controllerServiceProvider.createControllerService(type, id, firstTimeAdded);
     }
 
     @Override
@@ -1410,82 +1408,80 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     public boolean isControllerServiceEnabling(final String serviceIdentifier) {
         return controllerServiceProvider.isControllerServiceEnabling(serviceIdentifier);
     }
-    
+
     @Override
     public String getControllerServiceName(final String serviceIdentifier) {
-    	return controllerServiceProvider.getControllerServiceName(serviceIdentifier);
+        return controllerServiceProvider.getControllerServiceName(serviceIdentifier);
     }
 
     @Override
     public void removeControllerService(final ControllerServiceNode serviceNode) {
         controllerServiceProvider.removeControllerService(serviceNode);
     }
-    
 
     @Override
     public void enableControllerService(final ControllerServiceNode serviceNode) {
         controllerServiceProvider.enableControllerService(serviceNode);
     }
-    
+
     @Override
     public void enableControllerServices(final Collection<ControllerServiceNode> serviceNodes) {
         controllerServiceProvider.enableControllerServices(serviceNodes);
     }
-    
+
     @Override
     public void disableControllerService(final ControllerServiceNode serviceNode) {
         controllerServiceProvider.disableControllerService(serviceNode);
     }
-    
+
     @Override
     public Set<ControllerServiceNode> getAllControllerServices() {
-    	return controllerServiceProvider.getAllControllerServices();
+        return controllerServiceProvider.getAllControllerServices();
     }
-    
-    
+
     @Override
     public void disableReferencingServices(final ControllerServiceNode serviceNode) {
         controllerServiceProvider.disableReferencingServices(serviceNode);
     }
-    
+
     @Override
     public void enableReferencingServices(final ControllerServiceNode serviceNode) {
         controllerServiceProvider.enableReferencingServices(serviceNode);
     }
-    
+
     @Override
     public void scheduleReferencingComponents(final ControllerServiceNode serviceNode) {
         controllerServiceProvider.scheduleReferencingComponents(serviceNode);
     }
-    
+
     @Override
     public void unscheduleReferencingComponents(final ControllerServiceNode serviceNode) {
         controllerServiceProvider.unscheduleReferencingComponents(serviceNode);
     }
-    
+
     @Override
     public void verifyCanEnableReferencingServices(final ControllerServiceNode serviceNode) {
         controllerServiceProvider.verifyCanEnableReferencingServices(serviceNode);
     }
-    
+
     @Override
     public void verifyCanScheduleReferencingComponents(final ControllerServiceNode serviceNode) {
         controllerServiceProvider.verifyCanScheduleReferencingComponents(serviceNode);
     }
-    
+
     @Override
     public void verifyCanDisableReferencingServices(final ControllerServiceNode serviceNode) {
         controllerServiceProvider.verifyCanDisableReferencingServices(serviceNode);
     }
-    
+
     @Override
     public void verifyCanStopReferencingComponents(final ControllerServiceNode serviceNode) {
         controllerServiceProvider.verifyCanStopReferencingComponents(serviceNode);
     }
-    
+
     private byte[] serialize(final Document doc) throws TransformerException {
-    	final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    	final DOMSource domSource = new DOMSource(doc);
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        final DOMSource domSource = new DOMSource(doc);
         final StreamResult streamResult = new StreamResult(baos);
 
         // configure the transformer and convert the DOM
@@ -1498,91 +1494,89 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         transformer.transform(domSource, streamResult);
         return baos.toByteArray();
     }
-    
+
     private byte[] serializeControllerServices() throws ParserConfigurationException, TransformerException {
-    	final DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+        final DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
         final DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
         final Document document = docBuilder.newDocument();
-    	final Element rootElement = document.createElement("controllerServices");
-    	document.appendChild(rootElement);
-    	
-    	for ( final ControllerServiceNode serviceNode : getAllControllerServices() ) {
-    		StandardFlowSerializer.addControllerService(rootElement, serviceNode, encryptor);
-    	}
-    	
-    	return serialize(document);
+        final Element rootElement = document.createElement("controllerServices");
+        document.appendChild(rootElement);
+
+        for (final ControllerServiceNode serviceNode : getAllControllerServices()) {
+            StandardFlowSerializer.addControllerService(rootElement, serviceNode, encryptor);
+        }
+
+        return serialize(document);
     }
-    
+
     private byte[] serializeReportingTasks() throws ParserConfigurationException, TransformerException {
-    	final DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+        final DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
         final DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
         final Document document = docBuilder.newDocument();
-    	final Element rootElement = document.createElement("reportingTasks");
-    	document.appendChild(rootElement);
-    	
-    	for ( final ReportingTaskNode taskNode : getAllReportingTasks() ) {
-    		StandardFlowSerializer.addReportingTask(rootElement, taskNode, encryptor);
-    	}
-    	
-    	return serialize(document);
+        final Element rootElement = document.createElement("reportingTasks");
+        document.appendChild(rootElement);
+
+        for (final ReportingTaskNode taskNode : getAllReportingTasks()) {
+            StandardFlowSerializer.addReportingTask(rootElement, taskNode, encryptor);
+        }
+
+        return serialize(document);
     }
-    
-    
+
     public void saveControllerServices() {
-    	try {
-    		dataFlowManagementService.updateControllerServices(serializeControllerServices());
-    	} catch (final Exception e) {
-    		logger.error("Failed to save changes to NCM's Controller Services; changes may be lost on restart due to " + e);
-    		if ( logger.isDebugEnabled() ) {
-    			logger.error("", e);
-    		}
-    		
-    		getBulletinRepository().addBulletin(BulletinFactory.createBulletin("Controller Services", Severity.ERROR.name(), 
-    				"Failed to save changes to NCM's Controller Services; changes may be lost on restart. See logs for more details."));
-    	}
+        try {
+            dataFlowManagementService.updateControllerServices(serializeControllerServices());
+        } catch (final Exception e) {
+            logger.error("Failed to save changes to NCM's Controller Services; changes may be lost on restart due to " + e);
+            if (logger.isDebugEnabled()) {
+                logger.error("", e);
+            }
+
+            getBulletinRepository().addBulletin(BulletinFactory.createBulletin("Controller Services", Severity.ERROR.name(),
+                    "Failed to save changes to NCM's Controller Services; changes may be lost on restart. See logs for more details."));
+        }
     }
-    
+
     public void saveReportingTasks() {
-    	try {
-    		dataFlowManagementService.updateReportingTasks(serializeReportingTasks());
-    	} catch (final Exception e) {
-    		logger.error("Failed to save changes to NCM's Reporting Tasks; changes may be lost on restart due to " + e);
-    		if ( logger.isDebugEnabled() ) {
-    			logger.error("", e);
-    		}
-    		
-    		getBulletinRepository().addBulletin(BulletinFactory.createBulletin("Reporting Tasks", Severity.ERROR.name(), 
-    				"Failed to save changes to NCM's Reporting Tasks; changes may be lost on restart. See logs for more details."));
-    	}
+        try {
+            dataFlowManagementService.updateReportingTasks(serializeReportingTasks());
+        } catch (final Exception e) {
+            logger.error("Failed to save changes to NCM's Reporting Tasks; changes may be lost on restart due to " + e);
+            if (logger.isDebugEnabled()) {
+                logger.error("", e);
+            }
+
+            getBulletinRepository().addBulletin(BulletinFactory.createBulletin("Reporting Tasks", Severity.ERROR.name(),
+                    "Failed to save changes to NCM's Reporting Tasks; changes may be lost on restart. See logs for more details."));
+        }
     }
 
     @Override
     public Set<ReportingTaskNode> getAllReportingTasks() {
-    	readLock.lock();
-    	try {
-    		return new HashSet<>(reportingTasks.values());
-    	} finally {
-    		readLock.unlock("getReportingTasks");
-    	}
+        readLock.lock();
+        try {
+            return new HashSet<>(reportingTasks.values());
+        } finally {
+            readLock.unlock("getReportingTasks");
+        }
     }
 
     @Override
     public ReportingTaskNode getReportingTaskNode(final String taskId) {
-    	readLock.lock();
-    	try {
-    		return reportingTasks.get(taskId);
-    	} finally {
-    		readLock.unlock("getReportingTaskNode");
-    	}
+        readLock.lock();
+        try {
+            return reportingTasks.get(taskId);
+        } finally {
+            readLock.unlock("getReportingTaskNode");
+        }
     }
 
     @Override
     public void startReportingTask(final ReportingTaskNode reportingTaskNode) {
         reportingTaskNode.verifyCanStart();
-       	processScheduler.schedule(reportingTaskNode);
+        processScheduler.schedule(reportingTaskNode);
     }
 
-    
     @Override
     public void stopReportingTask(final ReportingTaskNode reportingTaskNode) {
         reportingTaskNode.verifyCanStop();
@@ -1591,52 +1585,50 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
 
     @Override
     public void removeReportingTask(final ReportingTaskNode reportingTaskNode) {
-    	writeLock.lock();
-    	try {
-	        final ReportingTaskNode existing = reportingTasks.get(reportingTaskNode.getIdentifier());
-	        if ( existing == null || existing != reportingTaskNode ) {
-	            throw new IllegalStateException("Reporting Task " + reportingTaskNode + " does not exist in this Flow");
-	        }
-	        
-	        reportingTaskNode.verifyCanDelete();
-	        
-	        try (final NarCloseable x = NarCloseable.withNarLoader()) {
-	            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, reportingTaskNode.getReportingTask(), reportingTaskNode.getConfigurationContext());
-	        }
-	        
-	        for ( final Map.Entry<PropertyDescriptor, String> entry : reportingTaskNode.getProperties().entrySet() ) {
-	            final PropertyDescriptor descriptor = entry.getKey();
-	            if (descriptor.getControllerServiceDefinition() != null ) {
-	                final String value = entry.getValue() == null ? descriptor.getDefaultValue() : entry.getValue();
-	                if ( value != null ) {
-	                    final ControllerServiceNode serviceNode = controllerServiceProvider.getControllerServiceNode(value);
-	                    if ( serviceNode != null ) {
-	                        serviceNode.removeReference(reportingTaskNode);
-	                    }
-	                }
-	            }
-	        }
-	        
-	        reportingTasks.remove(reportingTaskNode.getIdentifier());
-    	} finally {
-    		writeLock.unlock("removeReportingTask");
-    	}
+        writeLock.lock();
+        try {
+            final ReportingTaskNode existing = reportingTasks.get(reportingTaskNode.getIdentifier());
+            if (existing == null || existing != reportingTaskNode) {
+                throw new IllegalStateException("Reporting Task " + reportingTaskNode + " does not exist in this Flow");
+            }
+
+            reportingTaskNode.verifyCanDelete();
+
+            try (final NarCloseable x = NarCloseable.withNarLoader()) {
+                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, reportingTaskNode.getReportingTask(), reportingTaskNode.getConfigurationContext());
+            }
+
+            for (final Map.Entry<PropertyDescriptor, String> entry : reportingTaskNode.getProperties().entrySet()) {
+                final PropertyDescriptor descriptor = entry.getKey();
+                if (descriptor.getControllerServiceDefinition() != null) {
+                    final String value = entry.getValue() == null ? descriptor.getDefaultValue() : entry.getValue();
+                    if (value != null) {
+                        final ControllerServiceNode serviceNode = controllerServiceProvider.getControllerServiceNode(value);
+                        if (serviceNode != null) {
+                            serviceNode.removeReference(reportingTaskNode);
+                        }
+                    }
+                }
+            }
+
+            reportingTasks.remove(reportingTaskNode.getIdentifier());
+        } finally {
+            writeLock.unlock("removeReportingTask");
+        }
     }
-    
-    
+
     @Override
     public void disableReportingTask(final ReportingTaskNode reportingTask) {
         reportingTask.verifyCanDisable();
         processScheduler.disableReportingTask(reportingTask);
     }
-    
+
     @Override
     public void enableReportingTask(final ReportingTaskNode reportingTask) {
         reportingTask.verifyCanEnable();
         processScheduler.enableReportingTask(reportingTask);
     }
-    
-    
+
     /**
      * Handle a bulletins message.
      *
@@ -2336,7 +2328,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                 // merge the response
                 final NodeResponse clientResponse = mergeResponses(uri, method, nodeResponses, mutableRequest);
                 holder.set(clientResponse);
-                
+
                 // if we have a response get the updated cluster context for auditing and revision updating
                 Revision updatedRevision = null;
                 if (mutableRequest && clientResponse != null) {
@@ -2367,18 +2359,18 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                         logger.warn("Classpath issue detected because failed to deserialize cluster context from node response due to: " + cnfe, cnfe);
                     }
                 }
-                
+
                 return updatedRevision;
             }
         };
-        
+
         // federate the request and lock on the revision
         if (mutableRequest) {
             optimisticLockingManager.setRevision(federateRequest);
         } else {
             federateRequest.execute(optimisticLockingManager.getLastModification().getRevision());
         }
-        
+
         return holder.get();
     }
 
@@ -2387,7 +2379,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     }
 
     private static boolean isProcessorEndpoint(final URI uri, final String method) {
-        if (("GET".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method)) && (PROCESSOR_URI_PATTERN.matcher(uri.getPath()).matches() || CLUSTER_PROCESSOR_URI_PATTERN.matcher(uri.getPath()).matches()) ) {
+        if (("GET".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method)) && (PROCESSOR_URI_PATTERN.matcher(uri.getPath()).matches() || CLUSTER_PROCESSOR_URI_PATTERN.matcher(uri.getPath()).matches())) {
             return true;
         } else if ("POST".equalsIgnoreCase(method) && PROCESSORS_URI_PATTERN.matcher(uri.getPath()).matches()) {
             return true;
@@ -2434,11 +2426,11 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     private static boolean isProvenanceEventEndpoint(final URI uri, final String method) {
         return "GET".equalsIgnoreCase(method) && PROVENANCE_EVENT_URI.matcher(uri.getPath()).matches();
     }
-    
+
     private static boolean isControllerServicesEndpoint(final URI uri, final String method) {
         return "GET".equalsIgnoreCase(method) && CONTROLLER_SERVICES_URI.equals(uri.getPath());
     }
-    
+
     private static boolean isControllerServiceEndpoint(final URI uri, final String method) {
         if (("GET".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method)) && CONTROLLER_SERVICE_URI_PATTERN.matcher(uri.getPath()).matches()) {
             return true;
@@ -2448,19 +2440,19 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
 
         return false;
     }
-    
+
     private static boolean isControllerServiceReferenceEndpoint(final URI uri, final String method) {
         if (("GET".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method)) && CONTROLLER_SERVICE_REFERENCES_URI_PATTERN.matcher(uri.getPath()).matches()) {
             return true;
         }
-        
+
         return false;
     }
-    
+
     private static boolean isReportingTasksEndpoint(final URI uri, final String method) {
         return "GET".equalsIgnoreCase(method) && REPORTING_TASKS_URI.equals(uri.getPath());
     }
-    
+
     private static boolean isReportingTaskEndpoint(final URI uri, final String method) {
         if (("GET".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method)) && REPORTING_TASK_URI_PATTERN.matcher(uri.getPath()).matches()) {
             return true;
@@ -2661,7 +2653,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
             remoteProcessGroup.setAuthorizationIssues(mergedAuthorizationIssues);
         }
     }
-    
+
     private void mergeControllerServiceReferences(final Set<ControllerServiceReferencingComponentDTO> referencingComponents, final Map<NodeIdentifier, Set<ControllerServiceReferencingComponentDTO>> referencingComponentMap) {
         final Map<String, Integer> activeThreadCounts = new HashMap<>();
         final Map<String, String> states = new HashMap<>();
@@ -2669,7 +2661,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
             final Set<ControllerServiceReferencingComponentDTO> nodeReferencingComponents = nodeEntry.getValue();
 
             // go through all the nodes referencing components
-            if ( nodeReferencingComponents != null ) {
+            if (nodeReferencingComponents != null) {
                 for (final ControllerServiceReferencingComponentDTO nodeReferencingComponent : nodeReferencingComponents) {
                     // handle active thread counts
                     if (nodeReferencingComponent.getActiveThreadCount() != null && nodeReferencingComponent.getActiveThreadCount() > 0) {
@@ -2680,7 +2672,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                             activeThreadCounts.put(nodeReferencingComponent.getId(), nodeReferencingComponent.getActiveThreadCount() + current);
                         }
                     }
-                    
+
                     // handle controller service state
                     final String state = states.get(nodeReferencingComponent.getId());
                     if (state == null) {
@@ -2692,7 +2684,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                     }
                 }
             }
-        }            
+        }
 
         // go through each referencing components
         for (final ControllerServiceReferencingComponentDTO referencingComponent : referencingComponents) {
@@ -2700,24 +2692,24 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
             if (activeThreadCount != null) {
                 referencingComponent.setActiveThreadCount(activeThreadCount);
             }
-            
+
             final String state = states.get(referencingComponent.getId());
             if (state != null) {
                 referencingComponent.setState(state);
             }
         }
     }
-    
+
     private void mergeControllerService(final ControllerServiceDTO controllerService, final Map<NodeIdentifier, ControllerServiceDTO> controllerServiceMap) {
         final Map<String, Set<NodeIdentifier>> validationErrorMap = new HashMap<>();
         final Set<ControllerServiceReferencingComponentDTO> referencingComponents = controllerService.getReferencingComponents();
         final Map<NodeIdentifier, Set<ControllerServiceReferencingComponentDTO>> nodeReferencingComponentsMap = new HashMap<>();
-        
+
         String state = null;
         for (final Map.Entry<NodeIdentifier, ControllerServiceDTO> nodeEntry : controllerServiceMap.entrySet()) {
             final NodeIdentifier nodeId = nodeEntry.getKey();
             final ControllerServiceDTO nodeControllerService = nodeEntry.getValue();
-            
+
             if (state == null) {
                 if (ControllerServiceState.DISABLING.name().equals(nodeControllerService.getState())) {
                     state = ControllerServiceState.DISABLING.name();
@@ -2725,27 +2717,27 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                     state = ControllerServiceState.ENABLING.name();
                 }
             }
-            
+
             for (final ControllerServiceReferencingComponentDTO nodeReferencingComponents : nodeControllerService.getReferencingComponents()) {
                 nodeReferencingComponentsMap.put(nodeId, nodeReferencingComponents.getReferencingComponents());
             }
-            
+
             // merge the validation errors
             mergeValidationErrors(validationErrorMap, nodeId, nodeControllerService.getValidationErrors());
         }
-        
+
         // merge the referencing components
         mergeControllerServiceReferences(referencingComponents, nodeReferencingComponentsMap);
-        
+
         // store the 'transition' state is applicable
         if (state != null) {
             controllerService.setState(state);
         }
-        
+
         // set the merged the validation errors
         controllerService.setValidationErrors(normalizedMergedValidationErrors(validationErrorMap, controllerServiceMap.size()));
     }
-    
+
     private void mergeReportingTask(final ReportingTaskDTO reportingTask, final Map<NodeIdentifier, ReportingTaskDTO> reportingTaskMap) {
         final Map<String, Set<NodeIdentifier>> validationErrorMap = new HashMap<>();
 
@@ -2757,24 +2749,25 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
             if (nodeReportingTask.getActiveThreadCount() != null) {
                 activeThreadCount += nodeReportingTask.getActiveThreadCount();
             }
-            
+
             // merge the validation errors
             mergeValidationErrors(validationErrorMap, nodeId, nodeReportingTask.getValidationErrors());
         }
 
         // set the merged active thread counts
         reportingTask.setActiveThreadCount(activeThreadCount);
-        
+
         // set the merged the validation errors
         reportingTask.setValidationErrors(normalizedMergedValidationErrors(validationErrorMap, reportingTaskMap.size()));
     }
 
     /**
-     * Merges the validation errors into the specified map, recording the corresponding node identifier.
-     * 
+     * Merges the validation errors into the specified map, recording the
+     * corresponding node identifier.
+     *
      * @param validationErrorMap
      * @param nodeId
-     * @param nodeValidationErrors 
+     * @param nodeValidationErrors
      */
     public void mergeValidationErrors(final Map<String, Set<NodeIdentifier>> validationErrorMap, final NodeIdentifier nodeId, final Collection<String> nodeValidationErrors) {
         if (nodeValidationErrors != null) {
@@ -2788,13 +2781,14 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
             }
         }
     }
-    
+
     /**
-     * Normalizes the validation errors by prepending the corresponding nodes when the error does not exist across all nodes.
-     * 
+     * Normalizes the validation errors by prepending the corresponding nodes
+     * when the error does not exist across all nodes.
+     *
      * @param validationErrorMap
      * @param totalNodes
-     * @return 
+     * @return
      */
     public Set<String> normalizedMergedValidationErrors(final Map<String, Set<NodeIdentifier>> validationErrorMap, int totalNodes) {
         final Set<String> normalizedValidationErrors = new HashSet<>();
@@ -2812,7 +2806,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         }
         return normalizedValidationErrors;
     }
-    
+
     // requires write lock to be already acquired unless request is not mutable
     private NodeResponse mergeResponses(final URI uri, final String method, final Set<NodeResponse> nodeResponses, final boolean mutableRequest) {
         // holds the one response of all the node responses to return to the client
@@ -3105,7 +3099,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         } else if (hasSuccessfulClientResponse && isControllerServiceEndpoint(uri, method)) {
             final ControllerServiceEntity responseEntity = clientResponse.getClientResponse().getEntity(ControllerServiceEntity.class);
             final ControllerServiceDTO controllerService = responseEntity.getControllerService();
-            
+
             final Map<NodeIdentifier, ControllerServiceDTO> resultsMap = new HashMap<>();
             for (final NodeResponse nodeResponse : updatedNodesMap.values()) {
                 if (problematicNodeResponses.contains(nodeResponse)) {
@@ -3118,12 +3112,12 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                 resultsMap.put(nodeResponse.getNodeId(), nodeControllerService);
             }
             mergeControllerService(controllerService, resultsMap);
-            
+
             clientResponse = new NodeResponse(clientResponse, responseEntity);
         } else if (hasSuccessfulClientResponse && isControllerServicesEndpoint(uri, method)) {
             final ControllerServicesEntity responseEntity = clientResponse.getClientResponse().getEntity(ControllerServicesEntity.class);
             final Set<ControllerServiceDTO> controllerServices = responseEntity.getControllerServices();
-            
+
             final Map<String, Map<NodeIdentifier, ControllerServiceDTO>> controllerServiceMap = new HashMap<>();
             for (final NodeResponse nodeResponse : updatedNodesMap.values()) {
                 if (problematicNodeResponses.contains(nodeResponse)) {
@@ -3156,7 +3150,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         } else if (hasSuccessfulClientResponse && isControllerServiceReferenceEndpoint(uri, method)) {
             final ControllerServiceReferencingComponentsEntity responseEntity = clientResponse.getClientResponse().getEntity(ControllerServiceReferencingComponentsEntity.class);
             final Set<ControllerServiceReferencingComponentDTO> referencingComponents = responseEntity.getControllerServiceReferencingComponents();
-            
+
             final Map<NodeIdentifier, Set<ControllerServiceReferencingComponentDTO>> resultsMap = new HashMap<>();
             for (final NodeResponse nodeResponse : updatedNodesMap.values()) {
                 if (problematicNodeResponses.contains(nodeResponse)) {
@@ -3169,12 +3163,12 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                 resultsMap.put(nodeResponse.getNodeId(), nodeReferencingComponents);
             }
             mergeControllerServiceReferences(referencingComponents, resultsMap);
-            
+
             clientResponse = new NodeResponse(clientResponse, responseEntity);
         } else if (hasSuccessfulClientResponse && isReportingTaskEndpoint(uri, method)) {
             final ReportingTaskEntity responseEntity = clientResponse.getClientResponse().getEntity(ReportingTaskEntity.class);
             final ReportingTaskDTO reportingTask = responseEntity.getReportingTask();
-            
+
             final Map<NodeIdentifier, ReportingTaskDTO> resultsMap = new HashMap<>();
             for (final NodeResponse nodeResponse : updatedNodesMap.values()) {
                 if (problematicNodeResponses.contains(nodeResponse)) {
@@ -3187,12 +3181,12 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                 resultsMap.put(nodeResponse.getNodeId(), nodeReportingTask);
             }
             mergeReportingTask(reportingTask, resultsMap);
-            
+
             clientResponse = new NodeResponse(clientResponse, responseEntity);
         } else if (hasSuccessfulClientResponse && isReportingTasksEndpoint(uri, method)) {
             final ReportingTasksEntity responseEntity = clientResponse.getClientResponse().getEntity(ReportingTasksEntity.class);
             final Set<ReportingTaskDTO> reportingTaskSet = responseEntity.getReportingTasks();
-            
+
             final Map<String, Map<NodeIdentifier, ReportingTaskDTO>> reportingTaskMap = new HashMap<>();
             for (final NodeResponse nodeResponse : updatedNodesMap.values()) {
                 if (problematicNodeResponses.contains(nodeResponse)) {

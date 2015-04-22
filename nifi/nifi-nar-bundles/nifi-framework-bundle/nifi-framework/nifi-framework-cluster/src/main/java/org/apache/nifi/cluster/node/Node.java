@@ -161,7 +161,7 @@ public class Node implements Cloneable, Comparable<Node> {
      *
      * This method is thread-safe and may be called without obtaining any lock.
      *
-     * @param connectionRequestedTimestamp
+     * @param connectionRequestedTimestamp timestamp
      */
     public void setConnectionRequestedTimestamp(long connectionRequestedTimestamp) {
         this.connectionRequestedTimestamp.set(connectionRequestedTimestamp);

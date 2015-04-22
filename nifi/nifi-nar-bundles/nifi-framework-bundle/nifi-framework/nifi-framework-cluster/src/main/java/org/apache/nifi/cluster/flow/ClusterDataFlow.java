@@ -39,13 +39,13 @@ public class ClusterDataFlow {
     }
 
     public byte[] getControllerServices() {
-    	return controllerServices;
+        return controllerServices;
     }
-    
+
     public byte[] getReportingTasks() {
-    	return reportingTasks;
+        return reportingTasks;
     }
-    
+
     public NodeIdentifier getPrimaryNodeId() {
         return primaryNodeId;
     }

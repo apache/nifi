@@ -32,8 +32,8 @@ public class X509CertificateExtractor {
      * Extract the client certificate from the specified HttpServletRequest or
      * null if none is specified.
      *
-     * @param request
-     * @return
+     * @param request http request
+     * @return cert
      */
     public X509Certificate extractClientCertificate(HttpServletRequest request) {
         X509Certificate[] certs = (X509Certificate[]) request.getAttribute("javax.servlet.request.X509Certificate");

@@ -36,7 +36,7 @@ public interface DataFlowDao {
      * Saves the cluster's dataflow.
      *
      *
-     * @param dataFlow
+     * @param dataFlow flow
      * @throws DaoException if the dataflow was unable to be saved
      */
     void saveDataFlow(ClusterDataFlow dataFlow) throws DaoException;
