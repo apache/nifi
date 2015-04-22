@@ -194,13 +194,21 @@ public final class SnippetUtils {
     }
     
     private void addControllerServicesToSnippet(final FlowSnippetDTO snippetDto) {
-        for ( final ProcessorDTO processorDto : snippetDto.getProcessors() ) {
-            addControllerServicesToSnippet(snippetDto, processorDto);
+        final Set<ProcessorDTO> processors = snippetDto.getProcessors();
+        if ( processors != null ) {
+	    	for ( final ProcessorDTO processorDto : processors ) {
+	            addControllerServicesToSnippet(snippetDto, processorDto);
+	        }
         }
         
-        for ( final ProcessGroupDTO processGroupDto : snippetDto.getProcessGroups() ) {
-            final FlowSnippetDTO childGroupDto = processGroupDto.getContents();
-            addControllerServicesToSnippet(childGroupDto);
+        final Set<ProcessGroupDTO> childGroups = snippetDto.getProcessGroups();
+        if ( childGroups != null ) {
+	        for ( final ProcessGroupDTO processGroupDto : childGroups ) {
+	            final FlowSnippetDTO childGroupDto = processGroupDto.getContents();
+	            if ( childGroupDto != null ) {
+	            	addControllerServicesToSnippet(childGroupDto);
+	            }
+	        }
         }
     }
     
