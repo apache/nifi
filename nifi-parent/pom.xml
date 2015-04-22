@@ -333,15 +333,7 @@
                     <includeTestSourceDirectory>true</includeTestSourceDirectory>
                     <excludes>**/HelpMojo.java,**/generated-sources</excludes>
                 </configuration>
-                <executions>
-                    <execution>
-                        <id>check-style</id>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>            
+            </plugin>      
             <plugin>
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
@@ -383,4 +375,25 @@
             </plugin>
         </plugins>
     </build>
+    <profiles>
+        <profile> <!-- will move this up with the always on plugins once we get all checkstyle stuff resolved-->
+            <id>checkstyle</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-checkstyle-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>check-style</id>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>                
+            </build>
+        </profile>
+    </profiles>
 </project>
