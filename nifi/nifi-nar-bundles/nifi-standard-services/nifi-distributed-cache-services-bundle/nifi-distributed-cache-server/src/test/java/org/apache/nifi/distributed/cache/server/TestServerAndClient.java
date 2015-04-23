@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.distributed.cache.server;
 
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.distributed.cache.server.DistributedSetCacheServer;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -44,6 +45,7 @@ import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockControllerServiceInitializationContext;
 
 import org.apache.commons.lang3.SerializationException;
+import org.junit.Assume;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -370,6 +372,14 @@ public class TestServerAndClient {
 
     @Test
     public void testClientTermination() throws InitializationException, IOException, InterruptedException {
+
+        /**
+         * This bypasses the test for build environments in OS X running Java 1.8 due to a JVM bug
+         * See:  https://issues.apache.org/jira/browse/NIFI-437
+         */
+        Assume.assumeFalse("testClientTermination is skipped due to build environment being OS X with JDK 1.8. See https://issues.apache.org/jira/browse/NIFI-437",
+                SystemUtils.IS_OS_MAC && SystemUtils.IS_JAVA_1_8);
+
         LOGGER.info("Testing " + Thread.currentThread().getStackTrace()[1].getMethodName());
         // Create server
         final DistributedMapCacheServer server = new DistributedMapCacheServer();
