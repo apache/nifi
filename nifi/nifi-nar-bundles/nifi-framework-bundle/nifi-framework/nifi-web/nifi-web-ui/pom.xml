@@ -596,6 +596,7 @@
                         <artifactId>apache-rat-plugin</artifactId>
                         <configuration>
                             <excludes>
+                                <exclude>nbactions.xml</exclude>
                                 <exclude>src/main/webapp/js/json2.js</exclude>
                                 <exclude>src/main/webapp/js/jquery/</exclude>
                                 <exclude>src/main/webapp/js/d3/d3.min.js</exclude>
