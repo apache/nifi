@@ -63,6 +63,7 @@ import org.apache.nifi.web.api.dto.provenance.lineage.LineageDTO;
 import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
 import org.apache.nifi.web.api.dto.status.ClusterConnectionStatusDTO;
 import org.apache.nifi.web.api.dto.status.ClusterPortStatusDTO;
+import org.apache.nifi.web.api.dto.status.ClusterProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.ClusterProcessorStatusDTO;
 import org.apache.nifi.web.api.dto.status.ClusterRemoteProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.ClusterStatusDTO;
@@ -774,8 +775,7 @@ public interface NiFiServiceFacade {
     void verifyUpdateRemoteProcessGroup(String groupId, RemoteProcessGroupDTO remoteProcessGroupDTO);
 
     /**
-     * Verifies the specified remote process group can update the specified
-     * remote input port.
+     * Verifies the specified remote process group can update the specified remote input port.
      *
      * @param groupId The id of the parent group
      * @param remoteProcessGroupId The id of the remote process group
@@ -784,8 +784,7 @@ public interface NiFiServiceFacade {
     void verifyUpdateRemoteProcessGroupInputPort(String groupId, String remoteProcessGroupId, RemoteProcessGroupPortDTO remoteProcessGroupPortDTO);
 
     /**
-     * Verifies the specified remote process group can update the specified
-     * remote output port.
+     * Verifies the specified remote process group can update the specified remote output port.
      *
      * @param groupId The id of the parent group
      * @param remoteProcessGroupId The id of the remote process group
@@ -977,13 +976,12 @@ public interface NiFiServiceFacade {
      * Gets the specified controller service.
      *
      * @param controllerServiceId id
-     * @return service 
+     * @return service
      */
     ControllerServiceDTO getControllerService(String controllerServiceId);
 
     /**
-     * Get the descriptor for the specified property of the specified controller
-     * service.
+     * Get the descriptor for the specified property of the specified controller service.
      *
      * @param id id
      * @param property property
@@ -1037,8 +1035,7 @@ public interface NiFiServiceFacade {
     void verifyUpdateControllerService(ControllerServiceDTO controllerServiceDTO);
 
     /**
-     * Verifies the referencing components of the specified controller service
-     * can be updated.
+     * Verifies the referencing components of the specified controller service can be updated.
      *
      * @param controllerServiceId id
      * @param scheduledState schedule state
@@ -1081,8 +1078,7 @@ public interface NiFiServiceFacade {
     ReportingTaskDTO getReportingTask(String reportingTaskId);
 
     /**
-     * Get the descriptor for the specified property of the specified reporting
-     * task.
+     * Get the descriptor for the specified property of the specified reporting task.
      *
      * @param id id
      * @param property property
@@ -1196,8 +1192,7 @@ public interface NiFiServiceFacade {
     void verifyUpdateSnippet(SnippetDTO snippetDto);
 
     /**
-     * If group id is specified, moves the specified snippet to the specified
-     * group.
+     * If group id is specified, moves the specified snippet to the specified group.
      *
      * @param revision revision
      * @param snippetDto snippet
@@ -1256,8 +1251,7 @@ public interface NiFiServiceFacade {
     void invalidateUser(String userId);
 
     /**
-     * Invalidates the specified user accounts and all accounts associated with
-     * this group.
+     * Invalidates the specified user accounts and all accounts associated with this group.
      *
      * @param userGroup group
      * @param userIds id
@@ -1272,8 +1266,7 @@ public interface NiFiServiceFacade {
     void deleteUser(String userId);
 
     /**
-     * Updates a user group with the specified group and comprised of the
-     * specified users.
+     * Updates a user group with the specified group and comprised of the specified users.
      *
      * @param userGroup group
      * @return group
@@ -1298,8 +1291,7 @@ public interface NiFiServiceFacade {
     // Cluster methods
     // ----------------------------------------
     /**
-     * @return true if controller is connected or trying to connect to the
-     * cluster
+     * @return true if controller is connected or trying to connect to the cluster
      */
     boolean isClustered();
 
@@ -1369,8 +1361,7 @@ public interface NiFiServiceFacade {
 
     /**
      * @param processorId id
-     * @return the processor status history for each node connected to the
-     * cluster
+     * @return the processor status history for each node connected to the cluster
      */
     ClusterStatusHistoryDTO getClusterProcessorStatusHistory(String processorId);
 
@@ -1384,28 +1375,34 @@ public interface NiFiServiceFacade {
 
     /**
      * @param connectionId id
-     * @return the connection status history for each node connected to the
-     * cluster
+     * @return the connection status history for each node connected to the cluster
      */
     ClusterStatusHistoryDTO getClusterConnectionStatusHistory(String connectionId);
 
     /**
      * @param processGroupId id
-     * @return the process group status history for each node connected to the
-     * cluster
+     * @return the process group status history for each node connected to the cluster
      */
     ClusterStatusHistoryDTO getClusterProcessGroupStatusHistory(String processGroupId);
 
     /**
-     * @param remoteProcessGroupId id
-     * @return the remote process group status history for each node connected
-     * to the cluster
+     * Returns a process group's status for each node connected to the cluster.
+     *
+     * @param processorId a process group identifier
+     * @return The cluster process group status transfer object.
+     */
+    ClusterProcessGroupStatusDTO getClusterProcessGroupStatus(String processorId);
+
+    /**
+     * Returns the remote process group status history for each node connected to the cluster.
+     *
+     * @param remoteProcessGroupId a remote process group identifier
+     * @return The cluster status history
      */
     ClusterStatusHistoryDTO getClusterRemoteProcessGroupStatusHistory(String remoteProcessGroupId);
 
     /**
-     * Returns a remote process group's status for each node connected to the
-     * cluster.
+     * Returns a remote process group's status for each node connected to the cluster.
      *
      * @param remoteProcessGroupId a remote process group identifier
      * @return The cluster remote process group status transfer object.

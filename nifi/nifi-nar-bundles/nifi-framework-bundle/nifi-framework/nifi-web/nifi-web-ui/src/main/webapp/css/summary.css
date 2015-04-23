@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 /*
     Status Styles
 */
@@ -384,6 +385,12 @@ div.summary-table {
 
 span.sorted {
     text-decoration: underline;
+}
+
+/* tooltips in the summary table */
+
+#summary .nifi-tooltip {
+    max-width: 500px;
 }
 
 /* cluster processor summary table */
@@ -759,6 +766,82 @@ span.sorted {
 }
 
 #cluster-connection-name {
+    margin-bottom: 2px;
+    color: #000;
+    font-weight: bold;
+    white-space: nowrap;
+    overflow: hidden;
+    width: 200px;
+}
+
+/* cluster process group summary table */
+
+#cluster-process-group-summary-dialog {
+    display: none;
+    width: 778px;
+    height: 450px;
+    z-index: 1301;
+}
+
+#cluster-process-group-summary-table {
+    width: 758px;
+    height: 300px;
+    border-bottom: 1px solid #666;
+}
+
+#cluster-process-group-summary-header {
+    height: 26px;
+    color: #666;
+    font-weight: normal;
+    margin-bottom: 1px;
+}
+
+#cluster-process-group-refresh-button {
+    height: 24px;
+    width: 26px;
+    float: left;
+}
+
+#cluster-process-group-summary-last-refreshed-container {
+    float: left;
+    margin-top: 6px;
+    margin-left: 3px;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+}
+
+#cluster-process-group-summary-last-refreshed {
+    font-weight: bold;
+}
+
+#cluster-process-group-summary-loading-container {
+    float: left;
+    width: 16px;
+    height: 16px;
+    background-color: transparent;
+    margin-top: 4px;
+    margin-left: 3px;
+}
+
+#cluster-process-group-details-container {
+    position: absolute;
+    right: 35px;
+}
+
+#cluster-process-group-icon {
+    background-image: url(../images/iconProcessGroup.png);
+    width: 29px;
+    height: 20px;
+    float: left;
+    margin-right: 5px;
+    margin-top: 1px;
+}
+
+#cluster-process-group-details {
+    float: left;
+}
+
+#cluster-process-group-name {
     margin-bottom: 2px;
     color: #000;
     font-weight: bold;

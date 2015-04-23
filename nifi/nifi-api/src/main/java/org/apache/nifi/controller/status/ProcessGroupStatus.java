@@ -43,6 +43,8 @@ public class ProcessGroupStatus implements Cloneable {
     private long bytesReceived;
     private int flowFilesSent;
     private long bytesSent;
+    private int flowFilesTransferred;
+    private long bytesTransferred;
 
     private Collection<ConnectionStatus> connectionStatus = new ArrayList<>();
     private Collection<ProcessorStatus> processorStatus = new ArrayList<>();
@@ -227,6 +229,22 @@ public class ProcessGroupStatus implements Cloneable {
         this.bytesSent = bytesSent;
     }
 
+    public int getFlowFilesTransferred() {
+        return flowFilesTransferred;
+    }
+
+    public void setFlowFilesTransferred(int flowFilesTransferred) {
+        this.flowFilesTransferred = flowFilesTransferred;
+    }
+
+    public long getBytesTransferred() {
+        return bytesTransferred;
+    }
+
+    public void setBytesTransferred(long bytesTransferred) {
+        this.bytesTransferred = bytesTransferred;
+    }
+
     @Override
     public ProcessGroupStatus clone() {
 
@@ -248,6 +266,8 @@ public class ProcessGroupStatus implements Cloneable {
         clonedObj.bytesReceived = bytesReceived;
         clonedObj.flowFilesSent = flowFilesSent;
         clonedObj.bytesSent = bytesSent;
+        clonedObj.flowFilesTransferred = flowFilesTransferred;
+        clonedObj.bytesTransferred = bytesTransferred;
 
         if (connectionStatus != null) {
             final Collection<ConnectionStatus> statusList = new ArrayList<>();
@@ -317,6 +337,18 @@ public class ProcessGroupStatus implements Cloneable {
         builder.append(creationTimestamp);
         builder.append(", activeThreadCount=");
         builder.append(activeThreadCount);
+        builder.append(", flowFilesTransferred=");
+        builder.append(flowFilesTransferred);
+        builder.append(", bytesTransferred=");
+        builder.append(bytesTransferred);
+        builder.append(", flowFilesReceived=");
+        builder.append(flowFilesReceived);
+        builder.append(", bytesReceived=");
+        builder.append(bytesReceived);
+        builder.append(", flowFilesSent=");
+        builder.append(flowFilesSent);
+        builder.append(", bytesSent=");
+        builder.append(bytesSent);
         builder.append(",\n\tconnectionStatus=");
 
         for (final ConnectionStatus status : connectionStatus) {
@@ -374,6 +406,12 @@ public class ProcessGroupStatus implements Cloneable {
         target.setBytesRead(target.getBytesRead() + toMerge.getBytesRead());
         target.setBytesWritten(target.getBytesWritten() + toMerge.getBytesWritten());
         target.setActiveThreadCount(target.getActiveThreadCount() + toMerge.getActiveThreadCount());
+        target.setFlowFilesTransferred(target.getFlowFilesTransferred() + toMerge.getFlowFilesTransferred());
+        target.setBytesTransferred(target.getBytesTransferred() + toMerge.getBytesTransferred());
+        target.setFlowFilesReceived(target.getFlowFilesReceived() + toMerge.getFlowFilesReceived());
+        target.setBytesReceived(target.getBytesReceived() + toMerge.getBytesReceived());
+        target.setFlowFilesSent(target.getFlowFilesSent() + toMerge.getFlowFilesSent());
+        target.setBytesSent(target.getBytesSent() + toMerge.getBytesSent());
 
         // connection status
         // sort by id

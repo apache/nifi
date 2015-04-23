@@ -2063,6 +2063,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         long bytesReceived = 0L;
         int flowFilesSent = 0;
         long bytesSent = 0L;
+        int flowFilesTransferred = 0;
+        long bytesTransferred = 0;
 
         // set status for processors
         final Collection<ProcessorStatus> processorStatusCollection = new ArrayList<>();
@@ -2096,6 +2098,9 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             bytesReceived += childGroupStatus.getBytesReceived();
             flowFilesSent += childGroupStatus.getFlowFilesSent();
             bytesSent += childGroupStatus.getBytesSent();
+
+            flowFilesTransferred += childGroupStatus.getFlowFilesTransferred();
+            bytesTransferred += childGroupStatus.getBytesTransferred();
         }
 
         // set status for remote child groups
@@ -2133,6 +2138,9 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 connStatus.setInputCount(connectionStatusReport.getFlowFilesIn());
                 connStatus.setOutputBytes(connectionStatusReport.getContentSizeOut());
                 connStatus.setOutputCount(connectionStatusReport.getFlowFilesOut());
+
+                flowFilesTransferred += (connectionStatusReport.getFlowFilesIn() + connectionStatusReport.getFlowFilesOut());
+                bytesTransferred += (connectionStatusReport.getContentSizeIn() + connectionStatusReport.getContentSizeOut());
             }
 
             if (StringUtils.isNotBlank(conn.getName())) {
@@ -2303,6 +2311,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         status.setBytesReceived(bytesReceived);
         status.setFlowFilesSent(flowFilesSent);
         status.setBytesSent(bytesSent);
+        status.setFlowFilesTransferred(flowFilesTransferred);
+        status.setBytesTransferred(bytesTransferred);
 
         return status;
     }
