@@ -434,8 +434,8 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
                         if (timeToPersist < System.currentTimeMillis()) {
                             readLock.unlock();
                             writeLock.lock();
-                            if (timeToPersist < System.currentTimeMillis()) {
-                                try {
+                            try {
+                            	if (timeToPersist < System.currentTimeMillis()) {
                                     timeToPersist = System.currentTimeMillis() + PERSISTENCE_INTERVAL_MSEC;
                                     File httpCache = new File(HTTP_CACHE_FILE_PREFIX + getIdentifier());
                                     try (FileOutputStream fos = new FileOutputStream(httpCache)) {
@@ -446,10 +446,11 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
                                     } catch (IOException e) {
                                         getLogger().error("Failed to persist ETag and LastMod due to " + e, e);
                                     }
-                                } finally {
-                                    readLock.lock();
-                                    writeLock.unlock();
-                                }
+                                } 
+                            }
+                            finally {
+                                readLock.lock();
+                                writeLock.unlock();
                             }
                         }
                     } finally {
