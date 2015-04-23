@@ -24,16 +24,11 @@ import org.apache.nifi.controller.service.ControllerServiceReference;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 
-/**
- *
- */
 public interface ControllerServiceDAO {
 
     /**
-     * Determines if the specified controller service exists.
-     *
-     * @param controllerServiceId
-     * @return
+     * @param controllerServiceId service id
+     * @return Determines if the specified controller service exists
      */
     boolean hasControllerService(String controllerServiceId);
 
@@ -70,34 +65,35 @@ public interface ControllerServiceDAO {
 
     /**
      * Updates the referencing components for the specified controller service.
-     * 
-     * @param controllerServiceId
-     * @param scheduledState
-     * @param controllerServiceState the value of state 
-     * @return the org.apache.nifi.controller.service.ControllerServiceReference 
+     *
+     * @param controllerServiceId service id
+     * @param scheduledState scheduled state
+     * @param controllerServiceState the value of state
+     * @return the org.apache.nifi.controller.service.ControllerServiceReference
      */
     ControllerServiceReference updateControllerServiceReferencingComponents(String controllerServiceId, ScheduledState scheduledState, ControllerServiceState controllerServiceState);
-    
+
     /**
      * Determines whether this controller service can be updated.
      *
-     * @param controllerServiceDTO
+     * @param controllerServiceDTO service
      */
     void verifyUpdate(ControllerServiceDTO controllerServiceDTO);
-    
+
     /**
-     * Determines whether the referencing component of the specified controller service can be updated.
-     * 
-     * @param controllerServiceId
-     * @param scheduledState
-     * @param controllerServiceState 
+     * Determines whether the referencing component of the specified controller
+     * service can be updated.
+     *
+     * @param controllerServiceId service id
+     * @param scheduledState scheduled state
+     * @param controllerServiceState service state
      */
     void verifyUpdateReferencingComponents(String controllerServiceId, ScheduledState scheduledState, ControllerServiceState controllerServiceState);
-    
+
     /**
      * Determines whether this controller service can be removed.
      *
-     * @param controllerServiceId
+     * @param controllerServiceId service id
      */
     void verifyDelete(String controllerServiceId);
 

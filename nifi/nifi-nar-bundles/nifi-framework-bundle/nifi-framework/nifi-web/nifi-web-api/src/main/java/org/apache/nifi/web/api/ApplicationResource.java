@@ -179,7 +179,7 @@ public abstract class ApplicationResource {
         // get cluster context from threadlocal
         ClusterContext clusterCtx = ClusterContextThreadLocal.getContext();
         if (clusterCtx != null) {
-            
+
             // serialize cluster context
             String serializedClusterContext = WebUtils.serializeObjectToHex(clusterCtx);
             if (serializedClusterContext.length() > CLUSTER_CONTEXT_HEADER_VALUE_MAX_BYTES) {

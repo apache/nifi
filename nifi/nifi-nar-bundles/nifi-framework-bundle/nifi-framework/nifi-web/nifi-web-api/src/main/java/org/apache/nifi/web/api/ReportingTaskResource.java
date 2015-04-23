@@ -77,15 +77,15 @@ public class ReportingTaskResource extends ApplicationResource {
     private NiFiServiceFacade serviceFacade;
     private WebClusterManager clusterManager;
     private NiFiProperties properties;
-    
+
     @Context
     private ServletContext servletContext;
-    
+
     /**
      * Populates the uri for the specified reporting task.
-     * 
+     *
      * @param reportingTasks
-     * @return 
+     * @return
      */
     private Set<ReportingTaskDTO> populateRemainingReportingTasksContent(final String availability, final Set<ReportingTaskDTO> reportingTasks) {
         for (ReportingTaskDTO reportingTask : reportingTasks) {
@@ -93,7 +93,7 @@ public class ReportingTaskResource extends ApplicationResource {
         }
         return reportingTasks;
     }
-    
+
     /**
      * Populates the uri for the specified reporting task.
      */
@@ -101,7 +101,7 @@ public class ReportingTaskResource extends ApplicationResource {
         // populate the reporting task href
         reportingTask.setUri(generateResourceUri("controller", "reporting-tasks", availability, reportingTask.getId()));
         reportingTask.setAvailability(availability);
-        
+
         // see if this processor has any ui extensions
         final UiExtensionMapping uiExtensionMapping = (UiExtensionMapping) servletContext.getAttribute("nifi-ui-extensions");
         if (uiExtensionMapping.hasUiExtension(reportingTask.getType())) {
@@ -112,16 +112,16 @@ public class ReportingTaskResource extends ApplicationResource {
                 }
             }
         }
-        
+
         return reportingTask;
     }
 
     /**
-     * Parses the availability and ensure that the specified availability makes sense for the
-     * given NiFi instance.
-     * 
+     * Parses the availability and ensure that the specified availability makes
+     * sense for the given NiFi instance.
+     *
      * @param availability
-     * @return 
+     * @return
      */
     private Availability parseAvailability(final String availability) {
         final Availability avail;
@@ -130,23 +130,24 @@ public class ReportingTaskResource extends ApplicationResource {
         } catch (IllegalArgumentException iae) {
             throw new IllegalArgumentException(String.format("Availability: Value must be one of [%s]", StringUtils.join(Availability.values(), ", ")));
         }
-        
+
         // ensure this nifi is an NCM is specifying NCM availability
         if (!properties.isClusterManager() && Availability.NCM.equals(avail)) {
             throw new IllegalArgumentException("Availability of NCM is only applicable when the NiFi instance is the cluster manager.");
         }
-        
+
         return avail;
     }
-    
+
     /**
      * Retrieves all the of reporting tasks in this NiFi.
      *
      * @param clientId Optional client id. If the client id is not specified, a
      * new one will be generated. This value (whether specified or generated) is
      * included in the response.
-     * @param availability Whether the reporting task is available on the NCM only (ncm) or on the 
-     * nodes only (node). If this instance is not clustered all tasks should use the node availability.
+     * @param availability Whether the reporting task is available on the NCM
+     * only (ncm) or on the nodes only (node). If this instance is not clustered
+     * all tasks should use the node availability.
      * @return A reportingTasksEntity.
      */
     @GET
@@ -156,7 +157,7 @@ public class ReportingTaskResource extends ApplicationResource {
     @TypeHint(ReportingTasksEntity.class)
     public Response getReportingTasks(@QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId, @PathParam("availability") String availability) {
         final Availability avail = parseAvailability(availability);
-        
+
         // replicate if cluster manager
         if (properties.isClusterManager() && Availability.NODE.equals(avail)) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
@@ -164,7 +165,7 @@ public class ReportingTaskResource extends ApplicationResource {
 
         // get all the reporting tasks
         final Set<ReportingTaskDTO> reportingTasks = populateRemainingReportingTasksContent(availability, serviceFacade.getReportingTasks());
-        
+
         // create the revision
         final RevisionDTO revision = new RevisionDTO();
         revision.setClientId(clientId.getClientId());
@@ -187,8 +188,9 @@ public class ReportingTaskResource extends ApplicationResource {
      * @param clientId Optional client id. If the client id is not specified, a
      * new one will be generated. This value (whether specified or generated) is
      * included in the response.
-     * @param availability Whether the reporting task is available on the NCM only (ncm) or on the 
-     * nodes only (node). If this instance is not clustered all tasks should use the node availability.
+     * @param availability Whether the reporting task is available on the NCM
+     * only (ncm) or on the nodes only (node). If this instance is not clustered
+     * all tasks should use the node availability.
      * @param type The type of reporting task to create.
      * @return A reportingTaskEntity.
      */
@@ -202,9 +204,9 @@ public class ReportingTaskResource extends ApplicationResource {
             @Context HttpServletRequest httpServletRequest,
             @FormParam(VERSION) LongParameter version,
             @FormParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @PathParam("availability") String availability, 
+            @PathParam("availability") String availability,
             @FormParam("type") String type) {
-        
+
         // create the reporting task DTO
         final ReportingTaskDTO reportingTaskDTO = new ReportingTaskDTO();
         reportingTaskDTO.setType(type);
@@ -228,8 +230,9 @@ public class ReportingTaskResource extends ApplicationResource {
      * Creates a new Reporting Task.
      *
      * @param httpServletRequest
-     * @param availability Whether the reporting task is available on the NCM only (ncm) or on the 
-     * nodes only (node). If this instance is not clustered all tasks should use the node availability.
+     * @param availability Whether the reporting task is available on the NCM
+     * only (ncm) or on the nodes only (node). If this instance is not clustered
+     * all tasks should use the node availability.
      * @param reportingTaskEntity A reportingTaskEntity.
      * @return A reportingTaskEntity.
      */
@@ -241,27 +244,27 @@ public class ReportingTaskResource extends ApplicationResource {
     @TypeHint(ReportingTaskEntity.class)
     public Response createReportingTask(
             @Context HttpServletRequest httpServletRequest,
-            @PathParam("availability") String availability, 
+            @PathParam("availability") String availability,
             ReportingTaskEntity reportingTaskEntity) {
-        
+
         final Availability avail = parseAvailability(availability);
 
-        if (reportingTaskEntity == null || reportingTaskEntity.getReportingTask()== null) {
+        if (reportingTaskEntity == null || reportingTaskEntity.getReportingTask() == null) {
             throw new IllegalArgumentException("Reporting task details must be specified.");
         }
 
         if (reportingTaskEntity.getRevision() == null) {
             throw new IllegalArgumentException("Revision must be specified.");
         }
-        
+
         if (reportingTaskEntity.getReportingTask().getId() != null) {
             throw new IllegalArgumentException("Reporting task ID cannot be specified.");
         }
-        
+
         if (StringUtils.isBlank(reportingTaskEntity.getReportingTask().getType())) {
             throw new IllegalArgumentException("The type of reporting task to create must be specified.");
         }
-        
+
         // get the revision
         final RevisionDTO revision = reportingTaskEntity.getRevision();
 
@@ -320,8 +323,9 @@ public class ReportingTaskResource extends ApplicationResource {
      * @param clientId Optional client id. If the client id is not specified, a
      * new one will be generated. This value (whether specified or generated) is
      * included in the response.
-     * @param availability Whether the reporting task is available on the NCM only (ncm) or on the 
-     * nodes only (node). If this instance is not clustered all tasks should use the node availability.
+     * @param availability Whether the reporting task is available on the NCM
+     * only (ncm) or on the nodes only (node). If this instance is not clustered
+     * all tasks should use the node availability.
      * @param id The id of the reporting task to retrieve
      * @return A reportingTaskEntity.
      */
@@ -330,11 +334,11 @@ public class ReportingTaskResource extends ApplicationResource {
     @Path("/{availability}/{id}")
     @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @TypeHint(ReportingTaskEntity.class)
-    public Response getReportingTask(@QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId, 
+    public Response getReportingTask(@QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
             @PathParam("availability") String availability, @PathParam("id") String id) {
 
         final Availability avail = parseAvailability(availability);
-        
+
         // replicate if cluster manager
         if (properties.isClusterManager() && Availability.NODE.equals(avail)) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
@@ -354,10 +358,10 @@ public class ReportingTaskResource extends ApplicationResource {
 
         return clusterContext(generateOkResponse(entity)).build();
     }
-    
+
     /**
      * Returns the descriptor for the specified property.
-     * 
+     *
      * @param clientId Optional client id. If the client id is not specified, a
      * new one will be generated. This value (whether specified or generated) is
      * included in the response.
@@ -372,38 +376,38 @@ public class ReportingTaskResource extends ApplicationResource {
     @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @TypeHint(PropertyDescriptorEntity.class)
     public Response getPropertyDescriptor(
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId, 
-            @PathParam("availability") String availability, @PathParam("id") String id, 
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @PathParam("availability") String availability, @PathParam("id") String id,
             @QueryParam("propertyName") String propertyName) {
-        
+
         final Availability avail = parseAvailability(availability);
-        
+
         // ensure the property name is specified
         if (propertyName == null) {
             throw new IllegalArgumentException("The property name must be specified.");
         }
-        
+
         // replicate if cluster manager and task is on node
         if (properties.isClusterManager() && Availability.NODE.equals(avail)) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
         }
-        
+
         // get the property descriptor
         final PropertyDescriptorDTO descriptor = serviceFacade.getReportingTaskPropertyDescriptor(id, propertyName);
-        
+
         // create the revision
         final RevisionDTO revision = new RevisionDTO();
         revision.setClientId(clientId.getClientId());
-        
+
         // generate the response entity
         final PropertyDescriptorEntity entity = new PropertyDescriptorEntity();
         entity.setRevision(revision);
         entity.setPropertyDescriptor(descriptor);
-        
+
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();
     }
-    
+
     /**
      * Updates the specified reporting task.
      *
@@ -413,12 +417,14 @@ public class ReportingTaskResource extends ApplicationResource {
      * @param clientId Optional client id. If the client id is not specified, a
      * new one will be generated. This value (whether specified or generated) is
      * included in the response.
-     * @param availability Whether the reporting task is available on the NCM only (ncm) or on the 
-     * nodes only (node). If this instance is not clustered all tasks should use the node availability.
+     * @param availability Whether the reporting task is available on the NCM
+     * only (ncm) or on the nodes only (node). If this instance is not clustered
+     * all tasks should use the node availability.
      * @param id The id of the reporting task to update.
      * @param name The name of the reporting task
      * @param annotationData The annotation data for the reporting task
-     * @param markedForDeletion Array of property names whose value should be removed.
+     * @param markedForDeletion Array of property names whose value should be
+     * removed.
      * @param state The updated scheduled state
      * @param schedulingStrategy The scheduling strategy for this reporting task
      * @param schedulingPeriod The scheduling period for this reporting task
@@ -457,7 +463,7 @@ public class ReportingTaskResource extends ApplicationResource {
 
         // create collections for holding the reporting task properties
         final Map<String, String> updatedProperties = new LinkedHashMap<>();
-        
+
         // go through each parameter and look for processor properties
         for (String parameterName : formParams.keySet()) {
             if (StringUtils.isNotBlank(parameterName)) {
@@ -473,12 +479,12 @@ public class ReportingTaskResource extends ApplicationResource {
                 }
             }
         }
-        
+
         // set the properties to remove
         for (String propertyToDelete : markedForDeletion) {
             updatedProperties.put(propertyToDelete, null);
         }
-        
+
         // create the reporting task DTO
         final ReportingTaskDTO reportingTaskDTO = new ReportingTaskDTO();
         reportingTaskDTO.setId(id);
@@ -493,7 +499,7 @@ public class ReportingTaskResource extends ApplicationResource {
         if (!updatedProperties.isEmpty()) {
             reportingTaskDTO.setProperties(updatedProperties);
         }
-        
+
         // create the revision
         final RevisionDTO revision = new RevisionDTO();
         revision.setClientId(clientId.getClientId());
@@ -514,8 +520,9 @@ public class ReportingTaskResource extends ApplicationResource {
      * Updates the specified a Reporting Task.
      *
      * @param httpServletRequest
-     * @param availability Whether the reporting task is available on the NCM only (ncm) or on the 
-     * nodes only (node). If this instance is not clustered all tasks should use the node availability.
+     * @param availability Whether the reporting task is available on the NCM
+     * only (ncm) or on the nodes only (node). If this instance is not clustered
+     * all tasks should use the node availability.
      * @param id The id of the reporting task to update.
      * @param reportingTaskEntity A reportingTaskEntity.
      * @return A reportingTaskEntity.
@@ -528,12 +535,12 @@ public class ReportingTaskResource extends ApplicationResource {
     @TypeHint(ReportingTaskEntity.class)
     public Response updateReportingTask(
             @Context HttpServletRequest httpServletRequest,
-            @PathParam("availability") String availability, 
+            @PathParam("availability") String availability,
             @PathParam("id") String id,
             ReportingTaskEntity reportingTaskEntity) {
 
         final Availability avail = parseAvailability(availability);
-        
+
         if (reportingTaskEntity == null || reportingTaskEntity.getReportingTask() == null) {
             throw new IllegalArgumentException("Reporting task details must be specified.");
         }
@@ -558,7 +565,7 @@ public class ReportingTaskResource extends ApplicationResource {
             // replicate the request
             return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), updateClientId(reportingTaskEntity), getHeaders(headersToOverride)).getResponse();
         }
-        
+
         // handle expects request (usually from the cluster manager)
         final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
         if (expects != null) {
@@ -596,8 +603,9 @@ public class ReportingTaskResource extends ApplicationResource {
      * @param clientId Optional client id. If the client id is not specified, a
      * new one will be generated. This value (whether specified or generated) is
      * included in the response.
-     * @param availability Whether the reporting task is available on the NCM only (ncm) or on the 
-     * nodes only (node). If this instance is not clustered all tasks should use the node availability.
+     * @param availability Whether the reporting task is available on the NCM
+     * only (ncm) or on the nodes only (node). If this instance is not clustered
+     * all tasks should use the node availability.
      * @param id The id of the reporting task to remove.
      * @return A entity containing the client id and an updated revision.
      */
@@ -613,7 +621,7 @@ public class ReportingTaskResource extends ApplicationResource {
             @PathParam("availability") String availability, @PathParam("id") String id) {
 
         final Availability avail = parseAvailability(availability);
-        
+
         // replicate if cluster manager
         if (properties.isClusterManager() && Availability.NODE.equals(avail)) {
             return clusterManager.applyRequest(HttpMethod.DELETE, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
@@ -648,7 +656,6 @@ public class ReportingTaskResource extends ApplicationResource {
     }
 
     // setters
-    
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }

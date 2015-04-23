@@ -288,8 +288,8 @@ public class StandardNiFiWebContext implements NiFiWebContext {
      * Gets the headers for the request to replicate to each node while
      * clustered.
      *
-     * @param config
-     * @return
+     * @param config  config
+     * @return headers
      */
     private Map<String, String> getHeaders(final NiFiWebContextConfig config) {
         final Map<String, String> headers = new HashMap<>();

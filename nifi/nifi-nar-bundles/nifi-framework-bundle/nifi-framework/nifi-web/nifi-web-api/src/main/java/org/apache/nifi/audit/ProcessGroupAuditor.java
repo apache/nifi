@@ -55,7 +55,7 @@ public class ProcessGroupAuditor extends NiFiAuditor {
      * alleviate this issue.
      *
      * @param proceedingJoinPoint
-     * @return 
+     * @return
      * @throws java.lang.Throwable
      */
     @Around("within(org.apache.nifi.web.dao.ProcessGroupDAO+) && "

@@ -20,7 +20,6 @@ import org.apache.nifi.cluster.manager.impl.WebClusterManager;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.reporting.ReportingTaskProvider;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.dao.ControllerServiceDAO;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.context.ApplicationContext;

@@ -99,7 +99,7 @@ public class FunnelAuditor extends NiFiAuditor {
      *
      * @param funnel
      * @param operation
-     * @return 
+     * @return
      */
     public Action generateAuditRecord(Funnel funnel, Operation operation) {
         return generateAuditRecord(funnel, operation, null);
@@ -111,7 +111,7 @@ public class FunnelAuditor extends NiFiAuditor {
      * @param funnel
      * @param operation
      * @param actionDetails
-     * @return 
+     * @return
      */
     public Action generateAuditRecord(Funnel funnel, Operation operation, ActionDetails actionDetails) {
         Action action = null;

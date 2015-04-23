@@ -347,10 +347,10 @@ public class ControllerFacade {
     public Set<DocumentedTypeDTO> getFlowFileComparatorTypes() {
         return dtoFactory.fromDocumentedTypes(ExtensionManager.getExtensions(FlowFilePrioritizer.class));
     }
-    
+
     /**
      * Returns whether the specified type implements the specified serviceType.
-     * 
+     *
      * @param baseType
      * @param type
      * @return
@@ -362,24 +362,24 @@ public class ControllerFacade {
                 return true;
             }
         }
-        
+
         return false;
     }
-    
+
     /**
      * Gets the ControllerService types that this controller supports.
-     * 
+     *
      * @param serviceType
-     * @return 
+     * @return
      */
-    public Set<DocumentedTypeDTO> getControllerServiceTypes(final String serviceType) { 
+    public Set<DocumentedTypeDTO> getControllerServiceTypes(final String serviceType) {
         final Set<Class> serviceImplementations = ExtensionManager.getExtensions(ControllerService.class);
-        
+
         // identify the controller services that implement the specified serviceType if applicable
         final Set<Class> matchingServiceImplementions;
         if (serviceType != null) {
             matchingServiceImplementions = new HashSet<>();
-            
+
             // check each type and remove those that aren't in the specified ancestry
             for (final Class type : serviceImplementations) {
                 if (implementsServiceType(serviceType, type)) {
@@ -389,14 +389,14 @@ public class ControllerFacade {
         } else {
             matchingServiceImplementions = serviceImplementations;
         }
-        
+
         return dtoFactory.fromDocumentedTypes(matchingServiceImplementions);
     }
-    
+
     /**
      * Gets the ReportingTask types that this controller supports.
-     * 
-     * @return 
+     *
+     * @return
      */
     public Set<DocumentedTypeDTO> getReportingTaskTypes() {
         return dtoFactory.fromDocumentedTypes(ExtensionManager.getExtensions(ReportingTask.class));
@@ -413,8 +413,9 @@ public class ControllerFacade {
 
     /**
      * Resets the counter with the specified id.
+     *
      * @param id
-     * @return 
+     * @return
      */
     public Counter resetCounter(final String id) {
         final Counter counter = flowController.resetCounter(id);
@@ -425,7 +426,7 @@ public class ControllerFacade {
 
         return counter;
     }
-    
+
     /**
      * Gets the status of this controller.
      *
@@ -831,7 +832,7 @@ public class ControllerFacade {
             if (!downloadAuthorization.isApproved()) {
                 throw new AccessDeniedException(downloadAuthorization.getExplanation());
             }
-            
+
             // get the filename and fall back to the idnetifier (should never happen)
             String filename = event.getAttributes().get(CoreAttributes.FILENAME.key());
             if (filename == null) {
@@ -1193,22 +1194,22 @@ public class ControllerFacade {
 
         for (final Map.Entry<PropertyDescriptor, String> entry : procNode.getProperties().entrySet()) {
             final PropertyDescriptor descriptor = entry.getKey();
-            
+
             addIfAppropriate(searchStr, descriptor.getName(), "Property name", matches);
             addIfAppropriate(searchStr, descriptor.getDescription(), "Property description", matches);
-            
+
             // never include sensitive properties values in search results
             if (descriptor.isSensitive()) {
                 continue;
             }
-            
+
             String value = entry.getValue();
-            
+
             // if unset consider default value
             if (value == null) {
                 value = descriptor.getDefaultValue();
             }
-            
+
             // evaluate if the value matches the search criteria
             if (StringUtils.containsIgnoreCase(value, searchStr)) {
                 matches.add("Property value: " + descriptor.getName() + " - " + value);
@@ -1286,7 +1287,7 @@ public class ControllerFacade {
         for (final FlowFilePrioritizer comparator : queue.getPriorities()) {
             addIfAppropriate(searchStr, comparator.getClass().getName(), "Prioritizer", matches);
         }
-        
+
         // search expiration
         if (StringUtils.containsIgnoreCase("expires", searchStr) || StringUtils.containsIgnoreCase("expiration", searchStr)) {
             final int expirationMillis = connection.getFlowFileQueue().getFlowFileExpiration(TimeUnit.MILLISECONDS);
@@ -1294,7 +1295,7 @@ public class ControllerFacade {
                 matches.add("FlowFile expiration: " + connection.getFlowFileQueue().getFlowFileExpiration());
             }
         }
-        
+
         // search back pressure
         if (StringUtils.containsIgnoreCase("back pressure", searchStr) || StringUtils.containsIgnoreCase("pressure", searchStr)) {
             final String backPressureDataSize = connection.getFlowFileQueue().getBackPressureDataSizeThreshold();

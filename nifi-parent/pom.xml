@@ -372,6 +372,9 @@
     <profiles>
         <profile> <!-- will move this up with the always on plugins once we get all checkstyle stuff resolved-->
             <id>checkstyle</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
             <build>
                 <plugins>
                     <plugin>

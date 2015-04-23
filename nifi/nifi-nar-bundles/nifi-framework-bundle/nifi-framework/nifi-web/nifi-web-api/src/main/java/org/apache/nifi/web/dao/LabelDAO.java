@@ -20,24 +20,19 @@ import java.util.Set;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.web.api.dto.LabelDTO;
 
-/**
- *
- */
 public interface LabelDAO {
 
     /**
-     * Determines if the specified label exists in the specified group.
-     *
-     * @param groupId
-     * @param labelId
-     * @return
+     * @param groupId group id
+     * @param labelId label id
+     * @return Determines if the specified label exists in the specified group
      */
     boolean hasLabel(String groupId, String labelId);
 
     /**
      * Creates a label in the specified group.
      *
-     * @param groupId
+     * @param groupId group id
      * @param labelDTO The label DTO
      * @return The label
      */
@@ -46,7 +41,7 @@ public interface LabelDAO {
     /**
      * Gets the specified label in the specified group.
      *
-     * @param groupId
+     * @param groupId group id
      * @param labelId The label id
      * @return The label
      */
@@ -55,7 +50,7 @@ public interface LabelDAO {
     /**
      * Gets all of the labels in the specified group.
      *
-     * @param groupId
+     * @param groupId group id
      * @return The labels
      */
     Set<Label> getLabels(String groupId);
@@ -63,7 +58,7 @@ public interface LabelDAO {
     /**
      * Updates the specified label in the specified group.
      *
-     * @param groupId
+     * @param groupId group id
      * @param labelDTO The label DTO
      * @return The label
      */
@@ -72,7 +67,7 @@ public interface LabelDAO {
     /**
      * Deletes the specified label in the specified group.
      *
-     * @param groupId
+     * @param groupId group id
      * @param labelId The label id
      */
     void deleteLabel(String groupId, String labelId);

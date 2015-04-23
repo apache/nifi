@@ -74,8 +74,9 @@ public class OutputPortResource extends ApplicationResource {
 
     /**
      * Populates the uri for the specified output ports.
+     *
      * @param outputPorts
-     * @return 
+     * @return
      */
     public Set<PortDTO> populateRemainingOutputPortsContent(Set<PortDTO> outputPorts) {
         for (PortDTO outputPort : outputPorts) {

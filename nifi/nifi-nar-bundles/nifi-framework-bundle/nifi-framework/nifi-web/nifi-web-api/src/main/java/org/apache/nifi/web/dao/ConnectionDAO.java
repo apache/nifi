@@ -20,15 +20,12 @@ import java.util.Set;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 
-/**
- *
- */
 public interface ConnectionDAO {
 
     /**
      * Gets the specified Connection.
      *
-     * @param groupId
+     * @param groupId group id
      * @param id The connection id
      * @return The connection
      */
@@ -37,25 +34,25 @@ public interface ConnectionDAO {
     /**
      * Gets the connections for the specified source processor.
      *
-     * @param groupId
-     * @param processorId
-     * @return
+     * @param groupId group id
+     * @param processorId processor id
+     * @return connections
      */
     Set<Connection> getConnectionsForSource(String groupId, String processorId);
 
     /**
      * Determines if the specified connection exists.
      *
-     * @param groupId
-     * @param id
-     * @return
+     * @param groupId group id
+     * @param id id
+     * @return true if connection exists
      */
     boolean hasConnection(String groupId, String id);
 
     /**
      * Gets all of the connections.
      *
-     * @param groupId
+     * @param groupId group identifier
      * @return The connections
      */
     Set<Connection> getConnections(String groupId);
@@ -63,7 +60,7 @@ public interface ConnectionDAO {
     /**
      * Creates a new Connection.
      *
-     * @param groupId
+     * @param groupId group id
      * @param connectionDTO The connection DTO
      * @return The connection
      */
@@ -72,23 +69,23 @@ public interface ConnectionDAO {
     /**
      * Verifies the create request can be processed.
      *
-     * @param groupId
-     * @param connectionDTO
+     * @param groupId group id
+     * @param connectionDTO connection
      */
     void verifyCreate(String groupId, ConnectionDTO connectionDTO);
 
     /**
      * Verifies the update request can be processed.
      *
-     * @param groupId
-     * @param connectionDTO
+     * @param groupId group id
+     * @param connectionDTO connection
      */
     void verifyUpdate(String groupId, ConnectionDTO connectionDTO);
 
     /**
      * Updates the specified Connection.
      *
-     * @param groupId
+     * @param groupId group id
      * @param connectionDTO The connection DTO
      * @return The connection
      */
@@ -97,15 +94,15 @@ public interface ConnectionDAO {
     /**
      * Verifies the delete request can be processed.
      *
-     * @param groupId
-     * @param id
+     * @param groupId group id
+     * @param id id
      */
     void verifyDelete(String groupId, String id);
 
     /**
      * Deletes the specified Connection.
      *
-     * @param groupId
+     * @param groupId group id
      * @param id The id of the connection
      */
     void deleteConnection(String groupId, String id);
