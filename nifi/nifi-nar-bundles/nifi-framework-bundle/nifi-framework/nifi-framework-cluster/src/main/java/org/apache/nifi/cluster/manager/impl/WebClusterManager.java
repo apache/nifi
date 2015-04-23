@@ -424,6 +424,9 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                     }
                 } catch(final Throwable t) {
                     logger.warn("Unable to capture component metrics from Node heartbeats: " + t);
+                    if (logger.isDebugEnabled()) {
+                        logger.warn("", t);
+                    }
                 } finally {
                     readLock.unlock("capture component metrics from node heartbeats");
                 }
