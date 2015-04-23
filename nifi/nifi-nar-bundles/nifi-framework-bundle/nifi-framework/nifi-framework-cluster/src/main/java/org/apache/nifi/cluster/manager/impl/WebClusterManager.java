@@ -398,6 +398,37 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
             snapshotMillis = FormatUtils.getTimeDuration(NiFiProperties.DEFAULT_COMPONENT_STATUS_SNAPSHOT_FREQUENCY, TimeUnit.MILLISECONDS);
         }
         componentStatusSnapshotMillis = snapshotMillis;
+        
+        Executors.newSingleThreadScheduledExecutor().scheduleWithFixedDelay(new Runnable() {
+            @Override
+            public void run() {
+                readLock.lock();
+                try {
+                    for (final Node node : nodes) {
+                        if (Status.CONNECTED.equals(node.getStatus())) {
+                            ComponentStatusRepository statusRepository = componentMetricsRepositoryMap.get(node.getNodeId());
+                            if (statusRepository == null) {
+                                statusRepository = createComponentStatusRepository();
+                                componentMetricsRepositoryMap.put(node.getNodeId(), statusRepository);
+                            }
+                            
+                            // ensure this node has a payload
+                            if (node.getHeartbeat() != null && node.getHeartbeatPayload() != null) {
+                                // if nothing has been captured or the current heartbeat is newer, capture it - comparing the heatbeat created timestamp
+                                // is safe since its marked as XmlTransient so we're assured that its based off the same clock that created the last capture date
+                                if (statusRepository.getLastCaptureDate() == null || node.getHeartbeat().getCreatedTimestamp() > statusRepository.getLastCaptureDate().getTime()) {
+                                    statusRepository.capture(node.getHeartbeatPayload().getProcessGroupStatus());
+                                }
+                            }
+                        }
+                    }
+                } catch(final Throwable t) {
+                    logger.warn("Unable to capture component metrics from Node heartbeats: " + t);
+                } finally {
+                    readLock.unlock("capture component metrics from node heartbeats");
+                }
+            }
+        }, componentStatusSnapshotMillis, componentStatusSnapshotMillis, TimeUnit.MILLISECONDS);
 
         remoteInputPort = properties.getRemoteInputPort();
         if (remoteInputPort == null) {
@@ -1807,20 +1838,6 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
 
                         // record heartbeat
                         node.setHeartbeat(mostRecentHeartbeat);
-
-                        ComponentStatusRepository statusRepository = componentMetricsRepositoryMap.get(node.getNodeId());
-                        if (statusRepository == null) {
-                            statusRepository = createComponentStatusRepository();
-                            componentMetricsRepositoryMap.put(node.getNodeId(), statusRepository);
-                        }
-
-                        // If it's been a while since we've captured, capture this metric.
-                        final Date lastCaptureDate = statusRepository.getLastCaptureDate();
-                        final long millisSinceLastCapture = (lastCaptureDate == null) ? Long.MAX_VALUE : (System.currentTimeMillis() - lastCaptureDate.getTime());
-
-                        if (millisSinceLastCapture > componentStatusSnapshotMillis) {
-                            statusRepository.capture(node.getHeartbeatPayload().getProcessGroupStatus());
-                        }
                     }
                 } catch (final Exception e) {
                     logger.error("Failed to process heartbeat from {}:{} due to {}", mostRecentHeartbeat.getNodeIdentifier().getApiAddress(), mostRecentHeartbeat.getNodeIdentifier().getApiPort(), e.toString());
@@ -3877,11 +3894,11 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         // Aggregate the snapshots
         final List<StatusSnapshotDTO> aggregatedSnapshotDtos = new ArrayList<>();
         for (final Map.Entry<Date, List<StatusSnapshot>> entry : snapshotsToAggregate.entrySet()) {
-            final StatusSnapshotDTO dto = new StatusSnapshotDTO();
-            dto.setTimestamp(entry.getKey());
-
             final List<StatusSnapshot> snapshots = entry.getValue();
             final StatusSnapshot reducedSnapshot = snapshots.get(0).getValueReducer().reduce(snapshots);
+            
+            final StatusSnapshotDTO dto = new StatusSnapshotDTO();
+            dto.setTimestamp(reducedSnapshot.getTimestamp());
             dto.setStatusMetrics(StatusHistoryUtil.createStatusSnapshotDto(reducedSnapshot).getStatusMetrics());
 
             aggregatedSnapshotDtos.add(dto);
