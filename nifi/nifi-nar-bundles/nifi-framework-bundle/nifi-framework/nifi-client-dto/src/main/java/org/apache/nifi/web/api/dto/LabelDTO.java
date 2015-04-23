@@ -34,7 +34,7 @@ public class LabelDTO extends NiFiComponentDTO {
 
     // font-size = 12px
     // color = #eee
-    private Map<String, String> style = Collections.emptyMap();
+    private Map<String, String> style;
 
     public LabelDTO() {
     }
