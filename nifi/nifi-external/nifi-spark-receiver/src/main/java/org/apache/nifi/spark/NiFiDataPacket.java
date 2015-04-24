@@ -20,21 +20,20 @@ import java.util.Map;
 
 /**
  * <p>
- * The NiFiDataPacket provides a packaging around a NiFi FlowFile. It wraps both a FlowFile's
- * content and its attributes so that they can be processed by Spark
+ * The NiFiDataPacket provides a packaging around a NiFi FlowFile. It wraps both
+ * a FlowFile's content and its attributes so that they can be processed by
+ * Spark
  * </p>
  */
 public interface NiFiDataPacket {
 
-	/**
-	 * Returns the contents of a NiFi FlowFile
-	 * @return
-	 */
-	byte[] getContent();
+    /**
+     * @return the contents of a NiFi FlowFile
+     */
+    byte[] getContent();
 
-	/**
-	 * Returns a Map of attributes that are associated with the NiFi FlowFile
-	 * @return
-	 */
-	Map<String, String> getAttributes();
+    /**
+     * @return a Map of attributes that are associated with the NiFi FlowFile
+     */
+    Map<String, String> getAttributes();
 }
