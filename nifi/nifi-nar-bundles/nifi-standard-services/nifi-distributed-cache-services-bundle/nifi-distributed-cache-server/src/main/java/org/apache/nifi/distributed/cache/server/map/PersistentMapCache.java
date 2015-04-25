@@ -78,6 +78,30 @@ public class PersistentMapCache implements MapCache {
         
         return putResult;
     }
+    
+    @Override
+    public MapPutResult put(final ByteBuffer key, final ByteBuffer value) throws IOException {
+    	final MapPutResult putResult = wrapped.put(key, value);
+        if ( putResult.isSuccessful() ) {
+            // The put was successful.
+            final MapWaliRecord record = new MapWaliRecord(UpdateType.CREATE, key, value);
+            final List<MapWaliRecord> records = new ArrayList<>();
+            records.add(record);
+
+            if ( putResult.getEvictedKey() != null ) {
+                records.add(new MapWaliRecord(UpdateType.DELETE, putResult.getEvictedKey(), putResult.getEvictedValue()));
+            }
+            
+            wali.update(Collections.singletonList(record), false);
+            
+            final long modCount = modifications.getAndIncrement();
+            if ( modCount > 0 && modCount % 100000 == 0 ) {
+                wali.checkpoint();
+            }
+        }
+        
+        return putResult;
+    }
 
     @Override
     public boolean containsKey(final ByteBuffer key) throws IOException {

@@ -178,6 +178,11 @@ public class TestDetectDuplicate {
             exists = false;
             return true;
         }
+
+		@Override
+		public <K, V> void put(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException {
+			
+		}
     }
 
     private static class StringSerializer implements Serializer<String> {

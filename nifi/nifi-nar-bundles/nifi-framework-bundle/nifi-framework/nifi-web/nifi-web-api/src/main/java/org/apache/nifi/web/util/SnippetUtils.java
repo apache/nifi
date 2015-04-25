@@ -257,7 +257,7 @@ public final class SnippetUtils {
             final PropertyDescriptor descriptor = entry.getKey();
             final String propertyValue = entry.getValue();
             
-            if ( descriptor.getControllerServiceDefinition() != null ) {
+            if ( descriptor.getControllerServiceDefinition() != null && propertyValue != null ) {
                 final ControllerServiceNode referencedNode = flowController.getControllerServiceNode(propertyValue);
                 if ( referencedNode == null ) {
                     throw new IllegalStateException("Controller Service with ID " + propertyValue + " is referenced in template but cannot be found");

@@ -83,6 +83,20 @@ public interface DistributedMapCacheClient extends ControllerService {
     <K> boolean containsKey(K key, Serializer<K> keySerializer) throws IOException;
 
     /**
+     * Adds the specified key and value to the cache, overwriting any value that is
+     * currently set.
+     * 
+     * @param key The key to set
+     * @param value The value to associate with the given Key
+     * @param keySerializer the Serializer that will be used to serialize the key into bytes
+     * @param valueSerializer the Serializer that will be used to serialize the value into bytes
+     * 
+     * @throws IOException if unable to communicate with the remote instance
+     * @throws NullPointerException if the key or either serializer is null
+     */
+    <K, V> void put(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException;
+    
+    /**
      * Returns the value in the cache for the given key, if one exists;
      * otherwise returns <code>null</code>
      *

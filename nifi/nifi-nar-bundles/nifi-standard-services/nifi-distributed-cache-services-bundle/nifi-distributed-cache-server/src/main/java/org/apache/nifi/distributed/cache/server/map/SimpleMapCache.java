@@ -106,6 +106,28 @@ public class SimpleMapCache implements MapCache {
         }
     }
     
+
+    @Override
+    public MapPutResult put(final ByteBuffer key, final ByteBuffer value) {
+        writeLock.lock();
+        try {
+        	// evict if we need to in order to make room for a new entry.
+            final MapCacheRecord evicted = evict();
+
+            final MapCacheRecord record = new MapCacheRecord(key, value);
+        	final MapCacheRecord existing = cache.put(key, record);
+        	inverseCacheMap.put(record, key);
+        	
+        	final ByteBuffer existingValue = (existing == null) ? null : existing.getValue();
+        	final ByteBuffer evictedKey = (evicted == null) ? null : evicted.getKey();
+        	final ByteBuffer evictedValue = (evicted == null) ? null : evicted.getValue();
+        	
+        	return new MapPutResult(true, key, value, existingValue, evictedKey, evictedValue);
+        } finally {
+            writeLock.unlock();
+        }
+    }
+    
     @Override
     public boolean containsKey(final ByteBuffer key) {
         readLock.lock();

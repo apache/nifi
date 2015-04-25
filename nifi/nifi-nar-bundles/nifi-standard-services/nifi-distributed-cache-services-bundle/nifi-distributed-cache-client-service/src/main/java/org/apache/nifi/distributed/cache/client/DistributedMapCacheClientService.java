@@ -116,6 +116,28 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
         });
     }
 
+    public <K, V> void put(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
+    	withCommsSession(new CommsAction<Object>() {
+			@Override
+			public Object execute(final CommsSession session) throws IOException {
+				final DataOutputStream dos = new DataOutputStream(session.getOutputStream());
+				dos.writeUTF("put");
+				
+				serialize(key, keySerializer, dos);
+				serialize(value, valueSerializer, dos);
+				
+				dos.flush();
+				final DataInputStream dis = new DataInputStream(session.getInputStream());
+				final boolean success = dis.readBoolean();
+				if ( !success ) {
+					throw new IOException("Expected to receive confirmation of 'put' request but received unexpected response");
+				}
+				
+				return null;
+			}
+    	});
+    }
+    
     @Override
     public <K> boolean containsKey(final K key, final Serializer<K> keySerializer) throws IOException {
         return withCommsSession(new CommsAction<Boolean>() {

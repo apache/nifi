@@ -65,6 +65,13 @@ public class MapCacheServer extends AbstractCacheServer {
                 dos.writeBoolean(putResult.isSuccessful());
                 break;
             }
+            case "put": {
+            	final byte[] key = readValue(dis);
+            	final byte[] value = readValue(dis);
+            	cache.put(ByteBuffer.wrap(key), ByteBuffer.wrap(value));
+                dos.writeBoolean(true);
+            	break;
+            }
             case "containsKey": {
                 final byte[] key = readValue(dis);
                 final boolean contains = cache.containsKey(ByteBuffer.wrap(key));
