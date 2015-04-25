@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.nifi.processors.kite;
 
 import java.io.File;
@@ -39,63 +38,63 @@ import static org.apache.nifi.processors.kite.TestUtil.bytesFor;
 
 public class TestGetSchema {
 
-  public static final Schema SCHEMA = SchemaBuilder.record("Test").fields()
-      .requiredLong("id")
-      .requiredString("color")
-      .optionalDouble("price")
-      .endRecord();
+    public static final Schema SCHEMA = SchemaBuilder.record("Test").fields()
+            .requiredLong("id")
+            .requiredString("color")
+            .optionalDouble("price")
+            .endRecord();
 
-  @Rule
-  public TemporaryFolder temp = new TemporaryFolder();
+    @Rule
+    public TemporaryFolder temp = new TemporaryFolder();
 
-  @Test
-  @Ignore("Does not work on windows")
-  public void testSchemaFromFileSystem() throws IOException {
-    File schemaFile = temp.newFile("schema.avsc");
-    FileOutputStream out = new FileOutputStream(schemaFile);
-    out.write(bytesFor(SCHEMA.toString(), Charset.forName("utf8")));
-    out.close();
+    @Test
+    @Ignore("Does not work on windows")
+    public void testSchemaFromFileSystem() throws IOException {
+        File schemaFile = temp.newFile("schema.avsc");
+        FileOutputStream out = new FileOutputStream(schemaFile);
+        out.write(bytesFor(SCHEMA.toString(), Charset.forName("utf8")));
+        out.close();
 
-    Schema schema = AbstractKiteProcessor.getSchema(
-        schemaFile.toString(), DefaultConfiguration.get());
+        Schema schema = AbstractKiteProcessor.getSchema(
+                schemaFile.toString(), DefaultConfiguration.get());
 
-    Assert.assertEquals("Schema from file should match", SCHEMA, schema);
-  }
-
-  @Test
-  @Ignore("Does not work on windows")
-  public void testSchemaFromKiteURIs() throws IOException {
-    String location = temp.newFolder("ns", "temp").toString();
-    if (location.endsWith("/")) {
-      location = location.substring(0, location.length() - 1);
+        Assert.assertEquals("Schema from file should match", SCHEMA, schema);
     }
-    String datasetUri = "dataset:" + location;
-    DatasetDescriptor descriptor = new DatasetDescriptor.Builder()
-        .schema(SCHEMA)
-        .build();
 
-    Datasets.create(datasetUri, descriptor);
+    @Test
+    @Ignore("Does not work on windows")
+    public void testSchemaFromKiteURIs() throws IOException {
+        String location = temp.newFolder("ns", "temp").toString();
+        if (location.endsWith("/")) {
+            location = location.substring(0, location.length() - 1);
+        }
+        String datasetUri = "dataset:" + location;
+        DatasetDescriptor descriptor = new DatasetDescriptor.Builder()
+                .schema(SCHEMA)
+                .build();
 
-    Schema schema = AbstractKiteProcessor.getSchema(
-        datasetUri, DefaultConfiguration.get());
-    Assert.assertEquals("Schema from dataset URI should match", SCHEMA, schema);
+        Datasets.create(datasetUri, descriptor);
 
-    schema = AbstractKiteProcessor.getSchema(
-        "view:file:" + location + "?color=orange", DefaultConfiguration.get());
-    Assert.assertEquals("Schema from view URI should match", SCHEMA, schema);
-  }
+        Schema schema = AbstractKiteProcessor.getSchema(
+                datasetUri, DefaultConfiguration.get());
+        Assert.assertEquals("Schema from dataset URI should match", SCHEMA, schema);
 
-  @Test
-  public void testSchemaFromResourceURI() throws IOException {
-    DatasetDescriptor descriptor = new DatasetDescriptor.Builder()
-        .schemaUri("resource:schema/user.avsc") // in kite-data-core test-jar
-        .build();
-    Schema expected = descriptor.getSchema();
+        schema = AbstractKiteProcessor.getSchema(
+                "view:file:" + location + "?color=orange", DefaultConfiguration.get());
+        Assert.assertEquals("Schema from view URI should match", SCHEMA, schema);
+    }
 
-    Schema schema = AbstractKiteProcessor.getSchema(
-        "resource:schema/user.avsc", DefaultConfiguration.get());
+    @Test
+    public void testSchemaFromResourceURI() throws IOException {
+        DatasetDescriptor descriptor = new DatasetDescriptor.Builder()
+                .schemaUri("resource:schema/user.avsc") // in kite-data-core test-jar
+                .build();
+        Schema expected = descriptor.getSchema();
 
-    Assert.assertEquals("Schema from resource URI should match",
-        expected, schema);
-  }
+        Schema schema = AbstractKiteProcessor.getSchema(
+                "resource:schema/user.avsc", DefaultConfiguration.get());
+
+        Assert.assertEquals("Schema from resource URI should match",
+                expected, schema);
+    }
 }
