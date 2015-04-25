@@ -16,36 +16,40 @@
  */
 package org.apache.nifi.logging;
 
-
 /**
  * <p>
- * The ComponentLog provides a mechanism to ensure that all NiFi components are logging and reporting
- * information in a consistent way. When messages are logged to the ComponentLog, each message has the
- * following characteristics:
+ * The ComponentLog provides a mechanism to ensure that all NiFi components are
+ * logging and reporting information in a consistent way. When messages are
+ * logged to the ComponentLog, each message has the following characteristics:
  * </p>
- * 
+ *
  * <ul>
- *  <li>
- *      The <code>toString()</code> of the component is automatically prepended to the message so that it is clear
- *      which component is providing the information. This is important, since a single component may have many
- *      different instances within the same NiFi instance.
- *  </li>
- *  <li>
- *      If the last value in an Object[] argument that is passed to the logger is a Throwable, then the logged message
- *      will include a <code>toString()</code> of the Throwable; in addition, if the component's logger is set to
- *      DEBUG level via the logback configuration, the Stacktrace will also be logged. This provides a mechanism to easily
- *      enable stacktraces in the logs when they are desired without filling the logs with unneeded stack traces for messages
- *      that end up occurring often.
- *  </li>
- *  <li>
- *      Any message that is logged with a Severity level that meets or exceeds the configured Bulletin Level for that component
- *      will also cause a Bulletin to be generated, so that the message is visible in the UI, allowing Dataflow Managers
- *      to understand that a problem exists and what the issue is.
- *  </li>
+ * <li>
+ * The <code>toString()</code> of the component is automatically prepended to
+ * the message so that it is clear which component is providing the information.
+ * This is important, since a single component may have many different instances
+ * within the same NiFi instance.
+ * </li>
+ * <li>
+ * If the last value in an Object[] argument that is passed to the logger is a
+ * Throwable, then the logged message will include a <code>toString()</code> of
+ * the Throwable; in addition, if the component's logger is set to DEBUG level
+ * via the logback configuration, the Stacktrace will also be logged. This
+ * provides a mechanism to easily enable stacktraces in the logs when they are
+ * desired without filling the logs with unneeded stack traces for messages that
+ * end up occurring often.
+ * </li>
+ * <li>
+ * Any message that is logged with a Severity level that meets or exceeds the
+ * configured Bulletin Level for that component will also cause a Bulletin to be
+ * generated, so that the message is visible in the UI, allowing Dataflow
+ * Managers to understand that a problem exists and what the issue is.
+ * </li>
  * </ul>
- * 
+ *
  */
 public interface ComponentLog {
+
     void warn(String msg, Throwable t);
 
     void warn(String msg, Object[] os);

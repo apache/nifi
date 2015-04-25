@@ -72,8 +72,9 @@ public class FunnelResource extends ApplicationResource {
 
     /**
      * Populates the uri for the specified funnels.
+     *
      * @param funnels
-     * @return 
+     * @return
      */
     public Set<FunnelDTO> populateRemainingFunnelsContent(Set<FunnelDTO> funnels) {
         for (FunnelDTO funnel : funnels) {

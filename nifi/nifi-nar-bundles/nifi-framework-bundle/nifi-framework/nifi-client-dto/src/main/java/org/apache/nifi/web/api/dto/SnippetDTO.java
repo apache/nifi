@@ -44,9 +44,7 @@ public class SnippetDTO {
     private FlowSnippetDTO contents;
 
     /**
-     * The id of this snippet.
-     *
-     * @return
+     * @return id of this snippet
      */
     public String getId() {
         return id;
@@ -57,9 +55,7 @@ public class SnippetDTO {
     }
 
     /**
-     * The uri of this snippet.
-     *
-     * @return
+     * @return uri of this snippet
      */
     public String getUri() {
         return uri;
@@ -70,9 +66,7 @@ public class SnippetDTO {
     }
 
     /**
-     * The group id for the components in this snippet.
-     *
-     * @return
+     * @return group id for the components in this snippet
      */
     public String getParentGroupId() {
         return parentGroupId;
@@ -83,9 +77,7 @@ public class SnippetDTO {
     }
 
     /**
-     * Whether or not this snippet is linked to the underlying data flow.
-     *
-     * @return
+     * @return whether or not this snippet is linked to the underlying data flow
      */
     public Boolean isLinked() {
         return linked;
@@ -96,12 +88,10 @@ public class SnippetDTO {
     }
 
     /**
-     * The ids of the connections in this snippet. These ids will be populated
+     * @return the ids of the connections in this snippet. These ids will be populated
      * within each response. They can be specified when creating a snippet.
      * However, once a snippet has been created its contents cannot be modified
-     * (these ids are ignored during update requests).
-     *
-     * @return
+     * (these ids are ignored during update requests)
      */
     public Set<String> getConnections() {
         return connections;
@@ -112,12 +102,10 @@ public class SnippetDTO {
     }
 
     /**
-     * The ids of the funnels in this snippet. These ids will be populated
+     * @return the ids of the funnels in this snippet. These ids will be populated
      * within each response. They can be specified when creating a snippet.
      * However, once a snippet has been created its contents cannot be modified
-     * (these ids are ignored during update requests).
-     *
-     * @param funnels
+     * (these ids are ignored during update requests)
      */
     public Set<String> getFunnels() {
         return funnels;
@@ -128,12 +116,10 @@ public class SnippetDTO {
     }
 
     /**
-     * The ids of the input port in this snippet. These ids will be populated
+     * @return the ids of the input port in this snippet. These ids will be populated
      * within each response. They can be specified when creating a snippet.
      * However, once a snippet has been created its contents cannot be modified
-     * (these ids are ignored during update requests).
-     *
-     * @return
+     * (these ids are ignored during update requests)
      */
     public Set<String> getInputPorts() {
         return inputPorts;
@@ -144,12 +130,10 @@ public class SnippetDTO {
     }
 
     /**
-     * The ids of the labels in this snippet. These ids will be populated within
+     * @return the ids of the labels in this snippet. These ids will be populated within
      * each response. They can be specified when creating a snippet. However,
      * once a snippet has been created its contents cannot be modified (these
-     * ids are ignored during update requests).
-     *
-     * @return
+     * ids are ignored during update requests)
      */
     public Set<String> getLabels() {
         return labels;
@@ -160,12 +144,10 @@ public class SnippetDTO {
     }
 
     /**
-     * The ids of the output ports in this snippet. These ids will be populated
+     * @return the ids of the output ports in this snippet. These ids will be populated
      * within each response. They can be specified when creating a snippet.
      * However, once a snippet has been created its contents cannot be modified
-     * (these ids are ignored during update requests).
-     *
-     * @return
+     * (these ids are ignored during update requests)
      */
     public Set<String> getOutputPorts() {
         return outputPorts;
@@ -176,12 +158,10 @@ public class SnippetDTO {
     }
 
     /**
-     * The ids of the process groups in this snippet. These ids will be
+     * @return The ids of the process groups in this snippet. These ids will be
      * populated within each response. They can be specified when creating a
      * snippet. However, once a snippet has been created its contents cannot be
-     * modified (these ids are ignored during update requests).
-     *
-     * @return
+     * modified (these ids are ignored during update requests)
      */
     public Set<String> getProcessGroups() {
         return processGroups;
@@ -192,12 +172,10 @@ public class SnippetDTO {
     }
 
     /**
-     * The ids of the processors in this snippet. These ids will be populated
+     * @return The ids of the processors in this snippet. These ids will be populated
      * within each response. They can be specified when creating a snippet.
      * However, once a snippet has been created its contents cannot be modified
-     * (these ids are ignored during update requests).
-     *
-     * @return
+     * (these ids are ignored during update requests)
      */
     public Set<String> getProcessors() {
         return processors;
@@ -208,12 +186,10 @@ public class SnippetDTO {
     }
 
     /**
-     * The ids of the remote process groups in this snippet. These ids will be
+     * @return the ids of the remote process groups in this snippet. These ids will be
      * populated within each response. They can be specified when creating a
      * snippet. However, once a snippet has been created its contents cannot be
-     * modified (these ids are ignored during update requests).
-     *
-     * @return
+     * modified (these ids are ignored during update requests)
      */
     public Set<String> getRemoteProcessGroups() {
         return remoteProcessGroups;
@@ -224,9 +200,7 @@ public class SnippetDTO {
     }
 
     /**
-     * The contents of the configuration for this snippet.
-     *
-     * @return
+     * @return the contents of the configuration for this snippet
      */
     public FlowSnippetDTO getContents() {
         return contents;

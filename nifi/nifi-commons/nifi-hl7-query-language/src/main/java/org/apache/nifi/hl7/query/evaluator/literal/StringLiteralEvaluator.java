@@ -21,15 +21,16 @@ import java.util.Map;
 import org.apache.nifi.hl7.query.evaluator.StringEvaluator;
 
 public class StringLiteralEvaluator extends StringEvaluator {
-	private final String value;
-	
-	public StringLiteralEvaluator(final String value) {
-		this.value = value;
-	}
-	
-	@Override
-	public String evaluate(final Map<String, Object> objectMap) {
-		return value;
-	}
+
+    private final String value;
+
+    public StringLiteralEvaluator(final String value) {
+        this.value = value;
+    }
+
+    @Override
+    public String evaluate(final Map<String, Object> objectMap) {
+        return value;
+    }
 
 }

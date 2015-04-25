@@ -49,7 +49,7 @@ public class WebClusterManagerFactoryBean implements FactoryBean, ApplicationCon
     private NiFiProperties properties;
 
     private StringEncryptor encryptor;
-    
+
     private OptimisticLockingManager optimisticLockingManager;
 
     @Override
@@ -58,8 +58,8 @@ public class WebClusterManagerFactoryBean implements FactoryBean, ApplicationCon
             throw new IllegalStateException("Application may be configured as a cluster manager or a node, but not both.");
         } else if (!properties.isClusterManager()) {
             /*
-             * If not configured for the cluster manager, then the cluster manager is never used.  
-             * null is returned so that we don't instantiate a thread pool or other resources. 
+             * If not configured for the cluster manager, then the cluster manager is never used.
+             * null is returned so that we don't instantiate a thread pool or other resources.
              */
             return null;
         } else if (clusterManager == null) {
@@ -127,7 +127,7 @@ public class WebClusterManagerFactoryBean implements FactoryBean, ApplicationCon
     public void setEncryptor(final StringEncryptor encryptor) {
         this.encryptor = encryptor;
     }
-    
+
     public void setOptimisticLockingManager(OptimisticLockingManager optimisticLockingManager) {
         this.optimisticLockingManager = optimisticLockingManager;
     }

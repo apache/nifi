@@ -31,9 +31,7 @@ public class ProcessorTypesEntity extends Entity {
     private Set<DocumentedTypeDTO> processorTypes;
 
     /**
-     * The list of processor types that are being serialized.
-     *
-     * @return
+     * @return list of processor types that are being serialized
      */
     public Set<DocumentedTypeDTO> getProcessorTypes() {
         return processorTypes;

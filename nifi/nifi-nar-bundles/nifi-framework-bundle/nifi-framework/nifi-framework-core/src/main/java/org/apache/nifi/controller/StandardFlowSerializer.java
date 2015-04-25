@@ -80,17 +80,17 @@ public class StandardFlowSerializer implements FlowSerializer {
             addTextElement(rootNode, "maxTimerDrivenThreadCount", controller.getMaxTimerDrivenThreadCount());
             addTextElement(rootNode, "maxEventDrivenThreadCount", controller.getMaxEventDrivenThreadCount());
             addProcessGroup(rootNode, controller.getGroup(controller.getRootGroupId()), "rootGroup");
-            
+
             final Element controllerServicesNode = doc.createElement("controllerServices");
             rootNode.appendChild(controllerServicesNode);
-            for ( final ControllerServiceNode serviceNode : controller.getAllControllerServices() ) {
-            	addControllerService(controllerServicesNode, serviceNode, encryptor);
+            for (final ControllerServiceNode serviceNode : controller.getAllControllerServices()) {
+                addControllerService(controllerServicesNode, serviceNode, encryptor);
             }
-            
+
             final Element reportingTasksNode = doc.createElement("reportingTasks");
             rootNode.appendChild(reportingTasksNode);
-            for ( final ReportingTaskNode taskNode : controller.getAllReportingTasks() ) {
-            	addReportingTask(reportingTasksNode, taskNode, encryptor);
+            for (final ReportingTaskNode taskNode : controller.getAllReportingTasks()) {
+                addReportingTask(reportingTasksNode, taskNode, encryptor);
             }
 
             final DOMSource domSource = new DOMSource(doc);
@@ -314,15 +314,15 @@ public class StandardFlowSerializer implements FlowSerializer {
         addTextElement(element, "runDurationNanos", processor.getRunDuration(TimeUnit.NANOSECONDS));
 
         addConfiguration(element, processor.getProperties(), processor.getAnnotationData(), encryptor);
-        
+
         for (final Relationship rel : processor.getAutoTerminatedRelationships()) {
             addTextElement(element, "autoTerminatedRelationship", rel.getName());
         }
     }
-    
+
     private static void addConfiguration(final Element element, final Map<PropertyDescriptor, String> properties, final String annotationData, final StringEncryptor encryptor) {
-    	final Document doc = element.getOwnerDocument();
-    	for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
+        final Document doc = element.getOwnerDocument();
+        for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
             final PropertyDescriptor descriptor = entry.getKey();
             String value = entry.getValue();
 
@@ -406,38 +406,37 @@ public class StandardFlowSerializer implements FlowSerializer {
         parentElement.appendChild(element);
     }
 
-    
     public static void addControllerService(final Element element, final ControllerServiceNode serviceNode, final StringEncryptor encryptor) {
-    	final Element serviceElement = element.getOwnerDocument().createElement("controllerService");
-    	addTextElement(serviceElement, "id", serviceNode.getIdentifier());
-    	addTextElement(serviceElement, "name", serviceNode.getName());
-    	addTextElement(serviceElement, "comment", serviceNode.getComments());
-    	addTextElement(serviceElement, "class", serviceNode.getControllerServiceImplementation().getClass().getCanonicalName());
-    	
-    	final ControllerServiceState state = serviceNode.getState();
-    	final boolean enabled = (state == ControllerServiceState.ENABLED || state == ControllerServiceState.ENABLING);
+        final Element serviceElement = element.getOwnerDocument().createElement("controllerService");
+        addTextElement(serviceElement, "id", serviceNode.getIdentifier());
+        addTextElement(serviceElement, "name", serviceNode.getName());
+        addTextElement(serviceElement, "comment", serviceNode.getComments());
+        addTextElement(serviceElement, "class", serviceNode.getControllerServiceImplementation().getClass().getCanonicalName());
+
+        final ControllerServiceState state = serviceNode.getState();
+        final boolean enabled = (state == ControllerServiceState.ENABLED || state == ControllerServiceState.ENABLING);
         addTextElement(serviceElement, "enabled", String.valueOf(enabled));
-        
+
         addConfiguration(serviceElement, serviceNode.getProperties(), serviceNode.getAnnotationData(), encryptor);
-        
-    	element.appendChild(serviceElement);
+
+        element.appendChild(serviceElement);
     }
-    
+
     public static void addReportingTask(final Element element, final ReportingTaskNode taskNode, final StringEncryptor encryptor) {
-    	final Element taskElement = element.getOwnerDocument().createElement("reportingTask");
-    	addTextElement(taskElement, "id", taskNode.getIdentifier());
-    	addTextElement(taskElement, "name", taskNode.getName());
-    	addTextElement(taskElement, "comment", taskNode.getComments());
-    	addTextElement(taskElement, "class", taskNode.getReportingTask().getClass().getCanonicalName());
+        final Element taskElement = element.getOwnerDocument().createElement("reportingTask");
+        addTextElement(taskElement, "id", taskNode.getIdentifier());
+        addTextElement(taskElement, "name", taskNode.getName());
+        addTextElement(taskElement, "comment", taskNode.getComments());
+        addTextElement(taskElement, "class", taskNode.getReportingTask().getClass().getCanonicalName());
         addTextElement(taskElement, "schedulingPeriod", taskNode.getSchedulingPeriod());
         addTextElement(taskElement, "scheduledState", taskNode.getScheduledState().name());
         addTextElement(taskElement, "schedulingStrategy", taskNode.getSchedulingStrategy().name());
-    	
-    	addConfiguration(taskElement, taskNode.getProperties(), taskNode.getAnnotationData(), encryptor);
-    	
-    	element.appendChild(taskElement);
+
+        addConfiguration(taskElement, taskNode.getProperties(), taskNode.getAnnotationData(), encryptor);
+
+        element.appendChild(taskElement);
     }
-    
+
     private static void addTextElement(final Element element, final String name, final long value) {
         addTextElement(element, name, String.valueOf(value));
     }

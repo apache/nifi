@@ -294,8 +294,8 @@ public abstract class AbstractPort implements Port {
      * Verify that removing this connection will not prevent this Port from
      * still being connected via each relationship
      *
-     * @param connection
-     * @return
+     * @param connection to test for removal
+     * @return true if can be removed
      */
     private boolean canConnectionBeRemoved(final Connection connection) {
         final Connectable source = connection.getSource();
@@ -368,11 +368,6 @@ public abstract class AbstractPort implements Port {
         }
     }
 
-    /**
-     * Indicates whether or not this Port is valid.
-     *
-     * @return
-     */
     @Override
     public abstract boolean isValid();
 
@@ -399,18 +394,11 @@ public abstract class AbstractPort implements Port {
         concurrentTaskCount.set(taskCount);
     }
 
-    /**
-     * @return the number of tasks that may execute concurrently for this
-     * processor
-     */
     @Override
     public int getMaxConcurrentTasks() {
         return concurrentTaskCount.get();
     }
 
-    /**
-     *
-     */
     @Override
     public void shutdown() {
         scheduledState.set(ScheduledState.STOPPED);
@@ -450,13 +438,6 @@ public abstract class AbstractPort implements Port {
         return type;
     }
 
-    /**
-     * Updates the amount of time that this processor should avoid being
-     * scheduled when the processor calls
-     * {@link nifi.processor.ProcessContext#yield() ProcessContext.yield()}
-     *
-     * @param yieldPeriod
-     */
     @Override
     public void setYieldPeriod(final String yieldPeriod) {
         final long yieldMillis = FormatUtils.getTimeDuration(requireNonNull(yieldPeriod), TimeUnit.MILLISECONDS);
@@ -466,9 +447,6 @@ public abstract class AbstractPort implements Port {
         this.yieldPeriod.set(yieldPeriod);
     }
 
-    /**
-     * @param schedulingPeriod
-     */
     @Override
     public void setScheduldingPeriod(final String schedulingPeriod) {
         final long schedulingNanos = FormatUtils.getTimeDuration(requireNonNull(schedulingPeriod), TimeUnit.NANOSECONDS);
@@ -490,12 +468,6 @@ public abstract class AbstractPort implements Port {
         return penalizationPeriod.get();
     }
 
-    /**
-     * Causes the processor not to be scheduled for some period of time. This
-     * duration can be obtained and set via the
-     * {@link #getYieldPeriod(TimeUnit)} and
-     * {@link #setYieldPeriod(long, TimeUnit)} methods.
-     */
     @Override
     public void yield() {
         final long yieldMillis = getYieldPeriod(TimeUnit.MILLISECONDS);

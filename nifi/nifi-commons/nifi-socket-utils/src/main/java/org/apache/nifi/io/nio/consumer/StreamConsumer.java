@@ -25,7 +25,6 @@ import org.apache.nifi.io.nio.BufferPool;
  * thread providing data to process and another thread that is processing that
  * data.
  *
- * @author none
  */
 public interface StreamConsumer {
 
@@ -36,7 +35,7 @@ public interface StreamConsumer {
      * associated add to this given queue. If not, buffers will run out and all
      * stream processing will halt. READ THIS!!!
      *
-     * @param returnQueue
+     * @param returnQueue pool of buffers to use
      */
     void setReturnBufferQueue(BufferPool returnQueue);
 
@@ -45,7 +44,7 @@ public interface StreamConsumer {
      * data to be processed. If the consumer is finished this should simply
      * return the given buffer to the return buffer queue (after it is cleared)
      *
-     * @param buffer
+     * @param buffer filled buffer
      */
     void addFilledBuffer(ByteBuffer buffer);
 
@@ -53,7 +52,8 @@ public interface StreamConsumer {
      * Will be called by the thread that executes the consumption of data. May
      * be called many times though once <code>isConsumerFinished</code> returns
      * true this method will likely do nothing.
-     * @throws java.io.IOException
+     *
+     * @throws java.io.IOException if there is an issue processing
      */
     void process() throws IOException;
 
@@ -66,14 +66,14 @@ public interface StreamConsumer {
      * If true signals the consumer is done consuming data and will not process
      * any more buffers.
      *
-     * @return
+     * @return true if finished
      */
     boolean isConsumerFinished();
 
     /**
      * Uniquely identifies the consumer
      *
-     * @return
+     * @return identifier of consumer
      */
     String getId();
 

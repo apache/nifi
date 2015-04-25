@@ -28,19 +28,19 @@ public class CountEvaluator extends NumberEvaluator implements ReduceEvaluator<L
 
     private final Evaluator<?> subjectEvaluator;
     private long count = 0L;
-    
+
     public CountEvaluator(final Evaluator<?> subjectEvaluator) {
         this.subjectEvaluator = subjectEvaluator;
     }
-    
+
     @Override
     public QueryResult<Long> evaluate(final Map<String, String> attributes) {
         final QueryResult<?> result = subjectEvaluator.evaluate(attributes);
-        if ( result.getValue() == null ) {
+        if (result.getValue() == null) {
             return new NumberQueryResult(count);
         }
-        
-        if ( result.getResultType() == ResultType.BOOLEAN && ((Boolean) result.getValue()).equals(Boolean.FALSE) ) {
+
+        if (result.getResultType() == ResultType.BOOLEAN && ((Boolean) result.getValue()).equals(Boolean.FALSE)) {
             return new NumberQueryResult(count);
         }
 

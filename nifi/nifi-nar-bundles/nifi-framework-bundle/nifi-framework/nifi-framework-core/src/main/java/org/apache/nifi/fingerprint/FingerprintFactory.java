@@ -82,14 +82,13 @@ import org.xml.sax.SAXException;
  * the processor "settings" or "comments" tabs, position information, flow
  * controller settings, and counters.
  *
- * @author unattributed
  */
 public final class FingerprintFactory {
 
     /*
      * Developer Note: This class should be changed with care and coordinated
-     * with all classes that use fingerprinting.  Improper coordination may 
-     * lead to orphaning flow files, especially when flows are reloaded in a 
+     * with all classes that use fingerprinting.  Improper coordination may
+     * lead to orphaning flow files, especially when flows are reloaded in a
      * clustered environment.
      */
     // no fingerprint value
@@ -130,7 +129,7 @@ public final class FingerprintFactory {
      * the flow does not influence the fingerprint generation.
      *
      * @param flowBytes the flow represented as bytes
-     * @param controller
+     * @param controller the controller
      *
      * @return a generated fingerprint
      *
@@ -161,8 +160,8 @@ public final class FingerprintFactory {
      *
      * @return the fingerprint
      *
-     * @throws NoSuchAlgorithmException
-     * @throws UnsupportedEncodingException
+     * @throws NoSuchAlgorithmException ex
+     * @throws UnsupportedEncodingException ex
      */
     private String createFingerprint(final Document flowDoc, final FlowController controller) throws NoSuchAlgorithmException {
         if (flowDoc == null) {
@@ -188,7 +187,7 @@ public final class FingerprintFactory {
      * templates does not influence the fingerprint generation.
      *
      *
-     * @param templates
+     * @param templates collection of templates
      * @return a generated fingerprint
      *
      * @throws FingerprintException if the fingerprint failed to be generated
@@ -253,22 +252,21 @@ public final class FingerprintFactory {
         // root group
         final Element rootGroupElem = (Element) DomUtils.getChildNodesByTagName(flowControllerElem, "rootGroup").item(0);
         addProcessGroupFingerprint(builder, rootGroupElem, controller);
-        
+
         final Element controllerServicesElem = DomUtils.getChild(flowControllerElem, "controllerServices");
-        if ( controllerServicesElem != null ) {
-        	for ( final Element serviceElem : DomUtils.getChildElementsByTagName(controllerServicesElem, "controllerService") ) {
-        		addControllerServiceFingerprint(builder, serviceElem);
-        	}
+        if (controllerServicesElem != null) {
+            for (final Element serviceElem : DomUtils.getChildElementsByTagName(controllerServicesElem, "controllerService")) {
+                addControllerServiceFingerprint(builder, serviceElem);
+            }
         }
-        
+
         final Element reportingTasksElem = DomUtils.getChild(flowControllerElem, "reportingTasks");
-        if ( reportingTasksElem != null ) {
-        	for ( final Element taskElem : DomUtils.getChildElementsByTagName(reportingTasksElem, "reportingTask") ) {
-        		addReportingTaskFingerprint(builder, taskElem);
-        	}
+        if (reportingTasksElem != null) {
+            for (final Element taskElem : DomUtils.getChildElementsByTagName(reportingTasksElem, "reportingTask")) {
+                addReportingTaskFingerprint(builder, taskElem);
+            }
         }
-        
-        
+
         return builder;
     }
 
@@ -851,21 +849,21 @@ public final class FingerprintFactory {
         builder.append(funnel.getId());
         return builder;
     }
-    
+
     private void addControllerServiceFingerprint(final StringBuilder builder, final Element controllerServiceElem) {
-    	final ControllerServiceDTO dto = FlowFromDOMFactory.getControllerService(controllerServiceElem, encryptor);
-    	addControllerServiceFingerprint(builder, dto);
+        final ControllerServiceDTO dto = FlowFromDOMFactory.getControllerService(controllerServiceElem, encryptor);
+        addControllerServiceFingerprint(builder, dto);
     }
-    
+
     private void addControllerServiceFingerprint(final StringBuilder builder, final ControllerServiceDTO dto) {
-    	builder.append(dto.getId());
-    	builder.append(dto.getType());
-    	builder.append(dto.getName());
-    	builder.append(dto.getComments());
-    	builder.append(dto.getAnnotationData());
-    	
-    	final Map<String, String> properties = dto.getProperties();
-    	if (properties == null) {
+        builder.append(dto.getId());
+        builder.append(dto.getType());
+        builder.append(dto.getName());
+        builder.append(dto.getComments());
+        builder.append(dto.getAnnotationData());
+
+        final Map<String, String> properties = dto.getProperties();
+        if (properties == null) {
             builder.append("NO_PROPERTIES");
         } else {
             final SortedMap<String, String> sortedProps = new TreeMap<>(properties);
@@ -880,23 +878,23 @@ public final class FingerprintFactory {
             }
         }
     }
-    
+
     private void addReportingTaskFingerprint(final StringBuilder builder, final Element element) {
-    	final ReportingTaskDTO dto = FlowFromDOMFactory.getReportingTask(element, encryptor);
-    	addReportingTaskFingerprint(builder, dto);
+        final ReportingTaskDTO dto = FlowFromDOMFactory.getReportingTask(element, encryptor);
+        addReportingTaskFingerprint(builder, dto);
     }
-    
+
     private void addReportingTaskFingerprint(final StringBuilder builder, final ReportingTaskDTO dto) {
-    	builder.append(dto.getId());
-    	builder.append(dto.getType());
-    	builder.append(dto.getName());
-    	builder.append(dto.getComments());
-    	builder.append(dto.getSchedulingPeriod());
-    	builder.append(dto.getSchedulingStrategy());
-    	builder.append(dto.getAnnotationData());
-    	
-    	final Map<String, String> properties = dto.getProperties();
-    	if (properties == null) {
+        builder.append(dto.getId());
+        builder.append(dto.getType());
+        builder.append(dto.getName());
+        builder.append(dto.getComments());
+        builder.append(dto.getSchedulingPeriod());
+        builder.append(dto.getSchedulingStrategy());
+        builder.append(dto.getAnnotationData());
+
+        final Map<String, String> properties = dto.getProperties();
+        if (properties == null) {
             builder.append("NO_PROPERTIES");
         } else {
             final SortedMap<String, String> sortedProps = new TreeMap<>(properties);

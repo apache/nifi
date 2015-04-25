@@ -16,9 +16,6 @@
  */
 package org.apache.nifi.cluster.protocol.impl;
 
-import org.apache.nifi.cluster.protocol.impl.ClusterServiceLocator;
-import org.apache.nifi.cluster.protocol.impl.SocketProtocolListener;
-import org.apache.nifi.cluster.protocol.impl.NodeProtocolSenderImpl;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
@@ -58,104 +55,102 @@ import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-/**
- * @author unattributed
- */
 @Ignore("Randomly tests... probably timing-specific")
 public class NodeProtocolSenderImplTest {
-    
+
     private SocketProtocolListener listener;
-    
+
     private NodeProtocolSenderImpl sender;
-    
+
     private DiscoverableService service;
-    
+
     private ServerSocketConfiguration serverSocketConfiguration;
-    
+
     private ClusterServiceLocator mockServiceLocator;
-    
+
     private ProtocolHandler mockHandler;
-    
+
     private NodeIdentifier nodeIdentifier;
-    
+
     @Before
     public void setup() throws IOException {
-        
+
         serverSocketConfiguration = new ServerSocketConfiguration();
 
         mockServiceLocator = mock(ClusterServiceLocator.class);
         mockHandler = mock(ProtocolHandler.class);
-        
+
         nodeIdentifier = new NodeIdentifier("1", "localhost", 1234, "localhost", 5678);
-        
+
         ProtocolContext protocolContext = new JaxbProtocolContext(JaxbProtocolUtils.JAXB_CONTEXT);
-        
+
         listener = new SocketProtocolListener(5, 0, serverSocketConfiguration, protocolContext);
         listener.setShutdownListenerSeconds(3);
         listener.addHandler(mockHandler);
         listener.start();
-        
+
         service = new DiscoverableServiceImpl("some-service", new InetSocketAddress("localhost", listener.getPort()));
-        
+
         SocketConfiguration socketConfiguration = new SocketConfiguration();
         socketConfiguration.setReuseAddress(true);
         sender = new NodeProtocolSenderImpl(mockServiceLocator, socketConfiguration, protocolContext);
     }
-    
+
     @After
     public void teardown() throws IOException {
-        if(listener.isRunning()) {
+        if (listener.isRunning()) {
             listener.stop();
         }
     }
-    
+
     @Test
     public void testConnect() throws Exception {
-        
+
         when(mockServiceLocator.getService()).thenReturn(service);
         when(mockHandler.canHandle(any(ProtocolMessage.class))).thenReturn(Boolean.TRUE);
         ConnectionResponseMessage mockMessage = new ConnectionResponseMessage();
-        mockMessage.setConnectionResponse(new ConnectionResponse(nodeIdentifier, new StandardDataFlow("flow".getBytes("UTF-8"), new byte[0], new byte[0]), false, null, null, UUID.randomUUID().toString()));
+        mockMessage.setConnectionResponse(new ConnectionResponse(nodeIdentifier,
+                new StandardDataFlow("flow".getBytes("UTF-8"), new byte[0], new byte[0]), false, null, null, UUID.randomUUID().toString()));
         when(mockHandler.handle(any(ProtocolMessage.class))).thenReturn(mockMessage);
-        
+
         ConnectionRequestMessage request = new ConnectionRequestMessage();
         request.setConnectionRequest(new ConnectionRequest(nodeIdentifier));
         ConnectionResponseMessage response = sender.requestConnection(request);
         assertNotNull(response);
     }
-    
+
     @Test(expected = UnknownServiceAddressException.class)
     public void testConnectNoClusterManagerAddress() throws Exception {
-        
+
         when(mockServiceLocator.getService()).thenReturn(null);
         when(mockHandler.canHandle(any(ProtocolMessage.class))).thenReturn(Boolean.TRUE);
         when(mockHandler.handle(any(ProtocolMessage.class))).thenReturn(new ConnectionResponseMessage());
-        
+
         ConnectionRequestMessage request = new ConnectionRequestMessage();
         request.setConnectionRequest(new ConnectionRequest(nodeIdentifier));
 
         sender.requestConnection(request);
         fail("failed to throw exception");
     }
-    
+
     @Test(expected = ProtocolException.class)
     public void testConnectBadResponse() throws Exception {
-        
+
         when(mockServiceLocator.getService()).thenReturn(service);
         when(mockHandler.canHandle(any(ProtocolMessage.class))).thenReturn(Boolean.TRUE);
         when(mockHandler.handle(any(ProtocolMessage.class))).thenReturn(new PingMessage());
-        
+
         ConnectionRequestMessage request = new ConnectionRequestMessage();
         request.setConnectionRequest(new ConnectionRequest(nodeIdentifier));
-        
+
         sender.requestConnection(request);
         fail("failed to throw exception");
-        
+
     }
-    
+
     @Test(expected = ProtocolException.class)
     public void testConnectDelayedResponse() throws Exception {
-        
+
         final int time = 250;
         sender.getSocketConfiguration().setSocketTimeout(time);
         when(mockServiceLocator.getService()).thenReturn(service);
@@ -172,28 +167,28 @@ public class NodeProtocolSenderImplTest {
 
         sender.requestConnection(request);
         fail("failed to throw exception");
-        
+
     }
-    
+
     @Test
     public void testHeartbeat() throws Exception {
-        
+
         when(mockServiceLocator.getService()).thenReturn(service);
         when(mockHandler.canHandle(any(ProtocolMessage.class))).thenReturn(Boolean.TRUE);
         when(mockHandler.handle(any(ProtocolMessage.class))).thenReturn(null);
-        
+
         HeartbeatMessage hb = new HeartbeatMessage();
-        hb.setHeartbeat(new Heartbeat(new NodeIdentifier("id", "localhost", 3, "localhost", 4), false, false, new byte[] {1, 2, 3}));
+        hb.setHeartbeat(new Heartbeat(new NodeIdentifier("id", "localhost", 3, "localhost", 4), false, false, new byte[]{1, 2, 3}));
         sender.heartbeat(hb);
     }
-    
+
     @Test
     public void testNotifyControllerStartupFailure() throws Exception {
-        
+
         when(mockServiceLocator.getService()).thenReturn(service);
         when(mockHandler.canHandle(any(ProtocolMessage.class))).thenReturn(Boolean.TRUE);
         when(mockHandler.handle(any(ProtocolMessage.class))).thenReturn(null);
-        
+
         ControllerStartupFailureMessage msg = new ControllerStartupFailureMessage();
         msg.setNodeId(new NodeIdentifier("some-id", "some-addr", 1, "some-addr", 1));
         msg.setExceptionMessage("some exception");

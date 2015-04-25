@@ -19,19 +19,20 @@ package org.apache.nifi.hl7.query;
 import org.apache.nifi.hl7.query.evaluator.Evaluator;
 
 public class Selection {
-	private final Evaluator<?> evaluator;
-	private final String name;
-	
-	public Selection(final Evaluator<?> evaluator, final String name) {
-		this.evaluator = evaluator;
-		this.name = name;
-	}
-	
-	public String getName() {
-		return name;
-	}
-	
-	public Evaluator<?> getEvaluator() {
-		return evaluator;
-	}
+
+    private final Evaluator<?> evaluator;
+    private final String name;
+
+    public Selection(final Evaluator<?> evaluator, final String name) {
+        this.evaluator = evaluator;
+        this.name = name;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public Evaluator<?> getEvaluator() {
+        return evaluator;
+    }
 }

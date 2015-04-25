@@ -76,7 +76,7 @@ public final class StringEncryptor {
      * Creates an instance of the nifi sensitive property encryptor. Validates
      * that the encryptor is actually working.
      *
-     * @return
+     * @return encryptor
      * @throws EncryptionException if any issues arise initializing or
      * validating the encryptor
      */

@@ -35,8 +35,8 @@ public class StandardReportingInitializationContext implements ReportingInitiali
     private final SchedulingStrategy schedulingStrategy;
     private final ControllerServiceProvider serviceProvider;
     private final ComponentLog logger;
-    
-    public StandardReportingInitializationContext(final String id, final String name, final SchedulingStrategy schedulingStrategy, 
+
+    public StandardReportingInitializationContext(final String id, final String name, final SchedulingStrategy schedulingStrategy,
             final String schedulingPeriod, final ComponentLog logger, final ControllerServiceProvider serviceProvider) {
         this.id = id;
         this.name = name;
@@ -97,17 +97,17 @@ public class StandardReportingInitializationContext implements ReportingInitiali
     public boolean isControllerServiceEnabling(final String serviceIdentifier) {
         return serviceProvider.isControllerServiceEnabling(serviceIdentifier);
     }
-    
+
     @Override
     public ControllerServiceLookup getControllerServiceLookup() {
         return this;
     }
-    
+
     @Override
     public String getControllerServiceName(final String serviceIdentifier) {
-    	return serviceProvider.getControllerServiceName(serviceIdentifier);
+        return serviceProvider.getControllerServiceName(serviceIdentifier);
     }
-    
+
     @Override
     public ComponentLog getLogger() {
         return logger;

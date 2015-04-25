@@ -18,6 +18,7 @@ package org.apache.nifi.framework.security.util;
 
 /**
  * Represents the exceptional case when a SSL context failed creation.
+ *
  * @author unattributed
  */
 public class SslContextCreationException extends SslException {

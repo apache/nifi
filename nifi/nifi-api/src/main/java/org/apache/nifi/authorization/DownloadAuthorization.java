@@ -22,6 +22,7 @@ package org.apache.nifi.authorization;
 public class DownloadAuthorization {
 
     private static enum Result {
+
         Approved,
         Denied;
     };
@@ -32,10 +33,11 @@ public class DownloadAuthorization {
     private final String explanation;
 
     /**
-     * Creates a new DownloadAuthorization with the specified result and explanation.
-     * 
-     * @param result
-     * @param explanation 
+     * Creates a new DownloadAuthorization with the specified result and
+     * explanation.
+     *
+     * @param result of the authorization
+     * @param explanation for the authorization attempt
      */
     private DownloadAuthorization(Result result, String explanation) {
         if (Result.Denied.equals(result) && explanation == null) {
@@ -47,38 +49,33 @@ public class DownloadAuthorization {
     }
 
     /**
-     * Whether or not the download request is approved.
-     * 
-     * @return 
+     * @return Whether or not the download request is approved
      */
     public boolean isApproved() {
         return Result.Approved.equals(result);
     }
 
     /**
-     * If the download request is denied, the reason why. Null otherwise.
-     * 
-     * @return 
+     * @return If the download request is denied, the reason why. Null otherwise
      */
     public String getExplanation() {
         return explanation;
     }
 
     /**
-     * Creates a new approved DownloadAuthorization.
-     * 
-     * @return 
+     * @return a new approved DownloadAuthorization
      */
     public static DownloadAuthorization approved() {
         return APPROVED;
     }
 
     /**
-     * Creates a new denied DownloadAuthorization with the specified explanation.
-     * 
-     * @param explanation
-     * @return 
-     * @throws IllegalArgumentException     if explanation is null
+     * Creates a new denied DownloadAuthorization with the specified
+     * explanation.
+     *
+     * @param explanation for why it was denied
+     * @return a new denied DownloadAuthorization with the specified explanation
+     * @throws IllegalArgumentException if explanation is null
      */
     public static DownloadAuthorization denied(String explanation) {
         return new DownloadAuthorization(Result.Denied, explanation);

@@ -262,7 +262,7 @@ public class ProcessorResource extends ApplicationResource {
         if (processorEntity.getProcessor().getId() != null) {
             throw new IllegalArgumentException("Processor ID cannot be specified.");
         }
-        
+
         if (StringUtils.isBlank(processorEntity.getProcessor().getType())) {
             throw new IllegalArgumentException("The type of processor to create must be specified.");
         }
@@ -394,10 +394,10 @@ public class ProcessorResource extends ApplicationResource {
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();
     }
-    
+
     /**
      * Returns the descriptor for the specified property.
-     * 
+     *
      * @param clientId Optional client id. If the client id is not specified, a
      * new one will be generated. This value (whether specified or generated) is
      * included in the response.
@@ -411,31 +411,31 @@ public class ProcessorResource extends ApplicationResource {
     @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @TypeHint(PropertyDescriptorEntity.class)
     public Response getPropertyDescriptor(
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId, 
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
             @PathParam("id") String id, @QueryParam("propertyName") String propertyName) {
-        
+
         // ensure the property name is specified
         if (propertyName == null) {
             throw new IllegalArgumentException("The property name must be specified.");
         }
-        
+
         // replicate if cluster manager
         if (properties.isClusterManager()) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
         }
-        
+
         // get the property descriptor
         final PropertyDescriptorDTO descriptor = serviceFacade.getProcessorPropertyDescriptor(groupId, id, propertyName);
-        
+
         // create the revision
         final RevisionDTO revision = new RevisionDTO();
         revision.setClientId(clientId.getClientId());
-        
+
         // generate the response entity
         final PropertyDescriptorEntity entity = new PropertyDescriptorEntity();
         entity.setRevision(revision);
         entity.setPropertyDescriptor(descriptor);
-        
+
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();
     }

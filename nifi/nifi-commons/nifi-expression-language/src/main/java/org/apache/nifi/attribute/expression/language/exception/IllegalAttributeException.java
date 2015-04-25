@@ -17,6 +17,7 @@
 package org.apache.nifi.attribute.expression.language.exception;
 
 public class IllegalAttributeException extends RuntimeException {
+
     private static final long serialVersionUID = 12348721897342L;
 
     public IllegalAttributeException() {

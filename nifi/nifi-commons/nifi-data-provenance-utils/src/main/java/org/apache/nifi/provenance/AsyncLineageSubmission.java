@@ -27,6 +27,7 @@ import org.apache.nifi.provenance.lineage.LineageComputationType;
  *
  */
 public class AsyncLineageSubmission implements ComputeLineageSubmission {
+
     private final String lineageIdentifier = UUID.randomUUID().toString();
     private final Date submissionTime = new Date();
 

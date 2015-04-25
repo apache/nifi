@@ -36,9 +36,7 @@ public class ClusterProcessorStatusDTO {
     private String processorRunStatus;
 
     /**
-     * The time the status were last refreshed.
-     *
-     * @return
+     * @return time the status were last refreshed
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
     public Date getStatsLastRefreshed() {
@@ -50,9 +48,7 @@ public class ClusterProcessorStatusDTO {
     }
 
     /**
-     * The processor id.
-     *
-     * @return
+     * @return processor id
      */
     public String getProcessorId() {
         return processorId;
@@ -63,9 +59,7 @@ public class ClusterProcessorStatusDTO {
     }
 
     /**
-     * The processor name.
-     *
-     * @return
+     * @return processor name
      */
     public String getProcessorName() {
         return processorName;
@@ -76,9 +70,7 @@ public class ClusterProcessorStatusDTO {
     }
 
     /**
-     * The processor type.
-     *
-     * @return
+     * @return processor type
      */
     public String getProcessorType() {
         return processorType;
@@ -89,9 +81,7 @@ public class ClusterProcessorStatusDTO {
     }
 
     /**
-     * The processor run status.
-     *
-     * @return
+     * @return processor run status
      */
     public String getProcessorRunStatus() {
         return processorRunStatus;

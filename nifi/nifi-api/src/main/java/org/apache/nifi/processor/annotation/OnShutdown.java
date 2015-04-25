@@ -29,7 +29,8 @@ import java.lang.annotation.Target;
  * most once for each processor instance in a process lifetime.
  *
  * @author none
- * @deprecated This Annotation has been replaced by the {@link org.apache.nifi.annotation.lifecycle.OnShutdown} annotation.
+ * @deprecated This Annotation has been replaced by the
+ * {@link org.apache.nifi.annotation.lifecycle.OnShutdown} annotation.
  */
 @Documented
 @Target({ElementType.METHOD})

@@ -48,9 +48,7 @@ public class UsersEntity extends Entity {
     }
 
     /**
-     * When this content was generated.
-     *
-     * @return
+     * @return When this content was generated
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
     public Date getGenerated() {

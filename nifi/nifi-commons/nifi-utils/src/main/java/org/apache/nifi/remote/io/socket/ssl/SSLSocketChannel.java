@@ -260,7 +260,7 @@ public class SSLSocketChannel implements Closeable {
 
     public void consume() throws IOException {
         channel.shutdownInput();
-        
+
         final byte[] b = new byte[4096];
         final ByteBuffer buffer = ByteBuffer.wrap(b);
         int readCount;
@@ -269,7 +269,7 @@ public class SSLSocketChannel implements Closeable {
             buffer.flip();
         } while (readCount > 0);
     }
-    
+
     private int readData(final ByteBuffer dest) throws IOException {
         final long startTime = System.currentTimeMillis();
 

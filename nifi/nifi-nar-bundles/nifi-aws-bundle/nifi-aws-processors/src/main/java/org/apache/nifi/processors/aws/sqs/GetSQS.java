@@ -51,116 +51,116 @@ import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 
 @SupportsBatching
-@Tags({ "Amazon", "AWS", "SQS", "Queue", "Get", "Fetch", "Poll"})
+@Tags({"Amazon", "AWS", "SQS", "Queue", "Get", "Fetch", "Poll"})
 @SeeAlso({PutSQS.class, DeleteSQS.class})
 @CapabilityDescription("Fetches messages from an Amazon Simple Queuing Service Queue")
 @WritesAttributes({
-	@WritesAttribute(attribute="hash.value", description="The MD5 sum of the message"),
-	@WritesAttribute(attribute="hash.algorithm", description="MD5"),
-	@WritesAttribute(attribute="sqs.message.id", description="The unique identifier of the SQS message"),
-	@WritesAttribute(attribute="sqs.receipt.handle", description="The SQS Receipt Handle that is to be used to delete the message from the queue")
+    @WritesAttribute(attribute = "hash.value", description = "The MD5 sum of the message"),
+    @WritesAttribute(attribute = "hash.algorithm", description = "MD5"),
+    @WritesAttribute(attribute = "sqs.message.id", description = "The unique identifier of the SQS message"),
+    @WritesAttribute(attribute = "sqs.receipt.handle", description = "The SQS Receipt Handle that is to be used to delete the message from the queue")
 })
 public class GetSQS extends AbstractSQSProcessor {
-    public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
-        .name("Character Set")
-        .description("The Character Set that should be used to encode the textual content of the SQS message")
-        .required(true)
-        .defaultValue("UTF-8")
-        .allowableValues(Charset.availableCharsets().keySet().toArray(new String[0]))
-        .build();
-    
-    public static final PropertyDescriptor AUTO_DELETE = new PropertyDescriptor.Builder()
-        .name("Auto Delete Messages")
-        .description("Specifies whether the messages should be automatically deleted by the processors once they have been received.")
-        .required(true)
-        .allowableValues("true", "false")
-        .defaultValue("true")
-        .build();
-    
-    public static final PropertyDescriptor VISIBILITY_TIMEOUT = new PropertyDescriptor.Builder()
-        .name("Visibility Timeout")
-        .description("The amount of time after a message is received but not deleted that the message is hidden from other consumers")
-        .expressionLanguageSupported(false)
-        .required(true)
-        .defaultValue("15 mins")
-        .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-        .build();
-    
-    public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
-        .name("Batch Size")
-        .description("The maximum number of messages to send in a single network request")
-        .required(true)
-        .addValidator(StandardValidators.createLongValidator(1L, 10L, true))
-        .defaultValue("10")
-        .build();
 
-    
+    public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
+            .name("Character Set")
+            .description("The Character Set that should be used to encode the textual content of the SQS message")
+            .required(true)
+            .defaultValue("UTF-8")
+            .allowableValues(Charset.availableCharsets().keySet().toArray(new String[0]))
+            .build();
+
+    public static final PropertyDescriptor AUTO_DELETE = new PropertyDescriptor.Builder()
+            .name("Auto Delete Messages")
+            .description("Specifies whether the messages should be automatically deleted by the processors once they have been received.")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("true")
+            .build();
+
+    public static final PropertyDescriptor VISIBILITY_TIMEOUT = new PropertyDescriptor.Builder()
+            .name("Visibility Timeout")
+            .description("The amount of time after a message is received but not deleted that the message is hidden from other consumers")
+            .expressionLanguageSupported(false)
+            .required(true)
+            .defaultValue("15 mins")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
+            .name("Batch Size")
+            .description("The maximum number of messages to send in a single network request")
+            .required(true)
+            .addValidator(StandardValidators.createLongValidator(1L, 10L, true))
+            .defaultValue("10")
+            .build();
+
     public static final PropertyDescriptor STATIC_QUEUE_URL = new PropertyDescriptor.Builder()
-        .fromPropertyDescriptor(QUEUE_URL)
-        .expressionLanguageSupported(false)
-        .build();
-    
+            .fromPropertyDescriptor(QUEUE_URL)
+            .expressionLanguageSupported(false)
+            .build();
+
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-            Arrays.asList(STATIC_QUEUE_URL, AUTO_DELETE, ACCESS_KEY, SECRET_KEY, CREDENTAILS_FILE, REGION, BATCH_SIZE, TIMEOUT, CHARSET, VISIBILITY_TIMEOUT) );
+            Arrays.asList(STATIC_QUEUE_URL, AUTO_DELETE, ACCESS_KEY, SECRET_KEY, CREDENTAILS_FILE, REGION, BATCH_SIZE, TIMEOUT, CHARSET, VISIBILITY_TIMEOUT));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return properties;
     }
-    
+
     @Override
     public Set<Relationship> getRelationships() {
         return Collections.singleton(REL_SUCCESS);
     }
-    
+
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
         final String queueUrl = context.getProperty(STATIC_QUEUE_URL).getValue();
-        
+
         final AmazonSQSClient client = getClient();
-        
+
         final ReceiveMessageRequest request = new ReceiveMessageRequest();
         request.setAttributeNames(Collections.singleton("All"));
         request.setMaxNumberOfMessages(context.getProperty(BATCH_SIZE).asInteger());
         request.setVisibilityTimeout(context.getProperty(VISIBILITY_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue());
         request.setQueueUrl(queueUrl);
-        
+
         final Charset charset = Charset.forName(context.getProperty(CHARSET).getValue());
-        
+
         final ReceiveMessageResult result;
         try {
             result = client.receiveMessage(request);
         } catch (final Exception e) {
-            getLogger().error("Failed to receive messages from Amazon SQS due to {}", new Object[] {e});
+            getLogger().error("Failed to receive messages from Amazon SQS due to {}", new Object[]{e});
             context.yield();
             return;
         }
-        
+
         final List<Message> messages = result.getMessages();
-        if ( messages.isEmpty() ) {
+        if (messages.isEmpty()) {
             context.yield();
             return;
         }
 
         final boolean autoDelete = context.getProperty(AUTO_DELETE).asBoolean();
-        
-        for ( final Message message : messages ) {
+
+        for (final Message message : messages) {
             FlowFile flowFile = session.create();
-            
+
             final Map<String, String> attributes = new HashMap<>();
-            for ( final Map.Entry<String, String> entry : message.getAttributes().entrySet() ) {
+            for (final Map.Entry<String, String> entry : message.getAttributes().entrySet()) {
                 attributes.put("sqs." + entry.getKey(), entry.getValue());
             }
-            
-            for ( final Map.Entry<String, MessageAttributeValue> entry : message.getMessageAttributes().entrySet() ) {
+
+            for (final Map.Entry<String, MessageAttributeValue> entry : message.getMessageAttributes().entrySet()) {
                 attributes.put("sqs." + entry.getKey(), entry.getValue().getStringValue());
             }
-            
+
             attributes.put("hash.value", message.getMD5OfBody());
             attributes.put("hash.algorithm", "md5");
             attributes.put("sqs.message.id", message.getMessageId());
             attributes.put("sqs.receipt.handle", message.getReceiptHandle());
-            
+
             flowFile = session.putAllAttributes(flowFile, attributes);
             flowFile = session.write(flowFile, new OutputStreamCallback() {
                 @Override
@@ -168,37 +168,37 @@ public class GetSQS extends AbstractSQSProcessor {
                     out.write(message.getBody().getBytes(charset));
                 }
             });
-            
+
             session.transfer(flowFile, REL_SUCCESS);
             session.getProvenanceReporter().receive(flowFile, queueUrl);
-            
-            getLogger().info("Successfully received {} from Amazon SQS", new Object[] {flowFile});
+
+            getLogger().info("Successfully received {} from Amazon SQS", new Object[]{flowFile});
         }
-        
-        if ( autoDelete ) {
+
+        if (autoDelete) {
             // If we want to auto-delete messages, we must fist commit the session to ensure that the data
             // is persisted in NiFi's repositories.
             session.commit();
-            
+
             final DeleteMessageBatchRequest deleteRequest = new DeleteMessageBatchRequest();
             deleteRequest.setQueueUrl(queueUrl);
             final List<DeleteMessageBatchRequestEntry> deleteRequestEntries = new ArrayList<>();
-            for ( final Message message : messages ) {
+            for (final Message message : messages) {
                 final DeleteMessageBatchRequestEntry entry = new DeleteMessageBatchRequestEntry();
                 entry.setId(message.getMessageId());
                 entry.setReceiptHandle(message.getReceiptHandle());
                 deleteRequestEntries.add(entry);
             }
-            
+
             deleteRequest.setEntries(deleteRequestEntries);
-            
+
             try {
                 client.deleteMessageBatch(deleteRequest);
             } catch (final Exception e) {
-                getLogger().error("Received {} messages from Amazon SQS but failed to delete the messages; these messages may be duplicated. Reason for deletion failure: {}", new Object[] {messages.size(), e});
+                getLogger().error("Received {} messages from Amazon SQS but failed to delete the messages; these messages may be duplicated. Reason for deletion failure: {}", new Object[]{messages.size(), e});
             }
         }
-        
+
     }
 
 }

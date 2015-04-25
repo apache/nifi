@@ -24,9 +24,7 @@ import java.util.Map;
 public interface AuthorityProviderConfigurationContext {
 
     /**
-     * The identifier for the authority provider.
-     *
-     * @return
+     * @return identifier for the authority provider
      */
     String getIdentifier();
 
@@ -41,12 +39,10 @@ public interface AuthorityProviderConfigurationContext {
     Map<String, String> getProperties();
 
     /**
-     * Retrieves the value the component currently understands for the given
+     * @param property to lookup the descriptor and value of
+     * @return the value the component currently understands for the given
      * PropertyDescriptor. This method does not substitute default
-     * PropertyDescriptor values, so the value returned will be null if not set.
-     *
-     * @param property
-     * @return
+     * PropertyDescriptor values, so the value returned will be null if not set
      */
     String getProperty(String property);
 }

@@ -23,10 +23,6 @@ import java.nio.channels.SelectionKey;
 
 import org.apache.nifi.io.nio.consumer.StreamConsumerFactory;
 
-/**
- *
- * @author none
- */
 public final class DatagramChannelReader extends AbstractChannelReader {
 
     public static final int MAX_UDP_PACKET_SIZE = 65507;
@@ -39,10 +35,10 @@ public final class DatagramChannelReader extends AbstractChannelReader {
      * Will receive UDP data from channel and won't receive anything unless the
      * given buffer has enough space for at least one full max udp packet.
      *
-     * @param key
-     * @param buffer
-     * @return
-     * @throws IOException
+     * @param key selection key
+     * @param buffer to fill
+     * @return bytes read
+     * @throws IOException if error filling buffer from channel
      */
     @Override
     protected int fillBuffer(final SelectionKey key, final ByteBuffer buffer) throws IOException {

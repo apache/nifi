@@ -24,18 +24,18 @@ import org.apache.nifi.util.NiFiProperties;
 import org.springframework.beans.factory.FactoryBean;
 
 /**
- * Factory bean for creating a singleton MulticastConfiguration instance.  
+ * Factory bean for creating a singleton MulticastConfiguration instance.
  */
 public class MulticastConfigurationFactoryBean implements FactoryBean {
-    
+
     private MulticastConfiguration configuration;
     private NiFiProperties properties;
-    
+
     @Override
     public Object getObject() throws Exception {
-        if(configuration == null) {
+        if (configuration == null) {
             configuration = new MulticastConfiguration();
-            
+
             final int timeout = (int) FormatUtils.getTimeDuration(properties.getClusterProtocolSocketTimeout(), TimeUnit.MILLISECONDS);
             configuration.setSocketTimeout(timeout);
             configuration.setReuseAddress(true);
@@ -53,7 +53,7 @@ public class MulticastConfigurationFactoryBean implements FactoryBean {
     public boolean isSingleton() {
         return true;
     }
-    
+
     public void setProperties(NiFiProperties properties) {
         this.properties = properties;
     }

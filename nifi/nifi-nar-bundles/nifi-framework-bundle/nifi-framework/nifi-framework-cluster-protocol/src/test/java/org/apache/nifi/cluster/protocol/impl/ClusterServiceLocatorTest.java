@@ -16,104 +16,104 @@
  */
 package org.apache.nifi.cluster.protocol.impl;
 
-import org.apache.nifi.cluster.protocol.impl.ClusterServiceLocator;
-import org.apache.nifi.cluster.protocol.impl.ClusterServiceDiscovery;
 import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 import org.apache.nifi.io.socket.multicast.DiscoverableService;
 import org.apache.nifi.io.socket.multicast.DiscoverableServiceImpl;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import org.junit.Before;
 import org.junit.Test;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import org.mockito.stubbing.OngoingStubbing;
 
 public class ClusterServiceLocatorTest {
-    
+
     private ClusterServiceDiscovery mockServiceDiscovery;
-    
+
     private int fixedPort;
-    
+
     private DiscoverableService fixedService;
-    
+
     private ClusterServiceLocator serviceDiscoveryLocator;
-    
+
     private ClusterServiceLocator serviceDiscoveryFixedPortLocator;
-    
+
     private ClusterServiceLocator fixedServiceLocator;
-    
+
     @Before
     public void setup() throws Exception {
-        
+
         fixedPort = 1;
         mockServiceDiscovery = mock(ClusterServiceDiscovery.class);
         fixedService = new DiscoverableServiceImpl("some-service", InetSocketAddress.createUnresolved("some-host", 20));
-        
+
         serviceDiscoveryLocator = new ClusterServiceLocator(mockServiceDiscovery);
         serviceDiscoveryFixedPortLocator = new ClusterServiceLocator(mockServiceDiscovery, fixedPort);
         fixedServiceLocator = new ClusterServiceLocator(fixedService);
-        
+
     }
-    
+
     @Test
     public void getServiceWhenServiceDiscoveryNotStarted() {
         assertNull(serviceDiscoveryLocator.getService());
     }
-    
+
     @Test
     public void getServiceWhenServiceDiscoveryFixedPortNotStarted() {
         assertNull(serviceDiscoveryLocator.getService());
     }
-    
+
     @Test
     public void getServiceWhenFixedServiceNotStarted() {
         assertEquals(fixedService, fixedServiceLocator.getService());
     }
-    
+
     @Test
     public void getServiceNotOnFirstAttempt() {
-                
+
         ClusterServiceLocator.AttemptsConfig config = new ClusterServiceLocator.AttemptsConfig();
         config.setNumAttempts(2);
         config.setTimeBetweenAttempsUnit(TimeUnit.SECONDS);
         config.setTimeBetweenAttempts(1);
-        
+
         serviceDiscoveryLocator.setAttemptsConfig(config);
-        
+
         OngoingStubbing<DiscoverableService> stubbing = null;
-        for(int i = 0; i < config.getNumAttempts() - 1; i++) {
-            if(stubbing == null) {
+        for (int i = 0; i < config.getNumAttempts() - 1; i++) {
+            if (stubbing == null) {
                 stubbing = when(mockServiceDiscovery.getService()).thenReturn(null);
             } else {
                 stubbing.thenReturn(null);
             }
         }
         stubbing.thenReturn(fixedService);
-        
+
         assertEquals(fixedService, serviceDiscoveryLocator.getService());
-        
+
     }
-    
+
     @Test
     public void getServiceNotOnFirstAttemptWithFixedPort() {
-        
+
         ClusterServiceLocator.AttemptsConfig config = new ClusterServiceLocator.AttemptsConfig();
         config.setNumAttempts(2);
         config.setTimeBetweenAttempsUnit(TimeUnit.SECONDS);
         config.setTimeBetweenAttempts(1);
-        
+
         serviceDiscoveryFixedPortLocator.setAttemptsConfig(config);
-        
+
         OngoingStubbing<DiscoverableService> stubbing = null;
-        for(int i = 0; i < config.getNumAttempts() - 1; i++) {
-            if(stubbing == null) {
+        for (int i = 0; i < config.getNumAttempts() - 1; i++) {
+            if (stubbing == null) {
                 stubbing = when(mockServiceDiscovery.getService()).thenReturn(null);
             } else {
                 stubbing.thenReturn(null);
             }
         }
         stubbing.thenReturn(fixedService);
-        
+
         InetSocketAddress resultAddress = InetSocketAddress.createUnresolved(fixedService.getServiceAddress().getHostName(), fixedPort);
         DiscoverableService resultService = new DiscoverableServiceImpl(fixedService.getServiceName(), resultAddress);
         assertEquals(resultService, serviceDiscoveryFixedPortLocator.getService());

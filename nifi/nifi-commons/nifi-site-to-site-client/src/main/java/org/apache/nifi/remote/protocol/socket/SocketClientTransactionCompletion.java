@@ -26,7 +26,7 @@ public class SocketClientTransactionCompletion implements TransactionCompletion 
     private final int dataPacketsTransferred;
     private final long bytesTransferred;
     private final long durationNanos;
-    
+
     public SocketClientTransactionCompletion(final boolean backoff, final int dataPacketsTransferred, final long bytesTransferred, final long durationNanos) {
         this.backoff = backoff;
         this.dataPacketsTransferred = dataPacketsTransferred;

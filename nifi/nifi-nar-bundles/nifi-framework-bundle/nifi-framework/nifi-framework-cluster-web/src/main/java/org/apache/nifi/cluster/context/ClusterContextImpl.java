@@ -29,13 +29,13 @@ import org.apache.nifi.web.Revision;
 public class ClusterContextImpl implements ClusterContext, Serializable {
 
     private final List<Action> actions = new ArrayList<>();
-    
+
     private Revision revision;
-    
+
     private boolean requestSentByClusterManager;
-    
+
     private final String idGenerationSeed = UUID.randomUUID().toString();
-    
+
     @Override
     public List<Action> getActions() {
         return actions;
@@ -55,7 +55,7 @@ public class ClusterContextImpl implements ClusterContext, Serializable {
     public boolean isRequestSentByClusterManager() {
         return requestSentByClusterManager;
     }
-    
+
     @Override
     public void setRequestSentByClusterManager(boolean requestSentByClusterManager) {
         this.requestSentByClusterManager = requestSentByClusterManager;

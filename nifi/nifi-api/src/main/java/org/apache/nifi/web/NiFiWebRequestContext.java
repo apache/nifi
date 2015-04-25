@@ -22,12 +22,10 @@ package org.apache.nifi.web;
 public interface NiFiWebRequestContext {
 
     /**
-     * Returns the type of UI extension is making the request.
-     * 
-     * @return 
+     * @return the type of UI extension is making the request
      */
     UiExtensionType getExtensionType();
-    
+
     /**
      * The request protocol scheme (http or https). When scheme is https, the
      * X509Certificate can be used for subsequent remote requests.
@@ -38,7 +36,7 @@ public interface NiFiWebRequestContext {
 
     /**
      * The id of the component.
-     * 
+     *
      * @return the ID
      */
     String getId();

@@ -104,6 +104,15 @@
                 </configuration>
             </plugin>
             <plugin>
+                <groupId>org.apache.rat</groupId>
+                <artifactId>apache-rat-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>src/main/asciidoc/asciidoc-mod.css</exclude> <!-- MIT license confirmed.  Excluding due to parse error-->
+                    </excludes>
+                </configuration>
+            </plugin>
+            <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <configuration>
                     <attach>true</attach>

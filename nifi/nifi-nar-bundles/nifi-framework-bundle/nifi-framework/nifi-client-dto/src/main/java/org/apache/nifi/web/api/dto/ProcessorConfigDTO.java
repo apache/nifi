@@ -54,8 +54,8 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * The frequency with which to schedule the processor. The format of the value will
-     * depend on the value of {@link #getSchedulingStrategy()}.
+     * The frequency with which to schedule the processor. The format of the
+     * value will depend on the value of {@link #getSchedulingStrategy()}.
      *
      * @return The scheduling period
      */
@@ -71,7 +71,7 @@ public class ProcessorConfigDTO {
      * Indicates whether the processor should be scheduled to run in
      * event-driven mode or timer-driven mode
      *
-     * @return
+     * @return scheduling strategy
      */
     public String getSchedulingStrategy() {
         return schedulingStrategy;
@@ -82,10 +82,7 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * The amount of time that is used when this processor penalizes a flow
-     * file.
-     *
-     * @return
+     * @return the amount of time that is used when this processor penalizes a flow file
      */
     public String getPenaltyDuration() {
         return penaltyDuration;
@@ -96,10 +93,8 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * When yielding, this amount of time must elaspe before this processor is
-     * scheduled again.
-     *
-     * @return
+     * @return amount of time must elaspe before this processor is
+     * scheduled again when yielding
      */
     public String getYieldDuration() {
         return yieldDuration;
@@ -110,9 +105,7 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * The level at this this processor will report bulletins.
-     *
-     * @return
+     * @return the level at this this processor will report bulletins
      */
     public String getBulletinLevel() {
         return bulletinLevel;
@@ -127,7 +120,7 @@ public class ProcessorConfigDTO {
      * processor. If this processor doesn't allow parallel processing then any
      * positive input will be ignored.
      *
-     * @return The concurrently schedulable task count
+     * @return the concurrently schedulable task count
      */
     public Integer getConcurrentlySchedulableTaskCount() {
         return concurrentlySchedulableTaskCount;
@@ -138,9 +131,7 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * Whether or not this Processor is Loss Tolerant
-     *
-     * @return
+     * @return whether or not this Processor is Loss Tolerant
      */
     public Boolean isLossTolerant() {
         return lossTolerant;
@@ -151,9 +142,7 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * The comments for this processor.
-     *
-     * @return The comments
+     * @return the comments
      */
     public String getComments() {
         return comments;
@@ -181,9 +170,7 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * The descriptors for this processor's properties.
-     *
-     * @return
+     * @return descriptors for this processor's properties
      */
     public Map<String, PropertyDescriptorDTO> getDescriptors() {
         return descriptors;
@@ -207,10 +194,8 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * Returns the URL for this processors custom configuration UI
-     * if applicable. Null otherwise.
-     *
-     * @return
+     * @return the URL for this processors custom configuration UI if
+     * applicable. Null otherwise.
      */
     public String getCustomUiUrl() {
         return customUiUrl;
@@ -221,10 +206,8 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * The names of all processor relationships that cause a flow file to be
+     * @return the names of all processor relationships that cause a flow file to be
      * terminated if the relationship is not connected to anything
-     *
-     * @return
      */
     public Set<String> getAutoTerminatedRelationships() {
         return autoTerminatedRelationships;
@@ -235,10 +218,8 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * Maps default values for concurrent tasks for each applicable scheduling
+     * @return maps default values for concurrent tasks for each applicable scheduling
      * strategy.
-     *
-     * @return
      */
     public Map<String, String> getDefaultConcurrentTasks() {
         return defaultConcurrentTasks;
@@ -249,9 +230,7 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * The run duration in milliseconds.
-     *
-     * @return
+     * @return run duration in milliseconds
      */
     public Long getRunDurationMillis() {
         return runDurationMillis;
@@ -262,10 +241,8 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * Maps default values for scheduling period for each applicable scheduling
-     * strategy.
-     *
-     * @return
+     * @return Maps default values for scheduling period for each applicable scheduling
+     * strategy
      */
     public Map<String, String> getDefaultSchedulingPeriod() {
         return defaultSchedulingPeriod;

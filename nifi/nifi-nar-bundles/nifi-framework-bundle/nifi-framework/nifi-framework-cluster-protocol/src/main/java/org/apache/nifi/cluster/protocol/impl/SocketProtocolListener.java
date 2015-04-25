@@ -47,8 +47,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Implements a listener for protocol messages sent over unicast socket. 
- * 
+ * Implements a listener for protocol messages sent over unicast socket.
+ *
  * @author unattributed
  */
 public class SocketProtocolListener extends SocketListener implements ProtocolListener {
@@ -57,7 +57,7 @@ public class SocketProtocolListener extends SocketListener implements ProtocolLi
     private final ProtocolContext<ProtocolMessage> protocolContext;
     private final Collection<ProtocolHandler> handlers = new CopyOnWriteArrayList<>();
     private volatile BulletinRepository bulletinRepository;
-    
+
     public SocketProtocolListener(
             final int numThreads,
             final int port,
@@ -65,11 +65,11 @@ public class SocketProtocolListener extends SocketListener implements ProtocolLi
             final ProtocolContext<ProtocolMessage> protocolContext) {
 
         super(numThreads, port, configuration);
-        
-        if(protocolContext == null) {
+
+        if (protocolContext == null) {
             throw new IllegalArgumentException("Protocol Context may not be null.");
         }
-        
+
         this.protocolContext = protocolContext;
     }
 
@@ -77,24 +77,24 @@ public class SocketProtocolListener extends SocketListener implements ProtocolLi
     public void setBulletinRepository(final BulletinRepository bulletinRepository) {
         this.bulletinRepository = bulletinRepository;
     }
-    
+
     @Override
     public void start() throws IOException {
 
-        if(super.isRunning()) {
+        if (super.isRunning()) {
             throw new IllegalStateException("Instance is already started.");
         }
-        
+
         super.start();
     }
 
     @Override
     public void stop() throws IOException {
 
-        if(super.isRunning() == false) {
+        if (super.isRunning() == false) {
             throw new IOException("Instance is already stopped.");
         }
-        
+
         super.stop();
 
     }
@@ -106,12 +106,12 @@ public class SocketProtocolListener extends SocketListener implements ProtocolLi
 
     @Override
     public void addHandler(final ProtocolHandler handler) {
-        if(handler == null) {
+        if (handler == null) {
             throw new NullPointerException("Protocol handler may not be null.");
         }
         handlers.add(handler);
     }
-    
+
     @Override
     public boolean removeHandler(final ProtocolHandler handler) {
         return handlers.remove(handler);
@@ -127,13 +127,13 @@ public class SocketProtocolListener extends SocketListener implements ProtocolLi
             hostname = socket.getInetAddress().getHostName();
             final String requestId = UUID.randomUUID().toString();
             logger.info("Received request {} from {}", requestId, hostname);
-            
+
             String requestorDn = null;
-            if ( socket instanceof SSLSocket ) {
+            if (socket instanceof SSLSocket) {
                 final SSLSocket sslSocket = (SSLSocket) socket;
                 try {
                     final X509Certificate[] certChains = sslSocket.getSession().getPeerCertificateChain();
-                    if ( certChains != null && certChains.length > 0 ) {
+                    if (certChains != null && certChains.length > 0) {
                         requestorDn = certChains[0].getSubjectDN().getName();
                     }
                 } catch (final ProtocolException pe) {
@@ -142,22 +142,22 @@ public class SocketProtocolListener extends SocketListener implements ProtocolLi
                     throw new ProtocolException(e);
                 }
             }
-            
+
             // unmarshall message
             final ProtocolMessageUnmarshaller<ProtocolMessage> unmarshaller = protocolContext.createUnmarshaller();
             final InputStream inStream = socket.getInputStream();
             final CopyingInputStream copyingInputStream = new CopyingInputStream(inStream, maxMsgBuffer); // don't copy more than 1 MB
             logger.debug("Request {} has a message length of {}", requestId, copyingInputStream.getNumberOfBytesCopied());
-            
+
             final ProtocolMessage request;
             try {
                 request = unmarshaller.unmarshal(copyingInputStream);
             } finally {
                 receivedMessage = copyingInputStream.getBytesRead();
             }
-            
+
             request.setRequestorDN(requestorDn);
-            
+
             // dispatch message to handler
             ProtocolHandler desiredHandler = null;
             for (final ProtocolHandler handler : getHandlers()) {
@@ -172,10 +172,10 @@ public class SocketProtocolListener extends SocketListener implements ProtocolLi
                 throw new ProtocolException("No handler assigned to handle message type: " + request.getType());
             } else {
                 final ProtocolMessage response = desiredHandler.handle(request);
-                if(response != null) {
+                if (response != null) {
                     try {
                         logger.debug("Sending response for request {}", requestId);
-                            
+
                         // marshal message to output stream
                         final ProtocolMessageMarshaller<ProtocolMessage> marshaller = protocolContext.createMarshaller();
                         marshaller.marshal(response, socket.getOutputStream());
@@ -184,19 +184,19 @@ public class SocketProtocolListener extends SocketListener implements ProtocolLi
                     }
                 }
             }
-            
+
             stopWatch.stop();
             logger.info("Finished processing request {} (type={}, length={} bytes) in {} millis", requestId, request.getType(), receivedMessage.length, stopWatch.getDuration(TimeUnit.MILLISECONDS));
         } catch (final IOException e) {
             logger.warn("Failed processing protocol message from " + hostname + " due to " + e, e);
-            
-            if ( bulletinRepository != null ) {
+
+            if (bulletinRepository != null) {
                 final Bulletin bulletin = BulletinFactory.createBulletin("Clustering", "WARNING", String.format("Failed to process protocol message from %s due to: %s", hostname, e.toString()));
                 bulletinRepository.addBulletin(bulletin);
             }
         } catch (final ProtocolException e) {
             logger.warn("Failed processing protocol message from " + hostname + " due to " + e, e);
-            if ( bulletinRepository != null ) {
+            if (bulletinRepository != null) {
                 final Bulletin bulletin = BulletinFactory.createBulletin("Clustering", "WARNING", String.format("Failed to process protocol message from %s due to: %s", hostname, e.toString()));
                 bulletinRepository.addBulletin(bulletin);
             }

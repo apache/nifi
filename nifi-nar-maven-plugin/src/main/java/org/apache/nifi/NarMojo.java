@@ -290,8 +290,8 @@ public class NarMojo extends AbstractMojo {
      */
     @Parameter(property = "overWriteIfNewer", required = false, defaultValue = "true")
     protected boolean overWriteIfNewer;
-    
-    @Parameter( property = "projectBuildDirectory", required = false, defaultValue = "${project.build.directory}")
+
+    @Parameter(property = "projectBuildDirectory", required = false, defaultValue = "${project.build.directory}")
     protected File projectBuildDirectory;
 
     /**

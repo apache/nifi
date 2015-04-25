@@ -31,8 +31,9 @@ import java.lang.annotation.Target;
  * {@link nifi.controller.ConfigurationContext ConfigurationContext}.
  *
  * @author none
- * 
- * @deprecated This annotation has been replaced by those in the {@link org.apache.nifi.annotation.lifecycle} package.
+ *
+ * @deprecated This annotation has been replaced by those in the
+ * {@link org.apache.nifi.annotation.lifecycle} package.
  */
 @Documented
 @Target({ElementType.METHOD})

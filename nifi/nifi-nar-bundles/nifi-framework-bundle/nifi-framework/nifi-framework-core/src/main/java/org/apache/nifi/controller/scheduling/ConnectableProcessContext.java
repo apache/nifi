@@ -179,14 +179,14 @@ public class ConnectableProcessContext implements ProcessContext {
 
     @Override
     public Set<Relationship> getAvailableRelationships() {
-        for ( final Connection connection : connectable.getConnections() ) {
-            if ( connection.getFlowFileQueue().isFull() ) {
+        for (final Connection connection : connectable.getConnections()) {
+            if (connection.getFlowFileQueue().isFull()) {
                 return Collections.emptySet();
             }
         }
-        
+
         final Collection<Relationship> relationships = connectable.getRelationships();
-        if ( relationships instanceof Set ) {
+        if (relationships instanceof Set) {
             return (Set<Relationship>) relationships;
         }
         return new HashSet<>(connectable.getRelationships());

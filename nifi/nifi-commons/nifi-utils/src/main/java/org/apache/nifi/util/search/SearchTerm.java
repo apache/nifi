@@ -22,8 +22,6 @@ import java.util.Arrays;
 /**
  * This is an immutable thread safe object representing a search term
  *
- * @author
- * @param <T>
  */
 public class SearchTerm<T> {
 
@@ -34,8 +32,8 @@ public class SearchTerm<T> {
     /**
      * Constructs a SearchTerm. Defensively copies the given byte array
      *
-     * @param bytes
-     * @throws IllegalArgument exception if given bytes are null or 0 length
+     * @param bytes the bytes of the search term
+     * @throws IllegalArgumentException if given bytes are null or 0 length
      */
     public SearchTerm(final byte[] bytes) {
         this(bytes, true, null);
@@ -46,9 +44,9 @@ public class SearchTerm<T> {
      * given byte array. If the caller indicates a defensive copy is not
      * necessary then they must not change the given arrays state any longer
      *
-     * @param bytes
-     * @param defensiveCopy
-     * @param reference
+     * @param bytes the bytes of the new search term
+     * @param defensiveCopy if true will make a defensive copy; false otherwise
+     * @param reference a holder for an object which can be retrieved when this search term hits
      */
     public SearchTerm(final byte[] bytes, final boolean defensiveCopy, final T reference) {
         if (bytes == null || bytes.length == 0) {
@@ -84,7 +82,7 @@ public class SearchTerm<T> {
     /**
      * Determines if the given window starts with the same bytes as this term
      *
-     * @param window Current window of bytes from the haystack being evaluated.
+     * @param window bytes from the haystack being evaluated
      * @param windowLength The length of the window to consider
      * @return true if this term starts with the same bytes of the given window
      */

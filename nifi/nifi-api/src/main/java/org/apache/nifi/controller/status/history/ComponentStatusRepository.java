@@ -33,7 +33,7 @@ public interface ComponentStatusRepository {
     /**
      * Captures the status information provided in the given report
      *
-     * @param rootGroupStatus
+     * @param rootGroupStatus status of root group
      */
     void capture(ProcessGroupStatus rootGroupStatus);
 
@@ -42,22 +42,17 @@ public interface ComponentStatusRepository {
      * timestamp that indicates the time at which the status report was
      * generated. This can be used to replay historical values.
      *
-     * @param rootGroupStatus
-     * @param timestamp
+     * @param rootGroupStatus status
+     * @param timestamp timestamp of capture
      */
     void capture(ProcessGroupStatus rootGroupStatus, Date timestamp);
 
     /**
-     * Returns the Date at which the latest capture was performed
-     *
-     * @return
+     * @return the Date at which the latest capture was performed
      */
     Date getLastCaptureDate();
 
     /**
-     * Returns a {@link StatusHistory} that provides the status information
-     * about the Connection with the given ID during the given time period.
-     *
      * @param connectionId the ID of the Connection for which the Status is
      * desired
      * @param start the earliest date for which status information should be
@@ -70,15 +65,13 @@ public interface ComponentStatusRepository {
      * If the date range is large, the total number of data points could be far
      * too many to process. Therefore, this parameter allows the requestor to
      * indicate how many samples to return.
-     * @return
+     * @return a {@link StatusHistory} that provides the status information
+     * about the Connection with the given ID during the given time period
      */
     StatusHistory getConnectionStatusHistory(String connectionId, Date start, Date end, int preferredDataPoints);
 
     /**
-     * Returns a {@link StatusHistory} that provides the status information
-     * about the Process Group with the given ID during the given time period.
-     *
-     * @param processGroupId
+     * @param processGroupId of group to get status of
      * @param start the earliest date for which status information should be
      * returned; if <code>null</code>, the start date should be assumed to be
      * the beginning of time
@@ -89,15 +82,13 @@ public interface ComponentStatusRepository {
      * If the date range is large, the total number of data points could be far
      * too many to process. Therefore, this parameter allows the requestor to
      * indicate how many samples to return.
-     * @return
+     * @return a {@link StatusHistory} that provides the status information
+     * about the Process Group with the given ID during the given time period
      */
     StatusHistory getProcessGroupStatusHistory(String processGroupId, Date start, Date end, int preferredDataPoints);
 
     /**
-     * Returns a {@link StatusHistory} that provides the status information
-     * about the Processor with the given ID during the given time period.
-     *
-     * @param processorId
+     * @param processorId to get status of
      * @param start the earliest date for which status information should be
      * returned; if <code>null</code>, the start date should be assumed to be
      * the beginning of time
@@ -108,16 +99,13 @@ public interface ComponentStatusRepository {
      * If the date range is large, the total number of data points could be far
      * too many to process. Therefore, this parameter allows the requestor to
      * indicate how many samples to return.
-     * @return
+     * @return a {@link StatusHistory} that provides the status information
+     * about the Processor with the given ID during the given time period
      */
     StatusHistory getProcessorStatusHistory(String processorId, Date start, Date end, int preferredDataPoints);
 
     /**
-     * Returns a {@link StatusHistory} that provides the status information
-     * about the Remote Process Group with the given ID during the given time
-     * period.
-     *
-     * @param remoteGroupId
+     * @param remoteGroupId to get history of
      * @param start the earliest date for which status information should be
      * returned; if <code>null</code>, the start date should be assumed to be
      * the beginning of time
@@ -128,39 +116,33 @@ public interface ComponentStatusRepository {
      * If the date range is large, the total number of data points could be far
      * too many to process. Therefore, this parameter allows the requestor to
      * indicate how many samples to return.
-     * @return
+     * @return a {@link StatusHistory} that provides the status information
+     * about the Remote Process Group with the given ID during the given time
+     * period
      */
     StatusHistory getRemoteProcessGroupStatusHistory(String remoteGroupId, Date start, Date end, int preferredDataPoints);
 
     /**
-     * Returns a List of all {@link MetricDescriptor}s that are applicable to
+     * @return a List of all {@link MetricDescriptor}s that are applicable to
      * Process Groups
-     *
-     * @return
      */
     List<MetricDescriptor<ProcessGroupStatus>> getProcessGroupMetricDescriptors();
 
     /**
-     * Returns a List of all {@link MetricDescriptor}s that are applicable to
+     * @return a List of all {@link MetricDescriptor}s that are applicable to
      * Processors
-     *
-     * @return
      */
     List<MetricDescriptor<ProcessorStatus>> getProcessorMetricDescriptors();
 
     /**
-     * Returns a List of all {@link MetricDescriptor}s that are applicable to
+     * @return a List of all {@link MetricDescriptor}s that are applicable to
      * Remote Process Groups
-     *
-     * @return
      */
     List<MetricDescriptor<RemoteProcessGroupStatus>> getRemoteProcessGroupMetricDescriptors();
 
     /**
-     * Returns a List of all {@link MetricDescriptor}s that are applicable to
+     * @return a List of all {@link MetricDescriptor}s that are applicable to
      * Connections
-     *
-     * @return
      */
     List<MetricDescriptor<ConnectionStatus>> getConnectionMetricDescriptors();
 

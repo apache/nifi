@@ -46,42 +46,41 @@ public class RemoteProcessGroupUtils {
 
     private static final int CONNECT_TIMEOUT = 10000;
     private static final int READ_TIMEOUT = 10000;
-    
+
     private final Client client;
-    
+
     public RemoteProcessGroupUtils(final SSLContext sslContext) {
         this.client = getClient(sslContext);
     }
-    
 
     /**
      * Gets the content at the specified URI.
      *
-     * @param uri
-     * @param timeoutMillis
-     * @return
-     * @throws ClientHandlerException
-     * @throws UniformInterfaceException
+     * @param uri the URI to get the content of
+     * @param timeoutMillis the period of time to wait
+     * @return the response of the request
+     * @throws ClientHandlerException issues handling the response
+     * @throws UniformInterfaceException issues with the request
      */
     public ClientResponse get(final URI uri, final int timeoutMillis) throws ClientHandlerException, UniformInterfaceException {
         return get(uri, timeoutMillis, null);
     }
-    
+
     /**
      * Gets the content at the specified URI using the given query parameters.
      *
-     * @param uri
-     * @param timeoutMillis
-     * @param queryParams 
-     * @return
-     * @throws ClientHandlerException
-     * @throws UniformInterfaceException
+     * @param uri the uri to get the content of
+     * @param timeoutMillis the period of time to wait for a response
+     * @param queryParams the query params of the request
+     * @return the client response of the request
+     * @throws ClientHandlerException issues with the response
+     * @throws UniformInterfaceException issues with the request
      */
     public ClientResponse get(final URI uri, final int timeoutMillis, final Map<String, String> queryParams) throws ClientHandlerException, UniformInterfaceException {
         // perform the request
         WebResource webResource = client.resource(uri);
-        if ( queryParams != null ) {
-            for ( final Map.Entry<String, String> queryEntry : queryParams.entrySet() ) {
+        if (queryParams != null) {
+            for (final Map.Entry<String, String> queryEntry : queryParams.entrySet()) {
                 webResource = webResource.queryParam(queryEntry.getKey(), queryEntry.getValue());
             }
         }
@@ -95,11 +94,11 @@ public class RemoteProcessGroupUtils {
     /**
      * Performs a HEAD request to the specified URI.
      *
-     * @param uri
-     * @param timeoutMillis
-     * @return
-     * @throws ClientHandlerException
-     * @throws UniformInterfaceException
+     * @param uri the uri to request the head of
+     * @param timeoutMillis the period of time to wait for a reponse
+     * @return the client response
+     * @throws ClientHandlerException issues with the request
+     * @throws UniformInterfaceException issues with the response
      */
     public ClientResponse head(final URI uri, final int timeoutMillis) throws ClientHandlerException, UniformInterfaceException {
         // perform the request
@@ -110,10 +109,10 @@ public class RemoteProcessGroupUtils {
     }
 
     /**
-     * Gets a client based on the specified URI.
-     * 
-     * @param uri
-     * @return 
+     * Gets a client for the given sslContext
+     *
+     * @param sslContext the ssl context to get a client for
+     * @return the client
      */
     private Client getClient(final SSLContext sslContext) {
         final Client client;
@@ -128,26 +127,28 @@ public class RemoteProcessGroupUtils {
 
         return client;
     }
-    
-    
+
     /**
-     * Returns the port on which the remote instance is listening for Flow File transfers, or <code>null</code> if the remote instance
-     * is not configured to use Site-to-Site transfers.
-     * 
-     * @param uri the base URI of the remote instance. This should include the path only to the nifi-api level, as well as the protocol, host, and port.
-     * @param timeoutMillis
-     * @return
-     * @throws IOException
+     * Returns the port on which the remote instance is listening for Flow File
+     * transfers, or <code>null</code> if the remote instance is not configured
+     * to use Site-to-Site transfers.
+     *
+     * @param uri the base URI of the remote instance. This should include the
+     * path only to the nifi-api level, as well as the protocol, host, and port.
+     * @param timeoutMillis the period of time to wait for the port
+     * @return the port
+     * @throws IOException if an error occurs getting the remote port
+     * information
      */
     public Integer getRemoteListeningPort(final String uri, final int timeoutMillis) throws IOException {
-    	try {
-			final URI uriObject = new URI(uri + CONTROLLER_URI_PATH);
-			return getRemoteListeningPort(uriObject, timeoutMillis);
-		} catch (URISyntaxException e) {
-			throw new IOException("Unable to establish connection to remote host because URI is invalid: " + uri);
-		}
+        try {
+            final URI uriObject = new URI(uri + CONTROLLER_URI_PATH);
+            return getRemoteListeningPort(uriObject, timeoutMillis);
+        } catch (URISyntaxException e) {
+            throw new IOException("Unable to establish connection to remote host because URI is invalid: " + uri);
+        }
     }
-    
+
     public String getRemoteRootGroupId(final String uri, final int timeoutMillis) throws IOException {
         try {
             final URI uriObject = new URI(uri + CONTROLLER_URI_PATH);
@@ -156,7 +157,7 @@ public class RemoteProcessGroupUtils {
             throw new IOException("Unable to establish connection to remote host because URI is invalid: " + uri);
         }
     }
-    
+
     public String getRemoteInstanceId(final String uri, final int timeoutMillis) throws IOException {
         try {
             final URI uriObject = new URI(uri + CONTROLLER_URI_PATH);
@@ -165,26 +166,27 @@ public class RemoteProcessGroupUtils {
             throw new IOException("Unable to establish connection to remote host because URI is invalid: " + uri);
         }
     }
-    
+
     /**
-     * Returns the port on which the remote instance is listening for Flow File transfers, or <code>null</code> if the remote instance
-     * is not configured to use Site-to-Site transfers.
-     * 
+     * Returns the port on which the remote instance is listening for Flow File
+     * transfers, or <code>null</code> if the remote instance is not configured
+     * to use Site-to-Site transfers.
+     *
      * @param uri the full URI to fetch, including the path.
-     * @return
-     * @throws IOException
+     * @return the remote listening port
+     * @throws IOException if unable to get port
      */
     private Integer getRemoteListeningPort(final URI uri, final int timeoutMillis) throws IOException {
-    	return getController(uri, timeoutMillis).getRemoteSiteListeningPort();
+        return getController(uri, timeoutMillis).getRemoteSiteListeningPort();
     }
-    
+
     private String getRemoteRootGroupId(final URI uri, final int timeoutMillis) throws IOException {
         return getController(uri, timeoutMillis).getId();
     }
-    
+
     private ControllerDTO getController(final URI uri, final int timeoutMillis) throws IOException {
         final ClientResponse response = get(uri, timeoutMillis);
-        
+
         if (Status.OK.getStatusCode() == response.getStatusInfo().getStatusCode()) {
             final ControllerEntity entity = response.getEntity(ControllerEntity.class);
             return entity.getController();
@@ -193,12 +195,12 @@ public class RemoteProcessGroupUtils {
             throw new IOException("Got HTTP response Code " + response.getStatusInfo().getStatusCode() + ": " + response.getStatusInfo().getReasonPhrase() + " with explanation: " + responseMessage);
         }
     }
-    
+
     /**
      * Issues a registration request on behalf of the current user.
-     * 
-     * @param baseApiUri 
-     * @return  
+     *
+     * @param baseApiUri the URI to issue a request to
+     * @return the response of the request
      */
     public ClientResponse issueRegistrationRequest(String baseApiUri) {
         final URI uri = URI.create(String.format("%s/%s", baseApiUri, "/controller/users"));
@@ -206,10 +208,10 @@ public class RemoteProcessGroupUtils {
         // set up the query params
         MultivaluedMapImpl entity = new MultivaluedMapImpl();
         entity.add("justification", "A Remote instance of NiFi has attempted to create a reference to this NiFi. This action must be approved first.");
-        
+
         // create the web resource
         WebResource webResource = client.resource(uri);
-        
+
         // get the client utils and make the request
         return webResource.accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_FORM_URLENCODED).entity(entity).post(ClientResponse.class);
     }

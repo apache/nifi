@@ -100,12 +100,12 @@ public enum SecurityStoreTypes {
     /**
      * Creates an instance.
      *
-     * @param storeProperty the Java system property for setting the keystore (
-     * or truststore) path
+     * @param storeProperty the Java system property for setting the keystore or
+     * truststore path
      * @param storePasswordProperty the Java system property for setting the
-     * keystore (or truststore) password
+     * keystore or truststore path
      * @param storeTypeProperty the Java system property for setting the
-     * keystore (or truststore) type
+     * keystore or truststore type
      */
     SecurityStoreTypes(final String storeProperty,
             final String storePasswordProperty,

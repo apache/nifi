@@ -29,9 +29,7 @@ public class NodePortStatusDTO {
     private PortStatusDTO portStatus;
 
     /**
-     * The node.
-     *
-     * @return
+     * @return the node
      */
     public NodeDTO getNode() {
         return node;
@@ -42,9 +40,7 @@ public class NodePortStatusDTO {
     }
 
     /**
-     * The port's status.
-     *
-     * @return
+     * @return port status
      */
     public PortStatusDTO getPortStatus() {
         return portStatus;

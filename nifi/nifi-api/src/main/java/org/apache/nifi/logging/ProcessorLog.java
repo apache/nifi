@@ -16,14 +16,14 @@
  */
 package org.apache.nifi.logging;
 
-
 /**
- * The ProcessorLog is an extension of ComponentLog but provides no additional functionality.
- * It exists because ProcessorLog was created first,
- * but when Controller Services and Reporting Tasks began to be used more heavily loggers
- * were needed for them as well. We did not want to return a ProcessorLog to a ControllerService
- * or a ReportingTask, so all of the methods were moved to a higher interface named ComponentLog.
- * However, we kept the ProcessorLog interface around in order to maintain backward compatibility.
+ * The ProcessorLog is an extension of ComponentLog but provides no additional
+ * functionality. It exists because ProcessorLog was created first, but when
+ * Controller Services and Reporting Tasks began to be used more heavily loggers
+ * were needed for them as well. We did not want to return a ProcessorLog to a
+ * ControllerService or a ReportingTask, so all of the methods were moved to a
+ * higher interface named ComponentLog. However, we kept the ProcessorLog
+ * interface around in order to maintain backward compatibility.
  */
 public interface ProcessorLog extends ComponentLog {
 

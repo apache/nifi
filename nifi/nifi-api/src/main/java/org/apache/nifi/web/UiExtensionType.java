@@ -17,13 +17,14 @@
 package org.apache.nifi.web;
 
 /**
- * Types of UI extensions. Since a UI extension could support multiple
- * types of custom UIs it will need to include the type so the framework
- * can appropriate understand and process the request (recording actions
- * in the audit database, replicating a request throughout the cluster to
- * the appropriate endpoints, etc).
+ * Types of UI extensions. Since a UI extension could support multiple types of
+ * custom UIs it will need to include the type so the framework can appropriate
+ * understand and process the request (recording actions in the audit database,
+ * replicating a request throughout the cluster to the appropriate endpoints,
+ * etc).
  */
 public enum UiExtensionType {
+
     ContentViewer,
     ProcessorConfiguration,
     ControllerServiceConfiguration,

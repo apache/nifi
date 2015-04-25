@@ -24,83 +24,88 @@ import org.apache.nifi.hl7.query.evaluator.BooleanEvaluator;
 import org.apache.nifi.hl7.query.evaluator.Evaluator;
 
 public abstract class AbstractComparisonEvaluator extends BooleanEvaluator {
-	private final Evaluator<?> lhs;
-	private final Evaluator<?> rhs;
-	
-	public AbstractComparisonEvaluator(final Evaluator<?> lhs, final Evaluator<?> rhs) {
-		this.lhs = lhs;
-		this.rhs = rhs;
-	}
-	
-	public final Boolean evaluate(final Map<String, Object> objectMap) {
-		final Object lhsValue = lhs.evaluate(objectMap);
-		if ( lhsValue == null ) {
-			return false;
-		}
-		
-		final Object rhsValue = rhs.evaluate(objectMap);
-		if ( rhsValue == null ) {
-			return false;
-		}
-		
-		return compareRaw(lhsValue, rhsValue);
-	}
-	
-	
-	private Boolean compareRaw(Object lhsValue, Object rhsValue) {
-		if ( lhsValue == null || rhsValue == null ) {
-			return false;
-		}
 
-		if ( lhsValue instanceof HL7Field ) {
-			lhsValue = ((HL7Field) lhsValue).getValue();
-		}
-		
-		if ( rhsValue instanceof HL7Field ) {
-			rhsValue = ((HL7Field) rhsValue).getValue();
-		}
+    private final Evaluator<?> lhs;
+    private final Evaluator<?> rhs;
 
-		if ( lhsValue == null || rhsValue == null ) {
-			return false;
-		}
-		
-		// both are collections, and compare(lhsValue, rhsValue) is false.
-		// this would be the case, for instance, if we compared field 1 of one segment to 
-		// a field in another segment, and both fields had components.
-		if ( lhsValue instanceof Collection && rhsValue instanceof Collection ) {
-			return false;
-		}
-		
-		// if one side is a collection but the other is not, check if any element in that
-		// collection compares to the other element in a way that satisfies the condition.
-		// this would happen, for instance, if we check Segment1.Field5 = 'X' and field 5 repeats
-		// with a value "A~B~C~X~Y~Z"; in this case we do want to consider Field 5 = X as true.
-		if ( lhsValue instanceof Collection ) {
-			for ( final Object lhsObject : (Collection<?>) lhsValue ) {
-				if ( compareRaw(lhsObject, rhsValue) ) {
-					return true;
-				}
-			}
-			
-			return false;
-		}
-		
-		if ( rhsValue instanceof Collection ) {
-			for ( final Object rhsObject : (Collection<?>) rhsValue ) {
-				if ( compareRaw(rhsObject, lhsValue) ) {
-					return true;
-				}
-			}
-			
-			return false;
-		}
-		
-		if ( lhsValue != null && rhsValue != null && compare(lhsValue, rhsValue) ) {
-			return true;
-		}
-		
-		return false;
-	}
-	
-	protected abstract boolean compare(Object lhs, Object rhs);
+    public AbstractComparisonEvaluator(final Evaluator<?> lhs, final Evaluator<?> rhs) {
+        this.lhs = lhs;
+        this.rhs = rhs;
+    }
+
+    @Override
+    public final Boolean evaluate(final Map<String, Object> objectMap) {
+        final Object lhsValue = lhs.evaluate(objectMap);
+        if (lhsValue == null) {
+            return false;
+        }
+
+        final Object rhsValue = rhs.evaluate(objectMap);
+        if (rhsValue == null) {
+            return false;
+        }
+
+        return compareRaw(lhsValue, rhsValue);
+    }
+
+    private Boolean compareRaw(Object lhsValue, Object rhsValue) {
+        if (lhsValue == null || rhsValue == null) {
+            return false;
+        }
+
+        if (lhsValue instanceof HL7Field) {
+            lhsValue = ((HL7Field) lhsValue).getValue();
+        }
+
+        if (rhsValue instanceof HL7Field) {
+            rhsValue = ((HL7Field) rhsValue).getValue();
+        }
+
+        if (lhsValue == null || rhsValue == null) {
+            return false;
+        }
+
+        /**
+         * both are collections, and compare(lhsValue, rhsValue) is false.
+         * this would be the case, for instance, if we compared field 1 of one segment to
+         * a field in another segment, and both fields had components.
+         */
+        if (lhsValue instanceof Collection && rhsValue instanceof Collection) {
+            return false;
+        }
+
+        /**
+         * if one side is a collection but the other is not, check if any element in that
+         * collection compares to the other element in a way that satisfies the condition.
+         * this would happen, for instance, if we check Segment1.Field5 = 'X' and field 5 repeats
+         * with a value "A~B~C~X~Y~Z"; in this case we do want to consider Field 5 = X as true.
+         */
+        if (lhsValue instanceof Collection) {
+            for (final Object lhsObject : (Collection<?>) lhsValue) {
+                if (compareRaw(lhsObject, rhsValue)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        if (rhsValue instanceof Collection) {
+            for (final Object rhsObject : (Collection<?>) rhsValue) {
+                if (compareRaw(rhsObject, lhsValue)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        if (lhsValue != null && rhsValue != null && compare(lhsValue, rhsValue)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    protected abstract boolean compare(Object lhs, Object rhs);
 }

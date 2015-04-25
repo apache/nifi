@@ -39,7 +39,6 @@ import org.springframework.web.context.support.WebApplicationContextUtils;
  * clustered environment. In this case, the cluster manager is created and
  * managed.
  *
- * @author unattributed
  */
 public class ApplicationStartupContextListener implements ServletContextListener {
 
@@ -68,14 +67,14 @@ public class ApplicationStartupContextListener implements ServletContextListener
             try {
                 flowService = ctx.getBean("flowService", FlowService.class);
 
-                // start and load the flow if we're not clustered (clustered flow loading should 
-                // happen once the application (wars) is fully loaded and initialized). non clustered 
-                // nifi instance need to load the flow before the application (wars) are fully loaded. 
-                // during the flow loading (below) the flow controller is lazily initialized. when the 
-                // flow is loaded after the application is completely initialized (wars deploy), as  
-                // required with a clustered node, users are able to make web requests before the flow 
-                // is loaded (and the flow controller is initialized) which shouldn't be allowed. moving 
-                // the flow loading here when not clustered resolves this. 
+                // start and load the flow if we're not clustered (clustered flow loading should
+                // happen once the application (wars) is fully loaded and initialized). non clustered
+                // nifi instance need to load the flow before the application (wars) are fully loaded.
+                // during the flow loading (below) the flow controller is lazily initialized. when the
+                // flow is loaded after the application is completely initialized (wars deploy), as
+                // required with a clustered node, users are able to make web requests before the flow
+                // is loaded (and the flow controller is initialized) which shouldn't be allowed. moving
+                // the flow loading here when not clustered resolves this.
                 if (!properties.isNode()) {
                     logger.info("Starting Flow Controller...");
 

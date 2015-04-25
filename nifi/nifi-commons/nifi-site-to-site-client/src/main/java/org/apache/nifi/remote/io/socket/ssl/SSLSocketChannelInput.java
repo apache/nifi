@@ -24,25 +24,26 @@ import org.apache.nifi.stream.io.ByteCountingInputStream;
 import org.apache.nifi.remote.protocol.CommunicationsInput;
 
 public class SSLSocketChannelInput implements CommunicationsInput {
+
     private final SSLSocketChannelInputStream in;
     private final ByteCountingInputStream countingIn;
     private final InputStream bufferedIn;
-    
+
     public SSLSocketChannelInput(final SSLSocketChannel socketChannel) {
         in = new SSLSocketChannelInputStream(socketChannel);
         countingIn = new ByteCountingInputStream(in);
         this.bufferedIn = new BufferedInputStream(countingIn);
     }
-    
+
     @Override
     public InputStream getInputStream() throws IOException {
         return bufferedIn;
     }
-    
+
     public boolean isDataAvailable() throws IOException {
         return bufferedIn.available() > 0;
     }
-    
+
     @Override
     public long getBytesRead() {
         return countingIn.getBytesRead();

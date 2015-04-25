@@ -31,7 +31,7 @@ public class Peer implements Communicant {
     private final String clusterUrl;
     private final String host;
     private final int port;
-    
+
     private final Map<String, Long> penaltyExpirationMap = new HashMap<>();
     private boolean closed = false;
 
@@ -53,14 +53,14 @@ public class Peer implements Communicant {
     public PeerDescription getDescription() {
         return description;
     }
-    
+
     @Override
     public String getUrl() {
         return url;
     }
-    
+
     public String getClusterUrl() {
-    	return clusterUrl;
+        return clusterUrl;
     }
 
     public CommunicationsSession getCommunicationsSession() {
@@ -79,24 +79,24 @@ public class Peer implements Communicant {
     }
 
     /**
-     * Penalizes this peer for the given destination only for the provided number of milliseconds
-     * @param destinationId
-     * @param millis
+     * Penalizes this peer for the given destination only for the provided
+     * number of milliseconds
+     *
+     * @param destinationId id of destination
+     * @param millis period of time to penalize peer
      */
     public void penalize(final String destinationId, final long millis) {
         final Long currentPenalty = penaltyExpirationMap.get(destinationId);
         final long proposedPenalty = System.currentTimeMillis() + millis;
-        if ( currentPenalty == null || proposedPenalty > currentPenalty ) {
+        if (currentPenalty == null || proposedPenalty > currentPenalty) {
             penaltyExpirationMap.put(destinationId, proposedPenalty);
         }
     }
-    
 
     public boolean isPenalized(final String destinationId) {
         final Long currentPenalty = penaltyExpirationMap.get(destinationId);
         return (currentPenalty != null && currentPenalty > System.currentTimeMillis());
     }
-    
 
     public boolean isClosed() {
         return closed;

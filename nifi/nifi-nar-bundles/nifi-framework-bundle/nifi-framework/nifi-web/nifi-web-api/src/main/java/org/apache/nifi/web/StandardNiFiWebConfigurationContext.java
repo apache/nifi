@@ -68,8 +68,8 @@ import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.util.ClientResponseUtils;
 
 /**
- * Implements the NiFiWebConfigurationContext interface to support a context in both
- * standalone and clustered environments.
+ * Implements the NiFiWebConfigurationContext interface to support a context in
+ * both standalone and clustered environments.
  */
 public class StandardNiFiWebConfigurationContext implements NiFiWebConfigurationContext {
 
@@ -99,7 +99,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
         if (requestContext.getExtensionType() == null) {
             throw new IllegalArgumentException("The UI extension type must be specified.");
         }
-        
+
         Component componentType = null;
         switch (requestContext.getExtensionType()) {
             case ProcessorConfiguration:
@@ -116,7 +116,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
         if (componentType == null) {
             throw new IllegalArgumentException("UI extension type must support Processor, ControllerService, or ReportingTask configuration.");
         }
-        
+
         // - when running standalone or cluster ncm - actions from custom UIs are stored locally
         // - clustered nodes do not serve custom UIs directly to users so they should never be invoking this method
         final Date now = new Date();
@@ -192,25 +192,25 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
         if (requestContext.getExtensionType() == null) {
             throw new IllegalArgumentException("The UI extension type must be specified.");
         }
-        
+
         // get the component facade for interacting directly with that type of object
         ComponentFacade componentFacade = null;
         switch (requestContext.getExtensionType()) {
             case ProcessorConfiguration:
                 componentFacade = new ProcessorFacade();
                 break;
-            case ControllerServiceConfiguration: 
+            case ControllerServiceConfiguration:
                 componentFacade = new ControllerServiceFacade();
                 break;
             case ReportingTaskConfiguration:
                 componentFacade = new ReportingTaskFacade();
                 break;
         }
-        
+
         if (componentFacade == null) {
             throw new IllegalArgumentException("UI extension type must support Processor, ControllerService, or ReportingTask configuration.");
         }
-        
+
         return componentFacade.getComponentDetails(requestContext);
     }
 
@@ -224,7 +224,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
         if (StringUtils.isBlank(id)) {
             throw new ResourceNotFoundException(String.format("Configuration request context did not have a component ID."));
         }
-        
+
         // ensure the path could be 
         if (requestContext.getExtensionType() == null) {
             throw new IllegalArgumentException("The UI extension type must be specified.");
@@ -236,18 +236,18 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
             case ProcessorConfiguration:
                 componentFacade = new ProcessorFacade();
                 break;
-            case ControllerServiceConfiguration: 
+            case ControllerServiceConfiguration:
                 componentFacade = new ControllerServiceFacade();
                 break;
             case ReportingTaskConfiguration:
                 componentFacade = new ReportingTaskFacade();
                 break;
         }
-        
+
         if (componentFacade == null) {
             throw new IllegalArgumentException("UI extension type must support Processor, ControllerService, or ReportingTask configuration.");
         }
-        
+
         return componentFacade.setAnnotationData(requestContext, annotationData);
     }
 
@@ -255,32 +255,34 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
      * Facade over accessing different types of NiFi components.
      */
     private interface ComponentFacade {
+
         /**
          * Gets the component details using the specified request context.
-         * 
+         *
          * @param requestContext
-         * @return 
+         * @return
          */
         ComponentDetails getComponentDetails(NiFiWebRequestContext requestContext);
-        
+
         /**
          * Sets the annotation data using the specified request context.
-         * 
+         *
          * @param requestContext
          * @param annotationData
-         * @return 
+         * @return
          */
         ComponentDetails setAnnotationData(NiFiWebConfigurationRequestContext requestContext, String annotationData);
     }
-    
+
     /**
      * Interprets the request/response with the underlying Processor model.
      */
     private class ProcessorFacade implements ComponentFacade {
+
         @Override
         public ComponentDetails getComponentDetails(final NiFiWebRequestContext requestContext) {
             final String id = requestContext.getId();
-            
+
             final ProcessorDTO processor;
             if (properties.isClusterManager()) {
                 // create the request URL
@@ -320,7 +322,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
         public ComponentDetails setAnnotationData(final NiFiWebConfigurationRequestContext requestContext, final String annotationData) {
             final Revision revision = requestContext.getRevision();
             final String id = requestContext.getId();
-            
+
             final ProcessorDTO processor;
             if (properties.isClusterManager()) {
                 // create the request URL
@@ -360,7 +362,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
 
                 // check for issues replicating request
                 checkResponse(nodeResponse, id);
-                
+
                 // return processor
                 ProcessorEntity entity = (ProcessorEntity) nodeResponse.getUpdatedEntity();
                 if (entity == null) {
@@ -371,11 +373,11 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 final ConfigurationSnapshot<ProcessorDTO> response = serviceFacade.setProcessorAnnotationData(revision, id, annotationData);
                 processor = response.getConfiguration();
             }
-            
+
             // return the processor info
             return getComponentConfiguration(processor);
         }
-        
+
         private ComponentDetails getComponentConfiguration(final ProcessorDTO processor) {
             final ProcessorConfigDTO processorConfig = processor.getConfig();
             return new ComponentDetails.Builder()
@@ -388,16 +390,18 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                     .validateErrors(processor.getValidationErrors()).build();
         }
     }
-    
+
     /**
-     * Interprets the request/response with the underlying ControllerService model.
+     * Interprets the request/response with the underlying ControllerService
+     * model.
      */
     private class ControllerServiceFacade implements ComponentFacade {
+
         @Override
         public ComponentDetails getComponentDetails(final NiFiWebRequestContext requestContext) {
             final String id = requestContext.getId();
             final ControllerServiceDTO controllerService;
-            
+
             // if the lookup has the service that means we are either a node or
             // the ncm and the service is available there only
             if (controllerServiceLookup.getControllerService(id) != null) {
@@ -408,7 +412,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 if (!properties.isClusterManager()) {
                     throw new ResourceNotFoundException(String.format("Controller service[%s] could not be found on this NiFi.", id));
                 }
-                
+
                 // create the request URL
                 URI requestUrl;
                 try {
@@ -443,13 +447,13 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
         public ComponentDetails setAnnotationData(final NiFiWebConfigurationRequestContext requestContext, final String annotationData) {
             final Revision revision = requestContext.getRevision();
             final String id = requestContext.getId();
-            
+
             final ControllerServiceDTO controllerService;
             if (controllerServiceLookup.getControllerService(id) != null) {
                 final ControllerServiceDTO controllerServiceDto = new ControllerServiceDTO();
                 controllerServiceDto.setId(id);
                 controllerServiceDto.setAnnotationData(annotationData);
-                
+
                 final ConfigurationSnapshot<ControllerServiceDTO> response = serviceFacade.updateControllerService(revision, controllerServiceDto);
                 controllerService = response.getConfiguration();
             } else {
@@ -458,13 +462,13 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 if (!properties.isClusterManager()) {
                     throw new ResourceNotFoundException(String.format("Controller service[%s] could not be found on this NiFi.", id));
                 }
-                
+
                 // since this PUT request can be interpreted as a request to create a controller service
                 // we need to be sure that this service exists on the node before the request is replicated.
                 // this is done by attempting to get the details. if the service doesn't exist it will
                 // throw a ResourceNotFoundException
                 getComponentDetails(requestContext);
-                
+
                 // create the request URL
                 URI requestUrl;
                 try {
@@ -498,7 +502,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
 
                 // check for issues replicating request
                 checkResponse(nodeResponse, id);
-                
+
                 // return controller service
                 ControllerServiceEntity entity = (ControllerServiceEntity) nodeResponse.getUpdatedEntity();
                 if (entity == null) {
@@ -506,11 +510,11 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 }
                 controllerService = entity.getControllerService();
             }
-            
+
             // return the controller service info
             return getComponentConfiguration(controllerService);
         }
-        
+
         private ComponentDetails getComponentConfiguration(final ControllerServiceDTO controllerService) {
             return new ComponentDetails.Builder()
                     .id(controllerService.getId())
@@ -522,16 +526,18 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                     .validateErrors(controllerService.getValidationErrors()).build();
         }
     }
-    
+
     /**
-     * Interprets the request/response with the underlying ControllerService model.
+     * Interprets the request/response with the underlying ControllerService
+     * model.
      */
     private class ReportingTaskFacade implements ComponentFacade {
+
         @Override
         public ComponentDetails getComponentDetails(final NiFiWebRequestContext requestContext) {
             final String id = requestContext.getId();
             final ReportingTaskDTO reportingTask;
-            
+
             // if the provider has the service that means we are either a node or
             // the ncm and the service is available there only
             if (reportingTaskProvider.getReportingTaskNode(id) != null) {
@@ -542,7 +548,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 if (!properties.isClusterManager()) {
                     throw new ResourceNotFoundException(String.format("Reporting task[%s] could not be found on this NiFi.", id));
                 }
-                
+
                 // create the request URL
                 URI requestUrl;
                 try {
@@ -577,13 +583,13 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
         public ComponentDetails setAnnotationData(final NiFiWebConfigurationRequestContext requestContext, final String annotationData) {
             final Revision revision = requestContext.getRevision();
             final String id = requestContext.getId();
-            
+
             final ReportingTaskDTO reportingTask;
             if (reportingTaskProvider.getReportingTaskNode(id) != null) {
                 final ReportingTaskDTO reportingTaskDto = new ReportingTaskDTO();
                 reportingTaskDto.setId(id);
                 reportingTaskDto.setAnnotationData(annotationData);
-                
+
                 final ConfigurationSnapshot<ReportingTaskDTO> response = serviceFacade.updateReportingTask(revision, reportingTaskDto);
                 reportingTask = response.getConfiguration();
             } else {
@@ -592,13 +598,13 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 if (!properties.isClusterManager()) {
                     throw new ResourceNotFoundException(String.format("Reporting task[%s] could not be found on this NiFi.", id));
                 }
-                
+
                 // since this PUT request can be interpreted as a request to create a reporting task
                 // we need to be sure that this task exists on the node before the request is replicated.
                 // this is done by attempting to get the details. if the service doesn't exist it will
                 // throw a ResourceNotFoundException
                 getComponentDetails(requestContext);
-                
+
                 // create the request URL
                 URI requestUrl;
                 try {
@@ -632,7 +638,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
 
                 // check for issues replicating request
                 checkResponse(nodeResponse, id);
-                
+
                 // return reporting task
                 ReportingTaskEntity entity = (ReportingTaskEntity) nodeResponse.getUpdatedEntity();
                 if (entity == null) {
@@ -640,11 +646,11 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 }
                 reportingTask = entity.getReportingTask();
             }
-            
+
             // return the processor info
             return getComponentConfiguration(reportingTask);
         }
-        
+
         private ComponentDetails getComponentConfiguration(final ReportingTaskDTO reportingTask) {
             return new ComponentDetails.Builder()
                     .id(reportingTask.getId())
@@ -656,7 +662,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                     .validateErrors(reportingTask.getValidationErrors()).build();
         }
     }
-    
+
     /**
      * Gets the headers for the request to replicate to each node while
      * clustered.
@@ -685,13 +691,13 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
         }
         return headers;
     }
-    
+
     /**
      * Checks the specified response and drains the stream appropriately.
-     * 
+     *
      * @param nodeResponse
      * @param revision
-     * @param id 
+     * @param id
      */
     private void checkResponse(final NodeResponse nodeResponse, final String id) {
         if (nodeResponse.hasThrowable()) {

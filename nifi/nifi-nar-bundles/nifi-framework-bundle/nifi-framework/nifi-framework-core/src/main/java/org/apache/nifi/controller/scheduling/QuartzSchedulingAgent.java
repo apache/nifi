@@ -135,7 +135,7 @@ public class QuartzSchedulingAgent implements SchedulingAgent {
             final Callable<Boolean> continuallyRunTask;
             if (connectable.getConnectableType() == ConnectableType.PROCESSOR) {
                 final ProcessorNode procNode = (ProcessorNode) connectable;
-                
+
                 final StandardProcessContext standardProcContext = new StandardProcessContext(procNode, flowController, encryptor);
                 ContinuallyRunProcessorTask runnableTask = new ContinuallyRunProcessorTask(this, procNode, flowController, contextFactory, scheduleState, standardProcContext);
                 continuallyRunTask = runnableTask;

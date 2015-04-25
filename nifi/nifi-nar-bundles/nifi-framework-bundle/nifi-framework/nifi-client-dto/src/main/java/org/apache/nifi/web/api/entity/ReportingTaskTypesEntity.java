@@ -31,9 +31,7 @@ public class ReportingTaskTypesEntity extends Entity {
     private Set<DocumentedTypeDTO> reportingTaskTypes;
 
     /**
-     * The list of reporting task types that are being serialized.
-     *
-     * @return
+     * @return list of reporting task types that are being serialized
      */
     public Set<DocumentedTypeDTO> getReportingTaskTypes() {
         return reportingTaskTypes;

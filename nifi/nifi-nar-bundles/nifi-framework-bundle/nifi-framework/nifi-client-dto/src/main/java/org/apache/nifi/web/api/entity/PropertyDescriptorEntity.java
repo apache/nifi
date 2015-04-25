@@ -17,7 +17,6 @@
 package org.apache.nifi.web.api.entity;
 
 import javax.xml.bind.annotation.XmlRootElement;
-import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 
 /**

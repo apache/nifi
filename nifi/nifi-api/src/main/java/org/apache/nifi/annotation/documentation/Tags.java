@@ -24,14 +24,13 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Annotation that can be applied to a {@link org.apache.nifi.processor.Processor Processor}, 
+ * Annotation that can be applied to a {@link org.apache.nifi.processor.Processor Processor},
  * {@link org.apache.nifi.controller.ControllerService ControllerService}, or
- * {@link org.apache.nifi.reporting.ReportingTask ReportingTask} in order to associate
- * tags (keywords) with the component. These tags do not affect the component in
- * any way but serve as additional documentation and can be used to sort/filter
- * Processors.
+ * {@link org.apache.nifi.reporting.ReportingTask ReportingTask} in order to
+ * associate tags (keywords) with the component. These tags do not affect the
+ * component in any way but serve as additional documentation and can be used to
+ * sort/filter Processors.
  *
- * @author none
  */
 @Documented
 @Target({ElementType.TYPE})
@@ -39,8 +38,5 @@ import java.lang.annotation.Target;
 @Inherited
 public @interface Tags {
 
-    /**
-     * @return all tag values associated with the given processor
-     */
     public String[] value();
 }

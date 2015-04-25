@@ -28,9 +28,7 @@ public class ProvenanceOptionsDTO {
     private List<ProvenanceSearchableFieldDTO> searchableFields;
 
     /**
-     * The available searchable fields for this NiFi instance.
-     *
-     * @return
+     * @return available searchable fields for this NiFi instance
      */
     public List<ProvenanceSearchableFieldDTO> getSearchableFields() {
         return searchableFields;

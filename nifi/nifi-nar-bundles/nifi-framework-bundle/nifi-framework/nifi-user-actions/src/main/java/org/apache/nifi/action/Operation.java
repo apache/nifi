@@ -20,6 +20,7 @@ package org.apache.nifi.action;
  * Defines possible operations for a given action.
  */
 public enum Operation {
+
     Add,
     Remove,
     Paste,

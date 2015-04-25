@@ -79,18 +79,20 @@ public abstract class ProcessorNode extends AbstractConfiguredComponent implemen
     public abstract void setStyle(Map<String, String> style);
 
     /**
-     * Returns the number of threads (concurrent tasks) currently being used by this Processor
-     * @return
+     * @return the number of threads (concurrent tasks) currently being used by
+     * this Processor
      */
     public abstract int getActiveThreadCount();
-    
+
     /**
      * Verifies that this Processor can be started if the provided set of
-     * services are enabled. This is introduced because we need to verify that all components
-     * can be started before starting any of them. In order to do that, we need to know that this
-     * component can be started if the given services are enabled, as we will then enable the given 
-     * services before starting this component.
-     * @param ignoredReferences
+     * services are enabled. This is introduced because we need to verify that
+     * all components can be started before starting any of them. In order to do
+     * that, we need to know that this component can be started if the given
+     * services are enabled, as we will then enable the given services before
+     * starting this component.
+     *
+     * @param ignoredReferences to ignore
      */
     public abstract void verifyCanStart(Set<ControllerServiceNode> ignoredReferences);
 }

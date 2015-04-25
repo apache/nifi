@@ -32,9 +32,7 @@ public class FunnelsEntity extends Entity {
     private Set<FunnelDTO> funnels;
 
     /**
-     * The collection of FunnelDTOs that are being serialized.
-     *
-     * @return
+     * @return collection of FunnelDTOs that are being serialized
      */
     public Set<FunnelDTO> getFunnels() {
         return funnels;

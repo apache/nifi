@@ -37,9 +37,7 @@ public class StatusHistoryDTO {
     private List<StatusSnapshotDTO> statusSnapshots;
 
     /**
-     * When this status history was generated.
-     *
-     * @return
+     * @return when this status history was generated
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
     public Date getGenerated() {
@@ -51,9 +49,7 @@ public class StatusHistoryDTO {
     }
 
     /**
-     * The component details for this status history.
-     *
-     * @return
+     * @return The component details for this status history
      */
     public LinkedHashMap<String, String> getDetails() {
         return details;
@@ -64,9 +60,7 @@ public class StatusHistoryDTO {
     }
 
     /**
-     * Descriptors for each supported status field.
-     *
-     * @return
+     * @return Descriptors for each supported status field
      */
     public List<StatusDescriptorDTO> getFieldDescriptors() {
         return fieldDescriptors;
@@ -77,9 +71,7 @@ public class StatusHistoryDTO {
     }
 
     /**
-     * The status snapshots.
-     *
-     * @return
+     * @return The status snapshots
      */
     public List<StatusSnapshotDTO> getStatusSnapshots() {
         return statusSnapshots;

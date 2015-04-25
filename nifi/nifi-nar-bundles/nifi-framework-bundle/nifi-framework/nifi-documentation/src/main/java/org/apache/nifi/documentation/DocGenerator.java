@@ -54,7 +54,7 @@ public class DocGenerator {
      * Generates documentation into the work/docs dir specified by
      * NiFiProperties.
      *
-     * @param properties
+     * @param properties to lookup nifi properties
      */
     public static void generate(final NiFiProperties properties) {
         @SuppressWarnings("rawtypes")
@@ -90,10 +90,10 @@ public class DocGenerator {
      * @param docsDir the work\docs\components dir to stick component
      * documentation in
      * @param componentClass the class to document
-     * @throws InstantiationException
-     * @throws IllegalAccessException
-     * @throws IOException
-     * @throws InitializationException
+     * @throws InstantiationException ie
+     * @throws IllegalAccessException iae
+     * @throws IOException ioe
+     * @throws InitializationException ie
      */
     private static void document(final File docsDir, final Class<? extends ConfigurableComponent> componentClass)
             throws InstantiationException, IllegalAccessException, IOException, InitializationException {
@@ -163,7 +163,7 @@ public class DocGenerator {
      * Checks to see if a directory to write to has an additionalDetails.html in
      * it already.
      *
-     * @param directory
+     * @param directory to check
      * @return true if additionalDetails.html exists, false otherwise.
      */
     private static boolean hasAdditionalInfo(File directory) {

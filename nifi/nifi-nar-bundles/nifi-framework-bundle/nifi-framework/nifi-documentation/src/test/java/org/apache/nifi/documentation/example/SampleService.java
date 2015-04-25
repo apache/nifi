@@ -20,6 +20,6 @@ import org.apache.nifi.controller.ControllerService;
 
 public interface SampleService extends ControllerService {
 
-	public void doSomething();
+    public void doSomething();
 
 }

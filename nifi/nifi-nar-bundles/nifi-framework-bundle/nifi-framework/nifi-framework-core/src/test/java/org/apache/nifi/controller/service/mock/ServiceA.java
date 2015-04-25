@@ -26,18 +26,17 @@ import org.apache.nifi.controller.ControllerService;
 public class ServiceA extends AbstractControllerService {
 
     public static final PropertyDescriptor OTHER_SERVICE = new PropertyDescriptor.Builder()
-        .name("Other Service")
-        .identifiesControllerService(ControllerService.class)
-        .required(true)
-        .build();
-    
-    public static final PropertyDescriptor OTHER_SERVICE_2 = new PropertyDescriptor.Builder()
-        .name("Other Service 2")
-        .identifiesControllerService(ControllerService.class)
-        .required(false)
-        .build();
+            .name("Other Service")
+            .identifiesControllerService(ControllerService.class)
+            .required(true)
+            .build();
 
-    
+    public static final PropertyDescriptor OTHER_SERVICE_2 = new PropertyDescriptor.Builder()
+            .name("Other Service 2")
+            .identifiesControllerService(ControllerService.class)
+            .required(false)
+            .build();
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
@@ -45,5 +44,5 @@ public class ServiceA extends AbstractControllerService {
         descriptors.add(OTHER_SERVICE_2);
         return descriptors;
     }
-    
+
 }

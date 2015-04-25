@@ -27,13 +27,13 @@ import java.util.Map;
  */
 public class Criteria {
 
-    // note: this class does not need to be synchronized/locked due to 
+    // note: this class does not need to be synchronized/locked due to
     // its usage. a new instance is used for getting or updating the
     // rule criteria due to the nature of how annotation data is set.
     // this will be a new instance for each request and the setting of
     // annotation data is protected by a rest api wide write-lock.
-    // likewise, the processor uses this class as a simple look up. if 
-    // this ever changed (not likely) then we would have to introduce 
+    // likewise, the processor uses this class as a simple look up. if
+    // this ever changed (not likely) then we would have to introduce
     // some thread safety here.
     private Map<String, Rule> rules;
     private FlowFilePolicy flowFilePolicy;
@@ -56,7 +56,7 @@ public class Criteria {
     /**
      * Adds the specified rule to the end of the rule collection.
      *
-     * @param rule
+     * @param rule the rule to add
      */
     public void addRule(final Rule rule) {
         rules.put(rule.getId(), rule);
@@ -65,8 +65,8 @@ public class Criteria {
     /**
      * Gets the specified rule from the rule collection.
      *
-     * @param ruleId
-     * @return
+     * @param ruleId the identifier of the rule to get
+     * @return the identified rule
      */
     public Rule getRule(final String ruleId) {
         return rules.get(ruleId);
@@ -75,7 +75,7 @@ public class Criteria {
     /**
      * Deletes the specified rule from the rule collection.
      *
-     * @param rule
+     * @param rule the rule to delete
      */
     public void deleteRule(final Rule rule) {
         rules.remove(rule.getId());
@@ -84,7 +84,7 @@ public class Criteria {
     /**
      * Returns the rule ordering.
      *
-     * @return
+     * @return the rule keys in rule order
      */
     public List<String> getRuleOrder() {
         return Collections.unmodifiableList(new ArrayList<>(rules.keySet()));
@@ -94,7 +94,7 @@ public class Criteria {
      * Reorders the rule collection. The specified new rule order must contain
      * the rule id for each rule in the collection.
      *
-     * @param newRuleOrder
+     * @param newRuleOrder the new rule order to use by key
      */
     public void reorder(final List<String> newRuleOrder) {
         // ensure all known rules are accounted for
@@ -115,7 +115,7 @@ public class Criteria {
     /**
      * Returns a listing of all Rules.
      *
-     * @return
+     * @return all rules
      */
     public List<Rule> getRules() {
         return Collections.unmodifiableList(new ArrayList<>(rules.values()));
@@ -124,7 +124,7 @@ public class Criteria {
     /**
      * Sets the flow file policy.
      *
-     * @param flowFilePolicy
+     * @param flowFilePolicy the new policy
      */
     public void setFlowFilePolicy(FlowFilePolicy flowFilePolicy) {
         this.flowFilePolicy = flowFilePolicy;
@@ -133,7 +133,7 @@ public class Criteria {
     /**
      * Gets the flow file policy.
      *
-     * @return
+     * @return the current policy
      */
     public FlowFilePolicy getFlowFilePolicy() {
         return flowFilePolicy;

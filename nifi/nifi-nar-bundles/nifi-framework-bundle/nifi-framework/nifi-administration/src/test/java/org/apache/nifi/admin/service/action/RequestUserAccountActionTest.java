@@ -86,7 +86,7 @@ public class RequestUserAccountActionTest {
     /**
      * Tests when a user account already exists.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test(expected = IllegalArgumentException.class)
     public void testExistingAccount() throws Exception {
@@ -98,7 +98,7 @@ public class RequestUserAccountActionTest {
      * Tests when a DataAccessException occurs while saving the new account
      * request.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test(expected = DataAccessException.class)
     public void testDataAccessException() throws Exception {
@@ -109,7 +109,7 @@ public class RequestUserAccountActionTest {
     /**
      * Tests the general case for requesting a new user account.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testRequestUserAccountAction() throws Exception {

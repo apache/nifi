@@ -34,7 +34,8 @@ import org.apache.nifi.remote.util.StandardDataPacket;
 import org.apache.nifi.stream.io.StreamUtils;
 
 public class StandardFlowFileCodec implements FlowFileCodec {
-	public static final int MAX_NUM_ATTRIBUTES = 25000;
+
+    public static final int MAX_NUM_ATTRIBUTES = 25000;
 
     public static final String DEFAULT_FLOWFILE_PATH = "./";
 
@@ -43,30 +44,29 @@ public class StandardFlowFileCodec implements FlowFileCodec {
     public StandardFlowFileCodec() {
         versionNegotiator = new StandardVersionNegotiator(1);
     }
-    
+
     @Override
     public void encode(final DataPacket dataPacket, final OutputStream encodedOut) throws IOException {
         final DataOutputStream out = new DataOutputStream(encodedOut);
-        
+
         final Map<String, String> attributes = dataPacket.getAttributes();
         out.writeInt(attributes.size());
-        for ( final Map.Entry<String, String> entry : attributes.entrySet() ) {
+        for (final Map.Entry<String, String> entry : attributes.entrySet()) {
             writeString(entry.getKey(), out);
             writeString(entry.getValue(), out);
         }
-        
+
         out.writeLong(dataPacket.getSize());
-        
+
         final InputStream in = dataPacket.getData();
         StreamUtils.copy(in, encodedOut);
         encodedOut.flush();
     }
 
-    
     @Override
     public DataPacket decode(final InputStream stream) throws IOException, ProtocolException {
         final DataInputStream in = new DataInputStream(stream);
-        
+
         final int numAttributes;
         try {
             numAttributes = in.readInt();
@@ -74,22 +74,22 @@ public class StandardFlowFileCodec implements FlowFileCodec {
             // we're out of data.
             return null;
         }
-        
+
         // This is here because if the stream is not properly formed, we could get up to Integer.MAX_VALUE attributes, which will
         // generally result in an OutOfMemoryError.
-        if ( numAttributes > MAX_NUM_ATTRIBUTES ) {
-        	throw new ProtocolException("FlowFile exceeds maximum number of attributes with a total of " + numAttributes);
+        if (numAttributes > MAX_NUM_ATTRIBUTES) {
+            throw new ProtocolException("FlowFile exceeds maximum number of attributes with a total of " + numAttributes);
         }
-        
+
         final Map<String, String> attributes = new HashMap<>(numAttributes);
-        for (int i=0; i < numAttributes; i++) {
+        for (int i = 0; i < numAttributes; i++) {
             final String attrName = readString(in);
             final String attrValue = readString(in);
             attributes.put(attrName, attrValue);
         }
-        
+
         final long numBytes = in.readLong();
-        
+
         return new StandardDataPacket(attributes, stream, numBytes);
     }
 
@@ -99,14 +99,13 @@ public class StandardFlowFileCodec implements FlowFileCodec {
         out.write(bytes);
     }
 
-    
     private String readString(final DataInputStream in) throws IOException {
         final int numBytes = in.readInt();
         final byte[] bytes = new byte[numBytes];
         StreamUtils.fillBuffer(in, bytes, true);
         return new String(bytes, "UTF-8");
     }
-    
+
     @Override
     public List<Integer> getSupportedVersions() {
         return versionNegotiator.getSupportedVersions();

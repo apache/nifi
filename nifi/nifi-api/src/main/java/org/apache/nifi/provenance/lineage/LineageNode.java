@@ -19,43 +19,33 @@ package org.apache.nifi.provenance.lineage;
 public interface LineageNode {
 
     /**
-     * Returns the identifier of the Clustered NiFi Node that generated the
+     * @return the identifier of the Clustered NiFi Node that generated the
      * event
-     *
-     * @return
      */
     String getClusterNodeIdentifier();
 
     /**
-     * Returns the type of the LineageNode
-     *
-     * @return
+     * @return the type of the LineageNode
      */
     LineageNodeType getNodeType();
 
     /**
-     * Returns the UUID of the FlowFile for which this Node was created
-     *
-     * @return
+     * @return the UUID of the FlowFile for which this Node was created
      */
     String getFlowFileUuid();
 
     /**
-     * Returns the UUID for this LineageNode.
-     *
-     * @return
+     * @return the UUID for this LineageNode
      */
     String getIdentifier();
 
     /**
-     * Returns the timestamp that corresponds to this Node. The meaning of the
+     * @return the timestamp that corresponds to this Node. The meaning of the
      * timestamp may differ between implementations. For example, a
      * {@link ProvenanceEventLineageNode}'s timestamp indicates the time at
      * which the event occurred. However, for a Node that reperesents a
      * FlowFile, for example, the timestamp may represent the time at which the
-     * FlowFile was created.
-     *
-     * @return
+     * FlowFile was created
      */
     long getTimestamp();
 }

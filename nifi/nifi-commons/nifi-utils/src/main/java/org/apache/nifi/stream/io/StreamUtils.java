@@ -44,10 +44,10 @@ public class StreamUtils {
      * <code>destination</code>. If <code>numBytes</code> are not available from
      * <code>source</code>, throws EOFException
      *
-     * @param source
-     * @param destination
-     * @param numBytes
-     * @throws IOException
+     * @param source the source of bytes to copy
+     * @param destination the destination to copy bytes to
+     * @param numBytes the number of bytes to copy
+     * @throws IOException if any issues occur while copying
      */
     public static void copy(final InputStream source, final OutputStream destination, final long numBytes) throws IOException {
         final byte[] buffer = new byte[8192];
@@ -68,9 +68,9 @@ public class StreamUtils {
      * byte array. If the InputStream has less data than the given byte array,
      * throws an EOFException
      *
-     * @param source
-     * @param destination
-     * @throws IOException
+     * @param source the source to copy bytes from
+     * @param destination the destination to fill
+     * @throws IOException if any issues occur reading bytes
      */
     public static void fillBuffer(final InputStream source, final byte[] destination) throws IOException {
         fillBuffer(source, destination, true);
@@ -82,12 +82,12 @@ public class StreamUtils {
      * throws an EOFException if <code>ensureCapacity</code> is true and
      * otherwise returns the number of bytes copied
      *
-     * @param source
-     * @param destination
+     * @param source the source to read bytes from
+     * @param destination the destination to fill
      * @param ensureCapacity whether or not to enforce that the InputStream have
      * at least as much data as the capacity of the destination byte array
-     * @return 
-     * @throws IOException
+     * @return the number of bytes actually filled
+     * @throws IOException if unable to read from the underlying stream
      */
     public static int fillBuffer(final InputStream source, final byte[] destination, final boolean ensureCapacity) throws IOException {
         int bytesRead = 0;
@@ -114,19 +114,19 @@ public class StreamUtils {
      * <code>stoppers</code> parameter (returns the byte pattern matched). The
      * bytes in the stopper will be copied.
      *
-     * @param in
-     * @param out
-     * @param maxBytes
-     * @param stoppers
+     * @param in the source to read bytes from
+     * @param out the destination to write bytes to
+     * @param maxBytes the max bytes to copy
+     * @param stoppers patterns of bytes which if seen will cause the copy to stop
      * @return the byte array matched, or null if end of stream was reached
-     * @throws IOException
+     * @throws IOException if issues occur reading or writing bytes to the underlying streams
      */
     public static byte[] copyInclusive(final InputStream in, final OutputStream out, final int maxBytes, final byte[]... stoppers) throws IOException {
         if (stoppers.length == 0) {
             return null;
         }
 
-        final List<NonThreadSafeCircularBuffer> circularBuffers = new ArrayList<NonThreadSafeCircularBuffer>();
+        final List<NonThreadSafeCircularBuffer> circularBuffers = new ArrayList<>();
         for (final byte[] stopper : stoppers) {
             circularBuffers.add(new NonThreadSafeCircularBuffer(stopper));
         }
@@ -157,12 +157,12 @@ public class StreamUtils {
      * byte pattern matched will NOT be copied to the output and will be un-read
      * from the input.
      *
-     * @param in
-     * @param out
-     * @param maxBytes
-     * @param stoppers
+     * @param in the source to read bytes from
+     * @param out the destination to write bytes to
+     * @param maxBytes the maximum number of bytes to copy
+     * @param stoppers byte patterns which will cause the copy to stop if found
      * @return the byte array matched, or null if end of stream was reached
-     * @throws IOException
+     * @throws IOException for issues reading or writing to underlying streams
      */
     public static byte[] copyExclusive(final InputStream in, final OutputStream out, final int maxBytes, final byte[]... stoppers) throws IOException {
         if (stoppers.length == 0) {
@@ -171,7 +171,7 @@ public class StreamUtils {
 
         int longest = 0;
         NonThreadSafeCircularBuffer longestBuffer = null;
-        final List<NonThreadSafeCircularBuffer> circularBuffers = new ArrayList<NonThreadSafeCircularBuffer>();
+        final List<NonThreadSafeCircularBuffer> circularBuffers = new ArrayList<>();
         for (final byte[] stopper : stoppers) {
             final NonThreadSafeCircularBuffer circularBuffer = new NonThreadSafeCircularBuffer(stopper);
             if (stopper.length > longest) {
@@ -220,9 +220,9 @@ public class StreamUtils {
      *
      * If unable to skip that number of bytes, throws EOFException
      *
-     * @param stream
-     * @param bytesToSkip
-     * @throws IOException
+     * @param stream the stream to skip over
+     * @param bytesToSkip the number of bytes to skip
+     * @throws IOException if any issues reading or skipping underlying stream
      */
     public static void skip(final InputStream stream, final long bytesToSkip) throws IOException {
         if (bytesToSkip <= 0) {

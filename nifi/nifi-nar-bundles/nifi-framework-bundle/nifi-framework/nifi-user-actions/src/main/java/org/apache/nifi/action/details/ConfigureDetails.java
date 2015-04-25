@@ -48,5 +48,5 @@ public class ConfigureDetails extends ActionDetails {
     public void setValue(String value) {
         this.value = value;
     }
-    
+
 }

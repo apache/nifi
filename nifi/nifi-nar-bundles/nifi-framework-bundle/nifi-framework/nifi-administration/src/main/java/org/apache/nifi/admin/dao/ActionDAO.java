@@ -32,43 +32,41 @@ public interface ActionDAO {
     /**
      * Persists the specified action.
      *
-     * @param action
-     * @throws DataAccessException
+     * @param action to persist
+     * @throws DataAccessException if unable to persist
      */
     void createAction(Action action) throws DataAccessException;
 
     /**
      * Finds all actions that meet the specified criteria.
      *
-     * @param actionQuery
-     * @return
-     * @throws DataAccessException
+     * @param actionQuery query for actions
+     * @return History of actions
+     * @throws DataAccessException dae
      */
     History findActions(HistoryQuery actionQuery) throws DataAccessException;
 
     /**
-     * Finds the previous values for the specified property in the specified
-     * component. Returns empty list if there are none.
-     *
-     * @param componentId
-     * @return
+     * @param componentId to get previous values of
+     * @return Finds the previous values for the specified property in the
+     * specified component. Returns empty list if there are none
      */
     Map<String, List<PreviousValue>> getPreviousValues(String componentId);
 
     /**
      * Finds the specified action.
      *
-     * @param actionId
-     * @return
-     * @throws DataAccessException
+     * @param actionId action identifier
+     * @return Action specified
+     * @throws DataAccessException dae
      */
     Action getAction(Integer actionId) throws DataAccessException;
 
     /**
      * Deletes all actions up to the specified end date.
      *
-     * @param endDate
-     * @throws DataAccessException
+     * @param endDate date to stop deleting at
+     * @throws DataAccessException dae
      */
     void deleteActions(Date endDate) throws DataAccessException;
 }

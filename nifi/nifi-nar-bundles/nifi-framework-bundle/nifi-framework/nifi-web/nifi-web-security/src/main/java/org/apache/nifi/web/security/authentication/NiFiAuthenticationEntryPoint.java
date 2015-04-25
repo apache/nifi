@@ -38,11 +38,12 @@ public class NiFiAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
     /**
      * Always returns a 403 error code to the client.
-     * @param request
-     * @param response
-     * @param ae
-     * @throws java.io.IOException
-     * @throws javax.servlet.ServletException
+     *
+     * @param request request
+     * @param response response
+     * @param ae ae
+     * @throws java.io.IOException ex
+     * @throws javax.servlet.ServletException ex
      */
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException ae) throws IOException, ServletException {

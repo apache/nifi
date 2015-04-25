@@ -49,9 +49,6 @@ public class LessThanOrEqualEvaluator extends BooleanEvaluator {
         return new BooleanQueryResult(subjectValue <= comparisonValue);
     }
 
-    ;
-    
-
     @Override
     public Evaluator<?> getSubjectEvaluator() {
         return subject;

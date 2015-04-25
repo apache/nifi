@@ -71,10 +71,8 @@ public class ProcessorDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The state of this processor. Possible states are 'RUNNING', 'STOPPED',
-     * and 'DISABLED'.
-     *
-     * @return
+     * @return The state of this processor. Possible states are 'RUNNING', 'STOPPED',
+     * and 'DISABLED'
      */
     public String getState() {
         return state;
@@ -85,9 +83,7 @@ public class ProcessorDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The styles for this processor. (Currently only supports color).
-     *
-     * @return
+     * @return The styles for this processor. (Currently only supports color)
      */
     public Map<String, String> getStyle() {
         return style;
@@ -98,9 +94,7 @@ public class ProcessorDTO extends NiFiComponentDTO {
     }
 
     /**
-     * Whether this processor supports parallel processing.
-     *
-     * @return
+     * @return whether this processor supports parallel processing
      */
     public Boolean getSupportsParallelProcessing() {
         return supportsParallelProcessing;
@@ -111,9 +105,7 @@ public class ProcessorDTO extends NiFiComponentDTO {
     }
 
     /**
-     * Whether this processor supports event driven scheduling.
-     *
-     * @return
+     * @return whether this processor supports event driven scheduling
      */
     public Boolean getSupportsEventDriven() {
         return supportsEventDriven;
@@ -166,9 +158,7 @@ public class ProcessorDTO extends NiFiComponentDTO {
     }
 
     /**
-     * Gets the description for this processor.
-     *
-     * @return
+     * @return the description for this processor
      */
     public String getDescription() {
         return description;

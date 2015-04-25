@@ -258,7 +258,7 @@ public class SnippetAuditor extends NiFiAuditor {
      * @param proceedingJoinPoint
      * @param snippetDTO
      * @param snippetDAO
-     * @return 
+     * @return
      * @throws Throwable
      */
     @Around("within(org.apache.nifi.web.dao.SnippetDAO+) && "

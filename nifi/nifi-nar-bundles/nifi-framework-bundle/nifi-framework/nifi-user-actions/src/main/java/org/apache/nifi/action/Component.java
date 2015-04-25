@@ -20,13 +20,14 @@ package org.apache.nifi.action;
  * Defines possible components for a given action.
  */
 public enum Component {
+
     Controller,
     Processor,
     InputPort,
     OutputPort,
     ProcessGroup,
     RemoteProcessGroup,
-	Funnel,
+    Funnel,
     Connection,
     ControllerService,
     ReportingTask;

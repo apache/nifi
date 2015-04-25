@@ -87,11 +87,6 @@ public class InvalidateUserAccountActionTest {
         Mockito.when(daoFactory.getUserDAO()).thenReturn(userDao);
     }
 
-    /**
-     * Tests when the user account cannot be found.
-     *
-     * @throws Exception
-     */
     @Test(expected = AccountNotFoundException.class)
     public void testAccountNotFoundException() throws Exception {
         InvalidateUserAccountAction invalidateUserAccount = new InvalidateUserAccountAction(USER_ID_1);
@@ -101,7 +96,7 @@ public class InvalidateUserAccountActionTest {
     /**
      * Tests when a data access exception occurs when updating the user record.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test(expected = DataAccessException.class)
     public void testDataAccessException() throws Exception {
@@ -112,7 +107,7 @@ public class InvalidateUserAccountActionTest {
     /**
      * Tests the general case of invalidating a user.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testInvalidateUser() throws Exception {

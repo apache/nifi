@@ -26,9 +26,7 @@ import java.util.List;
 public interface EventAccess {
 
     /**
-     * Gets the status for all components in this Controller.
-     *
-     * @return
+     * @return the status for all components in this Controller
      */
     ProcessGroupStatus getControllerStatus();
 
@@ -39,15 +37,13 @@ public interface EventAccess {
      *
      * @param firstEventId the ID of the first event to obtain
      * @param maxRecords the maximum number of records to obtain
-     * @return
-     * @throws java.io.IOException
+     * @return event records matching query
+     * @throws java.io.IOException if unable to get records
      */
     List<ProvenanceEventRecord> getProvenanceEvents(long firstEventId, final int maxRecords) throws IOException;
 
     /**
-     * Returns the Provenance Event Repository
-     *
-     * @return
+     * @return the Provenance Event Repository
      */
     ProvenanceEventRepository getProvenanceRepository();
 }

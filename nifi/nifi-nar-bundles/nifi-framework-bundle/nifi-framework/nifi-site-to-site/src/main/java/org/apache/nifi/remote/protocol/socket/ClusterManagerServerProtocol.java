@@ -40,12 +40,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ClusterManagerServerProtocol implements ServerProtocol {
+
     public static final String RESOURCE_NAME = "SocketFlowFileProtocol";
 
     private final VersionNegotiator versionNegotiator = new StandardVersionNegotiator(1);
     private final Logger logger = LoggerFactory.getLogger(ClusterManagerServerProtocol.class);
     private NodeInformant nodeInformant;
-    
+
     private String commsIdentifier;
     private boolean shutdown = false;
     private boolean handshakeCompleted = false;
@@ -53,52 +54,51 @@ public class ClusterManagerServerProtocol implements ServerProtocol {
 
     public ClusterManagerServerProtocol() {
     }
-    
-    
+
     @Override
     public void setNodeInformant(final NodeInformant nodeInformant) {
         this.nodeInformant = nodeInformant;
     }
-    
+
     @Override
     public void handshake(final Peer peer) throws IOException, HandshakeException {
-        if ( handshakeCompleted ) {
+        if (handshakeCompleted) {
             throw new IllegalStateException("Handshake has already been completed");
         }
-        if ( shutdown ) {
+        if (shutdown) {
             throw new IllegalStateException("Protocol is shutdown");
         }
 
         final CommunicationsSession commsSession = peer.getCommunicationsSession();
         final DataInputStream dis = new DataInputStream(commsSession.getInput().getInputStream());
         final DataOutputStream dos = new DataOutputStream(commsSession.getOutput().getOutputStream());
-        
+
         // read communications identifier
         commsIdentifier = dis.readUTF();
-        
+
         // read all of the properties. we don't really care what the properties are.
         final int numProperties = dis.readInt();
-        for (int i=0; i < numProperties; i++) {
+        for (int i = 0; i < numProperties; i++) {
             final String propertyName = dis.readUTF();
             final String propertyValue = dis.readUTF();
-            
+
             final HandshakeProperty property;
             try {
                 property = HandshakeProperty.valueOf(propertyName);
-                if ( HandshakeProperty.REQUEST_EXPIRATION_MILLIS.equals(property) ) {
+                if (HandshakeProperty.REQUEST_EXPIRATION_MILLIS.equals(property)) {
                     requestExpirationMillis = Long.parseLong(propertyValue);
                 }
             } catch (final Exception e) {
             }
         }
-        
+
         // send "OK" response
         ResponseCode.PROPERTIES_OK.writeResponse(dos);
-        
+
         logger.debug("Successfully completed handshake with {}; CommsID={}", peer, commsIdentifier);
         handshakeCompleted = true;
     }
-    
+
     @Override
     public boolean isHandshakeSuccessful() {
         return handshakeCompleted;
@@ -106,10 +106,10 @@ public class ClusterManagerServerProtocol implements ServerProtocol {
 
     @Override
     public void sendPeerList(final Peer peer) throws IOException {
-        if ( !handshakeCompleted ) {
+        if (!handshakeCompleted) {
             throw new IllegalStateException("Handshake has not been completed");
         }
-        if ( shutdown ) {
+        if (shutdown) {
             throw new IllegalStateException("Protocol is shutdown");
         }
 
@@ -118,29 +118,29 @@ public class ClusterManagerServerProtocol implements ServerProtocol {
 
         final ClusterNodeInformation clusterNodeInfo = nodeInformant.getNodeInformation();
         final Collection<NodeInformation> nodeInfos = clusterNodeInfo.getNodeInformation();
-        
+
         // determine how many nodes have Site-to-site enabled
         int numPeers = 0;
-        for ( final NodeInformation nodeInfo : nodeInfos ) {
+        for (final NodeInformation nodeInfo : nodeInfos) {
             if (nodeInfo.getSiteToSitePort() != null) {
                 numPeers++;
             }
         }
-        
+
         dos.writeInt(numPeers);
-        for ( final NodeInformation nodeInfo : nodeInfos ) {
-            if ( nodeInfo.getSiteToSitePort() == null ) {
+        for (final NodeInformation nodeInfo : nodeInfos) {
+            if (nodeInfo.getSiteToSitePort() == null) {
                 continue;
             }
-            
+
             dos.writeUTF(nodeInfo.getHostname());
             dos.writeInt(nodeInfo.getSiteToSitePort());
             dos.writeBoolean(nodeInfo.isSiteToSiteSecure());
             dos.writeInt(nodeInfo.getTotalFlowFiles());
         }
-        
+
         logger.info("Redirected {} to {} nodes", peer, numPeers);
-        
+
         dos.flush();
     }
 
@@ -153,7 +153,7 @@ public class ClusterManagerServerProtocol implements ServerProtocol {
     public boolean isShutdown() {
         return shutdown;
     }
-    
+
     @Override
     public FlowFileCodec negotiateCodec(Peer peer) {
         throw new UnsupportedOperationException();

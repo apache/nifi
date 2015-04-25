@@ -40,82 +40,90 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
-@Tags({ "one", "two", "three" })
+@Tags({"one", "two", "three"})
 @CapabilityDescription("This is a processor that is used to test documentation.")
-@WritesAttributes({@WritesAttribute(attribute="first", description="this is the first attribute i write"), @WritesAttribute(attribute="second")})
-@ReadsAttribute(attribute = "incoming", description="this specifies the format of the thing")
-@SeeAlso(value={FullyDocumentedControllerService.class, FullyDocumentedReportingTask.class}, classNames={"org.apache.nifi.processor.ExampleProcessor"})
-@DynamicProperty(name="Relationship Name", supportsExpressionLanguage=true, value="some XPath", description="Routes FlowFiles to relationships based on XPath")
-@DynamicRelationship(name="name from dynamic property", description="all files that match the properties XPath")
+@WritesAttributes({
+    @WritesAttribute(attribute = "first", description = "this is the first attribute i write"),
+    @WritesAttribute(attribute = "second")})
+@ReadsAttribute(attribute = "incoming", description = "this specifies the format of the thing")
+@SeeAlso(value = {FullyDocumentedControllerService.class, FullyDocumentedReportingTask.class}, classNames = {"org.apache.nifi.processor.ExampleProcessor"})
+@DynamicProperty(name = "Relationship Name", supportsExpressionLanguage = true, value = "some XPath", description = "Routes FlowFiles to relationships based on XPath")
+@DynamicRelationship(name = "name from dynamic property", description = "all files that match the properties XPath")
 public class FullyDocumentedProcessor extends AbstractProcessor {
 
-	public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder().name("Input Directory")
-			.description("The input directory from which to pull files").required(true)
-			.addValidator(StandardValidators.createDirectoryExistsValidator(true, false))
-			.expressionLanguageSupported(true).build();
+    public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder().name("Input Directory")
+            .description("The input directory from which to pull files").required(true)
+            .addValidator(StandardValidators.createDirectoryExistsValidator(true, false))
+            .expressionLanguageSupported(true).build();
 
-	public static final PropertyDescriptor RECURSE = new PropertyDescriptor.Builder().name("Recurse Subdirectories")
-			.description("Indicates whether or not to pull files from subdirectories").required(true)
-			.allowableValues(new AllowableValue("true", "true", "Should pull from sub directories"), new AllowableValue("false", "false", "Should not pull from sub directories")).defaultValue("true").build();
+    public static final PropertyDescriptor RECURSE = new PropertyDescriptor.Builder().name("Recurse Subdirectories")
+            .description("Indicates whether or not to pull files from subdirectories").required(true)
+            .allowableValues(
+                    new AllowableValue("true", "true", "Should pull from sub directories"),
+                    new AllowableValue("false", "false", "Should not pull from sub directories")
+            ).defaultValue("true").build();
 
-	public static final PropertyDescriptor POLLING_INTERVAL = new PropertyDescriptor.Builder().name("Polling Interval")
-			.description("Indicates how long to wait before performing a directory listing").required(true)
-			.addValidator(StandardValidators.TIME_PERIOD_VALIDATOR).defaultValue("0 sec").build();
+    public static final PropertyDescriptor POLLING_INTERVAL = new PropertyDescriptor.Builder().name("Polling Interval")
+            .description("Indicates how long to wait before performing a directory listing").required(true)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR).defaultValue("0 sec").build();
 
-	public static final PropertyDescriptor OPTIONAL_PROPERTY = new PropertyDescriptor.Builder()
-			.name("Optional Property").description("This is a property you can use or not").required(false).build();
-	
-	public static final PropertyDescriptor TYPE_PROPERTY = new PropertyDescriptor.Builder()
-	.name("Type").description("This is the type of something that you can choose.  It has several possible values").allowableValues("yes", "no", "maybe", "possibly", "not likely", "longer option name").required(true).build();
+    public static final PropertyDescriptor OPTIONAL_PROPERTY = new PropertyDescriptor.Builder()
+            .name("Optional Property").description("This is a property you can use or not").required(false).build();
 
-	public static final PropertyDescriptor SERVICE_PROPERTY = new PropertyDescriptor.Builder()
-			.name("Controller Service").description("This is the controller service to use to do things")
-			.identifiesControllerService(SampleService.class).required(true).build();
-	
-	public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
-			.description("Successful files").build();
-	public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure")
-			.description("Failing files").build();
+    public static final PropertyDescriptor TYPE_PROPERTY = new PropertyDescriptor.Builder()
+            .name("Type")
+            .description("This is the type of something that you can choose.  It has several possible values")
+            .allowableValues("yes", "no", "maybe", "possibly", "not likely", "longer option name")
+            .required(true).build();
 
-	private List<PropertyDescriptor> properties;
-	private Set<Relationship> relationships;
+    public static final PropertyDescriptor SERVICE_PROPERTY = new PropertyDescriptor.Builder()
+            .name("Controller Service").description("This is the controller service to use to do things")
+            .identifiesControllerService(SampleService.class).required(true).build();
 
-	@Override
-	protected void init(ProcessorInitializationContext context) {
-		final List<PropertyDescriptor> properties = new ArrayList<>();
-		properties.add(DIRECTORY);
-		properties.add(RECURSE);
-		properties.add(POLLING_INTERVAL);
-		properties.add(OPTIONAL_PROPERTY);
-		properties.add(TYPE_PROPERTY);
-		properties.add(SERVICE_PROPERTY);
-		this.properties = Collections.unmodifiableList(properties);
+    public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
+            .description("Successful files").build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure")
+            .description("Failing files").build();
 
-		final Set<Relationship> relationships = new HashSet<>();
-		relationships.add(REL_SUCCESS);
-		relationships.add(REL_FAILURE);
-		this.relationships = Collections.unmodifiableSet(relationships);
-	}
+    private List<PropertyDescriptor> properties;
+    private Set<Relationship> relationships;
 
-	@Override
-	protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-		return properties;
-	}
+    @Override
+    protected void init(ProcessorInitializationContext context) {
+        final List<PropertyDescriptor> properties = new ArrayList<>();
+        properties.add(DIRECTORY);
+        properties.add(RECURSE);
+        properties.add(POLLING_INTERVAL);
+        properties.add(OPTIONAL_PROPERTY);
+        properties.add(TYPE_PROPERTY);
+        properties.add(SERVICE_PROPERTY);
+        this.properties = Collections.unmodifiableList(properties);
 
-	@Override
-	public Set<Relationship> getRelationships() {
-		return relationships;
-	}
+        final Set<Relationship> relationships = new HashSet<>();
+        relationships.add(REL_SUCCESS);
+        relationships.add(REL_FAILURE);
+        this.relationships = Collections.unmodifiableSet(relationships);
+    }
 
-	@Override
-	public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return properties;
+    }
 
-	}
+    @Override
+    public Set<Relationship> getRelationships() {
+        return relationships;
+    }
 
-	@Override
-	protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(String propertyDescriptorName) {
-		return new PropertyDescriptor.Builder().name(propertyDescriptorName)
-				.description("This is a property you can use or not").dynamic(true).build();
-	}
+    @Override
+    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+
+    }
+
+    @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(String propertyDescriptorName) {
+        return new PropertyDescriptor.Builder().name(propertyDescriptorName)
+                .description("This is a property you can use or not").dynamic(true).build();
+    }
 
 }

@@ -21,16 +21,16 @@ import java.util.Map;
 import org.apache.nifi.hl7.query.evaluator.IntegerEvaluator;
 
 public class IntegerLiteralEvaluator extends IntegerEvaluator {
-	private final Integer value;
-	
-	public IntegerLiteralEvaluator(final Integer value) {
-		this.value = value;
-	}
-	
-	
-	@Override
-	public Integer evaluate(final Map<String, Object> objectMap) {
-		return value;
-	}
+
+    private final Integer value;
+
+    public IntegerLiteralEvaluator(final Integer value) {
+        this.value = value;
+    }
+
+    @Override
+    public Integer evaluate(final Map<String, Object> objectMap) {
+        return value;
+    }
 
 }

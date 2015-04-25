@@ -29,9 +29,7 @@ public class ComponentHistoryDTO {
     private Map<String, PropertyHistoryDTO> propertyHistory;
 
     /**
-     * The component id.
-     *
-     * @return
+     * @return component id
      */
     public String getComponentId() {
         return componentId;
@@ -42,9 +40,7 @@ public class ComponentHistoryDTO {
     }
 
     /**
-     * The history for this components properties.
-     *
-     * @return
+     * @return history for this components properties
      */
     public Map<String, PropertyHistoryDTO> getPropertyHistory() {
         return propertyHistory;

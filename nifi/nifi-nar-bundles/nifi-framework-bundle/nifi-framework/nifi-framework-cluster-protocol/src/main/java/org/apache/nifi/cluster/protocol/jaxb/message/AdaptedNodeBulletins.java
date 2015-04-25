@@ -23,12 +23,13 @@ import org.apache.nifi.cluster.protocol.NodeIdentifier;
  * @author unattributed
  */
 public class AdaptedNodeBulletins {
-    
+
     private NodeIdentifier nodeIdentifier;
-    
+
     private byte[] payload;
-    
-    public AdaptedNodeBulletins() {}
+
+    public AdaptedNodeBulletins() {
+    }
 
     @XmlJavaTypeAdapter(NodeIdentifierAdapter.class)
     public NodeIdentifier getNodeIdentifier() {
@@ -38,7 +39,7 @@ public class AdaptedNodeBulletins {
     public void setNodeIdentifier(NodeIdentifier nodeIdentifier) {
         this.nodeIdentifier = nodeIdentifier;
     }
-    
+
     public byte[] getPayload() {
         return payload;
     }

@@ -19,22 +19,23 @@ package org.apache.nifi.hl7.io.exception;
 import java.io.IOException;
 
 public class InvalidHL7Exception extends IOException {
-	private static final long serialVersionUID = -5675416667224562441L;
 
-	public InvalidHL7Exception() {
-		super();
-	}
+    private static final long serialVersionUID = -5675416667224562441L;
 
-	public InvalidHL7Exception(String message, Throwable cause) {
-		super(message, cause);
-	}
+    public InvalidHL7Exception() {
+        super();
+    }
 
-	public InvalidHL7Exception(String message) {
-		super(message);
-	}
+    public InvalidHL7Exception(String message, Throwable cause) {
+        super(message, cause);
+    }
 
-	public InvalidHL7Exception(Throwable cause) {
-		super(cause);
-	}
-	
+    public InvalidHL7Exception(String message) {
+        super(message);
+    }
+
+    public InvalidHL7Exception(Throwable cause) {
+        super(cause);
+    }
+
 }

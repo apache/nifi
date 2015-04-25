@@ -29,9 +29,10 @@ import org.apache.nifi.cluster.protocol.jaxb.message.NodeIdentifierAdapter;
 public class ControllerStartupFailureMessage extends ExceptionMessage {
 
     private NodeIdentifier nodeId;
-    
-    public ControllerStartupFailureMessage() {}
-    
+
+    public ControllerStartupFailureMessage() {
+    }
+
     @Override
     public MessageType getType() {
         return MessageType.CONTROLLER_STARTUP_FAILURE;

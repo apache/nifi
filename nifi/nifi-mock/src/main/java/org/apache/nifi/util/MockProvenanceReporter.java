@@ -88,7 +88,7 @@ public class MockProvenanceReporter implements ProvenanceReporter {
     public void fork(FlowFile parent, java.util.Collection<FlowFile> children, String details, long forkDuration) {
 
     }
-    
+
     @Override
     public void join(Collection<FlowFile> parents, FlowFile child) {
 
@@ -108,7 +108,7 @@ public class MockProvenanceReporter implements ProvenanceReporter {
     public void join(java.util.Collection<FlowFile> parents, FlowFile child, String details, long joinDuration) {
 
     }
-    
+
     @Override
     public void clone(FlowFile parent, FlowFile child) {
 

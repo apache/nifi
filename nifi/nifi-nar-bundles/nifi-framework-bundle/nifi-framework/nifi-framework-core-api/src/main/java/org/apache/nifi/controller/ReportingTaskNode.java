@@ -40,7 +40,8 @@ public interface ReportingTaskNode extends ConfiguredComponent {
 
     /**
      * Updates how often the ReportingTask should be triggered to run
-     * @param schedulingPeriod
+     *
+     * @param schedulingPeriod new period
      */
     void setScheduldingPeriod(String schedulingPeriod);
 
@@ -53,43 +54,48 @@ public interface ReportingTaskNode extends ConfiguredComponent {
     boolean isRunning();
 
     /**
-     * Returns the number of threads (concurrent tasks) currently being used by this ReportingTask
-     * @return
+     * @return the number of threads (concurrent tasks) currently being used by
+     * this ReportingTask
      */
     int getActiveThreadCount();
-    
+
     /**
-     * Indicates the {@link ScheduledState} of this <code>ReportingTask</code>. A
-     * value of stopped does NOT indicate that the <code>ReportingTask</code> has
-     * no active threads, only that it is not currently scheduled to be given
-     * any more threads. To determine whether or not the
+     * @return Indicates the {@link ScheduledState} of this <code>ReportingTask</code>.
+     * A value of stopped does NOT indicate that the <code>ReportingTask</code>
+     * has no active threads, only that it is not currently scheduled to be
+     * given any more threads. To determine whether or not the
      * <code>ReportingTask</code> has any active threads, see
-     * {@link ProcessScheduler#getActiveThreadCount(ReportingTask)}.
-     *
-     * @return
+     * {@link ProcessScheduler#getActiveThreadCount(ReportingTask)}
      */
     ScheduledState getScheduledState();
-    
+
     void setScheduledState(ScheduledState state);
-    
+
     String getComments();
-    
+
     void setComments(String comment);
-    
+
     /**
      * Verifies that this Reporting Task can be enabled if the provided set of
-     * services are enabled. This is introduced because we need to verify that all components
-     * can be started before starting any of them. In order to do that, we need to know that this
-     * component can be started if the given services are enabled, as we will then enable the given 
-     * services before starting this component.
-     * @param ignoredReferences
+     * services are enabled. This is introduced because we need to verify that
+     * all components can be started before starting any of them. In order to do
+     * that, we need to know that this component can be started if the given
+     * services are enabled, as we will then enable the given services before
+     * starting this component.
+     *
+     * @param ignoredReferences to ignore
      */
     void verifyCanStart(Set<ControllerServiceNode> ignoredReferences);
-    
+
     void verifyCanStart();
+
     void verifyCanStop();
+
     void verifyCanDisable();
+
     void verifyCanEnable();
+
     void verifyCanDelete();
+
     void verifyCanUpdate();
 }

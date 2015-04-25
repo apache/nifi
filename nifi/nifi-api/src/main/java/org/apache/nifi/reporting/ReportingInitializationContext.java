@@ -29,16 +29,12 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 public interface ReportingInitializationContext {
 
     /**
-     * Returns the identifier for this ReportingTask
-     *
-     * @return
+     * @return the identifier for this ReportingTask
      */
     String getIdentifier();
 
     /**
-     * Returns the configured name for this ReportingTask
-     *
-     * @return
+     * @return the configured name for this ReportingTask
      */
     String getName();
 
@@ -51,40 +47,31 @@ public interface ReportingInitializationContext {
      * <code>-1L</code> if the Scheduling Strategy is not set to
      * {@link SchedulingStrategy#TIMER_DRIVEN}
      *
-     * @param timeUnit
-     * @return
+     * @param timeUnit unit of time for scheduling
+     * @return period of time
      */
     long getSchedulingPeriod(TimeUnit timeUnit);
 
     /**
-     * Returns the {@link ControllerServiceLookup} which can be used to obtain
+     * @return the {@link ControllerServiceLookup} which can be used to obtain
      * Controller Services
-     *
-     * @return
      */
     ControllerServiceLookup getControllerServiceLookup();
 
     /**
-     * Returns a String representation of the scheduling period.
-     *
-     * @return
+     * @return a String representation of the scheduling period
      */
     String getSchedulingPeriod();
 
     /**
-     * Returns the {@link SchedulingStrategy} that is used to trigger the task
+     * @return the {@link SchedulingStrategy} that is used to trigger the task
      * to run
-     *
-     * @return
      */
     SchedulingStrategy getSchedulingStrategy();
-    
-    
+
     /**
-     * Returns a logger that can be used to log important events in a standard way and generate
-     * bulletins when appropriate
-     * 
-     * @return
+     * @return a logger that can be used to log important events in a standard
+     * way and generate bulletins when appropriate
      */
     ComponentLog getLogger();
 }

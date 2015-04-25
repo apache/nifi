@@ -30,9 +30,7 @@ public class MoveDetailsDTO extends ActionDetailsDTO {
     private String group;
 
     /**
-     * The id of the group the components previously belonged to.
-     *
-     * @return
+     * @return id of the group the components previously belonged to
      */
     public String getPreviousGroupId() {
         return previousGroupId;
@@ -43,9 +41,7 @@ public class MoveDetailsDTO extends ActionDetailsDTO {
     }
 
     /**
-     * The name of the group of the components previously belonged to.
-     *
-     * @return
+     * @return name of the group of the components previously belonged to
      */
     public String getPreviousGroup() {
         return previousGroup;
@@ -56,9 +52,7 @@ public class MoveDetailsDTO extends ActionDetailsDTO {
     }
 
     /**
-     * The id of the group the components belong to.
-     *
-     * @return
+     * @return id of the group the components belong to
      */
     public String getGroupId() {
         return groupId;
@@ -69,9 +63,7 @@ public class MoveDetailsDTO extends ActionDetailsDTO {
     }
 
     /**
-     * The name of the group the components belong to.
-     *
-     * @return
+     * @return name of the group the components belong to
      */
     public String getGroup() {
         return group;

@@ -35,7 +35,7 @@ public class TestStandardValidators {
         ValidationResult vr;
 
         final ValidationContext validationContext = Mockito.mock(ValidationContext.class);
-        
+
         vr = val.validate("TimePeriodTest", "0 sense made", validationContext);
         assertFalse(vr.isValid());
 
@@ -54,22 +54,22 @@ public class TestStandardValidators {
         vr = val.validate("TimePeriodTest", "1 sec", validationContext);
         assertTrue(vr.isValid());
     }
-    
+
     @Test
     public void testDataSizeBoundsValidator() {
         Validator val = StandardValidators.createDataSizeBoundsValidator(100, 1000);
-        ValidationResult vr; 
-        
+        ValidationResult vr;
+
         final ValidationContext validationContext = Mockito.mock(ValidationContext.class);
         vr = val.validate("DataSizeBounds", "5 GB", validationContext);
         assertFalse(vr.isValid());
-        
+
         vr = val.validate("DataSizeBounds", "0 B", validationContext);
         assertFalse(vr.isValid());
 
         vr = val.validate("DataSizeBounds", "99 B", validationContext);
         assertFalse(vr.isValid());
-        
+
         vr = val.validate("DataSizeBounds", "100 B", validationContext);
         assertTrue(vr.isValid());
 
@@ -78,12 +78,12 @@ public class TestStandardValidators {
 
         vr = val.validate("DataSizeBounds", "1000 B", validationContext);
         assertTrue(vr.isValid());
-        
+
         vr = val.validate("DataSizeBounds", "1001 B", validationContext);
         assertFalse(vr.isValid());
-        
+
         vr = val.validate("DataSizeBounds", "water", validationContext);
         assertFalse(vr.isValid());
-        
+
     }
 }
