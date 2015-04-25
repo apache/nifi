@@ -195,7 +195,8 @@ public class GetSQS extends AbstractSQSProcessor {
             try {
                 client.deleteMessageBatch(deleteRequest);
             } catch (final Exception e) {
-                getLogger().error("Received {} messages from Amazon SQS but failed to delete the messages; these messages may be duplicated. Reason for deletion failure: {}", new Object[]{messages.size(), e});
+                getLogger().error("Received {} messages from Amazon SQS but failed to delete the messages; these messages"
+                        + " may be duplicated. Reason for deletion failure: {}", new Object[]{messages.size(), e});
             }
         }
 

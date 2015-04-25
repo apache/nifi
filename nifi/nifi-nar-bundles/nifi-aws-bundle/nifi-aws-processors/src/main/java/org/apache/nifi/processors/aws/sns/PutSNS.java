@@ -55,7 +55,9 @@ public class PutSNS extends AbstractSNSProcessor {
             .build();
     public static final PropertyDescriptor USE_JSON_STRUCTURE = new PropertyDescriptor.Builder()
             .name("Use JSON Structure")
-            .description("If true, the contents of the FlowFile must be JSON with a top-level element named 'default'. Additional elements can be used to send different messages to different protocols. See the Amazon SNS Documentation for more information.")
+            .description("If true, the contents of the FlowFile must be JSON with a top-level element named 'default'."
+                    + " Additional elements can be used to send different messages to different protocols. See the Amazon"
+                    + " SNS Documentation for more information.")
             .defaultValue("false")
             .allowableValues("true", "false")
             .required(true)
@@ -147,7 +149,6 @@ public class PutSNS extends AbstractSNSProcessor {
         } catch (final Exception e) {
             getLogger().error("Failed to publish Amazon SNS message for {} due to {}", new Object[]{flowFile, e});
             session.transfer(flowFile, REL_FAILURE);
-            return;
         }
     }
 
