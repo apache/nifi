@@ -193,7 +193,6 @@ language governing permissions and limitations under the License. -->
             <type>nar</type>
         </dependency>
     </dependencies>
->>>>>>> upstream/develop
 
     <properties>
         <!--Wrapper Properties -->

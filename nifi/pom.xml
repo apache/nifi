@@ -496,10 +496,6 @@
                 <artifactId>avro</artifactId>
                 <version>1.7.6</version>
             </dependency>
-<<<<<<< HEAD
-
-=======
->>>>>>> upstream/develop
             <dependency>
                 <groupId>com.sun.jersey</groupId>
                 <artifactId>jersey-server</artifactId>
@@ -866,56 +862,6 @@
         </pluginManagement>
         <plugins>
             <plugin>
-<<<<<<< HEAD
-                <groupId>org.sonatype.plugins</groupId>
-                <artifactId>nexus-staging-maven-plugin</artifactId>
-                <version>1.6.5</version>
-                <extensions>true</extensions>
-                <configuration>
-                    <serverId>repository.apache.org</serverId>
-                    <nexusUrl>https://repository.apache.org/</nexusUrl>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-enforcer-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>enforce-maven</id>
-                        <goals>
-                            <goal>enforce</goal>
-                        </goals>
-                        <configuration>
-                            <rules>
-                                <requireSameVersions>
-                                    <plugins>
-                                        <plugin>org.apache.maven.plugins:maven-surefire-plugin</plugin>
-                                        <plugin>org.apache.maven.plugins:maven-failsafe-plugin</plugin>
-                                        <plugin>org.apache.maven.plugins:maven-surefire-report-plugin</plugin>
-                                    </plugins>
-                                </requireSameVersions>
-                                <requireMavenVersion>
-                                    <version>${maven.min-version}</version>
-                                </requireMavenVersion>
-                            </rules>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.rat</groupId>
-                <artifactId>apache-rat-plugin</artifactId>
-                <configuration>
-                    <excludes>
-                        <exclude>nb-configuration.xml</exclude> <!-- courtesy excludes for netbeans users -->
-                        <exclude>nbactions.xml</exclude> <!-- courtesy excludes for netbeans users -->
-                        <exclude>DEPENDENCIES</exclude> <!-- auto generated file by apache's maven config while building sources.zip -->
-                    </excludes>
-                </configuration>
-            </plugin>
-            <plugin>
-=======
->>>>>>> upstream/develop
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-nar-maven-plugin</artifactId>
                 <version>1.0.1-incubating-SNAPSHOT</version>
