@@ -24,34 +24,35 @@ import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
 
 public class JoinEvaluator extends StringEvaluator implements ReduceEvaluator<String> {
+
     private final StringEvaluator subjectEvaluator;
     private final StringEvaluator delimiterEvaluator;
-    
+
     private final StringBuilder sb = new StringBuilder();
     private int evalCount = 0;
-    
+
     public JoinEvaluator(final StringEvaluator subject, final StringEvaluator delimiter) {
         this.subjectEvaluator = subject;
         this.delimiterEvaluator = delimiter;
     }
-    
+
     @Override
     public QueryResult<String> evaluate(final Map<String, String> attributes) {
         String subject = subjectEvaluator.evaluate(attributes).getValue();
-        if ( subject == null ) {
+        if (subject == null) {
             subject = "";
         }
-        
+
         final String delimiter = delimiterEvaluator.evaluate(attributes).getValue();
-        if ( evalCount > 0 ) {
+        if (evalCount > 0) {
             sb.append(delimiter);
         }
         sb.append(subject);
 
         evalCount++;
-        return new StringQueryResult( sb.toString() );
+        return new StringQueryResult(sb.toString());
     }
-    
+
     @Override
     public Evaluator<?> getSubjectEvaluator() {
         return subjectEvaluator;

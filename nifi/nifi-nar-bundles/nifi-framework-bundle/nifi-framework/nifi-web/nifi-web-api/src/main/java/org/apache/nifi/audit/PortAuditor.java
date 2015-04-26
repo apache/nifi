@@ -295,7 +295,7 @@ public class PortAuditor extends NiFiAuditor {
      *
      * @param port
      * @param operation
-     * @return 
+     * @return
      */
     public Action generateAuditRecord(Port port, Operation operation) {
         return generateAuditRecord(port, operation, null);
@@ -307,7 +307,7 @@ public class PortAuditor extends NiFiAuditor {
      * @param port
      * @param operation
      * @param actionDetails
-     * @return 
+     * @return
      */
     public Action generateAuditRecord(Port port, Operation operation, ActionDetails actionDetails) {
         Action action = null;

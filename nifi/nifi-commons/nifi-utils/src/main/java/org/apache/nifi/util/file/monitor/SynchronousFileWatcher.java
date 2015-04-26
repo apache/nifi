@@ -61,8 +61,8 @@ public class SynchronousFileWatcher {
      * Checks if the file has been updated according to the configured
      * {@link UpdateMonitor} and resets the state
      *
-     * @return
-     * @throws IOException
+     * @return true if updated; false otherwise
+     * @throws IOException if failure occurs checking for changes
      */
     public boolean checkAndReset() throws IOException {
         if (checkUpdateMillis <= 0) { // if checkUpdateMillis <= 0, always check

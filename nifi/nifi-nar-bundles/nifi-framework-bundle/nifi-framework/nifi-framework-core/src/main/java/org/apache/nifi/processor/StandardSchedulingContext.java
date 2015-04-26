@@ -46,7 +46,7 @@ public class StandardSchedulingContext implements SchedulingContext {
             throw new IllegalArgumentException("Cannot lease Controller Service because no Controller Service exists with identifier " + identifier);
         }
 
-        if ( serviceNode.getState() != ControllerServiceState.ENABLED ) {
+        if (serviceNode.getState() != ControllerServiceState.ENABLED) {
             throw new IllegalStateException("Cannot lease Controller Service because Controller Service " + serviceNode.getProxiedControllerService() + " is not currently enabled");
         }
 

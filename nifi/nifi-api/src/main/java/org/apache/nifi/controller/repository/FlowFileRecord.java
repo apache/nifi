@@ -27,28 +27,22 @@ import org.apache.nifi.flowfile.FlowFile;
 public interface FlowFileRecord extends FlowFile {
 
     /**
-     * Returns the time (in millis since epoch) at which this FlowFile should no
-     * longer be penalized.
-     *
-     * @return
+     * @return the time (in millis since epoch) at which this FlowFile should no
+     * longer be penalized
      */
     long getPenaltyExpirationMillis();
 
     /**
-     * Returns the {@link ContentClaim} that holds the FlowFile's content
-     *
-     * @return
+     * @return the {@link ContentClaim} that holds the FlowFile's content
      */
     ContentClaim getContentClaim();
 
     /**
-     * Returns the byte offset into the {@link ContentClaim} at which the
+     * @return the byte offset into the {@link ContentClaim} at which the
      * FlowFile's content occurs. This mechanism allows multiple FlowFiles to
      * have the same ContentClaim, which can be significantly more efficient for
      * some implementations of
      * {@link nifi.controller.repository.ContentRepository ContentRepository}
-     *
-     * @return
      */
     long getContentClaimOffset();
 }

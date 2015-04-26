@@ -25,9 +25,9 @@ import org.apache.nifi.cluster.protocol.StandardDataFlow;
  */
 @XmlRootElement(name = "flowResponseMessage")
 public class FlowResponseMessage extends ProtocolMessage {
-    
+
     private StandardDataFlow dataFlow;
-    
+
     @Override
     public MessageType getType() {
         return MessageType.FLOW_RESPONSE;

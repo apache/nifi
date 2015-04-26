@@ -46,7 +46,7 @@ public interface Connectable extends Triggerable {
     /**
      * Returns the ProcessorRelationship whose name is given
      *
-     * @param relationshipName
+     * @param relationshipName name
      * @return a ProcessorRelationship whose name is given, or <code>null</code>
      * if none exists
      */
@@ -69,7 +69,7 @@ public interface Connectable extends Triggerable {
 
     /**
      *
-     * @param connection
+     * @param connection to remove
      * @throws IllegalStateException if the given Connection is not registered
      * to <code>this</code>.
      */
@@ -79,8 +79,8 @@ public interface Connectable extends Triggerable {
      * Updates any internal state that depends on the given connection. The
      * given connection will share the same ID as the old connection.
      *
-     * @param newConnection
-     * @throws IllegalStateException
+     * @param newConnection new connection
+     * @throws IllegalStateException ise
      */
     void updateConnection(Connection newConnection) throws IllegalStateException;
 
@@ -98,7 +98,7 @@ public interface Connectable extends Triggerable {
     Set<Connection> getConnections();
 
     /**
-     * @param relationship
+     * @param relationship to get connections for
      * @return a <code>Set</code> of all <code>Connection</code>s that contain
      * the given relationship for which this <code>Connectable</code> is the
      * source
@@ -106,16 +106,14 @@ public interface Connectable extends Triggerable {
     Set<Connection> getConnections(Relationship relationship);
 
     /**
-     * Returns the position on the graph where this Connectable is located
-     *
-     * @return
+     * @return the position on the graph where this Connectable is located
      */
     Position getPosition();
 
     /**
      * Updates this component's position on the graph
      *
-     * @param position
+     * @param position new position
      */
     void setPosition(Position position);
 
@@ -127,7 +125,8 @@ public interface Connectable extends Triggerable {
     /**
      * Sets the name of this Connectable so that its name will be visible on the
      * UI
-     * @param name
+     *
+     * @param name new name
      */
     void setName(String name);
 
@@ -138,31 +137,28 @@ public interface Connectable extends Triggerable {
 
     /**
      * Sets the comments of this Connectable.
-     * @param comments
+     *
+     * @param comments of this Connectable
      */
     void setComments(String comments);
 
     /**
-     * If true,
+     * @return If true,
      * {@link #onTrigger(nifi.processor.ProcessContext, nifi.processor.ProcessSessionFactory)}
      * should be called even when this Connectable has no FlowFiles queued for
      * processing
-     *
-     * @return
      */
     boolean isTriggerWhenEmpty();
 
     /**
-     * Returns the ProcessGroup to which this <code>Connectable</code> belongs
-     *
-     * @return
+     * @return the ProcessGroup to which this <code>Connectable</code> belongs
      */
     ProcessGroup getProcessGroup();
 
     /**
      * Sets the new ProcessGroup to which this <code>Connectable</code> belongs
      *
-     * @param group
+     * @param group new group
      */
     void setProcessGroup(ProcessGroup group);
 
@@ -177,15 +173,13 @@ public interface Connectable extends Triggerable {
     boolean isAutoTerminated(Relationship relationship);
 
     /**
-     * Indicates whether flow file content made by this connectable must be
-     * persisted
-     *
-     * @return 
+     * @return Indicates whether flow file content made by this connectable must
+     * be persisted
      */
     boolean isLossTolerant();
 
     /**
-     * @param lossTolerant
+     * @param lossTolerant true if it is
      */
     void setLossTolerant(boolean lossTolerant);
 
@@ -195,41 +189,33 @@ public interface Connectable extends Triggerable {
     ConnectableType getConnectableType();
 
     /**
-     * Returns the any validation errors for this connectable.
-     *
-     * @return
+     * @return any validation errors for this connectable
      */
     Collection<ValidationResult> getValidationErrors();
 
     /**
-     * Returns the amount of time for which a FlowFile should be penalized when
+     * @param timeUnit unit over which to interpret the duration
+     * @return the amount of time for which a FlowFile should be penalized when
      * {@link ProcessSession#penalize(nifi.flowfile.FlowFile)} is called
-     *
-     * @param timeUnit
-     * @return
      */
     long getPenalizationPeriod(final TimeUnit timeUnit);
 
     /**
-     * Returns a string representation for which a FlowFile should be penalized
+     * @return a string representation for which a FlowFile should be penalized
      * when {@link ProcessSession#penalize(nifi.flowfile.FlowFile)} is called
-     *
-     * @return
      */
     String getPenalizationPeriod();
 
     /**
      * @param timeUnit determines the unit of time to represent the yield
      * period.
-     * @return
+     * @return yield period
      */
     long getYieldPeriod(TimeUnit timeUnit);
 
     /**
-     * returns the string representation for this Connectable's configured yield
+     * @return the string representation for this Connectable's configured yield
      * period
-     *
-     * @return
      */
     String getYieldPeriod();
 
@@ -238,14 +224,15 @@ public interface Connectable extends Triggerable {
      * scheduled when the processor calls
      * {@link nifi.processor.ProcessContext#yield() ProcessContext.yield()}
      *
-     * @param yieldPeriod
+     * @param yieldPeriod new yield period
      */
     void setYieldPeriod(String yieldPeriod);
 
     /**
      * Updates the amount of time that this Connectable will penalize FlowFiles
      * when {@link ProcessSession#penalize(nifi.flowfile.FlowFile)} is called
-     * @param penalizationPeriod
+     *
+     * @param penalizationPeriod new period
      */
     void setPenalizationPeriod(String penalizationPeriod);
 
@@ -258,18 +245,14 @@ public interface Connectable extends Triggerable {
     void yield();
 
     /**
-     * Returns the time in milliseconds since Epoch at which this Connectable
+     * @return the time in milliseconds since Epoch at which this Connectable
      * should no longer yield its threads
-     *
-     * @return
      */
     long getYieldExpiration();
 
     /**
-     * Specifies whether or not this component is considered side-effect free,
-     * with respect to external systems.
-     *
-     * @return
+     * @return Specifies whether or not this component is considered side-effect free,
+     * with respect to external systems
      */
     boolean isSideEffectFree();
 

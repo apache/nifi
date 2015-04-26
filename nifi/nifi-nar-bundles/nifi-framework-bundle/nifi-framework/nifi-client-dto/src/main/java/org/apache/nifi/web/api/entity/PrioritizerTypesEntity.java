@@ -31,9 +31,7 @@ public class PrioritizerTypesEntity extends Entity {
     private Set<DocumentedTypeDTO> prioritizerTypes;
 
     /**
-     * The list of prioritizer types that are being serialized.
-     *
-     * @return
+     * @return list of prioritizer types that are being serialized
      */
     public Set<DocumentedTypeDTO> getPrioritizerTypes() {
         return prioritizerTypes;

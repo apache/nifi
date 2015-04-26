@@ -32,9 +32,7 @@ public class RemoteProcessGroupsEntity extends Entity {
     private Set<RemoteProcessGroupDTO> remoteProcessGroups;
 
     /**
-     * The collection of RemoteProcessGroupDTOs that are being serialized.
-     *
-     * @return
+     * @return collection of RemoteProcessGroupDTOs that are being serialized
      */
     public Set<RemoteProcessGroupDTO> getRemoteProcessGroups() {
         return remoteProcessGroups;

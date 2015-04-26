@@ -32,63 +32,64 @@ import ca.uhn.hl7v2.model.Segment;
 import ca.uhn.hl7v2.model.Structure;
 
 public class HapiMessage implements HL7Message {
-	private final Message message;
-	private final List<HL7Segment> allSegments;
-	private final Map<String, List<HL7Segment>> segmentMap;
-	
-	public HapiMessage(final Message message) throws HL7Exception {
-		this.message = message;
-		
-		allSegments = new ArrayList<>();
-		populateSegments(message, allSegments);
-		
-		segmentMap = new HashMap<>();
-		for ( final HL7Segment segment : allSegments ) {
-			final String segmentName = segment.getName();
-			List<HL7Segment> segmentList = segmentMap.get(segmentName);
-			if ( segmentList == null ) {
-				segmentList = new ArrayList<>();
-				segmentMap.put(segmentName, segmentList);
-			}
-			
-			segmentList.add(segment);
-		}
-	}
-	
-	private void populateSegments(final Group group, final List<HL7Segment> segments) throws HL7Exception {
-		for ( final String structureName : group.getNames() ) {
-			final Structure[] structures = group.getAll(structureName);
-			if ( group.isGroup(structureName) ) {
-				for ( final Structure structure : structures ) {
-					populateSegments((Group) structure, segments);
-				}
-			} else {
-				for ( final Structure structure : structures ) {
-					final Segment segment = (Segment) structure;
-					final HapiSegment hapiSegment = new HapiSegment(segment);
-					segments.add(hapiSegment);
-				}
-			}
-		}
-	}
-	
-	@Override
-	public List<HL7Segment> getSegments() {
-		return Collections.unmodifiableList(allSegments);
-	}
 
-	@Override
-	public List<HL7Segment> getSegments(final String segmentType) {
-		final List<HL7Segment> segments = segmentMap.get(segmentType);
-		if ( segments == null ) {
-			return Collections.emptyList();
-		}
-		
-		return Collections.unmodifiableList(segments);
-	}
+    private final Message message;
+    private final List<HL7Segment> allSegments;
+    private final Map<String, List<HL7Segment>> segmentMap;
 
-	@Override
-	public String toString() {
-		return message.toString();
-	}
+    public HapiMessage(final Message message) throws HL7Exception {
+        this.message = message;
+
+        allSegments = new ArrayList<>();
+        populateSegments(message, allSegments);
+
+        segmentMap = new HashMap<>();
+        for (final HL7Segment segment : allSegments) {
+            final String segmentName = segment.getName();
+            List<HL7Segment> segmentList = segmentMap.get(segmentName);
+            if (segmentList == null) {
+                segmentList = new ArrayList<>();
+                segmentMap.put(segmentName, segmentList);
+            }
+
+            segmentList.add(segment);
+        }
+    }
+
+    private void populateSegments(final Group group, final List<HL7Segment> segments) throws HL7Exception {
+        for (final String structureName : group.getNames()) {
+            final Structure[] structures = group.getAll(structureName);
+            if (group.isGroup(structureName)) {
+                for (final Structure structure : structures) {
+                    populateSegments((Group) structure, segments);
+                }
+            } else {
+                for (final Structure structure : structures) {
+                    final Segment segment = (Segment) structure;
+                    final HapiSegment hapiSegment = new HapiSegment(segment);
+                    segments.add(hapiSegment);
+                }
+            }
+        }
+    }
+
+    @Override
+    public List<HL7Segment> getSegments() {
+        return Collections.unmodifiableList(allSegments);
+    }
+
+    @Override
+    public List<HL7Segment> getSegments(final String segmentType) {
+        final List<HL7Segment> segments = segmentMap.get(segmentType);
+        if (segments == null) {
+            return Collections.emptyList();
+        }
+
+        return Collections.unmodifiableList(segments);
+    }
+
+    @Override
+    public String toString() {
+        return message.toString();
+    }
 }

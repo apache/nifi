@@ -24,12 +24,13 @@ import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 
 public class IsEmptyEvaluator extends BooleanEvaluator {
+
     private final Evaluator<?> subjectEvaluator;
-    
+
     public IsEmptyEvaluator(final Evaluator<?> subjectEvaluator) {
         this.subjectEvaluator = subjectEvaluator;
     }
-    
+
     @Override
     public QueryResult<Boolean> evaluate(final Map<String, String> attributes) {
         final Object subjectValue = subjectEvaluator.evaluate(attributes).getValue();

@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 public class CopyingInputStream extends FilterInputStream {
+
     private final ByteArrayOutputStream baos = new ByteArrayOutputStream();
     private final int maxBytesToCopy;
     private final InputStream in;
@@ -32,45 +33,45 @@ public class CopyingInputStream extends FilterInputStream {
         this.maxBytesToCopy = maxBytesToCopy;
         this.in = in;
     }
-    
+
     @Override
     public int read() throws IOException {
         final int delegateRead = in.read();
-        if ( delegateRead != -1 && getNumberOfBytesCopied() < maxBytesToCopy ) {
+        if (delegateRead != -1 && getNumberOfBytesCopied() < maxBytesToCopy) {
             baos.write(delegateRead);
         }
-        
+
         return delegateRead;
     }
-    
+
     @Override
     public int read(byte[] b) throws IOException {
         final int delegateRead = in.read(b);
-        if ( delegateRead >= 0 ) {
+        if (delegateRead >= 0) {
             baos.write(b, 0, Math.min(delegateRead, maxBytesToCopy - getNumberOfBytesCopied()));
         }
-        
+
         return delegateRead;
     }
-    
+
     @Override
     public int read(byte[] b, int off, int len) throws IOException {
         final int delegateRead = in.read(b, off, len);
-        if ( delegateRead >= 0 ) {
+        if (delegateRead >= 0) {
             baos.write(b, off, Math.min(delegateRead, maxBytesToCopy - getNumberOfBytesCopied()));
         }
-        
+
         return delegateRead;
     }
-    
+
     public byte[] getBytesRead() {
         return baos.toByteArray();
     }
-    
+
     public void writeBytes(final OutputStream out) throws IOException {
         baos.writeTo(out);
     }
-    
+
     public int getNumberOfBytesCopied() {
         return baos.size();
     }

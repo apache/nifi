@@ -25,9 +25,7 @@ public class ProvenanceEntity extends Entity {
     private ProvenanceDTO provenance;
 
     /**
-     * The provenance .
-     *
-     * @return
+     * @return provenance
      */
     public ProvenanceDTO getProvenance() {
         return provenance;

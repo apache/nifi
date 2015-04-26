@@ -27,7 +27,7 @@ public interface ConfigurableComponent {
      * not included in the in the purposed configuration, the default value will
      * be used.
      *
-     * @param context
+     * @param context of validation
      * @return Collection of validation result objects for any invalid findings
      * only. If the collection is empty then the component is valid. Guaranteed
      * non-null
@@ -35,11 +35,9 @@ public interface ConfigurableComponent {
     Collection<ValidationResult> validate(ValidationContext context);
 
     /**
-     * Returns the PropertyDescriptor with the given name, if it exists;
-     * otherwise, returns <code>null</code>.
-     *
-     * @param name
-     * @return
+     * @param name to lookup the descriptor
+     * @return the PropertyDescriptor with the given name, if it exists;
+     * otherwise, returns <code>null</code>
      */
     PropertyDescriptor getPropertyDescriptor(String name);
 
@@ -51,7 +49,7 @@ public interface ConfigurableComponent {
      * necessary lazily evaluate it. Any throwable that escapes this method will
      * simply be ignored.
      *
-     * @param descriptor
+     * @param descriptor the descriptor for the property being modified
      * @param oldValue the value that was previously set, or null if no value
      * was previously set for this property
      * @param newValue the new property value or if null indicates the property
@@ -68,10 +66,8 @@ public interface ConfigurableComponent {
     List<PropertyDescriptor> getPropertyDescriptors();
 
     /**
-     * Returns the unique identifier that the framework assigned to this
+     * @return the unique identifier that the framework assigned to this
      * component
-     *
-     * @return
      */
     String getIdentifier();
 }

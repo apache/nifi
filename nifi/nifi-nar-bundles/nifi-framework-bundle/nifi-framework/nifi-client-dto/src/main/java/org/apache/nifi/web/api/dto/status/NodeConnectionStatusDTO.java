@@ -29,9 +29,7 @@ public class NodeConnectionStatusDTO {
     private ConnectionStatusDTO connectionStatus;
 
     /**
-     * The node.
-     *
-     * @return
+     * @return the node
      */
     public NodeDTO getNode() {
         return node;
@@ -42,9 +40,7 @@ public class NodeConnectionStatusDTO {
     }
 
     /**
-     * The connection's status.
-     *
-     * @return
+     * @return connection's status
      */
     public ConnectionStatusDTO getConnectionStatus() {
         return connectionStatus;

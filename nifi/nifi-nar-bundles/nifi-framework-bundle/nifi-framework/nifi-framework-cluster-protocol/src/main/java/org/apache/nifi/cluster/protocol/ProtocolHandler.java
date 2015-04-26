@@ -20,25 +20,26 @@ import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
 
 /**
  * A handler for processing protocol messages.
- * @author unattributed
+ *
  */
 public interface ProtocolHandler {
-    
+
     /**
      * Handles the given protocol message or throws an exception if it cannot
-     * handle the message.  If no response is needed by the protocol, then null
+     * handle the message. If no response is needed by the protocol, then null
      * should be returned.
-     * 
+     *
      * @param msg a message
      * @return a response or null, if no response is necessary
-     * 
+     *
      * @throws ProtocolException if the message could not be processed
      */
     ProtocolMessage handle(ProtocolMessage msg) throws ProtocolException;
-    
+
     /**
-     * @param msg
-     * @return true if the handler can process the given message; false otherwise
+     * @param msg a message
+     * @return true if the handler can process the given message; false
+     * otherwise
      */
     boolean canHandle(ProtocolMessage msg);
 }

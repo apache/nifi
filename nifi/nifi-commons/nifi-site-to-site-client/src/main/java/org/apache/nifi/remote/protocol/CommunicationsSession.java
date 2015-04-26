@@ -55,10 +55,8 @@ public interface CommunicationsSession extends Closeable {
     void interrupt();
 
     /**
-     * Returns <code>true</code> if the connection is closed, <code>false</code>
-     * otherwise.
-     *
-     * @return
+     * @return <code>true</code> if the connection is closed, <code>false</code>
+     * otherwise
      */
     boolean isClosed();
 }

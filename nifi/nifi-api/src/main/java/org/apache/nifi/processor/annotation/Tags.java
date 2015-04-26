@@ -29,9 +29,8 @@ import java.lang.annotation.Target;
  * any way but serve as additional documentation and can be used to sort/filter
  * Processors.
  *
- * @author none
- * @deprecated This Annotation has been replaced by the {@link org.apache.nifi.annotation.documentation.Tags}
- * annotation.
+ * @deprecated This Annotation has been replaced by the
+ * {@link org.apache.nifi.annotation.documentation.Tags} annotation.
  */
 @Documented
 @Target({ElementType.TYPE})
@@ -40,8 +39,5 @@ import java.lang.annotation.Target;
 @Deprecated
 public @interface Tags {
 
-    /**
-     * @return all tag values associated with the given processor
-     */
     public String[] value();
 }

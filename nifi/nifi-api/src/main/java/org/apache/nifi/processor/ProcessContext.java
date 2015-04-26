@@ -39,8 +39,8 @@ public interface ProcessContext {
      * Retrieves the current value set for the given descriptor, if a value is
      * set - else uses the descriptor to determine the appropriate default value
      *
-     * @param descriptor
-     * @return
+     * @param descriptor to lookup the value of
+     * @return the property value of the given descriptor
      */
     PropertyValue getProperty(PropertyDescriptor descriptor);
 
@@ -48,8 +48,8 @@ public interface ProcessContext {
      * Retrieves the current value set for the given descriptor, if a value is
      * set - else uses the descriptor to determine the appropriate default value
      *
-     * @param propertyName
-     * @return
+     * @param propertyName of the property to lookup the value for
+     * @return property value as retrieved by property name
      */
     PropertyValue getProperty(String propertyName);
 
@@ -57,8 +57,9 @@ public interface ProcessContext {
      * Creates and returns a {@link PropertyValue} object that can be used for
      * evaluating the value of the given String
      *
-     * @param rawValue
-     * @return
+     * @param rawValue the raw input before any property evaluation has occurred
+     * @return a {@link PropertyValue} object that can be used for
+     * evaluating the value of the given String
      */
     PropertyValue newPropertyValue(String rawValue);
 
@@ -89,11 +90,9 @@ public interface ProcessContext {
     String getAnnotationData();
 
     /**
-     * Returns a Map of all PropertyDescriptors to their configured values. This
+     * @return a Map of all PropertyDescriptors to their configured values. This
      * Map may or may not be modifiable, but modifying its values will not
      * change the values of the processor's properties
-     *
-     * @return
      */
     Map<PropertyDescriptor, String> getProperties();
 
@@ -101,8 +100,8 @@ public interface ProcessContext {
      * Encrypts the given value using the password provided in the NiFi
      * Properties
      *
-     * @param unencrypted
-     * @return
+     * @param unencrypted plaintext value
+     * @return encrypted value
      */
     String encrypt(String unencrypted);
 
@@ -110,19 +109,17 @@ public interface ProcessContext {
      * Decrypts the given value using the password provided in the NiFi
      * Properties
      *
-     * @param encrypted
-     * @return
+     * @param encrypted the encrypted value
+     * @return the plaintext value
      */
     String decrypt(String encrypted);
 
     /**
-     * Provides a {@code ControllerServiceLookup} that can be used to obtain a
+     * @return a {@code ControllerServiceLookup} that can be used to obtain a
      * Controller Service
-     *
-     * @return
      */
     ControllerServiceLookup getControllerServiceLookup();
-    
+
     /**
      * @return the set of all relationships for which space is available to
      * receive new objects

@@ -43,7 +43,7 @@ public class NiFiUser implements Serializable {
 
     private AccountStatus status;
     private EnumSet<Authority> authorities;
-    
+
     private NiFiUser chain;
 
     /* getters / setters */

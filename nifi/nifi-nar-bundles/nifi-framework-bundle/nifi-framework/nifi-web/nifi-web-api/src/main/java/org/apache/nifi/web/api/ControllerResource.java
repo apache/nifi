@@ -159,7 +159,7 @@ public class ControllerResource extends ApplicationResource {
     public SnippetResource getSnippetResource() {
         return resourceContext.getResource(SnippetResource.class);
     }
-    
+
     /**
      * Locates the Controller Services sub-resource.
      *
@@ -169,7 +169,7 @@ public class ControllerResource extends ApplicationResource {
     public ControllerServiceResource getControllerServiceResource() {
         return resourceContext.getResource(ControllerServiceResource.class);
     }
-    
+
     /**
      * Locates the Reporting Tasks sub-resource.
      *
@@ -730,7 +730,7 @@ public class ControllerResource extends ApplicationResource {
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();
     }
-    
+
     /**
      * Retrieves the types of controller services that this NiFi supports.
      *
@@ -766,7 +766,7 @@ public class ControllerResource extends ApplicationResource {
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();
     }
-    
+
     /**
      * Retrieves the types of reporting tasks that this NiFi supports.
      *

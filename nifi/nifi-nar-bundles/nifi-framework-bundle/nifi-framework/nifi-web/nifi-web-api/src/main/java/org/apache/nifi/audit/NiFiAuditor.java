@@ -58,7 +58,7 @@ public abstract class NiFiAuditor {
      */
     protected void saveActions(Collection<Action> actions, Logger logger) {
         ClusterContext ctx = ClusterContextThreadLocal.getContext();
-        
+
         // if we're a connected node, then put audit actions on threadlocal to propagate back to manager
         if (ctx != null) {
             ctx.getActions().addAll(actions);

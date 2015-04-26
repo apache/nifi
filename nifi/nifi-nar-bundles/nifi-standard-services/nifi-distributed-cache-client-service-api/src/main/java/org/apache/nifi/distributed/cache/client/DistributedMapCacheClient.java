@@ -37,12 +37,12 @@ public interface DistributedMapCacheClient extends ControllerService {
      * present, serializing the key and value with the given
      * {@link Serializer}s.
      *
-     * @param <K>
-     * @param <V>
+     * @param <K> type of key
+     * @param <V> type of value
      * @param key the key for into the map
      * @param value the value to add to the map if and only if the key is absent
-     * @param keySerializer
-     * @param valueSerializer
+     * @param keySerializer key serializer
+     * @param valueSerializer value serializer
      * @return true if the value was added to the cache, false if the value
      * already existed in the cache
      *
@@ -57,15 +57,17 @@ public interface DistributedMapCacheClient extends ControllerService {
      * key, the value associated with the key is returned, after being
      * deserialized with the given valueDeserializer.
      *
-     * @param <K>
-     * @param <V>
-     * @param key
-     * @param value
-     * @param keySerializer
-     * @param valueSerializer
-     * @param valueDeserializer
-     * @return
-     * @throws IOException
+     * @param <K> type of key
+     * @param <V> type of value
+     * @param key key
+     * @param value value
+     * @param keySerializer key serializer
+     * @param valueSerializer key serializer
+     * @param valueDeserializer value deserializer
+     * @return If a value already exists in the cache for the given
+     * key, the value associated with the key is returned, after being
+     * deserialized with the given valueDeserializer
+     * @throws IOException ex
      */
     <K, V> V getAndPutIfAbsent(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer, Deserializer<V> valueDeserializer) throws IOException;
 
@@ -73,46 +75,46 @@ public interface DistributedMapCacheClient extends ControllerService {
      * Determines if the given value is present in the cache and if so returns
      * <code>true</code>, else returns <code>false</code>
      *
-     * @param <K>
-     * @param key
-     * @param keySerializer
-     * @return
+     * @param <K> type of key
+     * @param key key
+     * @param keySerializer key serializer
+     * @return Determines if the given value is present in the cache and if so returns
+     * <code>true</code>, else returns <code>false</code>
      *
      * @throws IOException if unable to communicate with the remote instance
      */
     <K> boolean containsKey(K key, Serializer<K> keySerializer) throws IOException;
 
     /**
-     * Returns the value in the cache for the given key, if one exists;
-     * otherwise returns <code>null</code>
-     *
-     * @param <K>
-     * @param <V>
+     * @param <K> type of key
+     * @param <V> type of value
      * @param key the key to lookup in the map
-     * @param keySerializer
-     * @param valueDeserializer
+     * @param keySerializer key serializer
+     * @param valueDeserializer value serializer
      *
-     * @return
-     * @throws IOException
+     * @return the value in the cache for the given key, if one exists;
+     * otherwise returns <code>null</code>
+     * @throws IOException ex
      */
     <K, V> V get(K key, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException;
 
     /**
      * Attempts to notify the server that we are finished communicating with it
      * and cleans up resources
-     * @throws java.io.IOException
+     *
+     * @throws java.io.IOException ex
      */
     void close() throws IOException;
 
     /**
      * Removes the entry with the given key from the cache, if it is present.
      *
-     * @param <K>
-     * @param key
-     * @param serializer
+     * @param <K> type of key
+     * @param key key
+     * @param serializer serializer
      * @return <code>true</code> if the entry is removed, <code>false</code> if
      * the key did not exist in the cache
-     * @throws IOException
+     * @throws IOException ex
      */
     <K> boolean remove(K key, Serializer<K> serializer) throws IOException;
 

@@ -26,25 +26,19 @@ import java.util.Map;
 public interface StatusHistory {
 
     /**
-     * Returns a Date indicating when this report was generated
-     *
-     * @return
+     * @return a Date indicating when this report was generated
      */
     Date getDateGenerated();
 
     /**
-     * Returns a Map of component field names and their values. The order in
+     * @return a Map of component field names and their values. The order in
      * which these values are displayed is dependent on the natural ordering of
-     * the Map returned.
-     *
-     * @return
+     * the Map returned
      */
     Map<String, String> getComponentDetails();
 
     /**
-     * A List of snapshots for a given component
-     *
-     * @return
+     * @return List of snapshots for a given component
      */
     List<StatusSnapshot> getStatusSnapshots();
 }

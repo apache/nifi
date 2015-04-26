@@ -35,10 +35,6 @@ import org.apache.nifi.io.nio.consumer.StreamConsumerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- *
- * @author none
- */
 public final class ChannelDispatcher implements Runnable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ChannelDispatcher.class);
@@ -81,8 +77,8 @@ public final class ChannelDispatcher implements Runnable {
     /*
      * When serverSocketsChannels are registered with the selector, want each invoke of this method to loop through all
      * channels' keys.
-     * 
-     * @throws IOException
+     *
+     * @throws IOException if unable to select keys
      */
     private void selectServerSocketKeys() throws IOException {
         int numSelected = serverSocketSelector.select(timeout);
@@ -121,8 +117,8 @@ public final class ChannelDispatcher implements Runnable {
      * When invoking this method, only want to iterate through the selected keys once. When a key is entered into the selectors
      * selected key set, select will return a positive value. The next select will return 0 if nothing has changed. Note that
      * the selected key set is not manually changed via a remove operation.
-     * 
-     * @throws IOException
+     *
+     * @throws IOException if unable to select keys
      */
     private void selectSocketChannelKeys() throws IOException {
         // once a channel associated with a key in this selector is 'ready', it causes this select to immediately return.
@@ -138,7 +134,7 @@ public final class ChannelDispatcher implements Runnable {
             // there are 2 kinds of channels in this selector, both which have their own readers and are executed in their own
             // threads. We will get here whenever a new SocketChannel is created due to an incoming connection. However,
             // for a DatagramChannel we don't want to create a new reader unless it is a new DatagramChannel. The only
-            // way to tell if it's new is the lack of an attachment. 
+            // way to tell if it's new is the lack of an attachment.
             if (channel instanceof DatagramChannel && socketChannelKey.attachment() == null) {
                 reader = new DatagramChannelReader(UUID.randomUUID().toString(), socketChannelKey, emptyBuffers, factory);
                 socketChannelKey.attach(reader);

@@ -67,7 +67,7 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
         if (controllerServiceDTO.getType() == null) {
             throw new IllegalArgumentException("The controller service type must be specified.");
         }
-        
+
         try {
             // create the controller service
             final ControllerServiceNode controllerService = serviceProvider.createControllerService(controllerServiceDTO.getType(), controllerServiceDTO.getId(), true);
@@ -126,10 +126,10 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
     public ControllerServiceNode updateControllerService(final ControllerServiceDTO controllerServiceDTO) {
         // get the controller service
         final ControllerServiceNode controllerService = locateControllerService(controllerServiceDTO.getId());
-        
+
         // ensure we can perform the update 
         verifyUpdate(controllerService, controllerServiceDTO);
-        
+
         // perform the update
         configureControllerService(controllerService, controllerServiceDTO);
 
@@ -146,7 +146,7 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
                 }
             }
         }
-        
+
         return controllerService;
     }
 
@@ -154,7 +154,7 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
     public ControllerServiceReference updateControllerServiceReferencingComponents(final String controllerServiceId, final ScheduledState scheduledState, final ControllerServiceState controllerServiceState) {
         // get the controller service
         final ControllerServiceNode controllerService = locateControllerService(controllerServiceId);
-        
+
         // this request is either acting upon referncing services or schedulable components
         if (controllerServiceState != null) {
             if (ControllerServiceState.ENABLED.equals(controllerServiceState)) {
@@ -169,22 +169,23 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
                 serviceProvider.unscheduleReferencingComponents(controllerService);
             }
         }
-        
+
         return controllerService.getReferences();
     }
 
     /**
-     * Validates the specified configuration for the specified controller service.
-     * 
+     * Validates the specified configuration for the specified controller
+     * service.
+     *
      * @param controllerService
      * @param controllerServiceDTO
-     * @return 
+     * @return
      */
     private List<String> validateProposedConfiguration(final ControllerServiceNode controllerService, final ControllerServiceDTO controllerServiceDTO) {
         final List<String> validationErrors = new ArrayList<>();
         return validationErrors;
     }
-    
+
     @Override
     public void verifyDelete(final String controllerServiceId) {
         final ControllerServiceNode controllerService = locateControllerService(controllerServiceId);
@@ -200,7 +201,7 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
     @Override
     public void verifyUpdateReferencingComponents(String controllerServiceId, ScheduledState scheduledState, ControllerServiceState controllerServiceState) {
         final ControllerServiceNode controllerService = locateControllerService(controllerServiceId);
-        
+
         if (controllerServiceState != null) {
             if (ControllerServiceState.ENABLED.equals(controllerServiceState)) {
                 serviceProvider.verifyCanEnableReferencingServices(controllerService);
@@ -215,12 +216,12 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
             }
         }
     }
-    
+
     /**
      * Verifies the controller service can be updated.
-     * 
+     *
      * @param controllerService
-     * @param controllerServiceDTO 
+     * @param controllerServiceDTO
      */
     private void verifyUpdate(final ControllerServiceNode controllerService, final ControllerServiceDTO controllerServiceDTO) {
         // validate the new controller service state if appropriate
@@ -228,12 +229,12 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
             try {
                 // attempt to parse the service state
                 final ControllerServiceState purposedControllerServiceState = ControllerServiceState.valueOf(controllerServiceDTO.getState());
-                
+
                 // ensure the state is valid
                 if (ControllerServiceState.ENABLING.equals(purposedControllerServiceState) || ControllerServiceState.DISABLING.equals(purposedControllerServiceState)) {
                     throw new IllegalArgumentException();
                 }
-                
+
                 // only attempt an action if it is changing
                 if (!purposedControllerServiceState.equals(controllerService.getState())) {
                     if (ControllerServiceState.ENABLED.equals(purposedControllerServiceState)) {
@@ -246,14 +247,14 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
                 throw new IllegalArgumentException("Controller Service state: Value must be one of [ENABLED, DISABLED]");
             }
         }
-        
+
         boolean modificationRequest = false;
         if (isAnyNotNull(controllerServiceDTO.getName(),
                 controllerServiceDTO.getAnnotationData(),
                 controllerServiceDTO.getComments(),
                 controllerServiceDTO.getProperties())) {
             modificationRequest = true;
-            
+
             // validate the request
             final List<String> requestValidation = validateProposedConfiguration(controllerService, controllerServiceDTO);
 
@@ -262,24 +263,24 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
                 throw new ValidationException(requestValidation);
             }
         }
-        
+
         if (modificationRequest) {
             controllerService.verifyCanUpdate();
         }
     }
-    
+
     /**
      * Configures the specified controller service.
-     * 
+     *
      * @param controllerService
-     * @param controllerServiceDTO 
+     * @param controllerServiceDTO
      */
     private void configureControllerService(final ControllerServiceNode controllerService, final ControllerServiceDTO controllerServiceDTO) {
         final String name = controllerServiceDTO.getName();
         final String annotationData = controllerServiceDTO.getAnnotationData();
         final String comments = controllerServiceDTO.getComments();
         final Map<String, String> properties = controllerServiceDTO.getProperties();
-        
+
         if (isNotNull(name)) {
             controllerService.setName(name);
         }
@@ -301,7 +302,7 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
             }
         }
     }
-    
+
     /**
      * Deletes the specified controller service.
      *

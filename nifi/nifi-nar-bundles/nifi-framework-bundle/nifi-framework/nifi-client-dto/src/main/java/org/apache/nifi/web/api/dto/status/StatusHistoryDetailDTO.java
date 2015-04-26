@@ -28,9 +28,7 @@ public class StatusHistoryDetailDTO {
     private String value;
 
     /**
-     * The label for this status detail.
-     *
-     * @return
+     * @return label for this status detail
      */
     public String getLabel() {
         return label;
@@ -41,9 +39,7 @@ public class StatusHistoryDetailDTO {
     }
 
     /**
-     * The value for this status detail.
-     *
-     * @return
+     * @return value for this status detail
      */
     public String getValue() {
         return value;

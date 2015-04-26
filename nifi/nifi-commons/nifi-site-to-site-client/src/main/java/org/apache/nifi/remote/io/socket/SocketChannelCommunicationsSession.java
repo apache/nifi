@@ -22,11 +22,12 @@ import java.nio.channels.SocketChannel;
 import org.apache.nifi.remote.AbstractCommunicationsSession;
 
 public class SocketChannelCommunicationsSession extends AbstractCommunicationsSession {
+
     private final SocketChannel channel;
     private final SocketChannelInput request;
     private final SocketChannelOutput response;
     private int timeout = 30000;
-    
+
     public SocketChannelCommunicationsSession(final SocketChannel socketChannel, final String uri) throws IOException {
         super(uri);
         request = new SocketChannelInput(socketChannel);
@@ -34,12 +35,12 @@ public class SocketChannelCommunicationsSession extends AbstractCommunicationsSe
         channel = socketChannel;
         socketChannel.configureBlocking(false);
     }
-    
+
     @Override
     public boolean isClosed() {
         return !channel.isConnected();
     }
-    
+
     @Override
     public SocketChannelInput getInput() {
         return request;
@@ -65,28 +66,28 @@ public class SocketChannelCommunicationsSession extends AbstractCommunicationsSe
     @Override
     public void close() throws IOException {
         IOException suppressed = null;
-        
+
         try {
             request.consume();
         } catch (final IOException ioe) {
             suppressed = ioe;
         }
-        
+
         try {
             channel.close();
         } catch (final IOException ioe) {
-            if ( suppressed != null ) {
+            if (suppressed != null) {
                 ioe.addSuppressed(suppressed);
             }
-            
+
             throw ioe;
         }
-        
-        if ( suppressed != null ) {
+
+        if (suppressed != null) {
             throw suppressed;
         }
     }
-    
+
     @Override
     public boolean isDataAvailable() {
         return request.isDataAvailable();
@@ -101,7 +102,7 @@ public class SocketChannelCommunicationsSession extends AbstractCommunicationsSe
     public long getBytesRead() {
         return request.getBytesRead();
     }
-    
+
     @Override
     public void interrupt() {
         request.interrupt();

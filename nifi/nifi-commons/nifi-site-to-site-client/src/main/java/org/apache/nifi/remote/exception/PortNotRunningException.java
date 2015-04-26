@@ -17,11 +17,12 @@
 package org.apache.nifi.remote.exception;
 
 /**
- * PortNotRunningException occurs when the remote NiFi instance reports
- * that the Port that the client is attempting to communicate with is not
- * currently running and therefore communications with that Port are not allowed.
+ * PortNotRunningException occurs when the remote NiFi instance reports that the
+ * Port that the client is attempting to communicate with is not currently
+ * running and therefore communications with that Port are not allowed.
  */
 public class PortNotRunningException extends ProtocolException {
+
     private static final long serialVersionUID = -2790940982005516375L;
 
     public PortNotRunningException(final String message) {

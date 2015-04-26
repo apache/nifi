@@ -24,18 +24,17 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Marker annotation a {@link org.apache.nifi.processor.Processor Processor} 
- * implementation can use to indicate that its
- * operations on FlowFiles can be safely repeated across process sessions. If a
- * processor has this annotation and it allows the framework to manage session
- * commit and rollback then the framework may elect to cascade a
- * {@link org.apache.nifi.processor.ProcessSession ProcessSession} given to this 
- * processor's onTrigger method to the
- * onTrigger method of another processor. It can do this knowing that if
- * something fails along a series of processors using this same session that it
- * can all be safely rolled back without any ill effects on external services
- * which could not be rolled back and thus all the processes could be safely
- * repeated (implied idempotent behavior).
+ * Marker annotation a {@link org.apache.nifi.processor.Processor Processor}
+ * implementation can use to indicate that its operations on FlowFiles can be
+ * safely repeated across process sessions. If a processor has this annotation
+ * and it allows the framework to manage session commit and rollback then the
+ * framework may elect to cascade a
+ * {@link org.apache.nifi.processor.ProcessSession ProcessSession} given to this
+ * processor's onTrigger method to the onTrigger method of another processor. It
+ * can do this knowing that if something fails along a series of processors
+ * using this same session that it can all be safely rolled back without any ill
+ * effects on external services which could not be rolled back and thus all the
+ * processes could be safely repeated (implied idempotent behavior).
  *
  * @author none
  */

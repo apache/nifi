@@ -73,7 +73,7 @@ public interface FlowConfigurationDAO {
     /**
      * Saves all changes made to the given flow to the given File.
      *
-     * @param flow
+     * @param flow to save
      * @throws NullPointerException if the given flow is null
      * @throws IOException If unable to persist state of given flow
      * @throws IllegalStateException if FileFlowDAO not in proper state for
@@ -84,7 +84,7 @@ public interface FlowConfigurationDAO {
     /**
      * Saves all changes made to the given flow to the given File.
      *
-     * @param flow
+     * @param flow to save
      * @param outStream the OutputStream to which the FlowController will be
      * written
      * @throws NullPointerException if the given flow is null
@@ -97,7 +97,7 @@ public interface FlowConfigurationDAO {
     /**
      * Saves all changes made to the given flow to the given File.
      *
-     * @param flow
+     * @param flow to save
      * @param archive if true will also attempt to archive the flow
      * configuration
      * @throws NullPointerException if the given flow is null

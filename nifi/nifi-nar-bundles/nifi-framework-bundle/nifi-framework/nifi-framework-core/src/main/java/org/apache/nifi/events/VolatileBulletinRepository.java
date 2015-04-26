@@ -180,7 +180,7 @@ public class VolatileBulletinRepository implements BulletinRepository {
      * bulletin strategy is employed, bulletins will not be persisted in this
      * repository and will sent to the specified strategy instead.
      *
-     * @param strategy
+     * @param strategy bulletin strategy
      */
     public void overrideDefaultBulletinProcessing(final BulletinProcessingStrategy strategy) {
         Objects.requireNonNull(strategy);

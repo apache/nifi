@@ -34,68 +34,68 @@ import static org.junit.Assert.assertEquals;
 
 public class HtmlDocumentationWriterTest {
 
-	@Test
-	public void testJoin() {
-		assertEquals("a, b, c", HtmlDocumentationWriter.join(new String[] {"a",  "b", "c"}, ", "));
-		assertEquals("a, b", HtmlDocumentationWriter.join(new String[] {"a", "b"}, ", "));
-		assertEquals("a", HtmlDocumentationWriter.join(new String[] {"a"}, ", "));
-	}
-	
-	@Test
-	public void testDocumentControllerService() throws InitializationException, IOException {
+    @Test
+    public void testJoin() {
+        assertEquals("a, b, c", HtmlDocumentationWriter.join(new String[]{"a", "b", "c"}, ", "));
+        assertEquals("a, b", HtmlDocumentationWriter.join(new String[]{"a", "b"}, ", "));
+        assertEquals("a", HtmlDocumentationWriter.join(new String[]{"a"}, ", "));
+    }
 
-		ControllerService controllerService = new FullyDocumentedControllerService();
-		controllerService.initialize(new MockControllerServiceInitializationContext());
+    @Test
+    public void testDocumentControllerService() throws InitializationException, IOException {
 
-		DocumentationWriter writer = new HtmlDocumentationWriter();
+        ControllerService controllerService = new FullyDocumentedControllerService();
+        controllerService.initialize(new MockControllerServiceInitializationContext());
 
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DocumentationWriter writer = new HtmlDocumentationWriter();
 
-		writer.write(controllerService, baos, false);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-		String results = new String(baos.toByteArray());
-		XmlValidator.assertXmlValid(results);
+        writer.write(controllerService, baos, false);
 
-		// description
-		assertContains(results, "A documented controller service that can help you do things");
+        String results = new String(baos.toByteArray());
+        XmlValidator.assertXmlValid(results);
 
-		// tags
-		assertContains(results, "one, two, three");
+        // description
+        assertContains(results, "A documented controller service that can help you do things");
 
-		// properties
-		assertContains(results, "Keystore Filename");
-		assertContains(results, "The fully-qualified filename of the Keystore");
-		assertContains(results, "Keystore Type");
-		assertContains(results, "JKS");
-		assertContains(results, "PKCS12");
-		assertContains(results, "Sensitive Property: true");
-	}
+        // tags
+        assertContains(results, "one, two, three");
 
-	@Test
-	public void testDocumentReportingTask() throws InitializationException, IOException {
+        // properties
+        assertContains(results, "Keystore Filename");
+        assertContains(results, "The fully-qualified filename of the Keystore");
+        assertContains(results, "Keystore Type");
+        assertContains(results, "JKS");
+        assertContains(results, "PKCS12");
+        assertContains(results, "Sensitive Property: true");
+    }
 
-		ReportingTask reportingTask = new FullyDocumentedReportingTask();
-		reportingTask.initialize(new MockReportingInitializationContext());
+    @Test
+    public void testDocumentReportingTask() throws InitializationException, IOException {
 
-		DocumentationWriter writer = new HtmlDocumentationWriter();
+        ReportingTask reportingTask = new FullyDocumentedReportingTask();
+        reportingTask.initialize(new MockReportingInitializationContext());
 
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DocumentationWriter writer = new HtmlDocumentationWriter();
 
-		writer.write(reportingTask, baos, false);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-		String results = new String(baos.toByteArray());
-		XmlValidator.assertXmlValid(results);
+        writer.write(reportingTask, baos, false);
 
-		// description
-		assertContains(results, "A helper reporting task to do...");
+        String results = new String(baos.toByteArray());
+        XmlValidator.assertXmlValid(results);
 
-		// tags
-		assertContains(results, "first, second, third");
+        // description
+        assertContains(results, "A helper reporting task to do...");
 
-		// properties
-		assertContains(results, "Show Deltas");
-		assertContains(results, "Specifies whether or not to show the difference in values between the current status and the previous status");
-		assertContains(results, "true");
-		assertContains(results, "false");
-	}
+        // tags
+        assertContains(results, "first, second, third");
+
+        // properties
+        assertContains(results, "Show Deltas");
+        assertContains(results, "Specifies whether or not to show the difference in values between the current status and the previous status");
+        assertContains(results, "true");
+        assertContains(results, "false");
+    }
 }

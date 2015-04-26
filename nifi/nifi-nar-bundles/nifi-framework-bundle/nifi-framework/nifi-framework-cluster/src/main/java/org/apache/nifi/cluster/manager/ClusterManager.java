@@ -77,14 +77,14 @@ public interface ClusterManager extends NodeInformant {
     Set<Node> getNodes(Status... statuses);
 
     /**
-     * @param nodeId
+     * @param nodeId node identifier
      * @return returns the node with the given identifier or null if node does
      * not exist
      */
     Node getNode(String nodeId);
 
     /**
-     * @param statuses
+     * @param statuses statuses
      * @return the set of node identifiers with the given node status
      */
     Set<NodeIdentifier> getNodeIds(Status... statuses);
@@ -199,9 +199,7 @@ public interface ClusterManager extends NodeInformant {
     Node getPrimaryNode();
 
     /**
-     * Returns the bulletin repository.
-     *
-     * @return
+     * @return the bulletin repository
      */
     BulletinRepository getBulletinRepository();
 

@@ -36,8 +36,9 @@ public interface ProvenanceEventRepository {
     /**
      * Performs any initialization needed. This should be called only by the
      * framework.
-     * @param eventReporter
-     * @throws java.io.IOException
+     *
+     * @param eventReporter to report to
+     * @throws java.io.IOException if unable to initialize
      */
     void initialize(EventReporter eventReporter) throws IOException;
 
@@ -45,7 +46,7 @@ public interface ProvenanceEventRepository {
      * Returns a {@link ProvenanceEventBuilder} that is capable of building
      * {@link ProvenanceEventRecord}s
      *
-     * @return
+     * @return builder
      */
     ProvenanceEventBuilder eventBuilder();
 
@@ -54,7 +55,7 @@ public interface ProvenanceEventRepository {
      * the event id has been populated. Depending on the implementation, the
      * returned event may or may not be the same event given
      *
-     * @param event
+     * @param event to register
      */
     void registerEvent(ProvenanceEventRecord event);
 
@@ -66,7 +67,7 @@ public interface ProvenanceEventRepository {
      * of the Collection are atomic. This detail is implementation-specific.
      * </p>
      *
-     * @param events
+     * @param events to register
      */
     void registerEvents(Iterable<ProvenanceEventRecord> events);
 
@@ -75,18 +76,16 @@ public interface ProvenanceEventRepository {
      * repository starting with the given ID. The first ID in the repository
      * will always be 0 or higher.
      *
-     * @param firstRecordId
-     * @param maxRecords
-     * @return
-     * @throws java.io.IOException
+     * @param firstRecordId id of the first record to retrieve
+     * @param maxRecords maximum number of records to retrieve
+     * @return records
+     * @throws java.io.IOException if error reading from repository
      */
     List<ProvenanceEventRecord> getEvents(long firstRecordId, final int maxRecords) throws IOException;
 
     /**
-     * Returns the largest ID of any event that is queryable in the repository.
+     * @return the largest ID of any event that is queryable in the repository.
      * If no queryable events exists, returns null
-     *
-     * @return
      */
     Long getMaxEventId();
 
@@ -94,19 +93,18 @@ public interface ProvenanceEventRepository {
      * Submits an asynchronous request to process the given query, returning an
      * identifier that can be used to fetch the results at a later time
      *
-     * @param query
-     * @return
+     * @param query to submit
+     * @return an identifier that can be used to fetch the results at a later
+     * time
      */
     QuerySubmission submitQuery(Query query);
 
     /**
-     * Returns the QueryResult associated with the given identifier, if the
+     * @param queryIdentifier of the query
+     *
+     * @return the QueryResult associated with the given identifier, if the
      * query has finished processing. If the query has not yet finished running,
-     * returns <code>null</code>.
-     *
-     * @param queryIdentifier
-     *
-     * @return
+     * returns <code>null</code>
      */
     QuerySubmission retrieveQuerySubmission(String queryIdentifier);
 
@@ -123,21 +121,17 @@ public interface ProvenanceEventRepository {
     ComputeLineageSubmission submitLineageComputation(String flowFileUuid);
 
     /**
-     * Returns the {@link ComputeLineageSubmission} associated with the given
+     * @param lineageIdentifier identifier of lineage to compute
+     * @return the {@link ComputeLineageSubmission} associated with the given
      * identifier
-     *
-     * @param lineageIdentifier
-     * @return
      */
     ComputeLineageSubmission retrieveLineageSubmission(String lineageIdentifier);
 
     /**
-     * Returns the Provenance Event Record with the given ID, if it exists, or
+     * @param id to lookup
+     * @return the Provenance Event Record with the given ID, if it exists, or
      * {@code null} otherwise
-     *
-     * @param id
-     * @return
-     * @throws IOException
+     * @throws IOException if failure while retrieving event
      */
     ProvenanceEventRecord getEvent(long id) throws IOException;
 
@@ -145,7 +139,7 @@ public interface ProvenanceEventRepository {
      * Submits a request to expand the parents of the event with the given id
      *
      * @param eventId the one-up id of the Event to expand
-     * @return
+     * @return a submission which can be checked for status
      *
      * @throws IllegalArgumentException if the given identifier identifies a
      * Provenance Event that has a Type that is not expandable or if the
@@ -157,7 +151,7 @@ public interface ProvenanceEventRepository {
      * Submits a request to expand the children of the event with the given id
      *
      * @param eventId the one-up id of the Event
-     * @return
+     * @return a submission which can be checked for status
      *
      * @throws IllegalArgumentException if the given identifier identifies a
      * Provenance Event that has a Type that is not expandable or if the
@@ -168,23 +162,19 @@ public interface ProvenanceEventRepository {
     /**
      * Closes the repository, freeing any resources
      *
-     * @throws IOException
+     * @throws IOException if failure closing repository
      */
     void close() throws IOException;
 
     /**
-     * Returns a list of all fields that can be searched via the
+     * @return a list of all fields that can be searched via the
      * {@link #submitQuery(nifi.provenance.search.Query)} method
-     *
-     * @return
      */
     List<SearchableField> getSearchableFields();
 
     /**
-     * Returns a list of all FlowFile attributes that can be searched via the
+     * @return a list of all FlowFile attributes that can be searched via the
      * {@link #submitQuery(nifi.provenance.search.Query)} method
-     *
-     * @return
      */
     List<SearchableField> getSearchableAttributes();
 }

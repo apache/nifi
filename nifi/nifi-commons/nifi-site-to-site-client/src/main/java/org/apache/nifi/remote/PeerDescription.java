@@ -17,10 +17,11 @@
 package org.apache.nifi.remote;
 
 public class PeerDescription {
+
     private final String hostname;
     private final int port;
     private final boolean secure;
-    
+
     public PeerDescription(final String hostname, final int port, final boolean secure) {
         this.hostname = hostname;
         this.port = port;
@@ -64,7 +65,7 @@ public class PeerDescription {
         if (getClass() != obj.getClass()) {
             return false;
         }
-        
+
         final PeerDescription other = (PeerDescription) obj;
         if (hostname == null) {
             if (other.hostname != null) {
@@ -73,7 +74,7 @@ public class PeerDescription {
         } else if (!hostname.equals(other.hostname)) {
             return false;
         }
-        
+
         return port == other.port;
     }
 }

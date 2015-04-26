@@ -63,9 +63,6 @@ import org.bouncycastle.ocsp.SingleResp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- *
- */
 public class OcspCertificateValidator {
 
     private static final Logger logger = LoggerFactory.getLogger(OcspCertificateValidator.class);
@@ -141,8 +138,8 @@ public class OcspCertificateValidator {
     /**
      * Loads the ocsp certificate if specified. Null otherwise.
      *
-     * @param properties
-     * @return
+     * @param properties nifi properties
+     * @return certificate
      */
     private X509Certificate getOcspCertificate(final NiFiProperties properties) {
         X509Certificate validationAuthorityCertificate = null;
@@ -164,8 +161,8 @@ public class OcspCertificateValidator {
      * Loads the trusted certificate authorities according to the specified
      * properties.
      *
-     * @param properties
-     * @return
+     * @param properties properties
+     * @return map of certificate authorities
      */
     private Map<String, X509Certificate> getTrustedCAs(final NiFiProperties properties) {
         final Map<String, X509Certificate> certificateAuthorities = new HashMap<>();
@@ -211,8 +208,8 @@ public class OcspCertificateValidator {
     /**
      * Validates the specified certificate using OCSP if configured.
      *
-     * @param request
-     * @throws CertificateStatusException
+     * @param request http request
+     * @throws CertificateStatusException ex
      */
     public void validate(final HttpServletRequest request) throws CertificateStatusException {
         final X509Certificate[] certificates = (X509Certificate[]) request.getAttribute("javax.servlet.request.X509Certificate");
@@ -235,7 +232,8 @@ public class OcspCertificateValidator {
 
                 // we only disallow when we have a verified response that states the certificate is revoked
                 if (VerificationStatus.Verified.equals(ocspStatus.getVerificationStatus()) && ValidationStatus.Revoked.equals(ocspStatus.getValidationStatus())) {
-                    throw new CertificateStatusException(String.format("Client certificate for <%s> is revoked according to the certificate authority.", subjectCertificate.getSubjectX500Principal().getName()));
+                    throw new CertificateStatusException(String.format("Client certificate for <%s> is revoked according to the certificate authority.",
+                            subjectCertificate.getSubjectX500Principal().getName()));
                 }
             } catch (final UncheckedExecutionException uee) {
                 logger.warn(String.format("Unable to validate client certificate via OCSP: <%s>", subjectCertificate.getSubjectX500Principal().getName()), uee.getCause());
@@ -246,8 +244,8 @@ public class OcspCertificateValidator {
     /**
      * Gets the subject certificate.
      *
-     * @param certificates
-     * @return
+     * @param certificates certs
+     * @return subject cert
      */
     private X509Certificate getSubjectCertificate(final X509Certificate[] certificates) {
         return certificates[0];
@@ -256,8 +254,8 @@ public class OcspCertificateValidator {
     /**
      * Gets the issuer certificate.
      *
-     * @param certificates
-     * @return
+     * @param certificates certs
+     * @return issuer cert
      */
     private X509Certificate getIssuerCertificate(final X509Certificate[] certificates) {
         if (certificates.length > 1) {
@@ -274,9 +272,8 @@ public class OcspCertificateValidator {
     /**
      * Gets the OCSP status for the specified subject and issuer certificates.
      *
-     * @param subjectCertificate
-     * @param issuerCertificate
-     * @return
+     * @param ocspStatusKey status key
+     * @return ocsp status
      */
     private OcspStatus getOcspStatus(final OcspRequest ocspStatusKey) {
         final X509Certificate subjectCertificate = ocspStatusKey.getSubjectCertificate();
@@ -406,9 +403,9 @@ public class OcspCertificateValidator {
      * that issued the subject certificate. Other various checks may be required
      * (this portion is currently not implemented).
      *
-     * @param responderCertificate
-     * @param issuerCertificate
-     * @return
+     * @param responderCertificate cert
+     * @param issuerCertificate cert
+     * @return cert
      */
     private X509Certificate getTrustedResponderCertificate(final X509Certificate responderCertificate, final X509Certificate issuerCertificate) {
         // look for the responder's certificate specifically
@@ -425,13 +422,13 @@ public class OcspCertificateValidator {
 //                if (keyUsage == null || !keyUsage.contains(KP_OCSP_SIGNING_OID)) {
 //                    return null;
 //                }
-//                
+//
 //                // ensure the certificate is valid
 //                responderCertificate.checkValidity();
-//                
+//
 //                // verify the signature
 //                responderCertificate.verify(issuerCertificate.getPublicKey());
-//                
+//
 //                return responderCertificate;
 //            } catch (final CertificateException | NoSuchAlgorithmException | InvalidKeyException | NoSuchProviderException | SignatureException e) {
 //                return null;

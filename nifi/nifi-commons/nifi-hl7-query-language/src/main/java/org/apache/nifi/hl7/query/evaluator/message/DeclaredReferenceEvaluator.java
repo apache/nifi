@@ -22,21 +22,22 @@ import org.apache.nifi.hl7.query.evaluator.Evaluator;
 import org.apache.nifi.hl7.query.evaluator.StringEvaluator;
 
 public class DeclaredReferenceEvaluator implements Evaluator<Object> {
-	private final StringEvaluator referenceNameEvaluator;
-	
-	public DeclaredReferenceEvaluator(final StringEvaluator referenceNameEvaluator) {
-		this.referenceNameEvaluator = referenceNameEvaluator;
-	}
-	
-	@Override
-	public Object evaluate(final Map<String, Object> objectMap) {
-		final String referenceName = referenceNameEvaluator.evaluate(objectMap);
-		return objectMap.get(referenceName);
-	}
 
-	@Override
-	public Class<? extends Object> getType() {
-		return Object.class;
-	}
+    private final StringEvaluator referenceNameEvaluator;
+
+    public DeclaredReferenceEvaluator(final StringEvaluator referenceNameEvaluator) {
+        this.referenceNameEvaluator = referenceNameEvaluator;
+    }
+
+    @Override
+    public Object evaluate(final Map<String, Object> objectMap) {
+        final String referenceName = referenceNameEvaluator.evaluate(objectMap);
+        return objectMap.get(referenceName);
+    }
+
+    @Override
+    public Class<? extends Object> getType() {
+        return Object.class;
+    }
 
 }

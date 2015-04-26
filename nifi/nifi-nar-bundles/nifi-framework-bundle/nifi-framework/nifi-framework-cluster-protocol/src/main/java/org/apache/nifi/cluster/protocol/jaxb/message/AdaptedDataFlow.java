@@ -20,14 +20,15 @@ package org.apache.nifi.cluster.protocol.jaxb.message;
  * @author unattributed
  */
 public class AdaptedDataFlow {
-    
+
     private byte[] flow;
     private byte[] templates;
     private byte[] snippets;
-    
+
     private boolean autoStartProcessors;
-    
-    public AdaptedDataFlow() {}
+
+    public AdaptedDataFlow() {
+    }
 
     public byte[] getFlow() {
         return flow;

@@ -25,12 +25,13 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class ServiceBroadcastMessage extends ProtocolMessage {
 
     private String serviceName;
-    
+
     private String address;
-    
+
     private int port;
-    
-    public ServiceBroadcastMessage() {}
+
+    public ServiceBroadcastMessage() {
+    }
 
     public String getServiceName() {
         return serviceName;

@@ -29,19 +29,18 @@ import org.apache.nifi.processor.exception.ProcessException;
 public class DummyProcessor extends AbstractProcessor {
 
     public static final PropertyDescriptor SERVICE = new PropertyDescriptor.Builder()
-        .name("Controller Service")
-        .identifiesControllerService(ControllerService.class)
-        .required(true)
-        .build();
-    
-    
+            .name("Controller Service")
+            .identifiesControllerService(ControllerService.class)
+            .required(true)
+            .build();
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
         descriptors.add(SERVICE);
         return descriptors;
     }
-    
+
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
     }

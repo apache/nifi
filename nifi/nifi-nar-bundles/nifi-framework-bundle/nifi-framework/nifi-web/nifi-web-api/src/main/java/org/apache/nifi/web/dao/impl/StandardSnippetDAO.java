@@ -289,10 +289,10 @@ public class StandardSnippetDAO implements SnippetDAO {
                 lookupSensitiveProcessorProperties(snippet.getProcessors());
             }
 
-            if ( snippet.getControllerServices() != null ) {
+            if (snippet.getControllerServices() != null) {
                 lookupSensitiveControllerServiceProperties(snippet.getControllerServices());
             }
-            
+
             // go through each process group if specified
             if (snippet.getProcessGroups() != null) {
                 for (final ProcessGroupDTO group : snippet.getProcessGroups()) {
@@ -336,11 +336,11 @@ public class StandardSnippetDAO implements SnippetDAO {
             }
         }
     }
-    
+
     private void lookupSensitiveControllerServiceProperties(final Set<ControllerServiceDTO> controllerServices) {
         // go through each service
         for (final ControllerServiceDTO serviceDTO : controllerServices) {
-            
+
             // ensure that some property configuration have been specified
             final Map<String, String> serviceProperties = serviceDTO.getProperties();
             if (serviceProperties != null) {

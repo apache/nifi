@@ -72,7 +72,7 @@ import org.slf4j.LoggerFactory;
  * updates for a given Record at any one time.
  * </p>
  *
- * @param <T>
+ * @param <T> type of record this WAL is for
  */
 public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepository<T> {
 
@@ -113,14 +113,12 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
      * @param paths a sorted set of Paths to use for the partitions/journals and
      * the snapshot. The snapshot will always be written to the first path
      * specified.
-     *
      * @param partitionCount the number of partitions/journals to use. For best
      * performance, this should be close to the number of threads that are
      * expected to update the repository simultaneously
-     *
-     * @param serde
-     * @param syncListener
-     * @throws IOException
+     * @param serde the serializer/deserializer for records
+     * @param syncListener the listener
+     * @throws IOException if unable to initialize due to IO issue
      */
     @SuppressWarnings("unchecked")
     public MinimalLockingWriteAheadLog(final SortedSet<Path> paths, final int partitionCount, final SerDe<T> serde, final SyncListener syncListener) throws IOException {
@@ -209,7 +207,9 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
             while (true) {
                 final int numBlackListed = numberBlackListedPartitions.get();
                 if (numBlackListed >= partitions.length) {
-                    throw new IOException("All Partitions have been blacklisted due to failures when attempting to update. If the Write-Ahead Log is able to perform a checkpoint, this issue may resolve itself. Otherwise, manual intervention will be required.");
+                    throw new IOException("All Partitions have been blacklisted due to "
+                            + "failures when attempting to update. If the Write-Ahead Log is able to perform a checkpoint, "
+                            + "this issue may resolve itself. Otherwise, manual intervention will be required.");
                 }
 
                 final long partitionIdx = partitionIndex.getAndIncrement();
@@ -248,7 +248,9 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
                         } else if (updateType == UpdateType.SWAP_OUT) {
                             final String newLocation = serde.getLocation(record);
                             if (newLocation == null) {
-                                logger.error("Received Record (ID=" + recordIdentifier + ") with UpdateType of SWAP_OUT but no indicator of where the Record is to be Swapped Out to; these records may be lost when the repository is restored!");
+                                logger.error("Received Record (ID=" + recordIdentifier + ") with UpdateType of SWAP_OUT but "
+                                        + "no indicator of where the Record is to be Swapped Out to; these records may be "
+                                        + "lost when the repository is restored!");
                             } else {
                                 recordMap.remove(recordIdentifier);
                                 this.externalLocations.add(newLocation);
@@ -256,7 +258,9 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
                         } else if (updateType == UpdateType.SWAP_IN) {
                             final String newLocation = serde.getLocation(record);
                             if (newLocation == null) {
-                                logger.error("Received Record (ID=" + recordIdentifier + ") with UpdateType of SWAP_IN but no indicator of where the Record is to be Swapped In from; these records may be duplicated when the repository is restored!");
+                                logger.error("Received Record (ID=" + recordIdentifier + ") with UpdateType of SWAP_IN but no "
+                                        + "indicator of where the Record is to be Swapped In from; these records may be duplicated "
+                                        + "when the repository is restored!");
                             } else {
                                 externalLocations.remove(newLocation);
                             }
@@ -345,11 +349,13 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
             final int waliImplementationVersion = dataIn.readInt();
 
             if (!waliImplementationClass.equals(MinimalLockingWriteAheadLog.class.getName())) {
-                throw new IOException("Write-Ahead Log located at " + snapshotPath + " was written using the " + waliImplementationClass + " class; cannot restore using " + getClass().getName());
+                throw new IOException("Write-Ahead Log located at " + snapshotPath + " was written using the "
+                        + waliImplementationClass + " class; cannot restore using " + getClass().getName());
             }
 
             if (waliImplementationVersion > getVersion()) {
-                throw new IOException("Write-Ahead Log located at " + snapshotPath + " was written using version " + waliImplementationVersion + " of the " + waliImplementationClass + " class; cannot restore using Version " + getVersion());
+                throw new IOException("Write-Ahead Log located at " + snapshotPath + " was written using version "
+                        + waliImplementationVersion + " of the " + waliImplementationClass + " class; cannot restore using Version " + getVersion());
             }
 
             dataIn.readUTF(); // ignore serde class name for now
@@ -380,7 +386,8 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
             }
             this.recoveredExternalLocations.addAll(swapLocations);
 
-            logger.debug("{} restored {} Records and {} Swap Files from Snapshot, ending with Transaction ID {}", new Object[]{this, numRecords, recoveredExternalLocations.size(), maxTransactionId});
+            logger.debug("{} restored {} Records and {} Swap Files from Snapshot, ending with Transaction ID {}",
+                    new Object[]{this, numRecords, recoveredExternalLocations.size(), maxTransactionId});
             return maxTransactionId;
         }
     }
@@ -390,10 +397,9 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
      * if recovery of a Partition requires the Write-Ahead Log be checkpointed
      * before modification.
      *
-     * @param modifiableRecordMap
-     * @param maxTransactionIdRestored
-     * @return
-     * @throws IOException
+     * @param modifiableRecordMap map
+     * @param maxTransactionIdRestored index of max restored transaction
+     * @throws IOException if unable to recover from edits
      */
     private void recoverFromEdits(final Map<Object, T> modifiableRecordMap, final Long maxTransactionIdRestored) throws IOException {
         final Map<Object, T> updateMap = new HashMap<>();
@@ -422,7 +428,8 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
                     try {
                         partition.recoverNextTransaction(ignorableMap, updateMap, ignorableSwapLocations);
                     } catch (final EOFException e) {
-                        logger.error("{} unexpectedly reached End of File while reading from {} for Transaction {}; assuming crash and ignoring this transaction.",
+                        logger.error("{} unexpectedly reached End of File while reading from {} for Transaction {}; "
+                                + "assuming crash and ignoring this transaction.",
                                 new Object[]{this, partition, transactionId});
                     }
                 }
@@ -442,7 +449,8 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
                     modifiableRecordMap.remove(id);
                 }
             } catch (final EOFException e) {
-                logger.error("{} unexpectedly reached End-of-File when reading from {} for Transaction ID {}; assuming crash and ignoring this transaction",
+                logger.error("{} unexpectedly reached End-of-File when reading from {} for Transaction ID {}; "
+                        + "assuming crash and ignoring this transaction",
                         new Object[]{this, nextPartition, firstTransactionId});
             }
 
@@ -452,7 +460,8 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
             try {
                 subsequentTransactionId = nextPartition.getNextRecoverableTransactionId();
             } catch (final IOException e) {
-                logger.error("{} unexpectedly found End-of-File when reading from {} for Transaction ID {}; assuming crash and ignoring this transaction",
+                logger.error("{} unexpectedly found End-of-File when reading from {} for Transaction ID {}; "
+                        + "assuming crash and ignoring this transaction",
                         new Object[]{this, nextPartition, firstTransactionId});
             }
 
@@ -576,7 +585,8 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
         final long partitionMillis = TimeUnit.MILLISECONDS.convert(partitionEnd - partitionStart, TimeUnit.NANOSECONDS);
         final long stopTheWorldMillis = TimeUnit.NANOSECONDS.toMillis(stopTheWorldNanos);
 
-        logger.info("{} checkpointed with {} Records and {} Swap Files in {} milliseconds (Stop-the-world time = {} milliseconds, Clear Edit Logs time = {} millis), max Transaction ID {}",
+        logger.info("{} checkpointed with {} Records and {} Swap Files in {} milliseconds (Stop-the-world "
+                + "time = {} milliseconds, Clear Edit Logs time = {} millis), max Transaction ID {}",
                 new Object[]{this, records.size(), swapLocations.size(), millis, stopTheWorldMillis, partitionMillis, maxTransactionId});
 
         return records.size();
@@ -605,9 +615,9 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
      *
      * All methods with the exceptions of {@link #claim()}, {@link #tryClaim()},
      * and {@link #releaseClaim()} in this Partition MUST be called while
-     * holding the claim (via {@link #claim} or {@link #tryClaim()).
+     * holding the claim (via {@link #claim} or {@link #tryClaim()}).
      *
-     * @param <S>
+     * @param <S> type of record held in the partitions
      */
     private static class Partition<S> {
 
@@ -703,7 +713,7 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
          * Closes resources pointing to the current journal and begins writing
          * to a new one
          *
-         * @throws IOException
+         * @throws IOException if failure to rollover
          */
         public void rollover() throws IOException {
             lock.lock();
@@ -777,7 +787,8 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
                 if (isJournalFile(file)) {
                     paths.add(file.toPath());
                 } else {
-                    logger.warn("Found file {}, but could not access it, or it was not in the expected format; will ignore this file", file.getAbsolutePath());
+                    logger.warn("Found file {}, but could not access it, or it was not in the expected format; "
+                            + "will ignore this file", file.getAbsolutePath());
                 }
             }
 
@@ -836,7 +847,8 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
             return true;
         }
 
-        public void update(final Collection<S> records, final long transactionId, final Map<Object, S> recordMap, final boolean forceSync) throws IOException {
+        public void update(final Collection<S> records, final long transactionId, final Map<Object, S> recordMap, final boolean forceSync)
+                throws IOException {
             if (this.closed) {
                 throw new IllegalStateException("Partition is closed");
             }
@@ -889,7 +901,8 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
 
                     final long waliVersion = recoveryIn.readInt();
                     if (waliVersion > writeAheadLogVersion) {
-                        throw new IOException("Cannot recovery from file " + nextRecoveryPath + " because it was written using WALI version " + waliVersion + ", but the version used to restore it is only " + writeAheadLogVersion);
+                        throw new IOException("Cannot recovery from file " + nextRecoveryPath + " because it was written using "
+                                + "WALI version " + waliVersion + ", but the version used to restore it is only " + writeAheadLogVersion);
                     }
 
                     @SuppressWarnings("unused")
@@ -936,7 +949,8 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
 
             final Path nextRecoveryPath = this.recoveryFiles.poll();
             if (nextRecoveryPath != null) {
-                throw new IllegalStateException("Signaled to end recovery, but there are more recovery files for Partition in directory " + editDirectory);
+                throw new IllegalStateException("Signaled to end recovery, but there are more recovery files for Partition "
+                        + "in directory " + editDirectory);
             }
 
             final Path newEditPath = getNewEditPath();
@@ -999,7 +1013,7 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
         /**
          * Must be called after recovery has finished
          *
-         * @return
+         * @return max recovered transaction id
          */
         public long getMaxRecoveredTransactionId() {
             return maxTransactionId.get();

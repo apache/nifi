@@ -230,35 +230,35 @@ public class ControllerServiceAuditor extends NiFiAuditor {
     public Object updateControllerServiceReferenceAdvice(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         // update the controller service references
         final ControllerServiceReference controllerServiceReference = (ControllerServiceReference) proceedingJoinPoint.proceed();
-        
+
         // get the current user
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
-        
+
         if (user != null) {
             final Collection<Action> actions = new ArrayList<>();
             final Collection<String> visitedServices = new ArrayList<>();
             visitedServices.add(controllerServiceReference.getReferencedComponent().getIdentifier());
-            
+
             // get all applicable actions
             getUpdateActionsForReferencingComponents(user, actions, visitedServices, controllerServiceReference.getReferencingComponents());
-            
+
             // ensure there are actions to record
             if (!actions.isEmpty()) {
                 // save the actions
                 saveActions(actions, logger);
             }
         }
-        
+
         return controllerServiceReference;
     }
-    
+
     /**
      * Gets the update actions for all specified referencing components.
-     * 
+     *
      * @param user
      * @param actions
      * @param visitedServices
-     * @param referencingComponents 
+     * @param referencingComponents
      */
     private void getUpdateActionsForReferencingComponents(final NiFiUser user, final Collection<Action> actions, final Collection<String> visitedServices, final Set<ConfiguredComponent> referencingComponents) {
         // consider each component updates
@@ -325,7 +325,7 @@ public class ControllerServiceAuditor extends NiFiAuditor {
             }
         }
     }
-    
+
     /**
      * Audits the removal of a controller service via deleteControllerService().
      *
@@ -464,10 +464,11 @@ public class ControllerServiceAuditor extends NiFiAuditor {
     }
 
     /**
-     * Returns whether the specified controller service is disabled (or disabling).
-     * 
+     * Returns whether the specified controller service is disabled (or
+     * disabling).
+     *
      * @param controllerService
-     * @return 
+     * @return
      */
     private boolean isDisabled(final ControllerServiceNode controllerService) {
         return ControllerServiceState.DISABLED.equals(controllerService.getState()) || ControllerServiceState.DISABLING.equals(controllerService.getState());

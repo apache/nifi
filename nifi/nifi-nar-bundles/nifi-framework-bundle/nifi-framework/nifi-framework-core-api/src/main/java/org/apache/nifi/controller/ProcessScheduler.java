@@ -35,7 +35,7 @@ public interface ProcessScheduler {
      * are annotated with the {@link OnScheduled} annotation. If the Processor
      * is already scheduled to run, does nothing.
      *
-     * @param procNode
+     * @param procNode to start
      * @throws IllegalStateException if the Processor is disabled
      */
     void startProcessor(ProcessorNode procNode);
@@ -46,7 +46,8 @@ public interface ProcessScheduler {
      * are annotated with the {@link OnUnscheduled} annotation. This does not
      * interrupt any threads that are currently running within the given
      * Processor. If the Processor is not scheduled to run, does nothing.
-     * @param procNode
+     *
+     * @param procNode to stop
      */
     void stopProcessor(ProcessorNode procNode);
 
@@ -54,7 +55,7 @@ public interface ProcessScheduler {
      * Starts scheduling the given Port to run. If the Port is already scheduled
      * to run, does nothing.
      *
-     * @param port
+     * @param port to start
      *
      * @throws IllegalStateException if the Port is disabled
      */
@@ -66,7 +67,7 @@ public interface ProcessScheduler {
      * interrupt any threads that are currently running within the given Port.
      * If the Port is not scheduled to run, does nothing.
      *
-     * @param port
+     * @param port to stop
      */
     void stopPort(Port port);
 
@@ -74,7 +75,7 @@ public interface ProcessScheduler {
      * Starts scheduling the given Funnel to run. If the funnel is already
      * scheduled to run, does nothing.
      *
-     * @param funnel
+     * @param funnel to start
      *
      * @throws IllegalStateException if the Funnel is disabled
      */
@@ -85,7 +86,7 @@ public interface ProcessScheduler {
      * threads that are currently running within the given funnel. If the funnel
      * is not scheduled to run, does nothing.
      *
-     * @param funnel
+     * @param funnel to stop
      */
     void stopFunnel(Funnel funnel);
 
@@ -102,27 +103,23 @@ public interface ProcessScheduler {
     void disableProcessor(ProcessorNode procNode);
 
     /**
-     * Returns the number of threads currently active for the given
-     * <code>Connectable</code>.
-     *
-     * @param scheduled
-     * @return
+     * @param scheduled scheduled component
+     * @return the number of threads currently active for the given
+     * <code>Connectable</code>
      */
     int getActiveThreadCount(Object scheduled);
 
     /**
-     * Returns a boolean indicating whether or not the given object is scheduled
+     * @param scheduled component to test
+     * @return a boolean indicating whether or not the given object is scheduled
      * to run
-     *
-     * @param scheduled
-     * @return
      */
     boolean isScheduled(Object scheduled);
 
     /**
      * Registers a relevant event for an Event-Driven worker
      *
-     * @param worker
+     * @param worker to register
      */
     void registerEvent(Connectable worker);
 
@@ -130,8 +127,8 @@ public interface ProcessScheduler {
      * Notifies the ProcessScheduler of how many threads are available to use
      * for the given {@link SchedulingStrategy}
      *
-     * @param strategy
-     * @param maxThreadCount
+     * @param strategy scheduling strategy
+     * @param maxThreadCount max threads
      */
     void setMaxThreadCount(SchedulingStrategy strategy, int maxThreadCount);
 
@@ -139,31 +136,36 @@ public interface ProcessScheduler {
      * Notifies the Scheduler that it should stop scheduling the given component
      * until its yield duration has expired
      *
-     * @param procNode
+     * @param procNode processor
      */
     void yield(ProcessorNode procNode);
-    
+
     /**
      * Stops scheduling the given Reporting Task to run
-     * @param taskNode
+     *
+     * @param taskNode to unschedule
      */
     void unschedule(ReportingTaskNode taskNode);
-    
+
     /**
      * Begins scheduling the given Reporting Task to run
-     * @param taskNode
+     *
+     * @param taskNode to schedule
      */
     void schedule(ReportingTaskNode taskNode);
-    
+
     /**
-     * Enables the Controller Service so that it can be used by Reporting Tasks and Processors
-     * @param service
+     * Enables the Controller Service so that it can be used by Reporting Tasks
+     * and Processors
+     *
+     * @param service to enable
      */
     void enableControllerService(ControllerServiceNode service);
-    
+
     /**
      * Disables the Controller Service so that it can be updated
-     * @param service
+     *
+     * @param service to disable
      */
     void disableControllerService(ControllerServiceNode service);
 }

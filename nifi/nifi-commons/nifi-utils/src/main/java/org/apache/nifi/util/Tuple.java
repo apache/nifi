@@ -16,12 +16,6 @@
  */
 package org.apache.nifi.util;
 
-/**
- *
- * @author unattrib
- * @param <A>
- * @param <B>
- */
 public class Tuple<A, B> {
 
     final A key;

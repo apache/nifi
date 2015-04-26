@@ -297,7 +297,8 @@ public class ReportingTaskAuditor extends NiFiAuditor {
     }
 
     /**
-     * Extracts the values for the configured properties from the specified ReportingTask.
+     * Extracts the values for the configured properties from the specified
+     * ReportingTask.
      *
      * @param reportingTask
      * @param reportingTaskDTO

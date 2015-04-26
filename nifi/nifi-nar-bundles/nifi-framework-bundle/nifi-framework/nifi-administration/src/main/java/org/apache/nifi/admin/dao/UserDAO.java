@@ -29,98 +29,98 @@ public interface UserDAO {
     /**
      * Determines whether there are any PENDING user accounts.
      *
-     * @return
-     * @throws DataAccessException
+     * @return true if pending
+     * @throws DataAccessException dae
      */
     Boolean hasPendingUserAccounts() throws DataAccessException;
 
     /**
      * Returns all users.
      *
-     * @return
-     * @throws DataAccessException
+     * @return all users
+     * @throws DataAccessException dae
      */
     Set<NiFiUser> findUsers() throws DataAccessException;
 
     /**
      * Returns all user groups.
      *
-     * @return
-     * @throws DataAccessException
+     * @return all group names
+     * @throws DataAccessException dae
      */
     Set<String> findUserGroups() throws DataAccessException;
 
     /**
      * Returns all users for the specified group.
      *
-     * @param group
-     * @return
-     * @throws DataAccessException
+     * @param group group
+     * @return users in group
+     * @throws DataAccessException dae
      */
     Set<NiFiUser> findUsersForGroup(String group) throws DataAccessException;
 
     /**
      * Returns the user with the specified id.
      *
-     * @param id
-     * @return
-     * @throws DataAccessException
+     * @param id user id
+     * @return user for the given id
+     * @throws DataAccessException dae
      */
     NiFiUser findUserById(String id) throws DataAccessException;
 
     /**
      * Returns the user with the specified DN.
      *
-     * @param dn
-     * @return
+     * @param dn user dn
+     * @return user
      */
     NiFiUser findUserByDn(String dn) throws DataAccessException;
 
     /**
      * Creates a new user based off the specified NiFiUser.
      *
-     * @param user
+     * @param user to create
      */
     void createUser(NiFiUser user) throws DataAccessException;
 
     /**
      * Updates the specified NiFiUser.
      *
-     * @param user
+     * @param user to update
      */
     void updateUser(NiFiUser user) throws DataAccessException;
 
     /**
      * Deletes the specified user.
      *
-     * @param id
-     * @throws DataAccessException
+     * @param id user identifier
+     * @throws DataAccessException dae
      */
     void deleteUser(String id) throws DataAccessException;
 
     /**
      * Sets the status of the specified group.
      *
-     * @param group
-     * @param status
-     * @throws DataAccessException
+     * @param group group
+     * @param status status
+     * @throws DataAccessException dae
      */
     void updateGroupStatus(String group, AccountStatus status) throws DataAccessException;
 
     /**
      * Sets the last verified time for all users in the specified group.
      *
-     * @param group
-     * @param lastVerified
-     * @throws DataAccessException S
+     * @param group group
+     * @param lastVerified date last verified
+     * @throws DataAccessException dae
      */
     void updateGroupVerification(String group, Date lastVerified) throws DataAccessException;
 
     /**
      * Ungroups the specified group.
      *
-     * @param group
-     * @throws DataAccessException
+     * @param group to ungroup
+     * @throws DataAccessException dae
      */
     void ungroup(String group) throws DataAccessException;
 

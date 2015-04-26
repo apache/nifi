@@ -35,8 +35,9 @@ public class ReconnectionRequestMessage extends ProtocolMessage {
     private Integer managerRemoteSiteListeningPort;
     private Boolean managerRemoteSiteCommsSecure;
     private String instanceId;
-    
-    public ReconnectionRequestMessage() {}
+
+    public ReconnectionRequestMessage() {
+    }
 
     @XmlJavaTypeAdapter(NodeIdentifierAdapter.class)
     public NodeIdentifier getNodeId() {
@@ -62,32 +63,32 @@ public class ReconnectionRequestMessage extends ProtocolMessage {
     public void setPrimary(boolean primary) {
         this.primary = primary;
     }
-    
+
     @Override
     public MessageType getType() {
         return MessageType.RECONNECTION_REQUEST;
     }
-    
+
     public void setManagerRemoteSiteListeningPort(final Integer listeningPort) {
         this.managerRemoteSiteListeningPort = listeningPort;
     }
-    
+
     public Integer getManagerRemoteSiteListeningPort() {
         return managerRemoteSiteListeningPort;
     }
-    
+
     public void setManagerRemoteSiteCommsSecure(final Boolean remoteSiteCommsSecure) {
         this.managerRemoteSiteCommsSecure = remoteSiteCommsSecure;
     }
-    
+
     public Boolean isManagerRemoteSiteCommsSecure() {
         return managerRemoteSiteCommsSecure;
     }
-    
+
     public void setInstanceId(final String instanceId) {
         this.instanceId = instanceId;
     }
-    
+
     public String getInstanceId() {
         return instanceId;
     }

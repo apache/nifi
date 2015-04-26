@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.admin.service.action;
 
-import org.apache.nifi.admin.service.action.SeedUserAccountsAction;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Set;
@@ -187,7 +186,7 @@ public class SeedUserAccountsActionTest {
     /**
      * Tests seeding the user accounts.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testSeedUsers() throws Exception {

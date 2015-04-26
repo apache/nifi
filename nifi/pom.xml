@@ -16,46 +16,15 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>org.apache</groupId>
-        <artifactId>apache</artifactId>
-        <version>16</version>
+        <groupId>org.apache.nifi</groupId>
+        <artifactId>nifi-parent</artifactId>
+        <version>1.0.0-incubating-SNAPSHOT</version>
         <relativePath />
     </parent>
-    <groupId>org.apache.nifi</groupId>
     <artifactId>nifi</artifactId>
     <version>0.1.0-incubating-SNAPSHOT</version>
     <packaging>pom</packaging>
     <description>Apache NiFi(incubating) is an easy to use, powerful, and reliable system to process and distribute data.</description>
-    <url>http://nifi.incubator.apache.org</url>
-    <organization>
-        <name>Apache NiFi(incubating) Project</name>
-        <url>http://nifi.incubator.apache.org/</url>
-    </organization>
-    <licenses>
-        <license>
-            <name>Apache License, Version 2.0</name>
-            <url>http://www.apache.org/licenses/LICENSE-2.0</url>
-        </license>
-    </licenses>
-    <mailingLists>
-        <mailingList>
-            <name>Dev</name>
-            <subscribe>dev-subscribe@nifi.incubator.apache.org</subscribe>
-            <unsubscribe>dev-unsubscribe@nifi.incubator.apache.org</unsubscribe>
-            <post>dev@nifi.incubator.apache.org</post>
-            <archive>http://mail-archives.apache.org/mod_mbox/incubator-nifi-dev</archive>
-        </mailingList>
-        <mailingList>
-            <name>Commits</name>
-            <subscribe>commits-subscribe@nifi.incubator.apache.org</subscribe>
-            <unsubscribe>commits-unsubscribe@nifi.incubator.apache.org</unsubscribe>
-            <post>commits@nifi.incubator.apache.org</post>
-            <archive>http://mail-archives.apache.org/mod_mbox/incubator-nifi-commits</archive>
-        </mailingList>
-    </mailingLists>
-    <prerequisites>
-        <maven>${maven.min-version}</maven>
-    </prerequisites>
     <modules>
         <module>nifi-commons</module>
         <module>nifi-api</module>
@@ -67,22 +36,7 @@
         <module>nifi-maven-archetypes</module>
         <module>nifi-external</module>
     </modules>
-    <scm>
-        <connection>scm:git:git://git.apache.org/incubator-nifi.git</connection>
-        <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-nifi.git</developerConnection>
-        <url>https://git-wip-us.apache.org/repos/asf?p=incubator-nifi.git</url>
-        <tag>HEAD</tag>
-    </scm>
-    <issueManagement>
-        <system>JIRA</system>
-        <url>https://issues.apache.org/jira/browse/NIFI</url>
-    </issueManagement>
     <properties>
-        <maven.compiler.source>1.7</maven.compiler.source>
-        <maven.compiler.target>1.7</maven.compiler.target>
-        <maven.min-version>3.0.5</maven.min-version>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <org.slf4j.version>1.7.10</org.slf4j.version>
         <jetty.version>9.2.10.v20150310</jetty.version>
         <lucene.version>4.10.3</lucene.version>
@@ -542,7 +496,10 @@
                 <artifactId>avro</artifactId>
                 <version>1.7.6</version>
             </dependency>
+<<<<<<< HEAD
 
+=======
+>>>>>>> upstream/develop
             <dependency>
                 <groupId>com.sun.jersey</groupId>
                 <artifactId>jersey-server</artifactId>
@@ -643,7 +600,6 @@
                 <artifactId>jasypt</artifactId>
                 <version>1.9.2</version>
             </dependency>
-
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-api</artifactId>
@@ -867,7 +823,7 @@
             <dependency>
                 <groupId>com.jayway.jsonpath</groupId>
                 <artifactId>json-path</artifactId>
-                <version>1.2.0</version>
+                <version>2.0.0</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -893,91 +849,7 @@
             <plugins>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.2</version>
-                    <configuration>
-                        <fork>true</fork>
-                        <optimize>true</optimize>
-                        <showDeprecation>true</showDeprecation>
-                        <showWarnings>true</showWarnings>
-                    </configuration>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-war-plugin</artifactId>
-                    <version>2.5</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-dependency-plugin</artifactId>
-                    <version>2.9</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-resources-plugin</artifactId>
-                    <version>2.7</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-surefire-plugin</artifactId>
-                    <version>2.18</version>
-                    <configuration>
-                        <redirectTestOutputToFile>true</redirectTestOutputToFile>
-                        <argLine>-Xmx1G</argLine>
-                    </configuration>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-assembly-plugin</artifactId>
-                    <version>2.5.2</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.codehaus.mojo</groupId>
-                    <artifactId>jaxb2-maven-plugin</artifactId>
-                    <version>1.6</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-source-plugin</artifactId>
-                    <version>2.4</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-site-plugin</artifactId>
-                    <version>3.4</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.codehaus.mojo</groupId>
-                    <artifactId>exec-maven-plugin</artifactId>
-                    <version>1.3.2</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-javadoc-plugin</artifactId>
-                    <version>2.10.1</version>
-                    <configuration>
-                        <failOnError>false</failOnError>
-                        <quiet>true</quiet>
-                        <show>private</show>
-                        <encoding>UTF-8</encoding>
-                        <quiet>true</quiet>
-                        <javadocVersion>1.7</javadocVersion>
-                        <additionalJOption>-J-Xmx512m</additionalJOption>
-                    </configuration>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-release-plugin</artifactId>
-                    <version>2.5.1</version>
-                    <configuration>
-                        <useReleaseProfile>true</useReleaseProfile>
-                        <releaseProfiles>apache-release</releaseProfiles>
-                        <autoVersionSubmodules>true</autoVersionSubmodules>
-                        <goals>deploy</goals>
-                        <tagNameFormat>nifi-@{project.version}</tagNameFormat>
-                        <pushChanges>false</pushChanges>
-                        <localCheckout>true</localCheckout>
-                    </configuration>
                     <executions>
                         <execution>
                             <id>default</id>
@@ -990,20 +862,11 @@
                         </execution>
                     </executions>
                 </plugin>
-                <plugin>
-                    <groupId>org.codehaus.mojo</groupId>
-                    <artifactId>rpm-maven-plugin</artifactId>
-                    <version>2.1.1</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.antlr</groupId>
-                    <artifactId>antlr3-maven-plugin</artifactId>
-                    <version>3.5.2</version>
-                </plugin>
             </plugins>
         </pluginManagement>
         <plugins>
             <plugin>
+<<<<<<< HEAD
                 <groupId>org.sonatype.plugins</groupId>
                 <artifactId>nexus-staging-maven-plugin</artifactId>
                 <version>1.6.5</version>
@@ -1051,34 +914,13 @@
                 </configuration>
             </plugin>
             <plugin>
+=======
+>>>>>>> upstream/develop
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-nar-maven-plugin</artifactId>
-                <version>1.0.0-incubating</version>
+                <version>1.0.1-incubating-SNAPSHOT</version>
                 <extensions>true</extensions>
             </plugin>
         </plugins>
     </build>
-    <profiles>
-        <profile>
-            <!-- Automatically check for licenses.
-            Activate with -P check-licenses -->
-            <id>check-licenses</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.rat</groupId>
-                        <artifactId>apache-rat-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>check</goal>
-                                </goals>
-                                <phase>verify</phase>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
 </project>

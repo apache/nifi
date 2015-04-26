@@ -20,24 +20,19 @@ import java.util.Set;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 
-/**
- *
- */
 public interface ProcessorDAO {
 
     /**
-     * Determines if the specified processor is loaded.
-     *
-     * @param groupId
-     * @param id
-     * @return
+     * @param groupId group id
+     * @param id id
+     * @return Determines if the specified processor is loaded
      */
     boolean hasProcessor(String groupId, String id);
 
     /**
      * Creates a new Processor.
      *
-     * @param groupId
+     * @param groupId group id
      * @param processorDTO The processor DTO
      * @return The new Processor
      */
@@ -46,7 +41,7 @@ public interface ProcessorDAO {
     /**
      * Gets the Processor transfer object for the specified id.
      *
-     * @param groupId
+     * @param groupId group id
      * @param id Id of the processor to return
      * @return The Processor
      */
@@ -55,7 +50,7 @@ public interface ProcessorDAO {
     /**
      * Gets all the Processor transfer objects for this controller.
      *
-     * @param groupId
+     * @param groupId group id
      * @return List of all the Processors
      */
     Set<ProcessorNode> getProcessors(String groupId);
@@ -63,8 +58,8 @@ public interface ProcessorDAO {
     /**
      * Verifies the specified processor can be updated.
      *
-     * @param groupId
-     * @param processorDTO
+     * @param groupId group id
+     * @param processorDTO processor
      */
     void verifyUpdate(String groupId, ProcessorDTO processorDTO);
 
@@ -72,24 +67,24 @@ public interface ProcessorDAO {
      * Updates the configuration for the processor using the specified
      * processorDTO.
      *
-     * @param groupId
-     * @param processorDTO
-     * @return 
+     * @param groupId group id
+     * @param processorDTO processor
+     * @return updated processor
      */
     ProcessorNode updateProcessor(String groupId, ProcessorDTO processorDTO);
 
     /**
      * Verifies the specified processor can be removed.
      *
-     * @param groupId
-     * @param processorId
+     * @param groupId group id
+     * @param processorId processor id
      */
     void verifyDelete(String groupId, String processorId);
 
     /**
      * Deletes the specified processor.
      *
-     * @param groupId
+     * @param groupId group id
      * @param processorId The processor id to delete
      */
     void deleteProcessor(String groupId, String processorId);

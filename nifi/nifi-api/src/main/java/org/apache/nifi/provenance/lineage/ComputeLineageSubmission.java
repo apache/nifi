@@ -22,25 +22,19 @@ import java.util.Date;
 public interface ComputeLineageSubmission {
 
     /**
-     * Returns the {@link ComputeLineageResult} that contains the results. The
+     * @return the {@link ComputeLineageResult} that contains the results. The
      * results may be partial if a call to
-     * {@link ComputeLineageResult#isFinished()} returns <code>false</code>.
-     *
-     * @return
+     * {@link ComputeLineageResult#isFinished()} returns <code>false</code>
      */
     ComputeLineageResult getResult();
 
     /**
-     * Returns the date at which this lineage was submitted
-     *
-     * @return
+     * @return the date at which this lineage was submitted
      */
     Date getSubmissionTime();
 
     /**
-     * Returns the generated identifier for this lineage result
-     *
-     * @return
+     * @return the generated identifier for this lineage result
      */
     String getLineageIdentifier();
 
@@ -56,27 +50,21 @@ public interface ComputeLineageSubmission {
     boolean isCanceled();
 
     /**
-     * Returns the type of Lineage Computation that was submitted
-     *
-     * @return
+     * @return the type of Lineage Computation that was submitted
      */
     LineageComputationType getLineageComputationType();
 
     /**
-     * If the Lineage Computation Type of this submission is
+     * @return If the Lineage Computation Type of this submission is
      * {@link LineageComputationType.EXPAND_CHILDREN} or
      * {@link LineageComputationType.EXPAND_PARENTS}, indicates the ID event
-     * that is to be expanded; otherwise, returns <code>null</code>.
-     *
-     * @return
+     * that is to be expanded; otherwise, returns <code>null</code>
      */
     Long getExpandedEventId();
 
     /**
-     * Returns all FlowFile UUID's that are encapsulated in this lineage
+     * @return all FlowFile UUID's that are encapsulated in this lineage
      * computation submission
-     *
-     * @return
      */
     Collection<String> getLineageFlowFileUuids();
 }

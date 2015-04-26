@@ -22,31 +22,32 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "translation")
 public class Translation {
-	private int code;
-	private String lang;
-	private List<String> text;
-	
-	public int getCode() {
-		return code;
-	}
-	
-	public void setCode(final int code) {
-		this.code = code;
-	}
-	
-	public String getLang() {
-		return lang;
-	}
-	
-	public void setLang(final String lang) {
-		this.lang = lang;
-	}
-	
-	public List<String> getText() {
-		return text;
-	}
-	
-	public void setText(final List<String> text) {
-		this.text = text;
-	}
+
+    private int code;
+    private String lang;
+    private List<String> text;
+
+    public int getCode() {
+        return code;
+    }
+
+    public void setCode(final int code) {
+        this.code = code;
+    }
+
+    public String getLang() {
+        return lang;
+    }
+
+    public void setLang(final String lang) {
+        this.lang = lang;
+    }
+
+    public List<String> getText() {
+        return text;
+    }
+
+    public void setText(final List<String> text) {
+        this.text = text;
+    }
 }

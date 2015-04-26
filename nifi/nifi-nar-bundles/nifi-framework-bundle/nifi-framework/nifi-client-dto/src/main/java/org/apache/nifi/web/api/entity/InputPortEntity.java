@@ -30,9 +30,7 @@ public class InputPortEntity extends Entity {
     private PortDTO inputPort;
 
     /**
-     * The input PortDTO that are being serialized.
-     *
-     * @return
+     * @return input PortDTO that are being serialized
      */
     public PortDTO getInputPort() {
         return inputPort;

@@ -33,9 +33,7 @@ public class CountersDTO {
     private Collection<CounterDTO> counters;
 
     /**
-     * Gets the collection of counters.
-     *
-     * @return
+     * @return the collection of counters
      */
     public Collection<CounterDTO> getCounters() {
         return counters;
@@ -46,9 +44,7 @@ public class CountersDTO {
     }
 
     /**
-     * Gets the date/time that this report was generated.
-     *
-     * @return
+     * @return the date/time that this report was generated
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
     public Date getGenerated() {

@@ -49,10 +49,10 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
 
     private final AtomicReference<SchedulingStrategy> schedulingStrategy = new AtomicReference<>(SchedulingStrategy.TIMER_DRIVEN);
     private final AtomicReference<String> schedulingPeriod = new AtomicReference<>("5 mins");
-    
+
     private volatile String comment;
     private volatile ScheduledState scheduledState = ScheduledState.STOPPED;
-    
+
     public AbstractReportingTaskNode(final ReportingTask reportingTask, final String id,
             final ControllerServiceProvider controllerServiceProvider, final ProcessScheduler processScheduler,
             final ValidationContextFactory validationContextFactory) {
@@ -96,7 +96,7 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
     public boolean isRunning() {
         return processScheduler.isScheduled(this) || processScheduler.getActiveThreadCount(this) > 0;
     }
-    
+
     @Override
     public int getActiveThreadCount() {
         return processScheduler.getActiveThreadCount(this);
@@ -118,31 +118,31 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
     public ScheduledState getScheduledState() {
         return scheduledState;
     }
-    
+
     @Override
     public void setScheduledState(final ScheduledState state) {
         this.scheduledState = state;
     }
-    
+
     @Override
     public void setProperty(final String name, final String value) {
         super.setProperty(name, value);
-        
+
         onConfigured();
     }
-    
+
     @Override
     public boolean removeProperty(String name) {
         final boolean removed = super.removeProperty(name);
-        if ( removed ) {
+        if (removed) {
             onConfigured();
         }
-        
+
         return removed;
     }
-    
+
     @SuppressWarnings("deprecation")
-	private void onConfigured() {
+    private void onConfigured() {
         // We need to invoke any method annotation with the OnConfigured annotation in order to
         // maintain backward compatibility. This will be removed when we remove the old, deprecated annotations.
         try (final NarCloseable x = NarCloseable.withNarLoader()) {
@@ -152,72 +152,71 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
             throw new ComponentLifeCycleException("Failed to invoke On-Configured Lifecycle methods of " + reportingTask, e);
         }
     }
-    
+
     public boolean isDisabled() {
         return scheduledState == ScheduledState.DISABLED;
     }
-    
+
     @Override
     public String getComments() {
-		return comment;
-	}
+        return comment;
+    }
 
     @Override
-	public void setComments(final String comment) {
-		this.comment = comment;
-	}
+    public void setComments(final String comment) {
+        this.comment = comment;
+    }
 
-	@Override
+    @Override
     public void verifyCanDelete() {
         if (isRunning()) {
             throw new IllegalStateException("Cannot delete " + reportingTask + " because it is currently running");
         }
     }
-    
+
     @Override
     public void verifyCanDisable() {
-        if ( isRunning() ) {
+        if (isRunning()) {
             throw new IllegalStateException("Cannot disable " + reportingTask + " because it is currently running");
         }
-        
-        if ( isDisabled() ) {
+
+        if (isDisabled()) {
             throw new IllegalStateException("Cannot disable " + reportingTask + " because it is already disabled");
         }
     }
-    
-    
+
     @Override
     public void verifyCanEnable() {
-        if ( !isDisabled() ) {
+        if (!isDisabled()) {
             throw new IllegalStateException("Cannot enable " + reportingTask + " because it is not disabled");
         }
     }
-    
+
     @Override
     public void verifyCanStart() {
-        if ( isDisabled() ) {
+        if (isDisabled()) {
             throw new IllegalStateException("Cannot start " + reportingTask + " because it is currently disabled");
         }
-        
-        if ( isRunning() ) {
+
+        if (isRunning()) {
             throw new IllegalStateException("Cannot start " + reportingTask + " because it is already running");
         }
     }
-    
+
     @Override
     public void verifyCanStop() {
-        if ( !isRunning() ) {
+        if (!isRunning()) {
             throw new IllegalStateException("Cannot stop " + reportingTask + " because it is not running");
         }
     }
-    
+
     @Override
     public void verifyCanUpdate() {
-        if ( isRunning() ) {
+        if (isRunning()) {
             throw new IllegalStateException("Cannot update " + reportingTask + " because it is currently running");
         }
     }
-    
+
     @Override
     public void verifyCanStart(final Set<ControllerServiceNode> ignoredReferences) {
         switch (getScheduledState()) {
@@ -229,24 +228,23 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
                 break;
         }
         final int activeThreadCount = getActiveThreadCount();
-        if ( activeThreadCount > 0 ) {
+        if (activeThreadCount > 0) {
             throw new IllegalStateException(this + " cannot be started because it has " + activeThreadCount + " active threads already");
         }
-        
+
         final Set<String> ids = new HashSet<>();
-        for ( final ControllerServiceNode node : ignoredReferences ) {
+        for (final ControllerServiceNode node : ignoredReferences) {
             ids.add(node.getIdentifier());
         }
-        
+
         final Collection<ValidationResult> validationResults = getValidationErrors(ids);
-        for ( final ValidationResult result : validationResults ) {
-            if ( !result.isValid() ) {
+        for (final ValidationResult result : validationResults) {
+            if (!result.isValid()) {
                 throw new IllegalStateException(this + " cannot be started because it is not valid: " + result);
             }
         }
     }
-    
-    
+
     @Override
     public String toString() {
         return "ReportingTask[id=" + getIdentifier() + ", name=" + getName() + "]";

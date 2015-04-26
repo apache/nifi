@@ -28,9 +28,7 @@ public class NodeSearchResultDTO {
     private String address;
 
     /**
-     * The id of the node that was matched.
-     *
-     * @return
+     * @return id of the node that was matched
      */
     public String getId() {
         return id;
@@ -41,9 +39,7 @@ public class NodeSearchResultDTO {
     }
 
     /**
-     * The address of the node that was matched.
-     *
-     * @return
+     * @return address of the node that was matched
      */
     public String getAddress() {
         return address;

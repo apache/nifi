@@ -30,10 +30,8 @@ public class CountersEntity extends Entity {
     private CountersDTO counters;
 
     /**
-     * Get the counters which contains all the counter groups and a generation
-     * date.
-     *
-     * @return
+     * @return the counters which contains all the counter groups and a generation
+     * date
      */
     public CountersDTO getCounters() {
         return counters;

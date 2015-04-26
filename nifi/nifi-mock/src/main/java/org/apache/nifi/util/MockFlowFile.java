@@ -185,8 +185,8 @@ public class MockFlowFile implements FlowFile {
      * Asserts that the content of this FlowFile is the same as the content of
      * the given file
      *
-     * @param file
-     * @throws IOException
+     * @param file to compare content against
+     * @throws IOException if fails doing IO during comparison
      */
     public void assertContentEquals(final File file) throws IOException {
         assertContentEquals(file.toPath());
@@ -196,8 +196,8 @@ public class MockFlowFile implements FlowFile {
      * Asserts that the content of this FlowFile is the same as the content of
      * the given path
      *
-     * @param path
-     * @throws IOException
+     * @param path where to find content to compare to
+     * @throws IOException if io error occurs while comparing content
      */
     public void assertContentEquals(final Path path) throws IOException {
         try (final InputStream in = Files.newInputStream(path, StandardOpenOption.READ)) {
@@ -209,8 +209,8 @@ public class MockFlowFile implements FlowFile {
      * Asserts that the content of this FlowFile is the same as the content of
      * the given byte array
      *
-     * @param data
-     * @throws IOException
+     * @param data the data to compare
+     * @throws IOException if any ioe occurs while reading flowfile
      */
     public void assertContentEquals(final byte[] data) throws IOException {
         try (final InputStream in = new ByteArrayInputStream(data)) {
@@ -236,8 +236,8 @@ public class MockFlowFile implements FlowFile {
      * the given InputStream. This method closes the InputStream when it is
      * finished.
      *
-     * @param in
-     * @throws IOException
+     * @param in the stream to source comparison data from
+     * @throws IOException if any issues reading from given source
      */
     public void assertContentEquals(final InputStream in) throws IOException {
         int bytesRead = 0;
@@ -264,9 +264,7 @@ public class MockFlowFile implements FlowFile {
     }
 
     /**
-     * Returns a copy of the the contents of the FlowFile as a byte array
-     *
-     * @return
+     * @return a copy of the the contents of the FlowFile as a byte array
      */
     public byte[] toByteArray() {
         return Arrays.copyOf(this.data, this.data.length);

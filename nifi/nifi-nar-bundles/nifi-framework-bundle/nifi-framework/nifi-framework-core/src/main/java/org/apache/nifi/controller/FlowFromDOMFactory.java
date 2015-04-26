@@ -79,39 +79,39 @@ public class FlowFromDOMFactory {
 
         return styles;
     }
-    
-    public static ControllerServiceDTO getControllerService(final Element element, final StringEncryptor encryptor) {
-    	final ControllerServiceDTO dto = new ControllerServiceDTO();
-    	
-    	dto.setId(getString(element, "id"));
-    	dto.setName(getString(element, "name"));
-    	dto.setComments(getString(element, "comment"));
-    	dto.setType(getString(element, "class"));
 
-    	final boolean enabled = getBoolean(element, "enabled");
-    	dto.setState(enabled ? ControllerServiceState.ENABLED.name() : ControllerServiceState.DISABLED.name());
-    	
+    public static ControllerServiceDTO getControllerService(final Element element, final StringEncryptor encryptor) {
+        final ControllerServiceDTO dto = new ControllerServiceDTO();
+
+        dto.setId(getString(element, "id"));
+        dto.setName(getString(element, "name"));
+        dto.setComments(getString(element, "comment"));
+        dto.setType(getString(element, "class"));
+
+        final boolean enabled = getBoolean(element, "enabled");
+        dto.setState(enabled ? ControllerServiceState.ENABLED.name() : ControllerServiceState.DISABLED.name());
+
         dto.setProperties(getProperties(element, encryptor));
         dto.setAnnotationData(getString(element, "annotationData"));
 
         return dto;
     }
-    
-    public static ReportingTaskDTO getReportingTask(final Element element, final StringEncryptor encryptor) {
-    	final ReportingTaskDTO dto = new ReportingTaskDTO();
-    	
-    	dto.setId(getString(element, "id"));
-    	dto.setName(getString(element, "name"));
-    	dto.setComments(getString(element, "comment"));
-    	dto.setType(getString(element, "class"));
-    	dto.setSchedulingPeriod(getString(element, "schedulingPeriod"));
-    	dto.setState(getString(element, "scheduledState"));
-    	dto.setSchedulingStrategy(getString(element, "schedulingStrategy"));
-    	
-    	dto.setProperties(getProperties(element, encryptor));
-    	dto.setAnnotationData(getString(element, "annotationData"));
 
-    	return dto;
+    public static ReportingTaskDTO getReportingTask(final Element element, final StringEncryptor encryptor) {
+        final ReportingTaskDTO dto = new ReportingTaskDTO();
+
+        dto.setId(getString(element, "id"));
+        dto.setName(getString(element, "name"));
+        dto.setComments(getString(element, "comment"));
+        dto.setType(getString(element, "class"));
+        dto.setSchedulingPeriod(getString(element, "schedulingPeriod"));
+        dto.setState(getString(element, "scheduledState"));
+        dto.setSchedulingStrategy(getString(element, "schedulingStrategy"));
+
+        dto.setProperties(getProperties(element, encryptor));
+        dto.setAnnotationData(getString(element, "annotationData"));
+
+        return dto;
     }
 
     public static ProcessGroupDTO getProcessGroup(final String parentId, final Element element, final StringEncryptor encryptor) {
@@ -383,7 +383,7 @@ public class FlowFromDOMFactory {
     }
 
     private static LinkedHashMap<String, String> getProperties(final Element element, final StringEncryptor encryptor) {
-    	final LinkedHashMap<String, String> properties = new LinkedHashMap<>();
+        final LinkedHashMap<String, String> properties = new LinkedHashMap<>();
         final List<Element> propertyNodeList = getChildrenByTagName(element, "property");
         for (final Element propertyElement : propertyNodeList) {
             final String name = getString(propertyElement, "name");
@@ -392,7 +392,7 @@ public class FlowFromDOMFactory {
         }
         return properties;
     }
-    
+
     private static String getString(final Element element, final String childElementName) {
         final List<Element> nodeList = getChildrenByTagName(element, childElementName);
         if (nodeList == null || nodeList.isEmpty()) {

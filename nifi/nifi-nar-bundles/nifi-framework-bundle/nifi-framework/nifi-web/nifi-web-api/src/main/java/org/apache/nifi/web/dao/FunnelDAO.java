@@ -21,24 +21,19 @@ import java.util.Set;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.web.api.dto.FunnelDTO;
 
-/**
- *
- */
 public interface FunnelDAO {
 
     /**
-     * Determines if the specified funnel exists in the specified group.
-     *
-     * @param groupId
-     * @param funnelId
-     * @return
+     * @param groupId group id
+     * @param funnelId funnel id
+     * @return Determines if the specified funnel exists in the specified group
      */
     boolean hasFunnel(String groupId, String funnelId);
 
     /**
      * Creates a funnel in the specified group.
      *
-     * @param groupId
+     * @param groupId group id
      * @param funnelDTO The funnel DTO
      * @return The funnel
      */
@@ -47,7 +42,7 @@ public interface FunnelDAO {
     /**
      * Gets the specified funnel in the specified group.
      *
-     * @param groupId
+     * @param groupId group id
      * @param funnelId The funnel id
      * @return The funnel
      */
@@ -56,7 +51,7 @@ public interface FunnelDAO {
     /**
      * Gets all of the funnels in the specified group.
      *
-     * @param groupId
+     * @param groupId group id
      * @return The funnels
      */
     Set<Funnel> getFunnels(String groupId);
@@ -64,7 +59,7 @@ public interface FunnelDAO {
     /**
      * Updates the specified funnel in the specified group.
      *
-     * @param groupId
+     * @param groupId group id
      * @param funnelDTO The funnel DTO
      * @return The funnel
      */
@@ -73,15 +68,15 @@ public interface FunnelDAO {
     /**
      * Determines whether this funnel can be removed.
      *
-     * @param groupId
-     * @param funnelId
+     * @param groupId group id
+     * @param funnelId funnel id
      */
     void verifyDelete(String groupId, String funnelId);
 
     /**
      * Deletes the specified Funnel in the specified group.
      *
-     * @param groupId
+     * @param groupId group id
      * @param funnelId The funnel id
      */
     void deleteFunnel(String groupId, String funnelId);

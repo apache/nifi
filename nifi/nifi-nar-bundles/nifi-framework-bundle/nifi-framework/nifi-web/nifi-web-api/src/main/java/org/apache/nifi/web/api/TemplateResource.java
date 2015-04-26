@@ -71,8 +71,9 @@ public class TemplateResource extends ApplicationResource {
 
     /**
      * Populates the uri for the specified templates.
+     *
      * @param templates
-     * @return 
+     * @return
      */
     public Set<TemplateDTO> populateRemainingTemplatesContent(Set<TemplateDTO> templates) {
         for (TemplateDTO template : templates) {

@@ -34,9 +34,7 @@ public class PortStatusDTO extends StatusDTO {
     private String runStatus;
 
     /**
-     * Whether this port has incoming or outgoing connections to a remote NiFi.
-     *
-     * @return
+     * @return whether this port has incoming or outgoing connections to a remote NiFi
      */
     public Boolean isTransmitting() {
         return transmitting;
@@ -47,9 +45,7 @@ public class PortStatusDTO extends StatusDTO {
     }
 
     /**
-     * The active thread count for this port.
-     *
-     * @return
+     * @return the active thread count for this port
      */
     public Integer getActiveThreadCount() {
         return activeThreadCount;
@@ -60,9 +56,7 @@ public class PortStatusDTO extends StatusDTO {
     }
 
     /**
-     * The id of this port.
-     *
-     * @return
+     * @return id of this port
      */
     public String getId() {
         return id;
@@ -73,9 +67,7 @@ public class PortStatusDTO extends StatusDTO {
     }
 
     /**
-     * The id of the group this port resides in.
-     *
-     * @return
+     * @return id of the group this port resides in
      */
     public String getGroupId() {
         return groupId;
@@ -86,9 +78,7 @@ public class PortStatusDTO extends StatusDTO {
     }
 
     /**
-     * The name of this port.
-     *
-     * @return
+     * @return name of this port
      */
     public String getName() {
         return name;
@@ -99,9 +89,7 @@ public class PortStatusDTO extends StatusDTO {
     }
 
     /**
-     * The run status of this port.
-     *
-     * @return
+     * @return run status of this port
      */
     public String getRunStatus() {
         return runStatus;
@@ -112,10 +100,8 @@ public class PortStatusDTO extends StatusDTO {
     }
 
     /**
-     * The total count and size of flow files that have been accepted in the
-     * last five minutes.
-     *
-     * @return The total processed
+     * @return The total count and size of flow files that have been accepted in the
+     * last five minutes
      */
     public String getInput() {
         return input;
@@ -126,10 +112,8 @@ public class PortStatusDTO extends StatusDTO {
     }
 
     /**
-     * The total count and size of flow files that have been processed in the
-     * last five minutes.
-     *
-     * @return The total output
+     * @return The total count and size of flow files that have been processed in the
+     * last five minutes
      */
     public String getOutput() {
         return output;

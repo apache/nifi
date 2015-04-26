@@ -189,76 +189,84 @@ public final class SnippetUtils {
         }
 
         addControllerServicesToSnippet(snippetDto);
-        
+
         return snippetDto;
     }
-    
+
     private void addControllerServicesToSnippet(final FlowSnippetDTO snippetDto) {
-        for ( final ProcessorDTO processorDto : snippetDto.getProcessors() ) {
-            addControllerServicesToSnippet(snippetDto, processorDto);
+        final Set<ProcessorDTO> processors = snippetDto.getProcessors();
+        if (processors != null) {
+            for (final ProcessorDTO processorDto : processors) {
+                addControllerServicesToSnippet(snippetDto, processorDto);
+            }
         }
-        
-        for ( final ProcessGroupDTO processGroupDto : snippetDto.getProcessGroups() ) {
-            final FlowSnippetDTO childGroupDto = processGroupDto.getContents();
-            addControllerServicesToSnippet(childGroupDto);
+
+        final Set<ProcessGroupDTO> childGroups = snippetDto.getProcessGroups();
+        if (childGroups != null) {
+            for (final ProcessGroupDTO processGroupDto : childGroups) {
+                final FlowSnippetDTO childGroupDto = processGroupDto.getContents();
+                if (childGroupDto != null) {
+                    addControllerServicesToSnippet(childGroupDto);
+                }
+            }
         }
     }
-    
+
     private void addControllerServicesToSnippet(final FlowSnippetDTO snippet, final ProcessorDTO processorDto) {
         final ProcessorConfigDTO configDto = processorDto.getConfig();
-        if ( configDto == null ) {
+        if (configDto == null) {
             return;
         }
-        
+
         final Map<String, PropertyDescriptorDTO> descriptors = configDto.getDescriptors();
         final Map<String, String> properties = configDto.getProperties();
-        
-        if ( properties != null && descriptors != null ) {
-            for ( final Map.Entry<String, String> entry : properties.entrySet() ) {
+
+        if (properties != null && descriptors != null) {
+            for (final Map.Entry<String, String> entry : properties.entrySet()) {
                 final String propName = entry.getKey();
                 final String propValue = entry.getValue();
-                if ( propValue == null ) {
+                if (propValue == null) {
                     continue;
                 }
-                
+
                 final PropertyDescriptorDTO propertyDescriptorDto = descriptors.get(propName);
-                if ( propertyDescriptorDto != null && propertyDescriptorDto.getIdentifiesControllerService() != null ) {
+                if (propertyDescriptorDto != null && propertyDescriptorDto.getIdentifiesControllerService() != null) {
                     final ControllerServiceNode serviceNode = flowController.getControllerServiceNode(propValue);
-                    if ( serviceNode != null ) {
+                    if (serviceNode != null) {
                         addControllerServicesToSnippet(snippet, serviceNode);
                     }
                 }
             }
         }
     }
-    
+
     private void addControllerServicesToSnippet(final FlowSnippetDTO snippet, final ControllerServiceNode serviceNode) {
-        if ( isServicePresent(serviceNode.getIdentifier(), snippet.getControllerServices()) ) {
+        if (isServicePresent(serviceNode.getIdentifier(), snippet.getControllerServices())) {
             return;
         }
-        
+
         final ControllerServiceDTO serviceNodeDto = dtoFactory.createControllerServiceDto(serviceNode);
         Set<ControllerServiceDTO> existingServiceDtos = snippet.getControllerServices();
-        if ( existingServiceDtos == null ) {
+        if (existingServiceDtos == null) {
             existingServiceDtos = new HashSet<>();
             snippet.setControllerServices(existingServiceDtos);
         }
         existingServiceDtos.add(serviceNodeDto);
 
-        for ( final Map.Entry<PropertyDescriptor, String> entry : serviceNode.getProperties().entrySet() ) {
+        for (final Map.Entry<PropertyDescriptor, String> entry : serviceNode.getProperties().entrySet()) {
             final PropertyDescriptor descriptor = entry.getKey();
             final String propertyValue = entry.getValue();
-            
-            if ( descriptor.getControllerServiceDefinition() != null ) {
+
+            if (descriptor.getControllerServiceDefinition() != null) {
                 final ControllerServiceNode referencedNode = flowController.getControllerServiceNode(propertyValue);
-                if ( referencedNode == null ) {
+                if (referencedNode == null) {
                     throw new IllegalStateException("Controller Service with ID " + propertyValue + " is referenced in template but cannot be found");
                 }
-                
+
                 final String referencedNodeId = referencedNode.getIdentifier();
-                
+
                 final boolean alreadyPresent = isServicePresent(referencedNodeId, snippet.getControllerServices());
-                if ( !alreadyPresent ) {
+                if (!alreadyPresent) {
                     addControllerServicesToSnippet(snippet, referencedNode);
                 }
             }
@@ -266,20 +274,19 @@ public final class SnippetUtils {
     }
 
     private boolean isServicePresent(final String serviceId, final Collection<ControllerServiceDTO> services) {
-        if ( services == null ) {
+        if (services == null) {
             return false;
         }
-        
-        for ( final ControllerServiceDTO existingService : services ) {
-            if ( serviceId.equals(existingService.getId()) ) {
+
+        for (final ControllerServiceDTO existingService : services) {
+            if (serviceId.equals(existingService.getId())) {
                 return true;
             }
         }
-        
+
         return false;
     }
-    
-    
+
     public FlowSnippetDTO copy(final FlowSnippetDTO snippetContents, final ProcessGroup group) {
         final FlowSnippetDTO snippetCopy = copyContentsForGroup(snippetContents, group.getIdentifier(), null, null);
         resolveNameConflicts(snippetCopy, group);
@@ -342,33 +349,33 @@ public final class SnippetUtils {
         //
         // Copy the Controller Services
         //
-        if ( serviceIdMap == null ) {
+        if (serviceIdMap == null) {
             serviceIdMap = new HashMap<>();
             final Set<ControllerServiceDTO> services = new HashSet<>();
-            if ( snippetContents.getControllerServices() != null ) {
-                for (final ControllerServiceDTO serviceDTO : snippetContents.getControllerServices() ) {
+            if (snippetContents.getControllerServices() != null) {
+                for (final ControllerServiceDTO serviceDTO : snippetContents.getControllerServices()) {
                     final ControllerServiceDTO service = dtoFactory.copy(serviceDTO);
                     service.setId(generateId(serviceDTO.getId()));
                     service.setState(ControllerServiceState.DISABLED.name());
                     services.add(service);
-                    
+
                     // Map old service ID to new service ID so that we can make sure that we reference the new ones.
                     serviceIdMap.put(serviceDTO.getId(), service.getId());
                 }
             }
-            
+
             // if there is any controller service that maps to another controller service, update the id's
-            for ( final ControllerServiceDTO serviceDTO : services ) {
+            for (final ControllerServiceDTO serviceDTO : services) {
                 final Map<String, String> properties = serviceDTO.getProperties();
                 final Map<String, PropertyDescriptorDTO> descriptors = serviceDTO.getDescriptors();
-                if ( properties != null && descriptors != null ) {
-                    for ( final PropertyDescriptorDTO descriptor : descriptors.values() ) {
-                        if ( descriptor.getIdentifiesControllerService() != null ) {
+                if (properties != null && descriptors != null) {
+                    for (final PropertyDescriptorDTO descriptor : descriptors.values()) {
+                        if (descriptor.getIdentifiesControllerService() != null) {
                             final String currentServiceId = properties.get(descriptor.getName());
-                            if ( currentServiceId == null ) {
+                            if (currentServiceId == null) {
                                 continue;
                             }
-                            
+
                             final String newServiceId = serviceIdMap.get(currentServiceId);
                             properties.put(descriptor.getName(), newServiceId);
                         }
@@ -377,7 +384,7 @@ public final class SnippetUtils {
             }
             snippetContentsCopy.setControllerServices(services);
         }
-        
+
         //
         // Copy the labels
         //
@@ -469,7 +476,7 @@ public final class SnippetUtils {
 
         // if there is any controller service that maps to another controller service, update the id's
         updateControllerServiceIdentifiers(snippetContentsCopy, serviceIdMap);
-        
+
         // 
         // Copy ProcessGroups
         //
@@ -534,43 +541,41 @@ public final class SnippetUtils {
 
         return snippetContentsCopy;
     }
-    
-    
+
     private void updateControllerServiceIdentifiers(final FlowSnippetDTO snippet, final Map<String, String> serviceIdMap) {
         final Set<ProcessorDTO> processors = snippet.getProcessors();
-        if ( processors != null ) {
-            for ( final ProcessorDTO processor : processors ) {
+        if (processors != null) {
+            for (final ProcessorDTO processor : processors) {
                 updateControllerServiceIdentifiers(processor.getConfig(), serviceIdMap);
             }
         }
-        
-        for ( final ProcessGroupDTO processGroupDto : snippet.getProcessGroups() ) {
+
+        for (final ProcessGroupDTO processGroupDto : snippet.getProcessGroups()) {
             updateControllerServiceIdentifiers(processGroupDto.getContents(), serviceIdMap);
         }
     }
-    
+
     private void updateControllerServiceIdentifiers(final ProcessorConfigDTO configDto, final Map<String, String> serviceIdMap) {
-        if ( configDto == null ) {
+        if (configDto == null) {
             return;
         }
-        
+
         final Map<String, String> properties = configDto.getProperties();
         final Map<String, PropertyDescriptorDTO> descriptors = configDto.getDescriptors();
-        if ( properties != null && descriptors != null ) {
-            for ( final PropertyDescriptorDTO descriptor : descriptors.values() ) {
-                if ( descriptor.getIdentifiesControllerService() != null ) {
+        if (properties != null && descriptors != null) {
+            for (final PropertyDescriptorDTO descriptor : descriptors.values()) {
+                if (descriptor.getIdentifiesControllerService() != null) {
                     final String currentServiceId = properties.get(descriptor.getName());
-                    if ( currentServiceId == null ) {
+                    if (currentServiceId == null) {
                         continue;
                     }
-                    
+
                     final String newServiceId = serviceIdMap.get(currentServiceId);
                     properties.put(descriptor.getName(), newServiceId);
                 }
             }
         }
     }
-    
 
     /**
      * Generates a new id for the current id that is specified. If no seed is

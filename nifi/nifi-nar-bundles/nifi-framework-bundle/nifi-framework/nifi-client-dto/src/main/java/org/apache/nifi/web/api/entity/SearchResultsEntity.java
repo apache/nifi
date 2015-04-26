@@ -31,9 +31,7 @@ public class SearchResultsEntity {
     private SearchResultsDTO searchResultsDTO;
 
     /**
-     * The search results.
-     *
-     * @return
+     * @return search results
      */
     public SearchResultsDTO getSearchResultsDTO() {
         return searchResultsDTO;

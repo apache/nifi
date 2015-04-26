@@ -34,6 +34,13 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <configuration>
+                    <excludes>**/antlr/AttributeExpressionParser.java,**/antlr/AttributeExpressionLexer.java</excludes>
+                </configuration>
+            </plugin>            
         </plugins>
     </build>
     <dependencies>

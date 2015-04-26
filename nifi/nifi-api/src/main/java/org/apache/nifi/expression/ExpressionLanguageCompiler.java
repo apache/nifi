@@ -25,7 +25,7 @@ public interface ExpressionLanguageCompiler {
      * AttributeExpression that can be evaluated
      *
      * @param expression the Attribute Expression to be compiled
-     * @return
+     * @return expression that can be evaluated
      * @throws IllegalArgumentException if the given expression is not valid
      */
     AttributeExpression compile(String expression) throws IllegalArgumentException;
@@ -34,8 +34,8 @@ public interface ExpressionLanguageCompiler {
      * Indicates whether or not the given string is a valid Attribute
      * Expression.
      *
-     * @param expression
-     * @return
+     * @param expression to validate
+     * @return if is value or not
      */
     boolean isValidExpression(String expression);
 
@@ -44,7 +44,7 @@ public interface ExpressionLanguageCompiler {
      * if the expression is syntactically valid or a String indicating why the
      * expression is invalid otherwise.
      *
-     * @param expression
+     * @param expression to validate
      * @param allowSurroundingCharacters if <code>true</code> allows characters
      * to surround the Expression, otherwise the expression must be exactly
      * equal to a valid Expression. E.g., <code>/${path}</code> is valid if and
@@ -60,7 +60,7 @@ public interface ExpressionLanguageCompiler {
      * Returns the ResultType that will be returned by the given Expression
      *
      * @param expression the Expression to evaluate
-     * @return
+     * @return result type for the given expression
      * @throws IllegalArgumentException if the given Expression is not a valid
      * Expression Language Expression; the message of this Exception will
      * indicate the problem if the expression is not syntactically valid.

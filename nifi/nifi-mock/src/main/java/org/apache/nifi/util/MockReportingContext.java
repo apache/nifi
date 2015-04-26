@@ -100,11 +100,9 @@ public class MockReportingContext extends MockControllerServiceLookup implements
     }
 
     /**
-     * Returns all Bulletins that have been created for the component with the
+     * @param componentId identifier of component to get bulletins for
+     * @return all Bulletins that have been created for the component with the
      * given ID
-     *
-     * @param componentId
-     * @return
      */
     public List<Bulletin> getComponentBulletins(final String componentId) {
         final List<Bulletin> created = componentBulletinsCreated.get(componentId);

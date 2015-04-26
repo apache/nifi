@@ -19,21 +19,22 @@ package org.apache.nifi.cluster.protocol;
 /**
  * The base exception for problems encountered while communicating within the
  * cluster.
+ *
  * @author unattributed
  */
 public class ProtocolException extends RuntimeException {
-    
+
     public ProtocolException() {
     }
-    
+
     public ProtocolException(String msg) {
         super(msg);
     }
-    
+
     public ProtocolException(Throwable cause) {
         super(cause);
     }
-    
+
     public ProtocolException(String msg, Throwable cause) {
         super(msg, cause);
     }

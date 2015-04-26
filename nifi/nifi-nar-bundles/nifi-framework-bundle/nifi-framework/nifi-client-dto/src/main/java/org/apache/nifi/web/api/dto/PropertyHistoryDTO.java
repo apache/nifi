@@ -28,9 +28,7 @@ public class PropertyHistoryDTO {
     private List<PreviousValueDTO> previousValues;
 
     /**
-     * The previous values.
-     *
-     * @return
+     * @return previous values
      */
     public List<PreviousValueDTO> getPreviousValues() {
         return previousValues;

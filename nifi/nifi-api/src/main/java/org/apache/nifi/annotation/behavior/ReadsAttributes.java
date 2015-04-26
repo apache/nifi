@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.annotation.behavior;
 
-import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Inherited;
@@ -25,10 +24,9 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Annotation that may be placed on a {@link org.apache.nifi.processor.Processor Processor} 
- * indicating that this processor reads specific FlowFile attributes.
- * 
- * @author 
+ * Annotation that may be placed on a
+ * {@link org.apache.nifi.processor.Processor Processor} indicating that this
+ * processor reads specific FlowFile attributes.
  *
  */
 @Documented
@@ -36,9 +34,6 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited
 public @interface ReadsAttributes {
-    /**
-     * A list of attributes that may be read
-     * @return
-     */
+
     public ReadsAttribute[] value();
 }

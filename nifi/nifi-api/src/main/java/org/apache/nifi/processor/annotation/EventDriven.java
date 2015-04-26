@@ -39,8 +39,8 @@ import java.lang.annotation.Target;
  * </p>
  *
  * @author none
- * @deprecated This Annotation has been replaced by the {@link org.apache.nifi.annotation.behavior.EventDriven}
- * annotation.
+ * @deprecated This Annotation has been replaced by the
+ * {@link org.apache.nifi.annotation.behavior.EventDriven} annotation.
  */
 @Documented
 @Target({ElementType.TYPE})

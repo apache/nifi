@@ -20,28 +20,27 @@ package org.apache.nifi.remote;
  * Represents the remote entity that the client is communicating with
  */
 public interface Communicant {
+
     /**
-     * Returns the NiFi site-to-site URL for the remote NiFi instance
-     * @return
+     * @return the NiFi site-to-site URL for the remote NiFi instance
      */
     String getUrl();
-    
+
     /**
-     * The Host of the remote NiFi instance
-     * @return
+     * @return The Host of the remote NiFi instance
      */
     String getHost();
-    
+
     /**
-     * The Port that the remote NiFi instance is listening on for site-to-site communications
-     * @return
+     * @return The Port that the remote NiFi instance is listening on for
+     * site-to-site communications
      */
     int getPort();
-    
+
     /**
-     * The distinguished name that the remote NiFi instance has provided in its certificate if
-     * using secure communications, or <code>null</code> if the Distinguished Name is unknown
-     * @return
+     * @return The distinguished name that the remote NiFi instance has provided
+     * in its certificate if using secure communications, or <code>null</code>
+     * if the Distinguished Name is unknown
      */
     String getDistinguishedName();
 }

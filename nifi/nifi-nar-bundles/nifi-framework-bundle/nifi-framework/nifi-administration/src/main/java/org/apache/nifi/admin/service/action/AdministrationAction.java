@@ -23,16 +23,16 @@ import org.apache.nifi.authorization.AuthorityProvider;
  * Defines the administration action. Actions are provided a DAO factory and
  * authority provider to perform a require action.
  *
- * @param <T>
+ * @param <T> type
  */
 public interface AdministrationAction<T> {
 
     /**
      * Performs an action using the specified DAOFactory and AuthorityProvider.
      *
-     * @param daoFactory
-     * @param authorityProvider
-     * @return
+     * @param daoFactory factory
+     * @param authorityProvider provider
+     * @return action result
      */
     T execute(DAOFactory daoFactory, AuthorityProvider authorityProvider);
 }

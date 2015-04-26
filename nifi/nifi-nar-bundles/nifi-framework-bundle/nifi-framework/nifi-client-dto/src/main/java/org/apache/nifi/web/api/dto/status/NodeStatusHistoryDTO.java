@@ -29,9 +29,7 @@ public class NodeStatusHistoryDTO {
     private StatusHistoryDTO statusHistory;
 
     /**
-     * The node.
-     *
-     * @return
+     * @return the node
      */
     public NodeDTO getNode() {
         return node;
@@ -42,9 +40,7 @@ public class NodeStatusHistoryDTO {
     }
 
     /**
-     * The processor status history.
-     *
-     * @return
+     * @return processor status history
      */
     public StatusHistoryDTO getStatusHistory() {
         return statusHistory;

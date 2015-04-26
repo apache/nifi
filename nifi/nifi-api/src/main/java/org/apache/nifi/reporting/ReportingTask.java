@@ -60,8 +60,8 @@ public interface ReportingTask extends ConfigurableComponent {
      * Provides the Reporting Task with access to objects that may be of use
      * throughout the life of the service
      *
-     * @param config
-     * @throws org.apache.nifi.reporting.InitializationException
+     * @param config of initialization context
+     * @throws org.apache.nifi.reporting.InitializationException if unable to init
      */
     void initialize(ReportingInitializationContext config) throws InitializationException;
 
@@ -69,7 +69,7 @@ public interface ReportingTask extends ConfigurableComponent {
      * This method is called on a scheduled interval to allow the Reporting Task
      * to perform its tasks.
      *
-     * @param context
+     * @param context reporting context
      */
     void onTrigger(ReportingContext context);
 }

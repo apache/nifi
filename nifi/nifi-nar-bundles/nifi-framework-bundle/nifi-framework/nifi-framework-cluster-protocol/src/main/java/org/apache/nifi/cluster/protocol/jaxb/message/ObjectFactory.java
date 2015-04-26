@@ -39,65 +39,66 @@ import org.apache.nifi.cluster.protocol.message.ServiceBroadcastMessage;
  */
 @XmlRegistry
 public class ObjectFactory {
-    
-    public ObjectFactory() {}
-    
+
+    public ObjectFactory() {
+    }
+
     public ReconnectionRequestMessage createReconnectionRequestMessage() {
         return new ReconnectionRequestMessage();
     }
-    
+
     public ReconnectionFailureMessage createReconnectionFailureMessage() {
         return new ReconnectionFailureMessage();
     }
-    
+
     public ReconnectionResponseMessage createReconnectionResponseMessage() {
         return new ReconnectionResponseMessage();
     }
-    
+
     public DisconnectMessage createDisconnectionMessage() {
         return new DisconnectMessage();
     }
-    
+
     public ConnectionRequestMessage createConnectionRequestMessage() {
         return new ConnectionRequestMessage();
     }
-    
+
     public ConnectionResponseMessage createConnectionResponseMessage() {
         return new ConnectionResponseMessage();
     }
-    
+
     public ServiceBroadcastMessage createServiceBroadcastMessage() {
         return new ServiceBroadcastMessage();
     }
-    
+
     public HeartbeatMessage createHeartbeatMessage() {
         return new HeartbeatMessage();
     }
-    
+
     public FlowRequestMessage createFlowRequestMessage() {
         return new FlowRequestMessage();
     }
-    
+
     public FlowResponseMessage createFlowResponseMessage() {
         return new FlowResponseMessage();
     }
-    
+
     public PingMessage createPingMessage() {
         return new PingMessage();
     }
-    
+
     public MulticastProtocolMessage createMulticastProtocolMessage() {
         return new MulticastProtocolMessage();
     }
-    
+
     public ControllerStartupFailureMessage createControllerStartupFailureMessage() {
         return new ControllerStartupFailureMessage();
     }
-    
+
     public PrimaryRoleAssignmentMessage createPrimaryRoleAssignmentMessage() {
         return new PrimaryRoleAssignmentMessage();
     }
-    
+
     public NodeBulletinsMessage createBulletinsMessage() {
         return new NodeBulletinsMessage();
     }

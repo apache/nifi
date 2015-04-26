@@ -27,32 +27,33 @@ public interface AuthorityDAO {
     /**
      * Finds all Authority for the specified user.
      *
-     * @param userId
-     * @return
+     * @param userId identifier of user
+     * @return authorities
      */
     Set<Authority> findAuthoritiesByUserId(String userId) throws DataAccessException;
 
     /**
-     * Creates a new Authorities for the specified user.
+     * Creates new Authorities for the specified user in addition to authorities
+     * they already have.
      *
-     * @param authorities
-     * @param userId
+     * @param authorities to add to the given user
+     * @param userId identifier of user
      */
     void createAuthorities(Set<Authority> authorities, String userId) throws DataAccessException;
 
     /**
      * Removes all Authorities for the specified user.
      *
-     * @param userId
-     * @throws DataAccessException
+     * @param userId user identifier
+     * @throws DataAccessException if unable to access authorities
      */
     void deleteAuthorities(String userId) throws DataAccessException;
 
     /**
      * Removes the specified Authority.
      *
-     * @param authorities
-     * @param userId
+     * @param authorities to remove
+     * @param userId user id
      */
     void deleteAuthorities(Set<Authority> authorities, String userId) throws DataAccessException;
 }

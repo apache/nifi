@@ -72,13 +72,11 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 
     /**
      * Writes the head portion of the HTML documentation.
-     * 
-     * @param configurableComponent
-     *            the component to describe
-     * @param xmlStreamWriter
-     *            the stream to write to
-     * @throws XMLStreamException
-     *             thrown if there was a problem writing to the stream
+     *
+     * @param configurableComponent the component to describe
+     * @param xmlStreamWriter the stream to write to
+     * @throws XMLStreamException thrown if there was a problem writing to the
+     * stream
      */
     protected void writeHead(final ConfigurableComponent configurableComponent,
             final XMLStreamWriter xmlStreamWriter) throws XMLStreamException {
@@ -99,9 +97,8 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 
     /**
      * Gets the class name of the component.
-     * 
-     * @param configurableComponent
-     *            the component to describe
+     *
+     * @param configurableComponent the component to describe
      * @return the class name of the component
      */
     protected String getTitle(final ConfigurableComponent configurableComponent) {
@@ -111,15 +108,13 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
     /**
      * Writes the body section of the documentation, this consists of the
      * component description, the tags, and the PropertyDescriptors.
-     * 
-     * @param configurableComponent
-     *            the component to describe
-     * @param xmlStreamWriter
-     *            the stream writer
-     * @param hasAdditionalDetails
-     *            whether there are additional details present or not
-     * @throws XMLStreamException
-     *             thrown if there was a problem writing to the XML stream
+     *
+     * @param configurableComponent the component to describe
+     * @param xmlStreamWriter the stream writer
+     * @param hasAdditionalDetails whether there are additional details present
+     * or not
+     * @throws XMLStreamException thrown if there was a problem writing to the
+     * XML stream
      */
     private void writeBody(final ConfigurableComponent configurableComponent,
             final XMLStreamWriter xmlStreamWriter, final boolean hasAdditionalDetails)
@@ -136,13 +131,10 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 
     /**
      * Writes the list of components that may be linked from this component.
-     * 
-     * @param configurableComponent
-     *            the component to describe
-     * @param xmlStreamWriter
-     *            the stream writer to use
-     * @throws XMLStreamException
-     *             thrown if there was a problem writing the XML
+     *
+     * @param configurableComponent the component to describe
+     * @param xmlStreamWriter the stream writer to use
+     * @throws XMLStreamException thrown if there was a problem writing the XML
      */
     private void writeSeeAlso(ConfigurableComponent configurableComponent, XMLStreamWriter xmlStreamWriter)
             throws XMLStreamException {
@@ -162,7 +154,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 
                 ++index;
             }
-            
+
             for (final String linkedComponent : seeAlso.classNames()) {
                 if (index != 0) {
                     xmlStreamWriter.writeCharacters(", ");
@@ -171,7 +163,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
                 final String link = "../" + linkedComponent + "/index.html";
 
                 final int indexOfLastPeriod = linkedComponent.lastIndexOf(".") + 1;
-                
+
                 writeLink(xmlStreamWriter, linkedComponent.substring(indexOfLastPeriod), link);
 
                 ++index;
@@ -183,26 +175,17 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
     /**
      * This method may be overridden by sub classes to write additional
      * information to the body of the documentation.
-     * 
-     * @param configurableComponent
-     *            the component to describe
-     * @param xmlStreamWriter
-     *            the stream writer
-     * @throws XMLStreamException
-     *             thrown if there was a problem writing to the XML stream
+     *
+     * @param configurableComponent the component to describe
+     * @param xmlStreamWriter the stream writer
+     * @throws XMLStreamException thrown if there was a problem writing to the
+     * XML stream
      */
     protected void writeAdditionalBodyInfo(final ConfigurableComponent configurableComponent,
             final XMLStreamWriter xmlStreamWriter) throws XMLStreamException {
 
     }
 
-    /**
-     * Writes the tags attached to a ConfigurableComponent.
-     * 
-     * @param configurableComponent
-     * @param xmlStreamWriter
-     * @throws XMLStreamException
-     */
     private void writeTags(final ConfigurableComponent configurableComponent,
             final XMLStreamWriter xmlStreamWriter) throws XMLStreamException {
         final Tags tags = configurableComponent.getClass().getAnnotation(Tags.class);
@@ -218,30 +201,27 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
         }
         xmlStreamWriter.writeEndElement();
     }
-    
+
     static String join(final String[] toJoin, final String delimiter) {
-    	final StringBuilder sb = new StringBuilder();
-    	for (int i=0; i < toJoin.length; i++) {
-    		sb.append(toJoin[i]);
-    		if ( i < toJoin.length - 1 ) {
-    			sb.append(delimiter);
-    		}
-    	}
-    	return sb.toString();
+        final StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < toJoin.length; i++) {
+            sb.append(toJoin[i]);
+            if (i < toJoin.length - 1) {
+                sb.append(delimiter);
+            }
+        }
+        return sb.toString();
     }
 
     /**
      * Writes a description of the configurable component.
-     * 
-     * @param configurableComponent
-     *            the component to describe
-     * @param xmlStreamWriter
-     *            the stream writer
-     * @param hasAdditionalDetails
-     *            whether there are additional details available as
-     *            'additionalDetails.html'
-     * @throws XMLStreamException
-     *             thrown if there was a problem writing to the XML stream
+     *
+     * @param configurableComponent the component to describe
+     * @param xmlStreamWriter the stream writer
+     * @param hasAdditionalDetails whether there are additional details
+     * available as 'additionalDetails.html'
+     * @throws XMLStreamException thrown if there was a problem writing to the
+     * XML stream
      */
     protected void writeDescription(final ConfigurableComponent configurableComponent,
             final XMLStreamWriter xmlStreamWriter, final boolean hasAdditionalDetails)
@@ -260,9 +240,8 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
     /**
      * Gets a description of the ConfigurableComponent using the
      * CapabilityDescription annotation.
-     * 
-     * @param configurableComponent
-     *            the component to describe
+     *
+     * @param configurableComponent the component to describe
      * @return a description of the configurableComponent
      */
     protected String getDescription(final ConfigurableComponent configurableComponent) {
@@ -281,13 +260,11 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 
     /**
      * Writes the PropertyDescriptors out as a table.
-     * 
-     * @param configurableComponent
-     *            the component to describe
-     * @param xmlStreamWriter
-     *            the stream writer
-     * @throws XMLStreamException
-     *             thrown if there was a problem writing to the XML Stream
+     *
+     * @param configurableComponent the component to describe
+     * @param xmlStreamWriter the stream writer
+     * @throws XMLStreamException thrown if there was a problem writing to the
+     * XML Stream
      */
     protected void writeProperties(final ConfigurableComponent configurableComponent,
             final XMLStreamWriter xmlStreamWriter) throws XMLStreamException {
@@ -367,13 +344,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
             writeSimpleElement(xmlStreamWriter, "p", "This component has no required or optional properties.");
         }
     }
-    
-    /**
-     * Writes a list of the dynamic properties that a processor supports
-     * @param configurableComponent
-     * @param xmlStreamWriter
-     * @throws XMLStreamException
-     */
+
     private void writeDynamicProperties(final ConfigurableComponent configurableComponent,
             final XMLStreamWriter xmlStreamWriter) throws XMLStreamException {
 
@@ -392,7 +363,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
             writeSimpleElement(xmlStreamWriter, "th", "Description");
             xmlStreamWriter.writeEndElement();
             for (final DynamicProperty dynamicProperty : dynamicProperties) {
-                xmlStreamWriter.writeStartElement("tr");    
+                xmlStreamWriter.writeStartElement("tr");
                 writeSimpleElement(xmlStreamWriter, "td", dynamicProperty.name(), false, "name");
                 writeSimpleElement(xmlStreamWriter, "td", dynamicProperty.value(), false, "value");
                 xmlStreamWriter.writeStartElement("td");
@@ -404,17 +375,12 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
                 xmlStreamWriter.writeEndElement();
                 xmlStreamWriter.writeEndElement();
             }
-            
+
             xmlStreamWriter.writeEndElement();
             xmlStreamWriter.writeEndElement();
         }
     }
 
-    /**
-     * Gets the dynamic properties for a configurable component
-     * @param configurableComponent
-     * @return
-     */
     private List<DynamicProperty> getDynamicProperties(ConfigurableComponent configurableComponent) {
         final List<DynamicProperty> dynamicProperties = new ArrayList<>();
         final DynamicProperties dynProps = configurableComponent.getClass().getAnnotation(DynamicProperties.class);
@@ -423,22 +389,15 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
                 dynamicProperties.add(dynProp);
             }
         }
-        
+
         final DynamicProperty dynProp = configurableComponent.getClass().getAnnotation(DynamicProperty.class);
         if (dynProp != null) {
             dynamicProperties.add(dynProp);
         }
-        
+
         return dynamicProperties;
     }
 
-    /**
-     * Writes an info icon with a description.
-     * 
-     * @param xmlStreamWriter
-     * @param description the description of the item
-     * @throws XMLStreamException
-     */
     private void writeValidValueDescription(XMLStreamWriter xmlStreamWriter, String description)
             throws XMLStreamException {
         xmlStreamWriter.writeCharacters(" ");
@@ -453,13 +412,11 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
     /**
      * Interrogates a PropertyDescriptor to get a list of AllowableValues, if
      * there are none, nothing is written to the stream.
-     * 
-     * @param xmlStreamWriter
-     *            the stream writer to use
-     * @param property
-     *            the property to describe
-     * @throws XMLStreamException
-     *             thrown if there was a problem writing to the XML Stream
+     *
+     * @param xmlStreamWriter the stream writer to use
+     * @param property the property to describe
+     * @throws XMLStreamException thrown if there was a problem writing to the
+     * XML Stream
      */
     protected void writeValidValues(XMLStreamWriter xmlStreamWriter, PropertyDescriptor property)
             throws XMLStreamException {
@@ -489,40 +446,38 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
     /**
      * Writes a begin element, then text, then end element for the element of a
      * users choosing. Example: &lt;p&gt;text&lt;/p&gt;
-     * 
-     * @param writer
-     *            the stream writer to use
-     * @param elementName
-     *            the name of the element
-     * @param characters
-     *            the characters to insert into the element
-     * @param strong
-     *            whether the characters should be strong or not.
-     * @throws XMLStreamException
-     *             thrown if there was a problem writing to the stream.
+     *
+     * @param writer the stream writer to use
+     * @param elementName the name of the element
+     * @param characters the characters to insert into the element
+     * @param strong whether the characters should be strong or not.
+     * @throws XMLStreamException thrown if there was a problem writing to the
+     * stream.
      */
     protected final static void writeSimpleElement(final XMLStreamWriter writer, final String elementName,
             final String characters, boolean strong) throws XMLStreamException {
-    	writeSimpleElement(writer, elementName, characters, strong, null);
+        writeSimpleElement(writer, elementName, characters, strong, null);
     }
-    
+
     /**
-     * Writes a begin element, an id attribute(if specified), then text, then end element for
-     * element of the users choosing.  Example: &lt;p id="p-id"&gt;text&lt;/p&gt;
-     * 
+     * Writes a begin element, an id attribute(if specified), then text, then
+     * end element for element of the users choosing. Example: &lt;p
+     * id="p-id"&gt;text&lt;/p&gt;
+     *
      * @param writer the stream writer to use
      * @param elementName the name of the element
      * @param characters the text of the element
      * @param strong whether to bold the text of the element or not
-     * @param id the id of the element.  specifying null will cause no element to be written.
-     * @throws XMLStreamException
+     * @param id the id of the element. specifying null will cause no element to
+     * be written.
+     * @throws XMLStreamException xse
      */
     protected final static void writeSimpleElement(final XMLStreamWriter writer, final String elementName,
             final String characters, boolean strong, String id) throws XMLStreamException {
-    	writer.writeStartElement(elementName);
-    	if (id != null) {
-    		writer.writeAttribute("id", id);
-    	}
+        writer.writeStartElement(elementName);
+        if (id != null) {
+            writer.writeAttribute("id", id);
+        }
         if (strong) {
             writer.writeStartElement("strong");
         }
@@ -536,15 +491,12 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
     /**
      * Writes a begin element, then text, then end element for the element of a
      * users choosing. Example: &lt;p&gt;text&lt;/p&gt;
-     * 
-     * @param writer
-     *            the stream writer to use
-     * @param elementName
-     *            the name of the element
-     * @param characters
-     *            the characters to insert into the element
-     * @throws XMLStreamException
-     *             thrown if there was a problem writing to the stream
+     *
+     * @param writer the stream writer to use
+     * @param elementName the name of the element
+     * @param characters the characters to insert into the element
+     * @throws XMLStreamException thrown if there was a problem writing to the
+     * stream
      */
     protected final static void writeSimpleElement(final XMLStreamWriter writer, final String elementName,
             final String characters) throws XMLStreamException {
@@ -553,15 +505,12 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
 
     /**
      * A helper method to write a link
-     * 
-     * @param xmlStreamWriter
-     *            the stream to write to
-     * @param text
-     *            the text of the link
-     * @param location
-     *            the location of the link
-     * @throws XMLStreamException
-     *             thrown if there was a problem writing to the stream
+     *
+     * @param xmlStreamWriter the stream to write to
+     * @param text the text of the link
+     * @param location the location of the link
+     * @throws XMLStreamException thrown if there was a problem writing to the
+     * stream
      */
     protected void writeLink(final XMLStreamWriter xmlStreamWriter, final String text, final String location)
             throws XMLStreamException {

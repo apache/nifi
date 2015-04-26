@@ -68,21 +68,20 @@ import org.apache.nifi.reporting.ReportingTask;
  * </p>
  * <p>
  * <code><pre>
- * 			public static final PropertyDescriptor MY_PROPERTY = new PropertyDescriptor.Builder()
- * 				.name("My Property")
- * 				.description("Example Property")
- * 				.identifiesControllerService( MyControllerServiceInterface.class )
- * 				.build();
+ *    public static final PropertyDescriptor MY_PROPERTY = new PropertyDescriptor.Builder()
+ *     .name("My Property")
+ *     .description("Example Property")
+ *     .identifiesControllerService( MyControllerServiceInterface.class )
+ *     .build();
  *
- * 			...
+ *    ...
+ *    public void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory) throws ProcessException {
+ *     // Obtain the user-selected controller service
+ *     final MyControllerServiceInterface service = context.getProperty(MY_PROPERTY).asControllerService( MyControllerServiceInterface.class );
+ *     ...
+ *    }
  *
- * 			public void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory) throws ProcessException {
- * 				// Obtain the user-selected controller service
- * 				final MyControllerServiceInterface service = context.getProperty(MY_PROPERTY).asControllerService( MyControllerServiceInterface.class );
- * 				...
- * 			}
- *
- * 		</pre></code></p>
+ * </pre></code></p>
  * </li>
  * <li>A Controller Service can be obtained via a
  * {@link ControllerServiceLookup}. This lookup may be obtained, for example,
@@ -94,10 +93,9 @@ import org.apache.nifi.reporting.ReportingTask;
  * </p>
  * <p>
  * <code><pre>
- * 			public void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory) throws ProcessException {
- * 				final MyControllerServiceInterface service = (MyControllerServiceInterface)
- * 					context.getControllerServiceLookup().getControllerService("service_identifier");
- * 			}
+ *    public void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory) throws ProcessException {
+ *      final MyControllerServiceInterface service = (MyControllerServiceInterface) context.getControllerServiceLookup().getControllerService("service_identifier");
+ *    }
  * </pre></code></p>
  * </li>
  * </ul>
@@ -142,12 +140,12 @@ import org.apache.nifi.reporting.ReportingTask;
  * <p>
  * Typically, this is done by creating a NAR structure as follows:
  * <pre>
- * 	+ my-services-api-nar
- *	+--- service-X-implementation-nar
- *	+--- service-Y-implementation-nar
- *	+--- service-Z-implementation-nar
- *	+--- processor-A-nar
- *	+--- processor-B-nar
+ *   + my-services-api-nar
+ *   +--- service-X-implementation-nar
+ *   +--- service-Y-implementation-nar
+ *   +--- service-Z-implementation-nar
+ *   +--- processor-A-nar
+ *   +--- processor-B-nar
  * </pre>
  * </p>
  *
@@ -174,8 +172,8 @@ public interface ControllerService extends ConfigurableComponent {
      * throughout the life of the service. This method will be called before any
      * properties are set
      *
-     * @param context
-     * @throws org.apache.nifi.reporting.InitializationException
+     * @param context of initialization
+     * @throws org.apache.nifi.reporting.InitializationException if unable to init
      */
     void initialize(ControllerServiceInitializationContext context) throws InitializationException;
 

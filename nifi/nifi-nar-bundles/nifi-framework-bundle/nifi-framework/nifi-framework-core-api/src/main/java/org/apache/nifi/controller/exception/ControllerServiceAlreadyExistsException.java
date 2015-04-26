@@ -20,10 +20,6 @@ public class ControllerServiceAlreadyExistsException extends RuntimeException {
 
     private static final long serialVersionUID = -544424320587059277L;
 
-    /**
-     * Constructs a default exception
-     * @param id
-     */
     public ControllerServiceAlreadyExistsException(final String id) {
         super("A Controller Service already exists with ID " + id);
     }

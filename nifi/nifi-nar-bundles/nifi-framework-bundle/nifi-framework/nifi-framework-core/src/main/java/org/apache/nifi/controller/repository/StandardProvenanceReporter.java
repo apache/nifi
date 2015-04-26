@@ -56,7 +56,7 @@ public class StandardProvenanceReporter implements ProvenanceReporter {
     /**
      * Removes the given event from the reporter
      *
-     * @param event
+     * @param event event
      */
     void remove(final ProvenanceEventRecord event) {
         events.remove(event);
@@ -72,9 +72,9 @@ public class StandardProvenanceReporter implements ProvenanceReporter {
      * ability to de-dupe events, since one or more events may be created by the
      * session itself, as well as by the Processor
      *
-     * @param parents
-     * @param child
-     * @return
+     * @param parents parents
+     * @param child child
+     * @return record
      */
     ProvenanceEventRecord generateJoinEvent(final Collection<FlowFile> parents, final FlowFile child) {
         final ProvenanceEventBuilder eventBuilder = build(child, ProvenanceEventType.JOIN);
@@ -114,7 +114,8 @@ public class StandardProvenanceReporter implements ProvenanceReporter {
     @Override
     public void receive(final FlowFile flowFile, final String transitUri, final String sourceSystemFlowFileIdentifier, final String details, final long transmissionMillis) {
         try {
-            final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.RECEIVE).setTransitUri(transitUri).setSourceSystemFlowFileIdentifier(sourceSystemFlowFileIdentifier).setEventDuration(transmissionMillis).setDetails(details).build();
+            final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.RECEIVE)
+                    .setTransitUri(transitUri).setSourceSystemFlowFileIdentifier(sourceSystemFlowFileIdentifier).setEventDuration(transmissionMillis).setDetails(details).build();
             events.add(record);
         } catch (final Exception e) {
             logger.error("Failed to generate Provenance Event due to " + e);
@@ -160,7 +161,7 @@ public class StandardProvenanceReporter implements ProvenanceReporter {
             final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.SEND).setTransitUri(transitUri).setEventDuration(transmissionMillis).setDetails(details).build();
 
             final ProvenanceEventRecord enriched = eventEnricher.enrich(record, flowFile);
-            
+
             if (force) {
                 repository.registerEvent(enriched);
             } else {
@@ -326,7 +327,7 @@ public class StandardProvenanceReporter implements ProvenanceReporter {
             }
         }
     }
-    
+
     @Override
     public void modifyContent(final FlowFile flowFile) {
         modifyContent(flowFile, null, -1L);

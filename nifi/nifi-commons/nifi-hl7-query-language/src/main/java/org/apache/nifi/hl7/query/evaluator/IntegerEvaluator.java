@@ -16,11 +16,10 @@
  */
 package org.apache.nifi.hl7.query.evaluator;
 
-
 public abstract class IntegerEvaluator implements Evaluator<Integer> {
 
-	public Class<? extends Integer> getType() {
-		return Integer.class;
-	}
+    public Class<? extends Integer> getType() {
+        return Integer.class;
+    }
 
 }

@@ -37,11 +37,11 @@ import org.mockito.stubbing.Answer;
  */
 public class CreateUserActionTest {
 
-    private String USER_ID_2 = "2";
-    private String USER_ID_3 = "3";
+    private final String USER_ID_2 = "2";
+    private final String USER_ID_3 = "3";
 
-    private String USER_DN_1 = "data access exception when creating user";
-    private String USER_DN_3 = "general create user case";
+    private final String USER_DN_1 = "data access exception when creating user";
+    private final String USER_DN_3 = "general create user case";
 
     private DAOFactory daoFactory;
     private UserDAO userDao;
@@ -95,7 +95,7 @@ public class CreateUserActionTest {
     /**
      * Tests DataAccessExceptions that occur while creating user accounts.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test(expected = DataAccessException.class)
     public void testExceptionCreatingUser() throws Exception {
@@ -109,7 +109,7 @@ public class CreateUserActionTest {
     /**
      * Tests DataAccessExceptions that occur while create user authorities.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test(expected = DataAccessException.class)
     public void testExceptionCreatingAuthoroties() throws Exception {
@@ -123,7 +123,7 @@ public class CreateUserActionTest {
     /**
      * General case for creating a user.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testCreateUserAccount() throws Exception {

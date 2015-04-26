@@ -77,7 +77,7 @@ public class StandardUserService implements UserService {
      * Seed any users from the authority provider that are not already present.
      */
     public void seedUserAccounts() {
-        // do not seed node's user cache. when/if the node disconnects its 
+        // do not seed node's user cache. when/if the node disconnects its
         // cache will be populated lazily (as needed)
         if (properties.isNode()) {
             return;
@@ -143,7 +143,7 @@ public class StandardUserService implements UserService {
 
         writeLock.lock();
         try {
-            // if user ids have been specified, invalidate the user accounts before performing 
+            // if user ids have been specified, invalidate the user accounts before performing
             // the desired updates. if case of an error, this will ensure that these users are
             // authorized the next time the access the application
             if (userIds != null) {
@@ -409,7 +409,7 @@ public class StandardUserService implements UserService {
      * modifying a user account. This method should only be invoked from within
      * a write lock.
      *
-     * @param id
+     * @param id user account identifier
      */
     @Override
     public void invalidateUserAccount(String id) {
@@ -438,14 +438,6 @@ public class StandardUserService implements UserService {
         }
     }
 
-    /**
-     * Invalidates the user with the specified id. This is done to ensure a user
-     * account will need to be re-validated in case an error occurs while
-     * modifying a user account. This method should only be invoked from within
-     * a write lock.
-     *
-     * @param group
-     */
     @Override
     public void invalidateUserGroupAccount(String group) {
         Transaction transaction = null;
@@ -533,7 +525,7 @@ public class StandardUserService implements UserService {
             readLock.unlock();
         }
     }
-    
+
     @Override
     public Collection<NiFiUser> getUsers() {
         Transaction transaction = null;
@@ -624,22 +616,12 @@ public class StandardUserService implements UserService {
         }
     }
 
-    /**
-     * Rolls back the specified transaction.
-     *
-     * @param transaction
-     */
     private void rollback(final Transaction transaction) {
         if (transaction != null) {
             transaction.rollback();
         }
     }
 
-    /**
-     * Closes the specified transaction.
-     *
-     * @param transaction
-     */
     private void closeQuietly(final Transaction transaction) {
         if (transaction != null) {
             try {
@@ -649,9 +631,6 @@ public class StandardUserService implements UserService {
         }
     }
 
-    /*
-     * setters
-     */
     public void setTransactionBuilder(TransactionBuilder transactionBuilder) {
         this.transactionBuilder = transactionBuilder;
     }

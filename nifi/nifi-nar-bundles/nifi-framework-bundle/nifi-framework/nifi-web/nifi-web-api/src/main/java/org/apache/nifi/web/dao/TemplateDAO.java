@@ -49,7 +49,7 @@ public interface TemplateDAO {
      * @param originX
      * @param originY
      * @param templateId
-     * @return 
+     * @return
      */
     FlowSnippetDTO instantiateTemplate(String groupId, Double originX, Double originY, String templateId);
 

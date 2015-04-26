@@ -20,9 +20,9 @@ import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import org.apache.nifi.cluster.protocol.jaxb.message.ConnectionRequestAdapter;
 
 /**
- * A node's request to connect to the cluster.  The request contains a proposed
+ * A node's request to connect to the cluster. The request contains a proposed
  * identifier.
- * 
+ *
  * @author unattributed
  */
 @XmlJavaTypeAdapter(ConnectionRequestAdapter.class)
@@ -31,7 +31,7 @@ public class ConnectionRequest {
     private final NodeIdentifier proposedNodeIdentifier;
 
     public ConnectionRequest(final NodeIdentifier proposedNodeIdentifier) {
-        if(proposedNodeIdentifier == null) {
+        if (proposedNodeIdentifier == null) {
             throw new IllegalArgumentException("Proposed node identifier may not be null.");
         }
         this.proposedNodeIdentifier = proposedNodeIdentifier;

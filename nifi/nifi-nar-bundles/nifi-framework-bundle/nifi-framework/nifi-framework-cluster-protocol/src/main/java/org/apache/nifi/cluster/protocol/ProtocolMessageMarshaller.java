@@ -21,15 +21,16 @@ import java.io.OutputStream;
 
 /**
  * Defines a marshaller for serializing protocol messages.
- * 
+ *
  * @param <T> The type of protocol message.
- * 
+ *
  * @author unattributed
  */
 public interface ProtocolMessageMarshaller<T> {
-    
+
     /**
      * Serializes the given message to the given output stream.
+     *
      * @param msg a message
      * @param os an output stream
      * @throws IOException if the message could not be serialized to the stream

@@ -28,20 +28,20 @@ import com.amazonaws.services.sqs.AmazonSQSClient;
 public abstract class AbstractSQSProcessor extends AbstractAWSProcessor<AmazonSQSClient> {
 
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
-        .name("Batch Size")
-        .description("The maximum number of messages to send in a single network request")
-        .required(true)
-        .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-        .defaultValue("25")
-        .build();
+            .name("Batch Size")
+            .description("The maximum number of messages to send in a single network request")
+            .required(true)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .defaultValue("25")
+            .build();
 
     public static final PropertyDescriptor QUEUE_URL = new PropertyDescriptor.Builder()
-        .name("Queue URL")
-        .description("The URL of the queue to act upon")
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(true)
-        .required(true)
-        .build();
+            .name("Queue URL")
+            .description("The URL of the queue to act upon")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
+            .required(true)
+            .build();
 
     @Override
     protected AmazonSQSClient createClient(final ProcessContext context, final AWSCredentials credentials, final ClientConfiguration config) {

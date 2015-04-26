@@ -18,68 +18,53 @@ package org.apache.nifi.controller;
 
 import java.util.Set;
 
-
 public interface ControllerServiceLookup {
 
     /**
-     * Returns the ControllerService that is registered with the given
+     * @param serviceIdentifier of controller service
+     * @return the ControllerService that is registered with the given
      * identifier
-     *
-     * @param serviceIdentifier
-     * @return
      */
     ControllerService getControllerService(String serviceIdentifier);
 
     /**
-     * Returns <code>true</code> if the Controller Service with the given
+     * @param serviceIdentifier identifier of service to check
+     * @return <code>true</code> if the Controller Service with the given
      * identifier is enabled, <code>false</code> otherwise. If the given
      * identifier is not known by this ControllerServiceLookup, returns
      * <code>false</code>
-     *
-     * @param serviceIdentifier
-     * @return
      */
     boolean isControllerServiceEnabled(String serviceIdentifier);
 
     /**
-     * Returns <code>true</code> if the Controller Service with the given
+     * @param serviceIdentifier idenfitier of service to check
+     * @return <code>true</code> if the Controller Service with the given
      * identifier has been enabled but is still in the transitioning state,
-     * otherwise returns <code>false</code>.
-     * If the given identifier is not known by this ControllerServiceLookup,
-     * returns <code>false</code>.
-     * 
-     * @param serviceIdentifier
-     * @return
+     * otherwise returns <code>false</code>. If the given identifier is not
+     * known by this ControllerServiceLookup, returns <code>false</code>
      */
     boolean isControllerServiceEnabling(String serviceIdentifier);
-    
+
     /**
-     * Returns <code>true</code> if the given Controller Service is enabled,
+     * @param service service to check
+     * @return <code>true</code> if the given Controller Service is enabled,
      * <code>false</code> otherwise. If the given Controller Service is not
      * known by this ControllerServiceLookup, returns <code>false</code>
-     *
-     * @param service
-     * @return
      */
     boolean isControllerServiceEnabled(ControllerService service);
 
     /**
-     * Returns the set of all Controller Service Identifiers whose Controller
-     * Service is of the given type. The class specified MUST be an interface,
-     * or an IllegalArgumentExcption will be thrown
-     *
-     * @param serviceType
-     * @return
-     *
+     * @param serviceType type of service to get identifiers for
+     * @return the set of all Controller Service Identifiers whose Controller
+     * Service is of the given type.
      * @throws IllegalArgumentException if the given class is not an interface
      */
     Set<String> getControllerServiceIdentifiers(Class<? extends ControllerService> serviceType) throws IllegalArgumentException;
 
     /**
-     * Returns the name of the Controller service with the given identifier. If no service can be
-     * found with this identifier, returns {@code null}.
-     * @param serviceIdentifier
-     * @return
+     * @param serviceIdentifier identifier to look up
+     * @return the name of the Controller service with the given identifier. If
+     * no service can be found with this identifier, returns {@code null}
      */
     String getControllerServiceName(String serviceIdentifier);
 }

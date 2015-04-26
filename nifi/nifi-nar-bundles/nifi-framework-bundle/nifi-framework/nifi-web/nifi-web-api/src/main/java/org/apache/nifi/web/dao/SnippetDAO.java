@@ -20,27 +20,24 @@ import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.SnippetDTO;
 
-/**
- *
- */
 public interface SnippetDAO {
 
     /**
      * Copies the specified snippet and added the copy to the flow in the
      * specified group.
      *
-     * @param groupId
-     * @param snippetId
-     * @param originX
-     * @param originY
-     * @return
+     * @param groupId group id
+     * @param snippetId snippet id
+     * @param originX x
+     * @param originY y
+     * @return snippet
      */
     FlowSnippetDTO copySnippet(String groupId, String snippetId, Double originX, Double originY);
 
     /**
      * Creates a snippet.
      *
-     * @param snippetDTO
+     * @param snippetDTO snippet
      * @return The snippet
      */
     Snippet createSnippet(SnippetDTO snippetDTO);
@@ -48,8 +45,8 @@ public interface SnippetDAO {
     /**
      * Determines if the specified snippet exists.
      *
-     * @param snippetId
-     * @return
+     * @param snippetId snippet id
+     * @return true if the snippet exists
      */
     boolean hasSnippet(String snippetId);
 
@@ -64,14 +61,14 @@ public interface SnippetDAO {
     /**
      * Verifies the specified snippet can be updated.
      *
-     * @param snippetDTO
+     * @param snippetDTO snippet
      */
     void verifyUpdate(SnippetDTO snippetDTO);
 
     /**
      * Updates the specified snippet.
      *
-     * @param snippetDTO
+     * @param snippetDTO snippet
      * @return The snippet
      */
     Snippet updateSnippet(SnippetDTO snippetDTO);
@@ -79,7 +76,7 @@ public interface SnippetDAO {
     /**
      * Verifies the specified snippet can be removed.
      *
-     * @param snippetId
+     * @param snippetId snippet id
      */
     void verifyDelete(String snippetId);
 

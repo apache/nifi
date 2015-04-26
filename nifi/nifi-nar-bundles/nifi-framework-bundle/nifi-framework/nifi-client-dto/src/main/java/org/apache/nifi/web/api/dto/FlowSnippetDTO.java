@@ -35,11 +35,9 @@ public class FlowSnippetDTO {
     private Set<LabelDTO> labels = new LinkedHashSet<>();
     private Set<FunnelDTO> funnels = new LinkedHashSet<>();
     private Set<ControllerServiceDTO> controllerServices = new LinkedHashSet<>();
-    
+
     /**
-     * The connections in this flow snippet.
-     *
-     * @return
+     * @return connections in this flow snippet
      */
     public Set<ConnectionDTO> getConnections() {
         return connections;
@@ -50,9 +48,7 @@ public class FlowSnippetDTO {
     }
 
     /**
-     * The input ports in this flow snippet.
-     *
-     * @return
+     * @return input ports in this flow snippet
      */
     public Set<PortDTO> getInputPorts() {
         return inputPorts;
@@ -63,9 +59,7 @@ public class FlowSnippetDTO {
     }
 
     /**
-     * The labels in this flow snippet.
-     *
-     * @return
+     * @return labels in this flow snippet
      */
     public Set<LabelDTO> getLabels() {
         return labels;
@@ -76,9 +70,7 @@ public class FlowSnippetDTO {
     }
 
     /**
-     * The funnels in this flow snippet.
-     *
-     * @return
+     * @return funnels in this flow snippet
      */
     public Set<FunnelDTO> getFunnels() {
         return funnels;
@@ -89,9 +81,7 @@ public class FlowSnippetDTO {
     }
 
     /**
-     * The output ports in this flow snippet.
-     *
-     * @return
+     * @return output ports in this flow snippet
      */
     public Set<PortDTO> getOutputPorts() {
         return outputPorts;
@@ -102,9 +92,7 @@ public class FlowSnippetDTO {
     }
 
     /**
-     * The process groups in this flow snippet.
-     *
-     * @return
+     * @return process groups in this flow snippet
      */
     public Set<ProcessGroupDTO> getProcessGroups() {
         return processGroups;
@@ -115,9 +103,7 @@ public class FlowSnippetDTO {
     }
 
     /**
-     * The processors in this flow group.
-     *
-     * @return
+     * @return processors in this flow group
      */
     public Set<ProcessorDTO> getProcessors() {
         return processors;
@@ -128,9 +114,7 @@ public class FlowSnippetDTO {
     }
 
     /**
-     * The remote process groups in this flow snippet.
-     *
-     * @return
+     * @return remote process groups in this flow snippet
      */
     public Set<RemoteProcessGroupDTO> getRemoteProcessGroups() {
         return remoteProcessGroups;
@@ -141,8 +125,7 @@ public class FlowSnippetDTO {
     }
 
     /**
-     * Returns the Controller Services in this flow snippet
-     * @return
+     * @return the Controller Services in this flow snippet
      */
     public Set<ControllerServiceDTO> getControllerServices() {
         return controllerServices;

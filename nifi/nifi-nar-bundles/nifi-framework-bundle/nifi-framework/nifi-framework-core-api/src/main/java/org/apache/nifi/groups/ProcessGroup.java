@@ -51,7 +51,7 @@ public interface ProcessGroup {
     /**
      * Updates the ProcessGroup to point to a new parent
      *
-     * @param group
+     * @param group new parent group
      */
     void setParent(ProcessGroup group);
 
@@ -68,19 +68,18 @@ public interface ProcessGroup {
     /**
      * Updates the name of this ProcessGroup.
      *
-     * @param name
+     * @param name new name
      */
     void setName(String name);
 
     /**
      * Updates the position of where this ProcessGroup is located in the graph
+     * @param position new position
      */
     void setPosition(Position position);
 
     /**
-     * Returns the position of where this ProcessGroup is located in the graph
-     *
-     * @return
+     * @return the position of where this ProcessGroup is located in the graph
      */
     Position getPosition();
 
@@ -93,14 +92,12 @@ public interface ProcessGroup {
     /**
      * Updates the comments for this ProcessGroup
      *
-     * @param comments
+     * @param comments new comments
      */
     void setComments(String comments);
 
     /**
-     * Returns the counts for this ProcessGroup
-     *
-     * @return
+     * @return the counts for this ProcessGroup
      */
     ProcessGroupCounts getCounts();
 
@@ -129,17 +126,16 @@ public interface ProcessGroup {
     /**
      * Enables the given Input Port
      *
-     * @param port
+     * @param port to enable
      */
     void enableInputPort(Port port);
 
     /**
      * Enables the given Output Port
      *
-     * @param port
+     * @param port to enable
      */
     void enableOutputPort(Port port);
-
 
     /**
      * Starts the given Processor
@@ -153,45 +149,44 @@ public interface ProcessGroup {
     /**
      * Starts the given Input Port
      *
-     * @param port
+     * @param port to start
      */
     void startInputPort(Port port);
 
     /**
      * Starts the given Output Port
      *
-     * @param port
+     * @param port to start
      */
     void startOutputPort(Port port);
 
     /**
      * Starts the given Funnel
      *
-     * @param funnel
+     * @param funnel to start
      */
     void startFunnel(Funnel funnel);
 
     /**
      * Stops the given Processor
      *
-     * @param processor
+     * @param processor to stop
      */
     void stopProcessor(ProcessorNode processor);
 
     /**
      * Stops the given Port
      *
-     * @param processor
+     * @param port to stop
      */
     void stopInputPort(Port port);
 
     /**
      * Stops the given Port
      *
-     * @param processor
+     * @param port to stop
      */
     void stopOutputPort(Port port);
-
 
     /**
      * Disables the given Processor
@@ -205,17 +200,16 @@ public interface ProcessGroup {
     /**
      * Disables the given Input Port
      *
-     * @param port
+     * @param port to disable
      */
     void disableInputPort(Port port);
 
     /**
      * Disables the given Output Port
      *
-     * @param port
+     * @param port to disable
      */
     void disableOutputPort(Port port);
-
 
     /**
      * Indicates that the Flow is being shutdown; allows cleanup of resources
@@ -224,10 +218,8 @@ public interface ProcessGroup {
     void shutdown();
 
     /**
-     * Returns a boolean indicating whether or not this ProcessGroup is the root
+     * @return a boolean indicating whether or not this ProcessGroup is the root
      * group
-     *
-     * @return
      */
     boolean isRootGroup();
 
@@ -236,7 +228,7 @@ public interface ProcessGroup {
      * external sources to {@link Processor}s and other {@link Port}s within
      * this ProcessGroup.
      *
-     * @param port
+     * @param port to add
      */
     void addInputPort(Port port);
 
@@ -297,7 +289,7 @@ public interface ProcessGroup {
     /**
      * Adds a reference to a ProgressGroup as a child of this.
      *
-     * @return the newly created reference
+     * @param group to add
      */
     void addProcessGroup(ProcessGroup group);
 
@@ -305,8 +297,8 @@ public interface ProcessGroup {
      * Returns the ProcessGroup whose parent is <code>this</code> and whose id
      * is given
      *
-     * @param id
-     * @return
+     * @param id identifier of group to get
+     * @return child group
      */
     ProcessGroup getProcessGroup(String id);
 
@@ -363,12 +355,10 @@ public interface ProcessGroup {
     ProcessorNode getProcessor(String id);
 
     /**
-     * Returns the <code>Connectable</code> with the given ID, or
+     * @param id the ID of the Connectable
+     * @return the <code>Connectable</code> with the given ID, or
      * <code>null</code> if the <code>Connectable</code> is not a member of the
      * group
-     *
-     * @param id the ID of the Connectable
-     * @return
      */
     Connectable getConnectable(String id);
 
@@ -377,7 +367,7 @@ public interface ProcessGroup {
      * the Source and Destination of the Connection that the Connection has been
      * established.
      *
-     * @param connection
+     * @param connection to add
      * @throws NullPointerException if the connection is null
      * @throws IllegalStateException if the source or destination of the
      * connection is not a member of this ProcessGroup or if a connection
@@ -388,7 +378,7 @@ public interface ProcessGroup {
     /**
      * Removes the connection from this ProcessGroup.
      *
-     * @param connection
+     * @param connection to remove
      * @throws IllegalStateException if <code>connection</code> is not contained
      * within this.
      */
@@ -404,35 +394,32 @@ public interface ProcessGroup {
      * this method does not notify either, as both the Source and Destination
      * should already be aware of the Connection.
      *
-     * @param connection
+     * @param connection to inherit
      */
     void inheritConnection(Connection connection);
 
     /**
+     * @param id identifier of connection
      * @return the Connection with the given ID, or <code>null</code> if the
      * connection does not exist.
      */
     Connection getConnection(String id);
 
     /**
-     * Returns the {@link Set} of all {@link Connection}s contained within this.
-     *
-     * @return
+     * @return the {@link Set} of all {@link Connection}s contained within this
      */
     Set<Connection> getConnections();
 
     /**
-     * Returns a List of all Connections contains within this ProcessGroup and
-     * any child ProcessGroups.
-     *
-     * @return
+     * @return a List of all Connections contains within this ProcessGroup and
+     * any child ProcessGroups
      */
     List<Connection> findAllConnections();
 
     /**
      * Adds the given RemoteProcessGroup to this ProcessGroup
      *
-     * @param remoteGroup
+     * @param remoteGroup group to add
      *
      * @throws NullPointerException if the given argument is null
      */
@@ -441,7 +428,7 @@ public interface ProcessGroup {
     /**
      * Removes the given RemoteProcessGroup from this ProcessGroup
      *
-     * @param remoteGroup
+     * @param remoteGroup group to remove
      * @throws NullPointerException if the argument is null
      * @throws IllegalStateException if the given argument does not belong to
      * this ProcessGroup
@@ -449,21 +436,17 @@ public interface ProcessGroup {
     void removeRemoteProcessGroup(RemoteProcessGroup remoteGroup);
 
     /**
-     * Returns the RemoteProcessGroup that is the child of this ProcessGroup and
+     * @param id identifier of group to find
+     * @return the RemoteProcessGroup that is the child of this ProcessGroup and
      * has the given ID. If no RemoteProcessGroup can be found with the given
-     * ID, returns <code>null</code>.
-     *
-     * @param id
-     * @return
+     * ID, returns <code>null</code>
      */
     RemoteProcessGroup getRemoteProcessGroup(String id);
 
     /**
-     * Returns a set of all RemoteProcessGroups that belong to this
+     * @return a set of all RemoteProcessGroups that belong to this
      * ProcessGroup. If no RemoteProcessGroup's have been added to this
-     * ProcessGroup, will return an empty Set.
-     *
-     * @return
+     * ProcessGroup, will return an empty Set
      */
     Set<RemoteProcessGroup> getRemoteProcessGroups();
 
@@ -471,7 +454,6 @@ public interface ProcessGroup {
      * Adds the given Label to this ProcessGroup
      *
      * @param label the label to add
-     * @return
      *
      * @throws NullPointerException if the argument is null
      */
@@ -488,155 +470,129 @@ public interface ProcessGroup {
     void removeLabel(Label label);
 
     /**
-     * Returns a set of all Labels that belong to this ProcessGroup. If no
-     * Labels belong to this ProcessGroup, returns an empty Set.
-     *
-     * @return
+     * @return a set of all Labels that belong to this ProcessGroup. If no
+     * Labels belong to this ProcessGroup, returns an empty Set
      */
     Set<Label> getLabels();
 
     /**
-     * Returns the Label that belongs to this ProcessGroup and has the given id.
-     * If no Label can be found with this ID, returns <code>null</code>.
-     *
-     * @param id
-     * @return
+     * @param id of the label
+     * @return the Label that belongs to this ProcessGroup and has the given id.
+     * If no Label can be found with this ID, returns <code>null</code>
      */
     Label getLabel(String id);
 
     /**
-     * Returns the Process Group with the given ID, if it exists as a child of
+     * @param id of the group
+     * @return the Process Group with the given ID, if it exists as a child of
      * this ProcessGroup, or is this ProcessGroup. This performs a recursive
      * search of all ProcessGroups and descendant ProcessGroups
-     *
-     * @param id
-     * @return
      */
     ProcessGroup findProcessGroup(String id);
 
     /**
-     * Returns the RemoteProcessGroup with the given ID, if it exists as a child
+     * @param id of the group
+     * @return the RemoteProcessGroup with the given ID, if it exists as a child
      * or descendant of this ProcessGroup. This performs a recursive search of
      * all ProcessGroups and descendant ProcessGroups
-     *
-     * @param id
-     * @return
      */
     RemoteProcessGroup findRemoteProcessGroup(String id);
 
     /**
-     * Returns a List of all Remote Process Groups that are children or
+     * @return a List of all Remote Process Groups that are children or
      * descendants of this ProcessGroup. This performs a recursive search of all
      * descendant ProcessGroups
-     *
-     * @return
      */
     List<RemoteProcessGroup> findAllRemoteProcessGroups();
 
     /**
-     * Returns the Processor with the given ID, if it exists as a child or
+     * @param id of the processor node
+     * @return the Processor with the given ID, if it exists as a child or
      * descendant of this ProcessGroup. This performs a recursive search of all
      * descendant ProcessGroups
-     *
-     * @param id
-     * @return
      */
     ProcessorNode findProcessor(String id);
 
     /**
-     * Returns a List of all Processors that are children or descendants of this
+     * @return a List of all Processors that are children or descendants of this
      * ProcessGroup. This performs a recursive search of all descendant
      * ProcessGroups
-     *
-     * @return
      */
     List<ProcessorNode> findAllProcessors();
 
     /**
-     * Returns a List of all Labels that are children or descendants of this
+     * @return a List of all Labels that are children or descendants of this
      * ProcessGroup. This performsn a recursive search of all descendant
      * ProcessGroups
-     *
-     * @return
      */
     List<Label> findAllLabels();
 
     /**
-     * Returns the input port with the given ID, if it exists; otherwise returns
+     * @param id of the port
+     * @return the input port with the given ID, if it exists; otherwise returns
      * null. This performs a recursive search of all Input Ports and descendant
      * ProcessGroups
-     *
-     * @param id
-     * @return
      */
     Port findInputPort(String id);
 
     /**
-     * Returns the input port with the given name, if it exists; otherwise
-     * returns null. ProcessGroups
-     *
-     * @param name
-     * @return
+     * @param name of port
+     * @return the input port with the given name, if it exists; otherwise
+     * returns null
      */
     Port getInputPortByName(String name);
 
     /**
-     * Returns the output port with the given ID, if it exists; otherwise
+     * @param id of the port
+     * @return the output port with the given ID, if it exists; otherwise
      * returns null. This performs a recursive search of all Output Ports and
      * descendant ProcessGroups
-     *
-     * @param id
-     * @return
      */
     Port findOutputPort(String id);
 
     /**
-     * Returns the output port with the given name, if it exists; otherwise
-     * returns null.
-     *
-     * @param name
-     * @return
+     * @param name of the port
+     * @return the output port with the given name, if it exists; otherwise
+     * returns null
      */
     Port getOutputPortByName(String name);
 
     /**
-     * Adds the given funnel to this ProcessGroup and starts it. While other components
-     * do not automatically start, the funnel does by default because it is intended to be
-     * more of a notional component that users are unable to explicitly start and stop.
-     * However, there is an override available in {@link #addFunnel(Funnel, boolean)} because
-     * we may need to avoid starting the funnel on restart until the flow is completely
-     * initialized.
+     * Adds the given funnel to this ProcessGroup and starts it. While other
+     * components do not automatically start, the funnel does by default because
+     * it is intended to be more of a notional component that users are unable
+     * to explicitly start and stop. However, there is an override available in
+     * {@link #addFunnel(Funnel, boolean)} because we may need to avoid starting
+     * the funnel on restart until the flow is completely initialized.
      *
-     * @param funnel
+     * @param funnel to add
      */
     void addFunnel(Funnel funnel);
-    
+
     /**
-     * Adds the given funnel to this ProcessGroup and optionally starts the funnel.
-     * @param funnel
-     * @param autoStart
+     * Adds the given funnel to this ProcessGroup and optionally starts the
+     * funnel.
+     *
+     * @param funnel to add
+     * @param autoStart true if should auto start
      */
     void addFunnel(Funnel funnel, boolean autoStart);
 
     /**
-     * Returns a Set of all Funnels that belong to this ProcessGroup
-     *
-     * @return
+     * @return a Set of all Funnels that belong to this ProcessGroup
      */
     Set<Funnel> getFunnels();
 
     /**
-     * Returns the funnel with the given identifier
-     *
-     * @param id
-     * @return
+     * @param id of the funnel
+     * @return the funnel with the given identifier
      */
     Funnel getFunnel(String id);
 
     /**
      * Removes the given funnel from this ProcessGroup
      *
-     * @param funnel
+     * @param funnel to remove
      *
      * @throws IllegalStateException if the funnel is not a member of this
      * ProcessGroup or has incoming or outgoing connections
@@ -654,7 +610,7 @@ public interface ProcessGroup {
      * Removes all of the components whose ID's are specified within the given
      * {@link Snippet} from this ProcessGroup.
      *
-     * @param snippet
+     * @param snippet to remove
      *
      * @throws NullPointerException if argument is null
      * @throws IllegalStateException if any ID in the snippet refers to a
@@ -663,12 +619,10 @@ public interface ProcessGroup {
     void remove(final Snippet snippet);
 
     /**
-     * Returns the Connectable with the given ID, if it exists; otherwise
+     * @param identifier of connectable
+     * @return the Connectable with the given ID, if it exists; otherwise
      * returns null. This performs a recursive search of all ProcessGroups'
      * input ports, output ports, funnels, processors, and remote process groups
-     *
-     * @param identifier
-     * @return
      */
     Connectable findConnectable(String identifier);
 
@@ -677,10 +631,9 @@ public interface ProcessGroup {
      * {@link Snippet} from this ProcessGroup into the given destination
      * ProcessGroup
      *
-     * @param snippet
-     * @param destination
-     *
-     * @throws NullPointerExcepiton if either argument is null
+     * @param snippet to move
+     * @param destination where to move
+     * @throws NullPointerException if either argument is null
      * @throws IllegalStateException if any ID in the snippet refers to a
      * component that is not within this ProcessGroup
      */
@@ -696,7 +649,7 @@ public interface ProcessGroup {
      * Ensures that deleting the given snippet is a valid operation at this
      * point in time, depending on the state of this ProcessGroup
      *
-     * @param snippet
+     * @param snippet to delete
      *
      * @throws IllegalStateException if deleting the Snippet is not valid at
      * this time
@@ -708,8 +661,8 @@ public interface ProcessGroup {
      * operation at this point in time, depending on the state of both
      * ProcessGroups
      *
-     * @param snippet
-     * @param newProcessGroup
+     * @param snippet to move
+     * @param newProcessGroup new location
      *
      * @throws IllegalStateException if the move is not valid at this time
      */

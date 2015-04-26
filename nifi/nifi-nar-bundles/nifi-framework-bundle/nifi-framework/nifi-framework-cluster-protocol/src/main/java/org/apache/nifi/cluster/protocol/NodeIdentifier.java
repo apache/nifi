@@ -19,56 +19,68 @@ package org.apache.nifi.cluster.protocol;
 import org.apache.commons.lang3.StringUtils;
 
 /**
- * A node identifier denoting the coordinates of a flow controller that is connected 
- * to a cluster.  Nodes provide an external public API interface and an internal private
- * interface for communicating with the cluster.
- * 
- * The external API interface and internal protocol each require an IP or hostname 
- * as well as a port for communicating. 
- * 
+ * A node identifier denoting the coordinates of a flow controller that is
+ * connected to a cluster. Nodes provide an external public API interface and an
+ * internal private interface for communicating with the cluster.
+ *
+ * The external API interface and internal protocol each require an IP or
+ * hostname as well as a port for communicating.
+ *
  * This class overrides hashCode and equals and considers two instances to be
  * equal if they have the equal IDs.
- * 
+ *
  * @author unattributed
  * @Immutable
  * @Threadsafe
  */
 public class NodeIdentifier {
- 
-    /** the unique identifier for the node */
+
+    /**
+     * the unique identifier for the node
+     */
     private final String id;
-    
-    /** the IP or hostname to use for sending requests to the node's external interface */
+
+    /**
+     * the IP or hostname to use for sending requests to the node's external
+     * interface
+     */
     private final String apiAddress;
-    
-    /** the port to use use for sending requests to the node's external interface */
-    private final int apiPort;    
-    
-    /** the IP or hostname to use for sending requests to the node's internal interface */
+
+    /**
+     * the port to use use for sending requests to the node's external interface
+     */
+    private final int apiPort;
+
+    /**
+     * the IP or hostname to use for sending requests to the node's internal
+     * interface
+     */
     private final String socketAddress;
-    
-    /** the port to use use for sending requests to the node's internal interface */
+
+    /**
+     * the port to use use for sending requests to the node's internal interface
+     */
     private final int socketPort;
-    
+
     private final String nodeDn;
 
     public NodeIdentifier(final String id, final String apiAddress, final int apiPort, final String socketAddress, final int socketPort) {
         this(id, apiAddress, apiPort, socketAddress, socketPort, null);
     }
-    
+
     public NodeIdentifier(final String id, final String apiAddress, final int apiPort, final String socketAddress, final int socketPort, final String dn) {
-        
-        if(StringUtils.isBlank(id)) {
+
+        if (StringUtils.isBlank(id)) {
             throw new IllegalArgumentException("Node ID may not be empty or null.");
-        } else if(StringUtils.isBlank(apiAddress)) {
+        } else if (StringUtils.isBlank(apiAddress)) {
             throw new IllegalArgumentException("Node API address may not be empty or null.");
-        } else if(StringUtils.isBlank(socketAddress)) {
+        } else if (StringUtils.isBlank(socketAddress)) {
             throw new IllegalArgumentException("Node socket address may not be empty or null.");
-        } 
-        
+        }
+
         validatePort(apiPort);
         validatePort(socketPort);
-        
+
         this.id = id;
         this.apiAddress = apiAddress;
         this.apiPort = apiPort;
@@ -80,11 +92,11 @@ public class NodeIdentifier {
     public String getId() {
         return id;
     }
-    
+
     public String getDN() {
         return nodeDn;
     }
-    
+
     public String getApiAddress() {
         return apiAddress;
     }
@@ -96,22 +108,22 @@ public class NodeIdentifier {
     public String getSocketAddress() {
         return socketAddress;
     }
-    
+
     public int getSocketPort() {
         return socketPort;
     }
-    
+
     private void validatePort(final int port) {
-        if(port < 1 || port > 65535) {
+        if (port < 1 || port > 65535) {
             throw new IllegalArgumentException("Port must be inclusively in the range [1, 65535].  Port given: " + port);
-        }   
+        }
     }
-    
+
     /**
      * Compares the id of two node identifiers for equality.
-     * 
+     *
      * @param obj a node identifier
-     * 
+     *
      * @return true if the id is equal; false otherwise
      */
     @Override
@@ -130,33 +142,33 @@ public class NodeIdentifier {
     }
 
     /**
-     * Compares API address/port and socket address/port for equality.  The 
-     * id is not used for comparison.
-     * 
+     * Compares API address/port and socket address/port for equality. The id is
+     * not used for comparison.
+     *
      * @param other a node identifier
-     * 
+     *
      * @return true if API address/port and socket address/port are equal; false
      * otherwise
      */
     public boolean logicallyEquals(final NodeIdentifier other) {
-        if(other == null) {
+        if (other == null) {
             return false;
         }
         if ((this.apiAddress == null) ? (other.apiAddress != null) : !this.apiAddress.equals(other.apiAddress)) {
             return false;
         }
-        if(this.apiPort != other.apiPort) {
+        if (this.apiPort != other.apiPort) {
             return false;
         }
         if ((this.socketAddress == null) ? (other.socketAddress != null) : !this.socketAddress.equals(other.socketAddress)) {
             return false;
         }
-        if(this.socketPort != other.socketPort) {
+        if (this.socketPort != other.socketPort) {
             return false;
         }
         return true;
     }
-    
+
     @Override
     public int hashCode() {
         int hash = 7;

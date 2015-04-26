@@ -40,8 +40,7 @@ import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.reporting.ReportingTask;
 
 /**
- *
- * @author none THREAD SAFE
+ * THREAD SAFE
  */
 public class NarThreadContextClassLoader extends URLClassLoader {
 
@@ -125,7 +124,7 @@ public class NarThreadContextClassLoader extends URLClassLoader {
                 // contains the class or resource that we are looking for.
                 // This locks the current Thread into the appropriate NAR ClassLoader Context. The framework will change
                 // the ContextClassLoader back to the NarThreadContextClassLoader as appropriate via the
-                // {@link FlowEngine.beforeExecute(Thread, Runnable)} and 
+                // {@link FlowEngine.beforeExecute(Thread, Runnable)} and
                 // {@link FlowEngine.afterExecute(Thread, Runnable)} methods.
                 if (desiredClassLoader instanceof NarClassLoader) {
                     Thread.currentThread().setContextClassLoader(desiredClassLoader);

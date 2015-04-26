@@ -30,8 +30,8 @@ public interface InputStreamCallback {
      * automatically opened and closed though it is ok to close the stream
      * manually.
      *
-     * @param in
-     * @throws IOException
+     * @param in the stream to read bytes from
+     * @throws IOException if issues reading from the underlying stream
      */
     void process(InputStream in) throws IOException;
 

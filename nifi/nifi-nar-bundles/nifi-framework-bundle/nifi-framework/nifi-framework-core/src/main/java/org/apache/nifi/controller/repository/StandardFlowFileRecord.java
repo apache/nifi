@@ -130,8 +130,8 @@ public final class StandardFlowFileRecord implements FlowFile, FlowFileRecord {
      * Provides the natural ordering for FlowFile objects which is based on
      * their identifier.
      *
-     * @param other
-     * @return
+     * @param other other
+     * @return standard compare contract
      */
     @Override
     public int compareTo(final FlowFile other) {

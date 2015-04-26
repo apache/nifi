@@ -19,7 +19,8 @@ package org.apache.nifi.hl7.query;
 import java.util.Map;
 
 public interface ResultHit {
-	Object getValue(String label);
-	
-	Map<String, Object> getSelectedValues();
+
+    Object getValue(String label);
+
+    Map<String, Object> getSelectedValues();
 }

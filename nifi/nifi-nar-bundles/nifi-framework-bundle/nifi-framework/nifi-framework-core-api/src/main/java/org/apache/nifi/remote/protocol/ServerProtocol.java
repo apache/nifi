@@ -26,7 +26,6 @@ import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.remote.VersionedRemoteResource;
 import org.apache.nifi.remote.cluster.NodeInformant;
 import org.apache.nifi.remote.codec.FlowFileCodec;
-import org.apache.nifi.remote.exception.BadRequestException;
 import org.apache.nifi.remote.exception.HandshakeException;
 import org.apache.nifi.remote.exception.ProtocolException;
 
@@ -34,7 +33,7 @@ public interface ServerProtocol extends VersionedRemoteResource {
 
     /**
      *
-     * @param rootGroup
+     * @param rootGroup group
      */
     void setRootProcessGroup(ProcessGroup rootGroup);
 
@@ -45,25 +44,23 @@ public interface ServerProtocol extends VersionedRemoteResource {
      * NodeInformant is supported. Otherwise, throws
      * UnsupportedOperationException
      *
-     * @param nodeInformant
+     * @param nodeInformant informant
      */
     void setNodeInformant(NodeInformant nodeInformant);
 
     /**
      * Receives the handshake from the Peer
      *
-     * @param peer
-     * @throws IOException
-     * @throws HandshakeException
+     * @param peer peer
+     * @throws IOException ioe
+     * @throws HandshakeException he
      */
     void handshake(Peer peer) throws IOException, HandshakeException;
 
     /**
-     * Returns <code>true</code> if the handshaking process was completed
+     * @return <code>true</code> if the handshaking process was completed
      * successfully, <code>false</code> if either the handshaking process has
      * not happened or the handshake failed
-     *
-     * @return
      */
     boolean isHandshakeSuccessful();
 
@@ -71,61 +68,61 @@ public interface ServerProtocol extends VersionedRemoteResource {
      * Negotiates the FlowFileCodec that is to be used for transferring
      * FlowFiles
      *
-     * @param peer
-     * @return
-     * @throws IOException
-     * @throws BadRequestException
+     * @param peer peer
+     * @return the codec to use
+     * @throws IOException ioe
+     * @throws org.apache.nifi.remote.exception.ProtocolException pe
      */
     FlowFileCodec negotiateCodec(Peer peer) throws IOException, ProtocolException;
 
     /**
-     * Returns the codec that has already been negotiated by this Protocol, if
-     * any.
-     *
-     * @return
+     * @return the codec that has already been negotiated by this Protocol, if
+     * any
      */
     FlowFileCodec getPreNegotiatedCodec();
 
     /**
      * Reads the Request Type of the next request from the Peer
      *
+     * @param peer peer
      * @return the RequestType that the peer would like to happen - or null, if
      * no data available
+     * @throws java.io.IOException ioe
      */
     RequestType getRequestType(Peer peer) throws IOException;
 
     /**
      * Sends FlowFiles to the specified peer
      *
-     * @param peer
-     * @param context
-     * @param session
-     * @param codec
+     * @param peer peer
+     * @param context context
+     * @param session session
+     * @param codec codec
      *
      * @return the number of FlowFiles transferred
+     * @throws java.io.IOException ioe
+     * @throws org.apache.nifi.remote.exception.ProtocolException pe
      */
     int transferFlowFiles(Peer peer, ProcessContext context, ProcessSession session, FlowFileCodec codec) throws IOException, ProtocolException;
 
     /**
      * Receives FlowFiles from the specified peer
      *
-     * @param peer
-     * @param context
-     * @param session
-     * @param codec
-     * @throws IOException
+     * @param peer peer
+     * @param context context
+     * @param session session
+     * @param codec codec
+     * @throws IOException ioe
      *
      * @return the number of FlowFiles received
-     * @throws ProtocolException
+     * @throws ProtocolException pe
      */
     int receiveFlowFiles(Peer peer, ProcessContext context, ProcessSession session, FlowFileCodec codec) throws IOException, ProtocolException;
 
     /**
-     * Returns the number of milliseconds after a request is received for which
+     * @return the number of milliseconds after a request is received for which
      * the request is still valid. A valid of 0 indicates that the request will
-     * not expire.
-     *
-     * @return
+     * not expire
      */
     long getRequestExpiration();
 
@@ -133,7 +130,8 @@ public interface ServerProtocol extends VersionedRemoteResource {
      * Sends a list of all nodes in the cluster to the specified peer. If not in
      * a cluster, sends info about itself
      *
-     * @param peer
+     * @param peer peer
+     * @throws java.io.IOException ioe
      */
     void sendPeerList(Peer peer) throws IOException;
 

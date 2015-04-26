@@ -20,38 +20,24 @@ package org.apache.nifi.controller.repository;
  * This exception is thrown when a flow file repository was unable to be
  * properly purged.
  *
- * @author unattributed
  *
  */
 public class RepositoryPurgeException extends RuntimeException {
 
     private static final long serialVersionUID = 1894237987230873423L;
 
-    /**
-     * Default constructor
-     */
     public RepositoryPurgeException() {
         super();
     }
 
-    /**
-     * @param message
-     */
     public RepositoryPurgeException(String message) {
         super(message);
     }
 
-    /**
-     * @param cause
-     */
     public RepositoryPurgeException(Throwable cause) {
         super(cause);
     }
 
-    /**
-     * @param message
-     * @param cause
-     */
     public RepositoryPurgeException(String message, Throwable cause) {
         super(message, cause);
     }

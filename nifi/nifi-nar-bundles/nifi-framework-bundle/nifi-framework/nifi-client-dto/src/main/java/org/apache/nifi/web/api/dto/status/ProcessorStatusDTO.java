@@ -42,8 +42,6 @@ public class ProcessorStatusDTO extends StatusDTO {
 
     /* getters / setters */
     /**
-     * The id for the processor.
-     *
      * @return The processor id
      */
     public String getId() {
@@ -55,8 +53,6 @@ public class ProcessorStatusDTO extends StatusDTO {
     }
 
     /**
-     * The name of the processor.
-     *
      * @return The processor name
      */
     public String getName() {
@@ -68,8 +64,6 @@ public class ProcessorStatusDTO extends StatusDTO {
     }
 
     /**
-     * The type of the processor.
-     *
      * @return The processor type
      */
     public String getType() {
@@ -81,9 +75,7 @@ public class ProcessorStatusDTO extends StatusDTO {
     }
 
     /**
-     * The run status of this processor.
-     *
-     * @return
+     * @return run status of this processor
      */
     public String getRunStatus() {
         return runStatus;
@@ -94,10 +86,8 @@ public class ProcessorStatusDTO extends StatusDTO {
     }
 
     /**
-     * The total count and size of flow files that have been accepted in the
-     * last five minutes.
-     *
-     * @return The total processed
+     * @return The total count and size of flow files that have been accepted in the
+     * last five minutes
      */
     public String getInput() {
         return input;
@@ -108,9 +98,7 @@ public class ProcessorStatusDTO extends StatusDTO {
     }
 
     /**
-     * The number of bytes read.
-     *
-     * @return
+     * @return number of bytes read
      */
     public String getRead() {
         return read;
@@ -121,9 +109,7 @@ public class ProcessorStatusDTO extends StatusDTO {
     }
 
     /**
-     * The number of bytes written.
-     *
-     * @return
+     * @return number of bytes written
      */
     public String getWritten() {
         return written;
@@ -134,8 +120,6 @@ public class ProcessorStatusDTO extends StatusDTO {
     }
 
     /**
-     * The ID of the Process Group to which this processor belongs.
-     *
      * @return the ID of the Process Group to which this processor belongs.
      */
     public String getGroupId() {
@@ -147,10 +131,8 @@ public class ProcessorStatusDTO extends StatusDTO {
     }
 
     /**
-     * The total count and size of flow files that have been processed in the
-     * last five minutes.
-     *
-     * @return The total output
+     * @return The total count and size of flow files that have been processed in the
+     * last five minutes
      */
     public String getOutput() {
         return output;
@@ -161,9 +143,7 @@ public class ProcessorStatusDTO extends StatusDTO {
     }
 
     /**
-     * The number of threads currently running for this Processor
-     *
-     * @return
+     * @return number of threads currently running for this Processor
      */
     public Integer getActiveThreadCount() {
         return activeThreadCount;
@@ -174,9 +154,7 @@ public class ProcessorStatusDTO extends StatusDTO {
     }
 
     /**
-     * The number of task this connectable has had over the last 5 minutes.
-     *
-     * @return
+     * @return number of task this connectable has had over the last 5 minutes
      */
     public String getTasks() {
         return tasks;
@@ -187,10 +165,8 @@ public class ProcessorStatusDTO extends StatusDTO {
     }
 
     /**
-     * The total duration of all tasks for this connectable over the last 5
-     * minutes.
-     *
-     * @return
+     * @return total duration of all tasks for this connectable over the last 5
+     * minutes
      */
     public String getTasksDuration() {
         return tasksDuration;

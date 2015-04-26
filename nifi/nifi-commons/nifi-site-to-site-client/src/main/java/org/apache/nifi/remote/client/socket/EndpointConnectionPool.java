@@ -91,21 +91,22 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.helpers.MessageFormatter;
 
 public class EndpointConnectionPool {
+
     public static final long PEER_REFRESH_PERIOD = 60000L;
     public static final String CATEGORY = "Site-to-Site";
     public static final long REMOTE_REFRESH_MILLIS = TimeUnit.MILLISECONDS.convert(10, TimeUnit.MINUTES);
 
     private static final long PEER_CACHE_MILLIS = TimeUnit.MILLISECONDS.convert(1, TimeUnit.MINUTES);
 
-	private static final Logger logger = LoggerFactory.getLogger(EndpointConnectionPool.class);
-	
-	private final ConcurrentMap<PeerDescription, BlockingQueue<EndpointConnection>> connectionQueueMap = new ConcurrentHashMap<>();
+    private static final Logger logger = LoggerFactory.getLogger(EndpointConnectionPool.class);
+
+    private final ConcurrentMap<PeerDescription, BlockingQueue<EndpointConnection>> connectionQueueMap = new ConcurrentHashMap<>();
     private final ConcurrentMap<PeerDescription, Long> peerTimeoutExpirations = new ConcurrentHashMap<>();
     private final URI clusterUrl;
     private final String apiUri;
-    
+
     private final AtomicLong peerIndex = new AtomicLong(0L);
-    
+
     private final ReentrantLock peerRefreshLock = new ReentrantLock();
     private volatile List<PeerStatus> peerStatuses;
     private volatile long peerRefreshTime = 0L;
@@ -118,132 +119,129 @@ public class EndpointConnectionPool {
     private final ScheduledExecutorService taskExecutor;
     private final int idleExpirationMillis;
     private final RemoteDestination remoteDestination;
-    
+
     private final ReadWriteLock listeningPortRWLock = new ReentrantReadWriteLock();
     private final Lock remoteInfoReadLock = listeningPortRWLock.readLock();
     private final Lock remoteInfoWriteLock = listeningPortRWLock.writeLock();
     private Integer siteToSitePort;
     private Boolean siteToSiteSecure;
     private long remoteRefreshTime;
-    private final Map<String, String> inputPortMap = new HashMap<>();	// map input port name to identifier
-    private final Map<String, String> outputPortMap = new HashMap<>();	// map output port name to identifier
-    
+    private final Map<String, String> inputPortMap = new HashMap<>(); // map input port name to identifier
+    private final Map<String, String> outputPortMap = new HashMap<>(); // map output port name to identifier
+
     private volatile int commsTimeout;
     private volatile boolean shutdown = false;
-    
-    
-    public EndpointConnectionPool(final String clusterUrl, final RemoteDestination remoteDestination, final int commsTimeoutMillis, 
-            final int idleExpirationMillis, final EventReporter eventReporter, final File persistenceFile) 
-    {
-    	this(clusterUrl, remoteDestination, commsTimeoutMillis, idleExpirationMillis, null, eventReporter, persistenceFile);
+
+    public EndpointConnectionPool(final String clusterUrl, final RemoteDestination remoteDestination, final int commsTimeoutMillis,
+            final int idleExpirationMillis, final EventReporter eventReporter, final File persistenceFile) {
+        this(clusterUrl, remoteDestination, commsTimeoutMillis, idleExpirationMillis, null, eventReporter, persistenceFile);
     }
-    
+
     public EndpointConnectionPool(final String clusterUrl, final RemoteDestination remoteDestination, final int commsTimeoutMillis, final int idleExpirationMillis,
-            final SSLContext sslContext, final EventReporter eventReporter, final File persistenceFile) 
-    {
+            final SSLContext sslContext, final EventReporter eventReporter, final File persistenceFile) {
         Objects.requireNonNull(clusterUrl, "URL cannot be null");
         Objects.requireNonNull(remoteDestination, "Remote Destination/Port Identifier cannot be null");
-    	try {
-    		this.clusterUrl = new URI(clusterUrl);
-    	} catch (final URISyntaxException e) {
-    		throw new IllegalArgumentException("Invalid Cluster URL: " + clusterUrl);
-    	}
-    	
-    	// Trim the trailing /
+        try {
+            this.clusterUrl = new URI(clusterUrl);
+        } catch (final URISyntaxException e) {
+            throw new IllegalArgumentException("Invalid Cluster URL: " + clusterUrl);
+        }
+
+        // Trim the trailing /
         String uriPath = this.clusterUrl.getPath();
         if (uriPath.endsWith("/")) {
             uriPath = uriPath.substring(0, uriPath.length() - 1);
         }
         apiUri = this.clusterUrl.getScheme() + "://" + this.clusterUrl.getHost() + ":" + this.clusterUrl.getPort() + uriPath + "-api";
-        
+
         this.remoteDestination = remoteDestination;
-    	this.sslContext = sslContext;
-    	this.peersFile = persistenceFile;
-    	this.eventReporter = eventReporter;
-    	this.commsTimeout = commsTimeoutMillis;
-    	this.idleExpirationMillis = idleExpirationMillis;
-    	
-    	Set<PeerStatus> recoveredStatuses;
-    	if ( persistenceFile != null && persistenceFile.exists() ) {
-    		try {
-    			recoveredStatuses = recoverPersistedPeerStatuses(peersFile);	
-    			this.peerStatusCache = new PeerStatusCache(recoveredStatuses, peersFile.lastModified());
-    		} catch (final IOException ioe) {
-    			logger.warn("Failed to recover peer statuses from {} due to {}; will continue without loading information from file", persistenceFile, ioe);
-    		}
-    	} else {
-    		peerStatusCache = null;
-    	}
+        this.sslContext = sslContext;
+        this.peersFile = persistenceFile;
+        this.eventReporter = eventReporter;
+        this.commsTimeout = commsTimeoutMillis;
+        this.idleExpirationMillis = idleExpirationMillis;
 
-    	// Initialize a scheduled executor and run some maintenance tasks in the background to kill off old, unused
-    	// connections and keep our list of peers up-to-date.
-    	taskExecutor = Executors.newScheduledThreadPool(1, new ThreadFactory() {
-    		private final ThreadFactory defaultFactory = Executors.defaultThreadFactory();
-    		
-			@Override
-			public Thread newThread(final Runnable r) {
-				final Thread thread = defaultFactory.newThread(r);
-				thread.setName("NiFi Site-to-Site Connection Pool Maintenance");
-				return thread;
-			}
-    	});
+        Set<PeerStatus> recoveredStatuses;
+        if (persistenceFile != null && persistenceFile.exists()) {
+            try {
+                recoveredStatuses = recoverPersistedPeerStatuses(peersFile);
+                this.peerStatusCache = new PeerStatusCache(recoveredStatuses, peersFile.lastModified());
+            } catch (final IOException ioe) {
+                logger.warn("Failed to recover peer statuses from {} due to {}; will continue without loading information from file", persistenceFile, ioe);
+            }
+        } else {
+            peerStatusCache = null;
+        }
 
-    	taskExecutor.scheduleWithFixedDelay(new Runnable() {
-			@Override
-			public void run() {
-				refreshPeers();
-			}
-    	}, 0, 5, TimeUnit.SECONDS);
+        // Initialize a scheduled executor and run some maintenance tasks in the background to kill off old, unused
+        // connections and keep our list of peers up-to-date.
+        taskExecutor = Executors.newScheduledThreadPool(1, new ThreadFactory() {
+            private final ThreadFactory defaultFactory = Executors.defaultThreadFactory();
 
-    	taskExecutor.scheduleWithFixedDelay(new Runnable() {
-			@Override
-			public void run() {
-				cleanupExpiredSockets();
-			}
-    	}, 5, 5, TimeUnit.SECONDS);
+            @Override
+            public Thread newThread(final Runnable r) {
+                final Thread thread = defaultFactory.newThread(r);
+                thread.setName("NiFi Site-to-Site Connection Pool Maintenance");
+                return thread;
+            }
+        });
+
+        taskExecutor.scheduleWithFixedDelay(new Runnable() {
+            @Override
+            public void run() {
+                refreshPeers();
+            }
+        }, 0, 5, TimeUnit.SECONDS);
+
+        taskExecutor.scheduleWithFixedDelay(new Runnable() {
+            @Override
+            public void run() {
+                cleanupExpiredSockets();
+            }
+        }, 5, 5, TimeUnit.SECONDS);
     }
-    
+
     void warn(final String msg, final Object... args) {
-    	logger.warn(msg, args);
-    	if ( eventReporter != null ) {
-    		eventReporter.reportEvent(Severity.WARNING, "Site-to-Site", MessageFormatter.arrayFormat(msg, args).getMessage());
-    	}
+        logger.warn(msg, args);
+        if (eventReporter != null) {
+            eventReporter.reportEvent(Severity.WARNING, "Site-to-Site", MessageFormatter.arrayFormat(msg, args).getMessage());
+        }
     }
-    
+
     void warn(final String msg, final Throwable t) {
-    	logger.warn(msg, t);
-    	
-    	if ( eventReporter != null ) {
-    		eventReporter.reportEvent(Severity.WARNING, "Site-to-Site", msg + ": " + t.toString());
-    	}
+        logger.warn(msg, t);
+
+        if (eventReporter != null) {
+            eventReporter.reportEvent(Severity.WARNING, "Site-to-Site", msg + ": " + t.toString());
+        }
     }
-    
+
     void error(final String msg, final Object... args) {
-    	logger.error(msg, args);
-    	if ( eventReporter != null ) {
-    		eventReporter.reportEvent(Severity.ERROR, "Site-to-Site", MessageFormatter.arrayFormat(msg, args).getMessage());
-    	}
+        logger.error(msg, args);
+        if (eventReporter != null) {
+            eventReporter.reportEvent(Severity.ERROR, "Site-to-Site", MessageFormatter.arrayFormat(msg, args).getMessage());
+        }
     }
-    
+
     private String getPortIdentifier(final TransferDirection transferDirection) throws IOException {
-        if ( remoteDestination.getIdentifier() != null ) {
+        if (remoteDestination.getIdentifier() != null) {
             return remoteDestination.getIdentifier();
         }
-        
-        if ( transferDirection == TransferDirection.RECEIVE ) {
+
+        if (transferDirection == TransferDirection.RECEIVE) {
             return getOutputPortIdentifier(remoteDestination.getName());
         } else {
             return getInputPortIdentifier(remoteDestination.getName());
         }
     }
-    
+
     public EndpointConnection getEndpointConnection(final TransferDirection direction) throws IOException, HandshakeException, PortNotRunningException, UnknownPortException, ProtocolException {
         return getEndpointConnection(direction, null);
     }
-    
-    
-    public EndpointConnection getEndpointConnection(final TransferDirection direction, final SiteToSiteClientConfig config) throws IOException, HandshakeException, PortNotRunningException, UnknownPortException, ProtocolException {
-    	//
+
+    public EndpointConnection getEndpointConnection(final TransferDirection direction, final SiteToSiteClientConfig config)
+            throws IOException, HandshakeException, PortNotRunningException, UnknownPortException, ProtocolException {
+        //
         // Attempt to get a connection state that already exists for this URL.
         //
         FlowFileCodec codec = null;
@@ -255,42 +253,42 @@ public class EndpointConnectionPool {
         logger.debug("{} getting next peer status", this);
         final PeerStatus peerStatus = getNextPeerStatus(direction);
         logger.debug("{} next peer status = {}", this, peerStatus);
-        if ( peerStatus == null ) {
+        if (peerStatus == null) {
             return null;
         }
 
         final PeerDescription peerDescription = peerStatus.getPeerDescription();
         BlockingQueue<EndpointConnection> connectionQueue = connectionQueueMap.get(peerStatus);
-        if ( connectionQueue == null ) {
+        if (connectionQueue == null) {
             connectionQueue = new LinkedBlockingQueue<>();
             BlockingQueue<EndpointConnection> existing = connectionQueueMap.putIfAbsent(peerDescription, connectionQueue);
-            if ( existing != null ) {
+            if (existing != null) {
                 connectionQueue = existing;
             }
         }
-        
+
         final List<EndpointConnection> addBack = new ArrayList<>();
         try {
             do {
                 connection = connectionQueue.poll();
                 logger.debug("{} Connection State for {} = {}", this, clusterUrl, connection);
                 final String portId = getPortIdentifier(direction);
-                
-                if ( connection == null && !addBack.isEmpty() ) {
+
+                if (connection == null && !addBack.isEmpty()) {
                     // all available connections have been penalized.
                     logger.debug("{} all Connections for {} are penalized; returning no Connection", this, portId);
                     return null;
                 }
-                
-                if ( connection != null && connection.getPeer().isPenalized(portId) ) {
+
+                if (connection != null && connection.getPeer().isPenalized(portId)) {
                     // we have a connection, but it's penalized. We want to add it back to the queue
                     // when we've found one to use.
                     addBack.add(connection);
                     continue;
                 }
-                
+
                 // if we can't get an existing Connection, create one
-                if ( connection == null ) {
+                if (connection == null) {
                     logger.debug("{} No Connection available for Port {}; creating new Connection", this, portId);
                     protocol = new SocketClientProtocol();
                     protocol.setDestination(new IdEnrichedRemoteDestination(remoteDestination, portId));
@@ -304,7 +302,7 @@ public class EndpointConnectionPool {
                         penalize(peerStatus.getPeerDescription(), penalizationMillis);
                         throw ioe;
                     }
-                    
+
                     final DataInputStream dis = new DataInputStream(commsSession.getInput().getInputStream());
                     final DataOutputStream dos = new DataOutputStream(commsSession.getOutput().getOutputStream());
                     try {
@@ -314,72 +312,72 @@ public class EndpointConnectionPool {
                         try {
                             commsSession.close();
                         } catch (final IOException ioe) {
-                        	throw e;
+                            throw e;
                         }
                     }
-                
+
                     final String peerUrl = "nifi://" + peerDescription.getHostname() + ":" + peerDescription.getPort();
                     peer = new Peer(peerDescription, commsSession, peerUrl, clusterUrl.toString());
-    
+
                     // set properties based on config
-                    if ( config != null ) {
+                    if (config != null) {
                         protocol.setTimeout((int) config.getTimeout(TimeUnit.MILLISECONDS));
                         protocol.setPreferredBatchCount(config.getPreferredBatchCount());
                         protocol.setPreferredBatchSize(config.getPreferredBatchSize());
                         protocol.setPreferredBatchDuration(config.getPreferredBatchDuration(TimeUnit.MILLISECONDS));
                     }
-                    
+
                     // perform handshake
                     try {
                         logger.debug("{} performing handshake", this);
                         protocol.handshake(peer);
-                        
+
                         // handle error cases
-                        if ( protocol.isDestinationFull() ) {
-                            logger.warn("{} {} indicates that port {}'s destination is full; penalizing peer", 
-                            		this, peer, config.getPortName() == null ? config.getPortIdentifier() : config.getPortName());
-                            
+                        if (protocol.isDestinationFull()) {
+                            logger.warn("{} {} indicates that port {}'s destination is full; penalizing peer",
+                                    this, peer, config.getPortName() == null ? config.getPortIdentifier() : config.getPortName());
+
                             penalize(peer, penalizationMillis);
                             try {
-                            	peer.close();
+                                peer.close();
                             } catch (final IOException ioe) {
                             }
-                            
+
                             continue;
-                        } else if ( protocol.isPortInvalid() ) {
-                        	penalize(peer, penalizationMillis);
-                        	cleanup(protocol, peer);
-                        	throw new PortNotRunningException(peer.toString() + " indicates that port " + portId + " is not running");
-                        } else if ( protocol.isPortUnknown() ) {
-                        	penalize(peer, penalizationMillis);
-                        	cleanup(protocol, peer);
-                        	throw new UnknownPortException(peer.toString() + " indicates that port " + portId + " is not known");
+                        } else if (protocol.isPortInvalid()) {
+                            penalize(peer, penalizationMillis);
+                            cleanup(protocol, peer);
+                            throw new PortNotRunningException(peer.toString() + " indicates that port " + portId + " is not running");
+                        } else if (protocol.isPortUnknown()) {
+                            penalize(peer, penalizationMillis);
+                            cleanup(protocol, peer);
+                            throw new UnknownPortException(peer.toString() + " indicates that port " + portId + " is not known");
                         }
-                        
+
                         // negotiate the FlowFileCodec to use
                         logger.debug("{} negotiating codec", this);
                         codec = protocol.negotiateCodec(peer);
                         logger.debug("{} negotiated codec is {}", this, codec);
                     } catch (final PortNotRunningException | UnknownPortException e) {
-                    	throw e;
+                        throw e;
                     } catch (final Exception e) {
                         penalize(peer, penalizationMillis);
                         cleanup(protocol, peer);
-                        
+
                         final String message = String.format("%s failed to communicate with %s due to %s", this, peer == null ? clusterUrl : peer, e.toString());
                         error(message);
-                        if ( logger.isDebugEnabled() ) {
+                        if (logger.isDebugEnabled()) {
                             logger.error("", e);
                         }
                         throw e;
                     }
-                    
+
                     connection = new EndpointConnection(peer, protocol, codec);
                 } else {
                     final long lastTimeUsed = connection.getLastTimeUsed();
                     final long millisSinceLastUse = System.currentTimeMillis() - lastTimeUsed;
-                    
-                    if ( commsTimeout > 0L && millisSinceLastUse >= commsTimeout ) {
+
+                    if (commsTimeout > 0L && millisSinceLastUse >= commsTimeout) {
                         cleanup(connection.getSocketClientProtocol(), connection.getPeer());
                         connection = null;
                     } else {
@@ -389,68 +387,70 @@ public class EndpointConnectionPool {
                         protocol = connection.getSocketClientProtocol();
                     }
                 }
-            } while ( connection == null || codec == null || commsSession == null || protocol == null );
+            } while (connection == null || codec == null || commsSession == null || protocol == null);
         } catch (final Throwable t) {
-        	if ( commsSession != null ) {
-        		try {
-        			commsSession.close();
-        		} catch (final IOException ioe) {
-        		}
-        	}
-        	
-        	throw t;
+            if (commsSession != null) {
+                try {
+                    commsSession.close();
+                } catch (final IOException ioe) {
+                }
+            }
+
+            throw t;
         } finally {
-            if ( !addBack.isEmpty() ) {
+            if (!addBack.isEmpty()) {
                 connectionQueue.addAll(addBack);
             }
         }
-        
+
         activeConnections.add(connection);
         return connection;
     }
-    
-    
+
     public boolean offer(final EndpointConnection endpointConnection) {
-    	final Peer peer = endpointConnection.getPeer();
-    	if ( peer == null ) {
-    		return false;
-    	}
-    	
-    	final BlockingQueue<EndpointConnection> connectionQueue = connectionQueueMap.get(peer.getDescription());
-    	if ( connectionQueue == null ) {
-    	    return false;
-    	}
-    	
-    	activeConnections.remove(endpointConnection);
-    	if ( shutdown ) {
-    	    terminate(endpointConnection);
-    	    return false;
-    	} else {
-    	    endpointConnection.setLastTimeUsed();
-    	    return connectionQueue.offer(endpointConnection);
-    	}
+        final Peer peer = endpointConnection.getPeer();
+        if (peer == null) {
+            return false;
+        }
+
+        final BlockingQueue<EndpointConnection> connectionQueue = connectionQueueMap.get(peer.getDescription());
+        if (connectionQueue == null) {
+            return false;
+        }
+
+        activeConnections.remove(endpointConnection);
+        if (shutdown) {
+            terminate(endpointConnection);
+            return false;
+        } else {
+            endpointConnection.setLastTimeUsed();
+            return connectionQueue.offer(endpointConnection);
+        }
     }
-    
+
     private void penalize(final PeerDescription peerDescription, final long penalizationMillis) {
         Long expiration = peerTimeoutExpirations.get(peerDescription);
-        if ( expiration == null ) {
+        if (expiration == null) {
             expiration = Long.valueOf(0L);
         }
-        
+
         final long newExpiration = Math.max(expiration, System.currentTimeMillis() + penalizationMillis);
         peerTimeoutExpirations.put(peerDescription, Long.valueOf(newExpiration));
     }
-    
+
     /**
-     * Updates internal state map to penalize a PeerStatus that points to the specified peer
-     * @param peer
+     * Updates internal state map to penalize a PeerStatus that points to the
+     * specified peer
+     *
+     * @param peer the peer
+     * @param penalizationMillis period of time to penalize a given peer
      */
     public void penalize(final Peer peer, final long penalizationMillis) {
         penalize(peer.getDescription(), penalizationMillis);
     }
-    
+
     private void cleanup(final SocketClientProtocol protocol, final Peer peer) {
-        if ( protocol != null && peer != null ) {
+        if (protocol != null && peer != null) {
             try {
                 protocol.shutdown(peer);
             } catch (final TransmissionDisabledException e) {
@@ -459,8 +459,8 @@ public class EndpointConnectionPool {
             } catch (IOException e1) {
             }
         }
-        
-        if ( peer != null ) {
+
+        if (peer != null) {
             try {
                 peer.close();
             } catch (final TransmissionDisabledException e) {
@@ -470,15 +470,14 @@ public class EndpointConnectionPool {
             }
         }
     }
-    
+
     private boolean isPeerRefreshNeeded(final List<PeerStatus> peerList) {
         return (peerList == null || peerList.isEmpty() || System.currentTimeMillis() > peerRefreshTime + PEER_REFRESH_PERIOD);
     }
-    
-    
+
     private PeerStatus getNextPeerStatus(final TransferDirection direction) {
         List<PeerStatus> peerList = peerStatuses;
-        if ( isPeerRefreshNeeded(peerList) ) {
+        if (isPeerRefreshNeeded(peerList)) {
             peerRefreshLock.lock();
             try {
                 // now that we have the lock, check again that we need to refresh (because another thread
@@ -490,15 +489,15 @@ public class EndpointConnectionPool {
                     } catch (final Exception e) {
                         final String message = String.format("%s Failed to update list of peers due to %s", this, e.toString());
                         warn(message);
-                        if ( logger.isDebugEnabled() ) {
+                        if (logger.isDebugEnabled()) {
                             logger.warn("", e);
                         }
-                        
-                        if ( eventReporter != null ) {
-                        	eventReporter.reportEvent(Severity.WARNING, CATEGORY, message);
+
+                        if (eventReporter != null) {
+                            eventReporter.reportEvent(Severity.WARNING, CATEGORY, message);
                         }
                     }
-                    
+
                     this.peerStatuses = peerList;
                     peerRefreshTime = System.currentTimeMillis();
                 }
@@ -507,46 +506,46 @@ public class EndpointConnectionPool {
             }
         }
 
-        if ( peerList == null || peerList.isEmpty() ) {
+        if (peerList == null || peerList.isEmpty()) {
             return null;
         }
 
         PeerStatus peerStatus;
-        for (int i=0; i < peerList.size(); i++) {
+        for (int i = 0; i < peerList.size(); i++) {
             final long idx = peerIndex.getAndIncrement();
             final int listIndex = (int) (idx % peerList.size());
             peerStatus = peerList.get(listIndex);
-            
-            if ( isPenalized(peerStatus) ) {
+
+            if (isPenalized(peerStatus)) {
                 logger.debug("{} {} is penalized; will not communicate with this peer", this, peerStatus);
             } else {
                 return peerStatus;
             }
         }
-        
+
         logger.debug("{} All peers appear to be penalized; returning null", this);
         return null;
     }
-    
+
     private boolean isPenalized(final PeerStatus peerStatus) {
         final Long expirationEnd = peerTimeoutExpirations.get(peerStatus.getPeerDescription());
-        return (expirationEnd == null ? false : expirationEnd > System.currentTimeMillis() );
+        return (expirationEnd == null ? false : expirationEnd > System.currentTimeMillis());
     }
-    
+
     private List<PeerStatus> createPeerStatusList(final TransferDirection direction) throws IOException, HandshakeException, UnknownPortException, PortNotRunningException {
         Set<PeerStatus> statuses = getPeerStatuses();
-        if ( statuses == null ) {
+        if (statuses == null) {
             refreshPeers();
             statuses = getPeerStatuses();
-            if ( statuses == null ) {
+            if (statuses == null) {
                 logger.debug("{} found no peers to connect to", this);
                 return Collections.emptyList();
             }
         }
-        
+
         final ClusterNodeInformation clusterNodeInfo = new ClusterNodeInformation();
         final List<NodeInformation> nodeInfos = new ArrayList<>();
-        for ( final PeerStatus peerStatus : statuses ) {
+        for (final PeerStatus peerStatus : statuses) {
             final PeerDescription description = peerStatus.getPeerDescription();
             final NodeInformation nodeInfo = new NodeInformation(description.getHostname(), description.getPort(), 0, description.isSecure(), peerStatus.getFlowFileCount());
             nodeInfos.add(nodeInfo);
@@ -554,8 +553,7 @@ public class EndpointConnectionPool {
         clusterNodeInfo.setNodeInformation(nodeInfos);
         return formulateDestinationList(clusterNodeInfo, direction);
     }
-    
-    
+
     private Set<PeerStatus> getPeerStatuses() {
         final PeerStatusCache cache = this.peerStatusCache;
         if (cache == null || cache.getStatuses() == null || cache.getStatuses().isEmpty()) {
@@ -576,14 +574,14 @@ public class EndpointConnectionPool {
     }
 
     private Set<PeerStatus> fetchRemotePeerStatuses() throws IOException, HandshakeException, UnknownPortException, PortNotRunningException {
-    	final String hostname = clusterUrl.getHost();
+        final String hostname = clusterUrl.getHost();
         final Integer port = getSiteToSitePort();
-        if ( port == null ) {
+        if (port == null) {
             throw new IOException("Remote instance of NiFi is not configured to allow site-to-site communications");
         }
-    	
+
         final PeerDescription clusterPeerDescription = new PeerDescription(hostname, port, clusterUrl.toString().startsWith("https://"));
-    	final CommunicationsSession commsSession = establishSiteToSiteConnection(hostname, port);
+        final CommunicationsSession commsSession = establishSiteToSiteConnection(hostname, port);
         final Peer peer = new Peer(clusterPeerDescription, commsSession, "nifi://" + hostname + ":" + port, clusterUrl.toString());
         final SocketClientProtocol clientProtocol = new SocketClientProtocol();
         final DataInputStream dis = new DataInputStream(commsSession.getInput().getInputStream());
@@ -593,11 +591,11 @@ public class EndpointConnectionPool {
         clientProtocol.setTimeout(commsTimeout);
         if (clientProtocol.getVersionNegotiator().getVersion() < 5) {
             String portId = getPortIdentifier(TransferDirection.RECEIVE);
-            if ( portId == null ) {
+            if (portId == null) {
                 portId = getPortIdentifier(TransferDirection.SEND);
             }
-            
-            if ( portId == null ) {
+
+            if (portId == null) {
                 peer.close();
                 throw new IOException("Failed to determine the identifier of port " + remoteDestination.getName());
             }
@@ -605,7 +603,7 @@ public class EndpointConnectionPool {
         } else {
             clientProtocol.handshake(peer, null);
         }
-        
+
         final Set<PeerStatus> peerStatuses = clientProtocol.getPeerStatuses(peer);
         persistPeerStatuses(peerStatuses);
 
@@ -632,14 +630,13 @@ public class EndpointConnectionPool {
         return peerStatuses;
     }
 
-
     private void persistPeerStatuses(final Set<PeerStatus> statuses) {
-    	if ( peersFile == null ) {
-    		return;
-    	}
-    	
+        if (peersFile == null) {
+            return;
+        }
+
         try (final OutputStream fos = new FileOutputStream(peersFile);
-             final OutputStream out = new BufferedOutputStream(fos)) {
+                final OutputStream out = new BufferedOutputStream(fos)) {
 
             for (final PeerStatus status : statuses) {
                 final PeerDescription description = status.getPeerDescription();
@@ -679,53 +676,52 @@ public class EndpointConnectionPool {
 
         return statuses;
     }
-    
-    
+
     private CommunicationsSession establishSiteToSiteConnection(final PeerStatus peerStatus) throws IOException {
         final PeerDescription description = peerStatus.getPeerDescription();
-    	return establishSiteToSiteConnection(description.getHostname(), description.getPort());
+        return establishSiteToSiteConnection(description.getHostname(), description.getPort());
     }
-    
+
     private CommunicationsSession establishSiteToSiteConnection(final String hostname, final int port) throws IOException {
-    	final boolean siteToSiteSecure = isSecure();
+        final boolean siteToSiteSecure = isSecure();
         final String destinationUri = "nifi://" + hostname + ":" + port;
 
         CommunicationsSession commsSession = null;
         try {
-	        if ( siteToSiteSecure ) {
-	            if ( sslContext == null ) {
-	                throw new IOException("Unable to communicate with " + hostname + ":" + port + " because it requires Secure Site-to-Site communications, but this instance is not configured for secure communications");
-	            }
-	            
-	            final SSLSocketChannel socketChannel = new SSLSocketChannel(sslContext, hostname, port, true);
-	            socketChannel.connect();
-	    
-	            commsSession = new SSLSocketChannelCommunicationsSession(socketChannel, destinationUri);
-	                
-	                try {
-	                    commsSession.setUserDn(socketChannel.getDn());
-	                } catch (final CertificateNotYetValidException | CertificateExpiredException ex) {
-	                    throw new IOException(ex);
-	                }
-	        } else {
-	            final SocketChannel socketChannel = SocketChannel.open(new InetSocketAddress(hostname, port));
-	            commsSession = new SocketChannelCommunicationsSession(socketChannel, destinationUri);
-	        }
-	
-	        commsSession.getOutput().getOutputStream().write(CommunicationsSession.MAGIC_BYTES);
-	        commsSession.setUri(destinationUri);
+            if (siteToSiteSecure) {
+                if (sslContext == null) {
+                    throw new IOException("Unable to communicate with " + hostname + ":" + port
+                            + " because it requires Secure Site-to-Site communications, but this instance is not configured for secure communications");
+                }
+
+                final SSLSocketChannel socketChannel = new SSLSocketChannel(sslContext, hostname, port, true);
+                socketChannel.connect();
+
+                commsSession = new SSLSocketChannelCommunicationsSession(socketChannel, destinationUri);
+
+                try {
+                    commsSession.setUserDn(socketChannel.getDn());
+                } catch (final CertificateNotYetValidException | CertificateExpiredException ex) {
+                    throw new IOException(ex);
+                }
+            } else {
+                final SocketChannel socketChannel = SocketChannel.open(new InetSocketAddress(hostname, port));
+                commsSession = new SocketChannelCommunicationsSession(socketChannel, destinationUri);
+            }
+
+            commsSession.getOutput().getOutputStream().write(CommunicationsSession.MAGIC_BYTES);
+            commsSession.setUri(destinationUri);
         } catch (final IOException ioe) {
-            if ( commsSession != null ) {
+            if (commsSession != null) {
                 commsSession.close();
             }
-            
+
             throw ioe;
         }
-        
+
         return commsSession;
     }
-    
-    
+
     static List<PeerStatus> formulateDestinationList(final ClusterNodeInformation clusterNodeInfo, final TransferDirection direction) {
         final Collection<NodeInformation> nodeInfoSet = clusterNodeInfo.getNodeInformation();
         final int numDestinations = Math.max(128, nodeInfoSet.size());
@@ -743,26 +739,26 @@ public class EndpointConnectionPool {
             final double percentageOfFlowFiles = Math.min(0.8D, ((double) flowFileCount / (double) totalFlowFileCount));
             final double relativeWeighting = (direction == TransferDirection.SEND) ? (1 - percentageOfFlowFiles) : percentageOfFlowFiles;
             final int entries = Math.max(1, (int) (numDestinations * relativeWeighting));
-            
+
             entryCountMap.put(nodeInfo, Math.max(1, entries));
             totalEntries += entries;
         }
-        
+
         final List<PeerStatus> destinations = new ArrayList<>(totalEntries);
-        for (int i=0; i < totalEntries; i++) {
+        for (int i = 0; i < totalEntries; i++) {
             destinations.add(null);
         }
-        for ( final Map.Entry<NodeInformation, Integer> entry : entryCountMap.entrySet() ) {
+        for (final Map.Entry<NodeInformation, Integer> entry : entryCountMap.entrySet()) {
             final NodeInformation nodeInfo = entry.getKey();
             final int numEntries = entry.getValue();
-            
+
             int skipIndex = numEntries;
-            for (int i=0; i < numEntries; i++) {
+            for (int i = 0; i < numEntries; i++) {
                 int n = (skipIndex * i);
                 while (true) {
                     final int index = n % destinations.size();
                     PeerStatus status = destinations.get(index);
-                    if ( status == null ) {
+                    if (status == null) {
                         final PeerDescription description = new PeerDescription(nodeInfo.getHostname(), nodeInfo.getSiteToSitePort(), nodeInfo.isSiteToSiteSecure());
                         status = new PeerStatus(description, nodeInfo.getTotalFlowFiles());
                         destinations.set(index, status);
@@ -776,7 +772,7 @@ public class EndpointConnectionPool {
 
         final StringBuilder distributionDescription = new StringBuilder();
         distributionDescription.append("New Weighted Distribution of Nodes:");
-        for ( final Map.Entry<NodeInformation, Integer> entry : entryCountMap.entrySet() ) {
+        for (final Map.Entry<NodeInformation, Integer> entry : entryCountMap.entrySet()) {
             final double percentage = entry.getValue() * 100D / (double) destinations.size();
             distributionDescription.append("\n").append(entry.getKey()).append(" will receive ").append(percentage).append("% of data");
         }
@@ -785,55 +781,54 @@ public class EndpointConnectionPool {
         // Jumble the list of destinations.
         return destinations;
     }
-    
-    
+
     private void cleanupExpiredSockets() {
-        for ( final BlockingQueue<EndpointConnection> connectionQueue : connectionQueueMap.values()) {
+        for (final BlockingQueue<EndpointConnection> connectionQueue : connectionQueueMap.values()) {
             final List<EndpointConnection> connections = new ArrayList<>();
-            
+
             EndpointConnection connection;
             while ((connection = connectionQueue.poll()) != null) {
                 // If the socket has not been used in 10 seconds, shut it down.
                 final long lastUsed = connection.getLastTimeUsed();
-                if ( lastUsed < System.currentTimeMillis() - idleExpirationMillis ) {
+                if (lastUsed < System.currentTimeMillis() - idleExpirationMillis) {
                     try {
                         connection.getSocketClientProtocol().shutdown(connection.getPeer());
                     } catch (final Exception e) {
-                        logger.debug("Failed to shut down {} using {} due to {}", 
-                            new Object[] {connection.getSocketClientProtocol(), connection.getPeer(), e} );
+                        logger.debug("Failed to shut down {} using {} due to {}",
+                                new Object[]{connection.getSocketClientProtocol(), connection.getPeer(), e});
                     }
-                    
+
                     terminate(connection);
                 } else {
                     connections.add(connection);
                 }
             }
-            
+
             connectionQueue.addAll(connections);
         }
     }
-    
+
     public void shutdown() {
         shutdown = true;
-    	taskExecutor.shutdown();
-    	peerTimeoutExpirations.clear();
-        
-       for ( final EndpointConnection conn : activeConnections ) {
-           conn.getPeer().getCommunicationsSession().interrupt();
+        taskExecutor.shutdown();
+        peerTimeoutExpirations.clear();
+
+        for (final EndpointConnection conn : activeConnections) {
+            conn.getPeer().getCommunicationsSession().interrupt();
         }
 
-        for ( final BlockingQueue<EndpointConnection> connectionQueue : connectionQueueMap.values() ) {
+        for (final BlockingQueue<EndpointConnection> connectionQueue : connectionQueueMap.values()) {
             EndpointConnection state;
-            while ( (state = connectionQueue.poll()) != null)  {
+            while ((state = connectionQueue.poll()) != null) {
                 cleanup(state.getSocketClientProtocol(), state.getPeer());
             }
         }
     }
-    
+
     public void terminate(final EndpointConnection connection) {
         cleanup(connection.getSocketClientProtocol(), connection.getPeer());
     }
-    
+
     private void refreshPeers() {
         final PeerStatusCache existingCache = peerStatusCache;
         if (existingCache != null && (existingCache.getTimestamp() + PEER_CACHE_MILLIS > System.currentTimeMillis())) {
@@ -851,69 +846,66 @@ public class EndpointConnectionPool {
             }
         }
     }
-    
-    
+
     public String getInputPortIdentifier(final String portName) throws IOException {
         return getPortIdentifier(portName, inputPortMap);
     }
-    
+
     public String getOutputPortIdentifier(final String portName) throws IOException {
-    	return getPortIdentifier(portName, outputPortMap);
+        return getPortIdentifier(portName, outputPortMap);
     }
-    
-    
+
     private String getPortIdentifier(final String portName, final Map<String, String> portMap) throws IOException {
-    	String identifier;
-    	remoteInfoReadLock.lock();
+        String identifier;
+        remoteInfoReadLock.lock();
         try {
-        	identifier = portMap.get(portName);
+            identifier = portMap.get(portName);
         } finally {
-        	remoteInfoReadLock.unlock();
+            remoteInfoReadLock.unlock();
         }
-        
-        if ( identifier != null ) {
-        	return identifier;
+
+        if (identifier != null) {
+            return identifier;
         }
-        
+
         refreshRemoteInfo();
 
-    	remoteInfoReadLock.lock();
+        remoteInfoReadLock.lock();
         try {
-        	return portMap.get(portName);
+            return portMap.get(portName);
         } finally {
-        	remoteInfoReadLock.unlock();
+            remoteInfoReadLock.unlock();
         }
     }
-    
-    
+
     private ControllerDTO refreshRemoteInfo() throws IOException {
-    	final boolean webInterfaceSecure = clusterUrl.toString().startsWith("https");
+        final boolean webInterfaceSecure = clusterUrl.toString().startsWith("https");
         final NiFiRestApiUtil utils = new NiFiRestApiUtil(webInterfaceSecure ? sslContext : null);
-		final ControllerDTO controller = utils.getController(apiUri + "/controller", commsTimeout);
-        
+        final ControllerDTO controller = utils.getController(apiUri + "/controller", commsTimeout);
+
         remoteInfoWriteLock.lock();
         try {
             this.siteToSitePort = controller.getRemoteSiteListeningPort();
             this.siteToSiteSecure = controller.isSiteToSiteSecure();
-            
+
             inputPortMap.clear();
             for (final PortDTO inputPort : controller.getInputPorts()) {
-            	inputPortMap.put(inputPort.getName(), inputPort.getId());
+                inputPortMap.put(inputPort.getName(), inputPort.getId());
             }
-            
+
             outputPortMap.clear();
-            for ( final PortDTO outputPort : controller.getOutputPorts()) {
-            	outputPortMap.put(outputPort.getName(), outputPort.getId());
+            for (final PortDTO outputPort : controller.getOutputPorts()) {
+                outputPortMap.put(outputPort.getName(), outputPort.getId());
             }
-            
+
             this.remoteRefreshTime = System.currentTimeMillis();
         } finally {
-        	remoteInfoWriteLock.unlock();
+            remoteInfoWriteLock.unlock();
         }
-        
+
         return controller;
     }
-    
+
     /**
      * @return the port that the remote instance is listening on for
      * site-to-site communication, or <code>null</code> if the remote instance
@@ -930,7 +922,7 @@ public class EndpointConnectionPool {
                 return listeningPort;
             }
         } finally {
-        	remoteInfoReadLock.unlock();
+            remoteInfoReadLock.unlock();
         }
 
         final ControllerDTO controller = refreshRemoteInfo();
@@ -938,19 +930,16 @@ public class EndpointConnectionPool {
 
         return listeningPort;
     }
- 
+
     @Override
     public String toString() {
         return "EndpointConnectionPool[Cluster URL=" + clusterUrl + "]";
     }
-    
-    
+
     /**
-     * Returns {@code true} if the remote instance is configured for secure site-to-site communications,
-     * {@code false} otherwise.
-     * 
-     * @return
-     * @throws IOException
+     * @return {@code true} if the remote instance is configured for secure
+     * site-to-site communications, {@code false} otherwise
+     * @throws IOException if unable to check if secure
      */
     public boolean isSecure() throws IOException {
         remoteInfoReadLock.lock();
@@ -960,23 +949,23 @@ public class EndpointConnectionPool {
                 return secure;
             }
         } finally {
-        	remoteInfoReadLock.unlock();
+            remoteInfoReadLock.unlock();
         }
 
         final ControllerDTO controller = refreshRemoteInfo();
         final Boolean isSecure = controller.isSiteToSiteSecure();
-        if ( isSecure == null ) {
+        if (isSecure == null) {
             throw new IOException("Remote NiFi instance " + clusterUrl + " is not currently configured to accept site-to-site connections");
         }
-        
+
         return isSecure;
     }
-    
-    
+
     private class IdEnrichedRemoteDestination implements RemoteDestination {
+
         private final RemoteDestination original;
         private final String identifier;
-        
+
         public IdEnrichedRemoteDestination(final RemoteDestination original, final String identifier) {
             this.original = original;
             this.identifier = identifier;

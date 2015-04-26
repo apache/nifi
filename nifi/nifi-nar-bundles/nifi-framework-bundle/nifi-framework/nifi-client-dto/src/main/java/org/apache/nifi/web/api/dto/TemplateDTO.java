@@ -37,9 +37,7 @@ public class TemplateDTO {
     private FlowSnippetDTO snippet;
 
     /**
-     * The id for this template.
-     *
-     * @return
+     * @return id for this template
      */
     public String getId() {
         return id;
@@ -50,9 +48,7 @@ public class TemplateDTO {
     }
 
     /**
-     * The uri for this template.
-     *
-     * @return
+     * @return uri for this template
      */
     public String getUri() {
         return uri;
@@ -63,9 +59,7 @@ public class TemplateDTO {
     }
 
     /**
-     * The name of this template.
-     *
-     * @return
+     * @return name of this template
      */
     public String getName() {
         return name;
@@ -76,9 +70,7 @@ public class TemplateDTO {
     }
 
     /**
-     * The description of this template.
-     *
-     * @return
+     * @return description of this template
      */
     public String getDescription() {
         return description;
@@ -89,9 +81,7 @@ public class TemplateDTO {
     }
 
     /**
-     * The timestamp when this template was created.
-     *
-     * @return
+     * @return timestamp when this template was created
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
     public Date getTimestamp() {
@@ -103,9 +93,7 @@ public class TemplateDTO {
     }
 
     /**
-     * The snippet in this template.
-     *
-     * @return
+     * @return snippet in this template
      */
     public FlowSnippetDTO getSnippet() {
         return snippet;

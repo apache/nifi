@@ -35,10 +35,10 @@ public interface SerDe<T> {
      * {@link DataOutputStream}.
      * </p>
      *
-     * @param previousRecordState
-     * @param newRecordState
-     * @param out
-     * @throws IOException
+     * @param previousRecordState previous state
+     * @param newRecordState new state
+     * @param out stream to write to
+     * @throws IOException if fail during write
      */
     void serializeEdit(T previousRecordState, T newRecordState, DataOutputStream out) throws IOException;
 
@@ -48,9 +48,9 @@ public interface SerDe<T> {
      * {@link DataOutputStream}.
      * </p>
      *
-     * @param record
-     * @param out
-     * @throws IOException
+     * @param record to serialize
+     * @param out to write to
+     * @throws IOException if failed to write
      */
     void serializeRecord(T record, DataOutputStream out) throws IOException;
 
@@ -63,13 +63,13 @@ public interface SerDe<T> {
      * This method must never return <code>null</code>.
      * </p>
      *
-     * @param in
+     * @param in to deserialize from
      * @param currentRecordStates an unmodifiable map of Record ID's to the
      * current state of that record
      * @param version the version of the SerDe that was used to serialize the
      * edit record
-     * @return
-     * @throws IOException
+     * @return deserialized record
+     * @throws IOException if failure reading
      */
     T deserializeEdit(DataInputStream in, Map<Object, T> currentRecordStates, int version) throws IOException;
 
@@ -79,27 +79,27 @@ public interface SerDe<T> {
      * record. If no data is available, returns <code>null</code>.
      * </p>
      *
-     * @param in
+     * @param in stream to read from
      * @param version the version of the SerDe that was used to serialize the
      * record
-     * @return
-     * @throws IOException
+     * @return record
+     * @throws IOException failure reading
      */
     T deserializeRecord(DataInputStream in, int version) throws IOException;
 
     /**
      * Returns the unique ID for the given record
      *
-     * @param record
-     * @return
+     * @param record to obtain identifier for
+     * @return identifier of record
      */
     Object getRecordIdentifier(T record);
 
     /**
      * Returns the UpdateType for the given record
      *
-     * @param record
-     * @return
+     * @param record to retrieve update type for
+     * @return update type
      */
     UpdateType getUpdateType(T record);
 
@@ -112,8 +112,8 @@ public interface SerDe<T> {
      * WALI with a record of type {@link UpdateType#CREATE} that indicates a
      * Location of file://tmp/external1
      *
-     * @param record
-     * @return
+     * @param record to get location of
+     * @return location
      */
     String getLocation(T record);
 
@@ -122,7 +122,7 @@ public interface SerDe<T> {
      * when serializing/deserializing the edit logs so that if the version
      * changes, we are still able to deserialize old versions
      *
-     * @return
+     * @return version
      */
     int getVersion();
 }

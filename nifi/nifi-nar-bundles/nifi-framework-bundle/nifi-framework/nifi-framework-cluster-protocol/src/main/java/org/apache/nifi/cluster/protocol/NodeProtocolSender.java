@@ -24,50 +24,61 @@ import org.apache.nifi.cluster.protocol.message.NodeBulletinsMessage;
 import org.apache.nifi.cluster.protocol.message.ReconnectionFailureMessage;
 
 /**
- * An interface for sending protocol messages from a node to the cluster manager.
- * @author unattributed
+ * An interface for sending protocol messages from a node to the cluster
+ * manager.
+ *
  */
 public interface NodeProtocolSender {
-    
+
     /**
      * Sends a "connection request" message to the cluster manager.
+     *
      * @param msg a message
      * @return the response
-     * @throws UnknownServiceAddressException if the cluster manager's address is not known
+     * @throws UnknownServiceAddressException if the cluster manager's address
+     * is not known
      * @throws ProtocolException if communication failed
      */
     ConnectionResponseMessage requestConnection(ConnectionRequestMessage msg) throws ProtocolException, UnknownServiceAddressException;
-    
+
     /**
      * Sends a "heartbeat" message to the cluster manager.
+     *
      * @param msg a message
-     * @throws UnknownServiceAddressException if the cluster manager's address is not known
+     * @throws UnknownServiceAddressException if the cluster manager's address
+     * is not known
      * @throws ProtocolException if communication failed
      */
     void heartbeat(HeartbeatMessage msg) throws ProtocolException, UnknownServiceAddressException;
-    
+
     /**
      * Sends a bulletins message to the cluster manager.
-     * @param msg
-     * @throws ProtocolException
-     * @throws UnknownServiceAddressException 
+     *
+     * @param msg a message
+     * @throws ProtocolException pe
+     * @throws UnknownServiceAddressException ex
      */
     void sendBulletins(NodeBulletinsMessage msg) throws ProtocolException, UnknownServiceAddressException;
-    
+
     /**
      * Sends a failure notification if the controller was unable start.
+     *
      * @param msg a message
-     * @throws UnknownServiceAddressException if the cluster manager's address is not known
+     * @throws UnknownServiceAddressException if the cluster manager's address
+     * is not known
      * @throws ProtocolException if communication failed
      */
     void notifyControllerStartupFailure(ControllerStartupFailureMessage msg) throws ProtocolException, UnknownServiceAddressException;
-    
+
     /**
-     * Sends a failure notification if the node was unable to reconnect to the cluster
+     * Sends a failure notification if the node was unable to reconnect to the
+     * cluster
+     *
      * @param msg a message
-     * @throws UnknownServiceAddressException if the cluster manager's address is not known
+     * @throws UnknownServiceAddressException if the cluster manager's address
+     * is not known
      * @throws ProtocolException if communication failed
      */
     void notifyReconnectionFailure(ReconnectionFailureMessage msg) throws ProtocolException, UnknownServiceAddressException;
-    
+
 }

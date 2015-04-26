@@ -71,7 +71,7 @@ public interface ReportingTaskDAO {
      * @param reportingTaskDTO
      */
     void verifyUpdate(ReportingTaskDTO reportingTaskDTO);
-    
+
     /**
      * Determines whether this reporting task can be removed.
      *
