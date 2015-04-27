@@ -51,8 +51,10 @@ import org.apache.nifi.util.ObjectHolder;
 @EventDriven
 @SupportsBatching
 @Tags({"hash", "content", "MD5", "SHA-1", "SHA-256"})
-@CapabilityDescription("Calculates a hash value for the Content of a FlowFile and puts that hash value on the FlowFile as an attribute whose name is determined by the <Hash Attribute Name> property")
-@WritesAttribute(attribute="<Hash Attribute Name>", description="This Processor adds an attribute whose value is the result of Hashing the existing FlowFile attributes. The name of this attribute is specified by the <Hash Attribute Name> property")
+@CapabilityDescription("Calculates a hash value for the Content of a FlowFile and puts that hash value on the FlowFile as an attribute whose name "
+        + "is determined by the <Hash Attribute Name> property")
+@WritesAttribute(attribute = "<Hash Attribute Name>", description = "This Processor adds an attribute whose value is the result of Hashing the "
+        + "existing FlowFile attributes. The name of this attribute is specified by the <Hash Attribute Name> property")
 public class HashContent extends AbstractProcessor {
 
     public static final PropertyDescriptor ATTRIBUTE_NAME = new PropertyDescriptor.Builder()
@@ -71,10 +73,14 @@ public class HashContent extends AbstractProcessor {
             .defaultValue("MD5")
             .build();
 
-    public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
-            .description("FlowFiles that are process successfully will be sent to this relationship").build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure")
-            .description("Any FlowFile that cannot be processed successfully will be sent to this relationship without any attribute being added").build();
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("FlowFiles that are process successfully will be sent to this relationship")
+            .build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("Any FlowFile that cannot be processed successfully will be sent to this relationship without any attribute being added")
+            .build();
 
     private List<PropertyDescriptor> properties;
     private Set<Relationship> relationships;

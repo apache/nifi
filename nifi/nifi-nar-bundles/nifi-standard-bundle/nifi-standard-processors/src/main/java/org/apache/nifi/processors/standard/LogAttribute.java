@@ -90,7 +90,10 @@ public class LogAttribute extends AbstractProcessor {
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> supportedDescriptors;
 
-    public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("All FlowFiles are routed to this relationship").build();
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("All FlowFiles are routed to this relationship")
+            .build();
 
     @Override
     protected void init(final ProcessorInitializationContext context) {

@@ -43,13 +43,23 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Base class for PutFTP & PutSFTP
+ *
  * @param <T>
  */
 public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractProcessor {
 
-    public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("FlowFiles that are successfully sent will be routed to success").build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure").description("FlowFiles that failed to send to the remote system; failure is usually looped back to this processor").build();
-    public static final Relationship REL_REJECT = new Relationship.Builder().name("reject").description("FlowFiles that were rejected by the destination system").build();
+    public static final Relationship REL_SUCCESS = new Relationship.Builder().
+            name("success").
+            description("FlowFiles that are successfully sent will be routed to success").
+            build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder().
+            name("failure").
+            description("FlowFiles that failed to send to the remote system; failure is usually looped back to this processor").
+            build();
+    public static final Relationship REL_REJECT = new Relationship.Builder().
+            name("reject").
+            description("FlowFiles that were rejected by the destination system").
+            build();
 
     private final Set<Relationship> relationships;
 
@@ -85,26 +95,42 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
         }
 
         final ProcessorLog logger = getLogger();
-        final String hostname = context.getProperty(FileTransfer.HOSTNAME).evaluateAttributeExpressions(flowFile).getValue();
+        final String hostname = context.getProperty(FileTransfer.HOSTNAME).
+                evaluateAttributeExpressions(flowFile).
+                getValue();
 
-        final int maxNumberOfFiles = context.getProperty(FileTransfer.BATCH_SIZE).asInteger();
+        final int maxNumberOfFiles = context.
+                getProperty(FileTransfer.BATCH_SIZE).
+                asInteger();
         int fileCount = 0;
         try (final T transfer = getFileTransfer(context)) {
             do {
-                final String rootPath = context.getProperty(FileTransfer.REMOTE_PATH).evaluateAttributeExpressions(flowFile).getValue();
+                final String rootPath = context.
+                        getProperty(FileTransfer.REMOTE_PATH).
+                        evaluateAttributeExpressions(flowFile).
+                        getValue();
                 final String workingDirPath;
                 if (rootPath == null) {
                     workingDirPath = null;
                 } else {
                     File workingDirectory = new File(rootPath);
-                    if (!workingDirectory.getPath().startsWith("/") && !workingDirectory.getPath().startsWith("\\")) {
-                        workingDirectory = new File(transfer.getHomeDirectory(flowFile), workingDirectory.getPath());
+                    if (!workingDirectory.getPath().
+                            startsWith("/") && !workingDirectory.getPath().
+                            startsWith("\\")) {
+                        workingDirectory = new File(transfer.
+                                getHomeDirectory(flowFile), workingDirectory.
+                                getPath());
                     }
-                    workingDirPath = workingDirectory.getPath().replace("\\", "/");
+                    workingDirPath = workingDirectory.getPath().
+                            replace("\\", "/");
                 }
 
-                final boolean rejectZeroByteFiles = context.getProperty(FileTransfer.REJECT_ZERO_BYTE).asBoolean();
-                final ConflictResult conflictResult = identifyAndResolveConflictFile(context.getProperty(FileTransfer.CONFLICT_RESOLUTION).getValue(),
+                final boolean rejectZeroByteFiles = context.
+                        getProperty(FileTransfer.REJECT_ZERO_BYTE).
+                        asBoolean();
+                final ConflictResult conflictResult = identifyAndResolveConflictFile(context.
+                        getProperty(FileTransfer.CONFLICT_RESOLUTION).
+                        getValue(),
                         transfer, workingDirPath, flowFile, rejectZeroByteFiles, logger);
 
                 if (conflictResult.isTransfer()) {
@@ -118,28 +144,37 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
                         @Override
                         public void process(final InputStream in) throws IOException {
                             try (final InputStream bufferedIn = new BufferedInputStream(in)) {
-                                if (workingDirPath != null && context.getProperty(SFTPTransfer.CREATE_DIRECTORY).asBoolean()) {
-                                    transfer.ensureDirectoryExists(flowFileToTransfer, new File(workingDirPath));
+                                if (workingDirPath != null && context.
+                                        getProperty(SFTPTransfer.CREATE_DIRECTORY).
+                                        asBoolean()) {
+                                    transfer.
+                                            ensureDirectoryExists(flowFileToTransfer, new File(workingDirPath));
                                 }
 
-                                fullPathRef.set(transfer.put(flowFileToTransfer, workingDirPath, conflictResult.getFileName(), bufferedIn));
+                                fullPathRef.set(transfer.
+                                        put(flowFileToTransfer, workingDirPath, conflictResult.
+                                                getFileName(), bufferedIn));
                             }
                         }
                     });
                     afterPut(flowFile, context, transfer);
 
                     stopWatch.stop();
-                    final String dataRate = stopWatch.calculateDataRate(flowFile.getSize());
-                    final long millis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
-                    logger.info("Successfully transfered {} to {} on remote host {} in {} milliseconds at a rate of {}",
-                            new Object[]{flowFile, fullPathRef.get(), hostname, millis, dataRate});
+                    final String dataRate = stopWatch.
+                            calculateDataRate(flowFile.getSize());
+                    final long millis = stopWatch.
+                            getDuration(TimeUnit.MILLISECONDS);
+                    logger.
+                            info("Successfully transfered {} to {} on remote host {} in {} milliseconds at a rate of {}",
+                                    new Object[]{flowFile, fullPathRef.get(), hostname, millis, dataRate});
 
                     String fullPathWithSlash = fullPathRef.get();
                     if (!fullPathWithSlash.startsWith("/")) {
                         fullPathWithSlash = "/" + fullPathWithSlash;
                     }
                     final String destinationUri = transfer.getProtocolName() + "://" + hostname + fullPathWithSlash;
-                    session.getProvenanceReporter().send(flowFile, destinationUri, millis);
+                    session.getProvenanceReporter().
+                            send(flowFile, destinationUri, millis);
                 }
 
                 if (conflictResult.isPenalize()) {
@@ -148,20 +183,28 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
 
                 session.transfer(flowFile, conflictResult.getRelationship());
                 session.commit();
-            } while (isScheduled() && (getRelationships().size() == context.getAvailableRelationships().size()) && (++fileCount < maxNumberOfFiles) && ((flowFile = session.get()) != null));
+            } while (isScheduled() && (getRelationships().
+                    size() == context.getAvailableRelationships().
+                    size()) && (++fileCount < maxNumberOfFiles) && ((flowFile = session.
+                    get()) != null));
         } catch (final IOException e) {
             context.yield();
-            logger.error("Unable to transfer {} to remote host {} due to {}", new Object[]{flowFile, hostname, e});
+            logger.
+                    error("Unable to transfer {} to remote host {} due to {}", new Object[]{flowFile, hostname, e});
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         } catch (final FlowFileAccessException e) {
             context.yield();
-            logger.error("Unable to transfer {} to remote host {} due to {}", new Object[]{flowFile, hostname, e.getCause()});
+            logger.
+                    error("Unable to transfer {} to remote host {} due to {}", new Object[]{flowFile, hostname, e.
+                        getCause()});
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         } catch (final ProcessException e) {
             context.yield();
-            logger.error("Unable to transfer {} to remote host {} due to {}: {}; routing to failure", new Object[]{flowFile, hostname, e, e.getCause()});
+            logger.
+                    error("Unable to transfer {} to remote host {} due to {}: {}; routing to failure", new Object[]{flowFile, hostname, e, e.
+                        getCause()});
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }
@@ -179,53 +222,62 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
         if (rejectZeroByteFiles) {
             final long sizeInBytes = flowFile.getSize();
             if (sizeInBytes == 0) {
-                logger.warn("Rejecting {} because it is zero bytes", new Object[]{flowFile});
+                logger.
+                        warn("Rejecting {} because it is zero bytes", new Object[]{flowFile});
                 return new ConflictResult(REL_REJECT, false, fileName, true);
             }
         }
 
         //Second, check if the user doesn't care about detecting naming conflicts ahead of time
-        if (conflictResolutionType.equalsIgnoreCase(FileTransfer.CONFLICT_RESOLUTION_NONE)) {
+        if (conflictResolutionType.
+                equalsIgnoreCase(FileTransfer.CONFLICT_RESOLUTION_NONE)) {
             return new ConflictResult(destinationRelationship, transferFile, fileName, penalizeFile);
         }
 
-        final FileInfo remoteFileInfo = transfer.getRemoteFileInfo(flowFile, path, fileName);
+        final FileInfo remoteFileInfo = transfer.
+                getRemoteFileInfo(flowFile, path, fileName);
         if (remoteFileInfo == null) {
             return new ConflictResult(destinationRelationship, transferFile, fileName, penalizeFile);
         }
 
         if (remoteFileInfo.isDirectory()) {
-            logger.info("Resolving conflict by rejecting {} due to conflicting filename with a directory or file already on remote server", new Object[]{flowFile});
+            logger.
+                    info("Resolving conflict by rejecting {} due to conflicting filename with a directory or file already on remote server", new Object[]{flowFile});
             return new ConflictResult(REL_REJECT, false, fileName, false);
         }
 
-        logger.info("Discovered a filename conflict on the remote server for {} so handling using configured Conflict Resolution of {}",
-                new Object[]{flowFile, conflictResolutionType});
+        logger.
+                info("Discovered a filename conflict on the remote server for {} so handling using configured Conflict Resolution of {}",
+                        new Object[]{flowFile, conflictResolutionType});
 
         switch (conflictResolutionType.toUpperCase()) {
             case FileTransfer.CONFLICT_RESOLUTION_REJECT:
                 destinationRelationship = REL_REJECT;
                 transferFile = false;
                 penalizeFile = false;
-                logger.info("Resolving conflict by rejecting {} due to conflicting filename with a directory or file already on remote server", new Object[]{flowFile});
+                logger.
+                        info("Resolving conflict by rejecting {} due to conflicting filename with a directory or file already on remote server", new Object[]{flowFile});
                 break;
             case FileTransfer.CONFLICT_RESOLUTION_REPLACE:
                 transfer.deleteFile(path, fileName);
                 destinationRelationship = REL_SUCCESS;
                 transferFile = true;
                 penalizeFile = false;
-                logger.info("Resolving filename conflict for {} with remote server by deleting remote file and replacing with flow file", new Object[]{flowFile});
+                logger.
+                        info("Resolving filename conflict for {} with remote server by deleting remote file and replacing with flow file", new Object[]{flowFile});
                 break;
             case FileTransfer.CONFLICT_RESOLUTION_RENAME:
                 boolean uniqueNameGenerated = false;
                 for (int i = 1; i < 100 && !uniqueNameGenerated; i++) {
                     String possibleFileName = i + "." + fileName;
 
-                    final FileInfo renamedFileInfo = transfer.getRemoteFileInfo(flowFile, path, possibleFileName);
+                    final FileInfo renamedFileInfo = transfer.
+                            getRemoteFileInfo(flowFile, path, possibleFileName);
                     uniqueNameGenerated = (renamedFileInfo == null);
                     if (uniqueNameGenerated) {
                         fileName = possibleFileName;
-                        logger.info("Attempting to resolve filename conflict for {} on the remote server by using a newly generated filename of: {}", new Object[]{flowFile, fileName});
+                        logger.
+                                info("Attempting to resolve filename conflict for {} on the remote server by using a newly generated filename of: {}", new Object[]{flowFile, fileName});
                         destinationRelationship = REL_SUCCESS;
                         transferFile = true;
                         penalizeFile = false;
@@ -236,20 +288,23 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
                     destinationRelationship = REL_REJECT;
                     transferFile = false;
                     penalizeFile = false;
-                    logger.info("Could not determine a unique name after 99 attempts for.  Switching resolution mode to REJECT for " + flowFile);
+                    logger.
+                            info("Could not determine a unique name after 99 attempts for.  Switching resolution mode to REJECT for " + flowFile);
                 }
                 break;
             case FileTransfer.CONFLICT_RESOLUTION_IGNORE:
                 destinationRelationship = REL_SUCCESS;
                 transferFile = false;
                 penalizeFile = false;
-                logger.info("Resolving conflict for {}  by not transferring file and and still considering the process a success.", new Object[]{flowFile});
+                logger.
+                        info("Resolving conflict for {}  by not transferring file and and still considering the process a success.", new Object[]{flowFile});
                 break;
             case FileTransfer.CONFLICT_RESOLUTION_FAIL:
                 destinationRelationship = REL_FAILURE;
                 transferFile = false;
                 penalizeFile = true;
-                logger.info("Resolved filename conflict for {} as configured by routing to FAILURE relationship.", new Object[]{flowFile});
+                logger.
+                        info("Resolved filename conflict for {} as configured by routing to FAILURE relationship.", new Object[]{flowFile});
             default:
                 break;
         }

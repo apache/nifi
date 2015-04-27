@@ -24,22 +24,22 @@
         <!-- Processor Documentation ================================================== -->
         <h2>Description:</h2>
         <p>
-        	This Processors puts the contents of a FlowFile to a Topic in 
-        	<a href="http://kafka.apache.org/">Apache Kafka</a>. The full contents of
-        	a FlowFile becomes the contents of a single message in Kafka.
-        	This message is optionally assigned a key by using the
-        	&lt;Kafka Key&gt; Property.
+            This Processors puts the contents of a FlowFile to a Topic in 
+            <a href="http://kafka.apache.org/">Apache Kafka</a>. The full contents of
+            a FlowFile becomes the contents of a single message in Kafka.
+            This message is optionally assigned a key by using the
+            &lt;Kafka Key&gt; Property.
         </p>
 
-		<p>
-			The Processor allows the user to configure an optional Message Delimiter that
-			can be used to send many messages per FlowFile. For example, a \n could be used
-			to indicate that the contents of the FlowFile should be used to send one message
-			per line of text. If the property is not set, the entire contents of the FlowFile
-			will be sent as a single message. When using the delimiter, if some messages are
-			successfully sent but other messages fail to send, the FlowFile will be FORKed into
-			two child FlowFiles, with the successfully sent messages being routed to 'success'
-			and the messages that could not be sent going to 'failure'.
-		</p>
+        <p>
+            The Processor allows the user to configure an optional Message Delimiter that
+            can be used to send many messages per FlowFile. For example, a \n could be used
+            to indicate that the contents of the FlowFile should be used to send one message
+            per line of text. If the property is not set, the entire contents of the FlowFile
+            will be sent as a single message. When using the delimiter, if some messages are
+            successfully sent but other messages fail to send, the FlowFile will be FORKed into
+            two child FlowFiles, with the successfully sent messages being routed to 'success'
+            and the messages that could not be sent going to 'failure'.
+        </p>
     </body>
 </html>

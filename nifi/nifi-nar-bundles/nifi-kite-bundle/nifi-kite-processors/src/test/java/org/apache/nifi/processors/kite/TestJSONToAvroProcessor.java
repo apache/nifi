@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.nifi.processors.kite;
 
 import java.io.IOException;
@@ -30,32 +29,33 @@ import org.junit.Test;
 import static org.apache.nifi.processors.kite.TestUtil.streamFor;
 
 public class TestJSONToAvroProcessor {
-  public static final Schema SCHEMA = SchemaBuilder.record("Test").fields()
-      .requiredLong("id")
-      .requiredString("color")
-      .optionalDouble("price")
-      .endRecord();
 
-  public static final String JSON_CONTENT = "" +
-      "{\"id\": 1,\"color\": \"green\"}" +
-      "{\"id\": \"120V\", \"color\": \"blue\"}\n" + // invalid, ID is a string
-      "{\"id\": 2, \"color\": \"grey\", \"price\": 12.95 }";
+    public static final Schema SCHEMA = SchemaBuilder.record("Test").fields()
+            .requiredLong("id")
+            .requiredString("color")
+            .optionalDouble("price")
+            .endRecord();
 
-  @Test
-  public void testBasicConversion() throws IOException {
-    TestRunner runner = TestRunners.newTestRunner(ConvertJSONToAvro.class);
-    runner.assertNotValid();
-    runner.setProperty(ConvertJSONToAvro.SCHEMA, SCHEMA.toString());
-    runner.assertValid();
+    public static final String JSON_CONTENT = ""
+            + "{\"id\": 1,\"color\": \"green\"}"
+            + "{\"id\": \"120V\", \"color\": \"blue\"}\n" + // invalid, ID is a string
+            "{\"id\": 2, \"color\": \"grey\", \"price\": 12.95 }";
 
-    runner.enqueue(streamFor(JSON_CONTENT));
-    runner.run();
+    @Test
+    public void testBasicConversion() throws IOException {
+        TestRunner runner = TestRunners.newTestRunner(ConvertJSONToAvro.class);
+        runner.assertNotValid();
+        runner.setProperty(ConvertJSONToAvro.SCHEMA, SCHEMA.toString());
+        runner.assertValid();
 
-    long converted = runner.getCounterValue("Converted records");
-    long errors = runner.getCounterValue("Conversion errors");
-    Assert.assertEquals("Should convert 2 rows", 2, converted);
-    Assert.assertEquals("Should reject 1 row", 1, errors);
+        runner.enqueue(streamFor(JSON_CONTENT));
+        runner.run();
 
-    runner.assertAllFlowFilesTransferred("success", 1);
-  }
+        long converted = runner.getCounterValue("Converted records");
+        long errors = runner.getCounterValue("Conversion errors");
+        Assert.assertEquals("Should convert 2 rows", 2, converted);
+        Assert.assertEquals("Should reject 1 row", 1, errors);
+
+        runner.assertAllFlowFilesTransferred("success", 1);
+    }
 }

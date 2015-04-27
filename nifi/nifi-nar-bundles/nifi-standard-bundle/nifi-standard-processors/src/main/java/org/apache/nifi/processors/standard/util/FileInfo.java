@@ -67,7 +67,8 @@ public class FileInfo implements Comparable<FileInfo>, Serializable {
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + ((fullPathFileName == null) ? 0 : fullPathFileName.hashCode());
+        result = prime * result + ((fullPathFileName == null) ? 0 : fullPathFileName.
+                hashCode());
         return result;
     }
 

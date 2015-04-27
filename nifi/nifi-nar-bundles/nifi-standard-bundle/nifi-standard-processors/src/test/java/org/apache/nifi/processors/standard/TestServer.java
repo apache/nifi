@@ -28,8 +28,9 @@ import org.eclipse.jetty.util.ssl.SslContextFactory;
  * Test server to assist with unit tests that requires a server to be stood up.
  */
 public class TestServer {
+
     public static final String NEED_CLIENT_AUTH = "clientAuth";
-    
+
     private Server jetty;
     private boolean secure = false;
 
@@ -39,29 +40,23 @@ public class TestServer {
     public TestServer() {
         createServer(null);
     }
-    
+
     /**
      * Creates the test server.
      *
-     * @param sslProperties     SSLProps to be used in the secure connection. The keys
-     *                          should should use the StandardSSLContextService properties. 
+     * @param sslProperties SSLProps to be used in the secure connection. The
+     * keys should should use the StandardSSLContextService properties.
      */
     public TestServer(final Map<String, String> sslProperties) {
         createServer(sslProperties);
     }
 
-    /**
-     * Creates the server.
-     *
-     * @param webappContext
-     * @return
-     */
     private void createServer(final Map<String, String> sslProperties) {
         jetty = new Server();
 
         // create the unsecure connector
         createConnector();
-        
+
         // create the secure connector if sslProperties are specified
         if (sslProperties != null) {
             createSecureConnector(sslProperties);
@@ -78,29 +73,30 @@ public class TestServer {
         http.setPort(0);
         jetty.addConnector(http);
     }
-    
-    /**
-     * Creates the https connector.
-     *
-     * @return
-     */
+
     private void createSecureConnector(final Map<String, String> sslProperties) {
         SslContextFactory ssl = new SslContextFactory();
-        
-        if ( sslProperties.get(StandardSSLContextService.KEYSTORE.getName()) != null ) {
-            ssl.setKeyStorePath(sslProperties.get(StandardSSLContextService.KEYSTORE.getName()));
-            ssl.setKeyStorePassword(sslProperties.get(StandardSSLContextService.KEYSTORE_PASSWORD.getName()));
-            ssl.setKeyStoreType(sslProperties.get(StandardSSLContextService.KEYSTORE_TYPE.getName()));
+
+        if (sslProperties.get(StandardSSLContextService.KEYSTORE.getName()) != null) {
+            ssl.setKeyStorePath(sslProperties.
+                    get(StandardSSLContextService.KEYSTORE.getName()));
+            ssl.setKeyStorePassword(sslProperties.
+                    get(StandardSSLContextService.KEYSTORE_PASSWORD.getName()));
+            ssl.setKeyStoreType(sslProperties.
+                    get(StandardSSLContextService.KEYSTORE_TYPE.getName()));
         }
-        
-        if ( sslProperties.get(StandardSSLContextService.TRUSTSTORE.getName()) != null ) {
-            ssl.setTrustStorePath(sslProperties.get(StandardSSLContextService.TRUSTSTORE.getName()));
-            ssl.setTrustStorePassword(sslProperties.get(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName()));
-            ssl.setTrustStoreType(sslProperties.get(StandardSSLContextService.TRUSTSTORE_TYPE.getName()));
+
+        if (sslProperties.get(StandardSSLContextService.TRUSTSTORE.getName()) != null) {
+            ssl.setTrustStorePath(sslProperties.
+                    get(StandardSSLContextService.TRUSTSTORE.getName()));
+            ssl.setTrustStorePassword(sslProperties.
+                    get(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName()));
+            ssl.setTrustStoreType(sslProperties.
+                    get(StandardSSLContextService.TRUSTSTORE_TYPE.getName()));
         }
-        
+
         final String clientAuth = sslProperties.get(NEED_CLIENT_AUTH);
-        if ( clientAuth == null ) {
+        if (clientAuth == null) {
             ssl.setNeedClientAuth(true);
         } else {
             ssl.setNeedClientAuth(Boolean.parseBoolean(clientAuth));
@@ -114,7 +110,7 @@ public class TestServer {
 
         // add the connector
         jetty.addConnector(https);
-        
+
         // mark secure as enabled
         secure = true;
     }
@@ -128,25 +124,15 @@ public class TestServer {
             }
         }
     }
-    
+
     public void addHandler(Handler handler) {
         ((HandlerCollection) jetty.getHandler()).addHandler(handler);
     }
-    
-    /**
-     * Starts the server.
-     *
-     * @throws Exception
-     */
+
     public void startServer() throws Exception {
         jetty.start();
     }
 
-    /**
-     * Stops the server.
-     *
-     * @throws Exception
-     */
     public void shutdownServer() throws Exception {
         jetty.stop();
         jetty.destroy();
@@ -158,7 +144,7 @@ public class TestServer {
         }
         return ((ServerConnector) jetty.getConnectors()[0]).getLocalPort();
     }
-    
+
     private int getSecurePort() {
         if (!jetty.isStarted()) {
             throw new IllegalStateException("Jetty server not started");
@@ -166,20 +152,10 @@ public class TestServer {
         return ((ServerConnector) jetty.getConnectors()[1]).getLocalPort();
     }
 
-    /**
-     * Returns the url for the server.
-     *
-     * @return
-     */
     public String getUrl() {
         return "http://localhost:" + getPort();
     }
-    
-    /**
-     * Returns the secure url for the server.
-     * 
-     * @return 
-     */
+
     public String getSecureUrl() {
         String url = null;
         if (secure) {

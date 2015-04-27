@@ -50,8 +50,10 @@ public class TestDetectDuplicate {
         System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "info");
         System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
         System.setProperty("org.slf4j.simpleLogger.log.nifi.io.nio", "debug");
-        System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.DetectDuplicate", "debug");
-        System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.TestDetectDuplicate", "debug");
+        System.
+                setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.DetectDuplicate", "debug");
+        System.
+                setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.TestDetectDuplicate", "debug");
         LOGGER = LoggerFactory.getLogger(TestListenUDP.class);
     }
 
@@ -60,18 +62,21 @@ public class TestDetectDuplicate {
         TestRunner runner = TestRunners.newTestRunner(DetectDuplicate.class);
         final DistributedMapCacheClientImpl client = createClient();
         final Map<String, String> clientProperties = new HashMap<>();
-        clientProperties.put(DistributedMapCacheClientService.HOSTNAME.getName(), "localhost");
+        clientProperties.
+                put(DistributedMapCacheClientService.HOSTNAME.getName(), "localhost");
         runner.addControllerService("client", client, clientProperties);
         runner.setProperty(DetectDuplicate.DISTRIBUTED_CACHE_SERVICE, "client");
-        runner.setProperty(DetectDuplicate.FLOWFILE_DESCRIPTION, "The original flow file");
+        runner.
+                setProperty(DetectDuplicate.FLOWFILE_DESCRIPTION, "The original flow file");
         runner.setProperty(DetectDuplicate.AGE_OFF_DURATION, "48 hours");
         Map<String, String> props = new HashMap<>();
         props.put("hash.value", "1000");
         runner.enqueue(new byte[]{}, props);
         runner.enableControllerService(client);
-        
+
         runner.run();
-        runner.assertAllFlowFilesTransferred(DetectDuplicate.REL_NON_DUPLICATE, 1);
+        runner.
+                assertAllFlowFilesTransferred(DetectDuplicate.REL_NON_DUPLICATE, 1);
         runner.clearTransferState();
         client.exists = true;
         runner.enqueue(new byte[]{}, props);
@@ -87,25 +92,29 @@ public class TestDetectDuplicate {
         TestRunner runner = TestRunners.newTestRunner(DetectDuplicate.class);
         final DistributedMapCacheClientImpl client = createClient();
         final Map<String, String> clientProperties = new HashMap<>();
-        clientProperties.put(DistributedMapCacheClientService.HOSTNAME.getName(), "localhost");
+        clientProperties.
+                put(DistributedMapCacheClientService.HOSTNAME.getName(), "localhost");
         runner.addControllerService("client", client, clientProperties);
         runner.setProperty(DetectDuplicate.DISTRIBUTED_CACHE_SERVICE, "client");
-        runner.setProperty(DetectDuplicate.FLOWFILE_DESCRIPTION, "The original flow file");
+        runner.
+                setProperty(DetectDuplicate.FLOWFILE_DESCRIPTION, "The original flow file");
         runner.setProperty(DetectDuplicate.AGE_OFF_DURATION, "2 secs");
         runner.enableControllerService(client);
-        
+
         Map<String, String> props = new HashMap<>();
         props.put("hash.value", "1000");
         runner.enqueue(new byte[]{}, props);
-        
+
         runner.run();
-        runner.assertAllFlowFilesTransferred(DetectDuplicate.REL_NON_DUPLICATE, 1);
+        runner.
+                assertAllFlowFilesTransferred(DetectDuplicate.REL_NON_DUPLICATE, 1);
         runner.clearTransferState();
         client.exists = true;
         Thread.sleep(3000);
         runner.enqueue(new byte[]{}, props);
         runner.run();
-        runner.assertAllFlowFilesTransferred(DetectDuplicate.REL_NON_DUPLICATE, 1);
+        runner.
+                assertAllFlowFilesTransferred(DetectDuplicate.REL_NON_DUPLICATE, 1);
         runner.assertTransferCount(DetectDuplicate.REL_DUPLICATE, 0);
         runner.assertTransferCount(DetectDuplicate.REL_FAILURE, 0);
     }
@@ -203,7 +212,8 @@ public class TestDetectDuplicate {
                 }
 
                 if (child.exists()) {
-                    throw new IOException("Could not delete " + dataFile.getAbsolutePath());
+                    throw new IOException("Could not delete " + dataFile.
+                            getAbsolutePath());
                 }
             }
         }

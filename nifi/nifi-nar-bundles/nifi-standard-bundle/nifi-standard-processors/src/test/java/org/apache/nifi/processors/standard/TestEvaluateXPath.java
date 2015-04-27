@@ -33,60 +33,81 @@ import org.junit.Test;
 
 public class TestEvaluateXPath {
 
-    private static final Path XML_SNIPPET = Paths.get("src/test/resources/TestXml/xml-snippet.xml");
+    private static final Path XML_SNIPPET = Paths.
+            get("src/test/resources/TestXml/xml-snippet.xml");
 
     @Test
     public void testAsAttribute() throws XPathFactoryConfigurationException, IOException {
-        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXPath());
-        testRunner.setProperty(EvaluateXPath.DESTINATION, EvaluateXPath.DESTINATION_ATTRIBUTE);
+        final TestRunner testRunner = TestRunners.
+                newTestRunner(new EvaluateXPath());
+        testRunner.
+                setProperty(EvaluateXPath.DESTINATION, EvaluateXPath.DESTINATION_ATTRIBUTE);
         testRunner.setProperty("xpath.result1", "/");
-        testRunner.setProperty("xpath.result2", "/*:bundle/node/subNode/value/text()");
+        testRunner.
+                setProperty("xpath.result2", "/*:bundle/node/subNode/value/text()");
 
         testRunner.enqueue(XML_SNIPPET);
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(EvaluateXPath.REL_MATCH, 1);
-        final MockFlowFile out = testRunner.getFlowFilesForRelationship(EvaluateXPath.REL_MATCH).get(0);
+        final MockFlowFile out = testRunner.
+                getFlowFilesForRelationship(EvaluateXPath.REL_MATCH).
+                get(0);
         out.assertAttributeEquals("xpath.result2", "Hello");
-        assertTrue(out.getAttribute("xpath.result1").contains("Hello"));
+        assertTrue(out.getAttribute("xpath.result1").
+                contains("Hello"));
     }
 
     @Test
     public void testCheckIfElementExists() throws XPathFactoryConfigurationException, IOException {
-        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXPath());
-        testRunner.setProperty(EvaluateXPath.DESTINATION, EvaluateXPath.DESTINATION_ATTRIBUTE);
+        final TestRunner testRunner = TestRunners.
+                newTestRunner(new EvaluateXPath());
+        testRunner.
+                setProperty(EvaluateXPath.DESTINATION, EvaluateXPath.DESTINATION_ATTRIBUTE);
         testRunner.setProperty("xpath.result1", "/");
-        testRunner.setProperty("xpath.result.exist.1", "boolean(/*:bundle/node)");
-        testRunner.setProperty("xpath.result.exist.2", "boolean(/*:bundle/node2)");
+        testRunner.
+                setProperty("xpath.result.exist.1", "boolean(/*:bundle/node)");
+        testRunner.
+                setProperty("xpath.result.exist.2", "boolean(/*:bundle/node2)");
 
         testRunner.enqueue(XML_SNIPPET);
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(EvaluateXPath.REL_MATCH, 1);
-        final MockFlowFile out = testRunner.getFlowFilesForRelationship(EvaluateXPath.REL_MATCH).get(0);
-        assertTrue(out.getAttribute("xpath.result1").contains("Hello"));
+        final MockFlowFile out = testRunner.
+                getFlowFilesForRelationship(EvaluateXPath.REL_MATCH).
+                get(0);
+        assertTrue(out.getAttribute("xpath.result1").
+                contains("Hello"));
         out.assertAttributeEquals("xpath.result.exist.1", "true");
         out.assertAttributeEquals("xpath.result.exist.2", "false");
     }
 
     @Test
     public void testUnmatched() throws XPathFactoryConfigurationException, IOException {
-        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXPath());
-        testRunner.setProperty(EvaluateXPath.DESTINATION, EvaluateXPath.DESTINATION_CONTENT);
+        final TestRunner testRunner = TestRunners.
+                newTestRunner(new EvaluateXPath());
+        testRunner.
+                setProperty(EvaluateXPath.DESTINATION, EvaluateXPath.DESTINATION_CONTENT);
         testRunner.setProperty("xpath.result.exist.2", "/*:bundle/node2");
 
         testRunner.enqueue(XML_SNIPPET);
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(EvaluateXPath.REL_NO_MATCH, 1);
-        testRunner.getFlowFilesForRelationship(EvaluateXPath.REL_NO_MATCH).get(0).assertContentEquals(XML_SNIPPET);
+        testRunner.getFlowFilesForRelationship(EvaluateXPath.REL_NO_MATCH).
+                get(0).
+                assertContentEquals(XML_SNIPPET);
     }
 
     @Test(expected = java.lang.AssertionError.class)
     public void testMultipleXPathForContent() throws IOException {
-        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXPath());
-        testRunner.setProperty(EvaluateXPath.DESTINATION, EvaluateXPath.DESTINATION_CONTENT);
-        testRunner.setProperty(EvaluateXPath.RETURN_TYPE, EvaluateXPath.RETURN_TYPE_AUTO);
+        final TestRunner testRunner = TestRunners.
+                newTestRunner(new EvaluateXPath());
+        testRunner.
+                setProperty(EvaluateXPath.DESTINATION, EvaluateXPath.DESTINATION_CONTENT);
+        testRunner.
+                setProperty(EvaluateXPath.RETURN_TYPE, EvaluateXPath.RETURN_TYPE_AUTO);
         testRunner.setProperty("some.property.1", "/*:bundle/node/subNode[1]");
         testRunner.setProperty("some.property.2", "/*:bundle/node/subNode[2]");
 
@@ -96,15 +117,19 @@ public class TestEvaluateXPath {
 
     @Test
     public void testWriteToContent() throws XPathFactoryConfigurationException, IOException {
-        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXPath());
-        testRunner.setProperty(EvaluateXPath.DESTINATION, EvaluateXPath.DESTINATION_CONTENT);
+        final TestRunner testRunner = TestRunners.
+                newTestRunner(new EvaluateXPath());
+        testRunner.
+                setProperty(EvaluateXPath.DESTINATION, EvaluateXPath.DESTINATION_CONTENT);
         testRunner.setProperty("some.property", "/*:bundle/node/subNode[1]");
 
         testRunner.enqueue(XML_SNIPPET);
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(EvaluateXPath.REL_MATCH, 1);
-        final MockFlowFile out = testRunner.getFlowFilesForRelationship(EvaluateXPath.REL_MATCH).get(0);
+        final MockFlowFile out = testRunner.
+                getFlowFilesForRelationship(EvaluateXPath.REL_MATCH).
+                get(0);
         final byte[] outData = testRunner.getContentAsByteArray(out);
         final String outXml = new String(outData, "UTF-8");
         assertTrue(outXml.contains("subNode"));
@@ -113,8 +138,10 @@ public class TestEvaluateXPath {
 
     @Test
     public void testFailureIfContentMatchesMultipleNodes() throws XPathFactoryConfigurationException, IOException {
-        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXPath());
-        testRunner.setProperty(EvaluateXPath.DESTINATION, EvaluateXPath.DESTINATION_CONTENT);
+        final TestRunner testRunner = TestRunners.
+                newTestRunner(new EvaluateXPath());
+        testRunner.
+                setProperty(EvaluateXPath.DESTINATION, EvaluateXPath.DESTINATION_CONTENT);
         testRunner.setProperty("some.property", "/*:bundle/node/subNode");
 
         testRunner.enqueue(XML_SNIPPET);
@@ -125,33 +152,45 @@ public class TestEvaluateXPath {
 
     @Test
     public void testWriteStringToContent() throws XPathFactoryConfigurationException, IOException {
-        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXPath());
-        testRunner.setProperty(EvaluateXPath.DESTINATION, EvaluateXPath.DESTINATION_CONTENT);
-        testRunner.setProperty(EvaluateXPath.RETURN_TYPE, EvaluateXPath.RETURN_TYPE_STRING);
-        testRunner.setProperty("some.property", "/*:bundle/node/subNode[1]/value/text()");
+        final TestRunner testRunner = TestRunners.
+                newTestRunner(new EvaluateXPath());
+        testRunner.
+                setProperty(EvaluateXPath.DESTINATION, EvaluateXPath.DESTINATION_CONTENT);
+        testRunner.
+                setProperty(EvaluateXPath.RETURN_TYPE, EvaluateXPath.RETURN_TYPE_STRING);
+        testRunner.
+                setProperty("some.property", "/*:bundle/node/subNode[1]/value/text()");
 
         testRunner.enqueue(XML_SNIPPET);
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(EvaluateXPath.REL_MATCH, 1);
-        final MockFlowFile out = testRunner.getFlowFilesForRelationship(EvaluateXPath.REL_MATCH).get(0);
+        final MockFlowFile out = testRunner.
+                getFlowFilesForRelationship(EvaluateXPath.REL_MATCH).
+                get(0);
         final byte[] outData = testRunner.getContentAsByteArray(out);
         final String outXml = new String(outData, "UTF-8");
-        assertTrue(outXml.trim().equals("Hello"));
+        assertTrue(outXml.trim().
+                equals("Hello"));
     }
 
     @Test
     public void testWriteNodeSetToAttribute() throws XPathFactoryConfigurationException, IOException {
-        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateXPath());
-        testRunner.setProperty(EvaluateXPath.DESTINATION, EvaluateXPath.DESTINATION_ATTRIBUTE);
-        testRunner.setProperty(EvaluateXPath.RETURN_TYPE, EvaluateXPath.RETURN_TYPE_NODESET);
+        final TestRunner testRunner = TestRunners.
+                newTestRunner(new EvaluateXPath());
+        testRunner.
+                setProperty(EvaluateXPath.DESTINATION, EvaluateXPath.DESTINATION_ATTRIBUTE);
+        testRunner.
+                setProperty(EvaluateXPath.RETURN_TYPE, EvaluateXPath.RETURN_TYPE_NODESET);
         testRunner.setProperty("some.property", "/*:bundle/node/subNode[1]");
 
         testRunner.enqueue(XML_SNIPPET);
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(EvaluateXPath.REL_MATCH, 1);
-        final MockFlowFile out = testRunner.getFlowFilesForRelationship(EvaluateXPath.REL_MATCH).get(0);
+        final MockFlowFile out = testRunner.
+                getFlowFilesForRelationship(EvaluateXPath.REL_MATCH).
+                get(0);
         final String outXml = out.getAttribute("some.property");
         assertTrue(outXml.contains("subNode"));
         assertTrue(outXml.contains("Hello"));

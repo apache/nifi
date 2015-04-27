@@ -42,7 +42,9 @@ public class TestReplaceText {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        final MockFlowFile out = runner.
+                getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).
+                get(0);
         out.assertContentEquals("Hlleo, World!".getBytes("UTF-8"));
     }
 
@@ -57,7 +59,9 @@ public class TestReplaceText {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        final MockFlowFile out = runner.
+                getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).
+                get(0);
         out.assertContentEquals("H[ell]o, World!");
     }
 
@@ -74,7 +78,9 @@ public class TestReplaceText {
         runner.enqueue(Paths.get("src/test/resources/hello.txt"), attributes);
         runner.run();
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        final MockFlowFile out = runner.
+                getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).
+                get(0);
         final String actual = new String(out.toByteArray(), StandardCharsets.UTF_8);
         System.out.println(actual);
         Assert.assertEquals(expected, actual);
@@ -92,7 +98,9 @@ public class TestReplaceText {
         runner.enqueue(Paths.get("src/test/resources/hello.txt"), attributes);
         runner.run();
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        final MockFlowFile out = runner.
+                getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).
+                get(0);
         final String actual = new String(out.toByteArray(), StandardCharsets.UTF_8);
         Assert.assertEquals("Hell123o, World!", actual);
     }
@@ -111,7 +119,9 @@ public class TestReplaceText {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        final MockFlowFile out = runner.
+                getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).
+                get(0);
         out.assertContentEquals("Hello, World!");
     }
 
@@ -129,7 +139,9 @@ public class TestReplaceText {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        final MockFlowFile out = runner.
+                getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).
+                get(0);
         out.assertContentEquals("H[$1]o, World!");
     }
 
@@ -148,7 +160,9 @@ public class TestReplaceText {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        final MockFlowFile out = runner.
+                getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).
+                get(0);
         out.assertContentEquals("Good-bye, World!");
     }
 
@@ -167,7 +181,9 @@ public class TestReplaceText {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        final MockFlowFile out = runner.
+                getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).
+                get(0);
         out.assertContentEquals("Hello, World!");
     }
 
@@ -186,7 +202,9 @@ public class TestReplaceText {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        final MockFlowFile out = runner.
+                getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).
+                get(0);
         out.assertContentEquals("Hell$2o, World!");
     }
 
@@ -205,7 +223,9 @@ public class TestReplaceText {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        final MockFlowFile out = runner.
+                getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).
+                get(0);
         out.assertContentEquals("H$do, World!");
     }
 
@@ -224,7 +244,9 @@ public class TestReplaceText {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        final MockFlowFile out = runner.
+                getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).
+                get(0);
         out.assertContentEquals("H$1o, World!");
     }
 
@@ -239,7 +261,9 @@ public class TestReplaceText {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        final MockFlowFile out = runner.
+                getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).
+                get(0);
         out.assertContentEquals("Ho, World!");
     }
 
@@ -254,7 +278,9 @@ public class TestReplaceText {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        final MockFlowFile out = runner.
+                getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).
+                get(0);
         out.assertContentEquals("Hello, World!");
     }
 
@@ -269,7 +295,9 @@ public class TestReplaceText {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        final MockFlowFile out = runner.
+                getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).
+                get(0);
         out.assertContentEquals("HeRRo, WorRd!");
     }
 
@@ -287,7 +315,9 @@ public class TestReplaceText {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        final MockFlowFile out = runner.
+                getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).
+                get(0);
         out.assertContentEquals("Good");
     }
 
@@ -323,7 +353,9 @@ public class TestReplaceText {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        final MockFlowFile out = runner.
+                getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).
+                get(0);
         out.assertContentEquals("Good");
     }
 
@@ -332,7 +364,8 @@ public class TestReplaceText {
         final TestRunner runner = TestRunners.newTestRunner(new ReplaceText());
         runner.setValidateExpressionUsage(false);
         runner.setProperty(ReplaceText.REGEX, ".*");
-        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "${filename}\t${now():format(\"yyyy/MM/dd'T'HHmmss'Z'\")}\t${fileSize}\n");
+        runner.
+                setProperty(ReplaceText.REPLACEMENT_VALUE, "${filename}\t${now():format(\"yyyy/MM/dd'T'HHmmss'Z'\")}\t${fileSize}\n");
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("filename", "abc.txt");
@@ -341,7 +374,9 @@ public class TestReplaceText {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        final MockFlowFile out = runner.
+                getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).
+                get(0);
         final String outContent = new String(out.toByteArray(), StandardCharsets.UTF_8);
         Assert.assertTrue(outContent.startsWith("abc.txt\t"));
         System.out.println(outContent);
@@ -353,7 +388,8 @@ public class TestReplaceText {
         final TestRunner runner = TestRunners.newTestRunner(new ReplaceText());
         runner.setValidateExpressionUsage(false);
         runner.setProperty(ReplaceText.REGEX, "(?s)(^.*)");
-        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "attribute header\n\n${filename}\n\ndata header\n\n$1\n\nfooter");
+        runner.
+                setProperty(ReplaceText.REPLACEMENT_VALUE, "attribute header\n\n${filename}\n\ndata header\n\n$1\n\nfooter");
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("filename", "abc.txt");
@@ -362,9 +398,12 @@ public class TestReplaceText {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        final MockFlowFile out = runner.
+                getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).
+                get(0);
         final String outContent = new String(out.toByteArray(), StandardCharsets.UTF_8);
-        Assert.assertTrue(outContent.equals("attribute header\n\nabc.txt\n\ndata header\n\nHello\nWorld!\n\nfooter"));
+        Assert.assertTrue(outContent.
+                equals("attribute header\n\nabc.txt\n\ndata header\n\nHello\nWorld!\n\nfooter"));
         System.out.println(outContent);
     }
 

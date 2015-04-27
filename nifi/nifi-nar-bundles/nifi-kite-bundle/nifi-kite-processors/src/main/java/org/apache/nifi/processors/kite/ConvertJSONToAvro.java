@@ -105,7 +105,7 @@ public class ConvertJSONToAvro extends AbstractKiteProcessor {
         }
 
         String schemaProperty = context.getProperty(SCHEMA)
-            .evaluateAttributeExpressions(flowFile)
+                .evaluateAttributeExpressions(flowFile)
                 .getValue();
         final Schema schema;
         try {

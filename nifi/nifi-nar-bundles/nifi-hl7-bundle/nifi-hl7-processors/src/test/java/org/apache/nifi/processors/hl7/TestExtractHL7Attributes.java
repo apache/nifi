@@ -30,19 +30,19 @@ import org.junit.Test;
 
 public class TestExtractHL7Attributes {
 
-	@Test
-	public void testExtract() throws IOException {
-		System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi", "DEBUG");
-		final TestRunner runner = TestRunners.newTestRunner(ExtractHL7Attributes.class);
-		runner.enqueue(Paths.get("src/test/resources/hypoglycemia.hl7"));
-		
-		runner.run();
-		runner.assertAllFlowFilesTransferred(ExtractHL7Attributes.REL_SUCCESS, 1);
-		final MockFlowFile out = runner.getFlowFilesForRelationship(ExtractHL7Attributes.REL_SUCCESS).get(0);
-		final SortedMap<String, String> sortedAttrs = new TreeMap<>(out.getAttributes());
-		for (final Map.Entry<String, String> entry : sortedAttrs.entrySet()) {
-			System.out.println(entry.getKey() + " : " + entry.getValue());
-		}
-	}
-	
+    @Test
+    public void testExtract() throws IOException {
+        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi", "DEBUG");
+        final TestRunner runner = TestRunners.newTestRunner(ExtractHL7Attributes.class);
+        runner.enqueue(Paths.get("src/test/resources/hypoglycemia.hl7"));
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ExtractHL7Attributes.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ExtractHL7Attributes.REL_SUCCESS).get(0);
+        final SortedMap<String, String> sortedAttrs = new TreeMap<>(out.getAttributes());
+        for (final Map.Entry<String, String> entry : sortedAttrs.entrySet()) {
+            System.out.println(entry.getKey() + " : " + entry.getValue());
+        }
+    }
+
 }

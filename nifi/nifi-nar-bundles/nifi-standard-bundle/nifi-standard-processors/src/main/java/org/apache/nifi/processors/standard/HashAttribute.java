@@ -115,12 +115,14 @@ import org.apache.nifi.processor.util.StandardValidators;
         + "and the value of the property is a regular expression that, if matched by the attribute value, will cause that attribute "
         + "to be used as part of the hash. If the regular expression contains a capturing group, only the value of the capturing "
         + "group will be used.")
-@WritesAttribute(attribute="<Hash Value Attribute Key>", description="This Processor adds an attribute whose value is the result of Hashing the existing FlowFile attributes. The name of this attribute is specified by the <Hash Value Attribute Key> property.")
-@DynamicProperty(name="A flowfile attribute key for attribute inspection", value="A Regular Expression", description="This regular expression is evaluated against the " +
- "flowfile attribute values. If the regular expression contains a capturing " +
- "group, the value of that group will be used when comparing flow file " +
- "attributes. Otherwise, the original flow file attribute's value will be used " +
- "if and only if the value matches the given regular expression.")
+@WritesAttribute(attribute = "<Hash Value Attribute Key>", description = "This Processor adds an attribute whose value is the result of "
+        + "Hashing the existing FlowFile attributes. The name of this attribute is specified by the <Hash Value Attribute Key> property.")
+@DynamicProperty(name = "A flowfile attribute key for attribute inspection", value = "A Regular Expression",
+        description = "This regular expression is evaluated against the "
+        + "flowfile attribute values. If the regular expression contains a capturing "
+        + "group, the value of that group will be used when comparing flow file "
+        + "attributes. Otherwise, the original flow file attribute's value will be used "
+        + "if and only if the value matches the given regular expression.")
 public class HashAttribute extends AbstractProcessor {
 
     public static final PropertyDescriptor HASH_VALUE_ATTRIBUTE = new PropertyDescriptor.Builder()
@@ -130,12 +132,19 @@ public class HashAttribute extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("Used for FlowFiles that have a hash value added").build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure").description("Used for FlowFiles that are missing required attributes").build();
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("Used for FlowFiles that have a hash value added")
+            .build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("Used for FlowFiles that are missing required attributes")
+            .build();
 
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> properties;
-    private final AtomicReference<Map<String, Pattern>> regexMapRef = new AtomicReference<>(Collections.<String, Pattern>emptyMap());
+    private final AtomicReference<Map<String, Pattern>> regexMapRef = new AtomicReference<>(Collections.
+            <String, Pattern>emptyMap());
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -162,11 +171,12 @@ public class HashAttribute extends AbstractProcessor {
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
-                .name(propertyDescriptorName)
-                .addValidator(StandardValidators.createRegexValidator(0, 1, false))
-                .required(false)
-                .dynamic(true)
-                .build();
+                .name(propertyDescriptorName).
+                addValidator(StandardValidators.
+                        createRegexValidator(0, 1, false)).
+                required(false).
+                dynamic(true).
+                build();
     }
 
     @Override

@@ -19,7 +19,13 @@ package org.apache.nifi.processors.standard.util;
 import com.jayway.jsonpath.Filter;
 import com.jayway.jsonpath.Predicate;
 import com.jayway.jsonpath.internal.Utils;
-import com.jayway.jsonpath.internal.token.*;
+import com.jayway.jsonpath.internal.token.ArrayPathToken;
+import com.jayway.jsonpath.internal.token.PathToken;
+import com.jayway.jsonpath.internal.token.PredicatePathToken;
+import com.jayway.jsonpath.internal.token.PropertyPathToken;
+import com.jayway.jsonpath.internal.token.RootPathToken;
+import com.jayway.jsonpath.internal.token.ScanPathToken;
+import com.jayway.jsonpath.internal.token.WildcardPathToken;
 import org.apache.nifi.util.StringUtils;
 
 import java.util.ArrayList;
@@ -30,11 +36,13 @@ import java.util.regex.Pattern;
 import static java.util.Arrays.asList;
 
 /**
- * JsonPathExpressionValidator performs the same execution as com.jayway.jsonpath.internal.PathCompiler, but does not throw
- * exceptions when an invalid path segment is found.
- * Limited access to create JsonPath objects requires a separate flow of execution in avoiding exceptions.
+ * JsonPathExpressionValidator performs the same execution as
+ * com.jayway.jsonpath.internal.PathCompiler, but does not throw exceptions when
+ * an invalid path segment is found. Limited access to create JsonPath objects
+ * requires a separate flow of execution in avoiding exceptions.
  *
- * @see <a href="https://github.com/jayway/JsonPath">https://github.com/jayway/JsonPath</a>
+ * @see
+ * <a href="https://github.com/jayway/JsonPath">https://github.com/jayway/JsonPath</a>
  */
 public class JsonPathExpressionValidator {
 
@@ -46,7 +54,6 @@ public class JsonPathExpressionValidator {
     private static final char BRACKET_OPEN = '[';
     private static final char BRACKET_CLOSE = ']';
     private static final char SPACE = ' ';
-
 
     /**
      * Performs a validation of a provided JsonPath expression.
@@ -64,8 +71,9 @@ public class JsonPathExpressionValidator {
      * </pre>
      * </code>
      *
-     * @param path    to evaluate for validity
-     * @param filters applied to path expression; this is typically unused in the context of Processors
+     * @param path to evaluate for validity
+     * @param filters applied to path expression; this is typically unused in
+     * the context of Processors
      * @return true if the specified path is valid; false otherwise
      */
     public static boolean isValidExpression(String path, Predicate... filters) {
@@ -79,7 +87,7 @@ public class JsonPathExpressionValidator {
             return false;
         }
 
-        LinkedList<Predicate> filterList = new LinkedList<Predicate>(asList(filters));
+        LinkedList<Predicate> filterList = new LinkedList<>(asList(filters));
 
         if (path.charAt(0) != '$' && path.charAt(0) != '@') {
             path = "$." + path;
@@ -128,15 +136,16 @@ public class JsonPathExpressionValidator {
                             continue;
 
                         } else if (positions == 1 && path.charAt(i) == '*') {
-                            fragment = new String("[*]");
+                            fragment = "[*]";
                         } else {
-                            fragment = PROPERTY_OPEN + path.substring(i, i + positions) + PROPERTY_CLOSE;
+                            fragment = PROPERTY_OPEN + path.
+                                    substring(i, i + positions) + PROPERTY_CLOSE;
                         }
                         i += positions;
                     }
                     break;
                 case ANY:
-                    fragment = new String("[*]");
+                    fragment = "[*]";
                     i++;
                     break;
                 default:
@@ -151,7 +160,8 @@ public class JsonPathExpressionValidator {
              * Analyze each component represented by a fragment.  If there is a failure to properly evaluate,
              * a null result is returned
              */
-            PathToken analyzedComponent = PathComponentAnalyzer.analyze(fragment, filterList);
+            PathToken analyzedComponent = PathComponentAnalyzer.
+                    analyze(fragment, filterList);
             if (analyzedComponent == null) {
                 return false;
             }
@@ -161,7 +171,6 @@ public class JsonPathExpressionValidator {
             } else {
                 root.append(analyzedComponent);
             }
-
 
         } while (i < path.length());
 
@@ -210,7 +219,8 @@ public class JsonPathExpressionValidator {
 
     static class PathComponentAnalyzer {
 
-        private static final Pattern FILTER_PATTERN = Pattern.compile("^\\[\\s*\\?\\s*[,\\s*\\?]*?\\s*]$"); //[?] or [?, ?, ...]
+        private static final Pattern FILTER_PATTERN = Pattern.
+                compile("^\\[\\s*\\?\\s*[,\\s*\\?]*?\\s*]$"); //[?] or [?, ?, ...]
         private int i;
         private char current;
 
@@ -228,13 +238,18 @@ public class JsonPathExpressionValidator {
 
         public PathToken analyze() {
 
-            if ("$".equals(pathFragment)) return new RootPathToken();
-            else if ("..".equals(pathFragment)) return new ScanPathToken();
-            else if ("[*]".equals(pathFragment)) return new WildcardPathToken();
-            else if (".*".equals(pathFragment)) return new WildcardPathToken();
-            else if ("[?]".equals(pathFragment)) return new PredicatePathToken(filterList.poll());
-
-            else if (FILTER_PATTERN.matcher(pathFragment).matches()) {
+            if ("$".equals(pathFragment)) {
+                return new RootPathToken();
+            } else if ("..".equals(pathFragment)) {
+                return new ScanPathToken();
+            } else if ("[*]".equals(pathFragment)) {
+                return new WildcardPathToken();
+            } else if (".*".equals(pathFragment)) {
+                return new WildcardPathToken();
+            } else if ("[?]".equals(pathFragment)) {
+                return new PredicatePathToken(filterList.poll());
+            } else if (FILTER_PATTERN.matcher(pathFragment).
+                    matches()) {
                 final int criteriaCount = Utils.countMatches(pathFragment, "?");
                 List<Predicate> filters = new ArrayList<>(criteriaCount);
                 for (int i = 0; i < criteriaCount; i++) {
@@ -260,13 +275,11 @@ public class JsonPathExpressionValidator {
                         break;
                 }
 
-
             } while (i < pathFragment.length());
 
             //"Could not analyze path component: " + pathFragment
             return null;
         }
-
 
         public PathToken analyzeCriteriaSequence4() {
             int[] bounds = findFilterBounds();
@@ -275,7 +288,8 @@ public class JsonPathExpressionValidator {
             }
             i = bounds[1];
 
-            return new PredicatePathToken(Filter.parse(pathFragment.substring(bounds[0], bounds[1])));
+            return new PredicatePathToken(Filter.parse(pathFragment.
+                    substring(bounds[0], bounds[1])));
         }
 
         int[] findFilterBounds() {
@@ -295,13 +309,19 @@ public class JsonPathExpressionValidator {
                 char c = pathFragment.charAt(curr);
                 switch (c) {
                     case '(':
-                        if (!inProp) openBrackets++;
+                        if (!inProp) {
+                            openBrackets++;
+                        }
                         break;
                     case ')':
-                        if (!inProp) openBrackets--;
+                        if (!inProp) {
+                            openBrackets--;
+                        }
                         break;
                     case '[':
-                        if (!inProp) openSquareBracket++;
+                        if (!inProp) {
+                            openSquareBracket++;
+                        }
                         break;
                     case ']':
                         if (!inProp) {
@@ -330,10 +350,9 @@ public class JsonPathExpressionValidator {
             return new int[]{start, end};
         }
 
-
         //"['foo']"
         private PathToken analyzeProperty() {
-            List<String> properties = new ArrayList<String>();
+            List<String> properties = new ArrayList<>();
             StringBuilder buffer = new StringBuilder();
 
             boolean propertyIsOpen = false;
@@ -360,7 +379,6 @@ public class JsonPathExpressionValidator {
             return new PropertyPathToken(properties);
         }
 
-
         //"[-1:]"  sliceFrom
         //"[:1]"   sliceTo
         //"[0:5]"  sliceBetween
@@ -369,7 +387,7 @@ public class JsonPathExpressionValidator {
         //"[(@.length - 1)]"
         private PathToken analyzeArraySequence() {
             StringBuilder buffer = new StringBuilder();
-            List<Integer> numbers = new ArrayList<Integer>();
+            List<Integer> numbers = new ArrayList<>();
 
             boolean contextSize = (current == '@');
             boolean sliceTo = false;
@@ -407,7 +425,6 @@ public class JsonPathExpressionValidator {
 
             } else {
 
-
                 while (Character.isDigit(current) || current == ',' || current == ' ' || current == ':' || current == '-') {
 
                     switch (current) {
@@ -444,7 +461,8 @@ public class JsonPathExpressionValidator {
                                     sliceFrom = true;
                                 } else {
                                     sliceBetween = true;
-                                    numbers.add(Integer.parseInt(buffer.toString()));
+                                    numbers.add(Integer.parseInt(buffer.
+                                            toString()));
                                     buffer.setLength(0);
                                 }
                             }
@@ -471,12 +489,19 @@ public class JsonPathExpressionValidator {
 
             ArrayPathToken.Operation operation = null;
 
-            if (singleIndex) operation = ArrayPathToken.Operation.SINGLE_INDEX;
-            else if (indexSequence) operation = ArrayPathToken.Operation.INDEX_SEQUENCE;
-            else if (sliceFrom) operation = ArrayPathToken.Operation.SLICE_FROM;
-            else if (sliceTo) operation = ArrayPathToken.Operation.SLICE_TO;
-            else if (sliceBetween) operation = ArrayPathToken.Operation.SLICE_BETWEEN;
-            else if (contextSize) operation = ArrayPathToken.Operation.CONTEXT_SIZE;
+            if (singleIndex) {
+                operation = ArrayPathToken.Operation.SINGLE_INDEX;
+            } else if (indexSequence) {
+                operation = ArrayPathToken.Operation.INDEX_SEQUENCE;
+            } else if (sliceFrom) {
+                operation = ArrayPathToken.Operation.SLICE_FROM;
+            } else if (sliceTo) {
+                operation = ArrayPathToken.Operation.SLICE_TO;
+            } else if (sliceBetween) {
+                operation = ArrayPathToken.Operation.SLICE_BETWEEN;
+            } else if (contextSize) {
+                operation = ArrayPathToken.Operation.CONTEXT_SIZE;
+            }
 
             assert operation != null;
 

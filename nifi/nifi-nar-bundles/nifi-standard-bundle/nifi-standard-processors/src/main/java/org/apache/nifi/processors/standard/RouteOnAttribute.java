@@ -67,9 +67,9 @@ import org.apache.nifi.processor.util.StandardValidators;
 @SupportsBatching
 @Tags({"attributes", "routing", "Attribute Expression Language", "regexp", "regex", "Regular Expression", "Expression Language"})
 @CapabilityDescription("Routes FlowFiles based on their Attributes using the Attribute Expression Language")
-@DynamicProperty(name="Relationship Name", value="Attribute Expression Language", supportsExpressionLanguage=true, description="Routes FlowFiles whose " + 
-"attributes match the Attribute Expression Language specified in the Dynamic Property Value to the Relationship specified in the Dynamic Property Key")
-@DynamicRelationship(name="Name from Dynamic Property", description="FlowFiles that match the Dynamic Property's Attribute Expression Language")
+@DynamicProperty(name = "Relationship Name", value = "Attribute Expression Language", supportsExpressionLanguage = true, description = "Routes FlowFiles whose "
+        + "attributes match the Attribute Expression Language specified in the Dynamic Property Value to the Relationship specified in the Dynamic Property Key")
+@DynamicRelationship(name = "Name from Dynamic Property", description = "FlowFiles that match the Dynamic Property's Attribute Expression Language")
 public class RouteOnAttribute extends AbstractProcessor {
 
     public static final String ROUTE_ATTRIBUTE_KEY = "RouteOnAttribute.Route";
@@ -95,26 +95,27 @@ public class RouteOnAttribute extends AbstractProcessor {
             "Requires that at least one user-defined expression evaluate to 'true' for hte FlowFile to be considered a match"
     );
 
-    public static final PropertyDescriptor ROUTE_STRATEGY = new PropertyDescriptor.Builder()
-            .name("Routing Strategy")
-            .description("Specifies how to determine which relationship to use when evaluating the Expression Language")
-            .required(true)
-            .allowableValues(ROUTE_PROPERTY_NAME, ROUTE_ALL_MATCH, ROUTE_ANY_MATCHES)
-            .defaultValue(ROUTE_PROPERTY_NAME.getValue())
-            .build();
+    public static final PropertyDescriptor ROUTE_STRATEGY = new PropertyDescriptor.Builder().
+            name("Routing Strategy").
+            description("Specifies how to determine which relationship to use when evaluating the Expression Language").
+            required(true).
+            allowableValues(ROUTE_PROPERTY_NAME, ROUTE_ALL_MATCH, ROUTE_ANY_MATCHES).
+            defaultValue(ROUTE_PROPERTY_NAME.getValue()).
+            build();
 
     public static final Relationship REL_NO_MATCH = new Relationship.Builder()
-            .name("unmatched")
-            .description("FlowFiles that do not match any user-define expression will be routed here")
-            .build();
+            .name("unmatched").
+            description("FlowFiles that do not match any user-define expression will be routed here").
+            build();
     public static final Relationship REL_MATCH = new Relationship.Builder()
-            .name("matched")
-            .description("FlowFiles will be routed to 'match' if one or all Expressions match, depending on the configuration of the Routing Strategy property")
-            .build();
+            .name("matched").
+            description("FlowFiles will be routed to 'match' if one or all Expressions match, depending on the configuration of the Routing Strategy property").
+            build();
 
     private AtomicReference<Set<Relationship>> relationships = new AtomicReference<>();
     private List<PropertyDescriptor> properties;
-    private volatile String configuredRouteStrategy = ROUTE_STRATEGY.getDefaultValue();
+    private volatile String configuredRouteStrategy = ROUTE_STRATEGY.
+            getDefaultValue();
     private volatile Set<String> dynamicPropertyNames = new HashSet<>();
 
     @Override
@@ -141,12 +142,13 @@ public class RouteOnAttribute extends AbstractProcessor {
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
-                .required(false)
-                .name(propertyDescriptorName)
-                .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(ResultType.BOOLEAN, false))
-                .dynamic(true)
-                .expressionLanguageSupported(true)
-                .build();
+                .required(false).
+                name(propertyDescriptorName).
+                addValidator(StandardValidators.
+                        createAttributeExpressionLanguageValidator(ResultType.BOOLEAN, false)).
+                dynamic(true).
+                expressionLanguageSupported(true).
+                build();
     }
 
     @Override
@@ -161,7 +163,8 @@ public class RouteOnAttribute extends AbstractProcessor {
                 newDynamicPropertyNames.add(descriptor.getName());
             }
 
-            this.dynamicPropertyNames = Collections.unmodifiableSet(newDynamicPropertyNames);
+            this.dynamicPropertyNames = Collections.
+                    unmodifiableSet(newDynamicPropertyNames);
         }
 
         // formulate the new set of Relationships
@@ -170,7 +173,8 @@ public class RouteOnAttribute extends AbstractProcessor {
         final String routeStrategy = configuredRouteStrategy;
         if (ROUTE_PROPERTY_NAME.equals(routeStrategy)) {
             for (final String propName : allDynamicProps) {
-                newRelationships.add(new Relationship.Builder().name(propName).build());
+                newRelationships.add(new Relationship.Builder().name(propName).
+                        build());
             }
         } else {
             newRelationships.add(REL_MATCH);
@@ -189,26 +193,32 @@ public class RouteOnAttribute extends AbstractProcessor {
 
         final ProcessorLog logger = getLogger();
         final Map<Relationship, PropertyValue> propertyMap = new HashMap<>();
-        for (final PropertyDescriptor descriptor : context.getProperties().keySet()) {
+        for (final PropertyDescriptor descriptor : context.getProperties().
+                keySet()) {
             if (!descriptor.isDynamic()) {
                 continue;
             }
 
-            propertyMap.put(new Relationship.Builder().name(descriptor.getName()).build(), context.getProperty(descriptor));
+            propertyMap.put(new Relationship.Builder().
+                    name(descriptor.getName()).
+                    build(), context.getProperty(descriptor));
         }
 
         final Set<Relationship> matchingRelationships = new HashSet<>();
-        for (final Map.Entry<Relationship, PropertyValue> entry : propertyMap.entrySet()) {
+        for (final Map.Entry<Relationship, PropertyValue> entry : propertyMap.
+                entrySet()) {
             final PropertyValue value = entry.getValue();
 
-            final boolean matches = value.evaluateAttributeExpressions(flowFile).asBoolean();
+            final boolean matches = value.evaluateAttributeExpressions(flowFile).
+                    asBoolean();
             if (matches) {
                 matchingRelationships.add(entry.getKey());
             }
         }
 
         final Set<Relationship> destinationRelationships = new HashSet<>();
-        switch (context.getProperty(ROUTE_STRATEGY).getValue()) {
+        switch (context.getProperty(ROUTE_STRATEGY).
+                getValue()) {
             case routeAllMatchValue:
                 if (matchingRelationships.size() == propertyMap.size()) {
                     destinationRelationships.add(REL_MATCH);
@@ -231,35 +241,52 @@ public class RouteOnAttribute extends AbstractProcessor {
 
         if (destinationRelationships.isEmpty()) {
             logger.info(this + " routing " + flowFile + " to unmatched");
-            flowFile = session.putAttribute(flowFile, ROUTE_ATTRIBUTE_KEY, REL_NO_MATCH.getName());
-            session.getProvenanceReporter().route(flowFile, REL_NO_MATCH);
+            flowFile = session.
+                    putAttribute(flowFile, ROUTE_ATTRIBUTE_KEY, REL_NO_MATCH.
+                            getName());
+            session.getProvenanceReporter().
+                    route(flowFile, REL_NO_MATCH);
             session.transfer(flowFile, REL_NO_MATCH);
         } else {
-            final Iterator<Relationship> relationshipNameIterator = destinationRelationships.iterator();
-            final Relationship firstRelationship = relationshipNameIterator.next();
+            final Iterator<Relationship> relationshipNameIterator = destinationRelationships.
+                    iterator();
+            final Relationship firstRelationship = relationshipNameIterator.
+                    next();
             final Map<Relationship, FlowFile> transferMap = new HashMap<>();
             final Set<FlowFile> clones = new HashSet<>();
 
             // make all the clones for any remaining relationships
             while (relationshipNameIterator.hasNext()) {
-                final Relationship relationship = relationshipNameIterator.next();
+                final Relationship relationship = relationshipNameIterator.
+                        next();
                 final FlowFile cloneFlowFile = session.clone(flowFile);
                 clones.add(cloneFlowFile);
                 transferMap.put(relationship, cloneFlowFile);
             }
 
             // now transfer any clones generated
-            for (final Map.Entry<Relationship, FlowFile> entry : transferMap.entrySet()) {
-                logger.info(this + " cloned " + flowFile + " into " + entry.getValue() + " and routing clone to relationship " + entry.getKey());
-                FlowFile updatedFlowFile = session.putAttribute(entry.getValue(), ROUTE_ATTRIBUTE_KEY, entry.getKey().getName());
-                session.getProvenanceReporter().route(updatedFlowFile, entry.getKey());
+            for (final Map.Entry<Relationship, FlowFile> entry : transferMap.
+                    entrySet()) {
+                logger.info(this + " cloned " + flowFile + " into " + entry.
+                        getValue() + " and routing clone to relationship " + entry.
+                        getKey());
+                FlowFile updatedFlowFile = session.
+                        putAttribute(entry.getValue(), ROUTE_ATTRIBUTE_KEY, entry.
+                                getKey().
+                                getName());
+                session.getProvenanceReporter().
+                        route(updatedFlowFile, entry.getKey());
                 session.transfer(updatedFlowFile, entry.getKey());
             }
 
             //now transfer the original flow file
-            logger.info("Routing {} to {}", new Object[]{flowFile, firstRelationship});
-            session.getProvenanceReporter().route(flowFile, firstRelationship);
-            flowFile = session.putAttribute(flowFile, ROUTE_ATTRIBUTE_KEY, firstRelationship.getName());
+            logger.
+                    info("Routing {} to {}", new Object[]{flowFile, firstRelationship});
+            session.getProvenanceReporter().
+                    route(flowFile, firstRelationship);
+            flowFile = session.
+                    putAttribute(flowFile, ROUTE_ATTRIBUTE_KEY, firstRelationship.
+                            getName());
             session.transfer(flowFile, firstRelationship);
         }
     }

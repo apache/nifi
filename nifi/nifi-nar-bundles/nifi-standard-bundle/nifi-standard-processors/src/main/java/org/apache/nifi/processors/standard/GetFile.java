@@ -72,15 +72,22 @@ import org.apache.nifi.processor.util.StandardValidators;
 @TriggerWhenEmpty
 @Tags({"local", "files", "filesystem", "ingest", "ingress", "get", "source", "input"})
 @CapabilityDescription("Creates FlowFiles from files in a directory.  NiFi will ignore files it doesn't have at least read permissions for.")
-@WritesAttributes({ @WritesAttribute(attribute = "filename", description = "The filename is set to the name of the file on disk"),
-    @WritesAttribute(attribute = "path", description = "The path is set to the relative path of the file's directory on disk. For example, if the <Input Directory> property is set to /tmp, files picked up from /tmp will have the path attribute set to ./. If the <Recurse Subdirectories> property is set to true and a file is picked up from /tmp/abc/1/2/3, then the path attribute will be set to abc/1/2/3"),
+@WritesAttributes({
+    @WritesAttribute(attribute = "filename", description = "The filename is set to the name of the file on disk"),
+    @WritesAttribute(attribute = "path", description = "The path is set to the relative path of the file's directory on disk. For example, "
+            + "if the <Input Directory> property is set to /tmp, files picked up from /tmp will have the path attribute set to ./. If "
+            + "the <Recurse Subdirectories> property is set to true and a file is picked up from /tmp/abc/1/2/3, then the path attribute will "
+            + "be set to abc/1/2/3"),
     @WritesAttribute(attribute = "file.creationTime", description = "The date and time that the file was created. May not work on all file systems"),
-    @WritesAttribute(attribute = "file.lastModifiedTime", description = "The date and time that the file was last modified. May not work on all file systems"),
-    @WritesAttribute(attribute = "file.lastAccessTime", description = "The date and time that the file was last accessed. May not work on all file systems"),
+    @WritesAttribute(attribute = "file.lastModifiedTime", description = "The date and time that the file was last modified. May not work on all "
+            + "file systems"),
+    @WritesAttribute(attribute = "file.lastAccessTime", description = "The date and time that the file was last accessed. May not work on all "
+            + "file systems"),
     @WritesAttribute(attribute = "file.owner", description = "The owner of the file. May not work on all file systems"),
     @WritesAttribute(attribute = "file.group", description = "The group owner of the file. May not work on all file systems"),
     @WritesAttribute(attribute = "file.permissions", description = "The read/write/execute permissions of the file. May not work on all file systems"),
-    @WritesAttribute(attribute = "absolute.path", description = "The full/absolute path from where a file was picked up. The current 'path' attribute is still populated, but may be a relative path")})
+    @WritesAttribute(attribute = "absolute.path", description = "The full/absolute path from where a file was picked up. The current 'path' "
+            + "attribute is still populated, but may be a relative path")})
 @SeeAlso(PutFile.class)
 public class GetFile extends AbstractProcessor {
 
@@ -271,12 +278,12 @@ public class GetFile extends AbstractProcessor {
                     }
                 }
                 //Verify that we have at least read permissions on the file we're considering grabbing
-                if(!Files.isReadable(file.toPath())){
+                if (!Files.isReadable(file.toPath())) {
                     return false;
                 }
-                
+
                 //Verify that if we're not keeping original that we have write permissions on the directory the file is in
-                if(keepOriginal == false && !Files.isWritable(file.toPath().getParent())){
+                if (keepOriginal == false && !Files.isWritable(file.toPath().getParent())) {
                     return false;
                 }
                 return filePattern.matcher(file.getName()).matches();
@@ -337,7 +344,8 @@ public class GetFile extends AbstractProcessor {
             if (store.supportsFileAttributeView("posix")) {
                 try {
                     PosixFileAttributeView view = Files.getFileAttributeView(file, PosixFileAttributeView.class);
-                    attributes.put(FILE_PERMISSIONS_ATTRIBUTE, PosixFilePermissions.toString(view.readAttributes().permissions()));
+                    attributes.
+                            put(FILE_PERMISSIONS_ATTRIBUTE, PosixFilePermissions.toString(view.readAttributes().permissions()));
                     attributes.put(FILE_GROUP_ATTRIBUTE, view.readAttributes().group().getName());
                 } catch (Exception ignore) {
                 } // allow other attributes if these fail
@@ -359,8 +367,7 @@ public class GetFile extends AbstractProcessor {
             final long pollingMillis = context.getProperty(POLLING_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
             if ((queueLastUpdated.get() < System.currentTimeMillis() - pollingMillis) && listingLock.tryLock()) {
                 try {
-                    final Set<File> listing = performListing(directory, fileFilterRef.get(),
-                            context.getProperty(RECURSE).asBoolean().booleanValue());
+                    final Set<File> listing = performListing(directory, fileFilterRef.get(), context.getProperty(RECURSE).asBoolean().booleanValue());
 
                     queueLock.lock();
                     try {
@@ -418,7 +425,8 @@ public class GetFile extends AbstractProcessor {
 
                 flowFile = session.create();
                 final long importStart = System.nanoTime();
-                flowFile = session.importFrom(filePath, keepingSourceFile, flowFile);
+                flowFile = session.
+                        importFrom(filePath, keepingSourceFile, flowFile);
                 final long importNanos = System.nanoTime() - importStart;
                 final long importMillis = TimeUnit.MILLISECONDS.convert(importNanos, TimeUnit.NANOSECONDS);
 

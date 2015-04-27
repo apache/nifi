@@ -35,9 +35,6 @@ import javax.xml.transform.stream.StreamSource;
 import org.apache.nifi.web.ViewableContent.DisplayMode;
 import org.codehaus.jackson.map.ObjectMapper;
 
-/**
- *
- */
 @WebServlet(name = "StandardContentViewer", urlPatterns = {"/view-content"})
 public class StandardContentViewerController extends HttpServlet {
 
@@ -51,11 +48,11 @@ public class StandardContentViewerController extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         final ViewableContent content = (ViewableContent) request.getAttribute(ViewableContent.CONTENT_REQUEST_ATTRIBUTE);
-        
+
         // handle json/xml
         if ("application/json".equals(content.getContentType()) || "application/xml".equals(content.getContentType()) || "text/plain".equals(content.getContentType())) {
             final String formatted;
-            
+
             // leave the content alone if specified
             if (DisplayMode.Original.equals(content.getDisplayMode())) {
                 formatted = content.getContent();
@@ -90,7 +87,7 @@ public class StandardContentViewerController extends HttpServlet {
                     formatted = content.getContent();
                 }
             }
-            
+
             // defer to the jsp
             request.setAttribute("mode", content.getContentType());
             request.setAttribute("content", formatted);

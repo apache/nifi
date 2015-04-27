@@ -60,8 +60,10 @@ public class BinManager {
         try {
             for (final List<Bin> binList : groupBinMap.values()) {
                 for (final Bin bin : binList) {
-                    for (final FlowFileSessionWrapper wrapper : bin.getContents()) {
-                        wrapper.getSession().rollback();
+                    for (final FlowFileSessionWrapper wrapper : bin.
+                            getContents()) {
+                        wrapper.getSession().
+                                rollback();
                     }
                 }
             }
@@ -126,7 +128,8 @@ public class BinManager {
             final List<Bin> currentBins = groupBinMap.get(groupIdentifier);
             if (currentBins == null) { // this is a new group we need to register
                 final List<Bin> bins = new ArrayList<>();
-                final Bin bin = new Bin(minSizeBytes.get(), currentMaxSizeBytes, minEntries.get(), maxEntries.get(), fileCountAttribute.get());
+                final Bin bin = new Bin(minSizeBytes.get(), currentMaxSizeBytes, minEntries.
+                        get(), maxEntries.get(), fileCountAttribute.get());
                 bins.add(bin);
                 groupBinMap.put(groupIdentifier, bins);
                 binCount++;
@@ -140,7 +143,8 @@ public class BinManager {
                 }
 
                 //if we've reached this point then we couldn't fit it into any existing bins - gotta make a new one
-                final Bin bin = new Bin(minSizeBytes.get(), currentMaxSizeBytes, minEntries.get(), maxEntries.get(), fileCountAttribute.get());
+                final Bin bin = new Bin(minSizeBytes.get(), currentMaxSizeBytes, minEntries.
+                        get(), maxEntries.get(), fileCountAttribute.get());
                 currentBins.add(bin);
                 binCount++;
                 return bin.offer(flowFile, session);
@@ -157,7 +161,7 @@ public class BinManager {
      * @param relaxFullnessConstraint if false will require bins to be full
      * before considered ready; if true bins only have to meet their minimum
      * size criteria or be 'old' and then they'll be considered ready
-     * @return 
+     * @return
      */
     public Collection<Bin> removeReadyBins(boolean relaxFullnessConstraint) {
         final Map<String, List<Bin>> newGroupMap = new HashMap<>();
@@ -165,10 +169,12 @@ public class BinManager {
 
         wLock.lock();
         try {
-            for (final Map.Entry<String, List<Bin>> group : groupBinMap.entrySet()) {
+            for (final Map.Entry<String, List<Bin>> group : groupBinMap.
+                    entrySet()) {
                 final List<Bin> remainingBins = new ArrayList<>();
                 for (final Bin bin : group.getValue()) {
-                    if (relaxFullnessConstraint && (bin.isFullEnough() || bin.isOlderThan(maxBinAgeSeconds.get(), TimeUnit.SECONDS))) { //relaxed check
+                    if (relaxFullnessConstraint && (bin.isFullEnough() || bin.
+                            isOlderThan(maxBinAgeSeconds.get(), TimeUnit.SECONDS))) { //relaxed check
                         readyBins.add(bin);
                     } else if (!relaxFullnessConstraint && bin.isFull()) { //strict check
                         readyBins.add(bin);
@@ -195,7 +201,8 @@ public class BinManager {
             Bin oldestBin = null;
             String oldestBinGroup = null;
 
-            for (final Map.Entry<String, List<Bin>> group : groupBinMap.entrySet()) {
+            for (final Map.Entry<String, List<Bin>> group : groupBinMap.
+                    entrySet()) {
                 for (final Bin bin : group.getValue()) {
                     if (oldestBin == null || bin.isOlderThan(oldestBin)) {
                         oldestBin = bin;
@@ -228,7 +235,8 @@ public class BinManager {
         try {
             for (final List<Bin> bins : groupBinMap.values()) {
                 for (final Bin bin : bins) {
-                    if (bin.isOlderThan(maxBinAgeSeconds.get(), TimeUnit.SECONDS)) {
+                    if (bin.
+                            isOlderThan(maxBinAgeSeconds.get(), TimeUnit.SECONDS)) {
                         return true;
                     }
                 }

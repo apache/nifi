@@ -92,7 +92,8 @@ public class ControllerStatusReportingTask extends AbstractReportingTask {
         connectionBorderLine = connectionBorderBuilder.toString();
 
         processorLineFormat = context.getProperty(SHOW_DELTAS).asBoolean() ? PROCESSOR_LINE_FORMAT_WITH_DELTA : PROCESSOR_LINE_FORMAT_NO_DELTA;
-        processorHeader = String.format(processorLineFormat, "Processor Name", "Processor ID", "Processor Type", "Run Status", "Flow Files In", "Flow Files Out", "Bytes Read", "Bytes Written", "Tasks", "Proc Time");
+        processorHeader = String.format(processorLineFormat, "Processor Name", "Processor ID", "Processor Type", "Run Status", "Flow Files In",
+                "Flow Files Out", "Bytes Read", "Bytes Written", "Tasks", "Proc Time");
 
         final StringBuilder processorBorderBuilder = new StringBuilder(processorHeader.length());
         for (int i = 0; i < processorHeader.length(); i++) {
@@ -150,13 +151,7 @@ public class ControllerStatusReportingTask extends AbstractReportingTask {
         }
     }
 
-    /**
-     * Recursively prints the status of all connections in this group.
-     *
-     * @param groupStatus
-     * @param group
-     * @param builder
-     */
+    // Recursively prints the status of all connections in this group.
     private void printConnectionStatus(final ProcessGroupStatus groupStatus, final StringBuilder builder, final boolean showDeltas) {
         final List<ConnectionStatus> connectionStatuses = new ArrayList<>();
         populateConnectionStatuses(groupStatus, connectionStatuses);
@@ -254,13 +249,7 @@ public class ControllerStatusReportingTask extends AbstractReportingTask {
         return sb.toString();
     }
 
-    /**
-     * Recursively the status of all processors in this group.
-     *
-     * @param groupStatus
-     * @param group
-     * @param builder
-     */
+    // Recursively the status of all processors in this group.
     private void printProcessorStatus(final ProcessGroupStatus groupStatus, final StringBuilder builder, final boolean showDeltas) {
         final List<ProcessorStatus> processorStatuses = new ArrayList<>();
         populateProcessorStatuses(groupStatus, processorStatuses);

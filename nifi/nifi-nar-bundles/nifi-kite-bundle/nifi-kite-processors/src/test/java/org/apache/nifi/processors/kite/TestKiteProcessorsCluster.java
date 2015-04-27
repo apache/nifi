@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.nifi.processors.kite;
 
 import com.google.common.collect.Lists;
@@ -54,79 +53,79 @@ import static org.apache.nifi.processors.kite.TestUtil.user;
 @Ignore("Does not work on windows")
 public class TestKiteProcessorsCluster {
 
-  public static MiniCluster cluster = null;
-  public static DatasetDescriptor descriptor = new DatasetDescriptor.Builder()
-      .schema(USER_SCHEMA)
-      .build();
+    public static MiniCluster cluster = null;
+    public static DatasetDescriptor descriptor = new DatasetDescriptor.Builder()
+            .schema(USER_SCHEMA)
+            .build();
 
-  @BeforeClass
-  public static void startCluster() throws IOException, InterruptedException {
-    long rand = Math.abs((long) (Math.random() * 1000000));
-    cluster = new MiniCluster.Builder()
-        .workDir("/tmp/minicluster-" + rand)
-        .clean(true)
-        .addService(HdfsService.class)
-        .addService(HiveService.class)
-        .bindIP("127.0.0.1")
-        .hiveMetastorePort(9083)
-        .build();
-    cluster.start();
-  }
-
-  @AfterClass
-  public static void stopCluster() throws IOException, InterruptedException {
-    if (cluster != null) {
-      cluster.stop();
-      cluster = null;
+    @BeforeClass
+    public static void startCluster() throws IOException, InterruptedException {
+        long rand = Math.abs((long) (Math.random() * 1000000));
+        cluster = new MiniCluster.Builder()
+                .workDir("/tmp/minicluster-" + rand)
+                .clean(true)
+                .addService(HdfsService.class)
+                .addService(HiveService.class)
+                .bindIP("127.0.0.1")
+                .hiveMetastorePort(9083)
+                .build();
+        cluster.start();
     }
-  }
 
-  @Test
-  public void testBasicStoreToHive() throws IOException {
-    String datasetUri = "dataset:hive:ns/test";
+    @AfterClass
+    public static void stopCluster() throws IOException, InterruptedException {
+        if (cluster != null) {
+            cluster.stop();
+            cluster = null;
+        }
+    }
 
-    Dataset<Record> dataset = Datasets.create(datasetUri, descriptor, Record.class);
+    @Test
+    public void testBasicStoreToHive() throws IOException {
+        String datasetUri = "dataset:hive:ns/test";
 
-    TestRunner runner = TestRunners.newTestRunner(StoreInKiteDataset.class);
-    runner.assertNotValid();
+        Dataset<Record> dataset = Datasets.create(datasetUri, descriptor, Record.class);
 
-    runner.setProperty(StoreInKiteDataset.KITE_DATASET_URI, datasetUri);
-    runner.assertValid();
+        TestRunner runner = TestRunners.newTestRunner(StoreInKiteDataset.class);
+        runner.assertNotValid();
 
-    List<Record> users = Lists.newArrayList(
-        user("a", "a@example.com"),
-        user("b", "b@example.com"),
-        user("c", "c@example.com")
-    );
+        runner.setProperty(StoreInKiteDataset.KITE_DATASET_URI, datasetUri);
+        runner.assertValid();
 
-    runner.enqueue(streamFor(users));
-    runner.run();
+        List<Record> users = Lists.newArrayList(
+                user("a", "a@example.com"),
+                user("b", "b@example.com"),
+                user("c", "c@example.com")
+        );
 
-    runner.assertAllFlowFilesTransferred("success", 1);
-    List<Record> stored = Lists.newArrayList(
-        (Iterable<Record>) dataset.newReader());
-    Assert.assertEquals("Records should match", users, stored);
+        runner.enqueue(streamFor(users));
+        runner.run();
 
-    Datasets.delete(datasetUri);
-  }
+        runner.assertAllFlowFilesTransferred("success", 1);
+        List<Record> stored = Lists.newArrayList(
+                (Iterable<Record>) dataset.newReader());
+        Assert.assertEquals("Records should match", users, stored);
 
-  @Test
-  public void testSchemaFromDistributedFileSystem() throws IOException {
-    Schema expected = SchemaBuilder.record("Test").fields()
-        .requiredLong("id")
-        .requiredString("color")
-        .optionalDouble("price")
-        .endRecord();
+        Datasets.delete(datasetUri);
+    }
 
-    Path schemaPath = new Path("hdfs:/tmp/schema.avsc");
-    FileSystem fs = schemaPath.getFileSystem(DefaultConfiguration.get());
-    OutputStream out = fs.create(schemaPath);
-    out.write(bytesFor(expected.toString(), Charset.forName("utf8")));
-    out.close();
+    @Test
+    public void testSchemaFromDistributedFileSystem() throws IOException {
+        Schema expected = SchemaBuilder.record("Test").fields()
+                .requiredLong("id")
+                .requiredString("color")
+                .optionalDouble("price")
+                .endRecord();
 
-    Schema schema = AbstractKiteProcessor.getSchema(
-        schemaPath.toString(), DefaultConfiguration.get());
+        Path schemaPath = new Path("hdfs:/tmp/schema.avsc");
+        FileSystem fs = schemaPath.getFileSystem(DefaultConfiguration.get());
+        OutputStream out = fs.create(schemaPath);
+        out.write(bytesFor(expected.toString(), Charset.forName("utf8")));
+        out.close();
 
-    Assert.assertEquals("Schema from file should match", expected, schema);
-  }
+        Schema schema = AbstractKiteProcessor.getSchema(
+                schemaPath.toString(), DefaultConfiguration.get());
+
+        Assert.assertEquals("Schema from file should match", expected, schema);
+    }
 }

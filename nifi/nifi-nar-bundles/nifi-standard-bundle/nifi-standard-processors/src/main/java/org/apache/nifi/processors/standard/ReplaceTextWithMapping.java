@@ -71,52 +71,62 @@ import org.apache.commons.lang3.StringUtils;
 @CapabilityDescription("Updates the content of a FlowFile by evaluating a Regular Expression against it and replacing the section of the content that matches the Regular Expression with some alternate value provided in a mapping file.")
 public class ReplaceTextWithMapping extends AbstractProcessor {
 
-    public static final PropertyDescriptor REGEX = new PropertyDescriptor.Builder()
-            .name("Regular Expression")
-            .description("The Regular Expression to search for in the FlowFile content")
-            .required(true)
-            .addValidator(StandardValidators.createRegexValidator(0, Integer.MAX_VALUE, true))
-            .expressionLanguageSupported(true)
-            .defaultValue("\\S+")
-            .build();
-    public static final PropertyDescriptor MATCHING_GROUP_FOR_LOOKUP_KEY = new PropertyDescriptor.Builder()
-            .name("Matching Group")
-            .description("The number of the matching group of the provided regex to replace with the corresponding value from the mapping file (if it exists).")
-            .addValidator(StandardValidators.INTEGER_VALIDATOR)
-            .required(true)
-            .expressionLanguageSupported(true)
-            .defaultValue("0").build();
-    public static final PropertyDescriptor MAPPING_FILE = new PropertyDescriptor.Builder()
-            .name("Mapping File")
-            .description("The name of the file (including the full path) containing the Mappings.")
-            .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
-            .required(true)
-            .build();
-    public static final PropertyDescriptor MAPPING_FILE_REFRESH_INTERVAL = new PropertyDescriptor.Builder()
-            .name("Mapping File Refresh Interval")
-            .description("The polling interval in seconds to check for updates to the mapping file. The default is 60s.")
-            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .required(true)
-            .defaultValue("60s").build();
-    public static final PropertyDescriptor CHARACTER_SET = new PropertyDescriptor.Builder()
-            .name("Character Set")
-            .description("The Character Set in which the file is encoded")
-            .required(true)
-            .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
-            .defaultValue("UTF-8")
-            .build();
-    public static final PropertyDescriptor MAX_BUFFER_SIZE = new PropertyDescriptor.Builder()
-            .name("Maximum Buffer Size")
-            .description("Specifies the maximum amount of data to buffer (per file) in order to apply the regular expressions. If a FlowFile is larger than this value, the FlowFile will be routed to 'failure'")
-            .required(true)
-            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
-            .defaultValue("1 MB")
-            .build();
+    public static final PropertyDescriptor REGEX = new PropertyDescriptor.Builder().
+            name("Regular Expression").
+            description("The Regular Expression to search for in the FlowFile content").
+            required(true).
+            addValidator(StandardValidators.
+                    createRegexValidator(0, Integer.MAX_VALUE, true)).
+            expressionLanguageSupported(true).
+            defaultValue("\\S+").
+            build();
+    public static final PropertyDescriptor MATCHING_GROUP_FOR_LOOKUP_KEY = new PropertyDescriptor.Builder().
+            name("Matching Group").
+            description("The number of the matching group of the provided regex to replace with the corresponding value from the mapping file (if it exists).").
+            addValidator(StandardValidators.INTEGER_VALIDATOR).
+            required(true).
+            expressionLanguageSupported(true).
+            defaultValue("0").
+            build();
+    public static final PropertyDescriptor MAPPING_FILE = new PropertyDescriptor.Builder().
+            name("Mapping File").
+            description("The name of the file (including the full path) containing the Mappings.").
+            addValidator(StandardValidators.FILE_EXISTS_VALIDATOR).
+            required(true).
+            build();
+    public static final PropertyDescriptor MAPPING_FILE_REFRESH_INTERVAL = new PropertyDescriptor.Builder().
+            name("Mapping File Refresh Interval").
+            description("The polling interval in seconds to check for updates to the mapping file. The default is 60s.").
+            addValidator(StandardValidators.TIME_PERIOD_VALIDATOR).
+            required(true).
+            defaultValue("60s").
+            build();
+    public static final PropertyDescriptor CHARACTER_SET = new PropertyDescriptor.Builder().
+            name("Character Set").
+            description("The Character Set in which the file is encoded").
+            required(true).
+            addValidator(StandardValidators.CHARACTER_SET_VALIDATOR).
+            defaultValue("UTF-8").
+            build();
+    public static final PropertyDescriptor MAX_BUFFER_SIZE = new PropertyDescriptor.Builder().
+            name("Maximum Buffer Size").
+            description("Specifies the maximum amount of data to buffer (per file) in order to apply the regular expressions. If a FlowFile is larger than this value, the FlowFile will be routed to 'failure'").
+            required(true).
+            addValidator(StandardValidators.DATA_SIZE_VALIDATOR).
+            defaultValue("1 MB").
+            build();
 
-    public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("FlowFiles that have been successfully updated are routed to this relationship, as well as FlowFiles whose content does not match the given Regular Expression").build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure").description("FlowFiles that could not be updated are routed to this relationship").build();
+    public static final Relationship REL_SUCCESS = new Relationship.Builder().
+            name("success").
+            description("FlowFiles that have been successfully updated are routed to this relationship, as well as FlowFiles whose content does not match the given Regular Expression").
+            build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder().
+            name("failure").
+            description("FlowFiles that could not be updated are routed to this relationship").
+            build();
 
-    private final Pattern backReferencePattern = Pattern.compile("[^\\\\]\\$(\\d+)");
+    private final Pattern backReferencePattern = Pattern.
+            compile("[^\\\\]\\$(\\d+)");
 
     private List<PropertyDescriptor> properties;
     private Set<Relationship> relationships;
@@ -129,14 +139,26 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext context) {
-        final List<ValidationResult> errors = new ArrayList<>(super.customValidate(context));
+        final List<ValidationResult> errors = new ArrayList<>(super.
+                customValidate(context));
 
-        final String regexValue = context.getProperty(REGEX).evaluateAttributeExpressions().getValue();
-        final int numCapturingGroups = Pattern.compile(regexValue).matcher("").groupCount();
-        final int groupToMatch = context.getProperty(MATCHING_GROUP_FOR_LOOKUP_KEY).evaluateAttributeExpressions().asInteger();
+        final String regexValue = context.getProperty(REGEX).
+                evaluateAttributeExpressions().
+                getValue();
+        final int numCapturingGroups = Pattern.compile(regexValue).
+                matcher("").
+                groupCount();
+        final int groupToMatch = context.
+                getProperty(MATCHING_GROUP_FOR_LOOKUP_KEY).
+                evaluateAttributeExpressions().
+                asInteger();
 
         if (groupToMatch > numCapturingGroups) {
-            errors.add(new ValidationResult.Builder().subject("Insufficient Matching Groups").valid(false).explanation("The specified matching group does not exist for the regular expression provided").build());
+            errors.add(new ValidationResult.Builder().
+                    subject("Insufficient Matching Groups").
+                    valid(false).
+                    explanation("The specified matching group does not exist for the regular expression provided").
+                    build());
         }
         return errors;
     }
@@ -178,7 +200,9 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
 
         final ProcessorLog logger = getLogger();
 
-        final int maxBufferSize = context.getProperty(MAX_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
+        final int maxBufferSize = context.getProperty(MAX_BUFFER_SIZE).
+                asDataSize(DataUnit.B).
+                intValue();
 
         for (FlowFile flowFile : flowFiles) {
             if (flowFile.getSize() > maxBufferSize) {
@@ -188,10 +212,13 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
 
             final StopWatch stopWatch = new StopWatch(true);
 
-            flowFile = session.write(flowFile, new ReplaceTextCallback(context, flowFile, maxBufferSize));
+            flowFile = session.
+                    write(flowFile, new ReplaceTextCallback(context, flowFile, maxBufferSize));
 
             logger.info("Transferred {} to 'success'", new Object[]{flowFile});
-            session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+            session.getProvenanceReporter().
+                    modifyContent(flowFile, stopWatch.
+                            getElapsed(TimeUnit.MILLISECONDS));
             session.transfer(flowFile, REL_SUCCESS);
         }
     }
@@ -225,34 +252,42 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
                 // if not queried mapping file lastUpdate time in
                 // mapppingRefreshPeriodSecs, do so.
                 long currentTimeSecs = System.currentTimeMillis() / 1000;
-                long mappingRefreshPeriodSecs = context.getProperty(MAPPING_FILE_REFRESH_INTERVAL).asTimePeriod(TimeUnit.SECONDS);
+                long mappingRefreshPeriodSecs = context.
+                        getProperty(MAPPING_FILE_REFRESH_INTERVAL).
+                        asTimePeriod(TimeUnit.SECONDS);
 
                 boolean retry = (currentTimeSecs > (mappingTestTime.get() + mappingRefreshPeriodSecs));
                 if (retry) {
                     mappingTestTime.set(System.currentTimeMillis() / 1000);
                     // see if the mapping file needs to be reloaded
-                    final String fileName = context.getProperty(MAPPING_FILE).getValue();
+                    final String fileName = context.getProperty(MAPPING_FILE).
+                            getValue();
                     final File file = new File(fileName);
                     if (file.exists() && file.isFile() && file.canRead()) {
                         if (file.lastModified() > lastModified.get()) {
                             lastModified.getAndSet(file.lastModified());
                             try (FileInputStream is = new FileInputStream(file)) {
-                                logger.info("Reloading mapping file: {}", new Object[]{fileName});
+                                logger.
+                                        info("Reloading mapping file: {}", new Object[]{fileName});
 
                                 final Map<String, String> mapping = loadMappingFile(is);
                                 final ConfigurationState newState = new ConfigurationState(
                                         mapping);
                                 configurationStateRef.set(newState);
                             } catch (IOException e) {
-                                logger.error("Error reading mapping file: {}", new Object[]{e.getMessage()});
+                                logger.
+                                        error("Error reading mapping file: {}", new Object[]{e.
+                                            getMessage()});
                             }
                         }
                     } else {
-                        logger.error("Mapping file does not exist or is not readable: {}", new Object[]{fileName});
+                        logger.
+                                error("Mapping file does not exist or is not readable: {}", new Object[]{fileName});
                     }
                 }
             } catch (Exception e) {
-                logger.error("Error loading mapping file: {}", new Object[]{e.getMessage()});
+                logger.error("Error loading mapping file: {}", new Object[]{e.
+                    getMessage()});
             } finally {
                 processorLock.unlock();
             }
@@ -263,7 +298,7 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
      * Loads a file containing mappings.
      *
      * @param is
-     * @return 
+     * @return
      * @throws IOException
      */
     protected Map<String, String> loadMappingFile(InputStream is) throws IOException {
@@ -319,24 +354,34 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
         };
 
         private ReplaceTextCallback(ProcessContext context, FlowFile flowFile, int maxBufferSize) {
-            this.regex = context.getProperty(REGEX).evaluateAttributeExpressions(flowFile, quotedAttributeDecorator).getValue();
+            this.regex = context.getProperty(REGEX).
+                    evaluateAttributeExpressions(flowFile, quotedAttributeDecorator).
+                    getValue();
             this.flowFile = flowFile;
 
-            this.charset = Charset.forName(context.getProperty(CHARACTER_SET).getValue());
+            this.charset = Charset.forName(context.getProperty(CHARACTER_SET).
+                    getValue());
 
-            final String regexValue = context.getProperty(REGEX).evaluateAttributeExpressions().getValue();
-            this.numCapturingGroups = Pattern.compile(regexValue).matcher("").groupCount();
+            final String regexValue = context.getProperty(REGEX).
+                    evaluateAttributeExpressions().
+                    getValue();
+            this.numCapturingGroups = Pattern.compile(regexValue).
+                    matcher("").
+                    groupCount();
 
             this.buffer = new byte[maxBufferSize];
 
-            this.groupToMatch = context.getProperty(MATCHING_GROUP_FOR_LOOKUP_KEY).evaluateAttributeExpressions().asInteger();
+            this.groupToMatch = context.
+                    getProperty(MATCHING_GROUP_FOR_LOOKUP_KEY).
+                    evaluateAttributeExpressions().
+                    asInteger();
         }
 
         @Override
         public void process(final InputStream in, final OutputStream out) throws IOException {
 
-            final Map<String, String> mapping = configurationStateRef.get()
-                    .getMapping();
+            final Map<String, String> mapping = configurationStateRef.get().
+                    getMapping();
 
             StreamUtils.fillBuffer(in, buffer, false);
 
@@ -344,7 +389,8 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
 
             final String contentString = new String(buffer, 0, flowFileSize, charset);
 
-            final Matcher matcher = Pattern.compile(regex).matcher(contentString);
+            final Matcher matcher = Pattern.compile(regex).
+                    matcher(contentString);
 
             matcher.reset();
             boolean result = matcher.find();
@@ -355,26 +401,37 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
                     String rv = mapping.get(matched);
 
                     if (rv == null) {
-                        String replacement = matcher.group().replace("$", "\\$");
+                        String replacement = matcher.group().
+                                replace("$", "\\$");
                         matcher.appendReplacement(sb, replacement);
                     } else {
                         String allRegexMatched = matcher.group(); //this is everything that matched the regex
 
-                        int scaledStart = matcher.start(groupToMatch) - matcher.start();
-                        int scaledEnd = scaledStart + matcher.group(groupToMatch).length();
+                        int scaledStart = matcher.start(groupToMatch) - matcher.
+                                start();
+                        int scaledEnd = scaledStart + matcher.
+                                group(groupToMatch).
+                                length();
 
                         StringBuilder replacementBuilder = new StringBuilder();
 
-                        replacementBuilder.append(allRegexMatched.substring(0, scaledStart).replace("$", "\\$"));
-                        replacementBuilder.append(fillReplacementValueBackReferences(rv, numCapturingGroups));
-                        replacementBuilder.append(allRegexMatched.substring(scaledEnd).replace("$", "\\$"));
+                        replacementBuilder.append(allRegexMatched.
+                                substring(0, scaledStart).
+                                replace("$", "\\$"));
+                        replacementBuilder.
+                                append(fillReplacementValueBackReferences(rv, numCapturingGroups));
+                        replacementBuilder.append(allRegexMatched.
+                                substring(scaledEnd).
+                                replace("$", "\\$"));
 
-                        matcher.appendReplacement(sb, replacementBuilder.toString());
+                        matcher.appendReplacement(sb, replacementBuilder.
+                                toString());
                     }
                     result = matcher.find();
                 } while (result);
                 matcher.appendTail(sb);
-                out.write(sb.toString().getBytes(charset));
+                out.write(sb.toString().
+                        getBytes(charset));
                 return;
             }
             out.write(contentString.getBytes(charset));

@@ -46,7 +46,8 @@ public class TestGetFile {
     public void testFilePickedUp() throws IOException {
         final File directory = new File("target/test/data/in");
         deleteDirectory(directory);
-        assertTrue("Unable to create test data directory " + directory.getAbsolutePath(), directory.exists() || directory.mkdirs());
+        assertTrue("Unable to create test data directory " + directory.
+                getAbsolutePath(), directory.exists() || directory.mkdirs());
 
         final File inFile = new File("src/test/resources/hello.txt");
         final Path inPath = inFile.toPath();
@@ -61,12 +62,16 @@ public class TestGetFile {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(GetFile.REL_SUCCESS, 1);
-        final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(GetFile.REL_SUCCESS);
-        successFiles.get(0).assertContentEquals("Hello, World!".getBytes("UTF-8"));
+        final List<MockFlowFile> successFiles = runner.
+                getFlowFilesForRelationship(GetFile.REL_SUCCESS);
+        successFiles.get(0).
+                assertContentEquals("Hello, World!".getBytes("UTF-8"));
 
-        final String path = successFiles.get(0).getAttribute("path");
+        final String path = successFiles.get(0).
+                getAttribute("path");
         assertEquals("/", path);
-        final String absolutePath = successFiles.get(0).getAttribute(CoreAttributes.ABSOLUTE_PATH.key());
+        final String absolutePath = successFiles.get(0).
+                getAttribute(CoreAttributes.ABSOLUTE_PATH.key());
         assertEquals(absTargetPathStr, absolutePath);
     }
 
@@ -77,7 +82,8 @@ public class TestGetFile {
                     deleteDirectory(file);
                 }
 
-                assertTrue("Could not delete " + file.getAbsolutePath(), file.delete());
+                assertTrue("Could not delete " + file.getAbsolutePath(), file.
+                        delete());
             }
         }
     }
@@ -89,7 +95,8 @@ public class TestGetFile {
 
         final File directory = new File("target/test/data/in/" + dirStruc);
         deleteDirectory(directory);
-        assertTrue("Unable to create test data directory " + directory.getAbsolutePath(), directory.exists() || directory.mkdirs());
+        assertTrue("Unable to create test data directory " + directory.
+                getAbsolutePath(), directory.exists() || directory.mkdirs());
 
         final File inFile = new File("src/test/resources/hello.txt");
         final Path inPath = inFile.toPath();
@@ -98,12 +105,15 @@ public class TestGetFile {
         Files.copy(inPath, targetPath);
 
         final TestRunner runner = TestRunners.newTestRunner(new GetFile());
-        runner.setProperty(GetFile.DIRECTORY, "target/test/data/in/${now():format('yyyy/MM/dd')}");
+        runner.
+                setProperty(GetFile.DIRECTORY, "target/test/data/in/${now():format('yyyy/MM/dd')}");
         runner.run();
 
         runner.assertAllFlowFilesTransferred(GetFile.REL_SUCCESS, 1);
-        final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(GetFile.REL_SUCCESS);
-        successFiles.get(0).assertContentEquals("Hello, World!".getBytes("UTF-8"));
+        final List<MockFlowFile> successFiles = runner.
+                getFlowFilesForRelationship(GetFile.REL_SUCCESS);
+        successFiles.get(0).
+                assertContentEquals("Hello, World!".getBytes("UTF-8"));
     }
 
     @Test
@@ -113,14 +123,16 @@ public class TestGetFile {
 
         final File directory = new File("target/test/data/in/" + dirStruc);
         deleteDirectory(new File("target/test/data/in"));
-        assertTrue("Unable to create test data directory " + directory.getAbsolutePath(), directory.exists() || directory.mkdirs());
+        assertTrue("Unable to create test data directory " + directory.
+                getAbsolutePath(), directory.exists() || directory.mkdirs());
 
         final File inFile = new File("src/test/resources/hello.txt");
         final Path inPath = inFile.toPath();
         final File destFile = new File(directory, inFile.getName());
         final Path targetPath = destFile.toPath();
         final Path absTargetPath = targetPath.toAbsolutePath();
-        final String absTargetPathStr = absTargetPath.getParent().toString() + "/";
+        final String absTargetPathStr = absTargetPath.getParent().
+                toString() + "/";
         Files.copy(inPath, targetPath);
 
         final TestRunner runner = TestRunners.newTestRunner(new GetFile());
@@ -128,12 +140,16 @@ public class TestGetFile {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(GetFile.REL_SUCCESS, 1);
-        final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(GetFile.REL_SUCCESS);
-        successFiles.get(0).assertContentEquals("Hello, World!".getBytes("UTF-8"));
+        final List<MockFlowFile> successFiles = runner.
+                getFlowFilesForRelationship(GetFile.REL_SUCCESS);
+        successFiles.get(0).
+                assertContentEquals("Hello, World!".getBytes("UTF-8"));
 
-        final String path = successFiles.get(0).getAttribute("path");
+        final String path = successFiles.get(0).
+                getAttribute("path");
         assertEquals(dirStruc, path.replace('\\', '/'));
-        final String absolutePath = successFiles.get(0).getAttribute(CoreAttributes.ABSOLUTE_PATH.key());
+        final String absolutePath = successFiles.get(0).
+                getAttribute(CoreAttributes.ABSOLUTE_PATH.key());
         assertEquals(absTargetPathStr, absolutePath);
     }
 
@@ -141,7 +157,8 @@ public class TestGetFile {
     public void testAttributes() throws IOException {
         final File directory = new File("target/test/data/in/");
         deleteDirectory(directory);
-        assertTrue("Unable to create test data directory " + directory.getAbsolutePath(), directory.exists() || directory.mkdirs());
+        assertTrue("Unable to create test data directory " + directory.
+                getAbsolutePath(), directory.exists() || directory.mkdirs());
 
         final File inFile = new File("src/test/resources/hello.txt");
         final Path inPath = inFile.toPath();
@@ -158,7 +175,8 @@ public class TestGetFile {
 
         boolean verifyPermissions = false;
         try {
-            Files.setPosixFilePermissions(targetPath, PosixFilePermissions.fromString("r--r-----"));
+            Files.setPosixFilePermissions(targetPath, PosixFilePermissions.
+                    fromString("r--r-----"));
             verifyPermissions = true;
         } catch (Exception donothing) {
         }
@@ -168,19 +186,22 @@ public class TestGetFile {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(GetFile.REL_SUCCESS, 1);
-        final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(GetFile.REL_SUCCESS);
+        final List<MockFlowFile> successFiles = runner.
+                getFlowFilesForRelationship(GetFile.REL_SUCCESS);
 
         if (verifyLastModified) {
             try {
                 final DateFormat formatter = new SimpleDateFormat(GetFile.FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
-                final Date fileModifyTime = formatter.parse(successFiles.get(0).getAttribute("file.lastModifiedTime"));
+                final Date fileModifyTime = formatter.parse(successFiles.get(0).
+                        getAttribute("file.lastModifiedTime"));
                 assertEquals(new Date(1000000000), fileModifyTime);
             } catch (ParseException e) {
                 fail();
             }
         }
         if (verifyPermissions) {
-            successFiles.get(0).assertAttributeEquals("file.permissions", "r--r-----");
+            successFiles.get(0).
+                    assertAttributeEquals("file.permissions", "r--r-----");
         }
     }
 }
