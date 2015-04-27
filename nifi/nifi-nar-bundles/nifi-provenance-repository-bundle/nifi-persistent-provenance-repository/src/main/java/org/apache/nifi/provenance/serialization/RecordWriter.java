@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.IOException;
 
 import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.toc.TocWriter;
 
 public interface RecordWriter extends Closeable {
 
@@ -82,4 +83,9 @@ public interface RecordWriter extends Closeable {
      */
     void sync() throws IOException;
 
+    /**
+     * Returns the TOC Writer that is being used to write the Table of Contents for this journal
+     * @return
+     */
+    TocWriter getTocWriter();
 }

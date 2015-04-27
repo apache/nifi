@@ -33,7 +33,8 @@ public class RepositoryConfiguration {
     private long eventFileBytes = 1024L * 1024L * 5L;   // 5 MB
     private long desiredIndexBytes = 1024L * 1024L * 500L; // 500 MB
     private int journalCount = 16;
-
+    private int compressionBlockBytes = 1024 * 1024;
+    
     private List<SearchableField> searchableFields = new ArrayList<>();
     private List<SearchableField> searchableAttributes = new ArrayList<>();
     private boolean compress = true;
@@ -49,7 +50,16 @@ public class RepositoryConfiguration {
         return allowRollover;
     }
 
-    /**
+    
+    public int getCompressionBlockBytes() {
+		return compressionBlockBytes;
+	}
+
+	public void setCompressionBlockBytes(int compressionBlockBytes) {
+		this.compressionBlockBytes = compressionBlockBytes;
+	}
+
+	/**
      * Specifies where the repository will store data
      *
      * @return
