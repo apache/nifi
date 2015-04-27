@@ -27,8 +27,8 @@ import java.util.List;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.provenance.SearchableFields;
 import org.apache.nifi.provenance.search.SearchTerm;
-
 import org.apache.lucene.document.Document;
+import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanClause.Occur;
@@ -78,7 +78,16 @@ public class LuceneUtil {
         final String searchString = baseName + ".";
         for (final Path path : allProvenanceLogs) {
             if (path.toFile().getName().startsWith(searchString)) {
-                matchingFiles.add(path.toFile());
+            	final File file = path.toFile();
+            	if ( file.exists() ) {
+            		matchingFiles.add(file);
+            	} else {
+            		final File dir = file.getParentFile();
+            		final File gzFile = new File(dir, file.getName() + ".gz");
+            		if ( gzFile.exists() ) {
+            			matchingFiles.add(gzFile);
+            		}
+            	}
             }
         }
 
@@ -132,6 +141,19 @@ public class LuceneUtil {
                     return filenameComp;
                 }
 
+                final IndexableField fileOffset1 = o1.getField(FieldNames.BLOCK_INDEX);
+                final IndexableField fileOffset2 = o1.getField(FieldNames.BLOCK_INDEX);
+                if ( fileOffset1 != null && fileOffset2 != null ) {
+                	final int blockIndexResult = Long.compare(fileOffset1.numericValue().longValue(), fileOffset2.numericValue().longValue());
+                	if ( blockIndexResult != 0 ) {
+                		return blockIndexResult;
+                	}
+                	
+                	final long eventId1 = o1.getField(SearchableFields.Identifier.getSearchableFieldName()).numericValue().longValue();
+                	final long eventId2 = o2.getField(SearchableFields.Identifier.getSearchableFieldName()).numericValue().longValue();
+                	return Long.compare(eventId1, eventId2);
+                }
+                
                 final long offset1 = o1.getField(FieldNames.STORAGE_FILE_OFFSET).numericValue().longValue();
                 final long offset2 = o2.getField(FieldNames.STORAGE_FILE_OFFSET).numericValue().longValue();
                 return Long.compare(offset1, offset2);

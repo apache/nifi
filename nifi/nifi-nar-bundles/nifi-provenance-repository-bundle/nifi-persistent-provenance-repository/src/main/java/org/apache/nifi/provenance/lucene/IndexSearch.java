@@ -17,31 +17,33 @@
 package org.apache.nifi.provenance.lucene;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.nifi.provenance.PersistentProvenanceRepository;
-import org.apache.nifi.provenance.ProvenanceEventRecord;
-import org.apache.nifi.provenance.StandardQueryResult;
-
-import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.IndexNotFoundException;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TopDocs;
-import org.apache.lucene.store.FSDirectory;
+import org.apache.nifi.provenance.PersistentProvenanceRepository;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.StandardQueryResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class IndexSearch {
-
+	private final Logger logger = LoggerFactory.getLogger(IndexSearch.class);
     private final PersistentProvenanceRepository repository;
     private final File indexDirectory;
+    private final IndexManager indexManager;
 
-    public IndexSearch(final PersistentProvenanceRepository repo, final File indexDirectory) {
+    public IndexSearch(final PersistentProvenanceRepository repo, final File indexDirectory, final IndexManager indexManager) {
         this.repository = repo;
         this.indexDirectory = indexDirectory;
+        this.indexManager = indexManager;
     }
 
     public StandardQueryResult search(final org.apache.nifi.provenance.search.Query provenanceQuery, final AtomicInteger retrievedCount) throws IOException {
@@ -55,30 +57,57 @@ public class IndexSearch {
         final StandardQueryResult sqr = new StandardQueryResult(provenanceQuery, 1);
         final Set<ProvenanceEventRecord> matchingRecords;
 
-        try (final DirectoryReader directoryReader = DirectoryReader.open(FSDirectory.open(indexDirectory))) {
-            final IndexSearcher searcher = new IndexSearcher(directoryReader);
+        if (provenanceQuery.getEndDate() == null) {
+            provenanceQuery.setEndDate(new Date());
+        }
+        final Query luceneQuery = LuceneUtil.convertQuery(provenanceQuery);
 
-            if (provenanceQuery.getEndDate() == null) {
-                provenanceQuery.setEndDate(new Date());
-            }
-            final Query luceneQuery = LuceneUtil.convertQuery(provenanceQuery);
-
-            TopDocs topDocs = searcher.search(luceneQuery, provenanceQuery.getMaxResults());
+        final long start = System.nanoTime();
+        IndexSearcher searcher = null;
+        try {
+        	searcher = indexManager.borrowIndexSearcher(indexDirectory);
+            final long searchStartNanos = System.nanoTime();
+            final long openSearcherNanos = searchStartNanos - start;
+            
+            final TopDocs topDocs = searcher.search(luceneQuery, provenanceQuery.getMaxResults());
+            final long finishSearch = System.nanoTime();
+            final long searchNanos = finishSearch - searchStartNanos;
+            
+            logger.debug("Searching {} took {} millis; opening searcher took {} millis", this, 
+            		TimeUnit.NANOSECONDS.toMillis(searchNanos), TimeUnit.NANOSECONDS.toMillis(openSearcherNanos));
+            
             if (topDocs.totalHits == 0) {
                 sqr.update(Collections.<ProvenanceEventRecord>emptyList(), 0);
                 return sqr;
             }
 
             final DocsReader docsReader = new DocsReader(repository.getConfiguration().getStorageDirectories());
-            matchingRecords = docsReader.read(topDocs, directoryReader, repository.getAllLogFiles(), retrievedCount, provenanceQuery.getMaxResults());
-
+            matchingRecords = docsReader.read(topDocs, searcher.getIndexReader(), repository.getAllLogFiles(), retrievedCount, provenanceQuery.getMaxResults());
+            
+            final long readRecordsNanos = System.nanoTime() - finishSearch;
+            logger.debug("Reading {} records took {} millis for {}", matchingRecords.size(), TimeUnit.NANOSECONDS.toMillis(readRecordsNanos), this);
+            
             sqr.update(matchingRecords, topDocs.totalHits);
             return sqr;
-        } catch (final IndexNotFoundException e) {
-            // nothing has been indexed yet.
+        } catch (final FileNotFoundException e) {
+            // nothing has been indexed yet, or the data has already aged off
+        	logger.warn("Attempted to search Provenance Index {} but could not find the file due to {}", indexDirectory, e);
+        	if ( logger.isDebugEnabled() ) {
+        		logger.warn("", e);
+        	}
+        	
             sqr.update(Collections.<ProvenanceEventRecord>emptyList(), 0);
             return sqr;
+        } finally {
+        	if ( searcher != null ) {
+        		indexManager.returnIndexSearcher(indexDirectory, searcher);
+        	}
         }
     }
 
+    
+    @Override
+    public String toString() {
+    	return "IndexSearcher[" + indexDirectory + "]";
+    }
 }

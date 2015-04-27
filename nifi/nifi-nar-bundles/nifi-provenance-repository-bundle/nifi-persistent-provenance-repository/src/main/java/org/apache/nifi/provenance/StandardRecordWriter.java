@@ -19,38 +19,54 @@ package org.apache.nifi.provenance;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Collection;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.apache.nifi.provenance.serialization.RecordWriter;
+import org.apache.nifi.provenance.toc.TocWriter;
 import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.apache.nifi.stream.io.ByteCountingOutputStream;
 import org.apache.nifi.stream.io.DataOutputStream;
-import org.apache.nifi.provenance.serialization.RecordWriter;
+import org.apache.nifi.stream.io.GZIPOutputStream;
+import org.apache.nifi.stream.io.NonCloseableOutputStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StandardRecordWriter implements RecordWriter {
-
+	private static final Logger logger = LoggerFactory.getLogger(StandardRecordWriter.class);
+	
     private final File file;
-    private final DataOutputStream out;
-    private final ByteCountingOutputStream byteCountingOut;
     private final FileOutputStream fos;
+    private final ByteCountingOutputStream rawOutStream;
+    private final TocWriter tocWriter;
+    private final boolean compressed;
+    private final int uncompressedBlockSize;
+    
+    private DataOutputStream out;
+    private ByteCountingOutputStream byteCountingOut;
+    private long lastBlockOffset = 0L;
     private int recordCount = 0;
 
     private final Lock lock = new ReentrantLock();
 
-    public StandardRecordWriter(final File file) throws IOException {
+    
+    public StandardRecordWriter(final File file, final TocWriter writer, final boolean compressed, final int uncompressedBlockSize) throws IOException {
+    	logger.trace("Creating Record Writer for {}", file.getName());
+    	
         this.file = file;
+        this.compressed = compressed;
         this.fos = new FileOutputStream(file);
-        this.byteCountingOut = new ByteCountingOutputStream(new BufferedOutputStream(fos, 65536));
-        this.out = new DataOutputStream(byteCountingOut);
+        rawOutStream = new ByteCountingOutputStream(fos);
+        this.uncompressedBlockSize = uncompressedBlockSize;
+        
+        this.tocWriter = writer;
     }
 
     static void writeUUID(final DataOutputStream out, final String uuid) throws IOException {
-        final UUID uuidObj = UUID.fromString(uuid);
-        out.writeLong(uuidObj.getMostSignificantBits());
-        out.writeLong(uuidObj.getLeastSignificantBits());
+    	out.writeUTF(uuid);
     }
 
     static void writeUUIDs(final DataOutputStream out, final Collection<String> list) throws IOException {
@@ -69,18 +85,67 @@ public class StandardRecordWriter implements RecordWriter {
         return file;
     }
 
-    @Override
+	@Override
     public synchronized void writeHeader() throws IOException {
+        lastBlockOffset = rawOutStream.getBytesWritten();
+        resetWriteStream();
+        
         out.writeUTF(PersistentProvenanceRepository.class.getName());
         out.writeInt(PersistentProvenanceRepository.SERIALIZATION_VERSION);
         out.flush();
     }
+    
+    private void resetWriteStream() throws IOException {
+    	if ( out != null ) {
+    		out.flush();
+    	}
+
+    	final long byteOffset = (byteCountingOut == null) ? rawOutStream.getBytesWritten() : byteCountingOut.getBytesWritten();
+    	
+    	final OutputStream writableStream;
+    	if ( compressed ) {
+    		// because of the way that GZIPOutputStream works, we need to call close() on it in order for it
+    		// to write its trailing bytes. But we don't want to close the underlying OutputStream, so we wrap
+    		// the underlying OutputStream in a NonCloseableOutputStream
+    		if ( out != null ) {
+    			out.close();
+    		}
+
+        	if ( tocWriter != null ) {
+        		tocWriter.addBlockOffset(rawOutStream.getBytesWritten());
+        	}
+
+    		writableStream = new BufferedOutputStream(new GZIPOutputStream(new NonCloseableOutputStream(rawOutStream), 1), 65536);
+    	} else {
+        	if ( tocWriter != null ) {
+        		tocWriter.addBlockOffset(rawOutStream.getBytesWritten());
+        	}
+
+    		writableStream = new BufferedOutputStream(rawOutStream, 65536);
+    	}
+    	
+        this.byteCountingOut = new ByteCountingOutputStream(writableStream, byteOffset);
+        this.out = new DataOutputStream(byteCountingOut);
+    }
+    
 
     @Override
     public synchronized long writeRecord(final ProvenanceEventRecord record, long recordIdentifier) throws IOException {
         final ProvenanceEventType recordType = record.getEventType();
         final long startBytes = byteCountingOut.getBytesWritten();
 
+        // add a new block to the TOC if needed.
+        if ( tocWriter != null && (startBytes - lastBlockOffset >= uncompressedBlockSize) ) {
+        	lastBlockOffset = startBytes;
+        	
+        	if ( compressed ) {
+        		// because of the way that GZIPOutputStream works, we need to call close() on it in order for it
+        		// to write its trailing bytes. But we don't want to close the underlying OutputStream, so we wrap
+        		// the underlying OutputStream in a NonCloseableOutputStream
+        		resetWriteStream();
+        	}
+        }
+        
         out.writeLong(recordIdentifier);
         out.writeUTF(record.getEventType().name());
         out.writeLong(record.getEventTime());
@@ -196,13 +261,24 @@ public class StandardRecordWriter implements RecordWriter {
 
     @Override
     public synchronized void close() throws IOException {
+    	logger.trace("Closing Record Writer for {}", file.getName());
+    	
         lock();
         try {
-            out.flush();
-            out.close();
+        	try {
+        		out.flush();
+        		out.close();
+        	} finally {
+        		rawOutStream.close();
+            
+	            if ( tocWriter != null ) {
+	            	tocWriter.close();
+	            }
+        	}
         } finally {
             unlock();
         }
+        
     }
 
     @Override
@@ -232,6 +308,14 @@ public class StandardRecordWriter implements RecordWriter {
 
     @Override
     public void sync() throws IOException {
-        fos.getFD().sync();
+    	if ( tocWriter != null ) {
+    		tocWriter.sync();
+    	}
+    	fos.getFD().sync();
+    }
+    
+    @Override
+    public TocWriter getTocWriter() {
+    	return tocWriter;
     }
 }
