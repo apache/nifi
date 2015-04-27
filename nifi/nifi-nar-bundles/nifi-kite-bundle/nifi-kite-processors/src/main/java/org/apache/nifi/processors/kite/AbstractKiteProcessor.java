@@ -81,7 +81,7 @@ abstract class AbstractKiteProcessor extends AbstractProcessor {
         public ValidationResult validate(String subject, String uri, ValidationContext context) {
             String message = "not set";
             boolean isValid = true;
-            
+
             if (uri.trim().isEmpty()) {
                 isValid = false;
             } else {
@@ -95,7 +95,7 @@ abstract class AbstractKiteProcessor extends AbstractProcessor {
                     }
                 }
             }
-            
+
             return new ValidationResult.Builder()
                     .subject(subject)
                     .input(uri)
@@ -163,14 +163,14 @@ abstract class AbstractKiteProcessor extends AbstractProcessor {
         public ValidationResult validate(String subject, String uri, ValidationContext context) {
             Configuration conf = getConfiguration(context.getProperty(CONF_XML_FILES).getValue());
             String error = null;
-            
+
             final boolean elPresent = context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(uri);
             if (!elPresent) {
                 try {
                     getSchema(uri, conf);
-                  } catch (SchemaNotFoundException e) {
+                } catch (SchemaNotFoundException e) {
                     error = e.getMessage();
-                  }
+                }
             }
             return new ValidationResult.Builder()
                     .subject(subject)

@@ -56,8 +56,10 @@ import org.apache.nifi.processor.util.StandardValidators;
         + "If so, routes the FlowFile to 'duplicate' with an attribute named 'original.identifier' that specifies the original FlowFile's"
         + "\"description\", which is specified in the <FlowFile Description> property. If the FlowFile is not determined to be a duplicate, the Processor "
         + "routes the FlowFile to 'non-duplicate'")
-@WritesAttribute(attribute="original.flowfile.description", description="All FlowFiles routed to the duplicate relationship will have an attribute added named original.flowfile.description. The value of this attribute is determined by the attributes of the original copy of the data and by the FlowFile Description property.")
-@SeeAlso(classNames={"org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService", "org.apache.nifi.distributed.cache.server.map.DistributedMapCacheServer"})
+@WritesAttribute(attribute = "original.flowfile.description", description = "All FlowFiles routed to the duplicate relationship will have "
+        + "an attribute added named original.flowfile.description. The value of this attribute is determined by the attributes of the original "
+        + "copy of the data and by the FlowFile Description property.")
+@SeeAlso(classNames = {"org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService", "org.apache.nifi.distributed.cache.server.map.DistributedMapCacheServer"})
 public class DetectDuplicate extends AbstractProcessor {
 
     public static final String ORIGINAL_DESCRIPTION_ATTRIBUTE_NAME = "original.flowfile.description";
@@ -80,8 +82,8 @@ public class DetectDuplicate extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor FLOWFILE_DESCRIPTION = new PropertyDescriptor.Builder()
             .name("FlowFile Description")
-            .description(
-                    "When a FlowFile is added to the cache, this value is stored along with it so that if a duplicate is found, this description of the original FlowFile will be added to the duplicate's \""
+            .description("When a FlowFile is added to the cache, this value is stored along with it so that if a duplicate is found, this "
+                    + "description of the original FlowFile will be added to the duplicate's \""
                     + ORIGINAL_DESCRIPTION_ATTRIBUTE_NAME + "\" attribute")
             .required(true)
             .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(ResultType.STRING, true))
@@ -96,12 +98,18 @@ public class DetectDuplicate extends AbstractProcessor {
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
-    public static final Relationship REL_DUPLICATE = new Relationship.Builder().name("duplicate")
-            .description("If a FlowFile has been detected to be a duplicate, it will be routed to this relationship").build();
-    public static final Relationship REL_NON_DUPLICATE = new Relationship.Builder().name("non-duplicate")
-            .description("If a FlowFile's Cache Entry Identifier was not found in the cache, it will be routed to this relationship").build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure")
-            .description("If unable to communicate with the cache, the FlowFile will be penalized and routed to this relationship").build();
+    public static final Relationship REL_DUPLICATE = new Relationship.Builder()
+            .name("duplicate")
+            .description("If a FlowFile has been detected to be a duplicate, it will be routed to this relationship")
+            .build();
+    public static final Relationship REL_NON_DUPLICATE = new Relationship.Builder()
+            .name("non-duplicate")
+            .description("If a FlowFile's Cache Entry Identifier was not found in the cache, it will be routed to this relationship")
+            .build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("If unable to communicate with the cache, the FlowFile will be penalized and routed to this relationship")
+            .build();
     private final Set<Relationship> relationships;
 
     private final Serializer<String> keySerializer = new StringSerializer();

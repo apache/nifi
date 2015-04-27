@@ -27,7 +27,6 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -72,13 +71,14 @@ import org.joda.time.format.DateTimeFormatter;
 @SupportsBatching
 @Tags({"http", "https", "rest", "client"})
 @CapabilityDescription("An HTTP client processor which converts FlowFile attributes to HTTP headers, with configurable HTTP method, url, etc.")
-@WritesAttributes({ @WritesAttribute(attribute = "invokehttp.status.code", description = "The status code that is returned"),
-        @WritesAttribute(attribute = "invokehttp.status.message", description = "The status message that is returned"),
-        @WritesAttribute(attribute = "invokehttp.response.body", description = "The response body"),
-        @WritesAttribute(attribute = "invokehttp.request.url", description = "The request URL"),
-        @WritesAttribute(attribute = "invokehttp.tx.id", description = "The transaction ID that is returned after reading the response"),
-        @WritesAttribute(attribute = "invokehttp.remote.dn", description = "The DN of the remote server") })
-@DynamicProperty(name="Trusted Hostname", value="A hostname", description="Bypass the normal truststore hostname verifier to allow the specified (single) remote hostname as trusted "
+@WritesAttributes({
+    @WritesAttribute(attribute = "invokehttp.status.code", description = "The status code that is returned"),
+    @WritesAttribute(attribute = "invokehttp.status.message", description = "The status message that is returned"),
+    @WritesAttribute(attribute = "invokehttp.response.body", description = "The response body"),
+    @WritesAttribute(attribute = "invokehttp.request.url", description = "The request URL"),
+    @WritesAttribute(attribute = "invokehttp.tx.id", description = "The transaction ID that is returned after reading the response"),
+    @WritesAttribute(attribute = "invokehttp.remote.dn", description = "The DN of the remote server")})
+@DynamicProperty(name = "Trusted Hostname", value = "A hostname", description = "Bypass the normal truststore hostname verifier to allow the specified (single) remote hostname as trusted "
         + "Enabling this property has MITM security implications, use wisely. Only valid with SSL (HTTPS) connections.")
 public final class InvokeHTTP extends AbstractProcessor {
 
@@ -88,7 +88,7 @@ public final class InvokeHTTP extends AbstractProcessor {
 
         return Config.PROPERTIES;
     }
-    
+
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(String propertyDescriptorName) {
         if (Config.PROP_TRUSTED_HOSTNAME.getName().equalsIgnoreCase(propertyDescriptorName)) {
@@ -118,7 +118,8 @@ public final class InvokeHTTP extends AbstractProcessor {
             } else {
                 SSLContextService svc = (SSLContextService) getControllerServiceLookup().getControllerService(newValue);
                 sslContextRef.set(svc.createSSLContext(ClientAuth.NONE));  // ClientAuth is only useful for servers, not clients.
-                getLogger().info("Loading SSL configuration from keystore={} and truststore={}", new Object[]{svc.getKeyStoreFile(), svc.getTrustStoreFile()});
+                getLogger().info("Loading SSL configuration from keystore={} and truststore={}",
+                        new Object[]{svc.getKeyStoreFile(), svc.getTrustStoreFile()});
             }
         }
 
@@ -143,17 +144,14 @@ public final class InvokeHTTP extends AbstractProcessor {
         }
 
         for (FlowFile flowfile : flowfiles) {
-            Transaction transaction = new Transaction(
-                    getLogger(), sslContextRef, attributesToSendRef, context, session, flowfile
-            );
+            Transaction transaction = new Transaction(getLogger(), sslContextRef, attributesToSendRef, context, session, flowfile);
             transaction.process();
         }
     }
 
     /**
      *
-     * Stores properties, relationships, configuration values, hard coded
-     * strings, magic numbers, etc.
+     * Stores properties, relationships, configuration values, hard coded strings, magic numbers, etc.
      *
      *
      */
@@ -174,13 +172,13 @@ public final class InvokeHTTP extends AbstractProcessor {
         // processing, including when converting http headers, copying attributes, etc.
         // This set includes our strings defined above as well as some standard flowfile
         // attributes.
-        Set<String> IGNORED_ATTRIBUTES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+        public static final Set<String> IGNORED_ATTRIBUTES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
                 STATUS_CODE, STATUS_MESSAGE, RESPONSE_BODY, REQUEST_URL, TRANSACTION_ID, REMOTE_DN,
                 "uuid", "filename", "path"
         )));
 
         //-- properties --//
-        PropertyDescriptor PROP_METHOD = new PropertyDescriptor.Builder()
+        public static final PropertyDescriptor PROP_METHOD = new PropertyDescriptor.Builder()
                 .name("HTTP Method")
                 .description("HTTP request method (GET, POST, PUT, DELETE, HEAD, OPTIONS).")
                 .required(true)
@@ -189,7 +187,7 @@ public final class InvokeHTTP extends AbstractProcessor {
                 .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
                 .build();
 
-        PropertyDescriptor PROP_URL = new PropertyDescriptor.Builder()
+        public static final PropertyDescriptor PROP_URL = new PropertyDescriptor.Builder()
                 .name("Remote URL")
                 .description("Remote URL which will be connected to, including scheme, host, port, path.")
                 .required(true)
@@ -197,7 +195,7 @@ public final class InvokeHTTP extends AbstractProcessor {
                 .addValidator(StandardValidators.URL_VALIDATOR)
                 .build();
 
-        PropertyDescriptor PROP_CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
+        public static final PropertyDescriptor PROP_CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
                 .name("Connection Timeout")
                 .description("Max wait time for connection to remote service.")
                 .required(true)
@@ -205,7 +203,7 @@ public final class InvokeHTTP extends AbstractProcessor {
                 .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
                 .build();
 
-        PropertyDescriptor PROP_READ_TIMEOUT = new PropertyDescriptor.Builder()
+        public static final PropertyDescriptor PROP_READ_TIMEOUT = new PropertyDescriptor.Builder()
                 .name("Read Timeout")
                 .description("Max wait time for response from remote service.")
                 .required(true)
@@ -213,7 +211,7 @@ public final class InvokeHTTP extends AbstractProcessor {
                 .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
                 .build();
 
-        PropertyDescriptor PROP_DATE_HEADER = new PropertyDescriptor.Builder()
+        public static final PropertyDescriptor PROP_DATE_HEADER = new PropertyDescriptor.Builder()
                 .name("Include Date Header")
                 .description("Include an RFC-2616 Date header in the request.")
                 .required(true)
@@ -222,7 +220,7 @@ public final class InvokeHTTP extends AbstractProcessor {
                 .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
                 .build();
 
-        PropertyDescriptor PROP_FOLLOW_REDIRECTS = new PropertyDescriptor.Builder()
+        public static final PropertyDescriptor PROP_FOLLOW_REDIRECTS = new PropertyDescriptor.Builder()
                 .name("Follow Redirects")
                 .description("Follow HTTP redirects issued by remote server.")
                 .required(true)
@@ -231,7 +229,7 @@ public final class InvokeHTTP extends AbstractProcessor {
                 .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
                 .build();
 
-        PropertyDescriptor PROP_ATTRIBUTES_TO_SEND = new PropertyDescriptor.Builder()
+        public static final PropertyDescriptor PROP_ATTRIBUTES_TO_SEND = new PropertyDescriptor.Builder()
                 .name("Attributes to Send")
                 .description("Regular expression that defines which attributes to send as HTTP headers in the request. "
                         + "If not defined, no attributes are sent as headers.")
@@ -239,27 +237,28 @@ public final class InvokeHTTP extends AbstractProcessor {
                 .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
                 .build();
 
-        PropertyDescriptor PROP_SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
+        public static final PropertyDescriptor PROP_SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
                 .name("SSL Context Service")
                 .description("The SSL Context Service used to provide client certificate information for TLS/SSL (https) connections.")
                 .required(false)
                 .identifiesControllerService(SSLContextService.class)
                 .build();
-        
-        List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
-                PROP_METHOD,
-                PROP_URL,
-                PROP_SSL_CONTEXT_SERVICE,
-                PROP_CONNECT_TIMEOUT,
-                PROP_READ_TIMEOUT,
-                PROP_DATE_HEADER,
-                PROP_FOLLOW_REDIRECTS,
-                PROP_ATTRIBUTES_TO_SEND
-        ));
+
+        public static final List<PropertyDescriptor> PROPERTIES = Collections.
+                unmodifiableList(Arrays.asList(
+                                PROP_METHOD,
+                                PROP_URL,
+                                PROP_SSL_CONTEXT_SERVICE,
+                                PROP_CONNECT_TIMEOUT,
+                                PROP_READ_TIMEOUT,
+                                PROP_DATE_HEADER,
+                                PROP_FOLLOW_REDIRECTS,
+                                PROP_ATTRIBUTES_TO_SEND
+                        ));
 
         // property to allow the hostname verifier to be overridden
         // this is a "hidden" property - it's configured using a dynamic user property
-        PropertyDescriptor PROP_TRUSTED_HOSTNAME = new PropertyDescriptor.Builder()
+        public static final PropertyDescriptor PROP_TRUSTED_HOSTNAME = new PropertyDescriptor.Builder()
                 .name("Trusted Hostname")
                 .description("Bypass the normal truststore hostname verifier to allow the specified (single) remote hostname as trusted "
                         + "Enabling this property has MITM security implications, use wisely. Only valid with SSL (HTTPS) connections.")
@@ -268,60 +267,53 @@ public final class InvokeHTTP extends AbstractProcessor {
                 .build();
 
         //-- relationships --//
-        Relationship REL_SUCCESS_REQ = new Relationship.Builder()
+        public static final Relationship REL_SUCCESS_REQ = new Relationship.Builder()
                 .name("Original")
                 .description("Original FlowFile will be routed upon success (2xx status codes).")
                 .build();
 
-        Relationship REL_SUCCESS_RESP = new Relationship.Builder()
+        public static final Relationship REL_SUCCESS_RESP = new Relationship.Builder()
                 .name("Response")
                 .description("Response FlowFile will be routed upon success (2xx status codes).")
                 .build();
 
-        Relationship REL_RETRY = new Relationship.Builder()
+        public static final Relationship REL_RETRY = new Relationship.Builder()
                 .name("Retry")
                 .description("FlowFile will be routed on any status code that can be retried (5xx status codes).")
                 .build();
 
-        Relationship REL_NO_RETRY = new Relationship.Builder()
+        public static final Relationship REL_NO_RETRY = new Relationship.Builder()
                 .name("No Retry")
                 .description("FlowFile will be routed on any status code that should NOT be retried (1xx, 3xx, 4xx status codes).")
                 .build();
 
-        Relationship REL_FAILURE = new Relationship.Builder()
+        public static final Relationship REL_FAILURE = new Relationship.Builder()
                 .name("Failure")
                 .description("FlowFile will be routed on any type of connection failure, timeout or general exception.")
                 .build();
 
-        Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+        public static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
                 REL_SUCCESS_REQ, REL_SUCCESS_RESP, REL_RETRY, REL_NO_RETRY, REL_FAILURE
         )));
 
     }
 
     /**
-     * A single invocation of an HTTP request/response from the InvokeHTTP
-     * processor. This class encapsulates the entirety of the flowfile
-     * processing.
+     * A single invocation of an HTTP request/response from the InvokeHTTP processor. This class encapsulates the entirety of the flowfile processing.
      * <p>
-     * This class is not thread safe and is created new for every flowfile
-     * processed.
+     * This class is not thread safe and is created new for every flowfile processed.
      */
     private static class Transaction implements Config {
 
         /**
-         * Pattern used to compute RFC 2616 Dates (#sec3.3.1). This format is
-         * used by the HTTP Date header and is optionally sent by the processor.
-         * This date is effectively an RFC 822/1123 date string, but HTTP
-         * requires it to be in GMT (preferring the literal 'GMT' string).
+         * Pattern used to compute RFC 2616 Dates (#sec3.3.1). This format is used by the HTTP Date header and is optionally sent by the processor. This date is effectively an RFC 822/1123 date
+         * string, but HTTP requires it to be in GMT (preferring the literal 'GMT' string).
          */
         private static final String rfc1123 = "EEE, dd MMM yyyy HH:mm:ss 'GMT'";
         private static final DateTimeFormatter dateFormat = DateTimeFormat.forPattern(rfc1123).withLocale(Locale.US).withZoneUTC();
 
         /**
-         * Every request/response cycle from this client has a unique
-         * transaction id which will be stored as a flowfile attribute. This
-         * generator is used to create the id.
+         * Every request/response cycle from this client has a unique transaction id which will be stored as a flowfile attribute. This generator is used to create the id.
          */
         private static final AtomicLong txIdGenerator = new AtomicLong();
 
@@ -507,11 +499,8 @@ public final class InvokeHTTP extends AbstractProcessor {
             }
 
             // log the status codes from the response
-            logger.info("Request to {} returned status code {} for {}", new Object[]{
-                conn.getURL().toExternalForm(),
-                statusCode,
-                request
-            });
+            logger.info("Request to {} returned status code {} for {}",
+                    new Object[]{conn.getURL().toExternalForm(), statusCode, request});
 
             // transfer to the correct relationship
             // 2xx -> SUCCESS
@@ -565,13 +554,13 @@ public final class InvokeHTTP extends AbstractProcessor {
         }
 
         /**
-         * Returns a Map of flowfile attributes from the response http headers.
-         * Multivalue headers are naively converted to comma separated strings.
+         * Returns a Map of flowfile attributes from the response http headers. Multivalue headers are naively converted to comma separated strings.
          */
         private Map<String, String> convertAttributesFromHeaders() throws IOException {
             // create a new hashmap to store the values from the connection
             Map<String, String> map = new HashMap<>();
-            for (Map.Entry<String, List<String>> entry : conn.getHeaderFields().entrySet()) {
+            for (Map.Entry<String, List<String>> entry : conn.getHeaderFields().
+                    entrySet()) {
                 String key = entry.getKey();
                 if (key == null) {
                     continue;
@@ -610,17 +599,13 @@ public final class InvokeHTTP extends AbstractProcessor {
         }
 
         private void logRequest() {
-            logger.debug("\nRequest to remote service:\n\t{}\n{}", new Object[]{
-                conn.getURL().toExternalForm(),
-                getLogString(conn.getRequestProperties())
-            });
+            logger.debug("\nRequest to remote service:\n\t{}\n{}",
+                    new Object[]{conn.getURL().toExternalForm(), getLogString(conn.getRequestProperties())});
         }
 
         private void logResponse() {
-            logger.debug("\nResponse from remote service:\n\t{}\n{}", new Object[]{
-                conn.getURL().toExternalForm(),
-                getLogString(conn.getHeaderFields())
-            });
+            logger.debug("\nResponse from remote service:\n\t{}\n{}",
+                    new Object[]{conn.getURL().toExternalForm(), getLogString(conn.getHeaderFields())});
         }
 
         private String getLogString(Map<String, List<String>> map) {
@@ -644,12 +629,9 @@ public final class InvokeHTTP extends AbstractProcessor {
         }
 
         /**
-         * Convert a collection of string values into a overly simple comma
-         * separated string.
+         * Convert a collection of string values into a overly simple comma separated string.
          *
-         * Does not handle the case where the value contains the delimiter. i.e.
-         * if a value contains a comma, this method does nothing to try and
-         * escape or quote the value, in traditional csv style.
+         * Does not handle the case where the value contains the delimiter. i.e. if a value contains a comma, this method does nothing to try and escape or quote the value, in traditional csv style.
          */
         private String csv(Collection<String> values) {
             if (values == null || values.isEmpty()) {
@@ -674,16 +656,14 @@ public final class InvokeHTTP extends AbstractProcessor {
         }
 
         /**
-         * Return the current datetime as an RFC 1123 formatted string in the
-         * GMT tz.
+         * Return the current datetime as an RFC 1123 formatted string in the GMT tz.
          */
         private String getDateValue() {
             return dateFormat.print(System.currentTimeMillis());
         }
 
         /**
-         * Returns a string from the input stream using the specified character
-         * encoding.
+         * Returns a string from the input stream using the specified character encoding.
          */
         private String toString(InputStream is, Charset charset) throws IOException {
             if (is == null) {
@@ -700,13 +680,9 @@ public final class InvokeHTTP extends AbstractProcessor {
         }
 
         /**
-         * Returns the input stream to use for reading from the remote server.
-         * We're either going to want the inputstream or errorstream,
-         * effectively depending on the status code.
+         * Returns the input stream to use for reading from the remote server. We're either going to want the inputstream or errorstream, effectively depending on the status code.
          * <p>
-         * This method can return null if there is no inputstream to read from.
-         * For example, if the remote server did not send a message body. eg.
-         * 204 No Content or 304 Not Modified
+         * This method can return null if there is no inputstream to read from. For example, if the remote server did not send a message body. eg. 204 No Content or 304 Not Modified
          */
         private InputStream getResponseStream() {
             try {
@@ -723,8 +699,7 @@ public final class InvokeHTTP extends AbstractProcessor {
         }
 
         /**
-         * Writes the status attributes onto the flowfile, returning the
-         * flowfile that was updated.
+         * Writes the status attributes onto the flowfile, returning the flowfile that was updated.
          */
         private FlowFile writeStatusAttributes(FlowFile flowfile) {
             flowfile = session.putAttribute(flowfile, STATUS_CODE, String.valueOf(statusCode));

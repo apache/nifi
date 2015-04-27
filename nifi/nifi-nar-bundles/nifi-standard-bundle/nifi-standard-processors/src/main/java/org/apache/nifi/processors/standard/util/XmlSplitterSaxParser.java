@@ -71,7 +71,9 @@ public class XmlSplitterSaxParser extends DefaultHandler {
     @Override
     public void endElement(final String uri, final String localName, final String qName) throws SAXException {
         // Add the element end tag.
-        sb.append("</").append(qName).append(">");
+        sb.append("</").
+                append(qName).
+                append(">");
 
         // We have finished processing this element. Decrement the depth.
         int newDepth = depth.decrementAndGet();
@@ -102,7 +104,12 @@ public class XmlSplitterSaxParser extends DefaultHandler {
             for (int i = 0; i < attCount; i++) {
                 String attName = atts.getQName(i);
                 String attValue = atts.getValue(i);
-                sb.append(" ").append(attName).append("=").append("\"").append(attValue).append("\"");
+                sb.append(" ").
+                        append(attName).
+                        append("=").
+                        append("\"").
+                        append(attValue).
+                        append("\"");
             }
 
             sb.append(">");

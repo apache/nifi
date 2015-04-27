@@ -59,24 +59,33 @@ public class ContentAcknowledgmentServlet extends HttpServlet {
     @Override
     public void init(final ServletConfig config) throws ServletException {
         final ServletContext context = config.getServletContext();
-        this.processor = (Processor) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_PROCESSOR);
-        this.logger = (ProcessorLog) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_LOGGER);
-        this.authorizedPattern = (Pattern) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_AUTHORITY_PATTERN);
-        this.flowFileMap = (ConcurrentMap<String, FlowFileEntryTimeWrapper>) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_FLOWFILE_MAP);
+        this.processor = (Processor) context.
+                getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_PROCESSOR);
+        this.logger = (ProcessorLog) context.
+                getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_LOGGER);
+        this.authorizedPattern = (Pattern) context.
+                getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_AUTHORITY_PATTERN);
+        this.flowFileMap = (ConcurrentMap<String, FlowFileEntryTimeWrapper>) context.
+                getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_FLOWFILE_MAP);
     }
 
     @Override
     protected void doDelete(final HttpServletRequest request, final HttpServletResponse response) throws ServletException, IOException {
-        final X509Certificate[] certs = (X509Certificate[]) request.getAttribute("javax.servlet.request.X509Certificate");
+        final X509Certificate[] certs = (X509Certificate[]) request.
+                getAttribute("javax.servlet.request.X509Certificate");
         String foundSubject = DEFAULT_FOUND_SUBJECT;
         if (certs != null && certs.length > 0) {
             for (final X509Certificate cert : certs) {
-                foundSubject = cert.getSubjectDN().getName();
-                if (authorizedPattern.matcher(foundSubject).matches()) {
+                foundSubject = cert.getSubjectDN().
+                        getName();
+                if (authorizedPattern.matcher(foundSubject).
+                        matches()) {
                     break;
                 } else {
-                    logger.warn(processor + " rejecting transfer attempt from " + foundSubject + " because the DN is not authorized");
-                    response.sendError(HttpServletResponse.SC_FORBIDDEN, "not allowed based on dn");
+                    logger.
+                            warn(processor + " rejecting transfer attempt from " + foundSubject + " because the DN is not authorized");
+                    response.
+                            sendError(HttpServletResponse.SC_FORBIDDEN, "not allowed based on dn");
                     return;
                 }
             }
@@ -92,7 +101,10 @@ public class ContentAcknowledgmentServlet extends HttpServlet {
         final String uuid = uri.substring(slashIndex + 1, questionIndex);
         final FlowFileEntryTimeWrapper timeWrapper = flowFileMap.remove(uuid);
         if (timeWrapper == null) {
-            logger.warn("received DELETE for HOLD with ID " + uuid + " from Remote Host: [" + request.getRemoteHost() + "] Port [" + request.getRemotePort() + "] SubjectDN [" + foundSubject + "], but no HOLD exists with that ID; sending response with Status Code 404");
+            logger.
+                    warn("received DELETE for HOLD with ID " + uuid + " from Remote Host: [" + request.
+                            getRemoteHost() + "] Port [" + request.
+                            getRemotePort() + "] SubjectDN [" + foundSubject + "], but no HOLD exists with that ID; sending response with Status Code 404");
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
@@ -100,7 +112,8 @@ public class ContentAcknowledgmentServlet extends HttpServlet {
         try {
             final Set<FlowFile> flowFiles = timeWrapper.getFlowFiles();
 
-            final long transferTime = System.currentTimeMillis() - timeWrapper.getEntryTime();
+            final long transferTime = System.currentTimeMillis() - timeWrapper.
+                    getEntryTime();
             long totalFlowFileSize = 0;
             for (final FlowFile flowFile : flowFiles) {
                 totalFlowFileSize += flowFile.getSize();
@@ -111,10 +124,13 @@ public class ContentAcknowledgmentServlet extends HttpServlet {
                 seconds = .00000001D;
             }
             final double bytesPerSecond = ((double) totalFlowFileSize / seconds);
-            final String transferRate = FormatUtils.formatDataSize(bytesPerSecond) + "/sec";
+            final String transferRate = FormatUtils.
+                    formatDataSize(bytesPerSecond) + "/sec";
 
-            logger.info("received {} files/{} bytes from Remote Host: [{}] Port [{}] SubjectDN [{}] in {} milliseconds at a rate of {}; transferring to 'success': {}",
-                    new Object[]{flowFiles.size(), totalFlowFileSize, request.getRemoteHost(), request.getRemotePort(), foundSubject, transferTime, transferRate, flowFiles});
+            logger.
+                    info("received {} files/{} bytes from Remote Host: [{}] Port [{}] SubjectDN [{}] in {} milliseconds at a rate of {}; transferring to 'success': {}",
+                            new Object[]{flowFiles.size(), totalFlowFileSize, request.
+                                getRemoteHost(), request.getRemotePort(), foundSubject, transferTime, transferRate, flowFiles});
 
             final ProcessSession session = timeWrapper.getSession();
             session.transfer(flowFiles, ListenHTTP.RELATIONSHIP_SUCCESS);
@@ -123,9 +139,12 @@ public class ContentAcknowledgmentServlet extends HttpServlet {
             response.setStatus(HttpServletResponse.SC_OK);
             response.flushBuffer();
         } catch (final Throwable t) {
-            timeWrapper.getSession().rollback();
-            logger.error("received DELETE for HOLD with ID {} from Remote Host: [{}] Port [{}] SubjectDN [{}], but failed to process the request due to {}",
-                    new Object[]{uuid, request.getRemoteHost(), request.getRemotePort(), foundSubject, t.toString()});
+            timeWrapper.getSession().
+                    rollback();
+            logger.
+                    error("received DELETE for HOLD with ID {} from Remote Host: [{}] Port [{}] SubjectDN [{}], but failed to process the request due to {}",
+                            new Object[]{uuid, request.getRemoteHost(), request.
+                                getRemotePort(), foundSubject, t.toString()});
             if (logger.isDebugEnabled()) {
                 logger.error("", t);
             }

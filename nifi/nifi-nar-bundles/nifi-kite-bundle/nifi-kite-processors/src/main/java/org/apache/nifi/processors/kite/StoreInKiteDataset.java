@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.nifi.processors.kite;
 
 import com.google.common.collect.ImmutableList;
@@ -50,113 +49,114 @@ import org.kitesdk.data.spi.SchemaValidationUtil;
 @Tags({"kite", "avro", "parquet", "hadoop", "hive", "hdfs", "hbase"})
 @CapabilityDescription("Stores Avro records in a Kite dataset")
 public class StoreInKiteDataset extends AbstractKiteProcessor {
-  private static final Relationship SUCCESS = new Relationship.Builder()
-      .name("success")
-      .description("FlowFile content has been successfully saved")
-      .build();
 
-  private static final Relationship INCOMPATIBLE = new Relationship.Builder()
-      .name("incompatible")
-      .description("FlowFile content is not compatible with the target dataset")
-      .build();
+    private static final Relationship SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("FlowFile content has been successfully saved")
+            .build();
 
-  private static final Relationship FAILURE = new Relationship.Builder()
-      .name("failure")
-      .description("FlowFile content could not be processed")
-      .build();
+    private static final Relationship INCOMPATIBLE = new Relationship.Builder()
+            .name("incompatible")
+            .description("FlowFile content is not compatible with the target dataset")
+            .build();
 
-  public static final PropertyDescriptor KITE_DATASET_URI =
-      new PropertyDescriptor.Builder()
-          .name("Target dataset URI")
-          .description("URI that identifies a Kite dataset where data will be stored")
-          .addValidator(RECOGNIZED_URI)
-          .expressionLanguageSupported(true)
-          .required(true)
-          .build();
+    private static final Relationship FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("FlowFile content could not be processed")
+            .build();
 
-  private static final List<PropertyDescriptor> PROPERTIES =
-      ImmutableList.<PropertyDescriptor>builder()
-          .addAll(AbstractKiteProcessor.getProperties())
-          .add(KITE_DATASET_URI)
-          .build();
+    public static final PropertyDescriptor KITE_DATASET_URI
+            = new PropertyDescriptor.Builder()
+            .name("Target dataset URI")
+            .description("URI that identifies a Kite dataset where data will be stored")
+            .addValidator(RECOGNIZED_URI)
+            .expressionLanguageSupported(true)
+            .required(true)
+            .build();
 
-  private static final Set<Relationship> RELATIONSHIPS =
-      ImmutableSet.<Relationship>builder()
-          .add(SUCCESS)
-          .add(INCOMPATIBLE)
-          .add(FAILURE)
-          .build();
+    private static final List<PropertyDescriptor> PROPERTIES
+            = ImmutableList.<PropertyDescriptor>builder()
+            .addAll(AbstractKiteProcessor.getProperties())
+            .add(KITE_DATASET_URI)
+            .build();
 
-  @Override
-  protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-    return PROPERTIES;
-  }
+    private static final Set<Relationship> RELATIONSHIPS
+            = ImmutableSet.<Relationship>builder()
+            .add(SUCCESS)
+            .add(INCOMPATIBLE)
+            .add(FAILURE)
+            .build();
 
-  @Override
-  public Set<Relationship> getRelationships() {
-    return RELATIONSHIPS;
-  }
-
-  @Override
-  public void onTrigger(ProcessContext context, final ProcessSession session)
-      throws ProcessException {
-    FlowFile flowFile = session.get();
-    if (flowFile == null) {
-      return;
+    @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return PROPERTIES;
     }
 
-    final View<Record> target = load(context, flowFile);
-    final Schema schema = target.getDataset().getDescriptor().getSchema();
+    @Override
+    public Set<Relationship> getRelationships() {
+        return RELATIONSHIPS;
+    }
 
-    try {
-      StopWatch timer = new StopWatch(true);
-      session.read(flowFile, new InputStreamCallback() {
-        @Override
-        public void process(InputStream in) throws IOException {
-          try (DataFileStream<Record> stream = new DataFileStream<>(
-              in, AvroUtil.newDatumReader(schema, Record.class))) {
-            IncompatibleSchemaException.check(
-                SchemaValidationUtil.canRead(stream.getSchema(), schema),
-                "Incompatible file schema %s, expected %s",
-                stream.getSchema(), schema);
-
-            long written = 0L;
-            try (DatasetWriter<Record> writer = target.newWriter()) {
-              for (Record record : stream) {
-                writer.write(record);
-                written += 1;
-              }
-            } finally {
-              session.adjustCounter("Stored records", written,
-                  true /* cannot roll back the write */);
-            }
-          }
+    @Override
+    public void onTrigger(ProcessContext context, final ProcessSession session)
+            throws ProcessException {
+        FlowFile flowFile = session.get();
+        if (flowFile == null) {
+            return;
         }
-      });
-      timer.stop();
 
-      session.getProvenanceReporter().send(flowFile,
-          target.getUri().toString(),
-          timer.getDuration(TimeUnit.MILLISECONDS),
-          true /* cannot roll back the write */ );
+        final View<Record> target = load(context, flowFile);
+        final Schema schema = target.getDataset().getDescriptor().getSchema();
 
-      session.transfer(flowFile, SUCCESS);
+        try {
+            StopWatch timer = new StopWatch(true);
+            session.read(flowFile, new InputStreamCallback() {
+                @Override
+                public void process(InputStream in) throws IOException {
+                    try (DataFileStream<Record> stream = new DataFileStream<>(
+                            in, AvroUtil.newDatumReader(schema, Record.class))) {
+                        IncompatibleSchemaException.check(
+                                SchemaValidationUtil.canRead(stream.getSchema(), schema),
+                                "Incompatible file schema %s, expected %s",
+                                stream.getSchema(), schema);
 
-    } catch (ProcessException | DatasetIOException e) {
-      getLogger().error("Failed to read FlowFile", e);
-      session.transfer(flowFile, FAILURE);
+                        long written = 0L;
+                        try (DatasetWriter<Record> writer = target.newWriter()) {
+                            for (Record record : stream) {
+                                writer.write(record);
+                                written += 1;
+                            }
+                        } finally {
+                            session.adjustCounter("Stored records", written,
+                                    true /* cannot roll back the write */);
+                        }
+                    }
+                }
+            });
+            timer.stop();
 
-    } catch (ValidationException e) {
-      getLogger().error(e.getMessage());
-      getLogger().debug("Incompatible schema error", e);
-      session.transfer(flowFile, INCOMPATIBLE);
+            session.getProvenanceReporter().send(flowFile,
+                    target.getUri().toString(),
+                    timer.getDuration(TimeUnit.MILLISECONDS),
+                    true /* cannot roll back the write */);
+
+            session.transfer(flowFile, SUCCESS);
+
+        } catch (ProcessException | DatasetIOException e) {
+            getLogger().error("Failed to read FlowFile", e);
+            session.transfer(flowFile, FAILURE);
+
+        } catch (ValidationException e) {
+            getLogger().error(e.getMessage());
+            getLogger().debug("Incompatible schema error", e);
+            session.transfer(flowFile, INCOMPATIBLE);
+        }
     }
-  }
 
-  private View<Record> load(ProcessContext context, FlowFile file) {
-    String uri = context.getProperty(KITE_DATASET_URI)
-        .evaluateAttributeExpressions(file)
-        .getValue();
-    return Datasets.load(uri, Record.class);
-  }
+    private View<Record> load(ProcessContext context, FlowFile file) {
+        String uri = context.getProperty(KITE_DATASET_URI)
+                .evaluateAttributeExpressions(file)
+                .getValue();
+        return Datasets.load(uri, Record.class);
+    }
 }

@@ -112,9 +112,11 @@ public class FTPUtils {
         final String transferModeVal = conf.transferMode;
         final String transferMode = (null == transferModeVal) ? BINARY_TRANSFER_MODE : transferModeVal;
         final String networkDataTimeoutVal = conf.dataTimeout;
-        final int networkDataTimeout = (null == networkDataTimeoutVal) ? 0 : Integer.parseInt(networkDataTimeoutVal);
+        final int networkDataTimeout = (null == networkDataTimeoutVal) ? 0 : Integer.
+                parseInt(networkDataTimeoutVal);
         final String networkSocketTimeoutVal = conf.connectionTimeout;
-        final int networkSocketTimeout = (null == networkSocketTimeoutVal) ? 0 : Integer.parseInt(networkSocketTimeoutVal);
+        final int networkSocketTimeout = (null == networkSocketTimeoutVal) ? 0 : Integer.
+                parseInt(networkSocketTimeoutVal);
 
         final FTPClient client = new FTPClient();
         if (networkDataTimeout > 0) {
@@ -180,14 +182,16 @@ public class FTPUtils {
         @Override
         public void protocolCommandSent(final ProtocolCommandEvent event) {
             if (logger.isDebugEnabled()) {
-                logger.debug(processor + " : " + event.getMessage().trim());
+                logger.debug(processor + " : " + event.getMessage().
+                        trim());
             }
         }
 
         @Override
         public void protocolReplyReceived(final ProtocolCommandEvent event) {
             if (logger.isDebugEnabled()) {
-                logger.debug(processor + " : " + event.getMessage().trim());
+                logger.debug(processor + " : " + event.getMessage().
+                        trim());
             }
         }
 
@@ -212,19 +216,26 @@ public class FTPUtils {
     public static void changeWorkingDirectory(final FTPClient client, final String dirPath, final boolean createDirs, final Processor processor) throws IOException {
         final String currentWorkingDirectory = client.printWorkingDirectory();
         final File dir = new File(dirPath);
-        logger.debug(processor + " attempting to change directory from " + currentWorkingDirectory + " to " + dir.getPath());
+        logger.
+                debug(processor + " attempting to change directory from " + currentWorkingDirectory + " to " + dir.
+                        getPath());
         boolean dirExists = false;
-        final String forwardPaths = dir.getPath().replaceAll(Matcher.quoteReplacement("\\"), Matcher.quoteReplacement("/"));
+        final String forwardPaths = dir.getPath().
+                replaceAll(Matcher.quoteReplacement("\\"), Matcher.
+                        quoteReplacement("/"));
         //always use forward paths for long string attempt
         try {
             dirExists = client.changeWorkingDirectory(forwardPaths);
             if (dirExists) {
-                logger.debug(processor + " changed working directory to '" + forwardPaths + "' from '" + currentWorkingDirectory + "'");
+                logger.
+                        debug(processor + " changed working directory to '" + forwardPaths + "' from '" + currentWorkingDirectory + "'");
             } else {
-                logger.debug(processor + " could not change directory to '" + forwardPaths + "' from '" + currentWorkingDirectory + "' so trying the hard way.");
+                logger.
+                        debug(processor + " could not change directory to '" + forwardPaths + "' from '" + currentWorkingDirectory + "' so trying the hard way.");
             }
         } catch (final IOException ioe) {
-            logger.debug(processor + " could not change directory to '" + forwardPaths + "' from '" + currentWorkingDirectory + "' so trying the hard way.");
+            logger.
+                    debug(processor + " could not change directory to '" + forwardPaths + "' from '" + currentWorkingDirectory + "' so trying the hard way.");
         }
         if (!dirExists) {  //coulnd't navigate directly...begin hard work
             final Deque<String> stack = new LinkedList<>();
@@ -245,12 +256,15 @@ public class FTPUtils {
                     exists = false;
                 }
                 if (!exists && createDirs) {
-                    logger.debug(processor + " creating new directory and changing to it " + dirName);
+                    logger.
+                            debug(processor + " creating new directory and changing to it " + dirName);
                     client.makeDirectory(dirName);
-                    if (!(client.makeDirectory(dirName) || client.changeWorkingDirectory(dirName))) {
+                    if (!(client.makeDirectory(dirName) || client.
+                            changeWorkingDirectory(dirName))) {
                         throw new IOException(processor + " could not create and change to newly created directory " + dirName);
                     } else {
-                        logger.debug(processor + " successfully changed working directory to " + dirName);
+                        logger.
+                                debug(processor + " successfully changed working directory to " + dirName);
                     }
                 } else if (!exists) {
                     throw new IOException(processor + " could not change directory to '" + dirName + "' from '" + currentWorkingDirectory + "'");

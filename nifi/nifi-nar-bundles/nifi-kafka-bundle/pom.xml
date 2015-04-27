@@ -26,12 +26,12 @@
         <module>nifi-kafka-nar</module>
     </modules>
     <dependencyManagement>
-	<dependencies>
-          <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-kafka-processors</artifactId>
-            <version>0.1.0-incubating-SNAPSHOT</version>
-          </dependency>
-	</dependencies>
+        <dependencies>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-kafka-processors</artifactId>
+                <version>0.1.0-incubating-SNAPSHOT</version>
+            </dependency>
+        </dependencies>
     </dependencyManagement> 
 </project>

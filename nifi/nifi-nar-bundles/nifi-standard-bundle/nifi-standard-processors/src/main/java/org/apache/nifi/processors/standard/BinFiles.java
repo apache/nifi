@@ -87,17 +87,23 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
 
     public static final PropertyDescriptor MAX_BIN_AGE = new PropertyDescriptor.Builder()
             .name("Max Bin Age")
-            .description("The maximum age of a Bin that will trigger a Bin to be complete. Expected format is <duration> <time unit> where <duration> is a positive integer and time unit is one of seconds, minutes, hours")
+            .description("The maximum age of a Bin that will trigger a Bin to be complete. Expected format is <duration> <time unit> "
+                    + "where <duration> is a positive integer and time unit is one of seconds, minutes, hours")
             .required(false)
             .addValidator(StandardValidators.createTimePeriodValidator(1, TimeUnit.SECONDS, Integer.MAX_VALUE, TimeUnit.SECONDS))
             .build();
 
-    public static final Relationship REL_ORIGINAL = new Relationship.Builder().name("original").description("The FlowFiles that were used to create the bundle").build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure").description("If the bundle cannot be created, all FlowFiles that would have been used to created the bundle will be transferred to failure").build();
+    public static final Relationship REL_ORIGINAL = new Relationship.Builder()
+            .name("original")
+            .description("The FlowFiles that were used to create the bundle")
+            .build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("If the bundle cannot be created, all FlowFiles that would have been used to created the bundle will be transferred to failure")
+            .build();
 
     private final BinManager binManager = new BinManager();
     private final Queue<Bin> readyBins = new LinkedBlockingQueue<>();
-
 
     @OnStopped
     public final void resetState() {
@@ -111,80 +117,63 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
         }
     }
 
-
-	/**
-	 * Allows general pre-processing of a flow file before it is offered to a
-	 * bin. This is called before getGroupId().
-	 * 
-	 * @param context
-	 * @param session
-	 * @param flowFile
-	 * @return The flow file, possibly altered
-	 */
-    protected abstract FlowFile preprocessFlowFile(final ProcessContext context, final ProcessSession session, final FlowFile flowFile);
-    
     /**
-     * Returns a group ID representing a bin.  This allows flow files to be
-     * binned into like groups.
-     * @param context 
-     * @param flowFile
+     * Allows general pre-processing of a flow file before it is offered to a bin. This is called before getGroupId().
+     *
+     * @param context context
+     * @param session session
+     * @param flowFile flowFile
+     * @return The flow file, possibly altered
+     */
+    protected abstract FlowFile preprocessFlowFile(final ProcessContext context, final ProcessSession session, final FlowFile flowFile);
+
+    /**
+     * Returns a group ID representing a bin. This allows flow files to be binned into like groups.
+     *
+     * @param context context
+     * @param flowFile flowFile
      * @return The appropriate group ID
      */
     protected abstract String getGroupId(final ProcessContext context, final FlowFile flowFile);
 
     /**
-     * Performs any additional setup of the bin manager.  Called during the
-     * OnScheduled phase.
+     * Performs any additional setup of the bin manager. Called during the OnScheduled phase.
+     *
      * @param binManager The bin manager
-     * @param context
+     * @param context context
      */
     protected abstract void setUpBinManager(BinManager binManager, ProcessContext context);
-    
-    /**
-	 * Processes a single bin. Implementing class is responsible for committing
-	 * each session
-	 * 
-	 * @param unmodifiableBin
-	 *            A reference to a single bin of flow file/session wrappers
-	 * @param binContents
-	 *            A copy of the contents of the bin
-	 * @param context
-	 *            The context
-	 * @param session
-	 *            The session that created the bin
-	 * @param logger
-	 *            The logger
-	 * @return Return true if the input bin was already committed. E.g., in case of a
-	 * failure, the implementation may choose to transfer all binned files
-	 * to Failure and commit their sessions.  If false, the 
-	 * processBins() method will transfer the files to Original and commit
-	 * the sessions
-	 * 
-	 * @throws ProcessException if any problem arises while processing a bin
-	 *             of FlowFiles. All flow files in the
-	 *             bin will be transferred to failure and the ProcessSession provided by
-	 *             the 'session' argument rolled back
-	 */
-	protected abstract boolean processBin(Bin unmodifiableBin, 
-	        List<FlowFileSessionWrapper> binContents, ProcessContext context, ProcessSession session) throws ProcessException;
 
     /**
-	 * Allows additional custom validation to be done. This will be called from
-	 * the parent's customValidation method.
-	 * 
-	 * @param context
-	 *            The context
-	 * @return Validation results indicating problems
-	 */
+     * Processes a single bin. Implementing class is responsible for committing each session
+     *
+     * @param unmodifiableBin A reference to a single bin of flow file/session wrappers
+     * @param binContents A copy of the contents of the bin
+     * @param context The context
+     * @param session The session that created the bin
+     * @return Return true if the input bin was already committed. E.g., in case of a failure, the implementation may choose to transfer all binned files to Failure and commit their sessions. If
+     * false, the processBins() method will transfer the files to Original and commit the sessions
+     *
+     * @throws ProcessException if any problem arises while processing a bin of FlowFiles. All flow files in the bin will be transferred to failure and the ProcessSession provided by the 'session'
+     * argument rolled back
+     */
+    protected abstract boolean processBin(Bin unmodifiableBin, List<FlowFileSessionWrapper> binContents, ProcessContext context, ProcessSession session) throws ProcessException;
+
+    /**
+     * Allows additional custom validation to be done. This will be called from the parent's customValidation method.
+     *
+     * @param context The context
+     * @return Validation results indicating problems
+     */
     protected Collection<ValidationResult> additionalCustomValidation(final ValidationContext context) {
-    	return new ArrayList<ValidationResult>();
+        return new ArrayList<>();
     }
-	
+
     @Override
     public final void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
         int binsAdded = binFlowFiles(context, sessionFactory);
-        getLogger().debug("Binned {} FlowFiles", new Object[] {binsAdded});
-        
+        getLogger().debug("Binned {} FlowFiles", new Object[]{binsAdded});
+
         if (!isScheduled()) {
             return;
         }
@@ -232,11 +221,12 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
 
         final List<FlowFileSessionWrapper> binCopy = new ArrayList<>(bin.getContents());
 
-    	boolean binAlreadyCommitted = false;
+        boolean binAlreadyCommitted = false;
         try {
-        	binAlreadyCommitted = this.processBin(bin, binCopy, context, session);
+            binAlreadyCommitted = this.processBin(bin, binCopy, context, session);
         } catch (final ProcessException e) {
-            logger.error("Failed to process bundle of {} files due to {}", new Object[]{binCopy.size(), e});
+            logger.
+                    error("Failed to process bundle of {} files due to {}", new Object[]{binCopy.size(), e});
 
             for (final FlowFileSessionWrapper wrapper : binCopy) {
                 wrapper.getSession().transfer(wrapper.getFlowFile(), REL_FAILURE);
@@ -251,7 +241,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
         // across multiple sessions, we cannot guarantee atomicity across the sessions
         session.commit();
         // If this bin's session has been committed, move on.
-        if ( !binAlreadyCommitted ) {
+        if (!binAlreadyCommitted) {
             for (final FlowFileSessionWrapper wrapper : bin.getContents()) {
                 wrapper.getSession().transfer(wrapper.getFlowFile(), REL_ORIGINAL);
                 wrapper.getSession().commit();
@@ -260,8 +250,8 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
 
         return 1;
     }
-    
-	private int binFlowFiles(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
+
+    private int binFlowFiles(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
         int binsAdded = 0;
         while (binManager.getBinCount() < context.getProperty(MAX_BIN_COUNT).asInteger().intValue()) {
             if (!isScheduled()) {
@@ -297,21 +287,22 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
     public final void onScheduled(final ProcessContext context) throws IOException {
         binManager.setMinimumSize(context.getProperty(MIN_SIZE).asDataSize(DataUnit.B).longValue());
 
-        if (context.getProperty(MAX_BIN_AGE).isSet() ) {
+        if (context.getProperty(MAX_BIN_AGE).isSet()) {
             binManager.setMaxBinAge(context.getProperty(MAX_BIN_AGE).asTimePeriod(TimeUnit.SECONDS).intValue());
         } else {
             binManager.setMaxBinAge(Integer.MAX_VALUE);
         }
-        
-        if ( context.getProperty(MAX_SIZE).isSet() ) {
-            binManager.setMaximumSize(context.getProperty(MAX_SIZE).asDataSize(DataUnit.B).longValue());
+
+        if (context.getProperty(MAX_SIZE).isSet()) {
+            binManager.setMaximumSize(context.getProperty(MAX_SIZE).
+                    asDataSize(DataUnit.B).longValue());
         } else {
             binManager.setMaximumSize(Long.MAX_VALUE);
         }
-        
+
         binManager.setMinimumEntries(context.getProperty(MIN_ENTRIES).asInteger());
 
-        if ( context.getProperty(MAX_ENTRIES).isSet() ) {
+        if (context.getProperty(MAX_ENTRIES).isSet()) {
             binManager.setMaximumEntries(context.getProperty(MAX_ENTRIES).asInteger().intValue());
         } else {
             binManager.setMaximumEntries(Integer.MAX_VALUE);
@@ -319,31 +310,46 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
 
         this.setUpBinManager(binManager, context);
     }
-    
-	@Override
+
+    @Override
     protected final Collection<ValidationResult> customValidate(final ValidationContext context) {
-        final List<ValidationResult> problems = new ArrayList<>(super.customValidate(context));
+        final List<ValidationResult> problems = new ArrayList<>(super.
+                customValidate(context));
 
         final long minBytes = context.getProperty(MIN_SIZE).asDataSize(DataUnit.B).longValue();
         final Double maxBytes = context.getProperty(MAX_SIZE).asDataSize(DataUnit.B);
 
         if (maxBytes != null && maxBytes.longValue() < minBytes) {
-            problems.add(new ValidationResult.Builder().subject(MIN_SIZE.getName()).input(
-                    context.getProperty(MIN_SIZE).getValue()).valid(false).explanation("Min Size must be less than or equal to Max Size").build());
+            problems.add(
+                    new ValidationResult.Builder()
+                    .subject(MIN_SIZE.getName())
+                    .input(context.getProperty(MIN_SIZE).getValue())
+                    .valid(false)
+                    .explanation("Min Size must be less than or equal to Max Size")
+                    .build()
+            );
         }
 
-        final Long min = context.getProperty(MIN_ENTRIES).asLong();
-        final Long max = context.getProperty(MAX_ENTRIES).asLong();
+        final Long min = context.getProperty(MIN_ENTRIES).
+                asLong();
+        final Long max = context.getProperty(MAX_ENTRIES).
+                asLong();
 
         if (min != null && max != null) {
             if (min > max) {
-                problems.add(new ValidationResult.Builder().subject(MIN_ENTRIES.getName()).input(context.getProperty(MIN_ENTRIES).getValue()).valid(false).explanation("Min Entries must be less than or equal to Max Entries").build());
+                problems.add(
+                        new ValidationResult.Builder().subject(MIN_ENTRIES.getName())
+                        .input(context.getProperty(MIN_ENTRIES).getValue())
+                        .valid(false)
+                        .explanation("Min Entries must be less than or equal to Max Entries")
+                        .build()
+                );
             }
         }
-        
+
         Collection<ValidationResult> otherProblems = this.additionalCustomValidation(context);
         if (otherProblems != null) {
-        	problems.addAll(otherProblems);
+            problems.addAll(otherProblems);
         }
 
         return problems;

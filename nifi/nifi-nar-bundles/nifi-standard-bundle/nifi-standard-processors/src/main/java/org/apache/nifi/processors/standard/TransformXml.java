@@ -65,19 +65,25 @@ import org.apache.nifi.util.Tuple;
 @CapabilityDescription("Applies the provided XSLT file to the flowfile XML payload. A new FlowFile is created "
         + "with transformed content and is routed to the 'success' relationship. If the XSL transform "
         + "fails, the original FlowFile is routed to the 'failure' relationship")
-@DynamicProperty(name="An XSLT transform parameter name", value="An XSLT transform parameter value", supportsExpressionLanguage=true, 
-description="These XSLT parameters are passed to the transformer")
+@DynamicProperty(name = "An XSLT transform parameter name", value = "An XSLT transform parameter value", supportsExpressionLanguage = true,
+        description = "These XSLT parameters are passed to the transformer")
 public class TransformXml extends AbstractProcessor {
 
-    public static final PropertyDescriptor XSLT_FILE_NAME = new PropertyDescriptor.Builder()
-            .name("XSLT file name")
-            .description("Provides the name (including full path) of the XSLT file to apply to the flowfile XML content.")
-            .required(true)
-            .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
-            .build();
+    public static final PropertyDescriptor XSLT_FILE_NAME = new PropertyDescriptor.Builder().
+            name("XSLT file name").
+            description("Provides the name (including full path) of the XSLT file to apply to the flowfile XML content.").
+            required(true).
+            addValidator(StandardValidators.FILE_EXISTS_VALIDATOR).
+            build();
 
-    public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("The FlowFile with transformed content will be routed to this relationship").build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure").description("If a FlowFile fails processing for any reason (for example, the FlowFile is not valid XML), it will be routed to this relationship").build();
+    public static final Relationship REL_SUCCESS = new Relationship.Builder().
+            name("success").
+            description("The FlowFile with transformed content will be routed to this relationship").
+            build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder().
+            name("failure").
+            description("If a FlowFile fails processing for any reason (for example, the FlowFile is not valid XML), it will be routed to this relationship").
+            build();
 
     private List<PropertyDescriptor> properties;
     private Set<Relationship> relationships;
@@ -107,12 +113,13 @@ public class TransformXml extends AbstractProcessor {
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
-                .name(propertyDescriptorName)
-                .expressionLanguageSupported(true)
-                .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
-                .required(false)
-                .dynamic(true)
-                .build();
+                .name(propertyDescriptorName).
+                expressionLanguageSupported(true).
+                addValidator(StandardValidators.
+                        createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true)).
+                required(false).
+                dynamic(true).
+                build();
     }
 
     @Override
@@ -126,38 +133,52 @@ public class TransformXml extends AbstractProcessor {
         final StopWatch stopWatch = new StopWatch(true);
 
         try {
-            FlowFile transformed = session.write(original, new StreamCallback() {
-                @Override
-                public void process(final InputStream rawIn, final OutputStream out) throws IOException {
-                    try (final InputStream in = new BufferedInputStream(rawIn)) {
+            FlowFile transformed = session.
+                    write(original, new StreamCallback() {
+                        @Override
+                        public void process(final InputStream rawIn, final OutputStream out) throws IOException {
+                            try (final InputStream in = new BufferedInputStream(rawIn)) {
 
-                        File stylesheet = new File(context.getProperty(XSLT_FILE_NAME).getValue());
-                        StreamSource styleSource = new StreamSource(stylesheet);
-                        TransformerFactory tfactory = new net.sf.saxon.TransformerFactoryImpl();
-                        Transformer transformer = tfactory.newTransformer(styleSource);
+                                File stylesheet = new File(context.
+                                        getProperty(XSLT_FILE_NAME).
+                                        getValue());
+                                StreamSource styleSource = new StreamSource(stylesheet);
+                                TransformerFactory tfactory = new net.sf.saxon.TransformerFactoryImpl();
+                                Transformer transformer = tfactory.
+                                newTransformer(styleSource);
 
-                        // pass all dynamic properties to the transformer
-                        for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
-                            if (entry.getKey().isDynamic()) {
-                                String value = context.newPropertyValue(entry.getValue()).evaluateAttributeExpressions(original).getValue();
-                                transformer.setParameter(entry.getKey().getName(), value);
+                                // pass all dynamic properties to the transformer
+                                for (final Map.Entry<PropertyDescriptor, String> entry : context.
+                                getProperties().
+                                entrySet()) {
+                                    if (entry.getKey().
+                                    isDynamic()) {
+                                        String value = context.
+                                        newPropertyValue(entry.getValue()).
+                                        evaluateAttributeExpressions(original).
+                                        getValue();
+                                        transformer.setParameter(entry.getKey().
+                                                getName(), value);
+                                    }
+                                }
+
+                                // use a StreamSource with Saxon
+                                StreamSource source = new StreamSource(in);
+                                StreamResult result = new StreamResult(out);
+                                transformer.transform(source, result);
+                            } catch (final Exception e) {
+                                throw new IOException(e);
                             }
                         }
-
-                        // use a StreamSource with Saxon
-                        StreamSource source = new StreamSource(in);
-                        StreamResult result = new StreamResult(out);
-                        transformer.transform(source, result);
-                    } catch (final Exception e) {
-                        throw new IOException(e);
-                    }
-                }
-            });
+                    });
             session.transfer(transformed, REL_SUCCESS);
-            session.getProvenanceReporter().modifyContent(transformed, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+            session.getProvenanceReporter().
+                    modifyContent(transformed, stopWatch.
+                            getElapsed(TimeUnit.MILLISECONDS));
             logger.info("Transformed {}", new Object[]{original});
         } catch (ProcessException e) {
-            logger.error("Unable to transform {} due to {}", new Object[]{original, e});
+            logger.
+                    error("Unable to transform {} due to {}", new Object[]{original, e});
             session.transfer(original, REL_FAILURE);
         }
     }
@@ -170,7 +191,8 @@ public class TransformXml extends AbstractProcessor {
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext validationContext) {
             final Tuple<String, ValidationResult> lastResult = this.cachedResult;
-            if (lastResult != null && lastResult.getKey().equals(input)) {
+            if (lastResult != null && lastResult.getKey().
+                    equals(input)) {
                 return lastResult.getValue();
             } else {
                 String error = null;
@@ -186,10 +208,11 @@ public class TransformXml extends AbstractProcessor {
 
                 this.cachedResult = new Tuple<>(input,
                         new ValidationResult.Builder()
-                        .input(input)
-                        .subject(subject)
-                        .valid(error == null)
-                        .explanation(error).build());
+                        .input(input).
+                        subject(subject).
+                        valid(error == null).
+                        explanation(error).
+                        build());
                 return this.cachedResult.getValue();
             }
         }

@@ -117,7 +117,8 @@ public class Bin {
      * @return true if added; false otherwise
      */
     public boolean offer(final FlowFile flowFile, final ProcessSession session) {
-        if (((size + flowFile.getSize()) > maximumSizeBytes) || (binContents.size() >= maximumEntries)) {
+        if (((size + flowFile.getSize()) > maximumSizeBytes) || (binContents.
+                size() >= maximumEntries)) {
             successiveFailedOfferings++;
             return false;
         }
@@ -143,7 +144,8 @@ public class Bin {
         if (value == null) {
             return null;
         }
-        if (!intPattern.matcher(value).matches()) {
+        if (!intPattern.matcher(value).
+                matches()) {
             return null;
         }
 

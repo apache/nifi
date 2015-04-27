@@ -38,7 +38,6 @@ import org.apache.nifi.util.StopWatch;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
-import javax.crypto.*;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.PBEParameterSpec;
 
@@ -50,8 +49,17 @@ import java.security.InvalidKeyException;
 import java.security.SecureRandom;
 import java.security.Security;
 import java.text.Normalizer;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
 
 @EventDriven
 @SideEffectFree
@@ -87,14 +95,19 @@ public class EncryptContent extends AbstractProcessor {
             .sensitive(true)
             .build();
 
-    public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("Any FlowFile that is successfully encrypted or decrypted will be routed to success").build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure").description("Any FlowFile that cannot be encrypted or decrypted will be routed to failure").build();
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("Any FlowFile that is successfully encrypted or decrypted will be routed to success")
+            .build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("Any FlowFile that cannot be encrypted or decrypted will be routed to failure")
+            .build();
 
     private List<PropertyDescriptor> properties;
     private Set<Relationship> relationships;
 
     static {
-        // add BouncyCastle encryption providers
         Security.addProvider(new BouncyCastleProvider());
     }
 

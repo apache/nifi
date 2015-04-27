@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.nifi.processors.kite;
 
 import org.apache.avro.Schema;
@@ -24,17 +23,16 @@ import org.apache.avro.generic.GenericData;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DatumWriter;
 
-
 class AvroUtil {
 
-  @SuppressWarnings("unchecked")
-  public static <D> DatumWriter<D> newDatumWriter(Schema schema, Class<D> dClass) {
-    return (DatumWriter<D>) GenericData.get().createDatumWriter(schema);
-  }
+    @SuppressWarnings("unchecked")
+    public static <D> DatumWriter<D> newDatumWriter(Schema schema, Class<D> dClass) {
+        return (DatumWriter<D>) GenericData.get().createDatumWriter(schema);
+    }
 
-  @SuppressWarnings("unchecked")
-  public static <D> DatumReader<D> newDatumReader(Schema schema, Class<D> dClass) {
-    return (DatumReader<D>) GenericData.get().createDatumReader(schema);
-  }
+    @SuppressWarnings("unchecked")
+    public static <D> DatumReader<D> newDatumReader(Schema schema, Class<D> dClass) {
+        return (DatumReader<D>) GenericData.get().createDatumReader(schema);
+    }
 
 }

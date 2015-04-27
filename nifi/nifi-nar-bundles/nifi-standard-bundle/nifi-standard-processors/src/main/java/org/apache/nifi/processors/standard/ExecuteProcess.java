@@ -62,7 +62,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 @CapabilityDescription("Runs an operating system command specified by the user and writes the output of that command to a FlowFile. If the command is expected "
         + "to be long-running, the Processor can output the partial data on a specified interval. When this option is used, the output is expected to be in textual "
         + "format, as it typically does not make sense to split binary data on arbitrary time-based intervals.")
-@DynamicProperty(name="An environment variable name", value="An environment variable value", description="These environment variables are passed to the process spawned by this Processor")
+@DynamicProperty(name = "An environment variable name", value = "An environment variable value", description = "These environment variables are passed to the process spawned by this Processor")
 public class ExecuteProcess extends AbstractProcessor {
 
     public static final PropertyDescriptor COMMAND = new PropertyDescriptor.Builder()
@@ -163,7 +163,8 @@ public class ExecuteProcess extends AbstractProcessor {
                     if (inQuotes) {
                         sb.append(c);
                     } else {
-                        final String arg = sb.toString().trim();
+                        final String arg = sb.toString().
+                                trim();
                         if (!arg.isEmpty()) {
                             args.add(arg);
                         }
@@ -313,7 +314,7 @@ public class ExecuteProcess extends AbstractProcessor {
         });
 
         // continue to do this loop until both the process has finished and we have finished copying
-        // the output from the process to the FlowFile. Unfortunately, even after calling Process.exitValue(), 
+        // the output from the process to the FlowFile. Unfortunately, even after calling Process.exitValue(),
         // there can be data buffered on the InputStream; so we will wait until the stream is empty as well.
         int flowFileCount = 0;
         while (!finishedCopying.get() || isAlive(process)) {
@@ -376,11 +377,13 @@ public class ExecuteProcess extends AbstractProcessor {
         }
 
         final int exitCode;
-        final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+        final long millis = TimeUnit.NANOSECONDS.
+                toMillis(System.nanoTime() - startNanos);
         try {
             exitCode = process.waitFor();
         } catch (final InterruptedException ie) {
-            getLogger().warn("Process was interrupted before finishing");
+            getLogger().
+                    warn("Process was interrupted before finishing");
             return;
         }
 
@@ -409,9 +412,7 @@ public class ExecuteProcess extends AbstractProcessor {
     }
 
     /**
-     * Output stream that is used to wrap another output stream in a way that
-     * the underlying output stream can be swapped out for a different one when
-     * needed
+     * Output stream that is used to wrap another output stream in a way that the underlying output stream can be swapped out for a different one when needed
      */
     private static class ProxyOutputStream extends OutputStream {
 
@@ -428,7 +429,6 @@ public class ExecuteProcess extends AbstractProcessor {
             lock.lock();
             try {
                 logger.trace("Switching delegate from {} to {}", new Object[]{this.delegate, delegate});
-
                 this.delegate = delegate;
             } finally {
                 lock.unlock();
@@ -470,7 +470,6 @@ public class ExecuteProcess extends AbstractProcessor {
                 while (true) {
                     if (delegate != null) {
                         logger.trace("Writing to {}", new Object[]{delegate});
-
                         delegate.write(b, off, len);
                         return;
                     } else {

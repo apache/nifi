@@ -101,7 +101,7 @@ public class RuleResource {
         // build the web context config
         final NiFiWebRequestContext contextConfig = getRequestContext(processorId);
 
-        // load the criteria 
+        // load the criteria
         final Criteria criteria = getCriteria(nifiWebContext, contextConfig);
 
         // create the response entity
@@ -372,7 +372,7 @@ public class RuleResource {
         // build the web context config
         final NiFiWebRequestContext requestContext = getRequestContext(processorId);
 
-        // load the criteria 
+        // load the criteria
         final Criteria criteria = getCriteria(configurationContext, requestContext);
         final List<Rule> rules = criteria.getRules();
 
@@ -415,7 +415,7 @@ public class RuleResource {
         // build the web context config
         final NiFiWebRequestContext requestContext = getRequestContext(processorId);
 
-        // load the criteria 
+        // load the criteria
         final Criteria criteria = getCriteria(configurationContext, requestContext);
         final List<Rule> rules = criteria.getRules();
 
@@ -641,7 +641,7 @@ public class RuleResource {
             throw new WebApplicationException(error(message));
         }
     }
-    
+
     private NiFiWebRequestContext getRequestContext(final String processorId) {
         return new HttpServletRequestContext(UiExtensionType.ProcessorConfiguration, request) {
             @Override
@@ -650,7 +650,7 @@ public class RuleResource {
             }
         };
     }
-    
+
     private NiFiWebConfigurationRequestContext getConfigurationRequestContext(final String processorId, final Long revision, final String clientId) {
         return new HttpServletConfigurationRequestContext(UiExtensionType.ProcessorConfiguration, request) {
             @Override

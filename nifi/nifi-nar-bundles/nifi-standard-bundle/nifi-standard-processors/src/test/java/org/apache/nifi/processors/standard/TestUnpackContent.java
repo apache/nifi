@@ -36,12 +36,14 @@ import org.junit.Test;
 
 public class TestUnpackContent {
 
-    private static final Path dataPath = Paths.get("src/test/resources/TestUnpackContent");
+    private static final Path dataPath = Paths.
+            get("src/test/resources/TestUnpackContent");
 
     @Test
     public void testTar() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new UnpackContent());
-        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.TAR_FORMAT);
+        runner.
+                setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.TAR_FORMAT);
 
         runner.enqueue(dataPath.resolve("data.tar"));
         runner.run();
@@ -50,11 +52,15 @@ public class TestUnpackContent {
         runner.assertTransferCount(UnpackContent.REL_ORIGINAL, 1);
         runner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
-        final List<MockFlowFile> unpacked = runner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
+        final List<MockFlowFile> unpacked = runner.
+                getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
         for (final MockFlowFile flowFile : unpacked) {
-            final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
-            final String folder = flowFile.getAttribute(CoreAttributes.PATH.key());
-            final Path path = dataPath.resolve(folder).resolve(filename);
+            final String filename = flowFile.
+                    getAttribute(CoreAttributes.FILENAME.key());
+            final String folder = flowFile.getAttribute(CoreAttributes.PATH.
+                    key());
+            final Path path = dataPath.resolve(folder).
+                    resolve(filename);
             assertTrue(Files.exists(path));
 
             flowFile.assertContentEquals(path.toFile());
@@ -64,7 +70,8 @@ public class TestUnpackContent {
     @Test
     public void testZip() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new UnpackContent());
-        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.ZIP_FORMAT);
+        runner.
+                setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.ZIP_FORMAT);
         runner.enqueue(dataPath.resolve("data.zip"));
 
         runner.run();
@@ -73,11 +80,15 @@ public class TestUnpackContent {
         runner.assertTransferCount(UnpackContent.REL_ORIGINAL, 1);
         runner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
-        final List<MockFlowFile> unpacked = runner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
+        final List<MockFlowFile> unpacked = runner.
+                getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
         for (final MockFlowFile flowFile : unpacked) {
-            final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
-            final String folder = flowFile.getAttribute(CoreAttributes.PATH.key());
-            final Path path = dataPath.resolve(folder).resolve(filename);
+            final String filename = flowFile.
+                    getAttribute(CoreAttributes.FILENAME.key());
+            final String folder = flowFile.getAttribute(CoreAttributes.PATH.
+                    key());
+            final Path path = dataPath.resolve(folder).
+                    resolve(filename);
             assertTrue(Files.exists(path));
 
             flowFile.assertContentEquals(path.toFile());
@@ -87,7 +98,8 @@ public class TestUnpackContent {
     @Test
     public void testFlowFileStreamV3() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new UnpackContent());
-        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.FLOWFILE_STREAM_FORMAT_V3);
+        runner.
+                setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.FLOWFILE_STREAM_FORMAT_V3);
         runner.enqueue(dataPath.resolve("data.flowfilev3"));
 
         runner.run();
@@ -96,11 +108,15 @@ public class TestUnpackContent {
         runner.assertTransferCount(UnpackContent.REL_ORIGINAL, 1);
         runner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
-        final List<MockFlowFile> unpacked = runner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
+        final List<MockFlowFile> unpacked = runner.
+                getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
         for (final MockFlowFile flowFile : unpacked) {
-            final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
-            final String folder = flowFile.getAttribute(CoreAttributes.PATH.key());
-            final Path path = dataPath.resolve(folder).resolve(filename);
+            final String filename = flowFile.
+                    getAttribute(CoreAttributes.FILENAME.key());
+            final String folder = flowFile.getAttribute(CoreAttributes.PATH.
+                    key());
+            final Path path = dataPath.resolve(folder).
+                    resolve(filename);
             assertTrue(Files.exists(path));
 
             flowFile.assertContentEquals(path.toFile());
@@ -110,7 +126,8 @@ public class TestUnpackContent {
     @Test
     public void testFlowFileStreamV2() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new UnpackContent());
-        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.FLOWFILE_STREAM_FORMAT_V2);
+        runner.
+                setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.FLOWFILE_STREAM_FORMAT_V2);
         runner.enqueue(dataPath.resolve("data.flowfilev2"));
 
         runner.run();
@@ -119,11 +136,15 @@ public class TestUnpackContent {
         runner.assertTransferCount(UnpackContent.REL_ORIGINAL, 1);
         runner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
-        final List<MockFlowFile> unpacked = runner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
+        final List<MockFlowFile> unpacked = runner.
+                getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
         for (final MockFlowFile flowFile : unpacked) {
-            final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
-            final String folder = flowFile.getAttribute(CoreAttributes.PATH.key());
-            final Path path = dataPath.resolve(folder).resolve(filename);
+            final String filename = flowFile.
+                    getAttribute(CoreAttributes.FILENAME.key());
+            final String folder = flowFile.getAttribute(CoreAttributes.PATH.
+                    key());
+            final Path path = dataPath.resolve(folder).
+                    resolve(filename);
             assertTrue(Files.exists(path));
 
             flowFile.assertContentEquals(path.toFile());
@@ -132,8 +153,10 @@ public class TestUnpackContent {
 
     @Test
     public void testTarThenMerge() throws IOException {
-        final TestRunner unpackRunner = TestRunners.newTestRunner(new UnpackContent());
-        unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.TAR_FORMAT);
+        final TestRunner unpackRunner = TestRunners.
+                newTestRunner(new UnpackContent());
+        unpackRunner.
+                setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.TAR_FORMAT);
 
         unpackRunner.enqueue(dataPath.resolve("data.tar"));
         unpackRunner.run();
@@ -142,14 +165,19 @@ public class TestUnpackContent {
         unpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 1);
         unpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
-        final List<MockFlowFile> unpacked = unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
+        final List<MockFlowFile> unpacked = unpackRunner.
+                getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
         for (final MockFlowFile flowFile : unpacked) {
-            assertEquals(flowFile.getAttribute(UnpackContent.SEGMENT_ORIGINAL_FILENAME), "data");
+            assertEquals(flowFile.
+                    getAttribute(UnpackContent.SEGMENT_ORIGINAL_FILENAME), "data");
         }
 
-        final TestRunner mergeRunner = TestRunners.newTestRunner(new MergeContent());
-        mergeRunner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_TAR);
-        mergeRunner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_DEFRAGMENT);
+        final TestRunner mergeRunner = TestRunners.
+                newTestRunner(new MergeContent());
+        mergeRunner.
+                setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_TAR);
+        mergeRunner.
+                setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_DEFRAGMENT);
         mergeRunner.setProperty(MergeContent.KEEP_PATH, "true");
         mergeRunner.enqueue(unpacked.toArray(new MockFlowFile[0]));
         mergeRunner.run();
@@ -158,16 +186,20 @@ public class TestUnpackContent {
         mergeRunner.assertTransferCount(MergeContent.REL_ORIGINAL, 2);
         mergeRunner.assertTransferCount(MergeContent.REL_FAILURE, 0);
 
-        final List<MockFlowFile> packed = mergeRunner.getFlowFilesForRelationship(MergeContent.REL_MERGED);
+        final List<MockFlowFile> packed = mergeRunner.
+                getFlowFilesForRelationship(MergeContent.REL_MERGED);
         for (final MockFlowFile flowFile : packed) {
-            flowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), "data.tar");
+            flowFile.
+                    assertAttributeEquals(CoreAttributes.FILENAME.key(), "data.tar");
         }
     }
 
     @Test
     public void testZipThenMerge() throws IOException {
-        final TestRunner unpackRunner = TestRunners.newTestRunner(new UnpackContent());
-        unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.ZIP_FORMAT);
+        final TestRunner unpackRunner = TestRunners.
+                newTestRunner(new UnpackContent());
+        unpackRunner.
+                setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.ZIP_FORMAT);
 
         unpackRunner.enqueue(dataPath.resolve("data.zip"));
         unpackRunner.run();
@@ -176,14 +208,19 @@ public class TestUnpackContent {
         unpackRunner.assertTransferCount(UnpackContent.REL_ORIGINAL, 1);
         unpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
-        final List<MockFlowFile> unpacked = unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
+        final List<MockFlowFile> unpacked = unpackRunner.
+                getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
         for (final MockFlowFile flowFile : unpacked) {
-            assertEquals(flowFile.getAttribute(UnpackContent.SEGMENT_ORIGINAL_FILENAME), "data");
+            assertEquals(flowFile.
+                    getAttribute(UnpackContent.SEGMENT_ORIGINAL_FILENAME), "data");
         }
 
-        final TestRunner mergeRunner = TestRunners.newTestRunner(new MergeContent());
-        mergeRunner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_ZIP);
-        mergeRunner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_DEFRAGMENT);
+        final TestRunner mergeRunner = TestRunners.
+                newTestRunner(new MergeContent());
+        mergeRunner.
+                setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_ZIP);
+        mergeRunner.
+                setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_DEFRAGMENT);
         mergeRunner.setProperty(MergeContent.KEEP_PATH, "true");
         mergeRunner.enqueue(unpacked.toArray(new MockFlowFile[0]));
         mergeRunner.run();
@@ -192,16 +229,20 @@ public class TestUnpackContent {
         mergeRunner.assertTransferCount(MergeContent.REL_ORIGINAL, 2);
         mergeRunner.assertTransferCount(MergeContent.REL_FAILURE, 0);
 
-        final List<MockFlowFile> packed = mergeRunner.getFlowFilesForRelationship(MergeContent.REL_MERGED);
+        final List<MockFlowFile> packed = mergeRunner.
+                getFlowFilesForRelationship(MergeContent.REL_MERGED);
         for (final MockFlowFile flowFile : packed) {
-            flowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), "data.zip");
+            flowFile.
+                    assertAttributeEquals(CoreAttributes.FILENAME.key(), "data.zip");
         }
     }
 
     @Test
     public void testZipHandlesBadData() throws IOException {
-        final TestRunner unpackRunner = TestRunners.newTestRunner(new UnpackContent());
-        unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.ZIP_FORMAT);
+        final TestRunner unpackRunner = TestRunners.
+                newTestRunner(new UnpackContent());
+        unpackRunner.
+                setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.ZIP_FORMAT);
 
         unpackRunner.enqueue(dataPath.resolve("data.tar"));
         unpackRunner.run();
@@ -213,8 +254,10 @@ public class TestUnpackContent {
 
     @Test
     public void testTarHandlesBadData() throws IOException {
-        final TestRunner unpackRunner = TestRunners.newTestRunner(new UnpackContent());
-        unpackRunner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.TAR_FORMAT);
+        final TestRunner unpackRunner = TestRunners.
+                newTestRunner(new UnpackContent());
+        unpackRunner.
+                setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.TAR_FORMAT);
 
         unpackRunner.enqueue(dataPath.resolve("data.zip"));
         unpackRunner.run();

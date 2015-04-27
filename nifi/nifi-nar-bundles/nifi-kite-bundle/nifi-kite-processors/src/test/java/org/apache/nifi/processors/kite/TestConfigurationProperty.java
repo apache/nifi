@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.nifi.processors.kite;
 
 import java.io.File;
@@ -35,43 +34,43 @@ import org.kitesdk.data.spi.DefaultConfiguration;
 
 public class TestConfigurationProperty {
 
-  @Rule
-  public final TemporaryFolder temp = new TemporaryFolder();
-  public File confLocation;
+    @Rule
+    public final TemporaryFolder temp = new TemporaryFolder();
+    public File confLocation;
 
-  @Before
-  public void saveConfiguration() throws IOException {
-    Configuration conf = new Configuration(false);
-    conf.setBoolean("nifi.config.canary", true);
+    @Before
+    public void saveConfiguration() throws IOException {
+        Configuration conf = new Configuration(false);
+        conf.setBoolean("nifi.config.canary", true);
 
-    confLocation = temp.newFile("nifi-conf.xml");
-    FileOutputStream out = new FileOutputStream(confLocation);
-    conf.writeXml(out);
-    out.close();
-  }
+        confLocation = temp.newFile("nifi-conf.xml");
+        FileOutputStream out = new FileOutputStream(confLocation);
+        conf.writeXml(out);
+        out.close();
+    }
 
-  @Test
-  public void testConfigurationCanary() throws IOException {
-    TestRunner runner = TestRunners.newTestRunner(StoreInKiteDataset.class);
-    runner.setProperty(
-        AbstractKiteProcessor.CONF_XML_FILES, confLocation.toString());
+    @Test
+    public void testConfigurationCanary() throws IOException {
+        TestRunner runner = TestRunners.newTestRunner(StoreInKiteDataset.class);
+        runner.setProperty(
+                AbstractKiteProcessor.CONF_XML_FILES, confLocation.toString());
 
-    Assert.assertFalse("Should not contain canary value",
-        DefaultConfiguration.get().getBoolean("nifi.config.canary", false));
+        Assert.assertFalse("Should not contain canary value",
+                DefaultConfiguration.get().getBoolean("nifi.config.canary", false));
 
-    AbstractKiteProcessor processor = new StoreInKiteDataset();
-    ProcessContext context = runner.getProcessContext();
-    processor.setDefaultConfiguration(context);
+        AbstractKiteProcessor processor = new StoreInKiteDataset();
+        ProcessContext context = runner.getProcessContext();
+        processor.setDefaultConfiguration(context);
 
-    Assert.assertTrue("Should contain canary value",
-        DefaultConfiguration.get().getBoolean("nifi.config.canary", false));
-  }
+        Assert.assertTrue("Should contain canary value",
+                DefaultConfiguration.get().getBoolean("nifi.config.canary", false));
+    }
 
-  @Test
-  public void testFilesMustExist() throws IOException {
-    TestRunner runner = TestRunners.newTestRunner(StoreInKiteDataset.class);
-    runner.setProperty(
-        AbstractKiteProcessor.CONF_XML_FILES, temp.newFile().toString());
-    runner.assertNotValid();
-  }
+    @Test
+    public void testFilesMustExist() throws IOException {
+        TestRunner runner = TestRunners.newTestRunner(StoreInKiteDataset.class);
+        runner.setProperty(
+                AbstractKiteProcessor.CONF_XML_FILES, temp.newFile().toString());
+        runner.assertNotValid();
+    }
 }

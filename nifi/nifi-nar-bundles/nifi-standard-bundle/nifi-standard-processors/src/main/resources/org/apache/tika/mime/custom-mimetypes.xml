@@ -15,83 +15,83 @@
 -->
 <mime-info>
 
-  <mime-type type="application/flowfile-v1">
-    <_comment>NiFi FlowFile V1</_comment>
-    <sub-class-of type="application/x-tar"/>
-    <magic>
-      <match value="flowfile.attributes" type="string" offset="0" />
-    </magic>
-  </mime-type>
+    <mime-type type="application/flowfile-v1">
+        <_comment>NiFi FlowFile V1</_comment>
+        <sub-class-of type="application/x-tar"/>
+        <magic>
+            <match value="flowfile.attributes" type="string" offset="0" />
+        </magic>
+    </mime-type>
 
-  <mime-type type="application/flowfile-v3">
-    <_comment>NiFi FlowFile V3</_comment>
-    <magic>
-      <match value="NiFiFF3" type="string" offset="0" />
-    </magic>
-  </mime-type>
+    <mime-type type="application/flowfile-v3">
+        <_comment>NiFi FlowFile V3</_comment>
+        <magic>
+            <match value="NiFiFF3" type="string" offset="0" />
+        </magic>
+    </mime-type>
 
-  <mime-type type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
-    <_comment>Office Open XML Workbook</_comment>
-    <glob pattern="*.xlsx"/>
-    <sub-class-of type="application/x-tika-ooxml"/>
-    <magic priority="60">
-      <match value="PK\003\004" type="string" offset="0">
-        <match value="[Content_Types].xml" type="string" offset="30">
-          <match value="xl/_rels/workbook.xml.rels" type="string" offset="30:4096"/>
-        </match>
-      </match>
-    </magic>
-  </mime-type>
+    <mime-type type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+        <_comment>Office Open XML Workbook</_comment>
+        <glob pattern="*.xlsx"/>
+        <sub-class-of type="application/x-tika-ooxml"/>
+        <magic priority="60">
+            <match value="PK\003\004" type="string" offset="0">
+                <match value="[Content_Types].xml" type="string" offset="30">
+                    <match value="xl/_rels/workbook.xml.rels" type="string" offset="30:4096"/>
+                </match>
+            </match>
+        </magic>
+    </mime-type>
 
-  <mime-type type="application/vnd.openxmlformats-officedocument.wordprocessingml.document">
-    <_comment>Office Open XML Document</_comment>
-    <glob pattern="*.docx"/>
-    <sub-class-of type="application/x-tika-ooxml"/>
-    <magic priority="60">
-      <match value="PK\003\004" type="string" offset="0">
-        <match value="[Content_Types].xml" type="string" offset="30">
-          <match value="word/_rels/document.xml.rels" type="string" offset="30:4096"/>
-        </match>
-      </match>
-    </magic>
-  </mime-type>
+    <mime-type type="application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+        <_comment>Office Open XML Document</_comment>
+        <glob pattern="*.docx"/>
+        <sub-class-of type="application/x-tika-ooxml"/>
+        <magic priority="60">
+            <match value="PK\003\004" type="string" offset="0">
+                <match value="[Content_Types].xml" type="string" offset="30">
+                    <match value="word/_rels/document.xml.rels" type="string" offset="30:4096"/>
+                </match>
+            </match>
+        </magic>
+    </mime-type>
 
-  <mime-type type="application/vnd.openxmlformats-officedocument.presentationml.presentation">
-    <_comment>Office Open XML Presentation</_comment>
-    <glob pattern="*.pptx"/>
-    <glob pattern="*.thmx"/>
-    <sub-class-of type="application/x-tika-ooxml"/>
-    <magic priority="60">
-      <match value="PK\003\004" type="string" offset="0">
-        <match value="[Content_Types].xml" type="string" offset="30">
-          <match value="ppt/slides/_rels/slide" type="string" offset="30:4096"/>
-        </match>
-      </match>
-    </magic>
-  </mime-type>
+    <mime-type type="application/vnd.openxmlformats-officedocument.presentationml.presentation">
+        <_comment>Office Open XML Presentation</_comment>
+        <glob pattern="*.pptx"/>
+        <glob pattern="*.thmx"/>
+        <sub-class-of type="application/x-tika-ooxml"/>
+        <magic priority="60">
+            <match value="PK\003\004" type="string" offset="0">
+                <match value="[Content_Types].xml" type="string" offset="30">
+                    <match value="ppt/slides/_rels/slide" type="string" offset="30:4096"/>
+                </match>
+            </match>
+        </magic>
+    </mime-type>
 
-  <mime-type type="application/java-archive">
-    <_comment>Java Archive</_comment>
-    <tika:link>http://en.wikipedia.org/wiki/.jar</tika:link>
-    <tika:uti>com.sun.java-archive</tika:uti>
-    <sub-class-of type="application/zip"/>
-    <glob pattern="*.jar"/>
-    <magic priority="50">
-      <match value="PK\003\004" type="string" offset="0">
-        <match value="META-INF/MANIFEST.MF" type="string" offset="0:1024"/>
-      </match>
-    </magic>
-  </mime-type>
+    <mime-type type="application/java-archive">
+        <_comment>Java Archive</_comment>
+        <tika:link>http://en.wikipedia.org/wiki/.jar</tika:link>
+        <tika:uti>com.sun.java-archive</tika:uti>
+        <sub-class-of type="application/zip"/>
+        <glob pattern="*.jar"/>
+        <magic priority="50">
+            <match value="PK\003\004" type="string" offset="0">
+                <match value="META-INF/MANIFEST.MF" type="string" offset="0:1024"/>
+            </match>
+        </magic>
+    </mime-type>
 
-  <!-- Override tika's default behavior for GNU tar detection because nobody calls
-       a GNU tar a .gtar -->
-  <mime-type type="application/x-tar">
-    <_comment>GNU tar Compressed File Archive (GNU Tape Archive)</_comment>
-    <magic priority="60">
-      <!-- GNU tar archive -->
-      <match value="ustar  \0" type="string" offset="257" />
-    </magic>
-    <glob pattern="*.tar"/>
-  </mime-type>
+    <!-- Override tika's default behavior for GNU tar detection because nobody calls
+    a GNU tar a .gtar -->
+    <mime-type type="application/x-tar">
+        <_comment>GNU tar Compressed File Archive (GNU Tape Archive)</_comment>
+        <magic priority="60">
+            <!-- GNU tar archive -->
+            <match value="ustar  \0" type="string" offset="257" />
+        </magic>
+        <glob pattern="*.tar"/>
+    </mime-type>
 
 </mime-info>

@@ -59,8 +59,10 @@ import org.apache.nifi.util.StopWatch;
  */
 public abstract class GetFileTransfer extends AbstractProcessor {
 
-    public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
-            .description("All FlowFiles that are received are routed to success").build();
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("All FlowFiles that are received are routed to success")
+            .build();
     private final Set<Relationship> relationships;
 
     public static final String FILE_LAST_MODIFY_TIME_ATTRIBUTE = "file.lastModifiedTime";
@@ -207,7 +209,8 @@ public abstract class GetFileTransfer extends AbstractProcessor {
                         try {
                             transfer.deleteFile(null, file.getFullPathFileName());
                         } catch (final IOException e) {
-                            logger.error("Failed to remove remote file {} due to {}; deleting local copy", new Object[]{file.getFullPathFileName(), e});
+                            logger.error("Failed to remove remote file {} due to {}; deleting local copy",
+                                    new Object[]{file.getFullPathFileName(), e});
                             session.remove(flowFile);
                             return;
                         }
