@@ -44,7 +44,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Base class for PutFTP & PutSFTP
  *
- * @param <T>
+ * @param <T> type of transfer
  */
 public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractProcessor {
 
@@ -181,7 +181,14 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
     }
 
     //Attempts to identify naming or content issues with files before they are transferred.
-    private ConflictResult identifyAndResolveConflictFile(final String conflictResolutionType, final T transfer, final String path, final FlowFile flowFile, final boolean rejectZeroByteFiles, final ProcessorLog logger) throws IOException {
+    private ConflictResult identifyAndResolveConflictFile(
+            final String conflictResolutionType,
+            final T transfer,
+            final String path,
+            final FlowFile flowFile,
+            final boolean rejectZeroByteFiles,
+            final ProcessorLog logger)
+            throws IOException {
         Relationship destinationRelationship = REL_SUCCESS;
         String fileName = flowFile.getAttribute(CoreAttributes.FILENAME.key());
         boolean transferFile = true;

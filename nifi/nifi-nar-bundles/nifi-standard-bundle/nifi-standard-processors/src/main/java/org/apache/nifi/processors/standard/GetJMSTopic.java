@@ -268,8 +268,7 @@ public class GetJMSTopic extends JmsConsumer {
         final String serverUrl = props.getProperty(URL.getName());
         final String username = props.getProperty(USERNAME.getName());
         final String encryptedPassword = props.getProperty(PASSWORD.getName());
-        final String subscriptionName = props.
-                getProperty(SUBSCRIPTION_NAME_PROPERTY);
+        final String subscriptionName = props.getProperty(SUBSCRIPTION_NAME_PROPERTY);
         final String jmsProvider = props.getProperty(JMS_PROVIDER.getName());
 
         final String password = encryptedPassword == null ? null : context.decrypt(encryptedPassword);

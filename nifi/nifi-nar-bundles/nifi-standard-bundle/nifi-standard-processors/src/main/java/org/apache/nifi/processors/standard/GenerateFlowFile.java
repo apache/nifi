@@ -149,8 +149,7 @@ public class GenerateFlowFile extends AbstractProcessor {
             data = this.data.get();
         }
 
-        for (int i = 0; i < context.getProperty(BATCH_SIZE).
-                asInteger(); i++) {
+        for (int i = 0; i < context.getProperty(BATCH_SIZE).asInteger(); i++) {
             FlowFile flowFile = session.create();
             if (data.length > 0) {
                 flowFile = session.write(flowFile, new OutputStreamCallback() {

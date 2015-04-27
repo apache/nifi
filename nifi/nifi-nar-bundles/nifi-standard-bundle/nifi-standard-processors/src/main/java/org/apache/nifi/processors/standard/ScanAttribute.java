@@ -86,7 +86,10 @@ public class ScanAttribute extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor DICTIONARY_FILTER = new PropertyDescriptor.Builder()
             .name("Dictionary Filter Pattern")
-            .description("A Regular Expression that will be applied to each line in the dictionary file. If the regular expression does not match the line, the line will not be included in the list of terms to search for. If a Matching Group is specified, only the portion of the term that matches that Matching Group will be used instead of the entire term. If not specified, all terms in the dictionary will be used and each term will consist of the text of the entire line in the file")
+            .description("A Regular Expression that will be applied to each line in the dictionary file. If the regular expression does not "
+                    + "match the line, the line will not be included in the list of terms to search for. If a Matching Group is specified, only the "
+                    + "portion of the term that matches that Matching Group will be used instead of the entire term. If not specified, all terms in "
+                    + "the dictionary will be used and each term will consist of the text of the entire line in the file")
             .required(false)
             .addValidator(StandardValidators.createRegexValidator(0, 1, false))
             .defaultValue(null)

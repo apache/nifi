@@ -104,8 +104,7 @@ import com.sun.jersey.api.client.ClientResponse.Status;
 public class HandleHttpRequest extends AbstractProcessor {
 
     public static final String HTTP_CONTEXT_ID = "http.context.identifier";
-    private static final Pattern URL_QUERY_PARAM_DELIMITER = Pattern.
-            compile("&");
+    private static final Pattern URL_QUERY_PARAM_DELIMITER = Pattern.compile("&");
 
     // Allowable values for client auth
     public static final AllowableValue CLIENT_NONE = new AllowableValue("No Authentication", "No Authentication",
@@ -174,13 +173,13 @@ public class HandleHttpRequest extends AbstractProcessor {
             .allowableValues("true", "false")
             .defaultValue("true")
             .build();
-    public static final PropertyDescriptor ALLOW_PUT = new PropertyDescriptor.Builder().
-            name("Allow PUT").
-            description("Allow HTTP PUT Method").
-            required(true).
-            allowableValues("true", "false").
-            defaultValue("true").
-            build();
+    public static final PropertyDescriptor ALLOW_PUT = new PropertyDescriptor.Builder()
+            .name("Allow PUT")
+            .description("Allow HTTP PUT Method")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("true")
+            .build();
     public static final PropertyDescriptor ALLOW_DELETE = new PropertyDescriptor.Builder()
             .name("Allow DELETE")
             .description("Allow HTTP DELETE Method")

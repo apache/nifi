@@ -225,8 +225,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
         try {
             binAlreadyCommitted = this.processBin(bin, binCopy, context, session);
         } catch (final ProcessException e) {
-            logger.
-                    error("Failed to process bundle of {} files due to {}", new Object[]{binCopy.size(), e});
+            logger.error("Failed to process bundle of {} files due to {}", new Object[]{binCopy.size(), e});
 
             for (final FlowFileSessionWrapper wrapper : binCopy) {
                 wrapper.getSession().transfer(wrapper.getFlowFile(), REL_FAILURE);
@@ -294,8 +293,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
         }
 
         if (context.getProperty(MAX_SIZE).isSet()) {
-            binManager.setMaximumSize(context.getProperty(MAX_SIZE).
-                    asDataSize(DataUnit.B).longValue());
+            binManager.setMaximumSize(context.getProperty(MAX_SIZE).asDataSize(DataUnit.B).longValue());
         } else {
             binManager.setMaximumSize(Long.MAX_VALUE);
         }
@@ -313,8 +311,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
 
     @Override
     protected final Collection<ValidationResult> customValidate(final ValidationContext context) {
-        final List<ValidationResult> problems = new ArrayList<>(super.
-                customValidate(context));
+        final List<ValidationResult> problems = new ArrayList<>(super.customValidate(context));
 
         final long minBytes = context.getProperty(MIN_SIZE).asDataSize(DataUnit.B).longValue();
         final Double maxBytes = context.getProperty(MAX_SIZE).asDataSize(DataUnit.B);
@@ -330,10 +327,8 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
             );
         }
 
-        final Long min = context.getProperty(MIN_ENTRIES).
-                asLong();
-        final Long max = context.getProperty(MAX_ENTRIES).
-                asLong();
+        final Long min = context.getProperty(MIN_ENTRIES).asLong();
+        final Long max = context.getProperty(MAX_ENTRIES).asLong();
 
         if (min != null && max != null) {
             if (min > max) {

@@ -77,7 +77,8 @@ public class RouteOnAttribute extends AbstractProcessor {
             "A copy of the FlowFile will be routed to each relationship whose corresponding expression evaluates to 'true'");
     public static final AllowableValue ROUTE_ALL_MATCH = new AllowableValue(routeAllMatchValue, "Route to 'matched' if all match",
             "Requires that all user-defined expressions evaluate to 'true' for the FlowFile to be considered a match");
-    public static final AllowableValue ROUTE_ANY_MATCHES = new AllowableValue(routeAnyMatches, // keep the word 'match' instead of 'matched' to maintain backward compatibility (there was a typo originally)
+    // keep the word 'match' instead of 'matched' to maintain backward compatibility (there was a typo originally)
+    public static final AllowableValue ROUTE_ANY_MATCHES = new AllowableValue(routeAnyMatches,
             "Route to 'matched' if any matches",
             "Requires that at least one user-defined expression evaluate to 'true' for hte FlowFile to be considered a match");
 
@@ -243,8 +244,7 @@ public class RouteOnAttribute extends AbstractProcessor {
             }
 
             //now transfer the original flow file
-            logger.
-                    info("Routing {} to {}", new Object[]{flowFile, firstRelationship});
+            logger.info("Routing {} to {}", new Object[]{flowFile, firstRelationship});
             session.getProvenanceReporter().route(flowFile, firstRelationship);
             flowFile = session.putAttribute(flowFile, ROUTE_ATTRIBUTE_KEY, firstRelationship.getName());
             session.transfer(flowFile, firstRelationship);

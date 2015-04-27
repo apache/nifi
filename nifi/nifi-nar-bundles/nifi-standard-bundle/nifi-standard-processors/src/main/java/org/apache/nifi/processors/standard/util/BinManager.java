@@ -152,7 +152,7 @@ public class BinManager {
      * <p/>
      * @param relaxFullnessConstraint if false will require bins to be full before considered ready; if true bins only have to meet their minimum size criteria or be 'old' and then they'll be
      * considered ready
-     * @return
+     * @return bins that are considered full
      */
     public Collection<Bin> removeReadyBins(boolean relaxFullnessConstraint) {
         final Map<String, List<Bin>> newGroupMap = new HashMap<>();

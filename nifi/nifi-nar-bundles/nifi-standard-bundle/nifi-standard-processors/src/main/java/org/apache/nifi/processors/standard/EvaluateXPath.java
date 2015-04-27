@@ -165,11 +165,9 @@ public class EvaluateXPath extends AbstractProcessor {
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext context) {
-        final List<ValidationResult> results = new ArrayList<>(super.
-                customValidate(context));
+        final List<ValidationResult> results = new ArrayList<>(super.customValidate(context));
 
-        final String destination = context.getProperty(DESTINATION).
-                getValue();
+        final String destination = context.getProperty(DESTINATION).getValue();
         if (DESTINATION_CONTENT.equals(destination)) {
             int xpathCount = 0;
 
@@ -356,8 +354,7 @@ public class EvaluateXPath extends AbstractProcessor {
                             @Override
                             public void process(final OutputStream rawOut) throws IOException {
                                 try (final OutputStream out = new BufferedOutputStream(rawOut)) {
-                                    out.write(resultString.
-                                            getBytes("UTF-8"));
+                                    out.write(resultString.getBytes("UTF-8"));
                                 }
                             }
                         });

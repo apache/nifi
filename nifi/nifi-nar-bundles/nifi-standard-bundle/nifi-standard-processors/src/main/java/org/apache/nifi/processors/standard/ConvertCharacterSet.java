@@ -16,6 +16,13 @@
  */
 package org.apache.nifi.processors.standard;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessorInitializationContext;
@@ -34,13 +41,16 @@ import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StopWatch;
 
-import java.io.*;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CodingErrorAction;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -117,12 +127,8 @@ public class ConvertCharacterSet extends AbstractProcessor {
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
         final ProcessorLog logger = getLogger();
 
-        final Charset inputCharset = Charset.forName(context.
-                getProperty(INPUT_CHARSET).
-                getValue());
-        final Charset outputCharset = Charset.forName(context.
-                getProperty(OUTPUT_CHARSET).
-                getValue());
+        final Charset inputCharset = Charset.forName(context.getProperty(INPUT_CHARSET).getValue());
+        final Charset outputCharset = Charset.forName(context.getProperty(OUTPUT_CHARSET).getValue());
         final CharBuffer charBuffer = CharBuffer.allocate(MAX_BUFFER_SIZE);
 
         final CharsetDecoder decoder = inputCharset.newDecoder();

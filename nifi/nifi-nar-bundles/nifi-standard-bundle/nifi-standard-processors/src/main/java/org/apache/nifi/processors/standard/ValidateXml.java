@@ -58,21 +58,21 @@ import org.xml.sax.SAXException;
 @CapabilityDescription("Validates the contents of FlowFiles against a user-specified XML Schema file")
 public class ValidateXml extends AbstractProcessor {
 
-    public static final PropertyDescriptor SCHEMA_FILE = new PropertyDescriptor.Builder().
-            name("Schema File").
-            description("The path to the Schema file that is to be used for validation").
-            required(true).
-            addValidator(StandardValidators.FILE_EXISTS_VALIDATOR).
-            build();
+    public static final PropertyDescriptor SCHEMA_FILE = new PropertyDescriptor.Builder()
+            .name("Schema File")
+            .description("The path to the Schema file that is to be used for validation")
+            .required(true)
+            .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+            .build();
 
-    public static final Relationship REL_VALID = new Relationship.Builder().
-            name("valid").
-            description("FlowFiles that are successfully validated against the schema are routed to this relationship").
-            build();
-    public static final Relationship REL_INVALID = new Relationship.Builder().
-            name("invalid").
-            description("FlowFiles that are not valid according to the specified schema are routed to this relationship").
-            build();
+    public static final Relationship REL_VALID = new Relationship.Builder()
+            .name("valid")
+            .description("FlowFiles that are successfully validated against the schema are routed to this relationship")
+            .build();
+    public static final Relationship REL_INVALID = new Relationship.Builder()
+            .name("invalid")
+            .description("FlowFiles that are not valid according to the specified schema are routed to this relationship")
+            .build();
 
     private static final String SCHEMA_LANGUAGE = "http://www.w3.org/2001/XMLSchema";
 
@@ -105,10 +105,8 @@ public class ValidateXml extends AbstractProcessor {
     @OnScheduled
     public void parseSchema(final ProcessContext context) throws IOException, SAXException {
         try {
-            final File file = new File(context.getProperty(SCHEMA_FILE).
-                    getValue());
-            final SchemaFactory schemaFactory = SchemaFactory.
-                    newInstance(SCHEMA_LANGUAGE);
+            final File file = new File(context.getProperty(SCHEMA_FILE).getValue());
+            final SchemaFactory schemaFactory = SchemaFactory.newInstance(SCHEMA_LANGUAGE);
             final Schema schema = schemaFactory.newSchema(file);
             this.schemaRef.set(schema);
         } catch (final SAXException e) {
@@ -136,23 +134,18 @@ public class ValidateXml extends AbstractProcessor {
                         validator.validate(new StreamSource(in));
                     } catch (final IllegalArgumentException | SAXException e) {
                         valid.set(false);
-                        logger.
-                                debug("Failed to validate {} against schema due to {}", new Object[]{flowFile, e});
+                        logger.debug("Failed to validate {} against schema due to {}", new Object[]{flowFile, e});
                     }
                 }
             });
 
             if (valid.get()) {
-                logger.
-                        info("Successfully validated {} against schema; routing to 'valid'", new Object[]{flowFile});
-                session.getProvenanceReporter().
-                        route(flowFile, REL_VALID);
+                logger.info("Successfully validated {} against schema; routing to 'valid'", new Object[]{flowFile});
+                session.getProvenanceReporter().route(flowFile, REL_VALID);
                 session.transfer(flowFile, REL_VALID);
             } else {
-                logger.
-                        info("Failed to validate {} against schema; routing to 'invalid'", new Object[]{flowFile});
-                session.getProvenanceReporter().
-                        route(flowFile, REL_INVALID);
+                logger.info("Failed to validate {} against schema; routing to 'invalid'", new Object[]{flowFile});
+                session.getProvenanceReporter().route(flowFile, REL_INVALID);
                 session.transfer(flowFile, REL_INVALID);
             }
         }

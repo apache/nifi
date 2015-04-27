@@ -129,8 +129,7 @@ public class HashAttribute extends AbstractProcessor {
 
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> properties;
-    private final AtomicReference<Map<String, Pattern>> regexMapRef = new AtomicReference<>(Collections.
-            <String, Pattern>emptyMap());
+    private final AtomicReference<Map<String, Pattern>> regexMapRef = new AtomicReference<>(Collections.<String, Pattern>emptyMap());
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -157,12 +156,7 @@ public class HashAttribute extends AbstractProcessor {
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
-                .name(propertyDescriptorName).
-                addValidator(StandardValidators.
-                        createRegexValidator(0, 1, false)).
-                required(false).
-                dynamic(true).
-                build();
+                .name(propertyDescriptorName).addValidator(StandardValidators.createRegexValidator(0, 1, false)).required(false).dynamic(true).build();
     }
 
     @Override

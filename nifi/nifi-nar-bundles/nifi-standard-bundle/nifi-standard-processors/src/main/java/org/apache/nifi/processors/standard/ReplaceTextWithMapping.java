@@ -68,7 +68,8 @@ import org.apache.commons.lang3.StringUtils;
 @SideEffectFree
 @SupportsBatching
 @Tags({"Text", "Regular Expression", "Update", "Change", "Replace", "Modify", "Regex", "Mapping"})
-@CapabilityDescription("Updates the content of a FlowFile by evaluating a Regular Expression against it and replacing the section of the content that matches the Regular Expression with some alternate value provided in a mapping file.")
+@CapabilityDescription("Updates the content of a FlowFile by evaluating a Regular Expression against it and replacing the section of the content that "
+        + "matches the Regular Expression with some alternate value provided in a mapping file.")
 public class ReplaceTextWithMapping extends AbstractProcessor {
 
     public static final PropertyDescriptor REGEX = new PropertyDescriptor.Builder()
@@ -109,7 +110,8 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor MAX_BUFFER_SIZE = new PropertyDescriptor.Builder()
             .name("Maximum Buffer Size")
-            .description("Specifies the maximum amount of data to buffer (per file) in order to apply the regular expressions. If a FlowFile is larger than this value, the FlowFile will be routed to 'failure'")
+            .description("Specifies the maximum amount of data to buffer (per file) in order to apply the regular expressions. If a FlowFile is larger "
+                    + "than this value, the FlowFile will be routed to 'failure'")
             .required(true)
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .defaultValue("1 MB")
@@ -270,13 +272,6 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
         }
     }
 
-    /**
-     * Loads a file containing mappings.
-     *
-     * @param is
-     * @return
-     * @throws IOException
-     */
     protected Map<String, String> loadMappingFile(InputStream is) throws IOException {
         Map<String, String> mapping = new HashMap<>();
         BufferedReader reader = new BufferedReader(new InputStreamReader(is));

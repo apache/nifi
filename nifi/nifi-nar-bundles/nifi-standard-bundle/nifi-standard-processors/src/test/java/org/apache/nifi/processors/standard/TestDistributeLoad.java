@@ -29,8 +29,7 @@ public class TestDistributeLoad {
     public static void before() {
         System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "info");
         System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
-        System.
-                setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.DistributeLoad", "debug");
+        System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.DistributeLoad", "debug");
     }
 
     @Test

@@ -163,8 +163,7 @@ public class ExecuteProcess extends AbstractProcessor {
                     if (inQuotes) {
                         sb.append(c);
                     } else {
-                        final String arg = sb.toString().
-                                trim();
+                        final String arg = sb.toString().trim();
                         if (!arg.isEmpty()) {
                             args.add(arg);
                         }
@@ -377,13 +376,11 @@ public class ExecuteProcess extends AbstractProcessor {
         }
 
         final int exitCode;
-        final long millis = TimeUnit.NANOSECONDS.
-                toMillis(System.nanoTime() - startNanos);
+        final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
         try {
             exitCode = process.waitFor();
         } catch (final InterruptedException ie) {
-            getLogger().
-                    warn("Process was interrupted before finishing");
+            getLogger().warn("Process was interrupted before finishing");
             return;
         }
 

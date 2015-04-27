@@ -225,8 +225,7 @@ public class SplitContent extends AbstractProcessor {
                         }
 
                         bytesRead++;
-                        boolean matched = buffer.
-                                addAndCompare((byte) (nextByte & 0xFF));
+                        boolean matched = buffer.addAndCompare((byte) (nextByte & 0xFF));
                         if (matched) {
                             long splitLength;
 
@@ -255,8 +254,7 @@ public class SplitContent extends AbstractProcessor {
             FlowFile clone = session.clone(flowFile);
             session.transfer(flowFile, REL_ORIGINAL);
             session.transfer(clone, REL_SPLITS);
-            logger.
-                    info("Found no match for {}; transferring original 'original' and transferring clone {} to 'splits'", new Object[]{flowFile, clone});
+            logger.info("Found no match for {}; transferring original 'original' and transferring clone {} to 'splits'", new Object[]{flowFile, clone});
             return;
         }
 
@@ -303,8 +301,7 @@ public class SplitContent extends AbstractProcessor {
      * @param splits splits
      */
     private void finishFragmentAttributes(final ProcessSession session, final FlowFile source, final List<FlowFile> splits) {
-        final String originalFilename = source.
-                getAttribute(CoreAttributes.FILENAME.key());
+        final String originalFilename = source.getAttribute(CoreAttributes.FILENAME.key());
 
         final String fragmentId = UUID.randomUUID().toString();
         final ArrayList<FlowFile> newList = new ArrayList<>(splits);

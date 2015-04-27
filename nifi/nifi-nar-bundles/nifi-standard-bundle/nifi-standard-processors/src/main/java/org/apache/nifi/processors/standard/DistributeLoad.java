@@ -117,11 +117,11 @@ public class DistributeLoad extends AbstractProcessor {
                 }
             }).build();
     public static final PropertyDescriptor LOAD_DISTRIBUTION_SERVICE_TEMPLATE = new PropertyDescriptor.Builder()
-            .name("Load Distribution Service ID").
-            description("The identifier of the Load Distribution Service").
-            required(true).
-            identifiesControllerService(LoadDistributionService.class).
-            build();
+            .name("Load Distribution Service ID")
+            .description("The identifier of the Load Distribution Service")
+            .required(true)
+            .identifiesControllerService(LoadDistributionService.class)
+            .build();
 
     private List<PropertyDescriptor> properties;
     private final AtomicReference<Set<Relationship>> relationshipsRef = new AtomicReference<>();
@@ -327,8 +327,7 @@ public class DistributeLoad extends AbstractProcessor {
         final List<Relationship> relationshipList = new ArrayList<>();
         for (final Map.Entry<Integer, Integer> entry : weightings.entrySet()) {
             final String relationshipName = String.valueOf(entry.getKey());
-            final Relationship relationship = new Relationship.Builder().
-                    name(relationshipName).build();
+            final Relationship relationship = new Relationship.Builder().name(relationshipName).build();
             for (int i = 0; i < entry.getValue(); i++) {
                 relationshipList.add(relationship);
             }
@@ -386,8 +385,8 @@ public class DistributeLoad extends AbstractProcessor {
     private static interface DistributionStrategy {
 
         /**
-         * @param session session
-         * @param flowFiles flowFile
+         * @param context context
+         * @param flowFile flowFile
          * @return a mapping of FlowFile to Relationship or <code>null</code> if the needed relationships are not available to accept files
          */
         Relationship mapToRelationship(ProcessContext context, FlowFile flowFile);

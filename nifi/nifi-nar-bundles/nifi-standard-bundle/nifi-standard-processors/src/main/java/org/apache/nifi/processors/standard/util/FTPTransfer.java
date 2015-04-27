@@ -305,8 +305,7 @@ public class FTPTransfer implements FileTransfer {
         final FTPFile[] files = client.listFiles(path);
         FTPFile matchingFile = null;
         for (final FTPFile file : files) {
-            if (file.getName().
-                    equalsIgnoreCase(remoteFileName)) {
+            if (file.getName().equalsIgnoreCase(remoteFileName)) {
                 matchingFile = file;
                 break;
             }

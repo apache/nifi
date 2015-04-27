@@ -94,11 +94,6 @@ public class ListenHTTPServlet extends HttpServlet {
     private ConcurrentMap<String, FlowFileEntryTimeWrapper> flowFileMap;
     private StreamThrottler streamThrottler;
 
-    /**
-     *
-     * @param config
-     * @throws ServletException
-     */
     @SuppressWarnings("unchecked")
     @Override
     public void init(final ServletConfig config) throws ServletException {

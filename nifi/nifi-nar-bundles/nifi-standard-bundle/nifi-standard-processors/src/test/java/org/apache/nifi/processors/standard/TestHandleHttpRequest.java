@@ -60,8 +60,8 @@ public class TestHandleHttpRequest {
                 public void run() {
                     try {
                         final int port = ((HandleHttpRequest) runner.getProcessor()).getPort();
-                        final HttpURLConnection connection = (HttpURLConnection) new URL("http://localhost:" + port + "/my/path?query=true&value1=value1&value2=&value3&value4=apple=orange").
-                                openConnection();
+                        final HttpURLConnection connection = (HttpURLConnection) new URL("http://localhost:"
+                                + port + "/my/path?query=true&value1=value1&value2=&value3&value4=apple=orange").openConnection();
                         connection.setDoOutput(false);
                         connection.setRequestMethod("GET");
                         connection.setRequestProperty("header1", "value1");

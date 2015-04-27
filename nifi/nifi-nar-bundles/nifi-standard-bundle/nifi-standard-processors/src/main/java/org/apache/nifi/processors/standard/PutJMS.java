@@ -336,8 +336,7 @@ public class PutJMS extends AbstractProcessor {
             final String key = entry.getKey();
             final String value = entry.getValue();
 
-            if (key.toLowerCase().
-                    startsWith(ATTRIBUTE_PREFIX.toLowerCase()) && !key.toLowerCase().endsWith(ATTRIBUTE_TYPE_SUFFIX.toLowerCase())) {
+            if (key.toLowerCase().startsWith(ATTRIBUTE_PREFIX.toLowerCase()) && !key.toLowerCase().endsWith(ATTRIBUTE_TYPE_SUFFIX.toLowerCase())) {
 
                 final String jmsPropName = key.substring(ATTRIBUTE_PREFIX.length());
                 final String type = attributes.get(key + ATTRIBUTE_TYPE_SUFFIX);

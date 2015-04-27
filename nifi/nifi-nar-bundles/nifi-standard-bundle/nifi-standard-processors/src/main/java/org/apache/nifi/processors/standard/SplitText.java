@@ -140,15 +140,6 @@ public class SplitText extends AbstractProcessor {
         return properties;
     }
 
-    /**
-     * Reads up to the given maximum number of lines, copying them to out
-     *
-     * @param in
-     * @param maxNumLines
-     * @param out
-     * @return the number of lines actually copied
-     * @throws IOException
-     */
     private int readLines(final InputStream in, final int maxNumLines, final OutputStream out, final boolean keepAllNewLines) throws IOException {
         int numLines = 0;
         for (int i = 0; i < maxNumLines; i++) {
@@ -279,7 +270,7 @@ public class SplitText extends AbstractProcessor {
                                 if (linesCopied.get() > 0) {
                                     splits.add(splitFile);
                                 } else {
-                                    // if the number of content lines is a multiple of the SPLIT_LINE_COUNT, 
+                                    // if the number of content lines is a multiple of the SPLIT_LINE_COUNT,
                                     // the last flow file will contain just a header; don't forward that one
                                     session.remove(splitFile);
                                 }
@@ -341,13 +332,6 @@ public class SplitText extends AbstractProcessor {
         session.transfer(splits, REL_SPLITS);
     }
 
-    /**
-     * Apply split index, count and other attributes.
-     *
-     * @param session
-     * @param source
-     * @param unpacked
-     */
     private void finishFragmentAttributes(final ProcessSession session, final FlowFile source, final List<FlowFile> splits) {
         final String originalFilename = source.getAttribute(CoreAttributes.FILENAME.key());
 

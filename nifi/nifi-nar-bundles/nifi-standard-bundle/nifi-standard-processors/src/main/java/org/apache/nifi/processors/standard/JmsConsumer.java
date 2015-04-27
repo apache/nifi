@@ -175,7 +175,8 @@ public abstract class JmsConsumer extends AbstractProcessor {
         }
     }
 
-    public static JmsProcessingSummary map2FlowFile(final ProcessContext context, final ProcessSession session, final Message message, final boolean addAttributes, ProcessorLog logger) throws Exception {
+    public static JmsProcessingSummary map2FlowFile(final ProcessContext context, final ProcessSession session, final Message message, final boolean addAttributes, ProcessorLog logger)
+            throws Exception {
 
         // Currently not very useful, because always one Message == one FlowFile
         final IntegerHolder msgsThisFlowFile = new IntegerHolder(1);
@@ -186,8 +187,7 @@ public abstract class JmsConsumer extends AbstractProcessor {
             if (message instanceof MapMessage) {
                 MapMessage mapMessage = (MapMessage) message;
                 flowFile = session.putAllAttributes(flowFile, createMapMessageValues(mapMessage));
-            } // all other message types, write Message body to FlowFile content 
-            else {
+            } else { // all other message types, write Message body to FlowFile content
                 flowFile = session.write(flowFile, new OutputStreamCallback() {
                     @Override
                     public void process(final OutputStream rawOut) throws IOException {

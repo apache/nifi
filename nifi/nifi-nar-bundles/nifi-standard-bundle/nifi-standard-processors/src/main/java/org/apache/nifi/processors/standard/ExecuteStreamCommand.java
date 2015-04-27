@@ -121,10 +121,10 @@ import org.apache.nifi.stream.io.StreamUtils;
     @WritesAttribute(attribute = "execution.error", description = "Any error messages returned from executing the command")})
 public class ExecuteStreamCommand extends AbstractProcessor {
 
-    public static final Relationship ORIGINAL_RELATIONSHIP = new Relationship.Builder().
-            name("original").
-            description("FlowFiles that were successfully processed").
-            build();
+    public static final Relationship ORIGINAL_RELATIONSHIP = new Relationship.Builder()
+            .name("original")
+            .description("FlowFiles that were successfully processed")
+            .build();
     public static final Relationship OUTPUT_STREAM_RELATIONSHIP = new Relationship.Builder()
             .name("output stream")
             .description("The destination path for the flow file created from the command's output")
@@ -139,8 +139,8 @@ public class ExecuteStreamCommand extends AbstractProcessor {
     }
 
     private static final Validator ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR = StandardValidators.createAttributeExpressionLanguageValidator(ResultType.STRING, true);
-    static final PropertyDescriptor EXECUTION_COMMAND = new PropertyDescriptor.Builder().
-            name("Command Path")
+    static final PropertyDescriptor EXECUTION_COMMAND = new PropertyDescriptor.Builder()
+            .name("Command Path")
             .description("Specifies the command to be executed; if just the name of an executable is provided, it must be in the user's environment PATH.")
             .expressionLanguageSupported(true)
             .addValidator(ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
@@ -158,8 +158,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
                     .subject(subject).valid(true).input(input).build();
                     String[] args = input.split(";");
                     for (String arg : args) {
-                        ValidationResult valResult = ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR.
-                        validate(subject, arg, context);
+                        ValidationResult valResult = ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR.validate(subject, arg, context);
                         if (!valResult.isValid()) {
                             result = valResult;
                             break;
@@ -255,8 +254,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             session.read(flowFile, callback);
             outputStreamFlowFile = callback.outputStreamFlowFile;
             exitCode = callback.exitCode;
-            logger.
-                    debug("Execution complete for command: {}.  Exited with code: {}", new Object[]{executeCommand, exitCode});
+            logger.debug("Execution complete for command: {}.  Exited with code: {}", new Object[]{executeCommand, exitCode});
 
             Map<String, String> attributes = new HashMap<>();
 
@@ -328,8 +326,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
                             try {
                                 StreamUtils.copy(incomingFlowFileIS, stdInWritable);
                             } catch (IOException e) {
-                                logger.
-                                        error("Failed to write flow file to stdIn due to {}", new Object[]{e}, e);
+                                logger.error("Failed to write flow file to stdIn due to {}", new Object[]{e}, e);
                             }
                             // MUST close the output stream to the stdIn so that whatever is reading knows
                             // there is no more data

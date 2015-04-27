@@ -344,8 +344,7 @@ public class GetFile extends AbstractProcessor {
             if (store.supportsFileAttributeView("posix")) {
                 try {
                     PosixFileAttributeView view = Files.getFileAttributeView(file, PosixFileAttributeView.class);
-                    attributes.
-                            put(FILE_PERMISSIONS_ATTRIBUTE, PosixFilePermissions.toString(view.readAttributes().permissions()));
+                    attributes.put(FILE_PERMISSIONS_ATTRIBUTE, PosixFilePermissions.toString(view.readAttributes().permissions()));
                     attributes.put(FILE_GROUP_ATTRIBUTE, view.readAttributes().group().getName());
                 } catch (Exception ignore) {
                 } // allow other attributes if these fail
@@ -425,8 +424,7 @@ public class GetFile extends AbstractProcessor {
 
                 flowFile = session.create();
                 final long importStart = System.nanoTime();
-                flowFile = session.
-                        importFrom(filePath, keepingSourceFile, flowFile);
+                flowFile = session.importFrom(filePath, keepingSourceFile, flowFile);
                 final long importNanos = System.nanoTime() - importStart;
                 final long importMillis = TimeUnit.MILLISECONDS.convert(importNanos, TimeUnit.NANOSECONDS);
 

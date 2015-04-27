@@ -253,7 +253,7 @@
                         <module name="Checker">
                             <property name="charset" value="UTF-8" />
                             <property name="severity" value="warning" />
-                            <!-- Checks for whitespace                               -->
+                            <!-- Checks for whitespace                              -->
                             <!-- See http://checkstyle.sf.net/config_whitespace.html -->
                             <module name="FileTabCharacter">
                                 <property name="eachLine" value="true" />
@@ -266,10 +266,6 @@
                                 <module name="RegexpSinglelineJava">
                                     <property name="format" value="[@]see\s+[{][@]link" />
                                     <property name="message" value="Javadoc @see does not need @link: pick one or the other." />
-                                </module>
-                                <module name="RegexpSinglelineJava">
-                                    <property name="format" value="jline[.]internal[.]Preconditions" />
-                                    <property name="message" value="Please use Guava Preconditions not JLine" />
                                 </module>
                                 <module name="OuterTypeFilename" />
                                 <module name="LineLength">
