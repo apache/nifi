@@ -36,8 +36,7 @@ import org.apache.nifi.cluster.event.EventManager;
 public class EventManagerImpl implements EventManager {
 
     /**
-     * associates the source ID with an ordered queue of events, ordered by most
-     * recent event
+     * associates the source ID with an ordered queue of events, ordered by most recent event
      */
     private final Map<String, Queue<Event>> eventsMap = new HashMap<>();
 
@@ -49,8 +48,7 @@ public class EventManagerImpl implements EventManager {
     /**
      * Creates an instance.
      *
-     * @param eventHistorySize the number of events to manage for a given
-     * source. Value must be positive.
+     * @param eventHistorySize the number of events to manage for a given source. Value must be positive.
      */
     public EventManagerImpl(final int eventHistorySize) {
         if (eventHistorySize <= 0) {

@@ -21,13 +21,9 @@ import java.util.Set;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 
 /**
- * A service for managing the cluster's flow. The service will attempt to keep
- * the cluster's dataflow current while respecting the value of the configured
- * retrieval delay.
+ * A service for managing the cluster's flow. The service will attempt to keep the cluster's dataflow current while respecting the value of the configured retrieval delay.
  *
- * The eligible retrieval time is reset with the configured delay every time the
- * flow state is set to STALE. If the state is set to UNKNOWN or CURRENT, then
- * the flow will not be retrieved.
+ * The eligible retrieval time is reset with the configured delay every time the flow state is set to STALE. If the state is set to UNKNOWN or CURRENT, then the flow will not be retrieved.
  *
  * Clients must call start() and stop() to initialize and stop the instance.
  *
@@ -35,8 +31,7 @@ import org.apache.nifi.cluster.protocol.NodeIdentifier;
 public interface DataFlowManagementService {
 
     /**
-     * Starts the instance. Start may only be called if the instance is not
-     * running.
+     * Starts the instance. Start may only be called if the instance is not running.
      */
     void start();
 
@@ -67,8 +62,7 @@ public interface DataFlowManagementService {
     void updatePrimaryNode(NodeIdentifier nodeId) throws DaoException;
 
     /**
-     * Updates the dataflow with the given serialized form of the Controller
-     * Services that are to exist on the NCM.
+     * Updates the dataflow with the given serialized form of the Controller Services that are to exist on the NCM.
      *
      * @param serializedControllerServices services
      * @throws DaoException ex
@@ -76,8 +70,7 @@ public interface DataFlowManagementService {
     void updateControllerServices(byte[] serializedControllerServices) throws DaoException;
 
     /**
-     * Updates the dataflow with the given serialized form of Reporting Tasks
-     * that are to exist on the NCM.
+     * Updates the dataflow with the given serialized form of Reporting Tasks that are to exist on the NCM.
      *
      * @param serializedReportingTasks tasks
      * @throws DaoException ex
@@ -111,11 +104,9 @@ public interface DataFlowManagementService {
     void setNodeIds(Set<NodeIdentifier> nodeIds);
 
     /**
-     * Returns the set of node identifiers the service is using to retrieve the
-     * flow.
+     * Returns the set of node identifiers the service is using to retrieve the flow.
      *
-     * @return the set of node identifiers the service is using to retrieve the
-     * flow.
+     * @return the set of node identifiers the service is using to retrieve the flow.
      */
     Set<NodeIdentifier> getNodeIds();
 

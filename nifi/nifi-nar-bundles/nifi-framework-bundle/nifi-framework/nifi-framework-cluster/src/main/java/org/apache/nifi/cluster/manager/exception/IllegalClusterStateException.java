@@ -17,8 +17,7 @@
 package org.apache.nifi.cluster.manager.exception;
 
 /**
- * Signals that an operation to be performed on a cluster has been invoked at an
- * illegal or inappropriate time.
+ * Signals that an operation to be performed on a cluster has been invoked at an illegal or inappropriate time.
  *
  * @author unattributed
  */

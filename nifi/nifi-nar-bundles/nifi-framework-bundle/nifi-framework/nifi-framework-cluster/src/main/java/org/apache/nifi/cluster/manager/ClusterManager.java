@@ -39,24 +39,15 @@ import org.apache.nifi.remote.cluster.NodeInformant;
 import org.apache.nifi.reporting.BulletinRepository;
 
 /**
- * Defines the interface for a ClusterManager. The cluster manager is a
- * threadsafe centralized manager for a cluster. Members of a cluster are nodes.
- * A member becomes a node by issuing a connection request to the manager. The
- * manager maintains the set of nodes. Nodes may be disconnected, reconnected,
- * and deleted.
+ * Defines the interface for a ClusterManager. The cluster manager is a threadsafe centralized manager for a cluster. Members of a cluster are nodes. A member becomes a node by issuing a connection
+ * request to the manager. The manager maintains the set of nodes. Nodes may be disconnected, reconnected, and deleted.
  *
- * Nodes are responsible for sending heartbeats to the manager to indicate their
- * liveliness. A manager may disconnect a node if it does not receive a
- * heartbeat within a configurable time period. A cluster manager instance may
- * be configured with how often to monitor received heartbeats
- * (getHeartbeatMonitoringIntervalSeconds()) and the maximum time that may
- * elapse between node heartbeats before disconnecting the node
- * (getMaxHeartbeatGapSeconds()).
+ * Nodes are responsible for sending heartbeats to the manager to indicate their liveliness. A manager may disconnect a node if it does not receive a heartbeat within a configurable time period. A
+ * cluster manager instance may be configured with how often to monitor received heartbeats (getHeartbeatMonitoringIntervalSeconds()) and the maximum time that may elapse between node heartbeats
+ * before disconnecting the node (getMaxHeartbeatGapSeconds()).
  *
- * Since only a single node may execute isolated processors, the cluster manager
- * maintains the notion of a primary node. The primary node is chosen at cluster
- * startup and retains the role until a user requests a different node to be the
- * primary node.
+ * Since only a single node may execute isolated processors, the cluster manager maintains the notion of a primary node. The primary node is chosen at cluster startup and retains the role until a user
+ * requests a different node to be the primary node.
  *
  * @author unattributed
  */
@@ -78,8 +69,7 @@ public interface ClusterManager extends NodeInformant {
 
     /**
      * @param nodeId node identifier
-     * @return returns the node with the given identifier or null if node does
-     * not exist
+     * @return returns the node with the given identifier or null if node does not exist
      */
     Node getNode(String nodeId);
 
@@ -90,17 +80,13 @@ public interface ClusterManager extends NodeInformant {
     Set<NodeIdentifier> getNodeIds(Status... statuses);
 
     /**
-     * Deletes the node with the given node identifier. If the given node is the
-     * primary node, then a subsequent request may be made to the manager to set
-     * a new primary node.
+     * Deletes the node with the given node identifier. If the given node is the primary node, then a subsequent request may be made to the manager to set a new primary node.
      *
      * @param nodeId the node identifier
-     * @param userDn the Distinguished Name of the user requesting the node be
-     * deleted from the cluster
+     * @param userDn the Distinguished Name of the user requesting the node be deleted from the cluster
      *
      * @throws UnknownNodeException if the node does not exist
-     * @throws IllegalNodeDeletionException if the node is not in a disconnected
-     * state
+     * @throws IllegalNodeDeletionException if the node is not in a disconnected state
      */
     void deleteNode(String nodeId, String userDn) throws UnknownNodeException, IllegalNodeDeletionException;
 
@@ -114,14 +100,11 @@ public interface ClusterManager extends NodeInformant {
     ConnectionResponse requestConnection(ConnectionRequest request);
 
     /**
-     * Services reconnection requests for a given node. If the node indicates
-     * reconnection failure, then the node will be set to disconnected.
-     * Otherwise, a reconnection request will be sent to the node, initiating
-     * the connection handshake.
+     * Services reconnection requests for a given node. If the node indicates reconnection failure, then the node will be set to disconnected. Otherwise, a reconnection request will be sent to the
+     * node, initiating the connection handshake.
      *
      * @param nodeId a node identifier
-     * @param userDn the Distinguished Name of the user requesting the
-     * reconnection
+     * @param userDn the Distinguished Name of the user requesting the reconnection
      *
      * @throws UnknownNodeException if the node does not exist
      * @throws IllegalNodeReconnectionException if the node is not disconnected
@@ -132,13 +115,10 @@ public interface ClusterManager extends NodeInformant {
      * Requests the node with the given identifier be disconnected.
      *
      * @param nodeId the node identifier
-     * @param userDn the Distinguished Name of the user requesting the
-     * disconnection
+     * @param userDn the Distinguished Name of the user requesting the disconnection
      *
      * @throws UnknownNodeException if the node does not exist
-     * @throws IllegalNodeDisconnectionException if the node cannot be
-     * disconnected due to the cluster's state (e.g., node is last connected
-     * node or node is primary)
+     * @throws IllegalNodeDisconnectionException if the node cannot be disconnected due to the cluster's state (e.g., node is last connected node or node is primary)
      * @throws UnknownNodeException if the node does not exist
      * @throws IllegalNodeDisconnectionException if the node is not disconnected
      * @throws NodeDisconnectionException if the disconnection failed
@@ -146,50 +126,37 @@ public interface ClusterManager extends NodeInformant {
     void requestDisconnection(String nodeId, String userDn) throws UnknownNodeException, IllegalNodeDisconnectionException, NodeDisconnectionException;
 
     /**
-     * @return the time in seconds to wait between successive executions of
-     * heartbeat monitoring
+     * @return the time in seconds to wait between successive executions of heartbeat monitoring
      */
     int getHeartbeatMonitoringIntervalSeconds();
 
     /**
-     * @return the maximum time in seconds that is allowed between successive
-     * heartbeats of a node before disconnecting the node
+     * @return the maximum time in seconds that is allowed between successive heartbeats of a node before disconnecting the node
      */
     int getMaxHeartbeatGapSeconds();
 
     /**
-     * Returns a list of node events for the node with the given identifier. The
-     * events will be returned in order of most recent to least recent according
-     * to the creation date of the event.
+     * Returns a list of node events for the node with the given identifier. The events will be returned in order of most recent to least recent according to the creation date of the event.
      *
      * @param nodeId the node identifier
      *
-     * @return the list of events or an empty list if no node exists with the
-     * given identifier
+     * @return the list of events or an empty list if no node exists with the given identifier
      */
     List<Event> getNodeEvents(final String nodeId);
 
     /**
-     * Revokes the primary role from the current primary node and assigns the
-     * primary role to given given node ID.
+     * Revokes the primary role from the current primary node and assigns the primary role to given given node ID.
      *
-     * If role revocation fails, then the current primary node is set to
-     * disconnected while retaining the primary role and no role assignment is
-     * performed.
+     * If role revocation fails, then the current primary node is set to disconnected while retaining the primary role and no role assignment is performed.
      *
-     * If role assignment fails, then the given node is set to disconnected and
-     * is given the primary role.
+     * If role assignment fails, then the given node is set to disconnected and is given the primary role.
      *
      * @param nodeId the node identifier
-     * @param userDn the Distinguished Name of the user requesting that the
-     * Primary Node be assigned
+     * @param userDn the Distinguished Name of the user requesting that the Primary Node be assigned
      *
-     * @throws UnknownNodeException if the node with the given identifier does
-     * not exist
-     * @throws IneligiblePrimaryNodeException if the node with the given
-     * identifier is not eligible to be the primary node
-     * @throws PrimaryRoleAssignmentException if the cluster was unable to
-     * change the primary role to the requested node
+     * @throws UnknownNodeException if the node with the given identifier does not exist
+     * @throws IneligiblePrimaryNodeException if the node with the given identifier is not eligible to be the primary node
+     * @throws PrimaryRoleAssignmentException if the cluster was unable to change the primary role to the requested node
      */
     void setPrimaryNode(String nodeId, String userDn) throws UnknownNodeException, IneligiblePrimaryNodeException, PrimaryRoleAssignmentException;
 
@@ -204,20 +171,13 @@ public interface ClusterManager extends NodeInformant {
     BulletinRepository getBulletinRepository();
 
     /**
-     * Returns a {@link ProcessGroupStatus} that represents the status of all
-     * nodes with the given {@link Status}es for the given ProcessGroup id, or
-     * null if no nodes exist with the given statuses
-     *
-     * @param groupId
-     * @return
+     * @param groupId groupId
+     * @return a {@link ProcessGroupStatus} that represents the status of all nodes with the given {@link Status}es for the given ProcessGroup id, or null if no nodes exist with the given statuses
      */
     ProcessGroupStatus getProcessGroupStatus(String groupId);
 
     /**
-     * Returns a merged representation of the System Diagnostics for all nodes
-     * in the cluster
-     *
-     * @return
+     * @return a merged representation of the System Diagnostics for all nodes in the cluster
      */
     SystemDiagnostics getSystemDiagnostics();
 }

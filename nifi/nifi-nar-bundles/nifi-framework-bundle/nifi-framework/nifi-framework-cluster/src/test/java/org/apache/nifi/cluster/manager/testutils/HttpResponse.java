@@ -22,8 +22,7 @@ import java.util.Map;
 import javax.ws.rs.core.Response.Status;
 
 /**
- * Encapsulates an HTTP response. The toString method returns the
- * specification-compliant response.
+ * Encapsulates an HTTP response. The toString method returns the specification-compliant response.
  *
  * @author unattributed
  */

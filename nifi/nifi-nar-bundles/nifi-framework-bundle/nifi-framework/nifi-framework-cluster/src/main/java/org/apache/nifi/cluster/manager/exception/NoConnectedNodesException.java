@@ -17,8 +17,7 @@
 package org.apache.nifi.cluster.manager.exception;
 
 /**
- * Represents the exceptional case when the cluster is unable to service a
- * request because no nodes are connected.
+ * Represents the exceptional case when the cluster is unable to service a request because no nodes are connected.
  *
  * @author unattributed
  */

@@ -32,11 +32,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A file-based implementation of the ClusterFirewall interface. The class is
- * configured with a file. If the file is empty, then everything is permissible.
- * Otherwise, the file should contain hostnames or IPs formatted as dotted
- * decimals with an optional CIDR suffix. Each entry must be separated by a
- * newline. An example configuration is given below:
+ * A file-based implementation of the ClusterFirewall interface. The class is configured with a file. If the file is empty, then everything is permissible. Otherwise, the file should contain hostnames
+ * or IPs formatted as dotted decimals with an optional CIDR suffix. Each entry must be separated by a newline. An example configuration is given below:
  *
  * <code>
  * # hash character is a comment delimiter
@@ -46,12 +43,9 @@ import org.slf4j.LoggerFactory;
  * 9.10.11.12/13   # a smaller range of CIDR IPs
  * </code>
  *
- * This class allows for synchronization with an optionally configured restore
- * directory. If configured, then at startup, if the either the config file or
- * the restore directory's copy is missing, then the configuration file will be
- * copied to the appropriate location. If both restore directory contains a copy
- * that is different in content to configuration file, then an exception is
- * thrown at construction time.
+ * This class allows for synchronization with an optionally configured restore directory. If configured, then at startup, if the either the config file or the restore directory's copy is missing, then
+ * the configuration file will be copied to the appropriate location. If both restore directory contains a copy that is different in content to configuration file, then an exception is thrown at
+ * construction time.
  */
 public class FileBasedClusterNodeFirewall implements ClusterNodeFirewall {
 

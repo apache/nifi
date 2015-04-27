@@ -33,12 +33,10 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
 /**
- * Factory bean for creating a singleton ClusterManagerProtocolServiceLocator
- * instance. If the application is configured to act as the cluster manager,
- * then null is always returned as the created instance.
+ * Factory bean for creating a singleton ClusterManagerProtocolServiceLocator instance. If the application is configured to act as the cluster manager, then null is always returned as the created
+ * instance.
  *
- * The cluster manager protocol service represents the socket endpoint for
- * sending internal socket messages to the cluster manager.
+ * The cluster manager protocol service represents the socket endpoint for sending internal socket messages to the cluster manager.
  */
 public class ClusterManagerProtocolServiceLocatorFactoryBean implements FactoryBean, ApplicationContextAware, DisposableBean {
 

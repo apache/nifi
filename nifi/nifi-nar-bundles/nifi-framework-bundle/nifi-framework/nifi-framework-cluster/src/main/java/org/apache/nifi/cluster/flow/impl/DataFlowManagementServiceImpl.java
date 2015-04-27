@@ -45,19 +45,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Implements FlowManagementService interface. The service tries to keep the
- * cluster's flow current with regards to the available nodes.
+ * Implements FlowManagementService interface. The service tries to keep the cluster's flow current with regards to the available nodes.
  *
- * The instance may be configured with a retrieval delay, which will reduce the
- * number of retrievals performed by the service at the expense of increasing
- * the chances that the service will not be able to provide a current flow to
- * the caller.
+ * The instance may be configured with a retrieval delay, which will reduce the number of retrievals performed by the service at the expense of increasing the chances that the service will not be able
+ * to provide a current flow to the caller.
  *
- * By default, the service will try to update the flow as quickly as possible.
- * Configuring a delay enables a less aggressive retrieval strategy.
- * Specifically, the eligible retrieval time is reset every time the flow state
- * is set to STALE. If the state is set to UNKNOWN or CURRENT, then the flow
- * will not be retrieved.
+ * By default, the service will try to update the flow as quickly as possible. Configuring a delay enables a less aggressive retrieval strategy. Specifically, the eligible retrieval time is reset
+ * every time the flow state is set to STALE. If the state is set to UNKNOWN or CURRENT, then the flow will not be retrieved.
  *
  * @author unattributed
  */
@@ -298,8 +292,7 @@ public class DataFlowManagementServiceImpl implements DataFlowManagementService 
     }
 
     /**
-     * A timer task for issuing FlowRequestMessage messages to nodes to retrieve
-     * an updated flow.
+     * A timer task for issuing FlowRequestMessage messages to nodes to retrieve an updated flow.
      */
     private class FlowRetrieverTimerTask extends TimerTask {
 

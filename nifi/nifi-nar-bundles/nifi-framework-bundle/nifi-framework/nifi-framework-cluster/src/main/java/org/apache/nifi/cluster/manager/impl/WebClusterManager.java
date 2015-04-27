@@ -232,20 +232,14 @@ import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.entity.ReportingTasksEntity;
 
 /**
- * Provides a cluster manager implementation. The manager federates incoming
- * HTTP client requests to the nodes' external API using the HTTP protocol. The
- * manager also communicates with nodes using the nodes' internal socket
- * protocol.
+ * Provides a cluster manager implementation. The manager federates incoming HTTP client requests to the nodes' external API using the HTTP protocol. The manager also communicates with nodes using the
+ * nodes' internal socket protocol.
  *
- * The manager's socket address may broadcasted using multicast if a
- * MulticastServiceBroadcaster instance is set on this instance. The manager
- * instance must be started after setting the broadcaster.
+ * The manager's socket address may broadcasted using multicast if a MulticastServiceBroadcaster instance is set on this instance. The manager instance must be started after setting the broadcaster.
  *
- * The manager may be configured with an EventManager for recording noteworthy
- * lifecycle events (e.g., first heartbeat received, node status change).
+ * The manager may be configured with an EventManager for recording noteworthy lifecycle events (e.g., first heartbeat received, node status change).
  *
- * The start() and stop() methods must be called to initialize and stop the
- * instance.
+ * The start() and stop() methods must be called to initialize and stop the instance.
  *
  * @author unattributed
  */
@@ -258,47 +252,38 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     private static final Logger heartbeatLogger = new NiFiLog(LoggerFactory.getLogger("org.apache.nifi.cluster.heartbeat"));
 
     /**
-     * The HTTP header to store a cluster context. An example of what may be
-     * stored in the context is a node's auditable actions in response to a
-     * cluster request. The cluster context is serialized using Java's
-     * serialization mechanism and hex encoded.
+     * The HTTP header to store a cluster context. An example of what may be stored in the context is a node's auditable actions in response to a cluster request. The cluster context is serialized
+     * using Java's serialization mechanism and hex encoded.
      */
     public static final String CLUSTER_CONTEXT_HTTP_HEADER = "X-ClusterContext";
 
     /**
-     * HTTP Header that stores a unique ID for each request that is replicated
-     * to the nodes. This is used for logging purposes so that request
-     * information, such as timing, can be correlated between the NCM and the
-     * nodes
+     * HTTP Header that stores a unique ID for each request that is replicated to the nodes. This is used for logging purposes so that request information, such as timing, can be correlated between
+     * the NCM and the nodes
      */
     public static final String REQUEST_ID_HEADER = "X-RequestID";
 
     /**
-     * The HTTP header that the NCM specifies to ask a node if they are able to
-     * process a given request. The value is always 150-NodeContinue. The node
-     * will respond with 150 CONTINUE if it is able to process the request, 417
-     * EXPECTATION_FAILED otherwise.
+     * The HTTP header that the NCM specifies to ask a node if they are able to process a given request. The value is always 150-NodeContinue. The node will respond with 150 CONTINUE if it is able to
+     * process the request, 417 EXPECTATION_FAILED otherwise.
      */
     public static final String NCM_EXPECTS_HTTP_HEADER = "X-NcmExpects";
     public static final int NODE_CONTINUE_STATUS_CODE = 150;
 
     /**
-     * The HTTP header that the NCM specifies to indicate that a node should
-     * invalidate the specified user group. This is done to ensure that user
-     * cache is not stale when an administrator modifies a group through the UI.
+     * The HTTP header that the NCM specifies to indicate that a node should invalidate the specified user group. This is done to ensure that user cache is not stale when an administrator modifies a
+     * group through the UI.
      */
     public static final String CLUSTER_INVALIDATE_USER_GROUP_HEADER = "X-ClusterInvalidateUserGroup";
 
     /**
-     * The HTTP header that the NCM specifies to indicate that a node should
-     * invalidate the specified user. This is done to ensure that user cache is
-     * not stale when an administrator modifies a user through the UI.
+     * The HTTP header that the NCM specifies to indicate that a node should invalidate the specified user. This is done to ensure that user cache is not stale when an administrator modifies a user
+     * through the UI.
      */
     public static final String CLUSTER_INVALIDATE_USER_HEADER = "X-ClusterInvalidateUser";
 
     /**
-     * The default number of seconds to respond to a connecting node if the
-     * manager cannot provide it with a current data flow.
+     * The default number of seconds to respond to a connecting node if the manager cannot provide it with a current data flow.
      */
     private static final int DEFAULT_CONNECTION_REQUEST_TRY_AGAIN_SECONDS = 5;
 
@@ -398,7 +383,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
             snapshotMillis = FormatUtils.getTimeDuration(NiFiProperties.DEFAULT_COMPONENT_STATUS_SNAPSHOT_FREQUENCY, TimeUnit.MILLISECONDS);
         }
         componentStatusSnapshotMillis = snapshotMillis;
-        
+
         Executors.newSingleThreadScheduledExecutor().scheduleWithFixedDelay(new Runnable() {
             @Override
             public void run() {
@@ -411,7 +396,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                                 statusRepository = createComponentStatusRepository();
                                 componentMetricsRepositoryMap.put(node.getNodeId(), statusRepository);
                             }
-                            
+
                             // ensure this node has a payload
                             if (node.getHeartbeat() != null && node.getHeartbeatPayload() != null) {
                                 // if nothing has been captured or the current heartbeat is newer, capture it - comparing the heatbeat created timestamp
@@ -422,7 +407,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                             }
                         }
                     }
-                } catch(final Throwable t) {
+                } catch (final Throwable t) {
                     logger.warn("Unable to capture component metrics from Node heartbeats: " + t);
                     if (logger.isDebugEnabled()) {
                         logger.warn("", t);
@@ -667,14 +652,10 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     }
 
     /**
-     * Services connection requests. If the data flow management service is
-     * unable to provide a current copy of the data flow, then the returned
-     * connection response will indicate the node should try later. Otherwise,
-     * the connection response will contain the the flow and the node
-     * identifier.
+     * Services connection requests. If the data flow management service is unable to provide a current copy of the data flow, then the returned connection response will indicate the node should try
+     * later. Otherwise, the connection response will contain the the flow and the node identifier.
      *
-     * If this instance is configured with a firewall and the request is
-     * blocked, then the response will not contain a node identifier.
+     * If this instance is configured with a firewall and the request is blocked, then the response will not contain a node identifier.
      *
      * @param request a connection request
      *
@@ -754,14 +735,14 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
             }
 
             /*
-             * The manager does not have a current copy of the data flow, 
-             * so it will instruct the node to try connecting at a later 
-             * time.  Meanwhile, the flow will be locked down from user 
+             * The manager does not have a current copy of the data flow,
+             * so it will instruct the node to try connecting at a later
+             * time.  Meanwhile, the flow will be locked down from user
              * changes because the node is marked as connecting.
              */
 
             /*
-             * Create try-later response based on flow retrieval delay to give 
+             * Create try-later response based on flow retrieval delay to give
              * the flow management service a chance to retrieve a curren flow
              */
             final int tryAgainSeconds;
@@ -783,20 +764,14 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     }
 
     /**
-     * Services reconnection requests for a given node. If the node indicates
-     * reconnection failure, then the node will be set to disconnected and if
-     * the node has primary role, then the role will be revoked. Otherwise, a
-     * reconnection request will be sent to the node, initiating the connection
-     * handshake.
+     * Services reconnection requests for a given node. If the node indicates reconnection failure, then the node will be set to disconnected and if the node has primary role, then the role will be
+     * revoked. Otherwise, a reconnection request will be sent to the node, initiating the connection handshake.
      *
      * @param nodeId a node identifier
      *
      * @throws UnknownNodeException if the node does not exist
-     * @throws IllegalNodeReconnectionException if the node cannot be
-     * reconnected because the node is not disconnected
-     * @throws NodeReconnectionException if the reconnection message failed to
-     * be sent or the cluster could not provide a current data flow for the
-     * reconnection request
+     * @throws IllegalNodeReconnectionException if the node cannot be reconnected because the node is not disconnected
+     * @throws NodeReconnectionException if the reconnection message failed to be sent or the cluster could not provide a current data flow for the reconnection request
      */
     @Override
     public void requestReconnection(final String nodeId, final String userDn) throws UnknownNodeException, IllegalNodeReconnectionException {
@@ -1163,11 +1138,8 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
      * @param userDn the DN of the user requesting the disconnection
      *
      * @throws UnknownNodeException if the node does not exist
-     * @throws IllegalNodeDisconnectionException if the node cannot be
-     * disconnected due to the cluster's state (e.g., node is last connected
-     * node or node is primary)
-     * @throws NodeDisconnectionException if the disconnection message fails to
-     * be sent.
+     * @throws IllegalNodeDisconnectionException if the node cannot be disconnected due to the cluster's state (e.g., node is last connected node or node is primary)
+     * @throws NodeDisconnectionException if the disconnection message fails to be sent.
      */
     @Override
     public void requestDisconnection(final String nodeId, final String userDn) throws UnknownNodeException, IllegalNodeDisconnectionException, NodeDisconnectionException {
@@ -1185,8 +1157,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     }
 
     /**
-     * Requests a disconnection to the node with the given node ID, but any
-     * exception thrown is suppressed.
+     * Requests a disconnection to the node with the given node ID, but any exception thrown is suppressed.
      *
      * @param nodeId the node ID
      */
@@ -1197,28 +1168,19 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     }
 
     /**
-     * Issues a disconnection message to the node identified by the given node
-     * ID. If the node is not known, then a UnknownNodeException is thrown. If
-     * the node cannot be disconnected due to the cluster's state and
-     * ignoreLastNodeCheck is false, then a IllegalNodeDisconnectionException is
-     * thrown. Otherwise, a disconnection message is issued to the node.
+     * Issues a disconnection message to the node identified by the given node ID. If the node is not known, then a UnknownNodeException is thrown. If the node cannot be disconnected due to the
+     * cluster's state and ignoreLastNodeCheck is false, then a IllegalNodeDisconnectionException is thrown. Otherwise, a disconnection message is issued to the node.
      *
-     * Whether the disconnection message is successfully sent to the node, the
-     * node is marked as disconnected and if the node is the primary node, then
-     * the primary role is revoked.
+     * Whether the disconnection message is successfully sent to the node, the node is marked as disconnected and if the node is the primary node, then the primary role is revoked.
      *
      * @param nodeId the ID of the node
-     * @param ignoreNodeChecks if false, checks will be made to ensure the
-     * cluster supports the node's disconnection (e.g., the node is not the last
-     * connected node in the cluster; the node is not the primary); otherwise,
-     * the request is made regardless of the cluster state
+     * @param ignoreNodeChecks if false, checks will be made to ensure the cluster supports the node's disconnection (e.g., the node is not the last connected node in the cluster; the node is not the
+     * primary); otherwise, the request is made regardless of the cluster state
      * @param explanation
      *
-     * @throws IllegalNodeDisconnectionException if the node cannot be
-     * disconnected due to the cluster's state (e.g., node is last connected
-     * node or node is primary). Not thrown if ignoreNodeChecks is true.
-     * @throws NodeDisconnectionException if the disconnection message fails to
-     * be sent.
+     * @throws IllegalNodeDisconnectionException if the node cannot be disconnected due to the cluster's state (e.g., node is last connected node or node is primary). Not thrown if ignoreNodeChecks is
+     * true.
+     * @throws NodeDisconnectionException if the disconnection message fails to be sent.
      */
     private void requestDisconnection(final NodeIdentifier nodeId, final boolean ignoreNodeChecks, final String explanation)
             throws IllegalNodeDisconnectionException, NodeDisconnectionException {
@@ -1276,8 +1238,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     }
 
     /**
-     * Messages the node to have the primary role. If the messaging fails, then
-     * the node is marked as disconnected.
+     * Messages the node to have the primary role. If the messaging fails, then the node is marked as disconnected.
      *
      * @param nodeId the node ID to assign primary role
      *
@@ -1292,7 +1253,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
             msg.setPrimary(true);
             logger.info("Attempting to assign primary role to node: " + nodeId);
 
-            // message 
+            // message
             senderListener.assignPrimaryRole(msg);
 
             logger.info("Assigned primary role to node: " + nodeId);
@@ -1321,11 +1282,9 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     }
 
     /**
-     * Messages the node with the given node ID to no longer have the primary
-     * role. If the messaging fails, then the node is marked as disconnected.
+     * Messages the node with the given node ID to no longer have the primary role. If the messaging fails, then the node is marked as disconnected.
      *
-     * @return true if the primary role was revoked from the node; false
-     * otherwise
+     * @return true if the primary role was revoked from the node; false otherwise
      */
     private boolean revokePrimaryRole(final NodeIdentifier nodeId) {
         writeLock.lock();
@@ -1382,8 +1341,10 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
             final Node node = getRawNode(msg.getNodeId().getId());
             if (node != null) {
                 node.setStatus(Status.DISCONNECTED);
-                addEvent(msg.getNodeId(), "Node could not join cluster because it failed to start up properly. Setting node to Disconnected. Node reported the following error: " + msg.getExceptionMessage());
-                addBulletin(node, Severity.ERROR, "Node could not join cluster because it failed to start up properly. Setting node to Disconnected. Node reported the following error: " + msg.getExceptionMessage());
+                addEvent(msg.getNodeId(), "Node could not join cluster because it failed to start up properly. Setting node to Disconnected. Node reported "
+                        + "the following error: " + msg.getExceptionMessage());
+                addBulletin(node, Severity.ERROR, "Node could not join cluster because it failed to start up properly. Setting node to Disconnected. Node "
+                        + "reported the following error: " + msg.getExceptionMessage());
             }
         } finally {
             writeLock.unlock("handleControllerStartupFailure");
@@ -1405,14 +1366,6 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         }
     }
 
-    /**
-     * Adds an instance of a specified controller service.
-     *
-     * @param type
-     * @param id
-     * @param properties
-     * @return
-     */
     @Override
     public ControllerServiceNode createControllerService(final String type, final String id, final boolean firstTimeAdded) {
         return controllerServiceProvider.createControllerService(type, id, firstTimeAdded);
@@ -1666,7 +1619,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     /**
      * Handle a bulletins message.
      *
-     * @param bulletins
+     * @param bulletins bulletins
      */
     public void handleBulletins(final NodeBulletins bulletins) {
         final NodeIdentifier nodeIdentifier = bulletins.getNodeIdentifier();
@@ -1681,15 +1634,9 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     }
 
     /**
-     * Handles a node's heartbeat. If this heartbeat is a node's first heartbeat
-     * since its connection request, then the manager will mark the node as
-     * connected. If the node was previously disconnected due to a lack of
-     * heartbeat, then a reconnection request is issued. If the node was
-     * disconnected for other reasons, then a disconnection request is issued.
-     * If this instance is configured with a firewall and the heartbeat is
-     * blocked, then a disconnection request is issued.
-     *
-     * @param heartbeat
+     * Handles a node's heartbeat. If this heartbeat is a node's first heartbeat since its connection request, then the manager will mark the node as connected. If the node was previously disconnected
+     * due to a lack of heartbeat, then a reconnection request is issued. If the node was disconnected for other reasons, then a disconnection request is issued. If this instance is configured with a
+     * firewall and the heartbeat is blocked, then a disconnection request is issued.
      */
     @Override
     public void handleHeartbeat(final Heartbeat heartbeat) {
@@ -1703,9 +1650,8 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         /*
          * Processing a heartbeat requires a write lock, which may take a while
          * to obtain.  Only the last heartbeat is necessary to process per node.
-         * Futhermore, since many could pile up, heartbeats are processed in 
+         * Futhermore, since many could pile up, heartbeats are processed in
          * bulk.
-         * 
          * The below queue stores the pending heartbeats.
          */
         pendingHeartbeats.add(heartbeat);
@@ -1782,7 +1728,8 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                     } else if (heartbeatIndicatesNotYetConnected) {
                         if (Status.CONNECTED == node.getStatus()) {
                             // record event
-                            addEvent(node.getNodeId(), "Received heartbeat from node that thinks it is not yet part of the cluster, though the Manager thought it was. Marking as Disconnected and issuing reconnection request.");
+                            addEvent(node.getNodeId(), "Received heartbeat from node that thinks it is not yet part of the cluster, though the Manager thought it "
+                                    + "was. Marking as Disconnected and issuing reconnection request.");
 
                             // record heartbeat
                             node.setHeartbeat(null);
@@ -1843,7 +1790,8 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                         node.setHeartbeat(mostRecentHeartbeat);
                     }
                 } catch (final Exception e) {
-                    logger.error("Failed to process heartbeat from {}:{} due to {}", mostRecentHeartbeat.getNodeIdentifier().getApiAddress(), mostRecentHeartbeat.getNodeIdentifier().getApiPort(), e.toString());
+                    logger.error("Failed to process heartbeat from {}:{} due to {}",
+                            mostRecentHeartbeat.getNodeIdentifier().getApiAddress(), mostRecentHeartbeat.getNodeIdentifier().getApiPort(), e.toString());
                     if (logger.isDebugEnabled()) {
                         logger.error("", e);
                     }
@@ -2043,13 +1991,15 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
 
     @Override
     public NodeResponse applyRequest(final String method, final URI uri, final Map<String, List<String>> parameters, final Map<String, String> headers)
-            throws NoConnectedNodesException, NoResponseFromNodesException, UriConstructionException, ConnectingNodeMutableRequestException, DisconnectedNodeMutableRequestException, SafeModeMutableRequestException {
+            throws NoConnectedNodesException, NoResponseFromNodesException, UriConstructionException,
+            ConnectingNodeMutableRequestException, DisconnectedNodeMutableRequestException, SafeModeMutableRequestException {
         return applyRequest(method, uri, parameters, headers, getNodeIds(Status.CONNECTED));
     }
 
     @Override
     public NodeResponse applyRequest(final String method, final URI uri, final Map<String, List<String>> parameters, final Map<String, String> headers, final Set<NodeIdentifier> nodeIdentifiers)
-            throws NoConnectedNodesException, NoResponseFromNodesException, UriConstructionException, ConnectingNodeMutableRequestException, DisconnectedNodeMutableRequestException, SafeModeMutableRequestException {
+            throws NoConnectedNodesException, NoResponseFromNodesException, UriConstructionException,
+            ConnectingNodeMutableRequestException, DisconnectedNodeMutableRequestException, SafeModeMutableRequestException {
 
         final boolean mutableRequest = canChangeNodeState(method, uri);
         final ClusterManagerLock lock = mutableRequest ? writeLock : readLock;
@@ -2085,13 +2035,15 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
 
     @Override
     public NodeResponse applyRequest(final String method, final URI uri, final Object entity, final Map<String, String> headers)
-            throws NoConnectedNodesException, NoResponseFromNodesException, UriConstructionException, ConnectingNodeMutableRequestException, DisconnectedNodeMutableRequestException, SafeModeMutableRequestException {
+            throws NoConnectedNodesException, NoResponseFromNodesException, UriConstructionException,
+            ConnectingNodeMutableRequestException, DisconnectedNodeMutableRequestException, SafeModeMutableRequestException {
         return applyRequest(method, uri, entity, headers, getNodeIds(Status.CONNECTED));
     }
 
     @Override
     public NodeResponse applyRequest(final String method, final URI uri, final Object entity, final Map<String, String> headers, final Set<NodeIdentifier> nodeIdentifiers)
-            throws NoConnectedNodesException, NoResponseFromNodesException, UriConstructionException, ConnectingNodeMutableRequestException, DisconnectedNodeMutableRequestException, SafeModeMutableRequestException {
+            throws NoConnectedNodesException, NoResponseFromNodesException, UriConstructionException,
+            ConnectingNodeMutableRequestException, DisconnectedNodeMutableRequestException, SafeModeMutableRequestException {
 
         final boolean mutableRequest = canChangeNodeState(method, uri);
         final ClusterManagerLock lock = mutableRequest ? writeLock : readLock;
@@ -2270,7 +2222,9 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     }
 
     // requires write lock to already be acquired unless method cannot change node state
-    private NodeResponse federateRequest(final String method, final URI uri, final Map<String, List<String>> parameters, final Object entity, final Map<String, String> headers, final Set<NodeIdentifier> nodeIds) throws UriConstructionException {
+    private NodeResponse federateRequest(
+            final String method, final URI uri, final Map<String, List<String>> parameters, final Object entity, final Map<String, String> headers, final Set<NodeIdentifier> nodeIds)
+            throws UriConstructionException {
         // ensure some nodes are connected
         if (nodeIds.isEmpty()) {
             throw new NoConnectedNodesException("Cannot apply " + method + " request to " + uri + " because there are currently no connected Nodes");
@@ -2399,7 +2353,8 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     }
 
     private static boolean isProcessorEndpoint(final URI uri, final String method) {
-        if (("GET".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method)) && (PROCESSOR_URI_PATTERN.matcher(uri.getPath()).matches() || CLUSTER_PROCESSOR_URI_PATTERN.matcher(uri.getPath()).matches())) {
+        if (("GET".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method))
+                && (PROCESSOR_URI_PATTERN.matcher(uri.getPath()).matches() || CLUSTER_PROCESSOR_URI_PATTERN.matcher(uri.getPath()).matches())) {
             return true;
         } else if ("POST".equalsIgnoreCase(method) && PROCESSORS_URI_PATTERN.matcher(uri.getPath()).matches()) {
             return true;
@@ -2674,7 +2629,8 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         }
     }
 
-    private void mergeControllerServiceReferences(final Set<ControllerServiceReferencingComponentDTO> referencingComponents, final Map<NodeIdentifier, Set<ControllerServiceReferencingComponentDTO>> referencingComponentMap) {
+    private void mergeControllerServiceReferences(
+            final Set<ControllerServiceReferencingComponentDTO> referencingComponents, final Map<NodeIdentifier, Set<ControllerServiceReferencingComponentDTO>> referencingComponentMap) {
         final Map<String, Integer> activeThreadCounts = new HashMap<>();
         final Map<String, String> states = new HashMap<>();
         for (final Map.Entry<NodeIdentifier, Set<ControllerServiceReferencingComponentDTO>> nodeEntry : referencingComponentMap.entrySet()) {
@@ -2782,12 +2738,11 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     }
 
     /**
-     * Merges the validation errors into the specified map, recording the
-     * corresponding node identifier.
+     * Merges the validation errors into the specified map, recording the corresponding node identifier.
      *
-     * @param validationErrorMap
-     * @param nodeId
-     * @param nodeValidationErrors
+     * @param validationErrorMap map
+     * @param nodeId id
+     * @param nodeValidationErrors errors
      */
     public void mergeValidationErrors(final Map<String, Set<NodeIdentifier>> validationErrorMap, final NodeIdentifier nodeId, final Collection<String> nodeValidationErrors) {
         if (nodeValidationErrors != null) {
@@ -2803,12 +2758,11 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     }
 
     /**
-     * Normalizes the validation errors by prepending the corresponding nodes
-     * when the error does not exist across all nodes.
+     * Normalizes the validation errors by prepending the corresponding nodes when the error does not exist across all nodes.
      *
-     * @param validationErrorMap
-     * @param totalNodes
-     * @return
+     * @param validationErrorMap map
+     * @param totalNodes total
+     * @return normalized errors
      */
     public Set<String> normalizedMergedValidationErrors(final Map<String, Set<NodeIdentifier>> validationErrorMap, int totalNodes) {
         final Set<String> normalizedValidationErrors = new HashSet<>();
@@ -2862,7 +2816,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         final boolean hasClientResponse = clientResponse != null;
         final boolean hasSuccessfulClientResponse = hasClientResponse && clientResponse.is2xx();
 
-        // drain the responses from the socket for those responses not being sent to the client 
+        // drain the responses from the socket for those responses not being sent to the client
         final Set<NodeResponse> nodeResponsesToDrain = new HashSet<>(updatedNodesMap.values());
         nodeResponsesToDrain.remove(clientResponse);
 
@@ -3177,7 +3131,8 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                     continue;
                 }
 
-                final ControllerServiceReferencingComponentsEntity nodeResponseEntity = (nodeResponse == clientResponse) ? responseEntity : nodeResponse.getClientResponse().getEntity(ControllerServiceReferencingComponentsEntity.class);
+                final ControllerServiceReferencingComponentsEntity nodeResponseEntity =
+                        (nodeResponse == clientResponse) ? responseEntity : nodeResponse.getClientResponse().getEntity(ControllerServiceReferencingComponentsEntity.class);
                 final Set<ControllerServiceReferencingComponentDTO> nodeReferencingComponents = nodeResponseEntity.getControllerServiceReferencingComponents();
 
                 resultsMap.put(nodeResponse.getNodeId(), nodeReferencingComponents);
@@ -3243,9 +3198,9 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         }
 
         /*
-         * Nodes that encountered issues handling the request are marked as 
-         * disconnected for mutable requests (e.g., post, put, delete).  For 
-         * other requests (e.g., get, head), the nodes remain in their current 
+         * Nodes that encountered issues handling the request are marked as
+         * disconnected for mutable requests (e.g., post, put, delete).  For
+         * other requests (e.g., get, head), the nodes remain in their current
          * state even if they had problems handling the request.
          */
         if (mutableRequest) {
@@ -3260,7 +3215,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
             // mark flow as stale since this request could have changed the flow
             notifyDataFlowManagmentServiceOfFlowStateChange(PersistedFlowState.STALE);
 
-            // disconnect problematic nodes 
+            // disconnect problematic nodes
             if (!problematicNodeResponses.isEmpty()) {
                 if (problematicNodeResponses.size() < nodeResponses.size()) {
                     logger.warn(String.format("One or more nodes failed to process URI '%s'.  Requesting each node to disconnect from cluster.", uri));
@@ -3275,8 +3230,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     }
 
     /**
-     * Drains the node responses off of the socket to ensure that the socket is
-     * appropriately cleaned-up.
+     * Drains the node responses off of the socket to ensure that the socket is appropriately cleaned-up.
      *
      * @param nodeResponses the collection of node responses
      */
@@ -3313,11 +3267,8 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     }
 
     /**
-     * A helper method to disconnect nodes that returned unsuccessful HTTP
-     * responses because of a replicated request. Disconnection requests are
-     * sent concurrently.
+     * A helper method to disconnect nodes that returned unsuccessful HTTP responses because of a replicated request. Disconnection requests are sent concurrently.
      *
-     * @param nodeResponses
      */
     private void disconnectNodes(final Set<NodeResponse> nodeResponses, final String explanation) {
         // return fast if nothing to do
@@ -3363,14 +3314,11 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     }
 
     /**
-     * Returns false if an internal protocol message was received by a node
-     * listed in the firewall. If no firewall is configured, then false is
-     * always returned.
+     * Returns false if an internal protocol message was received by a node listed in the firewall. If no firewall is configured, then false is always returned.
      *
      * @param ip the IP of the remote machine
      *
-     * @return false if the IP is listed in the firewall or if the firewall is
-     * not configured; true otherwise
+     * @return false if the IP is listed in the firewall or if the firewall is not configured; true otherwise
      */
     private boolean isBlockedByFirewall(final String ip) {
         if (isFirewallConfigured()) {
@@ -3417,10 +3365,8 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     }
 
     /**
-     * Resolves a proposed node identifier to a node identifier that the manager
-     * approves. If the proposed node identifier conflicts with an existing node
-     * identifier, then an approved node identifier is generated and returned to
-     * the caller.
+     * Resolves a proposed node identifier to a node identifier that the manager approves. If the proposed node identifier conflicts with an existing node identifier, then an approved node identifier
+     * is generated and returned to the caller.
      *
      * @param proposedNodeId a proposed identifier
      *
@@ -3579,11 +3525,8 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     }
 
     /**
-     * This timer task simply processes any pending heartbeats. This timer task
-     * is not strictly needed, as HeartbeatMonitoringTimerTask will do this.
-     * However, this task is scheduled much more frequently and by processing
-     * the heartbeats more frequently, the stats that we report have less of a
-     * delay.
+     * This timer task simply processes any pending heartbeats. This timer task is not strictly needed, as HeartbeatMonitoringTimerTask will do this. However, this task is scheduled much more
+     * frequently and by processing the heartbeats more frequently, the stats that we report have less of a delay.
      */
     private class ProcessPendingHeartbeatsTask extends TimerTask {
 
@@ -3599,13 +3542,9 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     }
 
     /**
-     * A timer task to detect nodes that have not sent a heartbeat in a while.
-     * The "problem" nodes are marked as disconnected due to lack of heartbeat
-     * by the task. No disconnection request is sent to the node. This is
-     * because either the node is not functioning in which case sending the
-     * request is futile or the node is running a bit slow. In the latter case,
-     * we'll wait for the next heartbeat and send a reconnection request when we
-     * process the heartbeat in the heartbeatHandler() method.
+     * A timer task to detect nodes that have not sent a heartbeat in a while. The "problem" nodes are marked as disconnected due to lack of heartbeat by the task. No disconnection request is sent to
+     * the node. This is because either the node is not functioning in which case sending the request is futile or the node is running a bit slow. In the latter case, we'll wait for the next heartbeat
+     * and send a reconnection request when we process the heartbeat in the heartbeatHandler() method.
      */
     private class HeartbeatMonitoringTimerTask extends TimerTask {
 
@@ -3899,7 +3838,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         for (final Map.Entry<Date, List<StatusSnapshot>> entry : snapshotsToAggregate.entrySet()) {
             final List<StatusSnapshot> snapshots = entry.getValue();
             final StatusSnapshot reducedSnapshot = snapshots.get(0).getValueReducer().reduce(snapshots);
-            
+
             final StatusSnapshotDTO dto = new StatusSnapshotDTO();
             dto.setTimestamp(reducedSnapshot.getTimestamp());
             dto.setStatusMetrics(StatusHistoryUtil.createStatusSnapshotDto(reducedSnapshot).getStatusMetrics());

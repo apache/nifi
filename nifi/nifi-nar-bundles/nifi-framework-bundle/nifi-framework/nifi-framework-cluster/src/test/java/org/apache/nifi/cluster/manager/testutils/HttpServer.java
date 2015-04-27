@@ -37,8 +37,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A simple HTTP web server that allows clients to register canned-responses to
- * respond to received requests.
+ * A simple HTTP web server that allows clients to register canned-responses to respond to received requests.
  *
  * @author unattributed
  */
