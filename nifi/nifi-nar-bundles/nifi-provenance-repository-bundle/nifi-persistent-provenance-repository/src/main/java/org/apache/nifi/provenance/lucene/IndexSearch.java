@@ -35,7 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class IndexSearch {
-	private final Logger logger = LoggerFactory.getLogger(IndexSearch.class);
+    private final Logger logger = LoggerFactory.getLogger(IndexSearch.class);
     private final PersistentProvenanceRepository repository;
     private final File indexDirectory;
     private final IndexManager indexManager;
@@ -65,17 +65,17 @@ public class IndexSearch {
         final long start = System.nanoTime();
         IndexSearcher searcher = null;
         try {
-        	searcher = indexManager.borrowIndexSearcher(indexDirectory);
+            searcher = indexManager.borrowIndexSearcher(indexDirectory);
             final long searchStartNanos = System.nanoTime();
             final long openSearcherNanos = searchStartNanos - start;
-            
+
             final TopDocs topDocs = searcher.search(luceneQuery, provenanceQuery.getMaxResults());
             final long finishSearch = System.nanoTime();
             final long searchNanos = finishSearch - searchStartNanos;
-            
-            logger.debug("Searching {} took {} millis; opening searcher took {} millis", this, 
-            		TimeUnit.NANOSECONDS.toMillis(searchNanos), TimeUnit.NANOSECONDS.toMillis(openSearcherNanos));
-            
+
+            logger.debug("Searching {} took {} millis; opening searcher took {} millis", this,
+                    TimeUnit.NANOSECONDS.toMillis(searchNanos), TimeUnit.NANOSECONDS.toMillis(openSearcherNanos));
+
             if (topDocs.totalHits == 0) {
                 sqr.update(Collections.<ProvenanceEventRecord>emptyList(), 0);
                 return sqr;
@@ -83,31 +83,31 @@ public class IndexSearch {
 
             final DocsReader docsReader = new DocsReader(repository.getConfiguration().getStorageDirectories());
             matchingRecords = docsReader.read(topDocs, searcher.getIndexReader(), repository.getAllLogFiles(), retrievedCount, provenanceQuery.getMaxResults());
-            
+
             final long readRecordsNanos = System.nanoTime() - finishSearch;
             logger.debug("Reading {} records took {} millis for {}", matchingRecords.size(), TimeUnit.NANOSECONDS.toMillis(readRecordsNanos), this);
-            
+
             sqr.update(matchingRecords, topDocs.totalHits);
             return sqr;
         } catch (final FileNotFoundException e) {
             // nothing has been indexed yet, or the data has already aged off
-        	logger.warn("Attempted to search Provenance Index {} but could not find the file due to {}", indexDirectory, e);
-        	if ( logger.isDebugEnabled() ) {
-        		logger.warn("", e);
-        	}
-        	
+            logger.warn("Attempted to search Provenance Index {} but could not find the file due to {}", indexDirectory, e);
+            if ( logger.isDebugEnabled() ) {
+                logger.warn("", e);
+            }
+
             sqr.update(Collections.<ProvenanceEventRecord>emptyList(), 0);
             return sqr;
         } finally {
-        	if ( searcher != null ) {
-        		indexManager.returnIndexSearcher(indexDirectory, searcher);
-        	}
+            if ( searcher != null ) {
+                indexManager.returnIndexSearcher(indexDirectory, searcher);
+            }
         }
     }
 
-    
+
     @Override
     public String toString() {
-    	return "IndexSearcher[" + indexDirectory + "]";
+        return "IndexSearcher[" + indexDirectory + "]";
     }
 }

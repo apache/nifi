@@ -27,26 +27,24 @@ public interface TocWriter extends Closeable {
 
     /**
      * Adds the given block offset as the next Block Offset in the Table of Contents
-     * @param offset
-     * @throws IOException
+     * @param offset the byte offset at which the block begins
+     * @throws IOException if unable to persist the block index
      */
     void addBlockOffset(long offset) throws IOException;
-    
+
     /**
-     * Returns the index of the current Block
-     * @return
+     * @return the index of the current Block
      */
     int getCurrentBlockIndex();
-    
+
     /**
-     * Returns the file that is currently being written to
-     * @return
+     * @return the file that is currently being written to
      */
     File getFile();
 
     /**
      * Synchronizes the data with the underlying storage device
-     * @throws IOException
+     * @throws IOException if unable to synchronize the data with the underlying storage device
      */
     void sync() throws IOException;
 }

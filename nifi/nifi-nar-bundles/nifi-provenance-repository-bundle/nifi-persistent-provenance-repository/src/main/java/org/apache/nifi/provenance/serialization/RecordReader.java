@@ -24,75 +24,80 @@ import org.apache.nifi.provenance.toc.TocReader;
 
 public interface RecordReader extends Closeable {
 
-	/**
-	 * Returns the next record in the reader, or <code>null</code> if there is no more data available.
-	 * @return
-	 * @throws IOException
-	 */
+    /**
+     * Returns the next record in the reader, or <code>null</code> if there is no more data available.
+     * @return the next Provenance event in the stream
+     * @throws IOException if unable to read the next event from the stream
+     */
     StandardProvenanceEventRecord nextRecord() throws IOException;
 
     /**
      * Skips the specified number of bytes
-     * @param bytesToSkip
-     * @throws IOException
+     * @param bytesToSkip the number of bytes to skip ahead
+     * @throws IOException if unable to skip ahead the specified number of bytes (e.g., the stream does
+     *  not contain this many more bytes)
      */
     void skip(long bytesToSkip) throws IOException;
 
     /**
      * Skips to the specified byte offset in the underlying stream.
-     * @param position
+     * @param position the byte offset to skip to
      * @throws IOException if the underlying stream throws IOException, or if the reader has already
      * passed the specified byte offset
      */
     void skipTo(long position) throws IOException;
-    
+
     /**
      * Skips to the specified compression block
-     * 
-     * @param blockIndex
+     *
+     * @param blockIndex the byte index to skip to
      * @throws IOException if the underlying stream throws IOException, or if the reader has already
      * read passed the specified compression block index
      * @throws IllegalStateException if the RecordReader does not have a TableOfContents associated with it
      */
     void skipToBlock(int blockIndex) throws IOException;
-    
+
     /**
      * Returns the block index that the Reader is currently reading from.
      * Note that the block index is incremented at the beginning of the {@link #nextRecord()}
-     * method. This means that this method will return the block from which the previous record was read, 
+     * method. This means that this method will return the block from which the previous record was read,
      * if calling {@link #nextRecord()} continually, not the block from which the next record will be read.
-     * @return
+     *
+     * @return the current block index
+     * @throws IllegalStateException if the reader is reading a provenance event file that does not contain
+     * a Table of Contents
      */
     int getBlockIndex();
-    
+
     /**
      * Returns <code>true</code> if the compression block index is available. It will be available
      * if and only if the reader is created with a TableOfContents
-     * 
-     * @return
+     *
+     * @return true if the reader is reading from an event file that has a Table of Contents
      */
     boolean isBlockIndexAvailable();
-    
+
     /**
      * Returns the {@link TocReader} that is used to keep track of compression blocks, if one exists,
      * <code>null</code> otherwise
-     * @return
+     *
+     * @return the TocReader if the underlying event file has an Table of Contents, <code>null</code> otherwise.
      */
     TocReader getTocReader();
-    
+
     /**
-     * Returns the number of bytes that have been consumed from the stream (read or skipped).
-     * @return
+     * @return the number of bytes that have been consumed from the stream (read or skipped).
      */
     long getBytesConsumed();
-    
+
     /**
      * Returns the ID of the last event in this record reader, or -1 if the reader has no records or
      * has already read through all records. Note: This method will consume the stream until the end,
      * so no more records will be available on this reader after calling this method.
-     * 
-     * @return
-     * @throws IOException
+     *
+     * @return the ID of the last event in this record reader, or -1 if the reader has no records or
+     * has already read through all records
+     * @throws IOException if unable to get id of the last event
      */
     long getMaxEventId() throws IOException;
 }

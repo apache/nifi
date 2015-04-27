@@ -25,14 +25,14 @@ import org.apache.nifi.provenance.toc.TocUtil;
 import org.apache.nifi.provenance.toc.TocWriter;
 
 public class RecordWriters {
-	private static final int DEFAULT_COMPRESSION_BLOCK_SIZE = 1024 * 1024;	// 1 MB
+    private static final int DEFAULT_COMPRESSION_BLOCK_SIZE = 1024 * 1024; // 1 MB
 
     public static RecordWriter newRecordWriter(final File file, final boolean compressed, final boolean createToc) throws IOException {
-    	return newRecordWriter(file, compressed, createToc, DEFAULT_COMPRESSION_BLOCK_SIZE);
+        return newRecordWriter(file, compressed, createToc, DEFAULT_COMPRESSION_BLOCK_SIZE);
     }
-    
+
     public static RecordWriter newRecordWriter(final File file, final boolean compressed, final boolean createToc, final int compressionBlockBytes) throws IOException {
-    	final TocWriter tocWriter = createToc ? new StandardTocWriter(TocUtil.getTocFile(file), false, false) : null;
+        final TocWriter tocWriter = createToc ? new StandardTocWriter(TocUtil.getTocFile(file), false, false) : null;
         return new StandardRecordWriter(file, tocWriter, compressed, compressionBlockBytes);
     }
 

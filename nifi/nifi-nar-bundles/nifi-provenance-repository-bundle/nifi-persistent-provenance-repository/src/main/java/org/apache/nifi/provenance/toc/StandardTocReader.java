@@ -24,9 +24,9 @@ import java.io.IOException;
 
 /**
  * Standard implementation of TocReader.
- * 
+ *
  * Expects .toc file to be in the following format;
- * 
+ *
  * byte 0: version
  * byte 1: boolean: compressionFlag -> 0 = journal is NOT compressed, 1 = journal is compressed
  * byte 2-9: long: offset of block 0
@@ -37,21 +37,21 @@ import java.io.IOException;
 public class StandardTocReader implements TocReader {
     private final boolean compressed;
     private final long[] offsets;
-    
+
     public StandardTocReader(final File file) throws IOException {
         try (final FileInputStream fis = new FileInputStream(file);
-             final DataInputStream dis = new DataInputStream(fis)) {
-            
+                final DataInputStream dis = new DataInputStream(fis)) {
+
             final int version = dis.read();
             if ( version < 0 ) {
                 throw new EOFException();
             }
-            
+
             final int compressionFlag = dis.read();
             if ( compressionFlag < 0 ) {
                 throw new EOFException();
             }
-            
+
             if ( compressionFlag == 0 ) {
                 compressed = false;
             } else if ( compressionFlag == 1 ) {
@@ -59,21 +59,21 @@ public class StandardTocReader implements TocReader {
             } else {
                 throw new IOException("Table of Contents appears to be corrupt: could not read 'compression flag' from header; expected value of 0 or 1 but got " + compressionFlag);
             }
-            
+
             final int numBlocks = (int) ((file.length() - 2) / 8);
             offsets = new long[numBlocks];
-            
+
             for (int i=0; i < numBlocks; i++) {
                 offsets[i] = dis.readLong();
             }
         }
     }
-    
+
     @Override
     public boolean isCompressed() {
         return compressed;
     }
-    
+
     @Override
     public long getBlockOffset(final int blockIndex) {
         if ( blockIndex >= offsets.length ) {
@@ -89,20 +89,20 @@ public class StandardTocReader implements TocReader {
         }
         return offsets[offsets.length - 1];
     }
-    
+
     @Override
     public void close() throws IOException {
     }
 
-	@Override
-	public int getBlockIndex(final long blockOffset) {
-		for (int i=0; i < offsets.length; i++) {
-			if ( offsets[i] > blockOffset ) {
-				return i-1;
-			}
-		}
-		
-		return offsets.length - 1;
-	}
+    @Override
+    public int getBlockIndex(final long blockOffset) {
+        for (int i=0; i < offsets.length; i++) {
+            if ( offsets[i] > blockOffset ) {
+                return i-1;
+            }
+        }
+
+        return offsets.length - 1;
+    }
 
 }

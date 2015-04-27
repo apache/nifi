@@ -19,7 +19,6 @@ package org.apache.nifi.provenance.toc;
 import java.io.BufferedOutputStream;
 import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -29,7 +28,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Standard implementation of {@link TocWriter}.
- * 
+ *
  * Format of .toc file:
  * byte 0: version
  * byte 1: compressed: 0 -> not compressed, 1 -> compressed
@@ -39,27 +38,27 @@ import org.slf4j.LoggerFactory;
  * byte (N*8+2)-(N*8+9): long: offset of block N
  */
 public class StandardTocWriter implements TocWriter {
-	private static final Logger logger = LoggerFactory.getLogger(StandardTocWriter.class);
-	
+    private static final Logger logger = LoggerFactory.getLogger(StandardTocWriter.class);
+
     public static final byte VERSION = 1;
-    
+
     private final File file;
     private final FileOutputStream fos;
     private final boolean alwaysSync;
     private int index = -1;
-    
+
     /**
      * Creates a StandardTocWriter that writes to the given file.
      * @param file the file to write to
      * @param compressionFlag whether or not the journal is compressed
-     * @throws FileNotFoundException 
+     * @throws IOException if unable to write header info to the specified file
      */
     public StandardTocWriter(final File file, final boolean compressionFlag, final boolean alwaysSync) throws IOException {
         final File tocDir = file.getParentFile();
         if ( !tocDir.exists() ) {
-        	Files.createDirectories(tocDir.toPath());
+            Files.createDirectories(tocDir.toPath());
         }
-        
+
         this.file = file;
         fos = new FileOutputStream(file);
         this.alwaysSync = alwaysSync;
@@ -69,12 +68,12 @@ public class StandardTocWriter implements TocWriter {
         header[1] = (byte) (compressionFlag ? 1 : 0);
         fos.write(header);
         fos.flush();
-        
+
         if ( alwaysSync ) {
             sync();
         }
     }
-    
+
     @Override
     public void addBlockOffset(final long offset) throws IOException {
         final BufferedOutputStream bos = new BufferedOutputStream(fos);
@@ -83,17 +82,17 @@ public class StandardTocWriter implements TocWriter {
         dos.flush();
         index++;
         logger.debug("Adding block {} at offset {}", index, offset);
-        
+
         if ( alwaysSync ) {
             sync();
         }
     }
-    
+
     @Override
     public void sync() throws IOException {
-    	fos.getFD().sync();
+        fos.getFD().sync();
     }
-    
+
     @Override
     public int getCurrentBlockIndex() {
         return index;
@@ -104,15 +103,15 @@ public class StandardTocWriter implements TocWriter {
         if (alwaysSync) {
             fos.getFD().sync();
         }
-        
+
         fos.close();
     }
-    
+
     @Override
     public File getFile() {
         return file;
     }
-    
+
     @Override
     public String toString() {
         return "TOC Writer for " + file;

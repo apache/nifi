@@ -49,9 +49,9 @@ public class DeleteIndexAction implements ExpirationAction {
         long numDeleted = 0;
         long maxEventId = -1L;
         try (final RecordReader reader = RecordReaders.newRecordReader(expiredFile, repository.getAllLogFiles())) {
-        	maxEventId = reader.getMaxEventId();
+            maxEventId = reader.getMaxEventId();
         } catch (final IOException ioe) {
-        	logger.warn("Failed to obtain max ID present in journal file {}", expiredFile.getAbsolutePath());
+            logger.warn("Failed to obtain max ID present in journal file {}", expiredFile.getAbsolutePath());
         }
 
         // remove the records from the index
@@ -68,19 +68,19 @@ public class DeleteIndexAction implements ExpirationAction {
                 deleteDir = (docsLeft <= 0);
                 logger.debug("After expiring {}, there are {} docs left for index {}", expiredFile, docsLeft, indexingDirectory);
             } finally {
-            	indexManager.returnIndexWriter(indexingDirectory, writer);
+                indexManager.returnIndexWriter(indexingDirectory, writer);
             }
 
             // we've confirmed that all documents have been removed. Delete the index directory.
             if (deleteDir) {
-            	indexManager.removeIndex(indexingDirectory);
+                indexManager.removeIndex(indexingDirectory);
                 indexConfiguration.removeIndexDirectory(indexingDirectory);
-                
+
                 deleteDirectory(indexingDirectory);
                 logger.info("Removed empty index directory {}", indexingDirectory);
             }
         }
-        
+
         // Update the minimum index to 1 more than the max Event ID in this file.
         if (maxEventId > -1L) {
             indexConfiguration.setMinIdIndexed(maxEventId + 1L);
