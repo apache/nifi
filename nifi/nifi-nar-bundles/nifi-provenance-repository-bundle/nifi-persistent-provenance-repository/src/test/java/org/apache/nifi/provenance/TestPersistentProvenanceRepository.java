@@ -110,7 +110,24 @@ public class TestPersistentProvenanceRepository {
         // we create but also to ensure that we have closed all of the file handles. If we leave any
         // streams open, for instance, this will throw an IOException, causing our unit test to fail.
         for ( final File storageDir : config.getStorageDirectories() ) {
-        	FileUtils.deleteFile(storageDir, true);
+        	int i;
+        	for (i=0; i < 3; i++) {
+        		try {
+        			FileUtils.deleteFile(storageDir, true);
+        			break;
+	        	} catch (final IOException ioe) {
+	        		// if there is a virus scanner, etc. running in the background we may not be able to
+	        		// delete the file. Wait a sec and try again.
+	        		if ( i == 2 ) {
+	        			throw ioe;
+	        		} else {
+	        			try {
+	        				Thread.sleep(1000L);
+	        			} catch (final InterruptedException ie) {
+	        			}
+	        		}
+	        	}
+	        }
         }
     }
 
