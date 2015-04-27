@@ -56,54 +56,54 @@ public class FTPTransfer implements FileTransfer {
     public static final String PROXY_TYPE_HTTP = Proxy.Type.HTTP.name();
     public static final String PROXY_TYPE_SOCKS = Proxy.Type.SOCKS.name();
 
-    public static final PropertyDescriptor CONNECTION_MODE = new PropertyDescriptor.Builder()
-            .name("Connection Mode")
-            .description("The FTP Connection Mode")
-            .allowableValues(CONNECTION_MODE_ACTIVE, CONNECTION_MODE_PASSIVE)
-            .defaultValue(CONNECTION_MODE_PASSIVE)
-            .build();
-    public static final PropertyDescriptor TRANSFER_MODE = new PropertyDescriptor.Builder()
-            .name("Transfer Mode")
-            .description("The FTP Transfer Mode")
-            .allowableValues(TRANSFER_MODE_BINARY, TRANSFER_MODE_ASCII)
-            .defaultValue(TRANSFER_MODE_BINARY)
-            .build();
-    public static final PropertyDescriptor PORT = new PropertyDescriptor.Builder()
-            .name("Port")
-            .description("The port that the remote system is listening on for file transfers")
-            .addValidator(StandardValidators.PORT_VALIDATOR)
-            .required(true)
-            .defaultValue("21")
-            .build();
-    public static final PropertyDescriptor PROXY_TYPE = new PropertyDescriptor.Builder()
-            .name("Proxy Type")
-            .description("Proxy type used for file transfers")
-            .allowableValues(PROXY_TYPE_DIRECT, PROXY_TYPE_HTTP, PROXY_TYPE_SOCKS)
-            .defaultValue(PROXY_TYPE_DIRECT)
-            .build();
-    public static final PropertyDescriptor PROXY_HOST = new PropertyDescriptor.Builder()
-            .name("Proxy Host")
-            .description("The fully qualified hostname or IP address of the proxy server")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
-    public static final PropertyDescriptor PROXY_PORT = new PropertyDescriptor.Builder()
-            .name("Proxy Port")
-            .description("The port of the proxy server")
-            .addValidator(StandardValidators.PORT_VALIDATOR)
-            .build();
-    public static final PropertyDescriptor HTTP_PROXY_USERNAME = new PropertyDescriptor.Builder()
-            .name("Http Proxy Username")
-            .description("Http Proxy Username")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .required(false)
-            .build();
-    public static final PropertyDescriptor HTTP_PROXY_PASSWORD = new PropertyDescriptor.Builder()
-            .name("Http Proxy Password")
-            .description("Http Proxy Password")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .required(false)
-            .sensitive(true)
-            .build();
+    public static final PropertyDescriptor CONNECTION_MODE = new PropertyDescriptor.Builder().
+            name("Connection Mode").
+            description("The FTP Connection Mode").
+            allowableValues(CONNECTION_MODE_ACTIVE, CONNECTION_MODE_PASSIVE).
+            defaultValue(CONNECTION_MODE_PASSIVE).
+            build();
+    public static final PropertyDescriptor TRANSFER_MODE = new PropertyDescriptor.Builder().
+            name("Transfer Mode").
+            description("The FTP Transfer Mode").
+            allowableValues(TRANSFER_MODE_BINARY, TRANSFER_MODE_ASCII).
+            defaultValue(TRANSFER_MODE_BINARY).
+            build();
+    public static final PropertyDescriptor PORT = new PropertyDescriptor.Builder().
+            name("Port").
+            description("The port that the remote system is listening on for file transfers").
+            addValidator(StandardValidators.PORT_VALIDATOR).
+            required(true).
+            defaultValue("21").
+            build();
+    public static final PropertyDescriptor PROXY_TYPE = new PropertyDescriptor.Builder().
+            name("Proxy Type").
+            description("Proxy type used for file transfers").
+            allowableValues(PROXY_TYPE_DIRECT, PROXY_TYPE_HTTP, PROXY_TYPE_SOCKS).
+            defaultValue(PROXY_TYPE_DIRECT).
+            build();
+    public static final PropertyDescriptor PROXY_HOST = new PropertyDescriptor.Builder().
+            name("Proxy Host").
+            description("The fully qualified hostname or IP address of the proxy server").
+            addValidator(StandardValidators.NON_EMPTY_VALIDATOR).
+            build();
+    public static final PropertyDescriptor PROXY_PORT = new PropertyDescriptor.Builder().
+            name("Proxy Port").
+            description("The port of the proxy server").
+            addValidator(StandardValidators.PORT_VALIDATOR).
+            build();
+    public static final PropertyDescriptor HTTP_PROXY_USERNAME = new PropertyDescriptor.Builder().
+            name("Http Proxy Username").
+            description("Http Proxy Username").
+            addValidator(StandardValidators.NON_EMPTY_VALIDATOR).
+            required(false).
+            build();
+    public static final PropertyDescriptor HTTP_PROXY_PASSWORD = new PropertyDescriptor.Builder().
+            name("Http Proxy Password").
+            description("Http Proxy Password").
+            addValidator(StandardValidators.NON_EMPTY_VALIDATOR).
+            required(false).
+            sensitive(true).
+            build();
 
     private final ProcessorLog logger;
 
@@ -135,7 +135,8 @@ public class FTPTransfer implements FileTransfer {
                 client.disconnect();
             }
         } catch (final Exception ex) {
-            logger.warn("Failed to close FTPClient due to {}", new Object[]{ex.toString()}, ex);
+            logger.warn("Failed to close FTPClient due to {}", new Object[]{ex.
+                toString()}, ex);
         }
         client = null;
     }
@@ -148,9 +149,13 @@ public class FTPTransfer implements FileTransfer {
 
     @Override
     public List<FileInfo> getListing() throws IOException {
-        final String path = ctx.getProperty(FileTransfer.REMOTE_PATH).evaluateAttributeExpressions().getValue();
+        final String path = ctx.getProperty(FileTransfer.REMOTE_PATH).
+                evaluateAttributeExpressions().
+                getValue();
         final int depth = 0;
-        final int maxResults = ctx.getProperty(FileTransfer.REMOTE_POLL_BATCH_SIZE).asInteger();
+        final int maxResults = ctx.
+                getProperty(FileTransfer.REMOTE_POLL_BATCH_SIZE).
+                asInteger();
         return getListing(path, depth, maxResults);
     }
 
@@ -161,27 +166,43 @@ public class FTPTransfer implements FileTransfer {
         }
 
         if (depth >= 100) {
-            logger.warn(this + " had to stop recursively searching directories at a recursive depth of " + depth + " to avoid memory issues");
+            logger.
+                    warn(this + " had to stop recursively searching directories at a recursive depth of " + depth + " to avoid memory issues");
             return listing;
         }
 
-        final boolean ignoreDottedFiles = ctx.getProperty(FileTransfer.IGNORE_DOTTED_FILES).asBoolean();
-        final boolean recurse = ctx.getProperty(FileTransfer.RECURSIVE_SEARCH).asBoolean();
-        final String fileFilterRegex = ctx.getProperty(FileTransfer.FILE_FILTER_REGEX).getValue();
-        final Pattern pattern = (fileFilterRegex == null) ? null : Pattern.compile(fileFilterRegex);
-        final String pathFilterRegex = ctx.getProperty(FileTransfer.PATH_FILTER_REGEX).getValue();
-        final Pattern pathPattern = (!recurse || pathFilterRegex == null) ? null : Pattern.compile(pathFilterRegex);
-        final String remotePath = ctx.getProperty(FileTransfer.REMOTE_PATH).evaluateAttributeExpressions().getValue();
+        final boolean ignoreDottedFiles = ctx.
+                getProperty(FileTransfer.IGNORE_DOTTED_FILES).
+                asBoolean();
+        final boolean recurse = ctx.getProperty(FileTransfer.RECURSIVE_SEARCH).
+                asBoolean();
+        final String fileFilterRegex = ctx.
+                getProperty(FileTransfer.FILE_FILTER_REGEX).
+                getValue();
+        final Pattern pattern = (fileFilterRegex == null) ? null : Pattern.
+                compile(fileFilterRegex);
+        final String pathFilterRegex = ctx.
+                getProperty(FileTransfer.PATH_FILTER_REGEX).
+                getValue();
+        final Pattern pathPattern = (!recurse || pathFilterRegex == null) ? null : Pattern.
+                compile(pathFilterRegex);
+        final String remotePath = ctx.getProperty(FileTransfer.REMOTE_PATH).
+                evaluateAttributeExpressions().
+                getValue();
 
         // check if this directory path matches the PATH_FILTER_REGEX
         boolean pathFilterMatches = true;
         if (pathPattern != null) {
             Path reldir = path == null ? Paths.get(".") : Paths.get(path);
             if (remotePath != null) {
-                reldir = Paths.get(remotePath).relativize(reldir);
+                reldir = Paths.get(remotePath).
+                        relativize(reldir);
             }
-            if (reldir != null && !reldir.toString().isEmpty()) {
-                if (!pathPattern.matcher(reldir.toString().replace("\\", "/")).matches()) {
+            if (reldir != null && !reldir.toString().
+                    isEmpty()) {
+                if (!pathPattern.matcher(reldir.toString().
+                        replace("\\", "/")).
+                        matches()) {
                     pathFilterMatches = false;
                 }
             }
@@ -192,12 +213,14 @@ public class FTPTransfer implements FileTransfer {
         int count = 0;
         final FTPFile[] files;
 
-        if (path == null || path.trim().isEmpty()) {
+        if (path == null || path.trim().
+                isEmpty()) {
             files = client.listFiles(".");
         } else {
             files = client.listFiles(path);
         }
-        if (files.length == 0 && path != null && !path.trim().isEmpty()) {
+        if (files.length == 0 && path != null && !path.trim().
+                isEmpty()) {
             // throw exception if directory doesn't exist
             final boolean cdSuccessful = setWorkingDirectory(path);
             if (!cdSuccessful) {
@@ -216,20 +239,24 @@ public class FTPTransfer implements FileTransfer {
             }
 
             final File newFullPath = new File(path, filename);
-            final String newFullForwardPath = newFullPath.getPath().replace("\\", "/");
+            final String newFullForwardPath = newFullPath.getPath().
+                    replace("\\", "/");
 
             if (recurse && file.isDirectory()) {
                 try {
-                    listing.addAll(getListing(newFullForwardPath, depth + 1, maxResults - count));
+                    listing.
+                            addAll(getListing(newFullForwardPath, depth + 1, maxResults - count));
                 } catch (final IOException e) {
-                    logger.error("Unable to get listing from " + newFullForwardPath + "; skipping this subdirectory");
+                    logger.
+                            error("Unable to get listing from " + newFullForwardPath + "; skipping this subdirectory");
                 }
             }
 
             // if is not a directory and is not a link and it matches
             // FILE_FILTER_REGEX - then let's add it
             if (!file.isDirectory() && !file.isSymbolicLink() && pathFilterMatches) {
-                if (pattern == null || pattern.matcher(filename).matches()) {
+                if (pattern == null || pattern.matcher(filename).
+                        matches()) {
                     listing.add(newFileInfo(file, path));
                     count++;
                 }
@@ -248,27 +275,38 @@ public class FTPTransfer implements FileTransfer {
             return null;
         }
         final File newFullPath = new File(path, file.getName());
-        final String newFullForwardPath = newFullPath.getPath().replace("\\", "/");
+        final String newFullForwardPath = newFullPath.getPath().
+                replace("\\", "/");
         StringBuilder perms = new StringBuilder();
-        perms.append(file.hasPermission(FTPFile.USER_ACCESS, FTPFile.READ_PERMISSION) ? "r" : "-");
-        perms.append(file.hasPermission(FTPFile.USER_ACCESS, FTPFile.WRITE_PERMISSION) ? "w" : "-");
-        perms.append(file.hasPermission(FTPFile.USER_ACCESS, FTPFile.EXECUTE_PERMISSION) ? "x" : "-");
-        perms.append(file.hasPermission(FTPFile.GROUP_ACCESS, FTPFile.READ_PERMISSION) ? "r" : "-");
-        perms.append(file.hasPermission(FTPFile.GROUP_ACCESS, FTPFile.WRITE_PERMISSION) ? "w" : "-");
-        perms.append(file.hasPermission(FTPFile.GROUP_ACCESS, FTPFile.EXECUTE_PERMISSION) ? "x" : "-");
-        perms.append(file.hasPermission(FTPFile.WORLD_ACCESS, FTPFile.READ_PERMISSION) ? "r" : "-");
-        perms.append(file.hasPermission(FTPFile.WORLD_ACCESS, FTPFile.WRITE_PERMISSION) ? "w" : "-");
-        perms.append(file.hasPermission(FTPFile.WORLD_ACCESS, FTPFile.EXECUTE_PERMISSION) ? "x" : "-");
+        perms.append(file.
+                hasPermission(FTPFile.USER_ACCESS, FTPFile.READ_PERMISSION) ? "r" : "-");
+        perms.append(file.
+                hasPermission(FTPFile.USER_ACCESS, FTPFile.WRITE_PERMISSION) ? "w" : "-");
+        perms.append(file.
+                hasPermission(FTPFile.USER_ACCESS, FTPFile.EXECUTE_PERMISSION) ? "x" : "-");
+        perms.append(file.
+                hasPermission(FTPFile.GROUP_ACCESS, FTPFile.READ_PERMISSION) ? "r" : "-");
+        perms.append(file.
+                hasPermission(FTPFile.GROUP_ACCESS, FTPFile.WRITE_PERMISSION) ? "w" : "-");
+        perms.append(file.
+                hasPermission(FTPFile.GROUP_ACCESS, FTPFile.EXECUTE_PERMISSION) ? "x" : "-");
+        perms.append(file.
+                hasPermission(FTPFile.WORLD_ACCESS, FTPFile.READ_PERMISSION) ? "r" : "-");
+        perms.append(file.
+                hasPermission(FTPFile.WORLD_ACCESS, FTPFile.WRITE_PERMISSION) ? "w" : "-");
+        perms.append(file.
+                hasPermission(FTPFile.WORLD_ACCESS, FTPFile.EXECUTE_PERMISSION) ? "x" : "-");
 
         FileInfo.Builder builder = new FileInfo.Builder()
-                .filename(file.getName())
-                .fullPathFileName(newFullForwardPath)
-                .directory(file.isDirectory())
-                .size(file.getSize())
-                .lastModifiedTime(file.getTimestamp().getTimeInMillis())
-                .permissions(perms.toString())
-                .owner(file.getUser())
-                .group(file.getGroup());
+                .filename(file.getName()).
+                fullPathFileName(newFullForwardPath).
+                directory(file.isDirectory()).
+                size(file.getSize()).
+                lastModifiedTime(file.getTimestamp().
+                        getTimeInMillis()).
+                permissions(perms.toString()).
+                owner(file.getUser()).
+                group(file.getGroup());
         return builder.build();
     }
 
@@ -305,7 +343,8 @@ public class FTPTransfer implements FileTransfer {
         final FTPFile[] files = client.listFiles(path);
         FTPFile matchingFile = null;
         for (final FTPFile file : files) {
-            if (file.getName().equalsIgnoreCase(remoteFileName)) {
+            if (file.getName().
+                    equalsIgnoreCase(remoteFileName)) {
                 matchingFile = file;
                 break;
             }
@@ -320,16 +359,20 @@ public class FTPTransfer implements FileTransfer {
 
     @Override
     public void ensureDirectoryExists(final FlowFile flowFile, final File directoryName) throws IOException {
-        if (directoryName.getParent() != null && !directoryName.getParentFile().equals(new File(File.separator))) {
+        if (directoryName.getParent() != null && !directoryName.getParentFile().
+                equals(new File(File.separator))) {
             ensureDirectoryExists(flowFile, directoryName.getParentFile());
         }
 
-        final String remoteDirectory = directoryName.getAbsolutePath().replace("\\", "/").replaceAll("^.\\:", "");
+        final String remoteDirectory = directoryName.getAbsolutePath().
+                replace("\\", "/").
+                replaceAll("^.\\:", "");
         final FTPClient client = getClient(flowFile);
         final boolean cdSuccessful = setWorkingDirectory(remoteDirectory);
 
         if (!cdSuccessful) {
-            logger.debug("Remote Directory {} does not exist; creating it", new Object[]{remoteDirectory});
+            logger.
+                    debug("Remote Directory {} does not exist; creating it", new Object[]{remoteDirectory});
             if (client.makeDirectory(remoteDirectory)) {
                 logger.debug("Created {}", new Object[]{remoteDirectory});
             } else {
@@ -367,19 +410,26 @@ public class FTPTransfer implements FileTransfer {
             fullPath = workingDir.endsWith("/") ? workingDir + filename : workingDir + "/" + filename;
         }
 
-        String tempFilename = ctx.getProperty(TEMP_FILENAME).evaluateAttributeExpressions(flowFile).getValue();
+        String tempFilename = ctx.getProperty(TEMP_FILENAME).
+                evaluateAttributeExpressions(flowFile).
+                getValue();
         if (tempFilename == null) {
-            final boolean dotRename = ctx.getProperty(DOT_RENAME).asBoolean();
+            final boolean dotRename = ctx.getProperty(DOT_RENAME).
+                    asBoolean();
             tempFilename = dotRename ? "." + filename : filename;
         }
 
         final boolean storeSuccessful = client.storeFile(tempFilename, content);
         if (!storeSuccessful) {
-            throw new IOException("Failed to store file " + tempFilename + " to " + fullPath + " due to: " + client.getReplyString());
+            throw new IOException("Failed to store file " + tempFilename + " to " + fullPath + " due to: " + client.
+                    getReplyString());
         }
 
-        final String lastModifiedTime = ctx.getProperty(LAST_MODIFIED_TIME).evaluateAttributeExpressions(flowFile).getValue();
-        if (lastModifiedTime != null && !lastModifiedTime.trim().isEmpty()) {
+        final String lastModifiedTime = ctx.getProperty(LAST_MODIFIED_TIME).
+                evaluateAttributeExpressions(flowFile).
+                getValue();
+        if (lastModifiedTime != null && !lastModifiedTime.trim().
+                isEmpty()) {
             try {
                 final DateFormat informat = new SimpleDateFormat(FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
                 final Date fileModifyTime = informat.parse(lastModifiedTime);
@@ -387,32 +437,43 @@ public class FTPTransfer implements FileTransfer {
                 final String time = outformat.format(fileModifyTime);
                 if (!client.setModificationTime(tempFilename, time)) {
                     // FTP server probably doesn't support MFMT command
-                    logger.warn("Could not set lastModifiedTime on {} to {}", new Object[]{flowFile, lastModifiedTime});
+                    logger.
+                            warn("Could not set lastModifiedTime on {} to {}", new Object[]{flowFile, lastModifiedTime});
                 }
             } catch (final Exception e) {
-                logger.error("Failed to set lastModifiedTime on {} to {} due to {}", new Object[]{flowFile, lastModifiedTime, e});
+                logger.
+                        error("Failed to set lastModifiedTime on {} to {} due to {}", new Object[]{flowFile, lastModifiedTime, e});
             }
         }
-        final String permissions = ctx.getProperty(PERMISSIONS).evaluateAttributeExpressions(flowFile).getValue();
-        if (permissions != null && !permissions.trim().isEmpty()) {
+        final String permissions = ctx.getProperty(PERMISSIONS).
+                evaluateAttributeExpressions(flowFile).
+                getValue();
+        if (permissions != null && !permissions.trim().
+                isEmpty()) {
             try {
                 int perms = numberPermissions(permissions);
                 if (perms >= 0) {
-                    if (!client.sendSiteCommand("chmod " + Integer.toOctalString(perms) + " " + tempFilename)) {
-                        logger.warn("Could not set permission on {} to {}", new Object[]{flowFile, permissions});
+                    if (!client.sendSiteCommand("chmod " + Integer.
+                            toOctalString(perms) + " " + tempFilename)) {
+                        logger.
+                                warn("Could not set permission on {} to {}", new Object[]{flowFile, permissions});
                     }
                 }
             } catch (final Exception e) {
-                logger.error("Failed to set permission on {} to {} due to {}", new Object[]{flowFile, permissions, e});
+                logger.
+                        error("Failed to set permission on {} to {} due to {}", new Object[]{flowFile, permissions, e});
             }
         }
 
         if (!filename.equals(tempFilename)) {
             try {
-                logger.debug("Renaming remote path from {} to {} for {}", new Object[]{tempFilename, filename, flowFile});
-                final boolean renameSuccessful = client.rename(tempFilename, filename);
+                logger.
+                        debug("Renaming remote path from {} to {} for {}", new Object[]{tempFilename, filename, flowFile});
+                final boolean renameSuccessful = client.
+                        rename(tempFilename, filename);
                 if (!renameSuccessful) {
-                    throw new IOException("Failed to rename temporary file " + tempFilename + " to " + fullPath + " due to: " + client.getReplyString());
+                    throw new IOException("Failed to rename temporary file " + tempFilename + " to " + fullPath + " due to: " + client.
+                            getReplyString());
                 }
             } catch (final IOException e) {
                 try {
@@ -434,7 +495,8 @@ public class FTPTransfer implements FileTransfer {
             setWorkingDirectory(path);
         }
         if (!client.deleteFile(remoteFileName)) {
-            throw new IOException("Failed to remove file " + remoteFileName + " due to " + client.getReplyString());
+            throw new IOException("Failed to remove file " + remoteFileName + " due to " + client.
+                    getReplyString());
         }
     }
 
@@ -443,7 +505,8 @@ public class FTPTransfer implements FileTransfer {
         final FTPClient client = getClient(null);
         final boolean success = client.removeDirectory(remoteDirectoryName);
         if (!success) {
-            throw new IOException("Failed to remove directory " + remoteDirectoryName + " due to " + client.getReplyString());
+            throw new IOException("Failed to remove directory " + remoteDirectoryName + " due to " + client.
+                    getReplyString());
         }
     }
 
@@ -462,11 +525,14 @@ public class FTPTransfer implements FileTransfer {
             if (!cmd.isEmpty()) {
                 int result;
                 result = client.sendCommand(cmd);
-                logger.debug(this + " sent command to the FTP server: " + cmd + " for " + flowFile);
+                logger.
+                        debug(this + " sent command to the FTP server: " + cmd + " for " + flowFile);
 
-                if (FTPReply.isNegativePermanent(result) || FTPReply.isNegativeTransient(result)) {
+                if (FTPReply.isNegativePermanent(result) || FTPReply.
+                        isNegativeTransient(result)) {
                     throw new IOException(this + " negative reply back from FTP server cmd: "
-                            + cmd + " reply:" + result + ": " + client.getReplyString() + " for " + flowFile);
+                            + cmd + " reply:" + result + ": " + client.
+                            getReplyString() + " for " + flowFile);
                 }
             }
         }
@@ -474,7 +540,9 @@ public class FTPTransfer implements FileTransfer {
 
     private FTPClient getClient(final FlowFile flowFile) throws IOException {
         if (client != null) {
-            String desthost = ctx.getProperty(HOSTNAME).evaluateAttributeExpressions(flowFile).getValue();
+            String desthost = ctx.getProperty(HOSTNAME).
+                    evaluateAttributeExpressions(flowFile).
+                    getValue();
             if (remoteHostName.equals(desthost)) {
                 // destination matches so we can keep our current session
                 resetWorkingDirectory();
@@ -485,24 +553,38 @@ public class FTPTransfer implements FileTransfer {
             }
         }
 
-        final Proxy.Type proxyType = Proxy.Type.valueOf(ctx.getProperty(PROXY_TYPE).getValue());
-        final String proxyHost = ctx.getProperty(PROXY_HOST).getValue();
-        final Integer proxyPort = ctx.getProperty(PROXY_PORT).asInteger();
+        final Proxy.Type proxyType = Proxy.Type.valueOf(ctx.
+                getProperty(PROXY_TYPE).
+                getValue());
+        final String proxyHost = ctx.getProperty(PROXY_HOST).
+                getValue();
+        final Integer proxyPort = ctx.getProperty(PROXY_PORT).
+                asInteger();
         FTPClient client;
         if (proxyType == Proxy.Type.HTTP) {
-            client = new FTPHTTPClient(proxyHost, proxyPort, ctx.getProperty(HTTP_PROXY_USERNAME).getValue(), ctx.getProperty(HTTP_PROXY_PASSWORD).getValue());
+            client = new FTPHTTPClient(proxyHost, proxyPort, ctx.
+                    getProperty(HTTP_PROXY_USERNAME).
+                    getValue(), ctx.getProperty(HTTP_PROXY_PASSWORD).
+                    getValue());
         } else {
             client = new FTPClient();
             if (proxyType == Proxy.Type.SOCKS) {
-                client.setSocketFactory(new SocksProxySocketFactory(new Proxy(proxyType, new InetSocketAddress(proxyHost, proxyPort))));
+                client.
+                        setSocketFactory(new SocksProxySocketFactory(new Proxy(proxyType, new InetSocketAddress(proxyHost, proxyPort))));
             }
         }
         this.client = client;
-        client.setDataTimeout(ctx.getProperty(DATA_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
-        client.setDefaultTimeout(ctx.getProperty(CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
+        client.setDataTimeout(ctx.getProperty(DATA_TIMEOUT).
+                asTimePeriod(TimeUnit.MILLISECONDS).
+                intValue());
+        client.setDefaultTimeout(ctx.getProperty(CONNECTION_TIMEOUT).
+                asTimePeriod(TimeUnit.MILLISECONDS).
+                intValue());
         client.setRemoteVerificationEnabled(false);
 
-        final String remoteHostname = ctx.getProperty(HOSTNAME).evaluateAttributeExpressions(flowFile).getValue();
+        final String remoteHostname = ctx.getProperty(HOSTNAME).
+                evaluateAttributeExpressions(flowFile).
+                getValue();
         this.remoteHostName = remoteHostname;
         InetAddress inetAddress = null;
         try {
@@ -514,26 +596,35 @@ public class FTPTransfer implements FileTransfer {
             inetAddress = InetAddress.getByName(remoteHostname);
         }
 
-        client.connect(inetAddress, ctx.getProperty(PORT).asInteger());
+        client.connect(inetAddress, ctx.getProperty(PORT).
+                asInteger());
         this.closed = false;
-        client.setDataTimeout(ctx.getProperty(DATA_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
-        client.setSoTimeout(ctx.getProperty(CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
+        client.setDataTimeout(ctx.getProperty(DATA_TIMEOUT).
+                asTimePeriod(TimeUnit.MILLISECONDS).
+                intValue());
+        client.setSoTimeout(ctx.getProperty(CONNECTION_TIMEOUT).
+                asTimePeriod(TimeUnit.MILLISECONDS).
+                intValue());
 
-        final String username = ctx.getProperty(USERNAME).getValue();
-        final String password = ctx.getProperty(PASSWORD).getValue();
+        final String username = ctx.getProperty(USERNAME).
+                getValue();
+        final String password = ctx.getProperty(PASSWORD).
+                getValue();
         final boolean loggedIn = client.login(username, password);
         if (!loggedIn) {
             throw new IOException("Could not login for user '" + username + "'");
         }
 
-        final String connectionMode = ctx.getProperty(CONNECTION_MODE).getValue();
+        final String connectionMode = ctx.getProperty(CONNECTION_MODE).
+                getValue();
         if (connectionMode.equalsIgnoreCase(CONNECTION_MODE_ACTIVE)) {
             client.enterLocalActiveMode();
         } else {
             client.enterLocalPassiveMode();
         }
 
-        final String transferMode = ctx.getProperty(TRANSFER_MODE).getValue();
+        final String transferMode = ctx.getProperty(TRANSFER_MODE).
+                getValue();
         final int fileType = (transferMode.equalsIgnoreCase(TRANSFER_MODE_ASCII)) ? FTPClient.ASCII_FILE_TYPE : FTPClient.BINARY_FILE_TYPE;
         if (!client.setFileType(fileType)) {
             throw new IOException("Unable to set transfer mode to type " + transferMode);
@@ -547,7 +638,8 @@ public class FTPTransfer implements FileTransfer {
         int number = -1;
         final Pattern rwxPattern = Pattern.compile("^[rwx-]{9}$");
         final Pattern numPattern = Pattern.compile("\\d+");
-        if (rwxPattern.matcher(perms).matches()) {
+        if (rwxPattern.matcher(perms).
+                matches()) {
             number = 0;
             if (perms.charAt(0) == 'r') {
                 number |= 0x100;
@@ -576,7 +668,8 @@ public class FTPTransfer implements FileTransfer {
             if (perms.charAt(8) == 'x') {
                 number |= 0x1;
             }
-        } else if (numPattern.matcher(perms).matches()) {
+        } else if (numPattern.matcher(perms).
+                matches()) {
             try {
                 number = Integer.parseInt(perms, 8);
             } catch (NumberFormatException ignore) {

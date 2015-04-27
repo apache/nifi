@@ -44,20 +44,23 @@ import org.apache.nifi.processors.standard.util.FTPTransfer;
 @Tags({"remote", "copy", "egress", "put", "ftp", "archive", "files"})
 @CapabilityDescription("Sends FlowFiles to an FTP Server")
 @SeeAlso(GetFTP.class)
-@DynamicProperties({@DynamicProperty(name="pre.cmd._____", value="Not used", description="The command specified in the key will be executed before doing a put.  You may add these optional properties " +
-                        " to send any commands to the FTP server before the file is actually transferred (before the put command)." +
-                        " This option is only available for the PutFTP processor, as only FTP has this functionality. This is" +
-                        " essentially the same as sending quote commands to an FTP server from the command line.  While this is the same as sending a quote command, it is very important that" +
-                        " you leave off the ."),
-    @DynamicProperty(name="post.cmd._____", value="Not used", description="The command specified in the key will be executed after doing a put.  You may add these optional properties " +
-                        " to send any commands to the FTP server before the file is actually transferred (before the put command)." +
-                        " This option is only available for the PutFTP processor, as only FTP has this functionality. This is" +
-                        " essentially the same as sending quote commands to an FTP server from the command line.  While this is the same as sending a quote command, it is very important that" +
-                        " you leave off the .")})
+@DynamicProperties({
+    @DynamicProperty(name = "pre.cmd._____", value = "Not used", description = "The command specified in the key will be executed before doing a put.  You may add these optional properties "
+            + " to send any commands to the FTP server before the file is actually transferred (before the put command)."
+            + " This option is only available for the PutFTP processor, as only FTP has this functionality. This is"
+            + " essentially the same as sending quote commands to an FTP server from the command line.  While this is the same as sending a quote command, it is very important that"
+            + " you leave off the ."),
+    @DynamicProperty(name = "post.cmd._____", value = "Not used", description = "The command specified in the key will be executed after doing a put.  You may add these optional properties "
+            + " to send any commands to the FTP server before the file is actually transferred (before the put command)."
+            + " This option is only available for the PutFTP processor, as only FTP has this functionality. This is"
+            + " essentially the same as sending quote commands to an FTP server from the command line.  While this is the same as sending a quote command, it is very important that"
+            + " you leave off the .")})
 public class PutFTP extends PutFileTransfer<FTPTransfer> {
 
-    private static final Pattern PRE_SEND_CMD_PATTERN = Pattern.compile("^pre\\.cmd\\.(\\d+)$");
-    private static final Pattern POST_SEND_CMD_PATTERN = Pattern.compile("^post\\.cmd\\.(\\d+)$");
+    private static final Pattern PRE_SEND_CMD_PATTERN = Pattern.
+            compile("^pre\\.cmd\\.(\\d+)$");
+    private static final Pattern POST_SEND_CMD_PATTERN = Pattern.
+            compile("^post\\.cmd\\.(\\d+)$");
 
     private final AtomicReference<List<PropertyDescriptor>> preSendDescriptorRef = new AtomicReference<>();
     private final AtomicReference<List<PropertyDescriptor>> postSendDescriptorRef = new AtomicReference<>();
@@ -90,7 +93,7 @@ public class PutFTP extends PutFileTransfer<FTPTransfer> {
         properties.add(FTPTransfer.PROXY_PORT);
         properties.add(FTPTransfer.HTTP_PROXY_USERNAME);
         properties.add(FTPTransfer.HTTP_PROXY_PASSWORD);
-        
+
         this.properties = Collections.unmodifiableList(properties);
     }
 
@@ -101,12 +104,14 @@ public class PutFTP extends PutFileTransfer<FTPTransfer> {
 
     @Override
     protected void beforePut(final FlowFile flowFile, final ProcessContext context, final FTPTransfer transfer) throws IOException {
-        transfer.sendCommands(getCommands(preSendDescriptorRef.get(), context, flowFile), flowFile);
+        transfer.
+                sendCommands(getCommands(preSendDescriptorRef.get(), context, flowFile), flowFile);
     }
 
     @Override
     protected void afterPut(final FlowFile flowFile, final ProcessContext context, final FTPTransfer transfer) throws IOException {
-        transfer.sendCommands(getCommands(postSendDescriptorRef.get(), context, flowFile), flowFile);
+        transfer.
+                sendCommands(getCommands(postSendDescriptorRef.get(), context, flowFile), flowFile);
     }
 
     @Override
@@ -117,10 +122,10 @@ public class PutFTP extends PutFileTransfer<FTPTransfer> {
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
-                .name(propertyDescriptorName)
-                .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-                .dynamic(true)
-                .build();
+                .name(propertyDescriptorName).
+                addValidator(StandardValidators.NON_EMPTY_VALIDATOR).
+                dynamic(true).
+                build();
     }
 
     @OnScheduled
@@ -128,7 +133,8 @@ public class PutFTP extends PutFileTransfer<FTPTransfer> {
         final Map<Integer, PropertyDescriptor> preDescriptors = new TreeMap<>();
         final Map<Integer, PropertyDescriptor> postDescriptors = new TreeMap<>();
 
-        for (final PropertyDescriptor descriptor : context.getProperties().keySet()) {
+        for (final PropertyDescriptor descriptor : context.getProperties().
+                keySet()) {
             final String name = descriptor.getName();
             final Matcher preMatcher = PRE_SEND_CMD_PATTERN.matcher(name);
             if (preMatcher.matches()) {
@@ -143,8 +149,10 @@ public class PutFTP extends PutFileTransfer<FTPTransfer> {
             }
         }
 
-        final List<PropertyDescriptor> preDescriptorList = new ArrayList<>(preDescriptors.values());
-        final List<PropertyDescriptor> postDescriptorList = new ArrayList<>(postDescriptors.values());
+        final List<PropertyDescriptor> preDescriptorList = new ArrayList<>(preDescriptors.
+                values());
+        final List<PropertyDescriptor> postDescriptorList = new ArrayList<>(postDescriptors.
+                values());
         this.preSendDescriptorRef.set(preDescriptorList);
         this.postSendDescriptorRef.set(postDescriptorList);
     }
@@ -152,7 +160,9 @@ public class PutFTP extends PutFileTransfer<FTPTransfer> {
     private List<String> getCommands(final List<PropertyDescriptor> descriptors, final ProcessContext context, final FlowFile flowFile) {
         final List<String> cmds = new ArrayList<>();
         for (final PropertyDescriptor descriptor : descriptors) {
-            cmds.add(context.getProperty(descriptor).evaluateAttributeExpressions(flowFile).getValue());
+            cmds.add(context.getProperty(descriptor).
+                    evaluateAttributeExpressions(flowFile).
+                    getValue());
         }
 
         return cmds;

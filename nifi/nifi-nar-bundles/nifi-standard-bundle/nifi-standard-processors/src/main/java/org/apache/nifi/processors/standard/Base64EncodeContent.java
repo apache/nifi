@@ -63,9 +63,14 @@ public class Base64EncodeContent extends AbstractProcessor {
             .allowableValues(ENCODE_MODE, DECODE_MODE)
             .defaultValue(ENCODE_MODE)
             .build();
-
-    public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("Any FlowFile that is successfully encoded or decoded will be routed to success").build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure").description("Any FlowFile that cannot be encoded or decoded will be routed to failure").build();
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("Any FlowFile that is successfully encoded or decoded will be routed to success")
+            .build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("Any FlowFile that cannot be encoded or decoded will be routed to failure")
+            .build();
 
     private List<PropertyDescriptor> properties;
     private Set<Relationship> relationships;

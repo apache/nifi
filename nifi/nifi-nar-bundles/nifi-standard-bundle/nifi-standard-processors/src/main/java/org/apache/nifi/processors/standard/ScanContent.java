@@ -64,30 +64,41 @@ import org.apache.nifi.util.search.ahocorasick.SearchState;
 @SideEffectFree
 @SupportsBatching
 @Tags({"aho-corasick", "scan", "content", "byte sequence", "search", "find", "dictionary"})
-@CapabilityDescription("Scans the content of FlowFiles for terms that are found in a user-supplied dictionary. If a term is matched, the UTF-8 encoded version of the term will be added to the FlowFile using the 'matching.term' attribute")
-@WritesAttribute(attribute="matching.term", description="The term that caused the Processor to route the FlowFile to the 'matched' relationship; if FlowFile is routed to the 'unmatched' relationship, this attribute is not added")
+@CapabilityDescription("Scans the content of FlowFiles for terms that are found in a user-supplied dictionary. If a term is matched, the UTF-8 "
+        + "encoded version of the term will be added to the FlowFile using the 'matching.term' attribute")
+@WritesAttribute(attribute = "matching.term", description = "The term that caused the Processor to route the FlowFile to the 'matched' relationship; "
+        + "if FlowFile is routed to the 'unmatched' relationship, this attribute is not added")
 public class ScanContent extends AbstractProcessor {
 
     public static final String TEXT_ENCODING = "text";
     public static final String BINARY_ENCODING = "binary";
     public static final String MATCH_ATTRIBUTE_KEY = "matching.term";
 
-    public static final PropertyDescriptor DICTIONARY = new PropertyDescriptor.Builder()
-            .name("Dictionary File")
-            .description("The filename of the terms dictionary")
-            .required(true)
-            .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
-            .build();
-    public static final PropertyDescriptor DICTIONARY_ENCODING = new PropertyDescriptor.Builder()
-            .name("Dictionary Encoding")
-            .description("Indicates how the dictionary is encoded. If 'text', dictionary terms are new-line delimited and UTF-8 encoded; if 'binary', dictionary terms are denoted by a 4-byte integer indicating the term length followed by the term itself")
-            .required(true)
-            .allowableValues(TEXT_ENCODING, BINARY_ENCODING)
-            .defaultValue(TEXT_ENCODING)
-            .build();
+    public static final PropertyDescriptor DICTIONARY = new PropertyDescriptor.Builder().
+            name("Dictionary File").
+            description("The filename of the terms dictionary").
+            required(true).
+            addValidator(StandardValidators.FILE_EXISTS_VALIDATOR).
+            build();
+    public static final PropertyDescriptor DICTIONARY_ENCODING = new PropertyDescriptor.Builder().
+            name("Dictionary Encoding").
+            description("Indicates how the dictionary is encoded. If 'text', dictionary terms are new-line delimited and UTF-8 encoded; "
+                    + "if 'binary', dictionary terms are denoted by a 4-byte integer indicating the term length followed by the term itself").
+            required(true).
+            allowableValues(TEXT_ENCODING, BINARY_ENCODING).
+            defaultValue(TEXT_ENCODING).
+            build();
 
-    public static final Relationship REL_MATCH = new Relationship.Builder().name("matched").description("FlowFiles that match at least one term in the dictionary are routed to this relationship").build();
-    public static final Relationship REL_NO_MATCH = new Relationship.Builder().name("unmatched").description("FlowFiles that do not match any term in the dictionary are routed to this relationship").build();
+    public static final Relationship REL_MATCH = new Relationship.Builder().
+            name("matched").
+            description("FlowFiles that match at least one "
+                    + "term in the dictionary are routed to this relationship").
+            build();
+    public static final Relationship REL_NO_MATCH = new Relationship.Builder().
+            name("unmatched").
+            description("FlowFiles that do not match any "
+                    + "term in the dictionary are routed to this relationship").
+            build();
 
     public static final Charset UTF8 = Charset.forName("UTF-8");
 
@@ -124,7 +135,8 @@ public class ScanContent extends AbstractProcessor {
     @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
         if (descriptor.equals(DICTIONARY)) {
-            fileWatcherRef.set(new SynchronousFileWatcher(Paths.get(newValue), new LastModifiedMonitor(), 60000L));
+            fileWatcherRef.
+                    set(new SynchronousFileWatcher(Paths.get(newValue), new LastModifiedMonitor(), 60000L));
         }
     }
 
@@ -142,10 +154,14 @@ public class ScanContent extends AbstractProcessor {
                 final Search<byte[]> search = new AhoCorasick<>();
                 final Set<SearchTerm<byte[]>> terms = new HashSet<>();
 
-                final InputStream inStream = Files.newInputStream(Paths.get(context.getProperty(DICTIONARY).getValue()), StandardOpenOption.READ);
+                final InputStream inStream = Files.newInputStream(Paths.
+                        get(context.getProperty(DICTIONARY).
+                                getValue()), StandardOpenOption.READ);
 
                 final TermLoader termLoader;
-                if (context.getProperty(DICTIONARY_ENCODING).getValue().equalsIgnoreCase(TEXT_ENCODING)) {
+                if (context.getProperty(DICTIONARY_ENCODING).
+                        getValue().
+                        equalsIgnoreCase(TEXT_ENCODING)) {
                     termLoader = new TextualTermLoader(inStream);
                 } else {
                     termLoader = new BinaryTermLoader(inStream);
@@ -159,7 +175,10 @@ public class ScanContent extends AbstractProcessor {
 
                     search.initializeDictionary(terms);
                     searchRef.set(search);
-                    logger.info("Loaded search dictionary from {}", new Object[]{context.getProperty(DICTIONARY).getValue()});
+                    logger.
+                            info("Loaded search dictionary from {}", new Object[]{context.
+                                getProperty(DICTIONARY).
+                                getValue()});
                     return true;
                 } finally {
                     termLoader.close();
@@ -212,9 +231,13 @@ public class ScanContent extends AbstractProcessor {
             @Override
             public void process(final InputStream rawIn) throws IOException {
                 try (final InputStream in = new BufferedInputStream(rawIn)) {
-                    final SearchState<byte[]> searchResult = finalSearch.search(in, false);
+                    final SearchState<byte[]> searchResult = finalSearch.
+                            search(in, false);
                     if (searchResult.foundMatch()) {
-                        termRef.set(searchResult.getResults().keySet().iterator().next());
+                        termRef.set(searchResult.getResults().
+                                keySet().
+                                iterator().
+                                next());
                     }
                 }
             }
@@ -223,13 +246,17 @@ public class ScanContent extends AbstractProcessor {
         final SearchTerm<byte[]> matchingTerm = termRef.get();
         if (matchingTerm == null) {
             logger.info("Routing {} to 'unmatched'", new Object[]{flowFile});
-            session.getProvenanceReporter().route(flowFile, REL_NO_MATCH);
+            session.getProvenanceReporter().
+                    route(flowFile, REL_NO_MATCH);
             session.transfer(flowFile, REL_NO_MATCH);
         } else {
             final String matchingTermString = matchingTerm.toString(UTF8);
-            logger.info("Routing {} to 'matched' because it matched term {}", new Object[]{flowFile, matchingTermString});
-            flowFile = session.putAttribute(flowFile, MATCH_ATTRIBUTE_KEY, matchingTermString);
-            session.getProvenanceReporter().route(flowFile, REL_MATCH);
+            logger.
+                    info("Routing {} to 'matched' because it matched term {}", new Object[]{flowFile, matchingTermString});
+            flowFile = session.
+                    putAttribute(flowFile, MATCH_ATTRIBUTE_KEY, matchingTermString);
+            session.getProvenanceReporter().
+                    route(flowFile, REL_MATCH);
             session.transfer(flowFile, REL_MATCH);
         }
     }

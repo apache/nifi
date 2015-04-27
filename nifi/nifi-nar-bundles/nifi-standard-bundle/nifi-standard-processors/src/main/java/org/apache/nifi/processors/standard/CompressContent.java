@@ -67,9 +67,12 @@ import org.tukaani.xz.XZOutputStream;
 @SideEffectFree
 @SupportsBatching
 @Tags({"content", "compress", "decompress", "gzip", "bzip2", "lzma", "xz-lzma2"})
-@CapabilityDescription("Compresses or decompresses the contents of FlowFiles using a user-specified compression algorithm and updates the mime.type attribute as appropriate")
-@ReadsAttribute(attribute="mime.type", description="If the Compression Format is set to use mime.type attribute, this attribute is used to determine the compression type. Otherwise, this attribute is ignored.")
-@WritesAttribute(attribute="mime.type", description="If the Mode property is set to compress, the appropriate MIME Type is set. If the Mode property is set to decompress and the file is successfully decompressed, this attribute is removed, as the MIME Type is no longer known.")
+@CapabilityDescription("Compresses or decompresses the contents of FlowFiles using a user-specified compression algorithm and updates the mime.type "
+        + "attribute as appropriate")
+@ReadsAttribute(attribute = "mime.type", description = "If the Compression Format is set to use mime.type attribute, this attribute is used to "
+        + "determine the compression type. Otherwise, this attribute is ignored.")
+@WritesAttribute(attribute = "mime.type", description = "If the Mode property is set to compress, the appropriate MIME Type is set. If the Mode "
+        + "property is set to decompress and the file is successfully decompressed, this attribute is removed, as the MIME Type is no longer known.")
 public class CompressContent extends AbstractProcessor {
 
     public static final String COMPRESSION_FORMAT_ATTRIBUTE = "use mime.type attribute";
@@ -90,7 +93,8 @@ public class CompressContent extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor COMPRESSION_LEVEL = new PropertyDescriptor.Builder()
             .name("Compression Level")
-            .description("The compression level to use; this is valid only when using GZIP compression. A lower value results in faster processing but less compression; a value of 0 indicates no compression but simply archiving")
+            .description("The compression level to use; this is valid only when using GZIP compression. A lower value results in faster processing "
+                    + "but less compression; a value of 0 indicates no compression but simply archiving")
             .defaultValue("1")
             .required(true)
             .allowableValues("0", "1", "2", "3", "4", "5", "6", "7", "8", "9")
@@ -104,14 +108,21 @@ public class CompressContent extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor UPDATE_FILENAME = new PropertyDescriptor.Builder()
             .name("Update Filename")
-            .description("If true, will remove the filename extension when decompressing data (only if the extension indicates the appropriate compression format) and add the appropriate extension when compressing data")
+            .description("If true, will remove the filename extension when decompressing data (only if the extension indicates the appropriate "
+                    + "compression format) and add the appropriate extension when compressing data")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
             .build();
 
-    public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("FlowFiles will be transferred to the success relationship after successfully being compressed or decompressed").build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure").description("FlowFiles will be transferred to the failure relationship if they fail to compress/decompress").build();
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("FlowFiles will be transferred to the success relationship after successfully being compressed or decompressed")
+            .build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("FlowFiles will be transferred to the failure relationship if they fail to compress/decompress")
+            .build();
 
     private List<PropertyDescriptor> properties;
     private Set<Relationship> relationships;
@@ -135,7 +146,8 @@ public class CompressContent extends AbstractProcessor {
         mimeTypeMap.put("application/gzip", COMPRESSION_FORMAT_GZIP);
         mimeTypeMap.put("application/bzip2", COMPRESSION_FORMAT_BZIP2);
         mimeTypeMap.put("application/x-lzma", COMPRESSION_FORMAT_LZMA);
-        this.compressionFormatMimeTypeMap = Collections.unmodifiableMap(mimeTypeMap);
+        this.compressionFormatMimeTypeMap = Collections.
+                unmodifiableMap(mimeTypeMap);
     }
 
     @Override
@@ -274,7 +286,8 @@ public class CompressContent extends AbstractProcessor {
 
             final long sizeAfterCompression = flowFile.getSize();
             if (MODE_DECOMPRESS.equalsIgnoreCase(compressionMode)) {
-                flowFile = session.removeAttribute(flowFile, CoreAttributes.MIME_TYPE.key());
+                flowFile = session.
+                        removeAttribute(flowFile, CoreAttributes.MIME_TYPE.key());
 
                 if (context.getProperty(UPDATE_FILENAME).asBoolean()) {
                     final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
@@ -283,7 +296,8 @@ public class CompressContent extends AbstractProcessor {
                     }
                 }
             } else {
-                flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), mimeTypeRef.get());
+                flowFile = session.
+                        putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), mimeTypeRef.get());
 
                 if (context.getProperty(UPDATE_FILENAME).asBoolean()) {
                     final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
@@ -291,8 +305,8 @@ public class CompressContent extends AbstractProcessor {
                 }
             }
 
-            logger.info("Successfully {}ed {} using {} compression format; size changed from {} to {} bytes", new Object[]{
-                compressionMode.toLowerCase(), flowFile, compressionFormat, sizeBeforeCompression, sizeAfterCompression});
+            logger.info("Successfully {}ed {} using {} compression format; size changed from {} to {} bytes",
+                    new Object[]{compressionMode.toLowerCase(), flowFile, compressionFormat, sizeBeforeCompression, sizeAfterCompression});
             session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getDuration(TimeUnit.MILLISECONDS));
             session.transfer(flowFile, REL_SUCCESS);
         } catch (final ProcessException e) {

@@ -103,13 +103,20 @@ public class ListenHTTPServlet extends HttpServlet {
     @Override
     public void init(final ServletConfig config) throws ServletException {
         final ServletContext context = config.getServletContext();
-        this.logger = (ProcessorLog) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_LOGGER);
-        this.sessionFactoryHolder = (AtomicReference<ProcessSessionFactory>) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_SESSION_FACTORY_HOLDER);
-        this.processContext = (ProcessContext) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_PROCESS_CONTEXT_HOLDER);
-        this.authorizedPattern = (Pattern) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_AUTHORITY_PATTERN);
-        this.headerPattern = (Pattern) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_HEADER_PATTERN);
-        this.flowFileMap = (ConcurrentMap<String, FlowFileEntryTimeWrapper>) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_FLOWFILE_MAP);
-        this.streamThrottler = (StreamThrottler) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_STREAM_THROTTLER);
+        this.logger = (ProcessorLog) context.
+                getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_LOGGER);
+        this.sessionFactoryHolder = (AtomicReference<ProcessSessionFactory>) context.
+                getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_SESSION_FACTORY_HOLDER);
+        this.processContext = (ProcessContext) context.
+                getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_PROCESS_CONTEXT_HOLDER);
+        this.authorizedPattern = (Pattern) context.
+                getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_AUTHORITY_PATTERN);
+        this.headerPattern = (Pattern) context.
+                getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_HEADER_PATTERN);
+        this.flowFileMap = (ConcurrentMap<String, FlowFileEntryTimeWrapper>) context.
+                getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_FLOWFILE_MAP);
+        this.streamThrottler = (StreamThrottler) context.
+                getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_STREAM_THROTTLER);
     }
 
     @Override
@@ -122,7 +129,7 @@ public class ListenHTTPServlet extends HttpServlet {
     @Override
     protected void doPost(final HttpServletRequest request, final HttpServletResponse response) throws ServletException, IOException {
         final ProcessContext context = processContext;
-        
+
         ProcessSessionFactory sessionFactory;
         do {
             sessionFactory = sessionFactoryHolder.get();
@@ -141,12 +148,15 @@ public class ListenHTTPServlet extends HttpServlet {
         try {
             final long n = filesReceived.getAndIncrement() % FILES_BEFORE_CHECKING_DESTINATION_SPACE;
             if (n == 0 || !spaceAvailable.get()) {
-                if (context.getAvailableRelationships().isEmpty()) {
+                if (context.getAvailableRelationships().
+                        isEmpty()) {
                     spaceAvailable.set(false);
                     if (logger.isDebugEnabled()) {
-                        logger.debug("Received request from " + request.getRemoteHost() + " but no space available; Indicating Service Unavailable");
+                        logger.debug("Received request from " + request.
+                                getRemoteHost() + " but no space available; Indicating Service Unavailable");
                     }
-                    response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+                    response.
+                            sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
                     return;
                 } else {
                     spaceAvailable.set(true);
@@ -154,24 +164,32 @@ public class ListenHTTPServlet extends HttpServlet {
             }
             response.setHeader("Content-Type", MediaType.TEXT_PLAIN);
 
-            final boolean contentGzipped = Boolean.parseBoolean(request.getHeader(GZIPPED_HEADER));
+            final boolean contentGzipped = Boolean.parseBoolean(request.
+                    getHeader(GZIPPED_HEADER));
 
-            final X509Certificate[] certs = (X509Certificate[]) request.getAttribute("javax.servlet.request.X509Certificate");
+            final X509Certificate[] certs = (X509Certificate[]) request.
+                    getAttribute("javax.servlet.request.X509Certificate");
             foundSubject = DEFAULT_FOUND_SUBJECT;
             if (certs != null && certs.length > 0) {
                 for (final X509Certificate cert : certs) {
-                    foundSubject = cert.getSubjectDN().getName();
-                    if (authorizedPattern.matcher(foundSubject).matches()) {
+                    foundSubject = cert.getSubjectDN().
+                            getName();
+                    if (authorizedPattern.matcher(foundSubject).
+                            matches()) {
                         break;
                     } else {
-                        logger.warn("Rejecting transfer attempt from " + foundSubject + " because the DN is not authorized, host=" + request.getRemoteHost());
-                        response.sendError(HttpServletResponse.SC_FORBIDDEN, "not allowed based on dn");
+                        logger.
+                                warn("Rejecting transfer attempt from " + foundSubject + " because the DN is not authorized, host=" + request.
+                                        getRemoteHost());
+                        response.
+                                sendError(HttpServletResponse.SC_FORBIDDEN, "not allowed based on dn");
                         return;
                     }
                 }
             }
 
-            final String destinationVersion = request.getHeader(PROTOCOL_VERSION_HEADER);
+            final String destinationVersion = request.
+                    getHeader(PROTOCOL_VERSION_HEADER);
             Integer protocolVersion = null;
             if (destinationVersion != null) {
                 try {
@@ -182,15 +200,19 @@ public class ListenHTTPServlet extends HttpServlet {
             }
 
             final boolean destinationIsLegacyNiFi = (protocolVersion == null);
-            final boolean createHold = Boolean.parseBoolean(request.getHeader(FLOWFILE_CONFIRMATION_HEADER));
+            final boolean createHold = Boolean.parseBoolean(request.
+                    getHeader(FLOWFILE_CONFIRMATION_HEADER));
             final String contentType = request.getContentType();
 
-            final InputStream unthrottled = contentGzipped ? new GZIPInputStream(request.getInputStream()) : request.getInputStream();
+            final InputStream unthrottled = contentGzipped ? new GZIPInputStream(request.
+                    getInputStream()) : request.getInputStream();
 
-            final InputStream in = (streamThrottler == null) ? unthrottled : streamThrottler.newThrottledInputStream(unthrottled);
+            final InputStream in = (streamThrottler == null) ? unthrottled : streamThrottler.
+                    newThrottledInputStream(unthrottled);
 
             if (logger.isDebugEnabled()) {
-                logger.debug("Received request from " + request.getRemoteHost() + ", createHold=" + createHold + ", content-type=" + contentType + ", gzip=" + contentGzipped);
+                logger.
+                        debug("Received request from " + request.getRemoteHost() + ", createHold=" + createHold + ", content-type=" + contentType + ", gzip=" + contentGzipped);
             }
 
             final AtomicBoolean hasMoreData = new AtomicBoolean(false);
@@ -219,16 +241,21 @@ public class ListenHTTPServlet extends HttpServlet {
                                 IOUtils.copy(in, bos);
                                 hasMoreData.set(false);
                             } else {
-                                attributes.putAll(unpackager.unpackageFlowFile(in, bos));
+                                attributes.putAll(unpackager.
+                                        unpackageFlowFile(in, bos));
 
                                 if (destinationIsLegacyNiFi) {
                                     if (attributes.containsKey("nf.file.name")) {
                                         // for backward compatibility with old nifi...
-                                        attributes.put(CoreAttributes.FILENAME.key(), attributes.remove("nf.file.name"));
+                                        attributes.put(CoreAttributes.FILENAME.
+                                                key(), attributes.
+                                                remove("nf.file.name"));
                                     }
 
                                     if (attributes.containsKey("nf.file.path")) {
-                                        attributes.put(CoreAttributes.PATH.key(), attributes.remove("nf.file.path"));
+                                        attributes.
+                                                put(CoreAttributes.PATH.key(), attributes.
+                                                        remove("nf.file.path"));
                                     }
                                 }
 
@@ -242,36 +269,45 @@ public class ListenHTTPServlet extends HttpServlet {
                 });
 
                 final long transferNanos = System.nanoTime() - startNanos;
-                final long transferMillis = TimeUnit.MILLISECONDS.convert(transferNanos, TimeUnit.NANOSECONDS);
+                final long transferMillis = TimeUnit.MILLISECONDS.
+                        convert(transferNanos, TimeUnit.NANOSECONDS);
 
                 // put metadata on flowfile
-                final String nameVal = request.getHeader(CoreAttributes.FILENAME.key());
+                final String nameVal = request.
+                        getHeader(CoreAttributes.FILENAME.key());
                 if (StringUtils.isNotBlank(nameVal)) {
                     attributes.put(CoreAttributes.FILENAME.key(), nameVal);
                 }
-                
+
                 // put arbitrary headers on flow file
-                for(Enumeration<String> headerEnum = request.getHeaderNames(); 
-                		headerEnum.hasMoreElements(); ) {
-                	String headerName = headerEnum.nextElement();
-                	if (headerPattern != null && headerPattern.matcher(headerName).matches()) {
-	                	String headerValue = request.getHeader(headerName);
-	                	attributes.put(headerName, headerValue);
-	                }
+                for (Enumeration<String> headerEnum = request.getHeaderNames();
+                        headerEnum.hasMoreElements();) {
+                    String headerName = headerEnum.nextElement();
+                    if (headerPattern != null && headerPattern.
+                            matcher(headerName).
+                            matches()) {
+                        String headerValue = request.getHeader(headerName);
+                        attributes.put(headerName, headerValue);
+                    }
                 }
 
-                String sourceSystemFlowFileIdentifier = attributes.get(CoreAttributes.UUID.key());
+                String sourceSystemFlowFileIdentifier = attributes.
+                        get(CoreAttributes.UUID.key());
                 if (sourceSystemFlowFileIdentifier != null) {
                     sourceSystemFlowFileIdentifier = "urn:nifi:" + sourceSystemFlowFileIdentifier;
 
                     // If we receveied a UUID, we want to give the FlowFile a new UUID and register the sending system's
                     // identifier as the SourceSystemFlowFileIdentifier field in the Provenance RECEIVE event
-                    attributes.put(CoreAttributes.UUID.key(), UUID.randomUUID().toString());
+                    attributes.put(CoreAttributes.UUID.key(), UUID.randomUUID().
+                            toString());
                 }
 
                 flowFile = session.putAllAttributes(flowFile, attributes);
-                session.getProvenanceReporter().receive(flowFile, request.getRequestURL().toString(), sourceSystemFlowFileIdentifier, "Remote DN=" + foundSubject, transferMillis);
-                flowFile = session.putAttribute(flowFile, "restlistener.remote.user.dn", foundSubject);
+                session.getProvenanceReporter().
+                        receive(flowFile, request.getRequestURL().
+                                toString(), sourceSystemFlowFileIdentifier, "Remote DN=" + foundSubject, transferMillis);
+                flowFile = session.
+                        putAttribute(flowFile, "restlistener.remote.user.dn", foundSubject);
                 flowFileSet.add(flowFile);
 
                 if (holdUuid == null) {
@@ -280,34 +316,45 @@ public class ListenHTTPServlet extends HttpServlet {
             } while (hasMoreData.get());
 
             if (createHold) {
-                String uuid = (holdUuid == null) ? UUID.randomUUID().toString() : holdUuid;
+                String uuid = (holdUuid == null) ? UUID.randomUUID().
+                        toString() : holdUuid;
 
                 if (flowFileMap.containsKey(uuid)) {
-                    uuid = UUID.randomUUID().toString();
+                    uuid = UUID.randomUUID().
+                            toString();
                 }
 
-                final FlowFileEntryTimeWrapper wrapper = new FlowFileEntryTimeWrapper(session, flowFileSet, System.currentTimeMillis());
+                final FlowFileEntryTimeWrapper wrapper = new FlowFileEntryTimeWrapper(session, flowFileSet, System.
+                        currentTimeMillis());
                 FlowFileEntryTimeWrapper previousWrapper;
                 do {
                     previousWrapper = flowFileMap.putIfAbsent(uuid, wrapper);
                     if (previousWrapper != null) {
-                        uuid = UUID.randomUUID().toString();
+                        uuid = UUID.randomUUID().
+                                toString();
                     }
                 } while (previousWrapper != null);
 
                 response.setStatus(HttpServletResponse.SC_SEE_OTHER);
                 final String ackUri = ListenHTTP.URI + "/holds/" + uuid;
                 response.addHeader(LOCATION_HEADER_NAME, ackUri);
-                response.addHeader(LOCATION_URI_INTENT_NAME, LOCATION_URI_INTENT_VALUE);
-                response.getOutputStream().write(ackUri.getBytes("UTF-8"));
+                response.
+                        addHeader(LOCATION_URI_INTENT_NAME, LOCATION_URI_INTENT_VALUE);
+                response.getOutputStream().
+                        write(ackUri.getBytes("UTF-8"));
                 if (logger.isDebugEnabled()) {
-                    logger.debug("Ingested {} from Remote Host: [{}] Port [{}] SubjectDN [{}]; placed hold on these {} files with ID {}",
-                            new Object[]{flowFileSet, request.getRemoteHost(), request.getRemotePort(), foundSubject, flowFileSet.size(), uuid});
+                    logger.
+                            debug("Ingested {} from Remote Host: [{}] Port [{}] SubjectDN [{}]; placed hold on these {} files with ID {}",
+                                    new Object[]{flowFileSet, request.
+                                        getRemoteHost(), request.getRemotePort(), foundSubject, flowFileSet.
+                                        size(), uuid});
                 }
             } else {
                 response.setStatus(HttpServletResponse.SC_OK);
-                logger.info("Received from Remote Host: [{}] Port [{}] SubjectDN [{}]; transferring to 'success' {}",
-                        new Object[]{request.getRemoteHost(), request.getRemotePort(), foundSubject, flowFile});
+                logger.
+                        info("Received from Remote Host: [{}] Port [{}] SubjectDN [{}]; transferring to 'success' {}",
+                                new Object[]{request.getRemoteHost(), request.
+                                    getRemotePort(), foundSubject, flowFile});
 
                 session.transfer(flowFileSet, ListenHTTP.RELATIONSHIP_SUCCESS);
                 session.commit();
@@ -315,11 +362,16 @@ public class ListenHTTPServlet extends HttpServlet {
         } catch (final Throwable t) {
             session.rollback();
             if (flowFile == null) {
-                logger.error("Unable to receive file from Remote Host: [{}] SubjectDN [{}] due to {}", new Object[]{request.getRemoteHost(), foundSubject, t});
+                logger.
+                        error("Unable to receive file from Remote Host: [{}] SubjectDN [{}] due to {}", new Object[]{request.
+                            getRemoteHost(), foundSubject, t});
             } else {
-                logger.error("Unable to receive file {} from Remote Host: [{}] SubjectDN [{}] due to {}", new Object[]{flowFile, request.getRemoteHost(), foundSubject, t});
+                logger.
+                        error("Unable to receive file {} from Remote Host: [{}] SubjectDN [{}] due to {}", new Object[]{flowFile, request.
+                            getRemoteHost(), foundSubject, t});
             }
-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, t.toString());
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, t.
+                    toString());
         }
     }
 }

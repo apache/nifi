@@ -121,7 +121,7 @@ import com.sun.jersey.api.client.ClientResponse.Status;
 @SupportsBatching
 @Tags({"http", "https", "remote", "copy", "archive"})
 @CapabilityDescription("Performs an HTTP Post with the content of the FlowFile")
-@ReadsAttribute(attribute="mime.type", description="If not sending data as a FlowFile, the mime.type attribute will be used to set the HTTP Header for Content-Type")
+@ReadsAttribute(attribute = "mime.type", description = "If not sending data as a FlowFile, the mime.type attribute will be used to set the HTTP Header for Content-Type")
 public class PostHTTP extends AbstractProcessor {
 
     public static final String CONTENT_TYPE = "Content-Type";
@@ -143,7 +143,8 @@ public class PostHTTP extends AbstractProcessor {
 
     public static final PropertyDescriptor URL = new PropertyDescriptor.Builder()
             .name("URL")
-            .description("The URL to POST to. The first part of the URL must be static. However, the path of the URL may be defined using the Attribute Expression Language. For example, https://${hostname} is not valid, but https://1.1.1.1:8080/files/${nf.file.name} is valid.")
+            .description("The URL to POST to. The first part of the URL must be static. However, the path of the URL may be defined using the Attribute Expression Language. "
+                    + "For example, https://${hostname} is not valid, but https://1.1.1.1:8080/files/${nf.file.name} is valid.")
             .required(true)
             .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("https?\\://.*")))
             .addValidator(StandardValidators.URL_VALIDATOR)
@@ -210,7 +211,9 @@ public class PostHTTP extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor MAX_BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("Max Batch Size")
-            .description("If the Send as FlowFile property is true, specifies the max data size for a batch of FlowFiles to send in a single HTTP POST. If not specified, each FlowFile will be sent separately. If the Send as FlowFile property is false, this property is ignored")
+            .description("If the Send as FlowFile property is true, specifies the max data size for a batch of FlowFiles to send in a single "
+                    + "HTTP POST. If not specified, each FlowFile will be sent separately. If the Send as FlowFile property is false, this "
+                    + "property is ignored")
             .required(false)
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .defaultValue("100 MB")
@@ -230,8 +233,14 @@ public class PostHTTP extends AbstractProcessor {
             .identifiesControllerService(SSLContextService.class)
             .build();
 
-    public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("Files that are successfully send will be transferred to success").build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure").description("Files that fail to send will transferred to failure").build();
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("Files that are successfully send will be transferred to success")
+            .build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("Files that fail to send will transferred to failure")
+            .build();
 
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> properties;
@@ -281,9 +290,7 @@ public class PostHTTP extends AbstractProcessor {
         if (context.getProperty(URL).getValue().startsWith("https") && context.getProperty(SSL_CONTEXT_SERVICE).getValue() == null) {
             results.add(new ValidationResult.Builder()
                     .explanation("URL is set to HTTPS protocol but no SSLContext has been specified")
-                    .valid(false)
-                    .subject("SSL Context")
-                    .build());
+                    .valid(false).subject("SSL Context").build());
         }
 
         return results;
@@ -325,7 +332,7 @@ public class PostHTTP extends AbstractProcessor {
 
         final PoolingHttpClientConnectionManager conMan;
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        if ( sslContextService == null ) {
+        if (sslContextService == null) {
             conMan = new PoolingHttpClientConnectionManager();
         } else {
             final SSLContext sslContext;
@@ -334,16 +341,14 @@ public class PostHTTP extends AbstractProcessor {
             } catch (final Exception e) {
                 throw new ProcessException(e);
             }
-            
-            final SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext, new String[] { "TLSv1" }, null,
-                    SSLConnectionSocketFactory.BROWSER_COMPATIBLE_HOSTNAME_VERIFIER);
-    
-            final Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory>create()
-                    .register("https", sslsf).build();
-            
+
+            final SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext, new String[]{"TLSv1"}, null, SSLConnectionSocketFactory.BROWSER_COMPATIBLE_HOSTNAME_VERIFIER);
+
+            final Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory>create().register("https", sslsf).build();
+
             conMan = new PoolingHttpClientConnectionManager(socketFactoryRegistry);
         }
-        
+
         conMan.setDefaultMaxPerRoute(context.getMaxConcurrentTasks());
         conMan.setMaxTotal(context.getMaxConcurrentTasks());
         config = new Config(conMan);
@@ -351,15 +356,13 @@ public class PostHTTP extends AbstractProcessor {
 
         return (existingConfig == null) ? config : existingConfig;
     }
-    
-    
-    private SSLContext createSSLContext(final SSLContextService service) throws KeyStoreException, IOException, NoSuchAlgorithmException, 
-        CertificateException, KeyManagementException, UnrecoverableKeyException 
-    {
+
+    private SSLContext createSSLContext(final SSLContextService service)
+            throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException, KeyManagementException, UnrecoverableKeyException {
         SSLContextBuilder builder = SSLContexts.custom();
         final String trustFilename = service.getTrustStoreFile();
-        if ( trustFilename != null ) {
-            final KeyStore truststore  = KeyStore.getInstance(service.getTrustStoreType());
+        if (trustFilename != null) {
+            final KeyStore truststore = KeyStore.getInstance(service.getTrustStoreType());
             try (final InputStream in = new FileInputStream(new File(service.getTrustStoreFile()))) {
                 truststore.load(in, service.getTrustStorePassword().toCharArray());
             }
@@ -367,14 +370,14 @@ public class PostHTTP extends AbstractProcessor {
         }
 
         final String keyFilename = service.getKeyStoreFile();
-        if ( keyFilename != null ) {
-            final KeyStore keystore  = KeyStore.getInstance(service.getKeyStoreType());
+        if (keyFilename != null) {
+            final KeyStore keystore = KeyStore.getInstance(service.getKeyStoreType());
             try (final InputStream in = new FileInputStream(new File(service.getKeyStoreFile()))) {
                 keystore.load(in, service.getKeyStorePassword().toCharArray());
             }
             builder = builder.loadKeyMaterial(keystore, service.getKeyStorePassword().toCharArray());
         }
-        
+
         SSLContext sslContext = builder.build();
         return sslContext;
     }
@@ -391,7 +394,7 @@ public class PostHTTP extends AbstractProcessor {
         requestConfigBuilder.setRedirectsEnabled(false);
         requestConfigBuilder.setSocketTimeout(context.getProperty(DATA_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
         final RequestConfig requestConfig = requestConfigBuilder.build();
-        
+
         final StreamThrottler throttler = throttlerRef.get();
         final ProcessorLog logger = getLogger();
 
@@ -415,8 +418,9 @@ public class PostHTTP extends AbstractProcessor {
             try {
                 new java.net.URL(url);
             } catch (final MalformedURLException e) {
-                logger.error("After substituting attribute values for {}, URL is {}; this is not a valid URL, so routing to failure",
-                        new Object[]{flowFile, url});
+                logger.
+                        error("After substituting attribute values for {}, URL is {}; this is not a valid URL, so routing to failure",
+                                new Object[]{flowFile, url});
                 flowFile = session.penalize(flowFile);
                 session.transfer(flowFile, REL_FAILURE);
                 continue;
@@ -434,36 +438,37 @@ public class PostHTTP extends AbstractProcessor {
             if (client == null || destinationAccepts == null) {
                 final Config config = getConfig(url, context);
                 final HttpClientConnectionManager conMan = config.getConnectionManager();
-                
+
                 final HttpClientBuilder clientBuilder = HttpClientBuilder.create();
                 clientBuilder.setConnectionManager(conMan);
                 clientBuilder.setUserAgent(userAgent);
-                clientBuilder.addInterceptorFirst(new HttpResponseInterceptor() {
-                    @Override
-                    public void process(final HttpResponse response, final HttpContext httpContext) throws HttpException, IOException {
-                        HttpCoreContext coreContext = HttpCoreContext.adapt(httpContext);
-                        ManagedHttpClientConnection conn = coreContext.getConnection(ManagedHttpClientConnection.class);
-                        if ( !conn.isOpen() ) {
-                            return;
-                        }
-                        
-                        SSLSession sslSession = conn.getSSLSession();
-                        
-                        if ( sslSession != null ) {
-                            final X509Certificate[] certChain = sslSession.getPeerCertificateChain();
-                            if (certChain == null || certChain.length == 0) {
-                                throw new SSLPeerUnverifiedException("No certificates found");
-                            }
+                clientBuilder.
+                        addInterceptorFirst(new HttpResponseInterceptor() {
+                            @Override
+                            public void process(final HttpResponse response, final HttpContext httpContext) throws HttpException, IOException {
+                                HttpCoreContext coreContext = HttpCoreContext.adapt(httpContext);
+                                ManagedHttpClientConnection conn = coreContext.getConnection(ManagedHttpClientConnection.class);
+                                if (!conn.isOpen()) {
+                                    return;
+                                }
 
-                            final X509Certificate cert = certChain[0];
-                            dnHolder.set(cert.getSubjectDN().getName().trim());
-                        }
-                    }
-                });
-                
+                                SSLSession sslSession = conn.getSSLSession();
+
+                                if (sslSession != null) {
+                                    final X509Certificate[] certChain = sslSession.getPeerCertificateChain();
+                                    if (certChain == null || certChain.length == 0) {
+                                        throw new SSLPeerUnverifiedException("No certificates found");
+                                    }
+
+                                    final X509Certificate cert = certChain[0];
+                                    dnHolder.set(cert.getSubjectDN().getName().trim());
+                                }
+                            }
+                        });
+
                 clientBuilder.disableAutomaticRetries();
                 clientBuilder.disableContentCompression();
-                
+
                 final String username = context.getProperty(USERNAME).getValue();
                 final String password = context.getProperty(PASSWORD).getValue();
                 // set the credentials if appropriate
@@ -473,7 +478,7 @@ public class PostHTTP extends AbstractProcessor {
                         credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(username));
                     } else {
                         credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(username, password));
-                    };
+                    }
                     clientBuilder.setDefaultCredentialsProvider(credentialsProvider);
                 }
                 client = clientBuilder.build();
@@ -492,7 +497,8 @@ public class PostHTTP extends AbstractProcessor {
                     } catch (IOException e) {
                         flowFile = session.penalize(flowFile);
                         session.transfer(flowFile, REL_FAILURE);
-                        logger.error("Unable to communicate with destination {} to determine whether or not it can accept flowfiles/gzip; routing {} to failure due to {}", new Object[]{url, flowFile, e});
+                        logger.error("Unable to communicate with destination {} to determine whether or not it can accept "
+                                + "flowfiles/gzip; routing {} to failure due to {}", new Object[]{url, flowFile, e});
                         context.yield();
                         return;
                     }
@@ -580,7 +586,7 @@ public class PostHTTP extends AbstractProcessor {
         entity.setChunked(context.getProperty(CHUNKED_ENCODING).asBoolean());
         post.setEntity(entity);
         post.setConfig(requestConfig);
-        
+
         final String contentType;
         if (sendAsFlowFile) {
             if (accepts.isFlowFileV3Accepted()) {
@@ -590,7 +596,8 @@ public class PostHTTP extends AbstractProcessor {
             } else if (accepts.isFlowFileV1Accepted()) {
                 contentType = APPLICATION_FLOW_FILE_V1;
             } else {
-                logger.error("Cannot send data to {} because the destination does not accept FlowFiles and this processor is configured to deliver FlowFiles; rolling back session", new Object[]{url});
+                logger.error("Cannot send data to {} because the destination does not accept FlowFiles and this processor is "
+                        + "configured to deliver FlowFiles; rolling back session", new Object[]{url});
                 session.rollback();
                 context.yield();
                 return;
@@ -646,11 +653,11 @@ public class PostHTTP extends AbstractProcessor {
             }
             return;
         } finally {
-            if ( response != null ) {
+            if (response != null) {
                 try {
                     response.close();
                 } catch (IOException e) {
-                    getLogger().warn("Failed to close HTTP Response due to {}", new Object[] {e});
+                    getLogger().warn("Failed to close HTTP Response due to {}", new Object[]{e});
                 }
             }
         }
@@ -676,7 +683,8 @@ public class PostHTTP extends AbstractProcessor {
             if (holdUri == null) {
                 for (FlowFile flowFile : toSend) {
                     flowFile = session.penalize(flowFile);
-                    logger.error("Failed to Post {} to {}: sent content and received status code {}:{} but no Hold URI", new Object[]{flowFile, url, responseCode, responseReason});
+                    logger.error("Failed to Post {} to {}: sent content and received status code {}:{} but no Hold URI",
+                            new Object[]{flowFile, url, responseCode, responseReason});
                     session.transfer(flowFile, REL_FAILURE);
                 }
                 return;
@@ -687,7 +695,9 @@ public class PostHTTP extends AbstractProcessor {
             if (responseCode == HttpServletResponse.SC_SERVICE_UNAVAILABLE) {
                 for (FlowFile flowFile : toSend) {
                     flowFile = session.penalize(flowFile);
-                    logger.error("Failed to Post {} to {}: response code was {}:{}; will yield processing, since the destination is temporarily unavailable", new Object[]{flowFile, url, responseCode, responseReason});
+                    logger.error("Failed to Post {} to {}: response code was {}:{}; will yield processing, "
+                            + "since the destination is temporarily unavailable",
+                            new Object[]{flowFile, url, responseCode, responseReason});
                     session.transfer(flowFile, REL_FAILURE);
                 }
                 context.yield();
@@ -697,14 +707,15 @@ public class PostHTTP extends AbstractProcessor {
             if (responseCode >= 300) {
                 for (FlowFile flowFile : toSend) {
                     flowFile = session.penalize(flowFile);
-                    logger.error("Failed to Post {} to {}: response code was {}:{}", new Object[]{flowFile, url, responseCode, responseReason});
+                    logger.error("Failed to Post {} to {}: response code was {}:{}",
+                            new Object[]{flowFile, url, responseCode, responseReason});
                     session.transfer(flowFile, REL_FAILURE);
                 }
                 return;
             }
 
-            logger.info("Successfully Posted {} to {} in {} at a rate of {}", new Object[]{
-                flowFileDescription, url, FormatUtils.formatMinutesSeconds(uploadMillis, TimeUnit.MILLISECONDS), uploadDataRate});
+            logger.info("Successfully Posted {} to {} in {} at a rate of {}",
+                    new Object[]{flowFileDescription, url, FormatUtils.formatMinutesSeconds(uploadMillis, TimeUnit.MILLISECONDS), uploadDataRate});
 
             for (final FlowFile flowFile : toSend) {
                 session.getProvenanceReporter().send(flowFile, url, "Remote DN=" + dnHolder.get(), uploadMillis, true);
@@ -759,8 +770,7 @@ public class PostHTTP extends AbstractProcessor {
                     return;
                 }
 
-                logger.info("Successfully Posted {} to {} in {} milliseconds at a rate of {}",
-                        new Object[]{flowFileDescription, url, uploadMillis, uploadDataRate});
+                logger.info("Successfully Posted {} to {} in {} milliseconds at a rate of {}", new Object[]{flowFileDescription, url, uploadMillis, uploadDataRate});
 
                 for (FlowFile flowFile : toSend) {
                     session.getProvenanceReporter().send(flowFile, url);
@@ -773,7 +783,8 @@ public class PostHTTP extends AbstractProcessor {
 
             if (!isScheduled()) {
                 context.yield();
-                logger.warn("Failed to delete Hold that destination placed on {}; Processor has been stopped so routing FlowFile(s) to failure", new Object[]{flowFileDescription});
+                logger.
+                        warn("Failed to delete Hold that destination placed on {}; Processor has been stopped so routing FlowFile(s) to failure", new Object[]{flowFileDescription});
                 for (FlowFile flowFile : toSend) {
                     flowFile = session.penalize(flowFile);
                     session.transfer(flowFile, REL_FAILURE);
@@ -782,7 +793,6 @@ public class PostHTTP extends AbstractProcessor {
             }
         }
     }
-
 
     private DestinationAccepts getDestinationAcceptance(final HttpClient client, final String uri, final ProcessorLog logger, final String transactionId) throws IOException {
         final HttpHead head = new HttpHead(uri);
@@ -856,7 +866,8 @@ public class PostHTTP extends AbstractProcessor {
 
             return new DestinationAccepts(acceptsFlowFileV3, acceptsFlowFileV2, acceptsFlowFileV1, acceptsGzip, protocolVersion);
         } else {
-            logger.warn("Unable to communicate with destination; when attempting to perform an HTTP HEAD, got unexpected response code of " + statusCode + ": " + response.getStatusLine().getReasonPhrase());
+            logger.warn("Unable to communicate with destination; when attempting to perform an HTTP HEAD, got unexpected response code of "
+                    + statusCode + ": " + response.getStatusLine().getReasonPhrase());
             return new DestinationAccepts(false, false, false, false, null);
         }
     }
@@ -869,8 +880,7 @@ public class PostHTTP extends AbstractProcessor {
         private final boolean gzip;
         private final Integer protocolVersion;
 
-        public DestinationAccepts(final boolean flowFileV3, final boolean flowFileV2, final boolean flowFileV1,
-                final boolean gzip, final Integer protocolVersion) {
+        public DestinationAccepts(final boolean flowFileV3, final boolean flowFileV2, final boolean flowFileV1, final boolean gzip, final Integer protocolVersion) {
             this.flowFileV3 = flowFileV3;
             this.flowFileV2 = flowFileV2;
             this.flowFileV1 = flowFileV1;

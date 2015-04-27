@@ -21,7 +21,8 @@ public class TestIngestAndUpdate {
 
     public static void main(String[] args) throws IOException {
         byte[] bytes = new byte[1024];
-        System.out.write(System.getProperty("user.dir").getBytes());
+        System.out.write(System.getProperty("user.dir").
+                getBytes());
         System.out.println(":ModifiedResult");
         int numRead = 0;
         while ((numRead = System.in.read(bytes)) != -1) {

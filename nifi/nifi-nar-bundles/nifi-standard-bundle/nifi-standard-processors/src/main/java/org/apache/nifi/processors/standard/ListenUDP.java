@@ -73,50 +73,35 @@ import org.apache.commons.lang3.StringUtils;
 
 /**
  * <p>
- * This processor listens for Datagram Packets on a given port and concatenates
- * the contents of those packets together generating flow files roughly as often
- * as the internal buffer fills up or until no more data is currently available.
+ * This processor listens for Datagram Packets on a given port and concatenates the contents of those packets together generating flow files roughly as often as the internal buffer fills up or until
+ * no more data is currently available.
  * </p>
  *
  * <p>
  * This processor has the following required properties:
  * <ul>
- * <li><b>Port</b> - The port to listen on for data packets. Must be known by
- * senders of Datagrams.</li>
- * <li><b>Receive Timeout</b> - The time out period when waiting to receive data
- * from the socket. Specify units. Default is 5 secs.</li>
- * <li><b>Max Buffer Size</b> - Determines the size each receive buffer may be.
- * Specify units. Default is 1 MB.</li>
- * <li><b>FlowFile Size Trigger</b> - Determines the (almost) upper bound size
- * at which a flow file would be generated. A flow file will get made even if
- * this value isn't reached if there is no more data streaming in and this value
- * may be exceeded by the size of a single packet. Specify units. Default is 1
- * MB.</li>
- * <li><b>Max size of UDP Buffer</b> - The maximum UDP buffer size that should
- * be used. This is a suggestion to the Operating System to indicate how big the
- * udp socket buffer should be. Specify units. Default is 1 MB.")</li>
- * <li><b>Receive Buffer Count</b> - Number of receiving buffers to be used to
- * accept data from the socket. Higher numbers means more ram is allocated but
- * can allow better throughput. Default is 4.</li>
- * <li><b>Channel Reader Interval</b> - Scheduling interval for each read
- * channel. Specify units. Default is 50 millisecs.</li>
- * <li><b>FlowFiles Per Session</b> - The number of flow files per session.
- * Higher number is more efficient, but will lose more data if a problem occurs
- * that causes a rollback of a session. Default is 10</li>
+ * <li><b>Port</b> - The port to listen on for data packets. Must be known by senders of Datagrams.</li>
+ * <li><b>Receive Timeout</b> - The time out period when waiting to receive data from the socket. Specify units. Default is 5 secs.</li>
+ * <li><b>Max Buffer Size</b> - Determines the size each receive buffer may be. Specify units. Default is 1 MB.</li>
+ * <li><b>FlowFile Size Trigger</b> - Determines the (almost) upper bound size at which a flow file would be generated. A flow file will get made even if this value isn't reached if there is no more
+ * data streaming in and this value may be exceeded by the size of a single packet. Specify units. Default is 1 MB.</li>
+ * <li><b>Max size of UDP Buffer</b> - The maximum UDP buffer size that should be used. This is a suggestion to the Operating System to indicate how big the udp socket buffer should be. Specify units.
+ * Default is 1 MB.")</li>
+ * <li><b>Receive Buffer Count</b> - Number of receiving buffers to be used to accept data from the socket. Higher numbers means more ram is allocated but can allow better throughput. Default is
+ * 4.</li>
+ * <li><b>Channel Reader Interval</b> - Scheduling interval for each read channel. Specify units. Default is 50 millisecs.</li>
+ * <li><b>FlowFiles Per Session</b> - The number of flow files per session. Higher number is more efficient, but will lose more data if a problem occurs that causes a rollback of a session. Default is
+ * 10</li>
  * </ul>
  * </p>
  *
  * This processor has the following optional properties:
  * <ul>
- * <li><b>Sending Host</b> - IP, or name, of a remote host. Only Datagrams from
- * the specified Sending Host Port and this host will be accepted. Improves
- * Performance. May be a system property or an environment variable.</li>
- * <li><b>Sending Host Port</b> - Port being used by remote host to send
- * Datagrams. Only Datagrams from the specified Sending Host and this port will
- * be accepted. Improves Performance. May be a system property or an environment
- * variable.</li>
+ * <li><b>Sending Host</b> - IP, or name, of a remote host. Only Datagrams from the specified Sending Host Port and this host will be accepted. Improves Performance. May be a system property or an
+ * environment variable.</li>
+ * <li><b>Sending Host Port</b> - Port being used by remote host to send Datagrams. Only Datagrams from the specified Sending Host and this port will be accepted. Improves Performance. May be a system
+ * property or an environment variable.</li>
  * </ul>
- * </p>
  *
  * <p>
  * The following relationships are required:
@@ -142,7 +127,7 @@ public class ListenUDP extends AbstractSessionFactoryProcessor {
             .build();
 
     static {
-        Set<Relationship> rels = new HashSet<>();
+        final Set<Relationship> rels = new HashSet<>();
         rels.add(RELATIONSHIP_SUCCESS);
         relationships = Collections.unmodifiableSet(rels);
     }
@@ -233,8 +218,7 @@ public class ListenUDP extends AbstractSessionFactoryProcessor {
 
     static {
         try {
-            final Enumeration<NetworkInterface> interfaceEnum
-                    = NetworkInterface.getNetworkInterfaces();
+            final Enumeration<NetworkInterface> interfaceEnum = NetworkInterface.getNetworkInterfaces();
             while (interfaceEnum.hasMoreElements()) {
                 final NetworkInterface ifc = interfaceEnum.nextElement();
                 interfaceSet.add(ifc.getName());
@@ -242,18 +226,15 @@ public class ListenUDP extends AbstractSessionFactoryProcessor {
         } catch (SocketException e) {
         }
     }
-    public static final PropertyDescriptor NETWORK_INTF_NAME = new PropertyDescriptor.Builder()
-            .name("Local Network Interface")
-            .description("The name of a local network interface to be used to restrict listening for UDP Datagrams to a specific LAN."
-                    + "May be a system property or an environment variable.")
-            .addValidator(new Validator() {
+    public static final PropertyDescriptor NETWORK_INTF_NAME = new PropertyDescriptor.Builder().
+            name("Local Network Interface").
+            description("The name of a local network interface to be used to restrict listening for UDP Datagrams to a specific LAN."
+                    + "May be a system property or an environment variable.").
+            addValidator(new Validator() {
                 @Override
                 public ValidationResult validate(String subject, String input, ValidationContext context) {
                     ValidationResult result = new ValidationResult.Builder()
-                    .subject("Local Network Interface")
-                    .valid(true)
-                    .input(input)
-                    .build();
+                    .subject("Local Network Interface").valid(true).input(input).build();
                     if (interfaceSet.contains(input.toLowerCase())) {
                         return result;
                     }
@@ -271,18 +252,12 @@ public class ListenUDP extends AbstractSessionFactoryProcessor {
                     } catch (IllegalArgumentException e) {
                         message = "Not a valid AttributeExpression: " + e.getMessage();
                     }
-                    result = new ValidationResult.Builder()
-                    .subject("Local Network Interface")
-                    .valid(false)
-                    .input(input)
-                    .explanation(message)
-                    .build();
+                    result = new ValidationResult.Builder().subject("Local Network Interface")
+                    .valid(false).input(input).explanation(message).build();
 
                     return result;
                 }
-            })
-            .expressionLanguageSupported(true)
-            .build();
+            }).expressionLanguageSupported(true).build();
 
     static {
         List<PropertyDescriptor> props = new ArrayList<>();
@@ -326,8 +301,7 @@ public class ListenUDP extends AbstractSessionFactoryProcessor {
     }
 
     /**
-     * Create the ChannelListener and a thread that causes the Consumer to
-     * create flow files.
+     * Create the ChannelListener and a thread that causes the Consumer to create flow files.
      *
      * @param context
      * @throws IOException
@@ -336,8 +310,8 @@ public class ListenUDP extends AbstractSessionFactoryProcessor {
     public void initializeChannelListenerAndConsumerProcessing(final ProcessContext context) throws IOException {
         getChannelListener(context);
         stopping.set(false);
-        Future<Tuple<ProcessSession, List<FlowFile>>> consumerFuture = consumerExecutorService
-                .submit(new Callable<Tuple<ProcessSession, List<FlowFile>>>() {
+        Future<Tuple<ProcessSession, List<FlowFile>>> consumerFuture = consumerExecutorService.
+                submit(new Callable<Tuple<ProcessSession, List<FlowFile>>>() {
 
                     @Override
                     public Tuple<ProcessSession, List<FlowFile>> call() {
@@ -364,11 +338,10 @@ public class ListenUDP extends AbstractSessionFactoryProcessor {
                                         logger.debug("Have waited {} times", new Object[]{numWaits});
                                         numWaits = 0;
                                         if (session != null) {
-                                            Tuple<ProcessSession, List<FlowFile>> flowFilesPerSession = new Tuple<ProcessSession, List<FlowFile>>(
-                                                    session,
-                                                    new ArrayList<>(newFlowFiles));
+                                            Tuple<ProcessSession, List<FlowFile>> flowFilesPerSession = new Tuple<ProcessSession, List<FlowFile>>(session, new ArrayList<>(newFlowFiles));
                                             newFlowFiles.clear();
-                                            flowFilesPerSessionQueue.add(flowFilesPerSession);
+                                            flowFilesPerSessionQueue.
+                                            add(flowFilesPerSession);
                                         }
                                         session = sessionFactoryRef.get().createSession();
                                         consumer.setSession(session);
@@ -422,8 +395,7 @@ public class ListenUDP extends AbstractSessionFactoryProcessor {
                                 // if this is blown...consumer.isConsumerFinished will be true
                             }
                         }
-                        Tuple<ProcessSession, List<FlowFile>> flowFilesPerSession = new Tuple<ProcessSession, List<FlowFile>>(session,
-                                new ArrayList<>(newFlowFiles));
+                        Tuple<ProcessSession, List<FlowFile>> flowFilesPerSession = new Tuple<ProcessSession, List<FlowFile>>(session, new ArrayList<>(newFlowFiles));
                         return flowFilesPerSession;
                     }
                 });
@@ -462,7 +434,8 @@ public class ListenUDP extends AbstractSessionFactoryProcessor {
 
                     @Override
                     public StreamConsumer newInstance(final String streamId) {
-                        final UDPStreamConsumer consumer = new UDPStreamConsumer(streamId, newFlowFiles, flowFileSizeTrigger.intValue(), getLogger());
+                        final UDPStreamConsumer consumer = new UDPStreamConsumer(streamId, newFlowFiles, flowFileSizeTrigger.
+                                intValue(), getLogger());
                         consumerRef.set(consumer);
                         return consumer;
                     }
@@ -491,17 +464,11 @@ public class ListenUDP extends AbstractSessionFactoryProcessor {
         String sendingHost = validationContext.getProperty(SENDING_HOST).getValue();
         String sendingPort = validationContext.getProperty(SENDING_HOST_PORT).getValue();
         if (StringUtils.isBlank(sendingHost) && StringUtils.isNotBlank(sendingPort)) {
-            result.add(new ValidationResult.Builder()
-                    .subject(SENDING_HOST.getName())
-                    .valid(false)
-                    .explanation("Must specify Sending Host when specifying Sending Host Port")
-                    .build());
+            result.add(new ValidationResult.Builder().subject(SENDING_HOST.getName()).valid(false)
+                    .explanation("Must specify Sending Host when specifying Sending Host Port").build());
         } else if (StringUtils.isBlank(sendingPort) && StringUtils.isNotBlank(sendingHost)) {
-            result.add(new ValidationResult.Builder()
-                    .subject(SENDING_HOST_PORT.getName())
-                    .valid(false)
-                    .explanation("Must specify Sending Host Port when specifying Sending Host")
-                    .build());
+            result.add(
+                    new ValidationResult.Builder().subject(SENDING_HOST_PORT.getName()).valid(false).explanation("Must specify Sending Host Port when specifying Sending Host").build());
         }
         return result;
     }
@@ -552,7 +519,8 @@ public class ListenUDP extends AbstractSessionFactoryProcessor {
                                 new Object[]{existingFlowFile});
                     } else if (existingFlowFile != null) {
                         session.remove(existingFlowFile);
-                        logger.warn("Found empty flow file in input queue (shouldn't have). Removed flow file {}", new Object[]{existingFlowFile});
+                        logger.warn("Found empty flow file in input queue (shouldn't have). Removed flow file {}",
+                                new Object[]{existingFlowFile});
                     }
                 }
                 session.commit();
@@ -607,18 +575,9 @@ public class ListenUDP extends AbstractSessionFactoryProcessor {
         public ValidationResult validate(String subject, String input, ValidationContext context) {
             try {
                 InetAddress.getByName(input);
-                return new ValidationResult.Builder()
-                        .subject(subject)
-                        .valid(true)
-                        .input(input)
-                        .build();
+                return new ValidationResult.Builder().subject(subject).valid(true).input(input).build();
             } catch (final UnknownHostException e) {
-                return new ValidationResult.Builder()
-                        .subject(subject)
-                        .valid(false)
-                        .input(input)
-                        .explanation("Unknown host: " + e)
-                        .build();
+                return new ValidationResult.Builder().subject(subject).valid(false).input(input).explanation("Unknown host: " + e).build();
             }
         }
 

@@ -59,7 +59,9 @@ public class TestHashContent {
         runner.assertQueueEmpty();
         runner.assertAllFlowFilesTransferred(HashContent.REL_SUCCESS, 1);
 
-        final MockFlowFile outFile = runner.getFlowFilesForRelationship(HashContent.REL_SUCCESS).get(0);
+        final MockFlowFile outFile = runner.
+                getFlowFilesForRelationship(HashContent.REL_SUCCESS).
+                get(0);
         final String hashValue = outFile.getAttribute("hash");
 
         assertEquals(expectedHash, hashValue);

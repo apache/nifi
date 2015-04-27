@@ -66,17 +66,26 @@ import org.xml.sax.XMLReader;
 @CapabilityDescription("Splits an XML File into multiple separate FlowFiles, each comprising a child or descendant of the original root element")
 public class SplitXml extends AbstractProcessor {
 
-    public static final PropertyDescriptor SPLIT_DEPTH = new PropertyDescriptor.Builder()
-            .name("Split Depth")
-            .description("Indicates the XML-nesting depth to start splitting XML fragments. A depth of 1 means split the root's children, whereas a depth of 2 means split the root's children's children and so forth.")
-            .required(true)
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .defaultValue("1")
-            .build();
+    public static final PropertyDescriptor SPLIT_DEPTH = new PropertyDescriptor.Builder().
+            name("Split Depth").
+            description("Indicates the XML-nesting depth to start splitting XML fragments. A depth of 1 means split the root's children, whereas a depth of 2 means split the root's children's children and so forth.").
+            required(true).
+            addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR).
+            defaultValue("1").
+            build();
 
-    public static final Relationship REL_ORIGINAL = new Relationship.Builder().name("original").description("The original FlowFile that was split into segments. If the FlowFile fails processing, nothing will be sent to this relationship").build();
-    public static final Relationship REL_SPLIT = new Relationship.Builder().name("split").description("All segments of the original FlowFile will be routed to this relationship").build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure").description("If a FlowFile fails processing for any reason (for example, the FlowFile is not valid XML), it will be routed to this relationship").build();
+    public static final Relationship REL_ORIGINAL = new Relationship.Builder().
+            name("original").
+            description("The original FlowFile that was split into segments. If the FlowFile fails processing, nothing will be sent to this relationship").
+            build();
+    public static final Relationship REL_SPLIT = new Relationship.Builder().
+            name("split").
+            description("All segments of the original FlowFile will be routed to this relationship").
+            build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder().
+            name("failure").
+            description("If a FlowFile fails processing for any reason (for example, the FlowFile is not valid XML), it will be routed to this relationship").
+            build();
 
     private List<PropertyDescriptor> properties;
     private Set<Relationship> relationships;
@@ -84,7 +93,8 @@ public class SplitXml extends AbstractProcessor {
     private static final String FEATURE_PREFIX = "http://xml.org/sax/features/";
     public static final String ENABLE_NAMESPACES_FEATURE = FEATURE_PREFIX + "namespaces";
     public static final String ENABLE_NAMESPACE_PREFIXES_FEATURE = FEATURE_PREFIX + "namespace-prefixes";
-    private static final SAXParserFactory saxParserFactory = SAXParserFactory.newInstance();
+    private static final SAXParserFactory saxParserFactory = SAXParserFactory.
+            newInstance();
 
     static {
         saxParserFactory.setNamespaceAware(true);
@@ -93,7 +103,8 @@ public class SplitXml extends AbstractProcessor {
             saxParserFactory.setFeature(ENABLE_NAMESPACE_PREFIXES_FEATURE, true);
         } catch (Exception e) {
             final Logger staticLogger = LoggerFactory.getLogger(SplitXml.class);
-            staticLogger.warn("Unable to configure SAX Parser to make namespaces available", e);
+            staticLogger.
+                    warn("Unable to configure SAX Parser to make namespaces available", e);
         }
     }
 
@@ -127,7 +138,8 @@ public class SplitXml extends AbstractProcessor {
             return;
         }
 
-        final int depth = context.getProperty(SPLIT_DEPTH).asInteger();
+        final int depth = context.getProperty(SPLIT_DEPTH).
+                asInteger();
         final ProcessorLog logger = getLogger();
 
         final List<FlowFile> splits = new ArrayList<>();
@@ -157,7 +169,8 @@ public class SplitXml extends AbstractProcessor {
                         reader.setContentHandler(parser);
                         reader.parse(new InputSource(in));
                     } catch (final ParserConfigurationException | SAXException e) {
-                        logger.error("Unable to parse {} due to {}", new Object[]{original, e});
+                        logger.
+                                error("Unable to parse {} due to {}", new Object[]{original, e});
                         failed.set(true);
                     }
                 }
@@ -170,7 +183,9 @@ public class SplitXml extends AbstractProcessor {
         } else {
             session.transfer(splits, REL_SPLIT);
             session.transfer(original, REL_ORIGINAL);
-            logger.info("Split {} into {} FlowFiles", new Object[]{original, splits.size()});
+            logger.
+                    info("Split {} into {} FlowFiles", new Object[]{original, splits.
+                        size()});
         }
     }
 
@@ -232,7 +247,9 @@ public class SplitXml extends AbstractProcessor {
             // if we're at a level where we care about capturing text, then add the closing element
             if (newDepth >= splitDepth) {
                 // Add the element end tag.
-                sb.append("</").append(qName).append(">");
+                sb.append("</").
+                        append(qName).
+                        append(">");
             }
 
             // If we have now returned to level 1, we have finished processing
@@ -284,8 +301,14 @@ public class SplitXml extends AbstractProcessor {
                 int attCount = atts.getLength();
                 for (int i = 0; i < attCount; i++) {
                     String attName = atts.getQName(i);
-                    String attValue = StringEscapeUtils.escapeXml10(atts.getValue(i));
-                    sb.append(" ").append(attName).append("=").append("\"").append(attValue).append("\"");
+                    String attValue = StringEscapeUtils.escapeXml10(atts.
+                            getValue(i));
+                    sb.append(" ").
+                            append(attName).
+                            append("=").
+                            append("\"").
+                            append(attValue).
+                            append("\"");
                 }
 
                 sb.append(">");

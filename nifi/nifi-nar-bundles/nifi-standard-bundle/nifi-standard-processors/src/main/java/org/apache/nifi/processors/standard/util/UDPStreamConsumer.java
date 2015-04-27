@@ -109,7 +109,8 @@ public class UDPStreamConsumer implements StreamConsumer {
             }
             // time to make a new flow file
             newFlowFile = session.create();
-            newFlowFile = session.putAttribute(newFlowFile, "source.stream.identifier", uniqueId);
+            newFlowFile = session.
+                    putAttribute(newFlowFile, "source.stream.identifier", uniqueId);
             newFlowFile = session.write(newFlowFile, udpCallback);
             if (newFlowFile.getSize() == 0) {
                 session.remove(newFlowFile);
@@ -122,7 +123,8 @@ public class UDPStreamConsumer implements StreamConsumer {
                 try {
                     session.remove(newFlowFile);
                 } catch (final Exception ex2) {
-                    logger.warn("Unable to delete partial flow file due to: ", ex2);
+                    logger.
+                            warn("Unable to delete partial flow file due to: ", ex2);
                 }
             }
             throw new IOException("Problem while processing data stream", ex);
@@ -156,17 +158,21 @@ public class UDPStreamConsumer implements StreamConsumer {
             return false;
         }
         UDPStreamConsumer rhs = (UDPStreamConsumer) obj;
-        return new EqualsBuilder().appendSuper(super.equals(obj)).append(uniqueId, rhs.uniqueId).isEquals();
+        return new EqualsBuilder().appendSuper(super.equals(obj)).
+                append(uniqueId, rhs.uniqueId).
+                isEquals();
     }
 
     @Override
     public final int hashCode() {
-        return new HashCodeBuilder(17, 37).append(uniqueId).toHashCode();
+        return new HashCodeBuilder(17, 37).append(uniqueId).
+                toHashCode();
     }
 
     @Override
     public final String toString() {
-        return new ToStringBuilder(this).append(uniqueId).toString();
+        return new ToStringBuilder(this).append(uniqueId).
+                toString();
     }
 
     public static final class UDPConsumerCallback implements OutputStreamCallback {
@@ -188,9 +194,11 @@ public class UDPStreamConsumer implements StreamConsumer {
         public void process(final OutputStream out) throws IOException {
             try {
                 long totalBytes = 0L;
-                try (WritableByteChannel wbc = Channels.newChannel(new BufferedOutputStream(out))) {
+                try (WritableByteChannel wbc = Channels.
+                        newChannel(new BufferedOutputStream(out))) {
                     ByteBuffer buffer = null;
-                    while ((buffer = filledBuffers.poll(50, TimeUnit.MILLISECONDS)) != null) {
+                    while ((buffer = filledBuffers.
+                            poll(50, TimeUnit.MILLISECONDS)) != null) {
                         int bytesWrittenThisPass = 0;
                         try {
                             while (buffer.hasRemaining()) {
@@ -201,7 +209,8 @@ public class UDPStreamConsumer implements StreamConsumer {
                                 break;// this is enough data
                             }
                         } finally {
-                            bufferPool.returnBuffer(buffer, bytesWrittenThisPass);
+                            bufferPool.
+                                    returnBuffer(buffer, bytesWrittenThisPass);
                         }
                     }
                 }

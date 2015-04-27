@@ -39,15 +39,18 @@ public class TestTransformXml {
 
     @Test
     public void testStylesheetNotFound() throws IOException {
-        final TestRunner controller = TestRunners.newTestRunner(TransformXml.class);
-        controller.setProperty(TransformXml.XSLT_FILE_NAME, "/no/path/to/math.xsl");
+        final TestRunner controller = TestRunners.
+                newTestRunner(TransformXml.class);
+        controller.
+                setProperty(TransformXml.XSLT_FILE_NAME, "/no/path/to/math.xsl");
         controller.assertNotValid();
     }
 
     @Test
     public void testNonXmlContent() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
-        runner.setProperty(TransformXml.XSLT_FILE_NAME, "src/test/resources/TestTransformXml/math.xsl");
+        runner.
+                setProperty(TransformXml.XSLT_FILE_NAME, "src/test/resources/TestTransformXml/math.xsl");
 
         final Map<String, String> attributes = new HashMap<>();
         runner.enqueue("not xml".getBytes(), attributes);
@@ -55,7 +58,9 @@ public class TestTransformXml {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(TransformXml.REL_FAILURE);
-        final MockFlowFile original = runner.getFlowFilesForRelationship(TransformXml.REL_FAILURE).get(0);
+        final MockFlowFile original = runner.
+                getFlowFilesForRelationship(TransformXml.REL_FAILURE).
+                get(0);
         final String originalContent = new String(original.toByteArray(), StandardCharsets.UTF_8);
         System.out.println("originalContent:\n" + originalContent);
 
@@ -67,25 +72,32 @@ public class TestTransformXml {
     public void testTransformMath() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
         runner.setProperty("header", "Test for mod");
-        runner.setProperty(TransformXml.XSLT_FILE_NAME, "src/test/resources/TestTransformXml/math.xsl");
+        runner.
+                setProperty(TransformXml.XSLT_FILE_NAME, "src/test/resources/TestTransformXml/math.xsl");
 
         final Map<String, String> attributes = new HashMap<>();
-        runner.enqueue(Paths.get("src/test/resources/TestTransformXml/math.xml"), attributes);
+        runner.
+                enqueue(Paths.
+                        get("src/test/resources/TestTransformXml/math.xml"), attributes);
         runner.run();
 
         runner.assertAllFlowFilesTransferred(TransformXml.REL_SUCCESS);
-        final MockFlowFile transformed = runner.getFlowFilesForRelationship(TransformXml.REL_SUCCESS).get(0);
+        final MockFlowFile transformed = runner.
+                getFlowFilesForRelationship(TransformXml.REL_SUCCESS).
+                get(0);
         final String transformedContent = new String(transformed.toByteArray(), StandardCharsets.UTF_8);
         System.out.println("transformedContent:\n" + transformedContent);
 
-        transformed.assertContentEquals(Paths.get("src/test/resources/TestTransformXml/math.html"));
+        transformed.assertContentEquals(Paths.
+                get("src/test/resources/TestTransformXml/math.html"));
     }
 
     @Ignore("this test fails")
     @Test
     public void testTransformCsv() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
-        runner.setProperty(TransformXml.XSLT_FILE_NAME, "src/test/resources/TestTransformXml/tokens.xsl");
+        runner.
+                setProperty(TransformXml.XSLT_FILE_NAME, "src/test/resources/TestTransformXml/tokens.xsl");
         runner.setProperty("uuid_0", "${uuid_0}");
         runner.setProperty("uuid_1", "${uuid_1}");
 
@@ -101,7 +113,8 @@ public class TestTransformXml {
 
         String line = null;
         while ((line = reader.readLine()) != null) {
-            builder.append(line).append("\n");
+            builder.append(line).
+                    append("\n");
         }
         builder.append("</data>");
         String data = builder.toString();
@@ -110,11 +123,14 @@ public class TestTransformXml {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(TransformXml.REL_SUCCESS);
-        final MockFlowFile transformed = runner.getFlowFilesForRelationship(TransformXml.REL_SUCCESS).get(0);
+        final MockFlowFile transformed = runner.
+                getFlowFilesForRelationship(TransformXml.REL_SUCCESS).
+                get(0);
         final String transformedContent = new String(transformed.toByteArray(), StandardCharsets.ISO_8859_1);
         System.out.println("transformedContent:\n" + transformedContent);
 
-        transformed.assertContentEquals(Paths.get("src/test/resources/TestTransformXml/tokens.xml"));
+        transformed.assertContentEquals(Paths.
+                get("src/test/resources/TestTransformXml/tokens.xml"));
     }
 
 }

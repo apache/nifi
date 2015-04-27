@@ -64,65 +64,76 @@ public class PutFile extends AbstractProcessor {
     public static final String FILE_MODIFY_DATE_ATTRIBUTE = "file.lastModifiedTime";
     public static final String FILE_MODIFY_DATE_ATTR_FORMAT = "yyyy-MM-dd'T'HH:mm:ssZ";
 
-    public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()
-            .name("Directory")
-            .description("The directory to which files should be written. You may use expression language such as /aa/bb/${path}")
-            .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
-            .build();
-    public static final PropertyDescriptor MAX_DESTINATION_FILES = new PropertyDescriptor.Builder()
-            .name("Maximum File Count")
-            .description("Specifies the maximum number of files that can exist in the output directory")
-            .required(false)
-            .addValidator(StandardValidators.INTEGER_VALIDATOR)
-            .build();
-    public static final PropertyDescriptor CONFLICT_RESOLUTION = new PropertyDescriptor.Builder()
-            .name("Conflict Resolution Strategy")
-            .description("Indicates what should happen when a file with the same name already exists in the output directory")
-            .required(true)
-            .defaultValue(FAIL_RESOLUTION)
-            .allowableValues(REPLACE_RESOLUTION, IGNORE_RESOLUTION, FAIL_RESOLUTION)
-            .build();
-    public static final PropertyDescriptor CHANGE_LAST_MODIFIED_TIME = new PropertyDescriptor.Builder()
-            .name("Last Modified Time")
-            .description("Sets the lastModifiedTime on the output file to the value of this attribute.  Format must be yyyy-MM-dd'T'HH:mm:ssZ.  You may also use expression language such as ${file.lastModifiedTime}.")
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
-            .build();
-    public static final PropertyDescriptor CHANGE_PERMISSIONS = new PropertyDescriptor.Builder()
-            .name("Permissions")
-            .description("Sets the permissions on the output file to the value of this attribute.  Format must be either UNIX rwxrwxrwx with a - in place of denied permissions (e.g. rw-r--r--) or an octal number (e.g. 644).  You may also use expression language such as ${file.permissions}.")
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
-            .build();
-    public static final PropertyDescriptor CHANGE_OWNER = new PropertyDescriptor.Builder()
-            .name("Owner")
-            .description("Sets the owner on the output file to the value of this attribute.  You may also use expression language such as ${file.owner}.")
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
-            .build();
-    public static final PropertyDescriptor CHANGE_GROUP = new PropertyDescriptor.Builder()
-            .name("Group")
-            .description("Sets the group on the output file to the value of this attribute.  You may also use expression language such as ${file.group}.")
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
-            .build();
-    public static final PropertyDescriptor CREATE_DIRS = new PropertyDescriptor.Builder()
-            .name("Create Missing Directories")
-            .description("If true, then missing destination directories will be created. If false, flowfiles are penalized and sent to failure.")
-            .required(true)
-            .allowableValues("true", "false")
-            .defaultValue("true")
-            .build();
+    public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder().
+            name("Directory").
+            description("The directory to which files should be written. You may use expression language such as /aa/bb/${path}").
+            required(true).
+            addValidator(StandardValidators.NON_EMPTY_VALIDATOR).
+            expressionLanguageSupported(true).
+            build();
+    public static final PropertyDescriptor MAX_DESTINATION_FILES = new PropertyDescriptor.Builder().
+            name("Maximum File Count").
+            description("Specifies the maximum number of files that can exist in the output directory").
+            required(false).
+            addValidator(StandardValidators.INTEGER_VALIDATOR).
+            build();
+    public static final PropertyDescriptor CONFLICT_RESOLUTION = new PropertyDescriptor.Builder().
+            name("Conflict Resolution Strategy").
+            description("Indicates what should happen when a file with the same name already exists in the output directory").
+            required(true).
+            defaultValue(FAIL_RESOLUTION).
+            allowableValues(REPLACE_RESOLUTION, IGNORE_RESOLUTION, FAIL_RESOLUTION).
+            build();
+    public static final PropertyDescriptor CHANGE_LAST_MODIFIED_TIME = new PropertyDescriptor.Builder().
+            name("Last Modified Time").
+            description("Sets the lastModifiedTime on the output file to the value of this attribute.  Format must be yyyy-MM-dd'T'HH:mm:ssZ.  "
+                    + "You may also use expression language such as ${file.lastModifiedTime}.").
+            required(false).
+            addValidator(StandardValidators.NON_EMPTY_VALIDATOR).
+            expressionLanguageSupported(true).
+            build();
+    public static final PropertyDescriptor CHANGE_PERMISSIONS = new PropertyDescriptor.Builder().
+            name("Permissions").
+            description("Sets the permissions on the output file to the value of this attribute.  Format must be either UNIX rwxrwxrwx with a - in "
+                    + "place of denied permissions (e.g. rw-r--r--) or an octal number (e.g. 644).  You may also use expression language such as "
+                    + "${file.permissions}.").
+            required(false).
+            addValidator(StandardValidators.NON_EMPTY_VALIDATOR).
+            expressionLanguageSupported(true).
+            build();
+    public static final PropertyDescriptor CHANGE_OWNER = new PropertyDescriptor.Builder().
+            name("Owner").
+            description("Sets the owner on the output file to the value of this attribute.  You may also use expression language such as "
+                    + "${file.owner}.").
+            required(false).
+            addValidator(StandardValidators.NON_EMPTY_VALIDATOR).
+            expressionLanguageSupported(true).
+            build();
+    public static final PropertyDescriptor CHANGE_GROUP = new PropertyDescriptor.Builder().
+            name("Group").
+            description("Sets the group on the output file to the value of this attribute.  You may also use expression language such "
+                    + "as ${file.group}.").
+            required(false).
+            addValidator(StandardValidators.NON_EMPTY_VALIDATOR).
+            expressionLanguageSupported(true).
+            build();
+    public static final PropertyDescriptor CREATE_DIRS = new PropertyDescriptor.Builder().
+            name("Create Missing Directories").
+            description("If true, then missing destination directories will be created. If false, flowfiles are penalized and sent to failure.").
+            required(true).
+            allowableValues("true", "false").
+            defaultValue("true").
+            build();
 
     public static final int MAX_FILE_LOCK_ATTEMPTS = 10;
-    public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("Files that have been successfully written to the output directory are transferred to this relationship").build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure").description("Files that could not be written to the output directory for some reason are transferred to this relationship").build();
+    public static final Relationship REL_SUCCESS = new Relationship.Builder().
+            name("success").
+            description("Files that have been successfully written to the output directory are transferred to this relationship").
+            build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder().
+            name("failure").
+            description("Files that could not be written to the output directory for some reason are transferred to this relationship").
+            build();
 
     private List<PropertyDescriptor> properties;
     private Set<Relationship> relationships;
@@ -166,24 +177,35 @@ public class PutFile extends AbstractProcessor {
         }
 
         final StopWatch stopWatch = new StopWatch(true);
-        final Path configuredRootDirPath = Paths.get(context.getProperty(DIRECTORY).evaluateAttributeExpressions(flowFile).getValue());
-        final String conflictResponse = context.getProperty(CONFLICT_RESOLUTION).getValue();
-        final Integer maxDestinationFiles = context.getProperty(MAX_DESTINATION_FILES).asInteger();
+        final Path configuredRootDirPath = Paths.get(context.
+                getProperty(DIRECTORY).
+                evaluateAttributeExpressions(flowFile).
+                getValue());
+        final String conflictResponse = context.getProperty(CONFLICT_RESOLUTION).
+                getValue();
+        final Integer maxDestinationFiles = context.
+                getProperty(MAX_DESTINATION_FILES).
+                asInteger();
         final ProcessorLog logger = getLogger();
 
         Path tempDotCopyFile = null;
         try {
             final Path rootDirPath = configuredRootDirPath;
-            final Path tempCopyFile = rootDirPath.resolve("." + flowFile.getAttribute(CoreAttributes.FILENAME.key()));
-            final Path copyFile = rootDirPath.resolve(flowFile.getAttribute(CoreAttributes.FILENAME.key()));
+            final Path tempCopyFile = rootDirPath.resolve("." + flowFile.
+                    getAttribute(CoreAttributes.FILENAME.key()));
+            final Path copyFile = rootDirPath.resolve(flowFile.
+                    getAttribute(CoreAttributes.FILENAME.key()));
 
             if (!Files.exists(rootDirPath)) {
-                if (context.getProperty(CREATE_DIRS).asBoolean()) {
+                if (context.getProperty(CREATE_DIRS).
+                        asBoolean()) {
                     Files.createDirectories(rootDirPath);
                 } else {
                     flowFile = session.penalize(flowFile);
                     session.transfer(flowFile, REL_FAILURE);
-                    logger.error("Penalizing {} and routing to 'failure' because the output directory {} does not exist and Processor is configured not to create missing directories", new Object[]{flowFile, rootDirPath});
+                    logger.
+                            error("Penalizing {} and routing to 'failure' because the output directory {} does not exist and Processor is "
+                                    + "configured not to create missing directories", new Object[]{flowFile, rootDirPath});
                     return;
                 }
             }
@@ -194,11 +216,14 @@ public class PutFile extends AbstractProcessor {
 
             final Path finalCopyFileDir = finalCopyFile.getParent();
             if (Files.exists(finalCopyFileDir) && maxDestinationFiles != null) { // check if too many files already
-                final int numFiles = finalCopyFileDir.toFile().list().length;
+                final int numFiles = finalCopyFileDir.toFile().
+                        list().length;
 
                 if (numFiles >= maxDestinationFiles) {
                     flowFile = session.penalize(flowFile);
-                    logger.info("Penalizing {} and routing to 'failure' because the output directory {} has {} files, which exceeds the configured maximum number of files", new Object[]{flowFile, finalCopyFileDir, numFiles});
+                    logger.
+                            info("Penalizing {} and routing to 'failure' because the output directory {} has {} files, which exceeds the "
+                                    + "configured maximum number of files", new Object[]{flowFile, finalCopyFileDir, numFiles});
                     session.transfer(flowFile, REL_FAILURE);
                     return;
                 }
@@ -208,15 +233,18 @@ public class PutFile extends AbstractProcessor {
                 switch (conflictResponse) {
                     case REPLACE_RESOLUTION:
                         Files.delete(finalCopyFile);
-                        logger.info("Deleted {} as configured in order to replace with the contents of {}", new Object[]{finalCopyFile, flowFile});
+                        logger.
+                                info("Deleted {} as configured in order to replace with the contents of {}", new Object[]{finalCopyFile, flowFile});
                         break;
                     case IGNORE_RESOLUTION:
                         session.transfer(flowFile, REL_SUCCESS);
-                        logger.info("Transferring {} to success because file with same name already exists", new Object[]{flowFile});
+                        logger.
+                                info("Transferring {} to success because file with same name already exists", new Object[]{flowFile});
                         return;
                     case FAIL_RESOLUTION:
                         flowFile = session.penalize(flowFile);
-                        logger.info("Penalizing {} and routing to failure as configured because file with the same name already exists", new Object[]{flowFile});
+                        logger.
+                                info("Penalizing {} and routing to failure as configured because file with the same name already exists", new Object[]{flowFile});
                         session.transfer(flowFile, REL_FAILURE);
                         return;
                     default:
@@ -226,53 +254,82 @@ public class PutFile extends AbstractProcessor {
 
             session.exportTo(flowFile, dotCopyFile, false);
 
-            final String lastModifiedTime = context.getProperty(CHANGE_LAST_MODIFIED_TIME).evaluateAttributeExpressions(flowFile).getValue();
-            if (lastModifiedTime != null && !lastModifiedTime.trim().isEmpty()) {
+            final String lastModifiedTime = context.
+                    getProperty(CHANGE_LAST_MODIFIED_TIME).
+                    evaluateAttributeExpressions(flowFile).
+                    getValue();
+            if (lastModifiedTime != null && !lastModifiedTime.trim().
+                    isEmpty()) {
                 try {
                     final DateFormat formatter = new SimpleDateFormat(FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
-                    final Date fileModifyTime = formatter.parse(lastModifiedTime);
-                    dotCopyFile.toFile().setLastModified(fileModifyTime.getTime());
+                    final Date fileModifyTime = formatter.
+                            parse(lastModifiedTime);
+                    dotCopyFile.toFile().
+                            setLastModified(fileModifyTime.getTime());
                 } catch (Exception e) {
-                    logger.warn("Could not set file lastModifiedTime to {} because {}", new Object[]{lastModifiedTime, e});
+                    logger.
+                            warn("Could not set file lastModifiedTime to {} because {}", new Object[]{lastModifiedTime, e});
                 }
             }
 
-            final String permissions = context.getProperty(CHANGE_PERMISSIONS).evaluateAttributeExpressions(flowFile).getValue();
-            if (permissions != null && !permissions.trim().isEmpty()) {
+            final String permissions = context.getProperty(CHANGE_PERMISSIONS).
+                    evaluateAttributeExpressions(flowFile).
+                    getValue();
+            if (permissions != null && !permissions.trim().
+                    isEmpty()) {
                 try {
                     String perms = stringPermissions(permissions);
                     if (!perms.isEmpty()) {
-                        Files.setPosixFilePermissions(dotCopyFile, PosixFilePermissions.fromString(perms));
+                        Files.
+                                setPosixFilePermissions(dotCopyFile, PosixFilePermissions.
+                                        fromString(perms));
                     }
                 } catch (Exception e) {
-                    logger.warn("Could not set file permissions to {} because {}", new Object[]{permissions, e});
+                    logger.
+                            warn("Could not set file permissions to {} because {}", new Object[]{permissions, e});
                 }
             }
 
-            final String owner = context.getProperty(CHANGE_OWNER).evaluateAttributeExpressions(flowFile).getValue();
-            if (owner != null && !owner.trim().isEmpty()) {
+            final String owner = context.getProperty(CHANGE_OWNER).
+                    evaluateAttributeExpressions(flowFile).
+                    getValue();
+            if (owner != null && !owner.trim().
+                    isEmpty()) {
                 try {
-                    UserPrincipalLookupService lookupService = dotCopyFile.getFileSystem().getUserPrincipalLookupService();
-                    Files.setOwner(dotCopyFile, lookupService.lookupPrincipalByName(owner));
+                    UserPrincipalLookupService lookupService = dotCopyFile.
+                            getFileSystem().
+                            getUserPrincipalLookupService();
+                    Files.setOwner(dotCopyFile, lookupService.
+                            lookupPrincipalByName(owner));
                 } catch (Exception e) {
-                    logger.warn("Could not set file owner to {} because {}", new Object[]{owner, e});
+                    logger.
+                            warn("Could not set file owner to {} because {}", new Object[]{owner, e});
                 }
             }
 
-            final String group = context.getProperty(CHANGE_GROUP).evaluateAttributeExpressions(flowFile).getValue();
-            if (group != null && !group.trim().isEmpty()) {
+            final String group = context.getProperty(CHANGE_GROUP).
+                    evaluateAttributeExpressions(flowFile).
+                    getValue();
+            if (group != null && !group.trim().
+                    isEmpty()) {
                 try {
-                    UserPrincipalLookupService lookupService = dotCopyFile.getFileSystem().getUserPrincipalLookupService();
-                    PosixFileAttributeView view = Files.getFileAttributeView(dotCopyFile, PosixFileAttributeView.class);
-                    view.setGroup(lookupService.lookupPrincipalByGroupName(group));
+                    UserPrincipalLookupService lookupService = dotCopyFile.
+                            getFileSystem().
+                            getUserPrincipalLookupService();
+                    PosixFileAttributeView view = Files.
+                            getFileAttributeView(dotCopyFile, PosixFileAttributeView.class);
+                    view.setGroup(lookupService.
+                            lookupPrincipalByGroupName(group));
                 } catch (Exception e) {
-                    logger.warn("Could not set file group to {} because {}", new Object[]{group, e});
+                    logger.
+                            warn("Could not set file group to {} because {}", new Object[]{group, e});
                 }
             }
 
             boolean renamed = false;
             for (int i = 0; i < 10; i++) { // try rename up to 10 times.
-                if (dotCopyFile.toFile().renameTo(finalCopyFile.toFile())) {
+                if (dotCopyFile.toFile().
+                        renameTo(finalCopyFile.toFile())) {
                     renamed = true;
                     break;// rename was successful
                 }
@@ -280,27 +337,36 @@ public class PutFile extends AbstractProcessor {
             }
 
             if (!renamed) {
-                if (Files.exists(dotCopyFile) && dotCopyFile.toFile().delete()) {
-                    logger.debug("Deleted dot copy file {}", new Object[]{dotCopyFile});
+                if (Files.exists(dotCopyFile) && dotCopyFile.toFile().
+                        delete()) {
+                    logger.
+                            debug("Deleted dot copy file {}", new Object[]{dotCopyFile});
                 }
                 throw new ProcessException("Could not rename: " + dotCopyFile);
             } else {
-                logger.info("Produced copy of {} at location {}", new Object[]{flowFile, finalCopyFile});
+                logger.
+                        info("Produced copy of {} at location {}", new Object[]{flowFile, finalCopyFile});
             }
 
-            session.getProvenanceReporter().send(flowFile, finalCopyFile.toFile().toURI().toString(), stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+            session.getProvenanceReporter().
+                    send(flowFile, finalCopyFile.toFile().
+                            toURI().
+                            toString(), stopWatch.
+                            getElapsed(TimeUnit.MILLISECONDS));
             session.transfer(flowFile, REL_SUCCESS);
         } catch (final Throwable t) {
             if (tempDotCopyFile != null) {
                 try {
                     Files.deleteIfExists(tempDotCopyFile);
                 } catch (final Exception e) {
-                    logger.error("Unable to remove temporary file {} due to {}", new Object[]{tempDotCopyFile, e});
+                    logger.
+                            error("Unable to remove temporary file {} due to {}", new Object[]{tempDotCopyFile, e});
                 }
             }
 
             flowFile = session.penalize(flowFile);
-            logger.error("Penalizing {} and transferring to failure due to {}", new Object[]{flowFile, t});
+            logger.
+                    error("Penalizing {} and transferring to failure due to {}", new Object[]{flowFile, t});
             session.transfer(flowFile, REL_FAILURE);
         }
     }
@@ -309,9 +375,11 @@ public class PutFile extends AbstractProcessor {
         String permissions = "";
         final Pattern rwxPattern = Pattern.compile("^[rwx-]{9}$");
         final Pattern numPattern = Pattern.compile("\\d+");
-        if (rwxPattern.matcher(perms).matches()) {
+        if (rwxPattern.matcher(perms).
+                matches()) {
             permissions = perms;
-        } else if (numPattern.matcher(perms).matches()) {
+        } else if (numPattern.matcher(perms).
+                matches()) {
             try {
                 int number = Integer.parseInt(perms, 8);
                 StringBuilder permBuilder = new StringBuilder();

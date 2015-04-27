@@ -36,7 +36,8 @@ public class TestIdentifyMimeType {
 
     @Test
     public void testFiles() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new IdentifyMimeType());
+        final TestRunner runner = TestRunners.
+                newTestRunner(new IdentifyMimeType());
 
         final File dir = new File("src/test/resources/TestIdentifyMimeType");
         final File[] files = dir.listFiles();
@@ -53,7 +54,8 @@ public class TestIdentifyMimeType {
         runner.setThreadCount(1);
         runner.run(fileCount);
 
-        runner.assertAllFlowFilesTransferred(IdentifyMimeType.REL_SUCCESS, fileCount);
+        runner.
+                assertAllFlowFilesTransferred(IdentifyMimeType.REL_SUCCESS, fileCount);
 
         final Map<String, String> expectedMimeTypes = new HashMap<>();
         expectedMimeTypes.put("1.7z", "application/x-7z-compressed");
@@ -91,10 +93,13 @@ public class TestIdentifyMimeType {
         expectedExtensions.put("flowfilev3", "");
         expectedExtensions.put("flowfilev1.tar", "");
 
-        final List<MockFlowFile> filesOut = runner.getFlowFilesForRelationship(IdentifyMimeType.REL_SUCCESS);
+        final List<MockFlowFile> filesOut = runner.
+                getFlowFilesForRelationship(IdentifyMimeType.REL_SUCCESS);
         for (final MockFlowFile file : filesOut) {
-            final String filename = file.getAttribute(CoreAttributes.FILENAME.key());
-            final String mimeType = file.getAttribute(CoreAttributes.MIME_TYPE.key());
+            final String filename = file.getAttribute(CoreAttributes.FILENAME.
+                    key());
+            final String mimeType = file.getAttribute(CoreAttributes.MIME_TYPE.
+                    key());
             final String expected = expectedMimeTypes.get(filename);
 
             final String extension = file.getAttribute("mime.extension");

@@ -81,17 +81,22 @@ public class TestSplitText {
         runner.assertTransferCount(SplitText.REL_ORIGINAL, 1);
         runner.assertTransferCount(SplitText.REL_SPLITS, 4);
 
-        final List<MockFlowFile> splits = runner.getFlowFilesForRelationship(SplitText.REL_SPLITS);
+        final List<MockFlowFile> splits = runner.
+                getFlowFilesForRelationship(SplitText.REL_SPLITS);
 
         final String expected0 = "Header Line #1\nHeader Line #2\nLine #1";
         final String expected1 = "Line #2\nLine #3\nLine #4";
         final String expected2 = "Line #5\nLine #6\nLine #7";
         final String expected3 = "Line #8\nLine #9\nLine #10";
 
-        splits.get(0).assertContentEquals(expected0);
-        splits.get(1).assertContentEquals(expected1);
-        splits.get(2).assertContentEquals(expected2);
-        splits.get(3).assertContentEquals(expected3);
+        splits.get(0).
+                assertContentEquals(expected0);
+        splits.get(1).
+                assertContentEquals(expected1);
+        splits.get(2).
+                assertContentEquals(expected2);
+        splits.get(3).
+                assertContentEquals(expected3);
     }
 
     @Test
@@ -107,11 +112,14 @@ public class TestSplitText {
         runner.assertTransferCount(SplitText.REL_ORIGINAL, 1);
         runner.assertTransferCount(SplitText.REL_SPLITS, 4);
 
-        final List<MockFlowFile> splits = runner.getFlowFilesForRelationship(SplitText.REL_SPLITS);
+        final List<MockFlowFile> splits = runner.
+                getFlowFilesForRelationship(SplitText.REL_SPLITS);
         for (int i = 0; i < splits.size(); i++) {
             final MockFlowFile split = splits.get(i);
-            split.assertContentEquals(file.getParent().resolve((i + 1) + ".txt"));
-            split.assertAttributeEquals(SplitText.FRAGMENT_INDEX, String.valueOf(i + 1));
+            split.assertContentEquals(file.getParent().
+                    resolve((i + 1) + ".txt"));
+            split.assertAttributeEquals(SplitText.FRAGMENT_INDEX, String.
+                    valueOf(i + 1));
         }
     }
 
@@ -128,16 +136,26 @@ public class TestSplitText {
         runner.assertTransferCount(SplitText.REL_ORIGINAL, 1);
         runner.assertTransferCount(SplitText.REL_SPLITS, 2);
 
-        final List<MockFlowFile> splits = runner.getFlowFilesForRelationship(SplitText.REL_SPLITS);
-        splits.get(0).assertContentEquals(file.getParent().resolve("5.txt"));
-        splits.get(0).assertAttributeEquals(SplitText.FRAGMENT_INDEX, String.valueOf(1));
-        splits.get(1).assertContentEquals(file.getParent().resolve("6.txt"));
-        splits.get(1).assertAttributeEquals(SplitText.FRAGMENT_INDEX, String.valueOf(2));
+        final List<MockFlowFile> splits = runner.
+                getFlowFilesForRelationship(SplitText.REL_SPLITS);
+        splits.get(0).
+                assertContentEquals(file.getParent().
+                        resolve("5.txt"));
+        splits.get(0).
+                assertAttributeEquals(SplitText.FRAGMENT_INDEX, String.
+                        valueOf(1));
+        splits.get(1).
+                assertContentEquals(file.getParent().
+                        resolve("6.txt"));
+        splits.get(1).
+                assertAttributeEquals(SplitText.FRAGMENT_INDEX, String.
+                        valueOf(2));
     }
 
     @Test
     public void testSplitThenMerge() throws IOException {
-        final TestRunner splitRunner = TestRunners.newTestRunner(new SplitText());
+        final TestRunner splitRunner = TestRunners.
+                newTestRunner(new SplitText());
         splitRunner.setProperty(SplitText.LINE_SPLIT_COUNT, "3");
         splitRunner.setProperty(SplitText.REMOVE_TRAILING_NEWLINES, "false");
 
@@ -148,15 +166,20 @@ public class TestSplitText {
         splitRunner.assertTransferCount(SplitText.REL_ORIGINAL, 1);
         splitRunner.assertTransferCount(SplitText.REL_FAILURE, 0);
 
-        final List<MockFlowFile> splits = splitRunner.getFlowFilesForRelationship(SplitText.REL_SPLITS);
+        final List<MockFlowFile> splits = splitRunner.
+                getFlowFilesForRelationship(SplitText.REL_SPLITS);
         for (final MockFlowFile flowFile : splits) {
-            flowFile.assertAttributeEquals(SplitText.SEGMENT_ORIGINAL_FILENAME, originalFilename);
+            flowFile.
+                    assertAttributeEquals(SplitText.SEGMENT_ORIGINAL_FILENAME, originalFilename);
             flowFile.assertAttributeEquals(SplitText.FRAGMENT_COUNT, "4");
         }
 
-        final TestRunner mergeRunner = TestRunners.newTestRunner(new MergeContent());
-        mergeRunner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_CONCAT);
-        mergeRunner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_DEFRAGMENT);
+        final TestRunner mergeRunner = TestRunners.
+                newTestRunner(new MergeContent());
+        mergeRunner.
+                setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_CONCAT);
+        mergeRunner.
+                setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_DEFRAGMENT);
         mergeRunner.enqueue(splits.toArray(new MockFlowFile[0]));
         mergeRunner.run();
 
@@ -164,10 +187,13 @@ public class TestSplitText {
         mergeRunner.assertTransferCount(MergeContent.REL_ORIGINAL, 4);
         mergeRunner.assertTransferCount(MergeContent.REL_FAILURE, 0);
 
-        final List<MockFlowFile> packed = mergeRunner.getFlowFilesForRelationship(MergeContent.REL_MERGED);
+        final List<MockFlowFile> packed = mergeRunner.
+                getFlowFilesForRelationship(MergeContent.REL_MERGED);
         MockFlowFile flowFile = packed.get(0);
-        flowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), originalFilename);
-        assertEquals(Files.size(dataPath.resolve(originalFilename)), flowFile.getSize());
+        flowFile.
+                assertAttributeEquals(CoreAttributes.FILENAME.key(), originalFilename);
+        assertEquals(Files.size(dataPath.resolve(originalFilename)), flowFile.
+                getSize());
         flowFile.assertContentEquals(file);
     }
 }

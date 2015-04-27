@@ -55,9 +55,7 @@ public class ModifyBytes extends AbstractProcessor {
             .name("success")
             .description("Processed flowfiles.")
             .build();
-    //
     private final Set<Relationship> relationships;
-    // Properties
     public static final PropertyDescriptor START_OFFSET = new PropertyDescriptor.Builder()
             .name("Start Offset")
             .description("Number of bytes removed at the beginning of the file.")
@@ -72,7 +70,6 @@ public class ModifyBytes extends AbstractProcessor {
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .defaultValue("0 B")
             .build();
-    // 
     private final List<PropertyDescriptor> propDescriptors;
 
     public ModifyBytes() {

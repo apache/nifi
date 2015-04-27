@@ -48,8 +48,10 @@ public class TestExecuteStreamCommand {
     public static void init() {
         System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "info");
         System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
-        System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.ExecuteStreamCommand", "debug");
-        System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.TestExecuteStreamCommand", "debug");
+        System.
+                setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.ExecuteStreamCommand", "debug");
+        System.
+                setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.TestExecuteStreamCommand", "debug");
         LOGGER = LoggerFactory.getLogger(TestExecuteStreamCommand.class);
     }
 
@@ -59,32 +61,46 @@ public class TestExecuteStreamCommand {
         File dummy = new File("src/test/resources/ExecuteCommand/1000bytes.txt");
         String jarPath = exJar.getAbsolutePath();
         exJar.setExecutable(true);
-        final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
+        final TestRunner controller = TestRunners.
+                newTestRunner(ExecuteStreamCommand.class);
         controller.setValidateExpressionUsage(false);
         controller.enqueue(dummy.toPath());
         controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "java");
-        controller.setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, "-jar;" + jarPath);
+        controller.
+                setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, "-jar;" + jarPath);
         controller.run(1);
-        controller.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
-        controller.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 1);
+        controller.
+                assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
+        controller.
+                assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 1);
 
-        List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
+        List<MockFlowFile> flowFiles = controller.
+                getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
         MockFlowFile outputFlowFile = flowFiles.get(0);
         byte[] byteArray = outputFlowFile.toByteArray();
         String result = new String(byteArray);
-        assertTrue("Test was a success\r\n".equals(result) || "Test was a success\n".equals(result));
+        assertTrue("Test was a success\r\n".equals(result) || "Test was a success\n".
+                equals(result));
         assertEquals("0", outputFlowFile.getAttribute("execution.status"));
         assertEquals("java", outputFlowFile.getAttribute("execution.command"));
-        assertEquals("-jar;", outputFlowFile.getAttribute("execution.command.args").substring(0, 5));
+        assertEquals("-jar;", outputFlowFile.
+                getAttribute("execution.command.args").
+                substring(0, 5));
         String attribute = outputFlowFile.getAttribute("execution.command.args");
         String expected = "src" + File.separator + "test" + File.separator + "resources" + File.separator + "ExecuteCommand" + File.separator
                 + "TestSuccess.jar";
-        assertEquals(expected, attribute.substring(attribute.length() - expected.length()));
+        assertEquals(expected, attribute.
+                substring(attribute.length() - expected.length()));
 
-        MockFlowFile originalFlowFile = controller.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP).get(0);
-        assertEquals(outputFlowFile.getAttribute("execution.status"), originalFlowFile.getAttribute("execution.status"));
-        assertEquals(outputFlowFile.getAttribute("execution.command"), originalFlowFile.getAttribute("execution.command"));
-        assertEquals(outputFlowFile.getAttribute("execution.command.args"), originalFlowFile.getAttribute("execution.command.args"));
+        MockFlowFile originalFlowFile = controller.
+                getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP).
+                get(0);
+        assertEquals(outputFlowFile.getAttribute("execution.status"), originalFlowFile.
+                getAttribute("execution.status"));
+        assertEquals(outputFlowFile.getAttribute("execution.command"), originalFlowFile.
+                getAttribute("execution.command"));
+        assertEquals(outputFlowFile.getAttribute("execution.command.args"), originalFlowFile.
+                getAttribute("execution.command.args"));
     }
 
     @Test
@@ -93,17 +109,25 @@ public class TestExecuteStreamCommand {
         File dummy = new File("src/test/resources/ExecuteCommand/1000bytes.txt");
         String jarPath = exJar.getAbsolutePath();
         exJar.setExecutable(true);
-        final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
+        final TestRunner controller = TestRunners.
+                newTestRunner(ExecuteStreamCommand.class);
         controller.setValidateExpressionUsage(false);
         controller.enqueue(dummy.toPath());
         controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "java");
-        controller.setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, "-jar;" + jarPath);
+        controller.
+                setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, "-jar;" + jarPath);
         controller.run(1);
-        controller.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
-        controller.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 1);
-        List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
-        assertEquals(0, flowFiles.get(0).getSize());
-        assertEquals("Error: Unable to access jarfile", flowFiles.get(0).getAttribute("execution.error").substring(0, 31));
+        controller.
+                assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
+        controller.
+                assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 1);
+        List<MockFlowFile> flowFiles = controller.
+                getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
+        assertEquals(0, flowFiles.get(0).
+                getSize());
+        assertEquals("Error: Unable to access jarfile", flowFiles.get(0).
+                getAttribute("execution.error").
+                substring(0, 31));
     }
 
     @Test
@@ -122,20 +146,28 @@ public class TestExecuteStreamCommand {
         fos.close();
         String jarPath = exJar.getAbsolutePath();
         exJar.setExecutable(true);
-        final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
+        final TestRunner controller = TestRunners.
+                newTestRunner(ExecuteStreamCommand.class);
         controller.setValidateExpressionUsage(false);
         controller.enqueue(dummy100MBytes.toPath());
         controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "java");
-        controller.setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, "-jar;" + jarPath);
+        controller.
+                setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, "-jar;" + jarPath);
         controller.run(1);
-        controller.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
-        controller.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 1);
-        List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
-        byte[] byteArray = flowFiles.get(0).toByteArray();
+        controller.
+                assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
+        controller.
+                assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 1);
+        List<MockFlowFile> flowFiles = controller.
+                getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
+        byte[] byteArray = flowFiles.get(0).
+                toByteArray();
         String result = new String(byteArray);
 
-        assertTrue(result.contains(File.separator + "nifi-standard-processors:ModifiedResult\r\n")
-                || result.contains(File.separator + "nifi-standard-processors:ModifiedResult\n"));
+        assertTrue(result.
+                contains(File.separator + "nifi-standard-processors:ModifiedResult\r\n")
+                || result.
+                contains(File.separator + "nifi-standard-processors:ModifiedResult\n"));
     }
 
     @Test
@@ -144,20 +176,28 @@ public class TestExecuteStreamCommand {
         File dummy = new File("src/test/resources/ExecuteCommand/1000bytes.txt");
         String jarPath = exJar.getAbsolutePath();
         exJar.setExecutable(true);
-        final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
+        final TestRunner controller = TestRunners.
+                newTestRunner(ExecuteStreamCommand.class);
         controller.setValidateExpressionUsage(false);
         controller.enqueue(dummy.toPath());
         controller.setProperty(ExecuteStreamCommand.WORKING_DIR, "target");
         controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "java");
-        controller.setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, "-jar;" + jarPath);
+        controller.
+                setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, "-jar;" + jarPath);
         controller.run(1);
-        controller.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
-        controller.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 1);
-        List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
-        byte[] byteArray = flowFiles.get(0).toByteArray();
+        controller.
+                assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
+        controller.
+                assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 1);
+        List<MockFlowFile> flowFiles = controller.
+                getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
+        byte[] byteArray = flowFiles.get(0).
+                toByteArray();
         String result = new String(byteArray);
-        assertTrue(result.contains(File.separator + "nifi-standard-processors" + File.separator + "target:ModifiedResult\r\n")
-                || result.contains(File.separator + "nifi-standard-processors" + File.separator + "target:ModifiedResult\n"));
+        assertTrue(result.
+                contains(File.separator + "nifi-standard-processors" + File.separator + "target:ModifiedResult\r\n")
+                || result.
+                contains(File.separator + "nifi-standard-processors" + File.separator + "target:ModifiedResult\n"));
     }
 
     // this is dependent on window with cygwin...so it's not enabled
@@ -167,7 +207,8 @@ public class TestExecuteStreamCommand {
         File testFile = new File("target/test.txt");
         testFile.delete();
         File dummy = new File("src/test/resources/ExecuteCommand/1000bytes.txt");
-        final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
+        final TestRunner controller = TestRunners.
+                newTestRunner(ExecuteStreamCommand.class);
         controller.setValidateExpressionUsage(false);
         controller.enqueue(dummy.toPath());
         controller.enqueue(dummy.toPath());
@@ -176,13 +217,17 @@ public class TestExecuteStreamCommand {
         controller.enqueue(dummy.toPath());
         controller.setProperty(ExecuteStreamCommand.WORKING_DIR, "target/xx1");
         controller.setThreadCount(6);
-        controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "c:\\cygwin\\bin\\touch");
-        controller.setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, "test.txt");
+        controller.
+                setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "c:\\cygwin\\bin\\touch");
+        controller.
+                setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, "test.txt");
         controller.assertValid();
         controller.run(6);
-        List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
+        List<MockFlowFile> flowFiles = controller.
+                getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
         assertEquals(5, flowFiles.size());
-        assertEquals(0, flowFiles.get(0).getSize());
+        assertEquals(0, flowFiles.get(0).
+                getSize());
 
     }
 }
