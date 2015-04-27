@@ -22,8 +22,11 @@ import java.nio.ByteBuffer;
 public interface SetCache {
 
     SetCacheResult remove(ByteBuffer value) throws IOException;
+
     SetCacheResult addIfAbsent(ByteBuffer value) throws IOException;
+
     SetCacheResult contains(ByteBuffer value) throws IOException;
+
     void shutdown() throws IOException;
-    
+
 }

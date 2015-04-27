@@ -67,17 +67,17 @@ public class SetCacheServer extends AbstractCacheServer {
 
         final SetCacheResult response;
         switch (action) {
-        case "addIfAbsent":
-            response = cache.addIfAbsent(valueBuffer);
-            break;
-        case "contains":
-            response = cache.contains(valueBuffer);
-            break;
-        case "remove":
-            response = cache.remove(valueBuffer);
-            break;
-        default:
-            throw new IOException("IllegalRequest");
+            case "addIfAbsent":
+                response = cache.addIfAbsent(valueBuffer);
+                break;
+            case "contains":
+                response = cache.contains(valueBuffer);
+                break;
+            case "remove":
+                response = cache.remove(valueBuffer);
+                break;
+            default:
+                throw new IOException("IllegalRequest");
         }
 
         dos.writeBoolean(response.getResult());
@@ -97,8 +97,9 @@ public class SetCacheServer extends AbstractCacheServer {
 
     @Override
     protected void finalize() throws Throwable {
-        if (!stopped)
+        if (!stopped) {
             stop();
+        }
     }
 
 }

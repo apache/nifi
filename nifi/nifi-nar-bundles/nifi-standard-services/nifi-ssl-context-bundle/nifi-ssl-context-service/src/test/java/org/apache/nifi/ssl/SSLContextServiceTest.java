@@ -73,7 +73,7 @@ public class SSLContextServiceTest {
         properties.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "wrongpassword");
         properties.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), "JKS");
         runner.addControllerService("test-bad4", service, properties);
-        
+
         runner.assertNotValid(service);
     }
 
@@ -126,7 +126,7 @@ public class SSLContextServiceTest {
             properties.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), "JKS");
             runner.addControllerService("test-good2", service, properties);
             runner.enableControllerService(service);
-            
+
             runner.setProperty("SSL Context Svc ID", "test-good2");
             runner.assertValid();
             Assert.assertNotNull(service);

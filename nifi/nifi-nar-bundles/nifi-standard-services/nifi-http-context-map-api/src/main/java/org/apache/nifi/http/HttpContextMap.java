@@ -22,51 +22,48 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.nifi.controller.ControllerService;
 
-
 /**
  * <p>
- * An interface that provides the capability of receiving an HTTP servlet request in one component
- * and responding to that request in another component.
+ * An interface that provides the capability of receiving an HTTP servlet request in one component and responding to that request in another component.
  * </p>
- * 
+ *
  * <p>
- * The intended flow is for the component receiving the HTTP request to register the request, response,
- * and AsyncContext with a particular identifier via the 
- * {@link #register(String, HttpServletRequest, HttpServletResponse, AsyncContext)}
- * method. Another component is then able to obtain the response
- * by providing that identifier to the {@link #getResponse(String)} method. After writing to the 
- * HttpServletResponse, the transaction is to then be completed via the {@link #complete(String)} method.
+ * The intended flow is for the component receiving the HTTP request to register the request, response, and AsyncContext with a particular identifier via the
+ * {@link #register(String, HttpServletRequest, HttpServletResponse, AsyncContext)} method. Another component is then able to obtain the response by providing that identifier to the
+ * {@link #getResponse(String)} method. After writing to the HttpServletResponse, the transaction is to then be completed via the {@link #complete(String)} method.
  * </p>
  */
 public interface HttpContextMap extends ControllerService {
 
     /**
      * Registers an HttpServletRequest, HttpServletResponse, and the AsyncContext for a given identifier
-     * 
-     * @param identifier
-     * @param request
-     * @param response
-     * @param context
-	 *
-	 * @return true if register is successful, false if the context map is too full because too many requests have already been received and not processed
-     * 
+     *
+     * @param identifier identifier
+     * @param request request
+     * @param response response
+     * @param context context
+     *
+     * @return true if register is successful, false if the context map is too full because too many requests have already been received and not processed
+     *
      * @throws IllegalStateException if the identifier is already registered
      */
     boolean register(String identifier, HttpServletRequest request, HttpServletResponse response, AsyncContext context);
-    
+
     /**
      * Retrieves the HttpServletResponse for the given identifier, if it exists
-     * @param identifier
+     *
+     * @param identifier identifier
      * @return the HttpServletResponse for the given identifier, or {@code null} if it does not exist
      */
     HttpServletResponse getResponse(String identifier);
-    
+
     /**
      * Marks the HTTP request/response for the given identifier as complete
-     * @param identifier
-     * 
+     *
+     * @param identifier identifier
+     *
      * @throws IllegalStateException if the identifier is not registered to a valid AsyncContext
      */
     void complete(String identifier);
-    
+
 }
