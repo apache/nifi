@@ -34,9 +34,7 @@ import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.util.FormatUtils;
 
 /**
- * This task runs through all Connectable Components and goes through its
- * incoming queues, polling for FlowFiles and accepting none. This causes the
- * desired side effect of expiring old FlowFiles.
+ * This task runs through all Connectable Components and goes through its incoming queues, polling for FlowFiles and accepting none. This causes the desired side effect of expiring old FlowFiles.
  */
 public class ExpireFlowFiles implements Runnable {
 

@@ -39,8 +39,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 
 /**
- * This class is essentially an empty shell for {@link Connectable}s that are
- * not Processors
+ * This class is essentially an empty shell for {@link Connectable}s that are not Processors
  */
 public class ConnectableProcessContext implements ProcessContext {
 

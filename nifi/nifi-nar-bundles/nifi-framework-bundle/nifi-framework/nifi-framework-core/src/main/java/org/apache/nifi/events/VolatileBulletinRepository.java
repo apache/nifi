@@ -176,9 +176,8 @@ public class VolatileBulletinRepository implements BulletinRepository {
     }
 
     /**
-     * Overrides the default bulletin processing strategy. When a custom
-     * bulletin strategy is employed, bulletins will not be persisted in this
-     * repository and will sent to the specified strategy instead.
+     * Overrides the default bulletin processing strategy. When a custom bulletin strategy is employed, bulletins will not be persisted in this repository and will sent to the specified strategy
+     * instead.
      *
      * @param strategy bulletin strategy
      */

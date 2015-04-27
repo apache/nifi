@@ -518,10 +518,8 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     }
 
     /**
-     * Returns a List of all components that reference the given referencedNode
-     * (either directly or indirectly through another service) that are also of
-     * the given componentType. The list that is returned is in the order in
-     * which they will need to be 'activated' (enabled/started).
+     * Returns a List of all components that reference the given referencedNode (either directly or indirectly through another service) that are also of the given componentType. The list that is
+     * returned is in the order in which they will need to be 'activated' (enabled/started).
      *
      * @param referencedNode node
      * @param componentType type

@@ -53,7 +53,7 @@ public class StandardStatusSnapshot implements StatusSnapshot {
             public StatusSnapshot reduce(final List<StatusSnapshot> values) {
                 Date reducedTimestamp = null;
                 final Set<MetricDescriptor<?>> allDescriptors = new LinkedHashSet<>(metricValues.keySet());
-                
+
                 for (final StatusSnapshot statusSnapshot : values) {
                     if (reducedTimestamp == null) {
                         reducedTimestamp = statusSnapshot.getTimestamp();

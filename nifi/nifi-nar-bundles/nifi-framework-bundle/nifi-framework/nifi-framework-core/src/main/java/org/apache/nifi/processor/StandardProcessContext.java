@@ -65,8 +65,7 @@ public class StandardProcessContext implements ProcessContext, ControllerService
 
     /**
      * <p>
-     * Returns the currently configured value for the property with the given
-     * name.
+     * Returns the currently configured value for the property with the given name.
      * </p>
      */
     @Override

@@ -31,12 +31,9 @@ public class ReflectionUtils {
     private final static Logger LOG = LoggerFactory.getLogger(ReflectionUtils.class);
 
     /**
-     * Invokes all methods on the given instance that have been annotated with
-     * the given Annotation. If the signature of the method that is defined in
-     * <code>instance</code> uses 1 or more parameters, those parameters must be
-     * specified by the <code>args</code> parameter. However, if more arguments
-     * are supplied by the <code>args</code> parameter than needed, the extra
-     * arguments will be ignored.
+     * Invokes all methods on the given instance that have been annotated with the given Annotation. If the signature of the method that is defined in <code>instance</code> uses 1 or more parameters,
+     * those parameters must be specified by the <code>args</code> parameter. However, if more arguments are supplied by the <code>args</code> parameter than needed, the extra arguments will be
+     * ignored.
      *
      * @param annotation annotation
      * @param instance instance
@@ -51,14 +48,9 @@ public class ReflectionUtils {
     }
 
     /**
-     * Invokes all methods on the given instance that have been annotated with
-     * the given preferredAnnotation and if no such method exists will invoke
-     * all methods on the given instance that have been annotated with the given
-     * alternateAnnotation, if any exists. If the signature of the method that
-     * is defined in <code>instance</code> uses 1 or more parameters, those
-     * parameters must be specified by the <code>args</code> parameter. However,
-     * if more arguments are supplied by the <code>args</code> parameter than
-     * needed, the extra arguments will be ignored.
+     * Invokes all methods on the given instance that have been annotated with the given preferredAnnotation and if no such method exists will invoke all methods on the given instance that have been
+     * annotated with the given alternateAnnotation, if any exists. If the signature of the method that is defined in <code>instance</code> uses 1 or more parameters, those parameters must be
+     * specified by the <code>args</code> parameter. However, if more arguments are supplied by the <code>args</code> parameter than needed, the extra arguments will be ignored.
      *
      * @param preferredAnnotation preferred
      * @param alternateAnnotation alternate
@@ -134,67 +126,48 @@ public class ReflectionUtils {
     }
 
     /**
-     * Invokes all methods on the given instance that have been annotated with
-     * the given Annotation. If the signature of the method that is defined in
-     * <code>instance</code> uses 1 or more parameters, those parameters must be
-     * specified by the <code>args</code> parameter. However, if more arguments
-     * are supplied by the <code>args</code> parameter than needed, the extra
-     * arguments will be ignored.
+     * Invokes all methods on the given instance that have been annotated with the given Annotation. If the signature of the method that is defined in <code>instance</code> uses 1 or more parameters,
+     * those parameters must be specified by the <code>args</code> parameter. However, if more arguments are supplied by the <code>args</code> parameter than needed, the extra arguments will be
+     * ignored.
      *
      * @param annotation annotation
      * @param instance instance
      * @param args args
-     * @return <code>true</code> if all appropriate methods were invoked and
-     * returned without throwing an Exception, <code>false</code> if one of the
-     * methods threw an Exception or could not be invoked; if <code>false</code>
-     * is returned, an error will have been logged.
+     * @return <code>true</code> if all appropriate methods were invoked and returned without throwing an Exception, <code>false</code> if one of the methods threw an Exception or could not be
+     * invoked; if <code>false</code> is returned, an error will have been logged.
      */
     public static boolean quietlyInvokeMethodsWithAnnotation(final Class<? extends Annotation> annotation, final Object instance, final Object... args) {
         return quietlyInvokeMethodsWithAnnotation(annotation, null, instance, null, args);
     }
 
     /**
-     * Invokes all methods on the given instance that have been annotated with
-     * the given Annotation. If the signature of the method that is defined in
-     * <code>instance</code> uses 1 or more parameters, those parameters must be
-     * specified by the <code>args</code> parameter. However, if more arguments
-     * are supplied by the <code>args</code> parameter than needed, the extra
-     * arguments will be ignored.
+     * Invokes all methods on the given instance that have been annotated with the given Annotation. If the signature of the method that is defined in <code>instance</code> uses 1 or more parameters,
+     * those parameters must be specified by the <code>args</code> parameter. However, if more arguments are supplied by the <code>args</code> parameter than needed, the extra arguments will be
+     * ignored.
      *
      * @param annotation annotation
      * @param instance instance
      * @param logger logger
      * @param args args
-     * @return <code>true</code> if all appropriate methods were invoked and
-     * returned without throwing an Exception, <code>false</code> if one of the
-     * methods threw an Exception or could not be invoked; if <code>false</code>
-     * is returned, an error will have been logged.
+     * @return <code>true</code> if all appropriate methods were invoked and returned without throwing an Exception, <code>false</code> if one of the methods threw an Exception or could not be
+     * invoked; if <code>false</code> is returned, an error will have been logged.
      */
     public static boolean quietlyInvokeMethodsWithAnnotation(final Class<? extends Annotation> annotation, final Object instance, final ProcessorLog logger, final Object... args) {
         return quietlyInvokeMethodsWithAnnotation(annotation, null, instance, logger, args);
     }
 
     /**
-     * Invokes all methods on the given instance that have been annotated with
-     * the given preferredAnnotation and if no such method exists will invoke
-     * all methods on the given instance that have been annotated with the given
-     * alternateAnnotation, if any exists. If the signature of the method that
-     * is defined in <code>instance</code> uses 1 or more parameters, those
-     * parameters must be specified by the <code>args</code> parameter. However,
-     * if more arguments are supplied by the <code>args</code> parameter than
-     * needed, the extra arguments will be ignored.
+     * Invokes all methods on the given instance that have been annotated with the given preferredAnnotation and if no such method exists will invoke all methods on the given instance that have been
+     * annotated with the given alternateAnnotation, if any exists. If the signature of the method that is defined in <code>instance</code> uses 1 or more parameters, those parameters must be
+     * specified by the <code>args</code> parameter. However, if more arguments are supplied by the <code>args</code> parameter than needed, the extra arguments will be ignored.
      *
      * @param preferredAnnotation preferred
      * @param alternateAnnotation alternate
      * @param instance instance
-     * @param logger the ProcessorLog to use for logging any errors. If null,
-     * will use own logger, but that will not generate bulletins or easily tie
-     * to the Processor's log messages.
+     * @param logger the ProcessorLog to use for logging any errors. If null, will use own logger, but that will not generate bulletins or easily tie to the Processor's log messages.
      * @param args args
-     * @return <code>true</code> if all appropriate methods were invoked and
-     * returned without throwing an Exception, <code>false</code> if one of the
-     * methods threw an Exception or could not be invoked; if <code>false</code>
-     * is returned, an error will have been logged.
+     * @return <code>true</code> if all appropriate methods were invoked and returned without throwing an Exception, <code>false</code> if one of the methods threw an Exception or could not be
+     * invoked; if <code>false</code> is returned, an error will have been logged.
      */
     public static boolean quietlyInvokeMethodsWithAnnotation(
             final Class<? extends Annotation> preferredAnnotation, final Class<? extends Annotation> alternateAnnotation, final Object instance, final ProcessorLog logger, final Object... args) {

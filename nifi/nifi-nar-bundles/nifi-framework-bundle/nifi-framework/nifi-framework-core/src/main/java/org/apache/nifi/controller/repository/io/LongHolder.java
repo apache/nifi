@@ -17,10 +17,8 @@
 package org.apache.nifi.controller.repository.io;
 
 /**
- * Class to hold a long value that can be incremented and decremented. This
- * allows the abstraction of passing a long value by reference, rather than by
- * value, without the overhead of synchronization required by the use of an
- * AtomicLong.
+ * Class to hold a long value that can be incremented and decremented. This allows the abstraction of passing a long value by reference, rather than by value, without the overhead of synchronization
+ * required by the use of an AtomicLong.
  */
 public class LongHolder {
 

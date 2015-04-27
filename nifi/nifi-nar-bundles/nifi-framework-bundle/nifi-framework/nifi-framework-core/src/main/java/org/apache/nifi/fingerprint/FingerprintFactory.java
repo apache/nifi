@@ -72,15 +72,10 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 /**
- * Creates a fingerprint of a flow.xml. The order of elements or attributes in
- * the flow.xml does not influence the fingerprint generation.
+ * Creates a fingerprint of a flow.xml. The order of elements or attributes in the flow.xml does not influence the fingerprint generation.
  *
- * Only items in the flow.xml that influence the processing of data are
- * incorporated into the fingerprint. Examples of items involved in the
- * fingerprint are: processor IDs, processor relationships, and processor
- * properties. Examples of items not involved in the fingerprint are: items in
- * the processor "settings" or "comments" tabs, position information, flow
- * controller settings, and counters.
+ * Only items in the flow.xml that influence the processing of data are incorporated into the fingerprint. Examples of items involved in the fingerprint are: processor IDs, processor relationships,
+ * and processor properties. Examples of items not involved in the fingerprint are: items in the processor "settings" or "comments" tabs, position information, flow controller settings, and counters.
  *
  */
 public final class FingerprintFactory {
@@ -125,8 +120,7 @@ public final class FingerprintFactory {
     }
 
     /**
-     * Creates a fingerprint of a flow. The order of elements or attributes in
-     * the flow does not influence the fingerprint generation.
+     * Creates a fingerprint of a flow. The order of elements or attributes in the flow does not influence the fingerprint generation.
      *
      * @param flowBytes the flow represented as bytes
      * @param controller the controller
@@ -183,8 +177,7 @@ public final class FingerprintFactory {
     }
 
     /**
-     * Creates a fingerprint of a Collection of Templates The order of the
-     * templates does not influence the fingerprint generation.
+     * Creates a fingerprint of a Collection of Templates The order of the templates does not influence the fingerprint generation.
      *
      *
      * @param templates collection of templates

@@ -17,8 +17,7 @@
 package org.apache.nifi.controller;
 
 /**
- * Represents the exceptional case when a controller managing an existing flow
- * fails to fully load a different flow.
+ * Represents the exceptional case when a controller managing an existing flow fails to fully load a different flow.
  *
  * @author unattributed
  */

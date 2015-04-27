@@ -39,15 +39,9 @@ public final class StandardPropertyValue implements PropertyValue {
     }
 
     /**
-     * Constructs a new StandardPropertyValue with the given value & service
-     * lookup and indicates whether or not the rawValue contains any NiFi
-     * Expressions. If it is unknown whether or not the value contains any NiFi
-     * Expressions, the
-     * {@link #StandardPropertyValue(String, ControllerServiceLookup)}
-     * constructor should be used or <code>true</code> should be passed.
-     * However, if it is known that the value contains no NiFi Expression, that
-     * information should be provided so that calls to
-     * {@link #evaluateAttributeExpressions()} are much more efficient
+     * Constructs a new StandardPropertyValue with the given value & service lookup and indicates whether or not the rawValue contains any NiFi Expressions. If it is unknown whether or not the value
+     * contains any NiFi Expressions, the {@link #StandardPropertyValue(String, ControllerServiceLookup)} constructor should be used or <code>true</code> should be passed. However, if it is known that
+     * the value contains no NiFi Expression, that information should be provided so that calls to {@link #evaluateAttributeExpressions()} are much more efficient
      *
      * @param rawValue value
      * @param serviceLookup lookup

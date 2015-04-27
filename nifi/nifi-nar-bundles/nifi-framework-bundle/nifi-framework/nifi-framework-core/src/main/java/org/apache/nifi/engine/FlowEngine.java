@@ -34,8 +34,7 @@ public final class FlowEngine extends ScheduledThreadPoolExecutor {
     /**
      * Creates a new instance of FlowEngine
      *
-     * @param corePoolSize the maximum number of threads available to tasks
-     * running in the engine.
+     * @param corePoolSize the maximum number of threads available to tasks running in the engine.
      * @param threadNamePrefix for naming the thread
      */
     public FlowEngine(int corePoolSize, final String threadNamePrefix) {
@@ -45,11 +44,9 @@ public final class FlowEngine extends ScheduledThreadPoolExecutor {
     /**
      * Creates a new instance of FlowEngine
      *
-     * @param corePoolSize the maximum number of threads available to tasks
-     * running in the engine.
+     * @param corePoolSize the maximum number of threads available to tasks running in the engine.
      * @param threadNamePrefix for thread naming
-     * @param daemon if true, the thread pool will be populated with daemon
-     * threads, otherwise the threads will not be marked as daemon.
+     * @param daemon if true, the thread pool will be populated with daemon threads, otherwise the threads will not be marked as daemon.
      */
     public FlowEngine(int corePoolSize, final String threadNamePrefix, final boolean daemon) {
         super(corePoolSize);
@@ -70,8 +67,7 @@ public final class FlowEngine extends ScheduledThreadPoolExecutor {
     }
 
     /**
-     * Hook method called by the running thread whenever a runnable task is
-     * given to the thread to run.
+     * Hook method called by the running thread whenever a runnable task is given to the thread to run.
      *
      * @param thread thread
      * @param runnable runnable
@@ -84,9 +80,7 @@ public final class FlowEngine extends ScheduledThreadPoolExecutor {
     }
 
     /**
-     * Hook method called by the thread that executed the given runnable after
-     * execution of the runnable completed. Logs the fact of completion and any
-     * errors that might have occured.
+     * Hook method called by the thread that executed the given runnable after execution of the runnable completed. Logs the fact of completion and any errors that might have occured.
      *
      * @param runnable runnable
      * @param throwable throwable

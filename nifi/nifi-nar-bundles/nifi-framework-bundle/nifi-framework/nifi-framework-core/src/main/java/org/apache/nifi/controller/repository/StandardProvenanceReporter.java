@@ -67,10 +67,8 @@ public class StandardProvenanceReporter implements ProvenanceReporter {
     }
 
     /**
-     * Generates a Fork event for the given child and parents but does not
-     * register the event. This is useful so that a ProcessSession has the
-     * ability to de-dupe events, since one or more events may be created by the
-     * session itself, as well as by the Processor
+     * Generates a Fork event for the given child and parents but does not register the event. This is useful so that a ProcessSession has the ability to de-dupe events, since one or more events may
+     * be created by the session itself, as well as by the Processor
      *
      * @param parents parents
      * @param child child

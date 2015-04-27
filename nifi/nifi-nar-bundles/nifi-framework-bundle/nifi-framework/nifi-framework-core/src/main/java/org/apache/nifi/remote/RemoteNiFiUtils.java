@@ -120,12 +120,9 @@ public class RemoteNiFiUtils {
     }
 
     /**
-     * Returns the port on which the remote instance is listening for Flow File
-     * transfers, or <code>null</code> if the remote instance is not configured
-     * to use Site-to-Site transfers.
+     * Returns the port on which the remote instance is listening for Flow File transfers, or <code>null</code> if the remote instance is not configured to use Site-to-Site transfers.
      *
-     * @param uri the base URI of the remote instance. This should include the
-     * path only to the nifi-api level, as well as the protocol, host, and port.
+     * @param uri the base URI of the remote instance. This should include the path only to the nifi-api level, as well as the protocol, host, and port.
      * @param timeoutMillis wait time in millis
      * @return port number
      * @throws IOException ex
@@ -158,9 +155,7 @@ public class RemoteNiFiUtils {
     }
 
     /**
-     * Returns the port on which the remote instance is listening for Flow File
-     * transfers, or <code>null</code> if the remote instance is not configured
-     * to use Site-to-Site transfers.
+     * Returns the port on which the remote instance is listening for Flow File transfers, or <code>null</code> if the remote instance is not configured to use Site-to-Site transfers.
      *
      * @param uri the full URI to fetch, including the path.
      * @return port

@@ -17,8 +17,7 @@
 package org.apache.nifi.controller.repository;
 
 /**
- * This exception is thrown when a flow file repository was unable to be
- * properly purged.
+ * This exception is thrown when a flow file repository was unable to be properly purged.
  *
  *
  */
