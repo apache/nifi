@@ -36,8 +36,7 @@ public class TestHashAttribute {
     @Test
     public void test() {
         final TestRunner runner = TestRunners.newTestRunner(new HashAttribute());
-        runner.
-                setProperty(HashAttribute.HASH_VALUE_ATTRIBUTE.getName(), "hashValue");
+        runner.setProperty(HashAttribute.HASH_VALUE_ATTRIBUTE.getName(), "hashValue");
         runner.setProperty("MDKey1", ".*");
         runner.setProperty("MDKey2", "(.).*");
 
@@ -67,9 +66,8 @@ public class TestHashAttribute {
         runner.assertTransferCount(HashAttribute.REL_FAILURE, 1);
         runner.assertTransferCount(HashAttribute.REL_SUCCESS, 4);
 
-        final List<MockFlowFile> success = runner.
-                getFlowFilesForRelationship(HashAttribute.REL_SUCCESS);
-        final Map<String, Integer> correlationCount = new HashMap<String, Integer>();
+        final List<MockFlowFile> success = runner.getFlowFilesForRelationship(HashAttribute.REL_SUCCESS);
+        final Map<String, Integer> correlationCount = new HashMap<>();
         for (final MockFlowFile flowFile : success) {
             final String correlationId = flowFile.getAttribute("hashValue");
             assertNotNull(correlationId);

@@ -31,8 +31,7 @@ public class TestMonitorActivity {
 
     @Test
     public void testFirstMessage() throws InterruptedException, IOException {
-        final TestRunner runner = TestRunners.
-                newTestRunner(new MonitorActivity());
+        final TestRunner runner = TestRunners.newTestRunner(new MonitorActivity());
         runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "false");
         runner.setProperty(MonitorActivity.THRESHOLD, "100 millis");
 
@@ -66,12 +65,9 @@ public class TestMonitorActivity {
         runner.assertTransferCount(MonitorActivity.REL_SUCCESS, 1);
         runner.assertTransferCount(MonitorActivity.REL_ACTIVITY_RESTORED, 1);
 
-        MockFlowFile restoredFlowFile = runner.
-                getFlowFilesForRelationship(MonitorActivity.REL_ACTIVITY_RESTORED).
-                get(0);
+        MockFlowFile restoredFlowFile = runner.getFlowFilesForRelationship(MonitorActivity.REL_ACTIVITY_RESTORED).get(0);
         String flowFileContent = new String(restoredFlowFile.toByteArray());
-        Assert.assertTrue(Pattern.
-                matches("Activity restored at time: (.*) after being inactive for 0 minutes", flowFileContent));
+        Assert.assertTrue(Pattern.matches("Activity restored at time: (.*) after being inactive for 0 minutes", flowFileContent));
         restoredFlowFile.assertAttributeNotExists("key");
         restoredFlowFile.assertAttributeNotExists("key1");
 
@@ -96,20 +92,16 @@ public class TestMonitorActivity {
         runner.assertTransferCount(MonitorActivity.REL_ACTIVITY_RESTORED, 1);
         runner.assertTransferCount(MonitorActivity.REL_SUCCESS, 1);
 
-        restoredFlowFile = runner.
-                getFlowFilesForRelationship(MonitorActivity.REL_ACTIVITY_RESTORED).
-                get(0);
+        restoredFlowFile = runner.getFlowFilesForRelationship(MonitorActivity.REL_ACTIVITY_RESTORED).get(0);
         flowFileContent = new String(restoredFlowFile.toByteArray());
-        Assert.assertTrue(Pattern.
-                matches("Activity restored at time: (.*) after being inactive for 0 minutes", flowFileContent));
+        Assert.assertTrue(Pattern.matches("Activity restored at time: (.*) after being inactive for 0 minutes", flowFileContent));
         restoredFlowFile.assertAttributeNotExists("key");
         restoredFlowFile.assertAttributeNotExists("key1");
     }
 
     @Test
     public void testFirstMessageWithInherit() throws InterruptedException, IOException {
-        final TestRunner runner = TestRunners.
-                newTestRunner(new MonitorActivity());
+        final TestRunner runner = TestRunners.newTestRunner(new MonitorActivity());
         runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "false");
         runner.setProperty(MonitorActivity.THRESHOLD, "100 millis");
         runner.setProperty(MonitorActivity.COPY_ATTRIBUTES, "true");
@@ -117,9 +109,7 @@ public class TestMonitorActivity {
         runner.enqueue(new byte[0]);
         runner.run();
         runner.assertAllFlowFilesTransferred(MonitorActivity.REL_SUCCESS, 1);
-        MockFlowFile originalFlowFile = runner.
-                getFlowFilesForRelationship(MonitorActivity.REL_SUCCESS).
-                get(0);
+        MockFlowFile originalFlowFile = runner.getFlowFilesForRelationship(MonitorActivity.REL_SUCCESS).get(0);
         runner.clearTransferState();
 
         Thread.sleep(1000L);
@@ -147,33 +137,21 @@ public class TestMonitorActivity {
         runner.assertTransferCount(MonitorActivity.REL_SUCCESS, 1);
         runner.assertTransferCount(MonitorActivity.REL_ACTIVITY_RESTORED, 1);
 
-        MockFlowFile restoredFlowFile = runner.
-                getFlowFilesForRelationship(MonitorActivity.REL_ACTIVITY_RESTORED).
-                get(0);
+        MockFlowFile restoredFlowFile = runner.getFlowFilesForRelationship(MonitorActivity.REL_ACTIVITY_RESTORED).get(0);
         String flowFileContent = new String(restoredFlowFile.toByteArray());
-        Assert.assertTrue(Pattern.
-                matches("Activity restored at time: (.*) after being inactive for 0 minutes", flowFileContent));
+        Assert.assertTrue(Pattern.matches("Activity restored at time: (.*) after being inactive for 0 minutes", flowFileContent));
         restoredFlowFile.assertAttributeEquals("key", "value");
         restoredFlowFile.assertAttributeEquals("key1", "value1");
 
         // verify the UUIDs are not the same
-        restoredFlowFile.
-                assertAttributeNotEquals(CoreAttributes.UUID.key(), originalFlowFile.
-                        getAttribute(CoreAttributes.UUID.key()));
-        restoredFlowFile.
-                assertAttributeNotEquals(CoreAttributes.FILENAME.key(), originalFlowFile.
-                        getAttribute(CoreAttributes.FILENAME.key()));
+        restoredFlowFile.assertAttributeNotEquals(CoreAttributes.UUID.key(), originalFlowFile.getAttribute(CoreAttributes.UUID.key()));
+        restoredFlowFile.assertAttributeNotEquals(CoreAttributes.FILENAME.key(), originalFlowFile.getAttribute(CoreAttributes.FILENAME.key()));
         Assert.assertTrue(
-                String.
-                format("file sizes match when they shouldn't original=%1$s restored=%2$s",
-                        originalFlowFile.getSize(), restoredFlowFile.getSize()),
-                restoredFlowFile.getSize() != originalFlowFile.getSize());
-        Assert.assertTrue(String.
-                format("lineage start dates match when they shouldn't original=%1$s restored=%2$s",
-                        originalFlowFile.getLineageStartDate(), restoredFlowFile.
-                        getLineageStartDate()),
-                restoredFlowFile.getLineageStartDate() != originalFlowFile.
-                getLineageStartDate());
+                String.format("file sizes match when they shouldn't original=%1$s restored=%2$s",
+                        originalFlowFile.getSize(), restoredFlowFile.getSize()), restoredFlowFile.getSize() != originalFlowFile.getSize());
+        Assert.assertTrue(
+                String.format("lineage start dates match when they shouldn't original=%1$s restored=%2$s",
+                        originalFlowFile.getLineageStartDate(), restoredFlowFile.getLineageStartDate()), restoredFlowFile.getLineageStartDate() != originalFlowFile.getLineageStartDate());
 
         runner.clearTransferState();
         runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "true");
@@ -196,30 +174,18 @@ public class TestMonitorActivity {
         runner.assertTransferCount(MonitorActivity.REL_ACTIVITY_RESTORED, 1);
         runner.assertTransferCount(MonitorActivity.REL_SUCCESS, 1);
 
-        restoredFlowFile = runner.
-                getFlowFilesForRelationship(MonitorActivity.REL_ACTIVITY_RESTORED).
-                get(0);
+        restoredFlowFile = runner.getFlowFilesForRelationship(MonitorActivity.REL_ACTIVITY_RESTORED).get(0);
         flowFileContent = new String(restoredFlowFile.toByteArray());
-        Assert.assertTrue(Pattern.
-                matches("Activity restored at time: (.*) after being inactive for 0 minutes", flowFileContent));
+        Assert.assertTrue(Pattern.matches("Activity restored at time: (.*) after being inactive for 0 minutes", flowFileContent));
         restoredFlowFile.assertAttributeEquals("key", "value");
         restoredFlowFile.assertAttributeEquals("key1", "value1");
-        restoredFlowFile.
-                assertAttributeNotEquals(CoreAttributes.UUID.key(), originalFlowFile.
-                        getAttribute(CoreAttributes.UUID.key()));
-        restoredFlowFile.
-                assertAttributeNotEquals(CoreAttributes.FILENAME.key(), originalFlowFile.
-                        getAttribute(CoreAttributes.FILENAME.key()));
+        restoredFlowFile.assertAttributeNotEquals(CoreAttributes.UUID.key(), originalFlowFile.getAttribute(CoreAttributes.UUID.key()));
+        restoredFlowFile.assertAttributeNotEquals(CoreAttributes.FILENAME.key(), originalFlowFile.getAttribute(CoreAttributes.FILENAME.key()));
         Assert.assertTrue(
-                String.
-                format("file sizes match when they shouldn't original=%1$s restored=%2$s",
-                        originalFlowFile.getSize(), restoredFlowFile.getSize()),
-                restoredFlowFile.getSize() != originalFlowFile.getSize());
-        Assert.assertTrue(String.
-                format("lineage start dates match when they shouldn't original=%1$s restored=%2$s",
-                        originalFlowFile.getLineageStartDate(), restoredFlowFile.
-                        getLineageStartDate()),
-                restoredFlowFile.getLineageStartDate() != originalFlowFile.
-                getLineageStartDate());
+                String.format("file sizes match when they shouldn't original=%1$s restored=%2$s",
+                        originalFlowFile.getSize(), restoredFlowFile.getSize()), restoredFlowFile.getSize() != originalFlowFile.getSize());
+        Assert.assertTrue(
+                String.format("lineage start dates match when they shouldn't original=%1$s restored=%2$s",
+                        originalFlowFile.getLineageStartDate(), restoredFlowFile.getLineageStartDate()), restoredFlowFile.getLineageStartDate() != originalFlowFile.getLineageStartDate());
     }
 }

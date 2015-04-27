@@ -50,22 +50,15 @@ public class TestScanContent {
             final byte[] termBytes = baos.toByteArray();
 
             final Path dictionaryPath = Paths.get("target/dictionary");
-            Files.
-                    write(dictionaryPath, termBytes, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+            Files.write(dictionaryPath, termBytes, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
 
-            final TestRunner runner = TestRunners.
-                    newTestRunner(new ScanContent());
+            final TestRunner runner = TestRunners.newTestRunner(new ScanContent());
             runner.setThreadCount(1);
-            runner.
-                    setProperty(ScanContent.DICTIONARY, dictionaryPath.
-                            toString());
-            runner.
-                    setProperty(ScanContent.DICTIONARY_ENCODING, ScanContent.BINARY_ENCODING);
+            runner.setProperty(ScanContent.DICTIONARY, dictionaryPath.toString());
+            runner.setProperty(ScanContent.DICTIONARY_ENCODING, ScanContent.BINARY_ENCODING);
 
-            runner.enqueue(Paths.
-                    get("src/test/resources/TestScanContent/helloWorld"));
-            runner.enqueue(Paths.
-                    get("src/test/resources/TestScanContent/wellthengood-bye"));
+            runner.enqueue(Paths.get("src/test/resources/TestScanContent/helloWorld"));
+            runner.enqueue(Paths.get("src/test/resources/TestScanContent/wellthengood-bye"));
             runner.enqueue(new byte[0]);
 
             while (!runner.isQueueEmpty()) {
@@ -79,18 +72,13 @@ public class TestScanContent {
 
             runner.assertTransferCount(ScanContent.REL_MATCH, 2);
             runner.assertTransferCount(ScanContent.REL_NO_MATCH, 1);
-            final List<MockFlowFile> matched = runner.
-                    getFlowFilesForRelationship(ScanContent.REL_MATCH);
-            final List<MockFlowFile> unmatched = runner.
-                    getFlowFilesForRelationship(ScanContent.REL_NO_MATCH);
+            final List<MockFlowFile> matched = runner.getFlowFilesForRelationship(ScanContent.REL_MATCH);
+            final List<MockFlowFile> unmatched = runner.getFlowFilesForRelationship(ScanContent.REL_NO_MATCH);
 
-            matched.get(0).
-                    assertAttributeEquals(ScanContent.MATCH_ATTRIBUTE_KEY, "hello");
-            matched.get(1).
-                    assertAttributeEquals(ScanContent.MATCH_ATTRIBUTE_KEY, "good-bye");
+            matched.get(0).assertAttributeEquals(ScanContent.MATCH_ATTRIBUTE_KEY, "hello");
+            matched.get(1).assertAttributeEquals(ScanContent.MATCH_ATTRIBUTE_KEY, "good-bye");
 
-            unmatched.get(0).
-                    assertAttributeNotExists(ScanContent.MATCH_ATTRIBUTE_KEY);
+            unmatched.get(0).assertAttributeNotExists(ScanContent.MATCH_ATTRIBUTE_KEY);
         }
     }
 

@@ -47,11 +47,9 @@ public class RESTServiceContentModified extends HttpServlet {
         dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
 
         response.setContentType("application/json");
-        if (ifNoneMatch != null && ifNoneMatch.length() > 0 && !IGNORE_ETAG && Integer.
-                parseInt(ifNoneMatch) == ETAG) {
+        if (ifNoneMatch != null && ifNoneMatch.length() > 0 && !IGNORE_ETAG && Integer.parseInt(ifNoneMatch) == ETAG) {
             response.setStatus(304);
-            response.setHeader("Last-Modified", dateFormat.
-                    format(modificationDate));
+            response.setHeader("Last-Modified", dateFormat.format(modificationDate));
             response.setHeader("ETag", Integer.toString(ETAG));
             return;
         }
@@ -59,16 +57,14 @@ public class RESTServiceContentModified extends HttpServlet {
         long date = -1;
         if (ifModifiedSince != null && ifModifiedSince.length() > 0 && !IGNORE_LAST_MODIFIED) {
             try {
-                date = dateFormat.parse(ifModifiedSince).
-                        getTime();
+                date = dateFormat.parse(ifModifiedSince).getTime();
             } catch (Exception e) {
 
             }
         }
         if (date >= modificationDate) {
             response.setStatus(304);
-            response.setHeader("Last-Modified", dateFormat.
-                    format(modificationDate));
+            response.setHeader("Last-Modified", dateFormat.format(modificationDate));
             response.setHeader("ETag", Integer.toString(ETAG));
             return;
         }
@@ -76,8 +72,7 @@ public class RESTServiceContentModified extends HttpServlet {
         response.setStatus(200);
         response.setHeader("Last-Modified", dateFormat.format(modificationDate));
         response.setHeader("ETag", Integer.toString(ETAG));
-        response.getOutputStream().
-                println(result);
+        response.getOutputStream().println(result);
     }
 
 }

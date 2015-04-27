@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.nifi.processors.standard.SplitXml;
 import java.io.IOException;
 import java.io.StringReader;
 import java.nio.file.Paths;
@@ -97,8 +96,7 @@ public class TestSplitXml {
         for (MockFlowFile out : flowfiles) {
             final byte[] outData = out.toByteArray();
             final String outXml = new String(outData, "UTF-8");
-            saxParser.
-                    parse(new InputSource(new StringReader(outXml)), new DefaultHandler());
+            saxParser.parse(new InputSource(new StringReader(outXml)), new DefaultHandler());
         }
     }
 }

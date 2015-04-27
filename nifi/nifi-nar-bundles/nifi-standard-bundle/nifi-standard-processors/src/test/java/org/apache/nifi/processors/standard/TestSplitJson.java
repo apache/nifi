@@ -35,18 +35,15 @@ import java.nio.file.Paths;
 
 public class TestSplitJson {
 
-    private static final Path JSON_SNIPPET = Paths.
-            get("src/test/resources/TestJson/json-sample.json");
-    private static final Path XML_SNIPPET = Paths.
-            get("src/test/resources/TestXml/xml-snippet.xml");
+    private static final Path JSON_SNIPPET = Paths.get("src/test/resources/TestJson/json-sample.json");
+    private static final Path XML_SNIPPET = Paths.get("src/test/resources/TestXml/xml-snippet.xml");
 
     @Test(expected = AssertionError.class)
     public void testInvalidJsonPath() {
         final TestRunner testRunner = TestRunners.newTestRunner(new SplitJson());
         testRunner.setProperty(SplitJson.ARRAY_JSON_PATH_EXPRESSION, "$..");
 
-        Assert.
-                fail("An improper JsonPath expression was not detected as being invalid.");
+        Assert.fail("An improper JsonPath expression was not detected as being invalid.");
     }
 
     @Test
@@ -58,9 +55,7 @@ public class TestSplitJson {
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(SplitJson.REL_FAILURE, 1);
-        final MockFlowFile out = testRunner.
-                getFlowFilesForRelationship(SplitJson.REL_FAILURE).
-                get(0);
+        final MockFlowFile out = testRunner.getFlowFilesForRelationship(SplitJson.REL_FAILURE).get(0);
         // Verify that the content was unchanged
         out.assertContentEquals(XML_SNIPPET);
     }
@@ -76,36 +71,28 @@ public class TestSplitJson {
         Relationship expectedRel = SplitJson.REL_FAILURE;
 
         testRunner.assertAllFlowFilesTransferred(expectedRel, 1);
-        final MockFlowFile out = testRunner.
-                getFlowFilesForRelationship(expectedRel).
-                get(0);
+        final MockFlowFile out = testRunner.getFlowFilesForRelationship(expectedRel).get(0);
         out.assertContentEquals(JSON_SNIPPET);
     }
 
     @Test
     public void testSplit_arrayResult_oneValue() throws Exception {
         final TestRunner testRunner = TestRunners.newTestRunner(new SplitJson());
-        testRunner.
-                setProperty(SplitJson.ARRAY_JSON_PATH_EXPRESSION, "$[0].range[?(@ == 0)]");
+        testRunner.setProperty(SplitJson.ARRAY_JSON_PATH_EXPRESSION, "$[0].range[?(@ == 0)]");
 
         testRunner.enqueue(JSON_SNIPPET);
         testRunner.run();
 
         testRunner.assertTransferCount(SplitJson.REL_ORIGINAL, 1);
         testRunner.assertTransferCount(SplitJson.REL_SPLIT, 1);
-        testRunner.getFlowFilesForRelationship(SplitJson.REL_ORIGINAL).
-                get(0).
-                assertContentEquals(JSON_SNIPPET);
-        testRunner.getFlowFilesForRelationship(SplitJson.REL_SPLIT).
-                get(0).
-                assertContentEquals("0");
+        testRunner.getFlowFilesForRelationship(SplitJson.REL_ORIGINAL).get(0).assertContentEquals(JSON_SNIPPET);
+        testRunner.getFlowFilesForRelationship(SplitJson.REL_SPLIT).get(0).assertContentEquals("0");
     }
 
     @Test
     public void testSplit_arrayResult_multipleValues() throws Exception {
         final TestRunner testRunner = TestRunners.newTestRunner(new SplitJson());
-        testRunner.
-                setProperty(SplitJson.ARRAY_JSON_PATH_EXPRESSION, "$[0].range");
+        testRunner.setProperty(SplitJson.ARRAY_JSON_PATH_EXPRESSION, "$[0].range");
 
         testRunner.enqueue(JSON_SNIPPET);
         testRunner.run();
@@ -114,63 +101,49 @@ public class TestSplitJson {
 
         testRunner.assertTransferCount(SplitJson.REL_ORIGINAL, 1);
         testRunner.assertTransferCount(SplitJson.REL_SPLIT, numSplitsExpected);
-        final MockFlowFile originalOut = testRunner.
-                getFlowFilesForRelationship(SplitJson.REL_ORIGINAL).
-                get(0);
+        final MockFlowFile originalOut = testRunner.getFlowFilesForRelationship(SplitJson.REL_ORIGINAL).get(0);
         originalOut.assertContentEquals(JSON_SNIPPET);
     }
 
     @Test
     public void testSplit_arrayResult_nonScalarValues() throws Exception {
         final TestRunner testRunner = TestRunners.newTestRunner(new SplitJson());
-        testRunner.
-                setProperty(SplitJson.ARRAY_JSON_PATH_EXPRESSION, "$[*].name");
+        testRunner.setProperty(SplitJson.ARRAY_JSON_PATH_EXPRESSION, "$[*].name");
 
         testRunner.enqueue(JSON_SNIPPET);
         testRunner.run();
 
         testRunner.assertTransferCount(SplitJson.REL_ORIGINAL, 1);
         testRunner.assertTransferCount(SplitJson.REL_SPLIT, 7);
-        testRunner.getFlowFilesForRelationship(SplitJson.REL_ORIGINAL).
-                get(0).
-                assertContentEquals(JSON_SNIPPET);
-        testRunner.getFlowFilesForRelationship(SplitJson.REL_SPLIT).
-                get(0).
-                assertContentEquals("{\"first\":\"Shaffer\",\"last\":\"Pearson\"}");
+        testRunner.getFlowFilesForRelationship(SplitJson.REL_ORIGINAL).get(0).assertContentEquals(JSON_SNIPPET);
+        testRunner.getFlowFilesForRelationship(SplitJson.REL_SPLIT).get(0).assertContentEquals("{\"first\":\"Shaffer\",\"last\":\"Pearson\"}");
     }
 
     @Test
     public void testSplit_pathNotFound() throws Exception {
         final TestRunner testRunner = TestRunners.newTestRunner(new SplitJson());
-        testRunner.
-                setProperty(SplitJson.ARRAY_JSON_PATH_EXPRESSION, "$.nonexistent");
+        testRunner.setProperty(SplitJson.ARRAY_JSON_PATH_EXPRESSION, "$.nonexistent");
 
         testRunner.enqueue(JSON_SNIPPET);
         testRunner.run();
 
         testRunner.assertTransferCount(SplitJson.REL_FAILURE, 1);
-        testRunner.getFlowFilesForRelationship(SplitJson.REL_FAILURE).
-                get(0).
-                assertContentEquals(JSON_SNIPPET);
+        testRunner.getFlowFilesForRelationship(SplitJson.REL_FAILURE).get(0).assertContentEquals(JSON_SNIPPET);
     }
 
     @Test
     public void testSplit_pathToNullValue() throws Exception {
         final TestRunner testRunner = TestRunners.newTestRunner(new SplitJson());
-        testRunner.
-                setProperty(SplitJson.ARRAY_JSON_PATH_EXPRESSION, "$.nullField");
+        testRunner.setProperty(SplitJson.ARRAY_JSON_PATH_EXPRESSION, "$.nullField");
 
-        ProcessSession session = testRunner.getProcessSessionFactory().
-                createSession();
+        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
         FlowFile ff = session.create();
 
         ff = session.write(ff, new OutputStreamCallback() {
             @Override
             public void process(OutputStream out) throws IOException {
                 try (OutputStream outputStream = new BufferedOutputStream(out)) {
-                    outputStream.
-                            write("{\"stringField\": \"String Value\", \"nullField\": null}".
-                                    getBytes(StandardCharsets.UTF_8));
+                    outputStream.write("{\"stringField\": \"String Value\", \"nullField\": null}".getBytes(StandardCharsets.UTF_8));
                 }
             }
         });
@@ -184,20 +157,16 @@ public class TestSplitJson {
     @Test
     public void testSplit_pathToArrayWithNulls_emptyStringRepresentation() throws Exception {
         final TestRunner testRunner = TestRunners.newTestRunner(new SplitJson());
-        testRunner.
-                setProperty(SplitJson.ARRAY_JSON_PATH_EXPRESSION, "$.arrayOfNulls");
+        testRunner.setProperty(SplitJson.ARRAY_JSON_PATH_EXPRESSION, "$.arrayOfNulls");
 
-        ProcessSession session = testRunner.getProcessSessionFactory().
-                createSession();
+        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
         FlowFile ff = session.create();
 
         ff = session.write(ff, new OutputStreamCallback() {
             @Override
             public void process(OutputStream out) throws IOException {
                 try (OutputStream outputStream = new BufferedOutputStream(out)) {
-                    outputStream.
-                            write("{\"stringField\": \"String Value\", \"arrayOfNulls\": [null, null, null]}".
-                                    getBytes(StandardCharsets.UTF_8));
+                    outputStream.write("{\"stringField\": \"String Value\", \"arrayOfNulls\": [null, null, null]}".getBytes(StandardCharsets.UTF_8));
                 }
             }
         });
@@ -209,31 +178,25 @@ public class TestSplitJson {
         int expectedFiles = 3;
         testRunner.assertTransferCount(SplitJson.REL_SPLIT, expectedFiles);
         for (int i = 0; i < expectedFiles; i++) {
-            testRunner.getFlowFilesForRelationship(SplitJson.REL_SPLIT).
-                    get(i).
-                    assertContentEquals("");
+            testRunner.getFlowFilesForRelationship(SplitJson.REL_SPLIT).get(i).assertContentEquals("");
         }
     }
 
     @Test
     public void testSplit_pathToArrayWithNulls_nullStringRepresentation() throws Exception {
         final TestRunner testRunner = TestRunners.newTestRunner(new SplitJson());
-        testRunner.
-                setProperty(SplitJson.ARRAY_JSON_PATH_EXPRESSION, "$.arrayOfNulls");
+        testRunner.setProperty(SplitJson.ARRAY_JSON_PATH_EXPRESSION, "$.arrayOfNulls");
         testRunner.setProperty(SplitJson.NULL_VALUE_DEFAULT_REPRESENTATION,
                 AbstractJsonPathProcessor.NULL_STRING_OPTION);
 
-        ProcessSession session = testRunner.getProcessSessionFactory().
-                createSession();
+        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
         FlowFile ff = session.create();
 
         ff = session.write(ff, new OutputStreamCallback() {
             @Override
             public void process(OutputStream out) throws IOException {
                 try (OutputStream outputStream = new BufferedOutputStream(out)) {
-                    outputStream.
-                            write("{\"stringField\": \"String Value\", \"arrayOfNulls\": [null, null, null]}".
-                                    getBytes(StandardCharsets.UTF_8));
+                    outputStream.write("{\"stringField\": \"String Value\", \"arrayOfNulls\": [null, null, null]}".getBytes(StandardCharsets.UTF_8));
                 }
             }
         });
@@ -245,9 +208,7 @@ public class TestSplitJson {
         int expectedFiles = 3;
         testRunner.assertTransferCount(SplitJson.REL_SPLIT, expectedFiles);
         for (int i = 0; i < expectedFiles; i++) {
-            testRunner.getFlowFilesForRelationship(SplitJson.REL_SPLIT).
-                    get(i).
-                    assertContentEquals("null");
+            testRunner.getFlowFilesForRelationship(SplitJson.REL_SPLIT).get(i).assertContentEquals("null");
         }
     }
 }

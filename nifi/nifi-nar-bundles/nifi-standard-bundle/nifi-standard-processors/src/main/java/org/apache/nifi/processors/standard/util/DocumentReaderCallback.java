@@ -36,8 +36,7 @@ public class DocumentReaderCallback implements InputStreamCallback {
     /**
      * Creates a new DocumentReaderCallback .
      *
-     * @param isNamespaceAware Whether or not the parse should consider
-     * namespaces
+     * @param isNamespaceAware Whether or not the parse should consider namespaces
      */
     public DocumentReaderCallback(boolean isNamespaceAware) {
         this.isNamespaceAware = isNamespaceAware;
@@ -52,8 +51,7 @@ public class DocumentReaderCallback implements InputStreamCallback {
     @Override
     public void process(final InputStream stream) throws IOException {
         try {
-            DocumentBuilderFactory factory = DocumentBuilderFactory.
-                    newInstance();
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             factory.setNamespaceAware(isNamespaceAware);
             DocumentBuilder builder = factory.newDocumentBuilder();
             document = builder.parse(stream);

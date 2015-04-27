@@ -37,6 +37,5 @@ public class UserAgentTestingServlet extends HttpServlet {
         } else {
             response.setStatus(500);
         }
-        return;
     }
 }

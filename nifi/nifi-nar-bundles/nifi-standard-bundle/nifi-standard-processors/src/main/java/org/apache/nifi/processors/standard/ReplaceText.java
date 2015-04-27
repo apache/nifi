@@ -67,54 +67,53 @@ public class ReplaceText extends AbstractProcessor {
     private final Pattern backReferencePattern = Pattern.compile("\\$(\\d+)");
     private static final byte[] ZERO_BYTE_BUFFER = new byte[0];
     // Properties
-    public static final PropertyDescriptor REGEX = new PropertyDescriptor.Builder().
-            name("Regular Expression").
-            description("The Regular Expression to search for in the FlowFile content").
-            required(true).
-            addValidator(StandardValidators.
-                    createRegexValidator(0, Integer.MAX_VALUE, true)).
-            expressionLanguageSupported(true).
-            defaultValue("(.*)").
-            build();
-    public static final PropertyDescriptor REPLACEMENT_VALUE = new PropertyDescriptor.Builder().
-            name("Replacement Value").
-            description("The value to replace the regular expression with. Back-references to Regular Expression capturing groups are supported, but back-references that reference capturing groups that do not exist in the regular expression will be treated as literal value.").
-            required(true).
-            defaultValue("$1").
-            addValidator(Validator.VALID).
-            expressionLanguageSupported(true).
-            build();
-    public static final PropertyDescriptor CHARACTER_SET = new PropertyDescriptor.Builder().
-            name("Character Set").
-            description("The Character Set in which the file is encoded").
-            required(true).
-            addValidator(StandardValidators.CHARACTER_SET_VALIDATOR).
-            defaultValue("UTF-8").
-            build();
-    public static final PropertyDescriptor MAX_BUFFER_SIZE = new PropertyDescriptor.Builder().
-            name("Maximum Buffer Size").
-            description("Specifies the maximum amount of data to buffer (per file or per line, depending on the Evaluation Mode) in order to apply the regular expressions. If 'Entire Text' (in Evaluation Mode) is selected and the FlowFile is larger than this value, the FlowFile will be routed to 'failure'. "
-                    + "In 'Line-by-Line' Mode, if a single line is larger than this value, the FlowFile will be routed to 'failure'. A default value of 1 MB is provided, primarily for 'Entire Text' mode. In 'Line-by-Line' Mode, a value such as 8 KB or 16 KB is suggested. This value is ignored and the buffer is not used if 'Regular Expression' is set to '.*'").
-            required(true).
-            addValidator(StandardValidators.DATA_SIZE_VALIDATOR).
-            defaultValue("1 MB").
-            build();
-    public static final PropertyDescriptor EVALUATION_MODE = new PropertyDescriptor.Builder().
-            name("Evaluation Mode").
-            description("Evaluate the 'Regular Expression' against each line (Line-by-Line) or buffer the entire file into memory (Entire Text) and then evaluate the 'Regular Expression'.").
-            allowableValues(LINE_BY_LINE, ENTIRE_TEXT).
-            defaultValue(ENTIRE_TEXT).
-            required(true).
-            build();
+    public static final PropertyDescriptor REGEX = new PropertyDescriptor.Builder()
+            .name("Regular Expression")
+            .description("The Regular Expression to search for in the FlowFile content")
+            .required(true)
+            .addValidator(StandardValidators.createRegexValidator(0, Integer.MAX_VALUE, true))
+            .expressionLanguageSupported(true)
+            .defaultValue("(.*)")
+            .build();
+    public static final PropertyDescriptor REPLACEMENT_VALUE = new PropertyDescriptor.Builder()
+            .name("Replacement Value")
+            .description("The value to replace the regular expression with. Back-references to Regular Expression capturing groups are supported, but back-references that reference capturing groups that do not exist in the regular expression will be treated as literal value.")
+            .required(true)
+            .defaultValue("$1")
+            .addValidator(Validator.VALID)
+            .expressionLanguageSupported(true)
+            .build();
+    public static final PropertyDescriptor CHARACTER_SET = new PropertyDescriptor.Builder()
+            .name("Character Set")
+            .description("The Character Set in which the file is encoded")
+            .required(true)
+            .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
+            .defaultValue("UTF-8")
+            .build();
+    public static final PropertyDescriptor MAX_BUFFER_SIZE = new PropertyDescriptor.Builder()
+            .name("Maximum Buffer Size")
+            .description("Specifies the maximum amount of data to buffer (per file or per line, depending on the Evaluation Mode) in order to apply the regular expressions. If 'Entire Text' (in Evaluation Mode) is selected and the FlowFile is larger than this value, the FlowFile will be routed to 'failure'. "
+                    + "In 'Line-by-Line' Mode, if a single line is larger than this value, the FlowFile will be routed to 'failure'. A default value of 1 MB is provided, primarily for 'Entire Text' mode. In 'Line-by-Line' Mode, a value such as 8 KB or 16 KB is suggested. This value is ignored and the buffer is not used if 'Regular Expression' is set to '.*'")
+            .required(true)
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .defaultValue("1 MB")
+            .build();
+    public static final PropertyDescriptor EVALUATION_MODE = new PropertyDescriptor.Builder()
+            .name("Evaluation Mode")
+            .description("Evaluate the 'Regular Expression' against each line (Line-by-Line) or buffer the entire file into memory (Entire Text) and then evaluate the 'Regular Expression'.")
+            .allowableValues(LINE_BY_LINE, ENTIRE_TEXT)
+            .defaultValue(ENTIRE_TEXT)
+            .required(true)
+            .build();
     // Relationships
-    public static final Relationship REL_SUCCESS = new Relationship.Builder().
-            name("success").
-            description("FlowFiles that have been successfully updated are routed to this relationship, as well as FlowFiles whose content does not match the given Regular Expression").
-            build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder().
-            name("failure").
-            description("FlowFiles that could not be updated are routed to this relationship").
-            build();
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("FlowFiles that have been successfully updated are routed to this relationship, as well as FlowFiles whose content does not match the given Regular Expression")
+            .build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("FlowFiles that could not be updated are routed to this relationship")
+            .build();
     //
     private List<PropertyDescriptor> properties;
     private Set<Relationship> relationships;
@@ -147,19 +146,15 @@ public class ReplaceText extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        final List<FlowFile> flowFiles = session.get(FlowFileFilters.
-                newSizeBasedFilter(1, DataUnit.MB, 100));
+        final List<FlowFile> flowFiles = session.get(FlowFileFilters.newSizeBasedFilter(1, DataUnit.MB, 100));
         if (flowFiles.isEmpty()) {
             return;
         }
 
         final ProcessorLog logger = getLogger();
-        final String unsubstitutedRegex = context.getProperty(REGEX).
-                getValue();
-        String unsubstitutedReplacement = context.getProperty(REPLACEMENT_VALUE).
-                getValue();
-        if (unsubstitutedRegex.equals("(.*)") && unsubstitutedReplacement.
-                equals("$1")) {
+        final String unsubstitutedRegex = context.getProperty(REGEX).getValue();
+        String unsubstitutedReplacement = context.getProperty(REPLACEMENT_VALUE).getValue();
+        if (unsubstitutedRegex.equals("(.*)") && unsubstitutedReplacement.equals("$1")) {
             // This pattern says replace content with itself. We can highly optimize this process by simply transferring
             // all FlowFiles to the 'success' relationship
             session.transfer(flowFiles, REL_SUCCESS);
@@ -180,26 +175,17 @@ public class ReplaceText extends AbstractProcessor {
             }
         };
 
-        final String regexValue = context.getProperty(REGEX).
-                evaluateAttributeExpressions().
-                getValue();
-        final int numCapturingGroups = Pattern.compile(regexValue).
-                matcher("").
-                groupCount();
+        final String regexValue = context.getProperty(REGEX).evaluateAttributeExpressions().getValue();
+        final int numCapturingGroups = Pattern.compile(regexValue).matcher("").groupCount();
 
         final boolean skipBuffer = ".*".equals(unsubstitutedRegex);
 
-        final Charset charset = Charset.forName(context.
-                getProperty(CHARACTER_SET).
-                getValue());
-        final int maxBufferSize = context.getProperty(MAX_BUFFER_SIZE).
-                asDataSize(DataUnit.B).
-                intValue();
+        final Charset charset = Charset.forName(context.getProperty(CHARACTER_SET).getValue());
+        final int maxBufferSize = context.getProperty(MAX_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
 
         final byte[] buffer = skipBuffer ? ZERO_BYTE_BUFFER : new byte[maxBufferSize];
 
-        final String evaluateMode = context.getProperty(EVALUATION_MODE).
-                getValue();
+        final String evaluateMode = context.getProperty(EVALUATION_MODE).getValue();
 
         for (FlowFile flowFile : flowFiles) {
             if (evaluateMode.equalsIgnoreCase(ENTIRE_TEXT)) {
@@ -209,11 +195,8 @@ public class ReplaceText extends AbstractProcessor {
                 }
             }
 
-            String replacement = context.getProperty(REPLACEMENT_VALUE).
-                    evaluateAttributeExpressions(flowFile, escapeBackRefDecorator).
-                    getValue();
-            final Matcher backRefMatcher = backReferencePattern.
-                    matcher(replacement);
+            String replacement = context.getProperty(REPLACEMENT_VALUE).evaluateAttributeExpressions(flowFile, escapeBackRefDecorator).getValue();
+            final Matcher backRefMatcher = backReferencePattern.matcher(replacement);
             while (backRefMatcher.find()) {
                 final String backRefNum = backRefMatcher.group(1);
                 if (backRefNum.startsWith("0")) {
@@ -231,8 +214,7 @@ public class ReplaceText extends AbstractProcessor {
                 }
 
                 if (backRefIndex > numCapturingGroups) {
-                    final StringBuilder sb = new StringBuilder(replacement.
-                            length() + 1);
+                    final StringBuilder sb = new StringBuilder(replacement.length() + 1);
                     final int groupStart = backRefMatcher.start(1);
 
                     sb.append(replacement.substring(0, groupStart - 1));
@@ -250,14 +232,12 @@ public class ReplaceText extends AbstractProcessor {
             if (skipBuffer) {
                 final StopWatch stopWatch = new StopWatch(true);
                 if (evaluateMode.equalsIgnoreCase(ENTIRE_TEXT)) {
-                    flowFile = session.
-                            write(flowFile, new OutputStreamCallback() {
-                                @Override
-                                public void process(final OutputStream out) throws IOException {
-                                    out.
-                                    write(replacementValue.getBytes(charset));
-                                }
-                            });
+                    flowFile = session.write(flowFile, new OutputStreamCallback() {
+                        @Override
+                        public void process(final OutputStream out) throws IOException {
+                            out.write(replacementValue.getBytes(charset));
+                        }
+                    });
                 } else {
                     flowFile = session.write(flowFile, new StreamCallback() {
                         @Override
@@ -271,19 +251,14 @@ public class ReplaceText extends AbstractProcessor {
                         }
                     });
                 }
-                session.getProvenanceReporter().
-                        modifyContent(flowFile, stopWatch.
-                                getElapsed(TimeUnit.MILLISECONDS));
+                session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
                 session.transfer(flowFile, REL_SUCCESS);
-                logger.
-                        info("Transferred {} to 'success'", new Object[]{flowFile});
+                logger.info("Transferred {} to 'success'", new Object[]{flowFile});
                 continue;
             }
 
             final StopWatch stopWatch = new StopWatch(true);
-            final String regex = context.getProperty(REGEX).
-                    evaluateAttributeExpressions(flowFile, quotedAttributeDecorator).
-                    getValue();
+            final String regex = context.getProperty(REGEX).evaluateAttributeExpressions(flowFile, quotedAttributeDecorator).getValue();
 
             if (evaluateMode.equalsIgnoreCase(ENTIRE_TEXT)) {
                 final int flowFileSize = (int) flowFile.getSize();
@@ -292,8 +267,7 @@ public class ReplaceText extends AbstractProcessor {
                     public void process(final InputStream in, final OutputStream out) throws IOException {
                         StreamUtils.fillBuffer(in, buffer, false);
                         final String contentString = new String(buffer, 0, flowFileSize, charset);
-                        final String updatedValue = contentString.
-                                replaceAll(regex, replacementValue);
+                        final String updatedValue = contentString.replaceAll(regex, replacementValue);
                         out.write(updatedValue.getBytes(charset));
                     }
                 });
@@ -305,8 +279,7 @@ public class ReplaceText extends AbstractProcessor {
                                 BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(out, charset));) {
                             String oneLine;
                             while (null != (oneLine = br.readLine())) {
-                                final String updatedValue = oneLine.
-                                        replaceAll(regex, replacementValue);
+                                final String updatedValue = oneLine.replaceAll(regex, replacementValue);
                                 bw.write(updatedValue);
                             }
                         }
@@ -315,9 +288,7 @@ public class ReplaceText extends AbstractProcessor {
             }
 
             logger.info("Transferred {} to 'success'", new Object[]{flowFile});
-            session.getProvenanceReporter().
-                    modifyContent(flowFile, stopWatch.
-                            getElapsed(TimeUnit.MILLISECONDS));
+            session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
             session.transfer(flowFile, REL_SUCCESS);
         }
     }

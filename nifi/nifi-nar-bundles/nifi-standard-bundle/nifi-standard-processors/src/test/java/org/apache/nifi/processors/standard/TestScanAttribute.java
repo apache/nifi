@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.nifi.processors.standard.ScanAttribute;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -30,8 +29,7 @@ public class TestScanAttribute {
     @Test
     public void testSingleMatch() {
         final TestRunner runner = TestRunners.newTestRunner(new ScanAttribute());
-        runner.
-                setProperty(ScanAttribute.DICTIONARY_FILE, "src/test/resources/ScanAttribute/dictionary1");
+        runner.setProperty(ScanAttribute.DICTIONARY_FILE, "src/test/resources/ScanAttribute/dictionary1");
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("abc", "world");
@@ -67,10 +65,8 @@ public class TestScanAttribute {
     @Test
     public void testAllMatch() {
         final TestRunner runner = TestRunners.newTestRunner(new ScanAttribute());
-        runner.
-                setProperty(ScanAttribute.DICTIONARY_FILE, "src/test/resources/ScanAttribute/dictionary1");
-        runner.
-                setProperty(ScanAttribute.MATCHING_CRITERIA, ScanAttribute.MATCH_CRITERIA_ALL);
+        runner.setProperty(ScanAttribute.DICTIONARY_FILE, "src/test/resources/ScanAttribute/dictionary1");
+        runner.setProperty(ScanAttribute.MATCHING_CRITERIA, ScanAttribute.MATCH_CRITERIA_ALL);
         runner.setProperty(ScanAttribute.ATTRIBUTE_PATTERN, "a.*");
 
         final Map<String, String> attributes = new HashMap<>();
@@ -106,8 +102,7 @@ public class TestScanAttribute {
     @Test
     public void testWithEmptyEntries() {
         final TestRunner runner = TestRunners.newTestRunner(new ScanAttribute());
-        runner.
-                setProperty(ScanAttribute.DICTIONARY_FILE, "src/test/resources/ScanAttribute/dictionary-with-empty-new-lines");
+        runner.setProperty(ScanAttribute.DICTIONARY_FILE, "src/test/resources/ScanAttribute/dictionary-with-empty-new-lines");
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("abc", "");
@@ -127,8 +122,7 @@ public class TestScanAttribute {
     @Test
     public void testWithDictionaryFilter() {
         final TestRunner runner = TestRunners.newTestRunner(new ScanAttribute());
-        runner.
-                setProperty(ScanAttribute.DICTIONARY_FILE, "src/test/resources/ScanAttribute/dictionary-with-extra-info");
+        runner.setProperty(ScanAttribute.DICTIONARY_FILE, "src/test/resources/ScanAttribute/dictionary-with-extra-info");
         runner.setProperty(ScanAttribute.DICTIONARY_FILTER, "(.*)<greeting>");
 
         final Map<String, String> attributes = new HashMap<>();

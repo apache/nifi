@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.nifi.processors.standard.ListenUDP;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -51,10 +50,8 @@ public class TestListenUDP {
         System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "info");
         System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
         System.setProperty("org.slf4j.simpleLogger.log.nifi.io.nio", "debug");
-        System.
-                setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.ListenUDP", "debug");
-        System.
-                setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.TestListenUDP", "debug");
+        System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.ListenUDP", "debug");
+        System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.TestListenUDP", "debug");
         LOGGER = LoggerFactory.getLogger(TestListenUDP.class);
     }
 
@@ -88,8 +85,7 @@ public class TestListenUDP {
 
         ProcessContext context = runner.getProcessContext();
         ListenUDP processor = (ListenUDP) runner.getProcessor();
-        ProcessSessionFactory processSessionFactory = runner.
-                getProcessSessionFactory();
+        ProcessSessionFactory processSessionFactory = runner.getProcessSessionFactory();
         processor.initializeChannelListenerAndConsumerProcessing(context);
         udpSender.start();
         boolean transferred = false;
@@ -97,18 +93,14 @@ public class TestListenUDP {
         while (!transferred && System.currentTimeMillis() < timeOut) {
             Thread.sleep(200);
             processor.onTrigger(context, processSessionFactory);
-            transferred = runner.
-                    getFlowFilesForRelationship(ListenUDP.RELATIONSHIP_SUCCESS).
-                    size() > 0;
+            transferred = runner.getFlowFilesForRelationship(ListenUDP.RELATIONSHIP_SUCCESS).size() > 0;
         }
         assertTrue("Didn't process the datagrams", transferred);
         Thread.sleep(7000);
         processor.stopping();
         processor.stopped();
         socket.close();
-        assertTrue(runner.
-                getFlowFilesForRelationship(ListenUDP.RELATIONSHIP_SUCCESS).
-                size() >= 60);
+        assertTrue(runner.getFlowFilesForRelationship(ListenUDP.RELATIONSHIP_SUCCESS).size() >= 60);
     }
 
     @Test
@@ -129,8 +121,7 @@ public class TestListenUDP {
 
         ProcessContext context = runner.getProcessContext();
         ListenUDP processor = (ListenUDP) runner.getProcessor();
-        ProcessSessionFactory processSessionFactory = runner.
-                getProcessSessionFactory();
+        ProcessSessionFactory processSessionFactory = runner.getProcessSessionFactory();
         processor.initializeChannelListenerAndConsumerProcessing(context);
         udpSender.start();
         boolean transferred = false;
@@ -138,18 +129,14 @@ public class TestListenUDP {
         while (!transferred && System.currentTimeMillis() < timeOut) {
             Thread.sleep(1000);
             processor.onTrigger(context, processSessionFactory);
-            transferred = runner.
-                    getFlowFilesForRelationship(ListenUDP.RELATIONSHIP_SUCCESS).
-                    size() > 0;
+            transferred = runner.getFlowFilesForRelationship(ListenUDP.RELATIONSHIP_SUCCESS).size() > 0;
         }
         assertTrue("Didn't process the datagrams", transferred);
         Thread.sleep(7000);
         processor.stopping();
         processor.stopped();
         socket.close();
-        assertTrue(runner.
-                getFlowFilesForRelationship(ListenUDP.RELATIONSHIP_SUCCESS).
-                size() >= 2);
+        assertTrue(runner.getFlowFilesForRelationship(ListenUDP.RELATIONSHIP_SUCCESS).size() >= 2);
     }
 
     @Test
@@ -166,8 +153,7 @@ public class TestListenUDP {
 
         ProcessContext context = runner.getProcessContext();
         ListenUDP processor = (ListenUDP) runner.getProcessor();
-        ProcessSessionFactory processSessionFactory = runner.
-                getProcessSessionFactory();
+        ProcessSessionFactory processSessionFactory = runner.getProcessSessionFactory();
         processor.initializeChannelListenerAndConsumerProcessing(context);
         udpSender.start();
         int numTransfered = 0;
@@ -175,9 +161,7 @@ public class TestListenUDP {
         while (numTransfered <= 80 && System.currentTimeMillis() < timeout) {
             Thread.sleep(200);
             processor.onTrigger(context, processSessionFactory);
-            numTransfered = runner.
-                    getFlowFilesForRelationship(ListenUDP.RELATIONSHIP_SUCCESS).
-                    size();
+            numTransfered = runner.getFlowFilesForRelationship(ListenUDP.RELATIONSHIP_SUCCESS).size();
         }
         assertFalse("Did not process all the datagrams", numTransfered < 80);
         processor.stopping();
@@ -215,8 +199,7 @@ public class TestListenUDP {
                 }
                 final long endTime = System.nanoTime();
                 final long durationMillis = (endTime - startTime) / 1000000;
-                LOGGER.
-                        info("Sent all UDP packets without any obvious errors | duration ms= " + durationMillis);
+                LOGGER.info("Sent all UDP packets without any obvious errors | duration ms= " + durationMillis);
             } catch (IOException e) {
                 LOGGER.error("", e);
             } finally {

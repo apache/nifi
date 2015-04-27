@@ -29,8 +29,7 @@ public class TestControlRate {
     @Test
     public void testViaAttribute() throws InterruptedException {
         final TestRunner runner = TestRunners.newTestRunner(new ControlRate());
-        runner.
-                setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.ATTRIBUTE_RATE);
+        runner.setProperty(ControlRate.RATE_CONTROL_CRITERIA, ControlRate.ATTRIBUTE_RATE);
         runner.setProperty(ControlRate.RATE_CONTROL_ATTRIBUTE_NAME, "count");
         runner.setProperty(ControlRate.MAX_RATE, "20000");
         runner.setProperty(ControlRate.TIME_PERIOD, "1 sec");

@@ -36,16 +36,12 @@ public class TestGetJMSQueue {
     @org.junit.Ignore
     public void testSendTextToQueue() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(GetJMSQueue.class);
-        runner.
-                setProperty(JmsProperties.JMS_PROVIDER, JmsProperties.ACTIVEMQ_PROVIDER);
+        runner.setProperty(JmsProperties.JMS_PROVIDER, JmsProperties.ACTIVEMQ_PROVIDER);
         runner.setProperty(JmsProperties.URL, "tcp://localhost:61616");
-        runner.
-                setProperty(JmsProperties.DESTINATION_TYPE, JmsProperties.DESTINATION_TYPE_QUEUE);
+        runner.setProperty(JmsProperties.DESTINATION_TYPE, JmsProperties.DESTINATION_TYPE_QUEUE);
         runner.setProperty(JmsProperties.DESTINATION_NAME, "queue.testing");
-        runner.
-                setProperty(JmsProperties.ACKNOWLEDGEMENT_MODE, JmsProperties.ACK_MODE_AUTO);
-        WrappedMessageProducer wrappedProducer = JmsFactory.
-                createMessageProducer(runner.getProcessContext(), true);
+        runner.setProperty(JmsProperties.ACKNOWLEDGEMENT_MODE, JmsProperties.ACK_MODE_AUTO);
+        WrappedMessageProducer wrappedProducer = JmsFactory.createMessageProducer(runner.getProcessContext(), true);
         final Session jmsSession = wrappedProducer.getSession();
         final MessageProducer producer = wrappedProducer.getProducer();
 
@@ -60,16 +56,12 @@ public class TestGetJMSQueue {
     @org.junit.Ignore
     public void testSendBytesToQueue() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(GetJMSQueue.class);
-        runner.
-                setProperty(JmsProperties.JMS_PROVIDER, JmsProperties.ACTIVEMQ_PROVIDER);
+        runner.setProperty(JmsProperties.JMS_PROVIDER, JmsProperties.ACTIVEMQ_PROVIDER);
         runner.setProperty(JmsProperties.URL, "tcp://localhost:61616");
-        runner.
-                setProperty(JmsProperties.DESTINATION_TYPE, JmsProperties.DESTINATION_TYPE_QUEUE);
+        runner.setProperty(JmsProperties.DESTINATION_TYPE, JmsProperties.DESTINATION_TYPE_QUEUE);
         runner.setProperty(JmsProperties.DESTINATION_NAME, "queue.testing");
-        runner.
-                setProperty(JmsProperties.ACKNOWLEDGEMENT_MODE, JmsProperties.ACK_MODE_AUTO);
-        WrappedMessageProducer wrappedProducer = JmsFactory.
-                createMessageProducer(runner.getProcessContext(), true);
+        runner.setProperty(JmsProperties.ACKNOWLEDGEMENT_MODE, JmsProperties.ACK_MODE_AUTO);
+        WrappedMessageProducer wrappedProducer = JmsFactory.createMessageProducer(runner.getProcessContext(), true);
         final Session jmsSession = wrappedProducer.getSession();
         final MessageProducer producer = wrappedProducer.getProducer();
 
@@ -85,16 +77,12 @@ public class TestGetJMSQueue {
     @org.junit.Ignore
     public void testSendStreamToQueue() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(GetJMSQueue.class);
-        runner.
-                setProperty(JmsProperties.JMS_PROVIDER, JmsProperties.ACTIVEMQ_PROVIDER);
+        runner.setProperty(JmsProperties.JMS_PROVIDER, JmsProperties.ACTIVEMQ_PROVIDER);
         runner.setProperty(JmsProperties.URL, "tcp://localhost:61616");
-        runner.
-                setProperty(JmsProperties.DESTINATION_TYPE, JmsProperties.DESTINATION_TYPE_QUEUE);
+        runner.setProperty(JmsProperties.DESTINATION_TYPE, JmsProperties.DESTINATION_TYPE_QUEUE);
         runner.setProperty(JmsProperties.DESTINATION_NAME, "queue.testing");
-        runner.
-                setProperty(JmsProperties.ACKNOWLEDGEMENT_MODE, JmsProperties.ACK_MODE_AUTO);
-        WrappedMessageProducer wrappedProducer = JmsFactory.
-                createMessageProducer(runner.getProcessContext(), true);
+        runner.setProperty(JmsProperties.ACKNOWLEDGEMENT_MODE, JmsProperties.ACK_MODE_AUTO);
+        WrappedMessageProducer wrappedProducer = JmsFactory.createMessageProducer(runner.getProcessContext(), true);
         final Session jmsSession = wrappedProducer.getSession();
         final MessageProducer producer = wrappedProducer.getProducer();
 
@@ -110,16 +98,12 @@ public class TestGetJMSQueue {
     @org.junit.Ignore
     public void testSendMapToQueue() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(GetJMSQueue.class);
-        runner.
-                setProperty(JmsProperties.JMS_PROVIDER, JmsProperties.ACTIVEMQ_PROVIDER);
+        runner.setProperty(JmsProperties.JMS_PROVIDER, JmsProperties.ACTIVEMQ_PROVIDER);
         runner.setProperty(JmsProperties.URL, "tcp://localhost:61616");
-        runner.
-                setProperty(JmsProperties.DESTINATION_TYPE, JmsProperties.DESTINATION_TYPE_QUEUE);
+        runner.setProperty(JmsProperties.DESTINATION_TYPE, JmsProperties.DESTINATION_TYPE_QUEUE);
         runner.setProperty(JmsProperties.DESTINATION_NAME, "queue.testing");
-        runner.
-                setProperty(JmsProperties.ACKNOWLEDGEMENT_MODE, JmsProperties.ACK_MODE_AUTO);
-        WrappedMessageProducer wrappedProducer = JmsFactory.
-                createMessageProducer(runner.getProcessContext(), true);
+        runner.setProperty(JmsProperties.ACKNOWLEDGEMENT_MODE, JmsProperties.ACK_MODE_AUTO);
+        WrappedMessageProducer wrappedProducer = JmsFactory.createMessageProducer(runner.getProcessContext(), true);
         final Session jmsSession = wrappedProducer.getSession();
         final MessageProducer producer = wrappedProducer.getProducer();
 
@@ -136,22 +120,17 @@ public class TestGetJMSQueue {
     @org.junit.Ignore
     public void testSendObjectToQueue() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(GetJMSQueue.class);
-        runner.
-                setProperty(JmsProperties.JMS_PROVIDER, JmsProperties.ACTIVEMQ_PROVIDER);
+        runner.setProperty(JmsProperties.JMS_PROVIDER, JmsProperties.ACTIVEMQ_PROVIDER);
         runner.setProperty(JmsProperties.URL, "tcp://localhost:61616");
-        runner.
-                setProperty(JmsProperties.DESTINATION_TYPE, JmsProperties.DESTINATION_TYPE_QUEUE);
+        runner.setProperty(JmsProperties.DESTINATION_TYPE, JmsProperties.DESTINATION_TYPE_QUEUE);
         runner.setProperty(JmsProperties.DESTINATION_NAME, "queue.testing");
-        runner.
-                setProperty(JmsProperties.ACKNOWLEDGEMENT_MODE, JmsProperties.ACK_MODE_AUTO);
-        WrappedMessageProducer wrappedProducer = JmsFactory.
-                createMessageProducer(runner.getProcessContext(), true);
+        runner.setProperty(JmsProperties.ACKNOWLEDGEMENT_MODE, JmsProperties.ACK_MODE_AUTO);
+        WrappedMessageProducer wrappedProducer = JmsFactory.createMessageProducer(runner.getProcessContext(), true);
         final Session jmsSession = wrappedProducer.getSession();
         final MessageProducer producer = wrappedProducer.getProducer();
 
         // Revision class is used because test just needs any Serializable class in core NiFi
-        final ObjectMessage message = jmsSession.
-                createObjectMessage(new Revision(1L, "ID"));
+        final ObjectMessage message = jmsSession.createObjectMessage(new Revision(1L, "ID"));
 
         producer.send(message);
         jmsSession.commit();

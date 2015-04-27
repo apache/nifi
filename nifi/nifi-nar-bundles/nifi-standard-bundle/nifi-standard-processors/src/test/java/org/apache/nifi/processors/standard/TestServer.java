@@ -44,8 +44,7 @@ public class TestServer {
     /**
      * Creates the test server.
      *
-     * @param sslProperties SSLProps to be used in the secure connection. The
-     * keys should should use the StandardSSLContextService properties.
+     * @param sslProperties SSLProps to be used in the secure connection. The keys should should use the StandardSSLContextService properties.
      */
     public TestServer(final Map<String, String> sslProperties) {
         createServer(sslProperties);
@@ -78,21 +77,15 @@ public class TestServer {
         SslContextFactory ssl = new SslContextFactory();
 
         if (sslProperties.get(StandardSSLContextService.KEYSTORE.getName()) != null) {
-            ssl.setKeyStorePath(sslProperties.
-                    get(StandardSSLContextService.KEYSTORE.getName()));
-            ssl.setKeyStorePassword(sslProperties.
-                    get(StandardSSLContextService.KEYSTORE_PASSWORD.getName()));
-            ssl.setKeyStoreType(sslProperties.
-                    get(StandardSSLContextService.KEYSTORE_TYPE.getName()));
+            ssl.setKeyStorePath(sslProperties.get(StandardSSLContextService.KEYSTORE.getName()));
+            ssl.setKeyStorePassword(sslProperties.get(StandardSSLContextService.KEYSTORE_PASSWORD.getName()));
+            ssl.setKeyStoreType(sslProperties.get(StandardSSLContextService.KEYSTORE_TYPE.getName()));
         }
 
         if (sslProperties.get(StandardSSLContextService.TRUSTSTORE.getName()) != null) {
-            ssl.setTrustStorePath(sslProperties.
-                    get(StandardSSLContextService.TRUSTSTORE.getName()));
-            ssl.setTrustStorePassword(sslProperties.
-                    get(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName()));
-            ssl.setTrustStoreType(sslProperties.
-                    get(StandardSSLContextService.TRUSTSTORE_TYPE.getName()));
+            ssl.setTrustStorePath(sslProperties.get(StandardSSLContextService.TRUSTSTORE.getName()));
+            ssl.setTrustStorePassword(sslProperties.get(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName()));
+            ssl.setTrustStoreType(sslProperties.get(StandardSSLContextService.TRUSTSTORE_TYPE.getName()));
         }
 
         final String clientAuth = sslProperties.get(NEED_CLIENT_AUTH);

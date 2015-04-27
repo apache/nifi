@@ -94,26 +94,26 @@ public class UnpackContent extends AbstractProcessor {
 
     public static final String OCTET_STREAM = "application/octet-stream";
 
-    public static final PropertyDescriptor PACKAGING_FORMAT = new PropertyDescriptor.Builder().
-            name("Packaging Format").
-            description("The Packaging Format used to create the file").
-            required(true).
-            allowableValues(AUTO_DETECT_FORMAT, TAR_FORMAT, ZIP_FORMAT, FLOWFILE_STREAM_FORMAT_V3, FLOWFILE_STREAM_FORMAT_V2, FLOWFILE_TAR_FORMAT).
-            defaultValue(AUTO_DETECT_FORMAT).
-            build();
+    public static final PropertyDescriptor PACKAGING_FORMAT = new PropertyDescriptor.Builder()
+            .name("Packaging Format")
+            .description("The Packaging Format used to create the file")
+            .required(true)
+            .allowableValues(AUTO_DETECT_FORMAT, TAR_FORMAT, ZIP_FORMAT, FLOWFILE_STREAM_FORMAT_V3, FLOWFILE_STREAM_FORMAT_V2, FLOWFILE_TAR_FORMAT)
+            .defaultValue(AUTO_DETECT_FORMAT)
+            .build();
 
-    public static final Relationship REL_SUCCESS = new Relationship.Builder().
-            name("success").
-            description("Unpacked FlowFiles are sent to this relationship").
-            build();
-    public static final Relationship REL_ORIGINAL = new Relationship.Builder().
-            name("original").
-            description("The original FlowFile is sent to this relationship after it has been successfully unpacked").
-            build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder().
-            name("failure").
-            description("The original FlowFile is sent to this relationship when it cannot be unpacked for some reason").
-            build();
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("Unpacked FlowFiles are sent to this relationship")
+            .build();
+    public static final Relationship REL_ORIGINAL = new Relationship.Builder()
+            .name("original")
+            .description("The original FlowFile is sent to this relationship after it has been successfully unpacked")
+            .build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("The original FlowFile is sent to this relationship when it cannot be unpacked for some reason")
+            .build();
 
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> properties;
@@ -149,15 +149,11 @@ public class UnpackContent extends AbstractProcessor {
         }
 
         final ProcessorLog logger = getLogger();
-        String packagingFormat = context.getProperty(PACKAGING_FORMAT).
-                getValue().
-                toLowerCase();
+        String packagingFormat = context.getProperty(PACKAGING_FORMAT).getValue().toLowerCase();
         if (AUTO_DETECT_FORMAT.equals(packagingFormat)) {
-            final String mimeType = flowFile.
-                    getAttribute(CoreAttributes.MIME_TYPE.key());
+            final String mimeType = flowFile.getAttribute(CoreAttributes.MIME_TYPE.key());
             if (mimeType == null) {
-                logger.
-                        error("No mime.type attribute set for {}; routing to failure", new Object[]{flowFile});
+                logger.error("No mime.type attribute set for {}; routing to failure", new Object[]{flowFile});
                 session.transfer(flowFile, REL_FAILURE);
                 return;
             }
@@ -179,8 +175,7 @@ public class UnpackContent extends AbstractProcessor {
                     packagingFormat = FLOWFILE_TAR_FORMAT;
                     break;
                 default: {
-                    logger.
-                            info("Cannot unpack {} because its mime.type attribute is set to '{}', which is not a format that can be unpacked; routing to 'success'", new Object[]{flowFile, mimeType});
+                    logger.info("Cannot unpack {} because its mime.type attribute is set to '{}', which is not a format that can be unpacked; routing to 'success'", new Object[]{flowFile, mimeType});
                     session.transfer(flowFile, REL_SUCCESS);
                     return;
                 }
@@ -211,17 +206,14 @@ public class UnpackContent extends AbstractProcessor {
                 addFragmentAttrs = false;
                 break;
             default:
-                throw new AssertionError("Packaging Format was " + context.
-                        getProperty(PACKAGING_FORMAT).
-                        getValue());
+                throw new AssertionError("Packaging Format was " + context.getProperty(PACKAGING_FORMAT).getValue());
         }
 
         final List<FlowFile> unpacked = new ArrayList<>();
         try {
             unpacker.unpack(session, flowFile, unpacked);
             if (unpacked.isEmpty()) {
-                logger.
-                        error("Unable to unpack {} because it does not appear to have any entries; routing to failure", new Object[]{flowFile});
+                logger.error("Unable to unpack {} because it does not appear to have any entries; routing to failure", new Object[]{flowFile});
                 session.transfer(flowFile, REL_FAILURE);
                 return;
             }
@@ -231,13 +223,10 @@ public class UnpackContent extends AbstractProcessor {
             }
             session.transfer(unpacked, REL_SUCCESS);
             session.transfer(flowFile, REL_ORIGINAL);
-            session.getProvenanceReporter().
-                    fork(flowFile, unpacked);
-            logger.
-                    info("Unpacked {} into {} and transferred to success", new Object[]{flowFile, unpacked});
+            session.getProvenanceReporter().fork(flowFile, unpacked);
+            logger.info("Unpacked {} into {} and transferred to success", new Object[]{flowFile, unpacked});
         } catch (final ProcessException e) {
-            logger.
-                    error("Unable to unpack {} due to {}; routing to failure", new Object[]{flowFile, e});
+            logger.error("Unable to unpack {} due to {}; routing to failure", new Object[]{flowFile, e});
             session.transfer(flowFile, REL_FAILURE);
             session.remove(unpacked);
         }
@@ -252,8 +241,7 @@ public class UnpackContent extends AbstractProcessor {
 
         @Override
         public void unpack(final ProcessSession session, final FlowFile source, final List<FlowFile> unpacked) {
-            final String fragmentId = UUID.randomUUID().
-                    toString();
+            final String fragmentId = UUID.randomUUID().toString();
             session.read(source, new InputStreamCallback() {
                 @Override
                 public void process(final InputStream in) throws IOException {
@@ -268,38 +256,28 @@ public class UnpackContent extends AbstractProcessor {
                             final Path filePath = file.toPath();
                             final String filePathString = filePath.getParent() + "/";
                             final Path absPath = filePath.toAbsolutePath();
-                            final String absPathString = absPath.getParent().
-                                    toString() + "/";
+                            final String absPathString = absPath.getParent().toString() + "/";
 
                             FlowFile unpackedFile = session.create(source);
                             try {
                                 final Map<String, String> attributes = new HashMap<>();
-                                attributes.
-                                        put(CoreAttributes.FILENAME.key(), file.
-                                                getName());
-                                attributes.
-                                        put(CoreAttributes.PATH.key(), filePathString);
-                                attributes.put(CoreAttributes.ABSOLUTE_PATH.
-                                        key(), absPathString);
-                                attributes.
-                                        put(CoreAttributes.MIME_TYPE.key(), OCTET_STREAM);
+                                attributes.put(CoreAttributes.FILENAME.key(), file.getName());
+                                attributes.put(CoreAttributes.PATH.key(), filePathString);
+                                attributes.put(CoreAttributes.ABSOLUTE_PATH.key(), absPathString);
+                                attributes.put(CoreAttributes.MIME_TYPE.key(), OCTET_STREAM);
 
                                 attributes.put(FRAGMENT_ID, fragmentId);
-                                attributes.put(FRAGMENT_INDEX, String.
-                                        valueOf(++fragmentCount));
+                                attributes.put(FRAGMENT_INDEX, String.valueOf(++fragmentCount));
 
-                                unpackedFile = session.
-                                        putAllAttributes(unpackedFile, attributes);
+                                unpackedFile = session.putAllAttributes(unpackedFile, attributes);
 
                                 final long fileSize = tarEntry.getSize();
-                                unpackedFile = session.
-                                        write(unpackedFile, new OutputStreamCallback() {
-                                            @Override
-                                            public void process(final OutputStream out) throws IOException {
-                                                StreamUtils.
-                                                copy(tarIn, out, fileSize);
-                                            }
-                                        });
+                                unpackedFile = session.write(unpackedFile, new OutputStreamCallback() {
+                                    @Override
+                                    public void process(final OutputStream out) throws IOException {
+                                        StreamUtils.copy(tarIn, out, fileSize);
+                                    }
+                                });
                             } finally {
                                 unpacked.add(unpackedFile);
                             }
@@ -314,8 +292,7 @@ public class UnpackContent extends AbstractProcessor {
 
         @Override
         public void unpack(final ProcessSession session, final FlowFile source, final List<FlowFile> unpacked) {
-            final String fragmentId = UUID.randomUUID().
-                    toString();
+            final String fragmentId = UUID.randomUUID().toString();
             session.read(source, new InputStreamCallback() {
                 @Override
                 public void process(final InputStream in) throws IOException {
@@ -327,39 +304,28 @@ public class UnpackContent extends AbstractProcessor {
                                 continue;
                             }
                             final File file = new File(zipEntry.getName());
-                            final String parentDirectory = (file.getParent() == null) ? "/" : file.
-                                    getParent();
-                            final Path absPath = file.toPath().
-                                    toAbsolutePath();
-                            final String absPathString = absPath.getParent().
-                                    toString() + "/";
+                            final String parentDirectory = (file.getParent() == null) ? "/" : file.getParent();
+                            final Path absPath = file.toPath().toAbsolutePath();
+                            final String absPathString = absPath.getParent().toString() + "/";
 
                             FlowFile unpackedFile = session.create(source);
                             try {
                                 final Map<String, String> attributes = new HashMap<>();
-                                attributes.
-                                        put(CoreAttributes.FILENAME.key(), file.
-                                                getName());
-                                attributes.
-                                        put(CoreAttributes.PATH.key(), parentDirectory);
-                                attributes.put(CoreAttributes.ABSOLUTE_PATH.
-                                        key(), absPathString);
-                                attributes.
-                                        put(CoreAttributes.MIME_TYPE.key(), OCTET_STREAM);
+                                attributes.put(CoreAttributes.FILENAME.key(), file.getName());
+                                attributes.put(CoreAttributes.PATH.key(), parentDirectory);
+                                attributes.put(CoreAttributes.ABSOLUTE_PATH.key(), absPathString);
+                                attributes.put(CoreAttributes.MIME_TYPE.key(), OCTET_STREAM);
 
                                 attributes.put(FRAGMENT_ID, fragmentId);
-                                attributes.put(FRAGMENT_INDEX, String.
-                                        valueOf(++fragmentCount));
+                                attributes.put(FRAGMENT_INDEX, String.valueOf(++fragmentCount));
 
-                                unpackedFile = session.
-                                        putAllAttributes(unpackedFile, attributes);
-                                unpackedFile = session.
-                                        write(unpackedFile, new OutputStreamCallback() {
-                                            @Override
-                                            public void process(final OutputStream out) throws IOException {
-                                                StreamUtils.copy(zipIn, out);
-                                            }
-                                        });
+                                unpackedFile = session.putAllAttributes(unpackedFile, attributes);
+                                unpackedFile = session.write(unpackedFile, new OutputStreamCallback() {
+                                    @Override
+                                    public void process(final OutputStream out) throws IOException {
+                                        StreamUtils.copy(zipIn, out);
+                                    }
+                                });
                             } finally {
                                 unpacked.add(unpackedFile);
                             }
@@ -388,24 +354,20 @@ public class UnpackContent extends AbstractProcessor {
                             final ObjectHolder<Map<String, String>> attributesRef = new ObjectHolder<>(null);
                             FlowFile unpackedFile = session.create(source);
                             try {
-                                unpackedFile = session.
-                                        write(unpackedFile, new OutputStreamCallback() {
-                                            @Override
-                                            public void process(final OutputStream rawOut) throws IOException {
-                                                try (final OutputStream out = new BufferedOutputStream(rawOut)) {
-                                                    final Map<String, String> attributes = unpackager.
-                                                    unpackageFlowFile(in, out);
-                                                    if (attributes == null) {
-                                                        throw new IOException("Failed to unpack " + source + ": stream had no Attributes");
-                                                    }
-                                                    attributesRef.
-                                                    set(attributes);
-                                                }
+                                unpackedFile = session.write(unpackedFile, new OutputStreamCallback() {
+                                    @Override
+                                    public void process(final OutputStream rawOut) throws IOException {
+                                        try (final OutputStream out = new BufferedOutputStream(rawOut)) {
+                                            final Map<String, String> attributes = unpackager.unpackageFlowFile(in, out);
+                                            if (attributes == null) {
+                                                throw new IOException("Failed to unpack " + source + ": stream had no Attributes");
                                             }
-                                        });
+                                            attributesRef.set(attributes);
+                                        }
+                                    }
+                                });
 
-                                final Map<String, String> attributes = attributesRef.
-                                        get();
+                                final Map<String, String> attributes = attributesRef.get();
 
                                 // Remove the UUID from the attributes because we don't want to use the same UUID for this FlowFile.
                                 // If we do, then we get into a weird situation if we use MergeContent to create a FlowFile Package
@@ -413,24 +375,17 @@ public class UnpackContent extends AbstractProcessor {
                                 attributes.remove(CoreAttributes.UUID.key());
 
                                 // maintain backward compatibility with legacy NiFi attribute names
-                                mapAttributes(attributes, "nf.file.name", CoreAttributes.FILENAME.
-                                        key());
-                                mapAttributes(attributes, "nf.file.path", CoreAttributes.PATH.
-                                        key());
-                                mapAttributes(attributes, "content-encoding", CoreAttributes.MIME_TYPE.
-                                        key());
-                                mapAttributes(attributes, "content-type", CoreAttributes.MIME_TYPE.
-                                        key());
+                                mapAttributes(attributes, "nf.file.name", CoreAttributes.FILENAME.key());
+                                mapAttributes(attributes, "nf.file.path", CoreAttributes.PATH.key());
+                                mapAttributes(attributes, "content-encoding", CoreAttributes.MIME_TYPE.key());
+                                mapAttributes(attributes, "content-type", CoreAttributes.MIME_TYPE.key());
 
                                 if (!attributes.
-                                        containsKey(CoreAttributes.MIME_TYPE.
-                                                key())) {
-                                    attributes.put(CoreAttributes.MIME_TYPE.
-                                            key(), OCTET_STREAM);
+                                        containsKey(CoreAttributes.MIME_TYPE.key())) {
+                                    attributes.put(CoreAttributes.MIME_TYPE.key(), OCTET_STREAM);
                                 }
 
-                                unpackedFile = session.
-                                        putAllAttributes(unpackedFile, attributes);
+                                unpackedFile = session.putAllAttributes(unpackedFile, attributes);
                             } finally {
                                 unpacked.add(unpackedFile);
                             }
@@ -455,8 +410,7 @@ public class UnpackContent extends AbstractProcessor {
     }
 
     /**
-     * If the unpacked flowfiles contain fragment index attributes, then we need
-     * to apply fragment count and other attributes for completeness.
+     * If the unpacked flowfiles contain fragment index attributes, then we need to apply fragment count and other attributes for completeness.
      *
      * @param session
      * @param source
@@ -474,12 +428,9 @@ public class UnpackContent extends AbstractProcessor {
             }
         }
 
-        String originalFilename = source.getAttribute(CoreAttributes.FILENAME.
-                key());
-        if (originalFilename.endsWith(".tar") || originalFilename.
-                endsWith(".zip") || originalFilename.endsWith(".pkg")) {
-            originalFilename = originalFilename.substring(0, originalFilename.
-                    length() - 4);
+        String originalFilename = source.getAttribute(CoreAttributes.FILENAME.key());
+        if (originalFilename.endsWith(".tar") || originalFilename.endsWith(".zip") || originalFilename.endsWith(".pkg")) {
+            originalFilename = originalFilename.substring(0, originalFilename.length() - 4);
         }
 
         // second pass adds fragment attributes

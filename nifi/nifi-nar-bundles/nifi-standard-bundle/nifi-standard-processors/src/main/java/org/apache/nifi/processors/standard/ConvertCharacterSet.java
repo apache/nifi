@@ -159,7 +159,7 @@ public class ConvertCharacterSet extends AbstractProcessor {
             });
 
             session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-            logger.info("successfully converted characters from {} to {} for {}", 
+            logger.info("successfully converted characters from {} to {} for {}",
                     new Object[]{context.getProperty(INPUT_CHARSET).getValue(), context.getProperty(OUTPUT_CHARSET).getValue(), flowFile});
             session.transfer(flowFile, REL_SUCCESS);
         } catch (final Exception e) {

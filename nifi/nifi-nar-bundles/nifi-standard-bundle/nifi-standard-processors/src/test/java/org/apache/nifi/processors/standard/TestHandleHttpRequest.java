@@ -44,15 +44,13 @@ public class TestHandleHttpRequest {
 
     @Test
     public void testRequestAddedToService() throws InitializationException, MalformedURLException, IOException {
-        final TestRunner runner = TestRunners.
-                newTestRunner(HandleHttpRequest.class);
+        final TestRunner runner = TestRunners.newTestRunner(HandleHttpRequest.class);
         runner.setProperty(HandleHttpRequest.PORT, "0");
 
         final MockHttpContextMap contextMap = new MockHttpContextMap();
         runner.addControllerService("http-context-map", contextMap);
         runner.enableControllerService(contextMap);
-        runner.
-                setProperty(HandleHttpRequest.HTTP_CONTEXT_MAP, "http-context-map");
+        runner.setProperty(HandleHttpRequest.HTTP_CONTEXT_MAP, "http-context-map");
 
         // trigger processor to stop but not shutdown.
         runner.run(1, false);
@@ -61,8 +59,7 @@ public class TestHandleHttpRequest {
                 @Override
                 public void run() {
                     try {
-                        final int port = ((HandleHttpRequest) runner.
-                                getProcessor()).getPort();
+                        final int port = ((HandleHttpRequest) runner.getProcessor()).getPort();
                         final HttpURLConnection connection = (HttpURLConnection) new URL("http://localhost:" + port + "/my/path?query=true&value1=value1&value2=&value3&value4=apple=orange").
                                 openConnection();
                         connection.setDoOutput(false);
@@ -73,8 +70,7 @@ public class TestHandleHttpRequest {
                         connection.setConnectTimeout(3000);
                         connection.setReadTimeout(3000);
 
-                        StreamUtils.
-                                copy(connection.getInputStream(), new NullOutputStream());
+                        StreamUtils.copy(connection.getInputStream(), new NullOutputStream());
                     } catch (final Throwable t) {
                         t.printStackTrace();
                         Assert.fail(t.toString());
@@ -92,13 +88,10 @@ public class TestHandleHttpRequest {
             // process the request.
             runner.run(1, false);
 
-            runner.
-                    assertAllFlowFilesTransferred(HandleHttpRequest.REL_SUCCESS, 1);
+            runner.assertAllFlowFilesTransferred(HandleHttpRequest.REL_SUCCESS, 1);
             assertEquals(1, contextMap.size());
 
-            final MockFlowFile mff = runner.
-                    getFlowFilesForRelationship(HandleHttpRequest.REL_SUCCESS).
-                    get(0);
+            final MockFlowFile mff = runner.getFlowFilesForRelationship(HandleHttpRequest.REL_SUCCESS).get(0);
             mff.assertAttributeEquals("http.query.param.query", "true");
             mff.assertAttributeEquals("http.query.param.value1", "value1");
             mff.assertAttributeEquals("http.query.param.value2", "");

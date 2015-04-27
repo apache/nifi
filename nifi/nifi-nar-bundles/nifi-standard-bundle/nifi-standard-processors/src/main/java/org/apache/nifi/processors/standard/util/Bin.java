@@ -46,8 +46,7 @@ public class Bin {
      * @param minEntries
      * @param maxEntries
      * @param fileCountAttribute
-     * @throws IllegalArgumentException if the min is not less than or equal to
-     * the max.
+     * @throws IllegalArgumentException if the min is not less than or equal to the max.
      */
     public Bin(final long minSizeBytes, final long maxSizeBytes, final int minEntries, final int maxEntries, final String fileCountAttribute) {
         this.minimumSizeBytes = minSizeBytes;
@@ -63,11 +62,8 @@ public class Bin {
     }
 
     /**
-     * Indicates whether the bin has enough items to be considered full. This is
-     * based on whether the current size of the bin is greater than the minimum
-     * size in bytes and based on having a number of successive unsuccessful
-     * attempts to add a new item (because it is so close to the max or the size
-     * of the objects being attempted do not favor tight packing)
+     * Indicates whether the bin has enough items to be considered full. This is based on whether the current size of the bin is greater than the minimum size in bytes and based on having a number of
+     * successive unsuccessful attempts to add a new item (because it is so close to the max or the size of the objects being attempted do not favor tight packing)
      *
      * @return true if considered full; false otherwise
      */
@@ -90,8 +86,7 @@ public class Bin {
      *
      * @param duration
      * @param unit
-     * @return true if this bin is older than the length of time given; false
-     * otherwise
+     * @return true if this bin is older than the length of time given; false otherwise
      */
     public boolean isOlderThan(final int duration, final TimeUnit unit) {
         final long ageInNanos = System.nanoTime() - creationMomentEpochNs;
@@ -109,16 +104,14 @@ public class Bin {
     }
 
     /**
-     * If this bin has enough room for the size of the given flow file then it
-     * is added otherwise it is not
+     * If this bin has enough room for the size of the given flow file then it is added otherwise it is not
      *
      * @param flowFile
      * @param session the ProcessSession to which the FlowFile belongs
      * @return true if added; false otherwise
      */
     public boolean offer(final FlowFile flowFile, final ProcessSession session) {
-        if (((size + flowFile.getSize()) > maximumSizeBytes) || (binContents.
-                size() >= maximumEntries)) {
+        if (((size + flowFile.getSize()) > maximumSizeBytes) || (binContents.size() >= maximumEntries)) {
             successiveFailedOfferings++;
             return false;
         }
@@ -144,8 +137,7 @@ public class Bin {
         if (value == null) {
             return null;
         }
-        if (!intPattern.matcher(value).
-                matches()) {
+        if (!intPattern.matcher(value).matches()) {
             return null;
         }
 

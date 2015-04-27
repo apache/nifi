@@ -36,10 +36,8 @@ import java.util.regex.Pattern;
 import static java.util.Arrays.asList;
 
 /**
- * JsonPathExpressionValidator performs the same execution as
- * com.jayway.jsonpath.internal.PathCompiler, but does not throw exceptions when
- * an invalid path segment is found. Limited access to create JsonPath objects
- * requires a separate flow of execution in avoiding exceptions.
+ * JsonPathExpressionValidator performs the same execution as com.jayway.jsonpath.internal.PathCompiler, but does not throw exceptions when an invalid path segment is found. Limited access to create
+ * JsonPath objects requires a separate flow of execution in avoiding exceptions.
  *
  * @see
  * <a href="https://github.com/jayway/JsonPath">https://github.com/jayway/JsonPath</a>
@@ -72,8 +70,7 @@ public class JsonPathExpressionValidator {
      * </code>
      *
      * @param path to evaluate for validity
-     * @param filters applied to path expression; this is typically unused in
-     * the context of Processors
+     * @param filters applied to path expression; this is typically unused in the context of Processors
      * @return true if the specified path is valid; false otherwise
      */
     public static boolean isValidExpression(String path, Predicate... filters) {
@@ -138,8 +135,7 @@ public class JsonPathExpressionValidator {
                         } else if (positions == 1 && path.charAt(i) == '*') {
                             fragment = "[*]";
                         } else {
-                            fragment = PROPERTY_OPEN + path.
-                                    substring(i, i + positions) + PROPERTY_CLOSE;
+                            fragment = PROPERTY_OPEN + path.substring(i, i + positions) + PROPERTY_CLOSE;
                         }
                         i += positions;
                     }
@@ -160,8 +156,7 @@ public class JsonPathExpressionValidator {
              * Analyze each component represented by a fragment.  If there is a failure to properly evaluate,
              * a null result is returned
              */
-            PathToken analyzedComponent = PathComponentAnalyzer.
-                    analyze(fragment, filterList);
+            PathToken analyzedComponent = PathComponentAnalyzer.analyze(fragment, filterList);
             if (analyzedComponent == null) {
                 return false;
             }
@@ -219,8 +214,7 @@ public class JsonPathExpressionValidator {
 
     static class PathComponentAnalyzer {
 
-        private static final Pattern FILTER_PATTERN = Pattern.
-                compile("^\\[\\s*\\?\\s*[,\\s*\\?]*?\\s*]$"); //[?] or [?, ?, ...]
+        private static final Pattern FILTER_PATTERN = Pattern.compile("^\\[\\s*\\?\\s*[,\\s*\\?]*?\\s*]$"); //[?] or [?, ?, ...]
         private int i;
         private char current;
 
@@ -248,8 +242,7 @@ public class JsonPathExpressionValidator {
                 return new WildcardPathToken();
             } else if ("[?]".equals(pathFragment)) {
                 return new PredicatePathToken(filterList.poll());
-            } else if (FILTER_PATTERN.matcher(pathFragment).
-                    matches()) {
+            } else if (FILTER_PATTERN.matcher(pathFragment).matches()) {
                 final int criteriaCount = Utils.countMatches(pathFragment, "?");
                 List<Predicate> filters = new ArrayList<>(criteriaCount);
                 for (int i = 0; i < criteriaCount; i++) {
@@ -288,8 +281,7 @@ public class JsonPathExpressionValidator {
             }
             i = bounds[1];
 
-            return new PredicatePathToken(Filter.parse(pathFragment.
-                    substring(bounds[0], bounds[1])));
+            return new PredicatePathToken(Filter.parse(pathFragment.substring(bounds[0], bounds[1])));
         }
 
         int[] findFilterBounds() {
@@ -461,8 +453,7 @@ public class JsonPathExpressionValidator {
                                     sliceFrom = true;
                                 } else {
                                     sliceBetween = true;
-                                    numbers.add(Integer.parseInt(buffer.
-                                            toString()));
+                                    numbers.add(Integer.parseInt(buffer.toString()));
                                     buffer.setLength(0);
                                 }
                             }

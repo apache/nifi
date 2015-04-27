@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.nifi.processors.standard.MergeContent;
-import org.apache.nifi.processors.standard.SplitContent;
 import java.io.IOException;
 import java.util.List;
 
@@ -32,13 +30,10 @@ public class TestSplitContent {
     @Test
     public void testTextFormatLeadingPosition() {
         final TestRunner runner = TestRunners.newTestRunner(new SplitContent());
-        runner.setProperty(SplitContent.FORMAT, SplitContent.UTF8_FORMAT.
-                getValue());
+        runner.setProperty(SplitContent.FORMAT, SplitContent.UTF8_FORMAT.getValue());
         runner.setProperty(SplitContent.BYTE_SEQUENCE, "ub");
         runner.setProperty(SplitContent.KEEP_SEQUENCE, "true");
-        runner.
-                setProperty(SplitContent.BYTE_SEQUENCE_LOCATION, SplitContent.LEADING_POSITION.
-                        getValue());
+        runner.setProperty(SplitContent.BYTE_SEQUENCE_LOCATION, SplitContent.LEADING_POSITION.getValue());
 
         runner.enqueue("rub-a-dub-dub".getBytes());
         runner.run();
@@ -47,31 +42,22 @@ public class TestSplitContent {
         runner.assertTransferCount(SplitContent.REL_SPLITS, 4);
 
         runner.assertQueueEmpty();
-        final List<MockFlowFile> splits = runner.
-                getFlowFilesForRelationship(SplitContent.REL_SPLITS);
-        splits.get(0).
-                assertContentEquals("r");
-        splits.get(1).
-                assertContentEquals("ub-a-d");
-        splits.get(2).
-                assertContentEquals("ub-d");
-        splits.get(3).
-                assertContentEquals("ub");
+        final List<MockFlowFile> splits = runner.getFlowFilesForRelationship(SplitContent.REL_SPLITS);
+        splits.get(0).assertContentEquals("r");
+        splits.get(1).assertContentEquals("ub-a-d");
+        splits.get(2).assertContentEquals("ub-d");
+        splits.get(3).assertContentEquals("ub");
     }
 
     @Test
     public void testTextFormatSplits() {
         final TestRunner runner = TestRunners.newTestRunner(new SplitContent());
-        runner.setProperty(SplitContent.FORMAT, SplitContent.UTF8_FORMAT.
-                getValue());
+        runner.setProperty(SplitContent.FORMAT, SplitContent.UTF8_FORMAT.getValue());
         runner.setProperty(SplitContent.BYTE_SEQUENCE, "test");
         runner.setProperty(SplitContent.KEEP_SEQUENCE, "true");
-        runner.
-                setProperty(SplitContent.BYTE_SEQUENCE_LOCATION, SplitContent.LEADING_POSITION.
-                        getValue());
+        runner.setProperty(SplitContent.BYTE_SEQUENCE_LOCATION, SplitContent.LEADING_POSITION.getValue());
 
-        final byte[] input = "This is a test. This is another test. And this is yet another test. Finally this is the last Test.".
-                getBytes();
+        final byte[] input = "This is a test. This is another test. And this is yet another test. Finally this is the last Test.".getBytes();
         runner.enqueue(input);
         runner.run();
 
@@ -79,16 +65,11 @@ public class TestSplitContent {
         runner.assertTransferCount(SplitContent.REL_SPLITS, 4);
 
         runner.assertQueueEmpty();
-        List<MockFlowFile> splits = runner.
-                getFlowFilesForRelationship(SplitContent.REL_SPLITS);
-        splits.get(0).
-                assertContentEquals("This is a ");
-        splits.get(1).
-                assertContentEquals("test. This is another ");
-        splits.get(2).
-                assertContentEquals("test. And this is yet another ");
-        splits.get(3).
-                assertContentEquals("test. Finally this is the last Test.");
+        List<MockFlowFile> splits = runner.getFlowFilesForRelationship(SplitContent.REL_SPLITS);
+        splits.get(0).assertContentEquals("This is a ");
+        splits.get(1).assertContentEquals("test. This is another ");
+        splits.get(2).assertContentEquals("test. And this is yet another ");
+        splits.get(3).assertContentEquals("test. Finally this is the last Test.");
         runner.clearTransferState();
 
         runner.setProperty(SplitContent.KEEP_SEQUENCE, "false");
@@ -97,77 +78,50 @@ public class TestSplitContent {
         runner.assertTransferCount(SplitContent.REL_ORIGINAL, 1);
         runner.assertTransferCount(SplitContent.REL_SPLITS, 4);
         splits = runner.getFlowFilesForRelationship(SplitContent.REL_SPLITS);
-        splits.get(0).
-                assertContentEquals("This is a ");
-        splits.get(1).
-                assertContentEquals(". This is another ");
-        splits.get(2).
-                assertContentEquals(". And this is yet another ");
-        splits.get(3).
-                assertContentEquals(". Finally this is the last Test.");
+        splits.get(0).assertContentEquals("This is a ");
+        splits.get(1).assertContentEquals(". This is another ");
+        splits.get(2).assertContentEquals(". And this is yet another ");
+        splits.get(3).assertContentEquals(". Finally this is the last Test.");
         runner.clearTransferState();
 
         runner.setProperty(SplitContent.KEEP_SEQUENCE, "true");
-        runner.
-                setProperty(SplitContent.BYTE_SEQUENCE_LOCATION, SplitContent.TRAILING_POSITION.
-                        getValue());
+        runner.setProperty(SplitContent.BYTE_SEQUENCE_LOCATION, SplitContent.TRAILING_POSITION.getValue());
         runner.enqueue(input);
         runner.run();
         runner.assertTransferCount(SplitContent.REL_ORIGINAL, 1);
         runner.assertTransferCount(SplitContent.REL_SPLITS, 4);
         splits = runner.getFlowFilesForRelationship(SplitContent.REL_SPLITS);
-        splits.get(0).
-                assertContentEquals("This is a test");
-        splits.get(1).
-                assertContentEquals(". This is another test");
-        splits.get(2).
-                assertContentEquals(". And this is yet another test");
-        splits.get(3).
-                assertContentEquals(". Finally this is the last Test.");
+        splits.get(0).assertContentEquals("This is a test");
+        splits.get(1).assertContentEquals(". This is another test");
+        splits.get(2).assertContentEquals(". And this is yet another test");
+        splits.get(3).assertContentEquals(". Finally this is the last Test.");
         runner.clearTransferState();
 
         runner.setProperty(SplitContent.KEEP_SEQUENCE, "true");
-        runner.
-                setProperty(SplitContent.BYTE_SEQUENCE_LOCATION, SplitContent.TRAILING_POSITION.
-                        getValue());
-        runner.
-                enqueue("This is a test. This is another test. And this is yet another test. Finally this is the last test".
-                        getBytes());
+        runner.setProperty(SplitContent.BYTE_SEQUENCE_LOCATION, SplitContent.TRAILING_POSITION.getValue());
+        runner.enqueue("This is a test. This is another test. And this is yet another test. Finally this is the last test".getBytes());
         runner.run();
         runner.assertTransferCount(SplitContent.REL_ORIGINAL, 1);
         runner.assertTransferCount(SplitContent.REL_SPLITS, 4);
         splits = runner.getFlowFilesForRelationship(SplitContent.REL_SPLITS);
-        splits.get(0).
-                assertContentEquals("This is a test");
-        splits.get(1).
-                assertContentEquals(". This is another test");
-        splits.get(2).
-                assertContentEquals(". And this is yet another test");
-        splits.get(3).
-                assertContentEquals(". Finally this is the last test");
+        splits.get(0).assertContentEquals("This is a test");
+        splits.get(1).assertContentEquals(". This is another test");
+        splits.get(2).assertContentEquals(". And this is yet another test");
+        splits.get(3).assertContentEquals(". Finally this is the last test");
         runner.clearTransferState();
 
         runner.setProperty(SplitContent.KEEP_SEQUENCE, "true");
-        runner.
-                setProperty(SplitContent.BYTE_SEQUENCE_LOCATION, SplitContent.LEADING_POSITION.
-                        getValue());
-        runner.
-                enqueue("This is a test. This is another test. And this is yet another test. Finally this is the last test".
-                        getBytes());
+        runner.setProperty(SplitContent.BYTE_SEQUENCE_LOCATION, SplitContent.LEADING_POSITION.getValue());
+        runner.enqueue("This is a test. This is another test. And this is yet another test. Finally this is the last test".getBytes());
         runner.run();
         runner.assertTransferCount(SplitContent.REL_ORIGINAL, 1);
         runner.assertTransferCount(SplitContent.REL_SPLITS, 5);
         splits = runner.getFlowFilesForRelationship(SplitContent.REL_SPLITS);
-        splits.get(0).
-                assertContentEquals("This is a ");
-        splits.get(1).
-                assertContentEquals("test. This is another ");
-        splits.get(2).
-                assertContentEquals("test. And this is yet another ");
-        splits.get(3).
-                assertContentEquals("test. Finally this is the last ");
-        splits.get(4).
-                assertContentEquals("test");
+        splits.get(0).assertContentEquals("This is a ");
+        splits.get(1).assertContentEquals("test. This is another ");
+        splits.get(2).assertContentEquals("test. And this is yet another ");
+        splits.get(3).assertContentEquals("test. Finally this is the last ");
+        splits.get(4).assertContentEquals("test");
 
         runner.clearTransferState();
     }
@@ -175,13 +129,10 @@ public class TestSplitContent {
     @Test
     public void testTextFormatTrailingPosition() {
         final TestRunner runner = TestRunners.newTestRunner(new SplitContent());
-        runner.setProperty(SplitContent.FORMAT, SplitContent.UTF8_FORMAT.
-                getValue());
+        runner.setProperty(SplitContent.FORMAT, SplitContent.UTF8_FORMAT.getValue());
         runner.setProperty(SplitContent.BYTE_SEQUENCE, "ub");
         runner.setProperty(SplitContent.KEEP_SEQUENCE, "true");
-        runner.
-                setProperty(SplitContent.BYTE_SEQUENCE_LOCATION, SplitContent.TRAILING_POSITION.
-                        getValue());
+        runner.setProperty(SplitContent.BYTE_SEQUENCE_LOCATION, SplitContent.TRAILING_POSITION.getValue());
 
         runner.enqueue("rub-a-dub-dub".getBytes());
         runner.run();
@@ -190,14 +141,10 @@ public class TestSplitContent {
         runner.assertTransferCount(SplitContent.REL_SPLITS, 3);
 
         runner.assertQueueEmpty();
-        final List<MockFlowFile> splits = runner.
-                getFlowFilesForRelationship(SplitContent.REL_SPLITS);
-        splits.get(0).
-                assertContentEquals("rub");
-        splits.get(1).
-                assertContentEquals("-a-dub");
-        splits.get(2).
-                assertContentEquals("-dub");
+        final List<MockFlowFile> splits = runner.getFlowFilesForRelationship(SplitContent.REL_SPLITS);
+        splits.get(0).assertContentEquals("rub");
+        splits.get(1).assertContentEquals("-a-dub");
+        splits.get(2).assertContentEquals("-dub");
     }
 
     @Test
@@ -206,16 +153,14 @@ public class TestSplitContent {
         runner.setProperty(SplitContent.KEEP_SEQUENCE, "false");
         runner.setProperty(SplitContent.BYTE_SEQUENCE.getName(), "FFFF");
 
-        runner.
-                enqueue(new byte[]{1, 2, 3, 4, 5, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, 5, 4, 3, 2, 1});
+        runner.enqueue(new byte[]{1, 2, 3, 4, 5, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, 5, 4, 3, 2, 1});
         runner.run();
 
         runner.assertTransferCount(SplitContent.REL_ORIGINAL, 1);
         runner.assertTransferCount(SplitContent.REL_SPLITS, 2);
 
         runner.assertQueueEmpty();
-        final List<MockFlowFile> splits = runner.
-                getFlowFilesForRelationship(SplitContent.REL_SPLITS);
+        final List<MockFlowFile> splits = runner.getFlowFilesForRelationship(SplitContent.REL_SPLITS);
         final MockFlowFile split1 = splits.get(0);
         final MockFlowFile split2 = splits.get(1);
 
@@ -236,8 +181,7 @@ public class TestSplitContent {
         runner.assertTransferCount(SplitContent.REL_SPLITS, 2);
 
         runner.assertQueueEmpty();
-        final List<MockFlowFile> splits = runner.
-                getFlowFilesForRelationship(SplitContent.REL_SPLITS);
+        final List<MockFlowFile> splits = runner.getFlowFilesForRelationship(SplitContent.REL_SPLITS);
         final MockFlowFile split1 = splits.get(0);
         final MockFlowFile split2 = splits.get(1);
 
@@ -261,8 +205,7 @@ public class TestSplitContent {
         runner.assertTransferCount(SplitContent.REL_SPLITS, 2);
 
         runner.assertQueueEmpty();
-        final List<MockFlowFile> splits = runner.
-                getFlowFilesForRelationship(SplitContent.REL_SPLITS);
+        final List<MockFlowFile> splits = runner.getFlowFilesForRelationship(SplitContent.REL_SPLITS);
         final MockFlowFile split1 = splits.get(0);
         final MockFlowFile split2 = splits.get(1);
 
@@ -287,8 +230,7 @@ public class TestSplitContent {
         runner.assertTransferCount(SplitContent.REL_SPLITS, 2);
 
         runner.assertQueueEmpty();
-        final List<MockFlowFile> splits = runner.
-                getFlowFilesForRelationship(SplitContent.REL_SPLITS);
+        final List<MockFlowFile> splits = runner.getFlowFilesForRelationship(SplitContent.REL_SPLITS);
         final MockFlowFile split1 = splits.get(0);
         final MockFlowFile split2 = splits.get(1);
 
@@ -310,8 +252,7 @@ public class TestSplitContent {
         runner.assertTransferCount(SplitContent.REL_SPLITS, 1);
 
         runner.assertQueueEmpty();
-        final List<MockFlowFile> splits = runner.
-                getFlowFilesForRelationship(SplitContent.REL_SPLITS);
+        final List<MockFlowFile> splits = runner.getFlowFilesForRelationship(SplitContent.REL_SPLITS);
         final MockFlowFile split1 = splits.get(0);
 
         split1.assertContentEquals(new byte[]{1, 2, 3, 4});
@@ -331,8 +272,7 @@ public class TestSplitContent {
         runner.assertTransferCount(SplitContent.REL_SPLITS, 1);
 
         runner.assertQueueEmpty();
-        final List<MockFlowFile> splits = runner.
-                getFlowFilesForRelationship(SplitContent.REL_SPLITS);
+        final List<MockFlowFile> splits = runner.getFlowFilesForRelationship(SplitContent.REL_SPLITS);
         final MockFlowFile split1 = splits.get(0);
 
         split1.assertContentEquals(new byte[]{1, 2, 3, 4, 5, 5, 5, 5});
@@ -352,8 +292,7 @@ public class TestSplitContent {
         runner.assertTransferCount(SplitContent.REL_SPLITS, 1);
 
         runner.assertQueueEmpty();
-        final List<MockFlowFile> splits = runner.
-                getFlowFilesForRelationship(SplitContent.REL_SPLITS);
+        final List<MockFlowFile> splits = runner.getFlowFilesForRelationship(SplitContent.REL_SPLITS);
         final MockFlowFile split1 = splits.get(0);
 
         split1.assertContentEquals(new byte[]{1, 2, 3, 4});
@@ -373,12 +312,9 @@ public class TestSplitContent {
         runner.assertTransferCount(SplitContent.REL_SPLITS, 2);
 
         runner.assertQueueEmpty();
-        final List<MockFlowFile> splits = runner.
-                getFlowFilesForRelationship(SplitContent.REL_SPLITS);
-        splits.get(0).
-                assertContentEquals(new byte[]{5, 5, 5, 5});
-        splits.get(1).
-                assertContentEquals(new byte[]{1, 2, 3, 4});
+        final List<MockFlowFile> splits = runner.getFlowFilesForRelationship(SplitContent.REL_SPLITS);
+        splits.get(0).assertContentEquals(new byte[]{5, 5, 5, 5});
+        splits.get(1).assertContentEquals(new byte[]{1, 2, 3, 4});
     }
 
     @Test
@@ -387,29 +323,23 @@ public class TestSplitContent {
         runner.setProperty(SplitContent.KEEP_SEQUENCE, "true");
         runner.setProperty(SplitContent.BYTE_SEQUENCE.getName(), "FFFF");
 
-        runner.
-                enqueue(new byte[]{1, 2, 3, 4, 5, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, 5, 4, 3, 2, 1});
+        runner.enqueue(new byte[]{1, 2, 3, 4, 5, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, 5, 4, 3, 2, 1});
         runner.run();
 
         runner.assertTransferCount(SplitContent.REL_ORIGINAL, 1);
         runner.assertTransferCount(SplitContent.REL_SPLITS, 2);
 
         runner.assertQueueEmpty();
-        final List<MockFlowFile> splits = runner.
-                getFlowFilesForRelationship(SplitContent.REL_SPLITS);
+        final List<MockFlowFile> splits = runner.getFlowFilesForRelationship(SplitContent.REL_SPLITS);
         final MockFlowFile split1 = splits.get(0);
         final MockFlowFile split2 = splits.get(1);
 
-        split1.
-                assertContentEquals(new byte[]{1, 2, 3, 4, 5, (byte) 0xFF, (byte) 0xFF});
+        split1.assertContentEquals(new byte[]{1, 2, 3, 4, 5, (byte) 0xFF, (byte) 0xFF});
         split2.assertContentEquals(new byte[]{(byte) 0xFF, 5, 4, 3, 2, 1});
 
-        final TestRunner mergeRunner = TestRunners.
-                newTestRunner(new MergeContent());
-        mergeRunner.
-                setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_CONCAT);
-        mergeRunner.
-                setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_DEFRAGMENT);
+        final TestRunner mergeRunner = TestRunners.newTestRunner(new MergeContent());
+        mergeRunner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_CONCAT);
+        mergeRunner.setProperty(MergeContent.MERGE_STRATEGY, MergeContent.MERGE_STRATEGY_DEFRAGMENT);
         mergeRunner.enqueue(splits.toArray(new MockFlowFile[0]));
         mergeRunner.run();
 
@@ -417,9 +347,7 @@ public class TestSplitContent {
         mergeRunner.assertTransferCount(MergeContent.REL_ORIGINAL, 2);
         mergeRunner.assertTransferCount(MergeContent.REL_FAILURE, 0);
 
-        final List<MockFlowFile> packed = mergeRunner.
-                getFlowFilesForRelationship(MergeContent.REL_MERGED);
-        packed.get(0).
-                assertContentEquals(new byte[]{1, 2, 3, 4, 5, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, 5, 4, 3, 2, 1});
+        final List<MockFlowFile> packed = mergeRunner.getFlowFilesForRelationship(MergeContent.REL_MERGED);
+        packed.get(0).assertContentEquals(new byte[]{1, 2, 3, 4, 5, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, 5, 4, 3, 2, 1});
     }
 }

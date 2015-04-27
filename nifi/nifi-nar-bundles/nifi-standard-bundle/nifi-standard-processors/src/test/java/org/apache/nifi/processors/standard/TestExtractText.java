@@ -37,14 +37,12 @@ public class TestExtractText {
     @Test
     public void testProcessor() throws Exception {
 
-        final TestRunner testRunner = TestRunners.
-                newTestRunner(new ExtractText());
+        final TestRunner testRunner = TestRunners.newTestRunner(new ExtractText());
 
         testRunner.setProperty("regex.result1", "(?s)(.*)");
         testRunner.setProperty("regex.result2", "(?s).*(bar1).*");
         testRunner.setProperty("regex.result3", "(?s).*?(bar\\d).*"); // reluctant gets first
-        testRunner.
-                setProperty("regex.result4", "(?s).*?(?:bar\\d).*?(bar\\d).*?(bar3).*"); // reluctant w/ repeated pattern gets second
+        testRunner.setProperty("regex.result4", "(?s).*?(?:bar\\d).*?(bar\\d).*?(bar3).*"); // reluctant w/ repeated pattern gets second
         testRunner.setProperty("regex.result5", "(?s).*(bar\\d).*"); // greedy gets last
         testRunner.setProperty("regex.result6", "(?s)^(.*)$");
         testRunner.setProperty("regex.result7", "(?s)(XXX)");
@@ -53,9 +51,7 @@ public class TestExtractText {
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(ExtractText.REL_MATCH, 1);
-        final MockFlowFile out = testRunner.
-                getFlowFilesForRelationship(ExtractText.REL_MATCH).
-                get(0);
+        final MockFlowFile out = testRunner.getFlowFilesForRelationship(ExtractText.REL_MATCH).get(0);
         out.assertAttributeEquals("regex.result1", SAMPLE_STRING);
         out.assertAttributeEquals("regex.result2", "bar1");
         out.assertAttributeEquals("regex.result3", "bar1");
@@ -72,8 +68,7 @@ public class TestExtractText {
     @Test
     public void testProcessorWithDotall() throws Exception {
 
-        final TestRunner testRunner = TestRunners.
-                newTestRunner(new ExtractText());
+        final TestRunner testRunner = TestRunners.newTestRunner(new ExtractText());
 
         testRunner.setProperty(ExtractText.DOTALL, "true");
 
@@ -89,9 +84,7 @@ public class TestExtractText {
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(ExtractText.REL_MATCH, 1);
-        final MockFlowFile out = testRunner.
-                getFlowFilesForRelationship(ExtractText.REL_MATCH).
-                get(0);
+        final MockFlowFile out = testRunner.getFlowFilesForRelationship(ExtractText.REL_MATCH).get(0);
         out.assertAttributeEquals("regex.result1", SAMPLE_STRING);
         out.assertAttributeEquals("regex.result2", "bar1");
         out.assertAttributeEquals("regex.result3", "bar1");
@@ -105,8 +98,7 @@ public class TestExtractText {
     @Test
     public void testProcessorWithMultiline() throws Exception {
 
-        final TestRunner testRunner = TestRunners.
-                newTestRunner(new ExtractText());
+        final TestRunner testRunner = TestRunners.newTestRunner(new ExtractText());
 
         testRunner.setProperty(ExtractText.MULTILINE, "true");
 
@@ -124,9 +116,7 @@ public class TestExtractText {
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(ExtractText.REL_MATCH, 1);
-        final MockFlowFile out = testRunner.
-                getFlowFilesForRelationship(ExtractText.REL_MATCH).
-                get(0);
+        final MockFlowFile out = testRunner.getFlowFilesForRelationship(ExtractText.REL_MATCH).get(0);
         out.assertAttributeEquals("regex.result1", "foo"); // matches everything on the first line
         out.assertAttributeEquals("regex.result2", "bar1");
         out.assertAttributeEquals("regex.result3", "bar1");
@@ -141,8 +131,7 @@ public class TestExtractText {
     @Test
     public void testProcessorWithMultilineAndDotall() throws Exception {
 
-        final TestRunner testRunner = TestRunners.
-                newTestRunner(new ExtractText());
+        final TestRunner testRunner = TestRunners.newTestRunner(new ExtractText());
 
         testRunner.setProperty(ExtractText.MULTILINE, "true");
         testRunner.setProperty(ExtractText.DOTALL, "true");
@@ -161,9 +150,7 @@ public class TestExtractText {
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(ExtractText.REL_MATCH, 1);
-        final MockFlowFile out = testRunner.
-                getFlowFilesForRelationship(ExtractText.REL_MATCH).
-                get(0);
+        final MockFlowFile out = testRunner.getFlowFilesForRelationship(ExtractText.REL_MATCH).get(0);
 
         out.assertAttributeEquals("regex.result1", SAMPLE_STRING);
         out.assertAttributeEquals("regex.result2", "bar1");
@@ -179,8 +166,7 @@ public class TestExtractText {
     @Test
     public void testProcessorWithNoMatches() throws Exception {
 
-        final TestRunner testRunner = TestRunners.
-                newTestRunner(new ExtractText());
+        final TestRunner testRunner = TestRunners.newTestRunner(new ExtractText());
 
         testRunner.setProperty(ExtractText.MULTILINE, "true");
         testRunner.setProperty(ExtractText.DOTALL, "true");
@@ -197,9 +183,7 @@ public class TestExtractText {
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(ExtractText.REL_NO_MATCH, 1);
-        final MockFlowFile out = testRunner.
-                getFlowFilesForRelationship(ExtractText.REL_NO_MATCH).
-                get(0);
+        final MockFlowFile out = testRunner.getFlowFilesForRelationship(ExtractText.REL_NO_MATCH).get(0);
 
         out.assertAttributeEquals("regex.result1", null);
         out.assertAttributeEquals("regex.result2", null);
@@ -214,8 +198,7 @@ public class TestExtractText {
 
     @Test(expected = java.lang.AssertionError.class)
     public void testNoCaptureGroups() throws UnsupportedEncodingException {
-        final TestRunner testRunner = TestRunners.
-                newTestRunner(new ExtractText());
+        final TestRunner testRunner = TestRunners.newTestRunner(new ExtractText());
         testRunner.setProperty("regex.result1", ".*");
         testRunner.enqueue(SAMPLE_STRING.getBytes("UTF-8"));
         testRunner.run();
@@ -223,8 +206,7 @@ public class TestExtractText {
 
     @Test
     public void testNoFlowFile() throws UnsupportedEncodingException {
-        final TestRunner testRunner = TestRunners.
-                newTestRunner(new ExtractText());
+        final TestRunner testRunner = TestRunners.newTestRunner(new ExtractText());
         testRunner.run();
         testRunner.assertAllFlowFilesTransferred(ExtractText.REL_MATCH, 0);
 
@@ -232,8 +214,7 @@ public class TestExtractText {
 
     @Test
     public void testMatchOutsideBuffer() throws Exception {
-        final TestRunner testRunner = TestRunners.
-                newTestRunner(new ExtractText());
+        final TestRunner testRunner = TestRunners.newTestRunner(new ExtractText());
 
         testRunner.setProperty(ExtractText.MAX_BUFFER_SIZE, "3 B");//only read the first 3 chars ("foo")
 
@@ -244,9 +225,7 @@ public class TestExtractText {
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(ExtractText.REL_MATCH, 1);
-        final MockFlowFile out = testRunner.
-                getFlowFilesForRelationship(ExtractText.REL_MATCH).
-                get(0);
+        final MockFlowFile out = testRunner.getFlowFilesForRelationship(ExtractText.REL_MATCH).get(0);
 
         out.assertAttributeEquals("regex.result1", "foo");
         out.assertAttributeEquals("regex.result2", null); // null because outsk
@@ -267,63 +246,53 @@ public class TestExtractText {
         // UNIX_LINES
         testRunner = TestRunners.newTestRunner(processor);
         testRunner.setProperty(ExtractText.UNIX_LINES, "true");
-        assertEquals(Pattern.UNIX_LINES, processor.getCompileFlags(testRunner.
-                getProcessContext()));
+        assertEquals(Pattern.UNIX_LINES, processor.getCompileFlags(testRunner.getProcessContext()));
 
         // CASE_INSENSITIVE
         testRunner = TestRunners.newTestRunner(processor);
         testRunner.setProperty(ExtractText.CASE_INSENSITIVE, "true");
-        assertEquals(Pattern.CASE_INSENSITIVE, processor.
-                getCompileFlags(testRunner.getProcessContext()));
+        assertEquals(Pattern.CASE_INSENSITIVE, processor.getCompileFlags(testRunner.getProcessContext()));
 
         // COMMENTS
         testRunner = TestRunners.newTestRunner(processor);
         testRunner.setProperty(ExtractText.COMMENTS, "true");
-        assertEquals(Pattern.COMMENTS, processor.getCompileFlags(testRunner.
-                getProcessContext()));
+        assertEquals(Pattern.COMMENTS, processor.getCompileFlags(testRunner.getProcessContext()));
 
         // MULTILINE
         testRunner = TestRunners.newTestRunner(processor);
         testRunner.setProperty(ExtractText.MULTILINE, "true");
-        assertEquals(Pattern.MULTILINE, processor.getCompileFlags(testRunner.
-                getProcessContext()));
+        assertEquals(Pattern.MULTILINE, processor.getCompileFlags(testRunner.getProcessContext()));
 
         // LITERAL
         testRunner = TestRunners.newTestRunner(processor);
         testRunner.setProperty(ExtractText.LITERAL, "true");
-        assertEquals(Pattern.LITERAL, processor.getCompileFlags(testRunner.
-                getProcessContext()));
+        assertEquals(Pattern.LITERAL, processor.getCompileFlags(testRunner.getProcessContext()));
 
         // DOTALL
         testRunner = TestRunners.newTestRunner(processor);
         testRunner.setProperty(ExtractText.DOTALL, "true");
-        assertEquals(Pattern.DOTALL, processor.getCompileFlags(testRunner.
-                getProcessContext()));
+        assertEquals(Pattern.DOTALL, processor.getCompileFlags(testRunner.getProcessContext()));
 
         // UNICODE_CASE
         testRunner = TestRunners.newTestRunner(processor);
         testRunner.setProperty(ExtractText.UNICODE_CASE, "true");
-        assertEquals(Pattern.UNICODE_CASE, processor.getCompileFlags(testRunner.
-                getProcessContext()));
+        assertEquals(Pattern.UNICODE_CASE, processor.getCompileFlags(testRunner.getProcessContext()));
 
         // CANON_EQ
         testRunner = TestRunners.newTestRunner(processor);
         testRunner.setProperty(ExtractText.CANON_EQ, "true");
-        assertEquals(Pattern.CANON_EQ, processor.getCompileFlags(testRunner.
-                getProcessContext()));
+        assertEquals(Pattern.CANON_EQ, processor.getCompileFlags(testRunner.getProcessContext()));
 
         // UNICODE_CHARACTER_CLASS
         testRunner = TestRunners.newTestRunner(processor);
         testRunner.setProperty(ExtractText.UNICODE_CHARACTER_CLASS, "true");
-        assertEquals(Pattern.UNICODE_CHARACTER_CLASS, processor.
-                getCompileFlags(testRunner.getProcessContext()));
+        assertEquals(Pattern.UNICODE_CHARACTER_CLASS, processor.getCompileFlags(testRunner.getProcessContext()));
 
         // DOTALL and MULTILINE
         testRunner = TestRunners.newTestRunner(processor);
         testRunner.setProperty(ExtractText.DOTALL, "true");
         testRunner.setProperty(ExtractText.MULTILINE, "true");
-        assertEquals(Pattern.DOTALL | Pattern.MULTILINE, processor.
-                getCompileFlags(testRunner.getProcessContext()));
+        assertEquals(Pattern.DOTALL | Pattern.MULTILINE, processor.getCompileFlags(testRunner.getProcessContext()));
     }
 
     @Test

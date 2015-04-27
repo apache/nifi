@@ -53,10 +53,8 @@ public class TestGetHTTP {
     public static void before() {
         System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "info");
         System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
-        System.
-                setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.GetHTTP", "debug");
-        System.
-                setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.TestGetHTTP", "debug");
+        System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.GetHTTP", "debug");
+        System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.TestGetHTTP", "debug");
         File confDir = new File("conf");
         if (!confDir.exists()) {
             confDir.mkdir();
@@ -96,26 +94,21 @@ public class TestGetHTTP {
             controller.setProperty(GetHTTP.CONNECTION_TIMEOUT, "5 secs");
             controller.setProperty(GetHTTP.URL, destination);
             controller.setProperty(GetHTTP.FILENAME, "testFile");
-            controller.
-                    setProperty(GetHTTP.ACCEPT_CONTENT_TYPE, "application/json");
+            controller.setProperty(GetHTTP.ACCEPT_CONTENT_TYPE, "application/json");
 
             GetHTTP getHTTPProcessor = (GetHTTP) controller.getProcessor();
             assertEquals("", getHTTPProcessor.entityTagRef.get());
-            assertEquals("Thu, 01 Jan 1970 00:00:00 GMT", getHTTPProcessor.lastModifiedRef.
-                    get());
+            assertEquals("Thu, 01 Jan 1970 00:00:00 GMT", getHTTPProcessor.lastModifiedRef.get());
             controller.run(2);
 
             // verify the lastModified and entityTag are updated
             assertFalse("".equals(getHTTPProcessor.entityTagRef.get()));
-            assertFalse("Thu, 01 Jan 1970 00:00:00 GMT".
-                    equals(getHTTPProcessor.lastModifiedRef.get()));
+            assertFalse("Thu, 01 Jan 1970 00:00:00 GMT".equals(getHTTPProcessor.lastModifiedRef.get()));
             // ran twice, but got one...which is good
             controller.assertTransferCount(GetHTTP.REL_SUCCESS, 1);
 
             // verify remote.source flowfile attribute
-            controller.getFlowFilesForRelationship(GetHTTP.REL_SUCCESS).
-                    get(0).
-                    assertAttributeEquals("gethttp.remote.source", "localhost");
+            controller.getFlowFilesForRelationship(GetHTTP.REL_SUCCESS).get(0).assertAttributeEquals("gethttp.remote.source", "localhost");
 
             controller.clearTransferState();
 
@@ -153,8 +146,7 @@ public class TestGetHTTP {
             // turn off checking for Etag, turn on checking for lastModified, but change value
             RESTServiceContentModified.IGNORE_LAST_MODIFIED = false;
             RESTServiceContentModified.IGNORE_ETAG = true;
-            RESTServiceContentModified.modificationDate = System.
-                    currentTimeMillis() / 1000 * 1000 + 5000;
+            RESTServiceContentModified.modificationDate = System.currentTimeMillis() / 1000 * 1000 + 5000;
             String lastMod = getHTTPProcessor.lastModifiedRef.get();
             controller.run(2);
             // ran twice, got 1...but should have new cached etag
@@ -196,14 +188,12 @@ public class TestGetHTTP {
             controller.setProperty(GetHTTP.CONNECTION_TIMEOUT, "5 secs");
             controller.setProperty(GetHTTP.FILENAME, "testFile");
             controller.setProperty(GetHTTP.URL, destination);
-            controller.
-                    setProperty(GetHTTP.ACCEPT_CONTENT_TYPE, "application/json");
+            controller.setProperty(GetHTTP.ACCEPT_CONTENT_TYPE, "application/json");
 
             GetHTTP getHTTPProcessor = (GetHTTP) controller.getProcessor();
 
             assertEquals("", getHTTPProcessor.entityTagRef.get());
-            assertEquals("Thu, 01 Jan 1970 00:00:00 GMT", getHTTPProcessor.lastModifiedRef.
-                    get());
+            assertEquals("Thu, 01 Jan 1970 00:00:00 GMT", getHTTPProcessor.lastModifiedRef.get());
             controller.run(2);
 
             // verify the lastModified and entityTag are updated
@@ -226,9 +216,7 @@ public class TestGetHTTP {
             assertEquals(etag, props.getProperty(GetHTTP.ETAG));
             assertEquals(lastMod, props.getProperty(GetHTTP.LAST_MODIFIED));
 
-            ProcessorInitializationContext pic = new MockProcessorInitializationContext(controller.
-                    getProcessor(),
-                    (MockProcessContext) controller.getProcessContext());
+            ProcessorInitializationContext pic = new MockProcessorInitializationContext(controller.getProcessor(), (MockProcessContext) controller.getProcessContext());
             // init causes read from file
             getHTTPProcessor.init(pic);
             assertEquals(etag, getHTTPProcessor.entityTagRef.get());
@@ -274,8 +262,7 @@ public class TestGetHTTP {
             controller.setProperty(GetHTTP.CONNECTION_TIMEOUT, "5 secs");
             controller.setProperty(GetHTTP.URL, destination);
             controller.setProperty(GetHTTP.FILENAME, "testFile");
-            controller.
-                    setProperty(GetHTTP.ACCEPT_CONTENT_TYPE, "application/json");
+            controller.setProperty(GetHTTP.ACCEPT_CONTENT_TYPE, "application/json");
 
             controller.run();
             controller.assertTransferCount(GetHTTP.REL_SUCCESS, 0);
@@ -292,15 +279,11 @@ public class TestGetHTTP {
 
     private Map<String, String> getSslProperties() {
         Map<String, String> props = new HashMap<String, String>();
-        props.
-                put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/localhost-ks.jks");
-        props.
-                put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "localtest");
+        props.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/localhost-ks.jks");
+        props.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "localtest");
         props.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), "JKS");
-        props.
-                put(StandardSSLContextService.TRUSTSTORE.getName(), "src/test/resources/localhost-ts.jks");
-        props.
-                put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "localtest");
+        props.put(StandardSSLContextService.TRUSTSTORE.getName(), "src/test/resources/localhost-ts.jks");
+        props.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "localtest");
         props.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), "JKS");
         return props;
     }
@@ -308,8 +291,7 @@ public class TestGetHTTP {
     private void useSSLContextService() {
         final SSLContextService service = new StandardSSLContextService();
         try {
-            controller.
-                    addControllerService("ssl-service", service, getSslProperties());
+            controller.addControllerService("ssl-service", service, getSslProperties());
             controller.enableControllerService(service);
         } catch (InitializationException ex) {
             ex.printStackTrace();
@@ -341,14 +323,11 @@ public class TestGetHTTP {
             controller.setProperty(GetHTTP.CONNECTION_TIMEOUT, "5 secs");
             controller.setProperty(GetHTTP.URL, destination);
             controller.setProperty(GetHTTP.FILENAME, "testFile");
-            controller.
-                    setProperty(GetHTTP.ACCEPT_CONTENT_TYPE, "application/json");
+            controller.setProperty(GetHTTP.ACCEPT_CONTENT_TYPE, "application/json");
 
             controller.run();
             controller.assertAllFlowFilesTransferred(GetHTTP.REL_SUCCESS, 1);
-            final MockFlowFile mff = controller.
-                    getFlowFilesForRelationship(GetHTTP.REL_SUCCESS).
-                    get(0);
+            final MockFlowFile mff = controller.getFlowFilesForRelationship(GetHTTP.REL_SUCCESS).get(0);
             mff.assertContentEquals("Hello, World!");
         } finally {
             server.shutdownServer();

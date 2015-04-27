@@ -53,28 +53,21 @@ public class TestPutEmail {
         final TestRunner runner = TestRunners.newTestRunner(new PutEmail());
         runner.setProperty(PutEmail.HEADER_XMAILER, "TestingNiFi");
         runner.setProperty(PutEmail.SMTP_HOSTNAME, "smtp-host");
-        runner.
-                setProperty(PutEmail.SMTP_SOCKET_FACTORY, "${dynamicSocketFactory}");
+        runner.setProperty(PutEmail.SMTP_SOCKET_FACTORY, "${dynamicSocketFactory}");
         runner.setProperty(PutEmail.HEADER_XMAILER, "TestingNiFi");
         runner.setProperty(PutEmail.FROM, "test@apache.org");
         runner.setProperty(PutEmail.MESSAGE, "Message Body");
         runner.setProperty(PutEmail.TO, "recipient@apache.org");
 
-        ProcessSession session = runner.getProcessSessionFactory().
-                createSession();
+        ProcessSession session = runner.getProcessSessionFactory().createSession();
         FlowFile ff = session.create();
-        ff = session.
-                putAttribute(ff, "dynamicSocketFactory", "testingSocketFactory");
+        ff = session.putAttribute(ff, "dynamicSocketFactory", "testingSocketFactory");
         ProcessContext context = runner.getProcessContext();
 
-        String xmailer = context.getProperty(PutEmail.HEADER_XMAILER).
-                evaluateAttributeExpressions(ff).
-                getValue();
+        String xmailer = context.getProperty(PutEmail.HEADER_XMAILER).evaluateAttributeExpressions(ff).getValue();
         assertEquals("X-Mailer Header", "TestingNiFi", xmailer);
 
-        String socketFactory = context.getProperty(PutEmail.SMTP_SOCKET_FACTORY).
-                evaluateAttributeExpressions(ff).
-                getValue();
+        String socketFactory = context.getProperty(PutEmail.SMTP_SOCKET_FACTORY).evaluateAttributeExpressions(ff).getValue();
         assertEquals("Socket Factory", "testingSocketFactory", socketFactory);
 
         final Map<String, String> attributes = new HashMap<>();
