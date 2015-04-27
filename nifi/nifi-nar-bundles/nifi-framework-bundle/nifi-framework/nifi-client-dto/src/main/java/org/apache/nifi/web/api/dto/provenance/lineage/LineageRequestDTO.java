@@ -43,9 +43,7 @@ public class LineageRequestDTO {
     private String uuid;
 
     /**
-     * The event id that was used to generate this lineage.
-     *
-     * @return
+     * @return event id that was used to generate this lineage
      */
     public Long getEventId() {
         return eventId;
@@ -56,13 +54,11 @@ public class LineageRequestDTO {
     }
 
     /**
-     * The type of lineage request. Either 'PARENTS', 'CHILDREN', or 'FLOWFILE'.
+     * @return type of lineage request. Either 'PARENTS', 'CHILDREN', or 'FLOWFILE'.
      * PARENTS will return the lineage for the flowfiles that are parents of the
      * specified event. CHILDREN will return the lineage of for the flowfiles
      * that are children of the specified event. FLOWFILE will return the
      * lineage for the specified flowfile.
-     *
-     * @return
      */
     public LineageRequestType getLineageRequestType() {
         return lineageRequestType;
@@ -73,9 +69,7 @@ public class LineageRequestDTO {
     }
 
     /**
-     * The uuid that was used to generate this lineage.
-     *
-     * @return
+     * @return uuid that was used to generate this lineage
      */
     public String getUuid() {
         return uuid;

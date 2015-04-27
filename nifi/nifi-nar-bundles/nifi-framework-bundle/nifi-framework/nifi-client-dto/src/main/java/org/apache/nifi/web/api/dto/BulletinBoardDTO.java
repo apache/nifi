@@ -34,9 +34,7 @@ public class BulletinBoardDTO {
     private Date generated;
 
     /**
-     * The bulletins to populate in the bulletin board.
-     *
-     * @return
+     * @return bulletins to populate in the bulletin board
      */
     public List<BulletinDTO> getBulletins() {
         return bulletins;
@@ -47,9 +45,7 @@ public class BulletinBoardDTO {
     }
 
     /**
-     * When this bulletin board was generated.
-     *
-     * @return
+     * @return when this bulletin board was generated
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
     public Date getGenerated() {

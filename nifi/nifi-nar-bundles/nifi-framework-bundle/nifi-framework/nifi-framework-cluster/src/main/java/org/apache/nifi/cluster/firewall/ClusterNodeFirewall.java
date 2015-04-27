@@ -27,8 +27,9 @@ public interface ClusterNodeFirewall {
      * false otherwise.
      *
      * If an IP is given, then it must be formatted in dotted decimal notation.
-     * @param hostOrIp
-     * @return 
+     *
+     * @param hostOrIp host
+     * @return true if permissible
      */
     boolean isPermissible(String hostOrIp);
 

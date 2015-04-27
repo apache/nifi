@@ -370,7 +370,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
         if (uri.getScheme() == null || uri.getHost() == null) {
             throw new IllegalArgumentException("The specified remote process group URL is malformed: " + requestProcessGroupDTO.getTargetUri());
         }
-        
+
         if (!(uri.getScheme().equalsIgnoreCase("http") || uri.getScheme().equalsIgnoreCase("https"))) {
             throw new IllegalArgumentException("The specified remote process group URL is invalid because it is not http or https: " + requestProcessGroupDTO.getTargetUri());
         }
@@ -864,7 +864,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
             if (uri.getScheme() == null || uri.getHost() == null) {
                 throw new IllegalArgumentException("The specified remote process group URL is malformed: " + requestRemoteProcessGroup.getTargetUri());
             }
-            
+
             if (!(uri.getScheme().equalsIgnoreCase("http") || uri.getScheme().equalsIgnoreCase("https"))) {
                 throw new IllegalArgumentException("The specified remote process group URL is invalid because it is not http or https: " + requestRemoteProcessGroup.getTargetUri());
             }

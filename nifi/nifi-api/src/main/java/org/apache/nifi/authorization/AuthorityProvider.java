@@ -31,11 +31,9 @@ import org.apache.nifi.authorization.exception.UnknownIdentityException;
 public interface AuthorityProvider {
 
     /**
-     * Returns whether the user with the specified DN is known to this authority
-     * provider. It is not necessary for the user to have any authorities.
-     *
-     * @param dn
-     * @return
+     * @param dn of the user
+     * @return whether the user with the specified DN is known to this authority
+     * provider. It is not necessary for the user to have any authorities
      */
     boolean doesDnExist(String dn) throws AuthorityAccessException;
 
@@ -43,29 +41,30 @@ public interface AuthorityProvider {
      * Get the authorities for the specified user. If the specified user exists
      * but does not have any authorities, an empty set should be returned.
      *
-     * @param dn
-     * @return
-     * @throws UnknownIdentityException
-     * @throws AuthorityAccessException
+     * @param dn of the user to lookup
+     * @return the authorities for the specified user. If the specified user
+     * exists but does not have any authorities, an empty set should be returned
+     * @throws UnknownIdentityException if identity is not known
+     * @throws AuthorityAccessException if unable to access authorities
      */
     Set<Authority> getAuthorities(String dn) throws UnknownIdentityException, AuthorityAccessException;
 
     /**
      * Sets the specified authorities for the specified user.
      *
-     * @param dn
-     * @param authorities
-     * @throws UnknownIdentityException
-     * @throws AuthorityAccessException
+     * @param dn the specified user
+     * @param authorities the new authorities for the user
+     * @throws UnknownIdentityException if identity is not known
+     * @throws AuthorityAccessException if unable to access authorities
      */
     void setAuthorities(String dn, Set<Authority> authorities) throws UnknownIdentityException, AuthorityAccessException;
 
     /**
      * Gets the users for the specified authority.
      *
-     * @param authority
-     * @return
-     * @throws AuthorityAccessException
+     * @param authority for which to determine membership of
+     * @return all users with the specified authority
+     * @throws AuthorityAccessException if unable to access authorities
      */
     Set<String> getUsers(Authority authority) throws AuthorityAccessException;
 
@@ -73,19 +72,19 @@ public interface AuthorityProvider {
      * Revokes the specified user. Its up to the implementor to determine the
      * semantics of revocation.
      *
-     * @param dn
-     * @throws UnknownIdentityException
-     * @throws AuthorityAccessException
+     * @param dn the dn of the user
+     * @throws UnknownIdentityException if the user is not known
+     * @throws AuthorityAccessException if unable to access the authorities
      */
     void revokeUser(String dn) throws UnknownIdentityException, AuthorityAccessException;
 
     /**
      * Add the specified user.
      *
-     * @param dn
+     * @param dn of the user
      * @param group Optional
-     * @throws IdentityAlreadyExistsException
-     * @throws AuthorityAccessException
+     * @throws UnknownIdentityException if the user is not known
+     * @throws AuthorityAccessException if unable to access the authorities
      */
     void addUser(String dn, String group) throws IdentityAlreadyExistsException, AuthorityAccessException;
 
@@ -93,10 +92,10 @@ public interface AuthorityProvider {
      * Gets the group for the specified user. Return null if the user does not
      * belong to a group.
      *
-     * @param dn
-     * @return
-     * @throws UnknownIdentityException
-     * @throws AuthorityAccessException
+     * @param dn the user
+     * @return the group of the given user
+     * @throws UnknownIdentityException if the user is not known
+     * @throws AuthorityAccessException if unable to access the authorities
      */
     String getGroupForUser(String dn) throws UnknownIdentityException, AuthorityAccessException;
 
@@ -104,26 +103,28 @@ public interface AuthorityProvider {
      * Revokes all users for a specified group. Its up to the implementor to
      * determine the semantics of revocation.
      *
-     * @param group
-     * @throws AuthorityAccessException
+     * @param group to revoke the users of
+     * @throws UnknownIdentityException if the user is not known
+     * @throws AuthorityAccessException if unable to access the authorities
      */
     void revokeGroup(String group) throws UnknownIdentityException, AuthorityAccessException;
 
     /**
      * Adds the specified users to the specified group.
      *
-     * @param dn
-     * @param group
-     * @throws AuthorityAccessException
+     * @param dn the set of users to add to the group
+     * @param group to add users to
+     * @throws UnknownIdentityException if the user is not known
+     * @throws AuthorityAccessException if unable to access the authorities
      */
     void setUsersGroup(Set<String> dn, String group) throws UnknownIdentityException, AuthorityAccessException;
 
     /**
      * Ungroups the specified user.
      *
-     * @param dn
-     * @throws UnknownIdentityException
-     * @throws AuthorityAccessException
+     * @param dn of the user
+     * @throws UnknownIdentityException if the user is not known
+     * @throws AuthorityAccessException if unable to access the authorities
      */
     void ungroupUser(String dn) throws UnknownIdentityException, AuthorityAccessException;
 
@@ -133,41 +134,41 @@ public interface AuthorityProvider {
      * does not exist. If an admin revoked this group before calling ungroup, it
      * may or may not exist.
      *
-     * @param group
-     * @throws AuthorityAccessException
+     * @param group to ungroup
+     * @throws AuthorityAccessException if unable to access the authorities
      */
     void ungroup(String group) throws AuthorityAccessException;
 
     /**
-     * Determines whether the user in the specified dnChain should be able to 
+     * Determines whether the user in the specified dnChain should be able to
      * download the content for the flowfile with the specified attributes.
-     * 
-     * The first dn in the chain is the end user that the request was issued on 
+     *
+     * The first dn in the chain is the end user that the request was issued on
      * behalf of. The subsequent dn's in the chain represent entities proxying
      * the user's request with the last being the proxy that sent the current
      * request.
-     * 
-     * @param dnChain
-     * @param attributes
-     * @return
-     * @throws UnknownIdentityException
-     * @throws AuthorityAccessException 
+     *
+     * @param dnChain of the user
+     * @param attributes of the flowfile being requested
+     * @return the authorization result
+     * @throws UnknownIdentityException if the user is not known
+     * @throws AuthorityAccessException if unable to access the authorities
      */
     DownloadAuthorization authorizeDownload(List<String> dnChain, Map<String, String> attributes) throws UnknownIdentityException, AuthorityAccessException;
-    
+
     /**
      * Called immediately after instance creation for implementers to perform
      * additional setup
      *
-     * @param initializationContext
+     * @param initializationContext in which to initialize
      */
     void initialize(AuthorityProviderInitializationContext initializationContext) throws ProviderCreationException;
 
     /**
      * Called to configure the AuthorityProvider.
      *
-     * @param configurationContext
-     * @throws ProviderCreationException
+     * @param configurationContext at the time of configuration
+     * @throws ProviderCreationException for any issues configuring the provider
      */
     void onConfigured(AuthorityProviderConfigurationContext configurationContext) throws ProviderCreationException;
 

@@ -26,44 +26,48 @@ import org.apache.nifi.reporting.BulletinRepository;
 
 /**
  * An interface for sending protocol messages from the cluster manager to nodes.
- * 
- * @author unattributed
+ *
  */
 public interface ClusterManagerProtocolSender {
-    
+
     /**
      * Sends a "flow request" message to a node.
+     *
      * @param msg a message
      * @return the response
-     * @throws ProtocolException if communication failed 
+     * @throws ProtocolException if communication failed
      */
     FlowResponseMessage requestFlow(FlowRequestMessage msg) throws ProtocolException;
 
     /**
      * Sends a "reconnection request" message to a node.
+     *
      * @param msg a message
-     * @return 
+     * @return the response
      * @throws ProtocolException if communication failed
      */
     ReconnectionResponseMessage requestReconnection(ReconnectionRequestMessage msg) throws ProtocolException;
-    
+
     /**
      * Sends a "disconnection request" message to a node.
+     *
      * @param msg a message
      * @throws ProtocolException if communication failed
      */
     void disconnect(DisconnectMessage msg) throws ProtocolException;
-    
+
     /**
      * Sends an "assign primary role" message to a node.
+     *
      * @param msg a message
-     * @throws ProtocolException if communication failed 
+     * @throws ProtocolException if communication failed
      */
     void assignPrimaryRole(PrimaryRoleAssignmentMessage msg) throws ProtocolException;
 
     /**
      * Sets the {@link BulletinRepository} that can be used to report bulletins
-     * @param bulletinRepository
+     *
+     * @param bulletinRepository repo
      */
     void setBulletinRepository(final BulletinRepository bulletinRepository);
 }

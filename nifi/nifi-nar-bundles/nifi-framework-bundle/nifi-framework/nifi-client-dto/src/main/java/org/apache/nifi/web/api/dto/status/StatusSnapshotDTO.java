@@ -30,9 +30,7 @@ public class StatusSnapshotDTO {
     private Map<String, Long> statusMetrics;
 
     /**
-     * The timestamp of this snapshot.
-     *
-     * @return
+     * @return timestamp of this snapshot
      */
     public Date getTimestamp() {
         return timestamp;
@@ -43,9 +41,7 @@ public class StatusSnapshotDTO {
     }
 
     /**
-     * The status metrics.
-     *
-     * @return
+     * @return status metrics
      */
     public Map<String, Long> getStatusMetrics() {
         return statusMetrics;

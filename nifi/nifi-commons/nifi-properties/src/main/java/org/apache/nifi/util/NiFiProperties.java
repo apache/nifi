@@ -360,7 +360,7 @@ public class NiFiProperties extends Properties {
     /**
      * The socket port to listen on for a Remote Input Port.
      *
-     * @return
+     * @return the remote input port
      */
     public Integer getRemoteInputPort() {
         return getPropertyAsPort(REMOTE_INPUT_PORT, DEFAULT_REMOTE_INPUT_PORT);
@@ -383,7 +383,7 @@ public class NiFiProperties extends Properties {
     /**
      * Returns the directory to which Templates are to be persisted
      *
-     * @return
+     * @return the template directory
      */
     public Path getTemplateDirectory() {
         final String strVal = getProperty(TEMPLATE_DIRECTORY);
@@ -414,7 +414,7 @@ public class NiFiProperties extends Properties {
      * Returns the number of partitions that should be used for the FlowFile
      * Repository
      *
-     * @return
+     * @return the number of partitions
      */
     public int getFlowFileRepositoryPartitions() {
         final String rawProperty = getProperty(FLOWFILE_REPOSITORY_PARTITIONS, DEFAULT_FLOWFILE_REPO_PARTITIONS);
@@ -425,7 +425,7 @@ public class NiFiProperties extends Properties {
      * Returns the number of milliseconds between FlowFileRepository
      * checkpointing
      *
-     * @return
+     * @return the number of milliseconds between checkpoint events
      */
     public String getFlowFileRepositoryCheckpointInterval() {
         return getProperty(FLOWFILE_REPOSITORY_CHECKPOINT_INTERVAL, DEFAULT_FLOWFILE_CHECKPOINT_INTERVAL);
@@ -504,7 +504,7 @@ public class NiFiProperties extends Properties {
     public int getWebThreads() {
         return getIntegerProperty(WEB_THREADS, DEFAULT_WEB_THREADS);
     }
-    
+
     public File getWebWorkingDirectory() {
         return new File(getProperty(WEB_WORKING_DIR, DEFAULT_WEB_WORKING_DIR));
     }
@@ -551,7 +551,7 @@ public class NiFiProperties extends Properties {
     /**
      * Returns the auto refresh interval in seconds.
      *
-     * @return
+     * @return the interval over which the properties should auto refresh
      */
     public String getAutoRefreshInterval() {
         return getProperty(UI_AUTO_REFRESH_INTERVAL);
@@ -829,7 +829,7 @@ public class NiFiProperties extends Properties {
      * values configured. No directories will be created as a result of this
      * operation.
      *
-     * @return
+     * @return the name and paths of all provenance repository locations
      */
     public Map<String, Path> getProvenanceRepositoryPaths() {
         final Map<String, Path> provenanceRepositoryPaths = new HashMap<>();

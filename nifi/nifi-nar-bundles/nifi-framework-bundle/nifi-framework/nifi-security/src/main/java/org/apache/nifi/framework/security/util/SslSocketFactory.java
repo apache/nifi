@@ -26,10 +26,11 @@ import javax.net.ssl.SSLSocketFactory;
 import org.apache.nifi.util.NiFiProperties;
 
 /**
- * Implements a socket factory for creating secure sockets based on the application's
- * configuration properties.  If the properties are configured for SSL (one-way or two-way),
- * then a SSLSocketFactory is created and used based on those properties.  Otherwise,
- * Java's default SSLSocketFactory is used.  Specifically, SSLContext.getDefault().getSocketFactory().
+ * Implements a socket factory for creating secure sockets based on the
+ * application's configuration properties. If the properties are configured for
+ * SSL (one-way or two-way), then a SSLSocketFactory is created and used based
+ * on those properties. Otherwise, Java's default SSLSocketFactory is used.
+ * Specifically, SSLContext.getDefault().getSocketFactory().
  */
 public class SslSocketFactory extends SSLSocketFactory {
 
@@ -37,17 +38,17 @@ public class SslSocketFactory extends SSLSocketFactory {
 
     public SslSocketFactory() {
         final SSLContext sslCtx = SslContextFactory.createSslContext(NiFiProperties.getInstance());
-        if(sslCtx == null) {
+        if (sslCtx == null) {
             try {
                 sslSocketFactory = SSLContext.getDefault().getSocketFactory();
-            } catch(final NoSuchAlgorithmException nsae) {
+            } catch (final NoSuchAlgorithmException nsae) {
                 throw new SslSocketFactoryCreationException(nsae);
             }
         } else {
             sslSocketFactory = sslCtx.getSocketFactory();
         }
     }
-    
+
     @Override
     public String[] getSupportedCipherSuites() {
         return sslSocketFactory.getSupportedCipherSuites();
@@ -57,7 +58,7 @@ public class SslSocketFactory extends SSLSocketFactory {
     public String[] getDefaultCipherSuites() {
         return sslSocketFactory.getDefaultCipherSuites();
     }
-    
+
     @Override
     public Socket createSocket(Socket socket, String string, int i, boolean bln) throws IOException {
         return sslSocketFactory.createSocket(socket, string, i, bln);

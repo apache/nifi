@@ -33,9 +33,7 @@ public class UserSearchResultsEntity {
     private List<UserGroupSearchResultDTO> userGroupResults;
 
     /**
-     * The user search results.
-     *
-     * @return
+     * @return user search results
      */
     public List<UserSearchResultDTO> getUserResults() {
         return userResults;
@@ -46,9 +44,7 @@ public class UserSearchResultsEntity {
     }
 
     /**
-     * The user group search results.
-     *
-     * @return
+     * @return user group search results
      */
     public List<UserGroupSearchResultDTO> getUserGroupResults() {
         return userGroupResults;

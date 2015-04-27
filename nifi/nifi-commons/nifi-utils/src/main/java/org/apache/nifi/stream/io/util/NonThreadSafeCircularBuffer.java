@@ -38,7 +38,7 @@ public class NonThreadSafeCircularBuffer {
     /**
      * Returns the oldest byte in the buffer
      *
-     * @return
+     * @return the oldest byte
      */
     public int getOldestByte() {
         return buffer[insertionPointer];

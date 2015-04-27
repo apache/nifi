@@ -30,9 +30,7 @@ public class ConnectionEntity extends Entity {
     private ConnectionDTO connection;
 
     /**
-     * The RelationshipDTO that is being serialized.
-     *
-     * @return
+     * @return RelationshipDTO that is being serialized
      */
     public ConnectionDTO getConnection() {
         return connection;

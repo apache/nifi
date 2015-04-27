@@ -33,14 +33,14 @@ import org.apache.nifi.cluster.protocol.message.ReconnectionFailureMessage;
 import org.apache.nifi.reporting.BulletinRepository;
 
 public class NodeProtocolSenderListener implements NodeProtocolSender, ProtocolListener {
-    
+
     private final NodeProtocolSender sender;
     private final ProtocolListener listener;
-    
+
     public NodeProtocolSenderListener(final NodeProtocolSender sender, final ProtocolListener listener) {
-        if(sender == null) {
+        if (sender == null) {
             throw new IllegalArgumentException("NodeProtocolSender may not be null.");
-        } else if(listener == null) {
+        } else if (listener == null) {
             throw new IllegalArgumentException("ProtocolListener may not be null.");
         }
         this.sender = sender;
@@ -49,7 +49,7 @@ public class NodeProtocolSenderListener implements NodeProtocolSender, ProtocolL
 
     @Override
     public void stop() throws IOException {
-        if(!isRunning()) {
+        if (!isRunning()) {
             throw new IllegalStateException("Instance is already stopped.");
         }
         listener.stop();
@@ -57,7 +57,7 @@ public class NodeProtocolSenderListener implements NodeProtocolSender, ProtocolL
 
     @Override
     public void start() throws IOException {
-        if(isRunning()) {
+        if (isRunning()) {
             throw new IllegalStateException("Instance is already started.");
         }
         listener.start();
@@ -92,12 +92,12 @@ public class NodeProtocolSenderListener implements NodeProtocolSender, ProtocolL
     public ConnectionResponseMessage requestConnection(final ConnectionRequestMessage msg) throws ProtocolException, UnknownServiceAddressException {
         return sender.requestConnection(msg);
     }
-    
+
     @Override
     public void notifyControllerStartupFailure(final ControllerStartupFailureMessage msg) throws ProtocolException, UnknownServiceAddressException {
         sender.notifyControllerStartupFailure(msg);
     }
-    
+
     @Override
     public void notifyReconnectionFailure(final ReconnectionFailureMessage msg) throws ProtocolException, UnknownServiceAddressException {
         sender.notifyReconnectionFailure(msg);

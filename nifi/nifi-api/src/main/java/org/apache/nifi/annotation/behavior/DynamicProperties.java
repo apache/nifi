@@ -25,18 +25,13 @@ import java.lang.annotation.Target;
 
 /**
  * Indicates that a component has more than one dynamic property
- * 
- * @author
  *
  */
 @Documented
-@Target({ ElementType.TYPE })
+@Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited
 public @interface DynamicProperties {
-    /**
-     * A list of the dynamic properties supported by a component
-     * @return A list of the dynamic properties supported by a component
-     */
+
     public DynamicProperty[] value();
 }

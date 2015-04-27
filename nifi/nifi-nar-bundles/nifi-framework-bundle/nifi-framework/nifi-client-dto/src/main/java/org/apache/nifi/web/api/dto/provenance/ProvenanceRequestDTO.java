@@ -37,9 +37,7 @@ public class ProvenanceRequestDTO {
     private Integer maxResults;
 
     /**
-     * Returns the search terms to use for this search
-     *
-     * @return
+     * @return the search terms to use for this search
      */
     public Map<String, String> getSearchTerms() {
         return searchTerms;
@@ -50,9 +48,7 @@ public class ProvenanceRequestDTO {
     }
 
     /**
-     * The earliest event time to include in the query
-     *
-     * @return
+     * @return earliest event time to include in the query
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
     public Date getStartDate() {
@@ -64,9 +60,7 @@ public class ProvenanceRequestDTO {
     }
 
     /**
-     * The latest event time to include in the query
-     *
-     * @return
+     * @return latest event time to include in the query
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
     public Date getEndDate() {
@@ -78,9 +72,7 @@ public class ProvenanceRequestDTO {
     }
 
     /**
-     * The minimum file size to include in the query.
-     *
-     * @return
+     * @return minimum file size to include in the query
      */
     public String getMinimumFileSize() {
         return minimumFileSize;
@@ -91,9 +83,7 @@ public class ProvenanceRequestDTO {
     }
 
     /**
-     * The maximum file size to include in the query.
-     *
-     * @return
+     * @return maximum file size to include in the query
      */
     public String getMaximumFileSize() {
         return maximumFileSize;
@@ -104,9 +94,7 @@ public class ProvenanceRequestDTO {
     }
 
     /**
-     * The number of max results.
-     *
-     * @return
+     * @return number of max results
      */
     public Integer getMaxResults() {
         return maxResults;

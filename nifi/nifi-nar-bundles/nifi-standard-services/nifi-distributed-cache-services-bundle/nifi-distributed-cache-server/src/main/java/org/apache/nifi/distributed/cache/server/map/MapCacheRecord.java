@@ -21,38 +21,39 @@ import java.nio.ByteBuffer;
 import org.apache.nifi.distributed.cache.server.CacheRecord;
 
 public class MapCacheRecord extends CacheRecord {
+
     private final ByteBuffer key;
     private final ByteBuffer value;
-    
+
     public MapCacheRecord(final ByteBuffer key, final ByteBuffer value) {
         this.key = key;
         this.value = value;
     }
-    
+
     public ByteBuffer getKey() {
         return key;
     }
-    
+
     public ByteBuffer getValue() {
         return value;
     }
-    
+
     @Override
     public int hashCode() {
         return 2938476 + key.hashCode() * value.hashCode();
     }
-    
+
     @Override
     public boolean equals(final Object obj) {
-        if ( obj == this ) {
+        if (obj == this) {
             return true;
         }
-        
-        if ( obj instanceof MapCacheRecord ) {
+
+        if (obj instanceof MapCacheRecord) {
             final MapCacheRecord that = ((MapCacheRecord) obj);
             return key.equals(that.key) && value.equals(that.value);
         }
-        
+
         return false;
     }
 }

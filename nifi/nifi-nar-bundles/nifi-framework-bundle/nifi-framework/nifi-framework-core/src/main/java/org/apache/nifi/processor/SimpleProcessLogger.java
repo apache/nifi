@@ -269,11 +269,6 @@ public class SimpleProcessLogger implements ProcessorLog {
         logRepository.addLogMessage(LogLevel.DEBUG, msg, os, t);
     }
 
-    /**
-     *
-     * @param msg
-     * @param os
-     */
     @Override
     public void debug(String msg, Object[] os) {
         os = addProcessor(os);

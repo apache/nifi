@@ -31,26 +31,15 @@ import org.apache.nifi.processor.Relationship;
  * Annotation to indicate that a {@link Processor} supports dynamic
  * relationship. A dynamic {@link Relationship} is one where the relationship is
  * generated based on a user defined {@link PropertyDescriptor}
- * 
- * @author
  *
  */
 @Documented
-@Target({ ElementType.TYPE })
+@Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited
 public @interface DynamicRelationship {
-    /**
-     * Describes the name(s) of the dynamic relationship(s)
-     * 
-     * @return a description of the name(s) of the dynamic relationship(s)
-     */
+
     public String name();
 
-    /**
-     * Describes the data that should be routed to the dynamic relationship(s)
-     * 
-     * @return a description the data that should be routed to the dynamic relationship(s)
-     */
     public String description();
 }

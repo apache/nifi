@@ -74,8 +74,9 @@ public class LabelResource extends ApplicationResource {
 
     /**
      * Populates the uri for the specified labels.
+     *
      * @param labels
-     * @return 
+     * @return
      */
     public Set<LabelDTO> populateRemainingLabelsContent(Set<LabelDTO> labels) {
         for (LabelDTO label : labels) {

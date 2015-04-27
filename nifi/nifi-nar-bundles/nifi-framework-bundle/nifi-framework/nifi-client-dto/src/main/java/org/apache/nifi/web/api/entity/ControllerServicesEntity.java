@@ -31,9 +31,7 @@ public class ControllerServicesEntity extends Entity {
     private Set<ControllerServiceDTO> controllerServices;
 
     /**
-     * The list of controller services that are being serialized.
-     *
-     * @return
+     * @return list of controller services that are being serialized
      */
     public Set<ControllerServiceDTO> getControllerServices() {
         return controllerServices;

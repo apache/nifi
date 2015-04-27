@@ -103,7 +103,10 @@ public class JmsProperties {
     // JMS Publisher Properties
     public static final PropertyDescriptor ATTRIBUTES_TO_JMS_PROPS = new PropertyDescriptor.Builder()
             .name("Copy Attributes to JMS Properties")
-            .description("Whether or not FlowFile Attributes should be translated into JMS Message Properties. If true, all attributes starting with 'jms.' will be set as Properties on the JMS Message (without the 'jms.' prefix). If an attribute exists that starts with the same value but ends in '.type', that attribute will be used to determine the JMS Message Property type.")
+            .description("Whether or not FlowFile Attributes should be translated into JMS Message Properties. If true, all "
+                    + "attributes starting with 'jms.' will be set as Properties on the JMS Message (without the 'jms.' prefix). "
+                    + "If an attribute exists that starts with the same value but ends in '.type', that attribute will be used "
+                    + "to determine the JMS Message Property type.")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("true")

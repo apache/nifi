@@ -29,9 +29,7 @@ public class NodeRemoteProcessGroupStatusDTO {
     private RemoteProcessGroupStatusDTO remoteProcessGroupStatus;
 
     /**
-     * The node.
-     *
-     * @return
+     * @return the node
      */
     public NodeDTO getNode() {
         return node;
@@ -42,9 +40,7 @@ public class NodeRemoteProcessGroupStatusDTO {
     }
 
     /**
-     * The remote process group's status.
-     *
-     * @return
+     * @return remote process group's status
      */
     public RemoteProcessGroupStatusDTO getRemoteProcessGroupStatus() {
         return remoteProcessGroupStatus;

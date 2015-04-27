@@ -34,16 +34,6 @@ public class StandardContentClaimManager implements ContentClaimManager {
 
     private static final BlockingQueue<ContentClaim> destructableClaims = new LinkedBlockingQueue<>(50000);
 
-    /**
-     * Creates a new Content Claim with the given id, container, section, and
-     * loss tolerance.
-     *
-     * @param id
-     * @param container
-     * @param section
-     * @param lossTolerant
-     * @return
-     */
     @Override
     public ContentClaim newContentClaim(final String container, final String section, final String id, final boolean lossTolerant) {
         return new StandardContentClaim(container, section, id, lossTolerant);

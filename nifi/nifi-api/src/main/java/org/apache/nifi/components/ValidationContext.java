@@ -25,86 +25,71 @@ import org.apache.nifi.expression.ExpressionLanguageCompiler;
 public interface ValidationContext {
 
     /**
-     * Returns the {@link ControllerServiceLookup} which can be used to obtain
+     * @return the {@link ControllerServiceLookup} which can be used to obtain
      * Controller Services
-     *
-     * @return
      */
     ControllerServiceLookup getControllerServiceLookup();
 
     /**
-     * Returns a ValidationContext that is appropriate for validating the given
+     * @param controllerService to lookup the validation context of
+     * @return a ValidationContext that is appropriate for validating the given
      * {@link ControllerService}
-     *
-     * @param controllerService
-     * @return
      */
     ValidationContext getControllerServiceValidationContext(ControllerService controllerService);
 
     /**
-     * Creates and returns a new {@link ExpressionLanguageCompiler} that can be
-     * used to compile & evaluate Attribute Expressions
-     *
-     * @return
+     * @return a new {@link ExpressionLanguageCompiler} that can be used to
+     * compile & evaluate Attribute Expressions
      */
     ExpressionLanguageCompiler newExpressionLanguageCompiler();
 
     /**
-     * Returns a PropertyValue that encapsulates the value configured for the
+     * @param property being validated
+     * @return a PropertyValue that encapsulates the value configured for the
      * given PropertyDescriptor
-     *
-     * @param property
-     * @return
      */
     PropertyValue getProperty(PropertyDescriptor property);
 
     /**
-     * Returns a PropertyValue that represents the given value
-     *
-     * @param value
-     * @return
+     * @param value to make a PropertyValue object for
+     * @return a PropertyValue that represents the given value
      */
     PropertyValue newPropertyValue(String value);
 
     /**
-     * Returns a Map of all configured Properties.
-     *
-     * @return
+     * @return a Map of all configured Properties
      */
     Map<PropertyDescriptor, String> getProperties();
 
     /**
-     * Returns the currently configured Annotation Data
-     *
-     * @return
+     * @return the currently configured Annotation Data
      */
     String getAnnotationData();
-    
+
     /**
-     * There are times when the framework needs to consider a component valid, even if it
-     * references an invalid ControllerService. This method will return <code>false</code>
-     * if the component is to be considered valid even if the given Controller Service is referenced
-     * and is invalid.
-     * @param service
+     * There are times when the framework needs to consider a component valid,
+     * even if it references an invalid ControllerService. This method will
+     * return <code>false</code> if the component is to be considered valid even
+     * if the given Controller Service is referenced and is invalid.
+     *
+     * @param service to check if validation is required
+     * @return <code>false</code> if the component is to be considered valid
+     * even if the given Controller Service is referenced and is invalid
      */
     boolean isValidationRequired(ControllerService service);
-    
+
     /**
-     * Returns <code>true</code> if the given value contains a NiFi Expression Language expression,
-     * <code>false</code> if it does not
-     * 
-     * @param value
-     * @return
+     * @param value to test whether expression language is present
+     * @return <code>true</code> if the given value contains a NiFi Expression
+     * Language expression, <code>false</code> if it does not
      */
     boolean isExpressionLanguagePresent(String value);
-    
+
     /**
-     * Returns <code>true</code> if the property with the given name supports the NiFi Expression Language,
-     * <code>false</code> if the property does not support the Expression Language or is not a valid property
-     * name
-     * 
-     * @param propertyName
-     * @return
+     * @param propertyName to test whether expression language is supported
+     * @return <code>true</code> if the property with the given name supports
+     * the NiFi Expression Language, <code>false</code> if the property does not
+     * support the Expression Language or is not a valid property name
      */
     boolean isExpressionLanguageSupported(String propertyName);
 }

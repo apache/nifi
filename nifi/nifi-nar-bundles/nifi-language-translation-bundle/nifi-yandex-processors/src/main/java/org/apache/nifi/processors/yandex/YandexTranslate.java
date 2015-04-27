@@ -73,76 +73,76 @@ import com.sun.jersey.core.util.MultivaluedMapImpl;
 @Tags({"yandex", "translate", "translation", "language"})
 @CapabilityDescription("Translates content and attributes from one language to another")
 @WritesAttributes({
-	@WritesAttribute(attribute="yandex.translate.failure.reason", description="If the text cannot be translated, this attribute will be set indicating the reason for the failure"),
-	@WritesAttribute(attribute="language", description="When the translation succeeds, if the content was translated, this attribute will be set indicating the new language of the content")
+    @WritesAttribute(attribute = "yandex.translate.failure.reason", description = "If the text cannot be translated, this attribute will be set indicating the reason for the failure"),
+    @WritesAttribute(attribute = "language", description = "When the translation succeeds, if the content was translated, this attribute will be set indicating the new language of the content")
 })
-@DynamicProperty(name="The name of an attribute to set that will contain the translated text of the value", 
-	value="The value to translate", 
-	supportsExpressionLanguage=true, 
-	description="User-defined properties are used to translate arbitrary text based on attributes.")
+@DynamicProperty(name = "The name of an attribute to set that will contain the translated text of the value",
+        value = "The value to translate",
+        supportsExpressionLanguage = true,
+        description = "User-defined properties are used to translate arbitrary text based on attributes.")
 public class YandexTranslate extends AbstractProcessor {
-	
+
     public static final PropertyDescriptor KEY = new PropertyDescriptor.Builder()
-    	.name("Yandex API Key")
-        .description("The API Key that is registered with Yandex")
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .required(true)
-        .build();
+            .name("Yandex API Key")
+            .description("The API Key that is registered with Yandex")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .required(true)
+            .build();
     public static final PropertyDescriptor SOURCE_LANGUAGE = new PropertyDescriptor.Builder()
-		.name("Input Language")
-		.description("The language of incoming data")
-		.required(true)
-		.defaultValue("es")
-		.expressionLanguageSupported(true)
-		.addValidator(new LanguageNameValidator())
-		.build();
+            .name("Input Language")
+            .description("The language of incoming data")
+            .required(true)
+            .defaultValue("es")
+            .expressionLanguageSupported(true)
+            .addValidator(new LanguageNameValidator())
+            .build();
     public static final PropertyDescriptor TARGET_LANGUAGE = new PropertyDescriptor.Builder()
-		.name("Target Language")
-		.description("The language to translate the text into")
-		.required(true)
-		.defaultValue("en")
-		.expressionLanguageSupported(true)
-		.addValidator(new LanguageNameValidator())
-		.build();
+            .name("Target Language")
+            .description("The language to translate the text into")
+            .required(true)
+            .defaultValue("en")
+            .expressionLanguageSupported(true)
+            .addValidator(new LanguageNameValidator())
+            .build();
     public static final PropertyDescriptor TRANSLATE_CONTENT = new PropertyDescriptor.Builder()
-	    .name("Translate Content")
-	    .description("Specifies whether or not the content should be translated. If false, only the text specified by user-defined properties will be translated.")
-	    .required(true)
-	    .allowableValues("true", "false")
-	    .defaultValue("false")
-	    .build();
+            .name("Translate Content")
+            .description("Specifies whether or not the content should be translated. If false, only the text specified by user-defined properties will be translated.")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .build();
     public static final PropertyDescriptor CHARACTER_SET = new PropertyDescriptor.Builder()
-		.name("Character Set")
-		.description("Specifies the character set of the data to be translated")
-		.required(true)
-		.defaultValue("UTF-8")
-		.expressionLanguageSupported(true)
-		.addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
-		.build();
+            .name("Character Set")
+            .description("Specifies the character set of the data to be translated")
+            .required(true)
+            .defaultValue("UTF-8")
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
+            .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
-	    .name("success")
-	    .description("This relationship is used when the translation is successful")
-	    .build();
+            .name("success")
+            .description("This relationship is used when the translation is successful")
+            .build();
     public static final Relationship REL_COMMS_FAILURE = new Relationship.Builder()
-    	.name("comms.failure")
-    	.description("This relationship is used when the translation fails due to a problem such as a network failure, and for which the translation should be attempted again")
-    	.build();
+            .name("comms.failure")
+            .description("This relationship is used when the translation fails due to a problem such as a network failure, and for which the translation should be attempted again")
+            .build();
     public static final Relationship REL_TRANSLATION_FAILED = new Relationship.Builder()
-    	.name("translation.failure")
-    	.description("This relationship is used if the translation cannot be performed for some reason other than communications failure")
-    	.build();
+            .name("translation.failure")
+            .description("This relationship is used if the translation cannot be performed for some reason other than communications failure")
+            .build();
 
     private List<PropertyDescriptor> descriptors;
     private Set<Relationship> relationships;
-    
+
     private volatile Client client;
 
     private static final String URL = "https://translate.yandex.net/api/v1.5/tr.json/translate";
-    
+
     @Override
     protected void init(final ProcessorInitializationContext context) {
-        final List<PropertyDescriptor> descriptors = new ArrayList<PropertyDescriptor>();
+        final List<PropertyDescriptor> descriptors = new ArrayList<>();
         descriptors.add(KEY);
         descriptors.add(SOURCE_LANGUAGE);
         descriptors.add(TARGET_LANGUAGE);
@@ -150,7 +150,7 @@ public class YandexTranslate extends AbstractProcessor {
         descriptors.add(CHARACTER_SET);
         this.descriptors = Collections.unmodifiableList(descriptors);
 
-        final Set<Relationship> relationships = new HashSet<Relationship>();
+        final Set<Relationship> relationships = new HashSet<>();
         relationships.add(REL_SUCCESS);
         relationships.add(REL_COMMS_FAILURE);
         relationships.add(REL_TRANSLATION_FAILED);
@@ -166,168 +166,167 @@ public class YandexTranslate extends AbstractProcessor {
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return descriptors;
     }
-    
+
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
-    	return new PropertyDescriptor.Builder()
-    		.name(propertyDescriptorName)
-    		.addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-    		.expressionLanguageSupported(true)
-    		.dynamic(true)
-    		.build();
+        return new PropertyDescriptor.Builder()
+                .name(propertyDescriptorName)
+                .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+                .expressionLanguageSupported(true)
+                .dynamic(true)
+                .build();
     }
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-    	final List<ValidationResult> results = new ArrayList<>();
-    	if ( validationContext.getProperty(TRANSLATE_CONTENT).asBoolean().equals(Boolean.FALSE) ) {
-    		boolean foundDynamic = false;
-    		for ( final PropertyDescriptor descriptor : validationContext.getProperties().keySet() ) {
-    			if ( descriptor.isDynamic() ) {
-    				foundDynamic = true;
-    				break;
-    			}
-    		}
-    		
-    		if ( !foundDynamic ) {
-    			results.add(new ValidationResult.Builder().subject("Text to translate").input("<none>").valid(false).explanation("Must either set 'Translate Content' to true or add at least one user-defined property").build());
-    		}
-    	}
-    	
-    	return results;
+        final List<ValidationResult> results = new ArrayList<>();
+        if (validationContext.getProperty(TRANSLATE_CONTENT).asBoolean().equals(Boolean.FALSE)) {
+            boolean foundDynamic = false;
+            for (final PropertyDescriptor descriptor : validationContext.getProperties().keySet()) {
+                if (descriptor.isDynamic()) {
+                    foundDynamic = true;
+                    break;
+                }
+            }
+
+            if (!foundDynamic) {
+                results.add(new ValidationResult.Builder().subject("Text to translate").input("<none>").valid(false)
+                        .explanation("Must either set 'Translate Content' to true or add at least one user-defined property").build());
+            }
+        }
+
+        return results;
     }
-    
+
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-    	final ClientConfig config = new DefaultClientConfig();
+        final ClientConfig config = new DefaultClientConfig();
         config.getFeatures().put(JSONConfiguration.FEATURE_POJO_MAPPING, Boolean.TRUE);
         config.getClasses().add(ObjectMapperResolver.class);
 
-    	client = Client.create(config);
+        client = Client.create(config);
     }
 
     @OnStopped
     public void destroyClient() {
-    	if ( client != null ) {
-    		client.destroy();
-    	}
+        if (client != null) {
+            client.destroy();
+        }
     }
-    
-    
+
     protected WebResource.Builder prepareResource(final String key, final List<String> text, final String sourceLanguage, final String destLanguage) {
-		WebResource webResource = client.resource(URL);
-		
-		final MultivaluedMap<String, String> paramMap = new MultivaluedMapImpl();
-		paramMap.put("text", text);
-		paramMap.add("key", key);
-		paramMap.add("lang", sourceLanguage + "-" + destLanguage);
-		
-		WebResource.Builder builder = webResource
-				.accept(MediaType.APPLICATION_JSON)
-				.type(MediaType.APPLICATION_FORM_URLENCODED);
-		builder = builder.entity(paramMap);
-		
-		return builder;
+        WebResource webResource = client.resource(URL);
+
+        final MultivaluedMap<String, String> paramMap = new MultivaluedMapImpl();
+        paramMap.put("text", text);
+        paramMap.add("key", key);
+        paramMap.add("lang", sourceLanguage + "-" + destLanguage);
+
+        WebResource.Builder builder = webResource
+                .accept(MediaType.APPLICATION_JSON)
+                .type(MediaType.APPLICATION_FORM_URLENCODED);
+        builder = builder.entity(paramMap);
+
+        return builder;
     }
-    
-    
+
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-		FlowFile flowFile = session.get();
-		if ( flowFile == null ) {
-			return;
-		}
+        FlowFile flowFile = session.get();
+        if (flowFile == null) {
+            return;
+        }
 
-		final StopWatch stopWatch = new StopWatch(true);
-		final String key = context.getProperty(KEY).getValue();
-		final String sourceLanguage = context.getProperty(SOURCE_LANGUAGE).evaluateAttributeExpressions(flowFile).getValue();
-		final String targetLanguage = context.getProperty(TARGET_LANGUAGE).evaluateAttributeExpressions(flowFile).getValue();
-		final String encoding = context.getProperty(CHARACTER_SET).evaluateAttributeExpressions(flowFile).getValue();
-		
-		final List<String> attributeNames = new ArrayList<>();
-		final List<String> textValues = new ArrayList<>();
-		for ( final PropertyDescriptor descriptor : context.getProperties().keySet() ) {
-			if ( descriptor.isDynamic() ) {
-				attributeNames.add(descriptor.getName());	// add to list so that we know the order when the translations come back.
-				textValues.add(context.getProperty(descriptor).evaluateAttributeExpressions(flowFile).getValue());
-			}
-		}
-		
-		if ( context.getProperty(TRANSLATE_CONTENT).asBoolean() ) {
-			final byte[] buff = new byte[(int) flowFile.getSize()];
-			session.read(flowFile, new InputStreamCallback() {
-				@Override
-				public void process(final InputStream in) throws IOException {
-					StreamUtils.fillBuffer(in, buff);
-				}
-			});
-			final String content = new String(buff, Charset.forName(encoding));
-			textValues.add(content);
-		}
-		
-		final WebResource.Builder builder = prepareResource(key, textValues, sourceLanguage, targetLanguage);
-		
-		final ClientResponse response;
-		try {
-			response = builder.post(ClientResponse.class);
-		} catch (final Exception e) {
-			getLogger().error("Failed to make request to Yandex to transate text for {} due to {}; routing to comms.failure", new Object[] {flowFile, e});
-			session.transfer(flowFile, REL_COMMS_FAILURE);
-			return;
-		}
-		
-		if ( response.getStatus() != Status.OK.getStatusCode() ) {
-			getLogger().error("Failed to translate text using Yandex for {}; response was {}: {}; routing to {}", new Object[] {
-					flowFile, response.getStatus(), response.getStatusInfo().getReasonPhrase(), REL_TRANSLATION_FAILED.getName()});
-			flowFile = session.putAttribute(flowFile, "yandex.translate.failure.reason", response.getStatusInfo().getReasonPhrase());
-			session.transfer(flowFile, REL_TRANSLATION_FAILED);
-			return;
-		}
-		
-		final Map<String, String> newAttributes = new HashMap<>();
-		final Translation translation = response.getEntity(Translation.class);
-		final List<String> texts = translation.getText();
-		for (int i=0; i < texts.size(); i++) {
-			final String text = texts.get(i);
-			if ( i < attributeNames.size() ) {
-				final String attributeName = attributeNames.get(i);
-				newAttributes.put(attributeName, text);
-			} else {
-				flowFile = session.write(flowFile, new OutputStreamCallback() {
-					@Override
-					public void process(final OutputStream out) throws IOException {
-						out.write(text.getBytes(encoding));
-					}
-				});
-				
-				newAttributes.put("language", targetLanguage);
-			}
-		}
-		
-		if ( !newAttributes.isEmpty() ) {
-			flowFile = session.putAllAttributes(flowFile, newAttributes);
-		}
-		
-		stopWatch.stop();
-		session.transfer(flowFile, REL_SUCCESS);
-		getLogger().info("Successfully translated {} items for {} from {} to {} in {}; routing to success", new Object[] {texts.size(), flowFile, sourceLanguage, targetLanguage, stopWatch.getDuration()});
+        final StopWatch stopWatch = new StopWatch(true);
+        final String key = context.getProperty(KEY).getValue();
+        final String sourceLanguage = context.getProperty(SOURCE_LANGUAGE).evaluateAttributeExpressions(flowFile).getValue();
+        final String targetLanguage = context.getProperty(TARGET_LANGUAGE).evaluateAttributeExpressions(flowFile).getValue();
+        final String encoding = context.getProperty(CHARACTER_SET).evaluateAttributeExpressions(flowFile).getValue();
+
+        final List<String> attributeNames = new ArrayList<>();
+        final List<String> textValues = new ArrayList<>();
+        for (final PropertyDescriptor descriptor : context.getProperties().keySet()) {
+            if (descriptor.isDynamic()) {
+                attributeNames.add(descriptor.getName()); // add to list so that we know the order when the translations come back.
+                textValues.add(context.getProperty(descriptor).evaluateAttributeExpressions(flowFile).getValue());
+            }
+        }
+
+        if (context.getProperty(TRANSLATE_CONTENT).asBoolean()) {
+            final byte[] buff = new byte[(int) flowFile.getSize()];
+            session.read(flowFile, new InputStreamCallback() {
+                @Override
+                public void process(final InputStream in) throws IOException {
+                    StreamUtils.fillBuffer(in, buff);
+                }
+            });
+            final String content = new String(buff, Charset.forName(encoding));
+            textValues.add(content);
+        }
+
+        final WebResource.Builder builder = prepareResource(key, textValues, sourceLanguage, targetLanguage);
+
+        final ClientResponse response;
+        try {
+            response = builder.post(ClientResponse.class);
+        } catch (final Exception e) {
+            getLogger().error("Failed to make request to Yandex to transate text for {} due to {}; routing to comms.failure", new Object[]{flowFile, e});
+            session.transfer(flowFile, REL_COMMS_FAILURE);
+            return;
+        }
+
+        if (response.getStatus() != Status.OK.getStatusCode()) {
+            getLogger().error("Failed to translate text using Yandex for {}; response was {}: {}; routing to {}", new Object[]{
+                flowFile, response.getStatus(), response.getStatusInfo().getReasonPhrase(), REL_TRANSLATION_FAILED.getName()});
+            flowFile = session.putAttribute(flowFile, "yandex.translate.failure.reason", response.getStatusInfo().getReasonPhrase());
+            session.transfer(flowFile, REL_TRANSLATION_FAILED);
+            return;
+        }
+
+        final Map<String, String> newAttributes = new HashMap<>();
+        final Translation translation = response.getEntity(Translation.class);
+        final List<String> texts = translation.getText();
+        for (int i = 0; i < texts.size(); i++) {
+            final String text = texts.get(i);
+            if (i < attributeNames.size()) {
+                final String attributeName = attributeNames.get(i);
+                newAttributes.put(attributeName, text);
+            } else {
+                flowFile = session.write(flowFile, new OutputStreamCallback() {
+                    @Override
+                    public void process(final OutputStream out) throws IOException {
+                        out.write(text.getBytes(encoding));
+                    }
+                });
+
+                newAttributes.put("language", targetLanguage);
+            }
+        }
+
+        if (!newAttributes.isEmpty()) {
+            flowFile = session.putAllAttributes(flowFile, newAttributes);
+        }
+
+        stopWatch.stop();
+        session.transfer(flowFile, REL_SUCCESS);
+        getLogger().info("Successfully translated {} items for {} from {} to {} in {}; routing to success",
+                new Object[]{texts.size(), flowFile, sourceLanguage, targetLanguage, stopWatch.getDuration()});
     }
 
-    
     private static class LanguageNameValidator implements Validator {
-    	
-		@Override
-		public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
-			if ( context.isExpressionLanguagePresent(input) ) {
-				return new ValidationResult.Builder().subject(subject).input(input).valid(true).explanation("Expression Language Present").build();
-			}
 
-			if ( Languages.getLanguageMap().keySet().contains(input.toLowerCase()) ) {
-				return new ValidationResult.Builder().subject(subject).input(input).valid(true).build();
-			}
-			
-			return new ValidationResult.Builder().subject(subject).input(input).valid(false).explanation(input + " is not a language that is supported by Yandex").build();
-		}
-    	
+        @Override
+        public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+            if (context.isExpressionLanguagePresent(input)) {
+                return new ValidationResult.Builder().subject(subject).input(input).valid(true).explanation("Expression Language Present").build();
+            }
+
+            if (Languages.getLanguageMap().keySet().contains(input.toLowerCase())) {
+                return new ValidationResult.Builder().subject(subject).input(input).valid(true).build();
+            }
+
+            return new ValidationResult.Builder().subject(subject).input(input).valid(false).explanation(input + " is not a language that is supported by Yandex").build();
+        }
+
     }
 }

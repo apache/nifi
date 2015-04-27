@@ -21,43 +21,44 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.remote.protocol.DataPacket;
 
-
 /**
- * A TransactionCompletion provides information about a {@link Transaction} that has completed successfully.
+ * A TransactionCompletion provides information about a {@link Transaction} that
+ * has completed successfully.
  */
 public interface TransactionCompletion {
-    
+
     /**
-     * When a sending to a NiFi instance, the server may accept the content sent to it
-     * but indicate that its queues are full and that the client should backoff sending
-     * data for a bit. This method returns <code>true</code> if the server did in fact
-     * request that, <code>false</code> otherwise.
-     * @return
+     * When a sending to a NiFi instance, the server may accept the content sent
+     * to it but indicate that its queues are full and that the client should
+     * backoff sending data for a bit.
+     *
+     * @return <code>true</code> if the server did in fact request that,
+     * <code>false</code> otherwise
      */
     boolean isBackoff();
-    
+
     /**
-     * Returns the number of Data Packets that were sent to or received from the remote
-     * NiFi instance in the Transaction
-     * @return
+     * @return the number of Data Packets that were sent to or received from the
+     * remote NiFi instance in the Transaction
      */
     int getDataPacketsTransferred();
-    
+
     /**
-     * Returns the number of bytes of DataPacket content that were sent to or received from 
-     * the remote NiFI instance in the Transaction. Note that this is different than the number
-     * of bytes actually transferred between the client and server, as it does not take into
-     * account the attributes or protocol-specific information that is exchanged but rather
-     * takes into account only the data in the {@link InputStream} of the {@link DataPacket}
-     * @return
+     * @return the number of bytes of DataPacket content that were sent to or
+     * received from the remote NiFI instance in the Transaction. Note that this
+     * is different than the number of bytes actually transferred between the
+     * client and server, as it does not take into account the attributes or
+     * protocol-specific information that is exchanged but rather takes into
+     * account only the data in the {@link InputStream} of the
+     * {@link DataPacket}
      */
     long getBytesTransferred();
-    
+
     /**
-     * Returns the amount of time that the Transaction took, from the time that the Transaction
-     * was created to the time that the Transaction was completed.
-     * @param timeUnit
-     * @return
+     * @param timeUnit unit of time for which to report the duration
+     * @return the amount of time that the Transaction took, from the time that
+     * the Transaction was created to the time that the Transaction was
+     * completed
      */
     long getDuration(TimeUnit timeUnit);
 }

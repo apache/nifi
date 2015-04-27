@@ -27,6 +27,12 @@ public class ByteCountingOutputStream extends OutputStream {
     public ByteCountingOutputStream(final OutputStream out) {
         this.out = out;
     }
+    
+    public ByteCountingOutputStream(final OutputStream out, final long initialByteCount) {
+        this.out = out;
+        this.bytesWritten = initialByteCount;
+    }
+
 
     @Override
     public void write(int b) throws IOException {

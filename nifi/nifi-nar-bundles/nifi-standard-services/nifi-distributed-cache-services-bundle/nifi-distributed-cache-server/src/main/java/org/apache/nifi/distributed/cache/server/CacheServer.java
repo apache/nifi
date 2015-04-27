@@ -21,6 +21,7 @@ import java.io.IOException;
 public interface CacheServer {
 
     void start() throws IOException;
+
     void stop() throws IOException;
-    
+
 }

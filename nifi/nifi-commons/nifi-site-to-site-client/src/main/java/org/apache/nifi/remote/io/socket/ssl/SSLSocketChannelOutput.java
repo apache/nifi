@@ -24,9 +24,10 @@ import org.apache.nifi.stream.io.ByteCountingOutputStream;
 import org.apache.nifi.remote.protocol.CommunicationsOutput;
 
 public class SSLSocketChannelOutput implements CommunicationsOutput {
+
     private final OutputStream out;
     private final ByteCountingOutputStream countingOut;
-    
+
     public SSLSocketChannelOutput(final SSLSocketChannel channel) {
         countingOut = new ByteCountingOutputStream(new SSLSocketChannelOutputStream(channel));
         out = new BufferedOutputStream(countingOut);
@@ -36,7 +37,7 @@ public class SSLSocketChannelOutput implements CommunicationsOutput {
     public OutputStream getOutputStream() throws IOException {
         return out;
     }
-    
+
     @Override
     public long getBytesWritten() {
         return countingOut.getBytesWritten();

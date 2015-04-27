@@ -19,73 +19,53 @@ package org.apache.nifi.groups;
 public interface RemoteProcessGroupPortDescriptor {
 
     /**
-     * The comments as configured in the target port.
-     *
-     * @return
+     * @return comments as configured in the target port
      */
     String getComments();
 
     /**
-     * The number tasks that may transmit flow files to the target port
-     * concurrently.
-     *
-     * @return
+     * @return The number tasks that may transmit flow files to the target port
+     * concurrently
      */
     Integer getConcurrentlySchedulableTaskCount();
 
     /**
-     * The id of the target port.
-     *
-     * @return
+     * @return id of the target port
      */
     String getId();
 
     /**
-     * The id of the remote process group that this port resides in.
-     *
-     * @return
+     * @return id of the remote process group that this port resides in
      */
     String getGroupId();
 
     /**
-     * The name of the target port.
-     *
-     * @return
+     * @return name of the target port
      */
     String getName();
 
     /**
-     * Whether or not this remote group port is configured for transmission.
-     *
-     * @return
+     * @return Whether or not this remote group port is configured for transmission
      */
     Boolean isTransmitting();
 
     /**
-     * Whether or not flow file are compressed when sent to this target port.
-     *
-     * @return
+     * @return Whether or not flow file are compressed when sent to this target port
      */
     Boolean getUseCompression();
 
     /**
-     * Whether ot not the target port exists.
-     *
-     * @return
+     * @return Whether or not the target port exists
      */
     Boolean getExists();
 
     /**
-     * Whether or not the target port is running.
-     *
-     * @return
+     * @return Whether or not the target port is running
      */
     Boolean isTargetRunning();
 
     /**
-     * Whether or not this port has either an incoming or outgoing connection.
-     *
-     * @return
+     * @return Whether or not this port has either an incoming or outgoing connection
      */
     Boolean isConnected();
 

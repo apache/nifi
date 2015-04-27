@@ -45,7 +45,6 @@ import org.slf4j.LoggerFactory;
  * discovery. The instance must be stopped before termination of the JVM to
  * ensure proper resource clean-up.
  *
- * @author unattributed
  */
 public class ClusterServiceDiscovery implements MulticastServiceDiscovery, ProtocolListener {
 
@@ -60,7 +59,6 @@ public class ClusterServiceDiscovery implements MulticastServiceDiscovery, Proto
      */
     private DiscoverableService service;
 
-    
     public ClusterServiceDiscovery(final String serviceName, final InetSocketAddress multicastAddress,
             final MulticastConfiguration multicastConfiguration, final ProtocolContext<ProtocolMessage> protocolContext) {
 
@@ -162,7 +160,8 @@ public class ClusterServiceDiscovery implements MulticastServiceDiscovery, Proto
                                 || broadcastMsg.getPort() != oldService.getServiceAddress().getPort()) {
                             service = new DiscoverableServiceImpl(serviceName, InetSocketAddress.createUnresolved(broadcastMsg.getAddress(), broadcastMsg.getPort()));
                             final InetSocketAddress oldServiceAddress = (oldService == null) ? null : oldService.getServiceAddress();
-                            logger.info(String.format("Updating cluster service address for '%s' from '%s' to '%s'", serviceName, prettyPrint(oldServiceAddress), prettyPrint(service.getServiceAddress())));
+                            logger.info(String.format("Updating cluster service address for '%s' from '%s' to '%s'",
+                                    serviceName, prettyPrint(oldServiceAddress), prettyPrint(service.getServiceAddress())));
                         }
                     }
                     return null;

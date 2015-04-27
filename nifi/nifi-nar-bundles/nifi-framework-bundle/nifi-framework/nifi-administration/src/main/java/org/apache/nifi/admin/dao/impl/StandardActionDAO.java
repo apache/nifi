@@ -259,13 +259,6 @@ public class StandardActionDAO implements ActionDAO {
         }
     }
 
-    /**
-     * Persists the extension details.
-     *
-     * @param actionId
-     * @param extensionDetails
-     * @throws DataAccessException
-     */
     private void createExtensionDetails(int actionId, ExtensionDetails extensionDetails) throws DataAccessException {
         PreparedStatement statement = null;
         try {
@@ -288,13 +281,6 @@ public class StandardActionDAO implements ActionDAO {
         }
     }
 
-    /**
-     * Persists the remote process group details.
-     *
-     * @param actionId
-     * @param remoteProcessGroupDetails
-     * @throws DataAccessException
-     */
     private void createRemoteProcessGroupDetails(int actionId, RemoteProcessGroupDetails remoteProcessGroupDetails) throws DataAccessException {
         PreparedStatement statement = null;
         try {
@@ -317,13 +303,6 @@ public class StandardActionDAO implements ActionDAO {
         }
     }
 
-    /**
-     * Persists the connection details.
-     *
-     * @param actionId
-     * @param connectionDetails
-     * @throws DataAccessException
-     */
     private void createConnectDetails(int actionId, ConnectDetails connectionDetails) throws DataAccessException {
         PreparedStatement statement = null;
         try {
@@ -352,13 +331,6 @@ public class StandardActionDAO implements ActionDAO {
         }
     }
 
-    /**
-     * Persists the move details.
-     *
-     * @param actionId
-     * @param moveDetails
-     * @throws DataAccessException
-     */
     private void createMoveDetails(int actionId, MoveDetails moveDetails) throws DataAccessException {
         PreparedStatement statement = null;
         try {
@@ -384,13 +356,6 @@ public class StandardActionDAO implements ActionDAO {
         }
     }
 
-    /**
-     * Persists the configuration details.
-     *
-     * @param actionId
-     * @param configurationDetails
-     * @throws DataAccessException
-     */
     private void createConfigureDetails(int actionId, ConfigureDetails configurationDetails) throws DataAccessException {
         PreparedStatement statement = null;
         try {
@@ -415,13 +380,6 @@ public class StandardActionDAO implements ActionDAO {
         }
     }
 
-    /**
-     * Persists the purge details.
-     *
-     * @param actionId
-     * @param purgeDetails
-     * @throws DataAccessException
-     */
     private void createPurgeDetails(int actionId, PurgeDetails purgeDetails) throws DataAccessException {
         PreparedStatement statement = null;
         try {
@@ -444,13 +402,6 @@ public class StandardActionDAO implements ActionDAO {
         }
     }
 
-    /**
-     * Finds actions that meet the criteria in the specified query.
-     *
-     * @param historyQuery
-     * @return
-     * @throws DataAccessException
-     */
     @Override
     public History findActions(HistoryQuery historyQuery) throws DataAccessException {
 
@@ -601,7 +552,7 @@ public class StandardActionDAO implements ActionDAO {
 
                 // get the component details if appropriate
                 ComponentDetails componentDetails = null;
-                if (Component.Processor.equals(component) || Component.ControllerService.equals(component)  || Component.ReportingTask.equals(component)) {
+                if (Component.Processor.equals(component) || Component.ControllerService.equals(component) || Component.ReportingTask.equals(component)) {
                     componentDetails = getExtensionDetails(actionId);
                 } else if (Component.RemoteProcessGroup.equals(component)) {
                     componentDetails = getRemoteProcessGroupDetails(actionId);
@@ -712,13 +663,6 @@ public class StandardActionDAO implements ActionDAO {
         return action;
     }
 
-    /**
-     * Loads the specified extension details.
-     *
-     * @param actionId
-     * @return
-     * @throws DataAccessException
-     */
     private ExtensionDetails getExtensionDetails(Integer actionId) throws DataAccessException {
         ExtensionDetails extensionDetails = null;
         PreparedStatement statement = null;
@@ -746,13 +690,6 @@ public class StandardActionDAO implements ActionDAO {
         return extensionDetails;
     }
 
-    /**
-     * Loads the specified remote process group details.
-     *
-     * @param actionId
-     * @return
-     * @throws DataAccessException
-     */
     private RemoteProcessGroupDetails getRemoteProcessGroupDetails(Integer actionId) throws DataAccessException {
         RemoteProcessGroupDetails remoteProcessGroupDetails = null;
         PreparedStatement statement = null;
@@ -780,13 +717,6 @@ public class StandardActionDAO implements ActionDAO {
         return remoteProcessGroupDetails;
     }
 
-    /**
-     * Loads the specified move details.
-     *
-     * @param actionId
-     * @return
-     * @throws DataAccessException
-     */
     private MoveDetails getMoveDetails(Integer actionId) throws DataAccessException {
         MoveDetails moveDetails = null;
         PreparedStatement statement = null;
@@ -817,13 +747,6 @@ public class StandardActionDAO implements ActionDAO {
         return moveDetails;
     }
 
-    /**
-     * Loads the specified relationship details.
-     *
-     * @param actionId
-     * @return
-     * @throws DataAccessException
-     */
     private ConnectDetails getConnectDetails(Integer actionId) throws DataAccessException {
         ConnectDetails connectionDetails = null;
         PreparedStatement statement = null;
@@ -860,13 +783,6 @@ public class StandardActionDAO implements ActionDAO {
         return connectionDetails;
     }
 
-    /**
-     * Loads the specified configuration details.
-     *
-     * @param actionId
-     * @return
-     * @throws DataAccessException
-     */
     private ConfigureDetails getConfigureDetails(Integer actionId) throws DataAccessException {
         ConfigureDetails configurationDetails = null;
         PreparedStatement statement = null;
@@ -896,13 +812,6 @@ public class StandardActionDAO implements ActionDAO {
         return configurationDetails;
     }
 
-    /**
-     * Loads the specified purge details.
-     *
-     * @param actionId
-     * @return
-     * @throws DataAccessException
-     */
     private PurgeDetails getPurgeDetails(Integer actionId) throws DataAccessException {
         PurgeDetails purgeDetails = null;
         PreparedStatement statement = null;

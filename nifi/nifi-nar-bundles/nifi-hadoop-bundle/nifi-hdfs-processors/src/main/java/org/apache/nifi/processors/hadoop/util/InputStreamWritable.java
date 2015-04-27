@@ -24,10 +24,8 @@ import java.io.InputStream;
 import org.apache.hadoop.io.Writable;
 
 /**
- * Simple implementation of {@link Writable} that writes data from an
- * InputStream. This class will throw an
- * <tt>UnsupportedOperationException</tt> if {@link #readFields(DataInput)} is
- * called.
+ * Simple implementation of {@link Writable} that writes data from an InputStream. This class will throw an
+ * <tt>UnsupportedOperationException</tt> if {@link #readFields(DataInput)} is called.
  */
 public class InputStreamWritable implements Writable {
 

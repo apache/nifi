@@ -40,8 +40,6 @@ public class ConnectionStatusDTO {
 
     /* getters / setters */
     /**
-     * The id for the connection.
-     *
      * @return The connection id
      */
     public String getId() {
@@ -53,8 +51,6 @@ public class ConnectionStatusDTO {
     }
 
     /**
-     * The ID of the Process Group to which this processor belongs.
-     *
      * @return the ID of the Process Group to which this processor belongs.
      */
     public String getGroupId() {
@@ -66,9 +62,7 @@ public class ConnectionStatusDTO {
     }
 
     /**
-     * The name of this connection.
-     *
-     * @return
+     * @return name of this connection
      */
     public String getName() {
         return name;
@@ -79,9 +73,7 @@ public class ConnectionStatusDTO {
     }
 
     /**
-     * The total count of flow files that are queued.
-     *
-     * @return
+     * @return total count of flow files that are queued
      */
     public String getQueuedCount() {
         return queuedCount;
@@ -92,9 +84,7 @@ public class ConnectionStatusDTO {
     }
 
     /**
-     * The total size of flow files that are queued.
-     *
-     * @return
+     * @return total size of flow files that are queued
      */
     public String getQueuedSize() {
         return queuedSize;
@@ -105,8 +95,6 @@ public class ConnectionStatusDTO {
     }
 
     /**
-     * The total count and size of flow files that are queued.
-     *
      * @return The total count and size of queued flow files
      */
     public String getQueued() {
@@ -118,9 +106,7 @@ public class ConnectionStatusDTO {
     }
 
     /**
-     * The id of the source of this connection.
-     *
-     * @return
+     * @return id of the source of this connection
      */
     public String getSourceId() {
         return sourceId;
@@ -131,9 +117,7 @@ public class ConnectionStatusDTO {
     }
 
     /**
-     * The name of the source of this connection.
-     *
-     * @return
+     * @return name of the source of this connection
      */
     public String getSourceName() {
         return sourceName;
@@ -144,9 +128,7 @@ public class ConnectionStatusDTO {
     }
 
     /**
-     * The id of the destination of this connection.
-     *
-     * @return
+     * @return id of the destination of this connection
      */
     public String getDestinationId() {
         return destinationId;
@@ -157,9 +139,7 @@ public class ConnectionStatusDTO {
     }
 
     /**
-     * The name of the destination of this connection.
-     *
-     * @return
+     * @return name of the destination of this connection
      */
     public String getDestinationName() {
         return destinationName;
@@ -170,9 +150,7 @@ public class ConnectionStatusDTO {
     }
 
     /**
-     * The input for this connection.
-     *
-     * @return
+     * @return input for this connection
      */
     public String getInput() {
         return input;
@@ -183,9 +161,7 @@ public class ConnectionStatusDTO {
     }
 
     /**
-     * The output for this connection.
-     *
-     * @return
+     * @return output for this connection
      */
     public String getOutput() {
         return output;

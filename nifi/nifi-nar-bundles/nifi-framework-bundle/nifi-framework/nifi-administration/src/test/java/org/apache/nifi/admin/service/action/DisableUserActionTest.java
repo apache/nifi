@@ -33,9 +33,6 @@ import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-/**
- *
- */
 public class DisableUserActionTest {
 
     private static final String USER_ID_1 = "1";
@@ -119,7 +116,7 @@ public class DisableUserActionTest {
     /**
      * Tests the case when the user account is unknown.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test(expected = AccountNotFoundException.class)
     public void testUnknownUserAccount() throws Exception {
@@ -130,7 +127,7 @@ public class DisableUserActionTest {
     /**
      * Tests the case when a DataAccessException is thrown by the userDao.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test(expected = DataAccessException.class)
     public void testDataAccessExceptionInUserDao() throws Exception {
@@ -141,7 +138,7 @@ public class DisableUserActionTest {
     /**
      * Tests the case when a AuthorityAccessException is thrown by the provider.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test(expected = AdministrationException.class)
     public void testAuthorityAccessExceptionInProvider() throws Exception {
@@ -152,7 +149,7 @@ public class DisableUserActionTest {
     /**
      * Tests the general case when the user is disabled.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testDisableUser() throws Exception {

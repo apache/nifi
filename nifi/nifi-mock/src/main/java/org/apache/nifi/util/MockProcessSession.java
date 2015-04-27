@@ -329,7 +329,6 @@ public class MockProcessSession implements ProcessSession {
         return newFlowFile;
     }
 
-
     @Override
     public MockFlowFile merge(final Collection<FlowFile> sources, final FlowFile destination) {
         for (final FlowFile source : sources) {
@@ -676,11 +675,9 @@ public class MockProcessSession implements ProcessSession {
     }
 
     /**
-     * Returns a List of FlowFiles in the order in which they were transferred
+     * @param relationship to get flowfiles for
+     * @return a List of FlowFiles in the order in which they were transferred
      * to the given relationship
-     *
-     * @param relationship
-     * @return
      */
     public List<MockFlowFile> getFlowFilesForRelationship(final String relationship) {
         final Relationship procRel = new Relationship.Builder().name(relationship).build();
@@ -783,7 +780,7 @@ public class MockProcessSession implements ProcessSession {
      * will capture the uuid of a certain number of source objects and may not
      * capture all of them. How many it will capture is unspecified.
      *
-     * @param sources
+     * @param sources to inherit common attributes from
      */
     private FlowFile inheritAttributes(final Collection<FlowFile> sources, final FlowFile destination) {
         final StringBuilder parentUuidBuilder = new StringBuilder();
@@ -883,8 +880,8 @@ public class MockProcessSession implements ProcessSession {
      * Assert that the number of FlowFiles transferred to the given relationship
      * is equal to the given count
      *
-     * @param relationship
-     * @param count
+     * @param relationship to validate transfer count of
+     * @param count items transfer to given relationship
      */
     public void assertTransferCount(final Relationship relationship, final int count) {
         final int transferCount = getFlowFilesForRelationship(relationship).size();
@@ -896,8 +893,8 @@ public class MockProcessSession implements ProcessSession {
      * Assert that the number of FlowFiles transferred to the given relationship
      * is equal to the given count
      *
-     * @param relationship
-     * @param count
+     * @param relationship to validate transfer count of
+     * @param count items transfer to given relationship
      */
     public void assertTransferCount(final String relationship, final int count) {
         assertTransferCount(new Relationship.Builder().name(relationship).build(), count);
@@ -921,7 +918,7 @@ public class MockProcessSession implements ProcessSession {
      * Asserts that all FlowFiles that were transferred were transferred to the
      * given relationship
      *
-     * @param relationship
+     * @param relationship to check for transferred flow files
      */
     public void assertAllFlowFilesTransferred(final String relationship) {
         assertAllFlowFilesTransferred(new Relationship.Builder().name(relationship).build());
@@ -931,7 +928,7 @@ public class MockProcessSession implements ProcessSession {
      * Asserts that all FlowFiles that were transferred were transferred to the
      * given relationship
      *
-     * @param relationship
+     * @param relationship to validate
      */
     public void assertAllFlowFilesTransferred(final Relationship relationship) {
         for (final Map.Entry<Relationship, List<MockFlowFile>> entry : transferMap.entrySet()) {
@@ -956,8 +953,8 @@ public class MockProcessSession implements ProcessSession {
      * given relationship and that the number of FlowFiles transferred is equal
      * to <code>count</code>
      *
-     * @param relationship
-     * @param count
+     * @param relationship to validate
+     * @param count number of items sent to that relationship (expected)
      */
     public void assertAllFlowFilesTransferred(final Relationship relationship, final int count) {
         assertAllFlowFilesTransferred(relationship);
@@ -969,17 +966,15 @@ public class MockProcessSession implements ProcessSession {
      * given relationship and that the number of FlowFiles transferred is equal
      * to <code>count</code>
      *
-     * @param relationship
-     * @param count
+     * @param relationship to validate
+     * @param count number of items sent to that relationship (expected)
      */
     public void assertAllFlowFilesTransferred(final String relationship, final int count) {
         assertAllFlowFilesTransferred(new Relationship.Builder().name(relationship).build(), count);
     }
 
     /**
-     * Returns the number of FlowFiles that were removed
-     *
-     * @return
+     * @return the number of FlowFiles that were removed
      */
     public int getRemovedCount() {
         return removedCount;

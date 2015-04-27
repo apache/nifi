@@ -17,22 +17,24 @@
 package org.apache.nifi.cluster.protocol;
 
 /**
- * The context for communicating using the internal cluster protocol. 
- * 
+ * The context for communicating using the internal cluster protocol.
+ *
  * @param <T> The type of protocol message.
- * 
+ *
  * @author unattributed
  */
 public interface ProtocolContext<T> {
- 
+
     /**
      * Creates a marshaller for serializing protocol messages.
+     *
      * @return a marshaller
      */
     ProtocolMessageMarshaller<T> createMarshaller();
-    
+
     /**
      * Creates an unmarshaller for deserializing protocol messages.
+     *
      * @return a unmarshaller
      */
     ProtocolMessageUnmarshaller<T> createUnmarshaller();

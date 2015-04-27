@@ -61,95 +61,100 @@ import scala.actors.threadpool.Arrays;
 @Tags({"Apache", "Kafka", "Put", "Send", "Message", "PubSub"})
 @CapabilityDescription("Sends the contents of a FlowFile as a message to Apache Kafka")
 public class PutKafka extends AbstractProcessor {
+
     private static final String SINGLE_BROKER_REGEX = ".*?\\:\\d{3,5}";
     private static final String BROKER_REGEX = SINGLE_BROKER_REGEX + "(?:,\\s*" + SINGLE_BROKER_REGEX + ")*";
-    
-    public static final AllowableValue DELIVERY_REPLICATED = new AllowableValue("-1", "Guarantee Replicated Delivery", "FlowFile will be routed to failure unless the message is replicated to the appropriate number of Kafka Nodes according to the Topic configuration");
-    public static final AllowableValue DELIVERY_ONE_NODE = new AllowableValue("1", "Guarantee Single Node Delivery", "FlowFile will be routed to success if the message is received by a single Kafka node, whether or not it is replicated. This is faster than <Guarantee Replicated Delivery> but can result in data loss if a Kafka node crashes");
-    public static final AllowableValue DELIVERY_BEST_EFFORT = new AllowableValue("0", "Best Effort", "FlowFile will be routed to success after successfully writing the content to a Kafka node, without waiting for a response. This provides the best performance but may result in data loss.");
-    
-    public static final PropertyDescriptor SEED_BROKERS = new PropertyDescriptor.Builder()
-        .name("Known Brokers")
-        .description("A comma-separated list of known Kafka Brokers in the format <host>:<port>")
-        .required(true)
-        .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile(BROKER_REGEX)))
-        .expressionLanguageSupported(false)
-        .build();
-    public static final PropertyDescriptor TOPIC = new PropertyDescriptor.Builder()
-	    .name("Topic Name")
-	    .description("The Kafka Topic of interest")
-	    .required(true)
-	    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-	    .expressionLanguageSupported(true)
-	    .build();
-    public static final PropertyDescriptor KEY = new PropertyDescriptor.Builder()
-		.name("Kafka Key")
-		.description("The Key to use for the Message")
-		.required(false)
-		.addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-		.expressionLanguageSupported(true)
-		.build();
-    public static final PropertyDescriptor DELIVERY_GUARANTEE = new PropertyDescriptor.Builder()
-		.name("Delivery Guarantee")
-		.description("Specifies the requirement for guaranteeing that a message is sent to Kafka")
-		.required(true)
-		.expressionLanguageSupported(false)
-		.allowableValues(DELIVERY_BEST_EFFORT, DELIVERY_ONE_NODE, DELIVERY_REPLICATED)
-		.defaultValue(DELIVERY_BEST_EFFORT.getValue())
-		.build();
-    public static final PropertyDescriptor MESSAGE_DELIMITER = new PropertyDescriptor.Builder()
-        .name("Message Delimiter")
-        .description("Specifies the delimiter to use for splitting apart multiple messages within a single FlowFile. "
-                + "If not specified, the entire content of the FlowFile will be used as a single message. "
-                + "If specified, the contents of the FlowFile will be split on this delimiter and each section "
-                + "sent as a separate Kafka message.")
-        .required(false)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(true)
-        .build();
-    public static final PropertyDescriptor MAX_BUFFER_SIZE = new PropertyDescriptor.Builder()
-        .name("Max Buffer Size")
-        .description("The maximum amount of data to buffer in memory before sending to Kafka")
-        .required(true)
-        .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
-        .expressionLanguageSupported(false)
-        .defaultValue("1 MB")
-        .build();
-    public static final PropertyDescriptor TIMEOUT = new PropertyDescriptor.Builder()
-	    .name("Communications Timeout")
-	    .description("The amount of time to wait for a response from Kafka before determining that there is a communications error")
-	    .required(true)
-	    .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-	    .expressionLanguageSupported(false)
-	    .defaultValue("30 secs")
-	    .build();
-    public static final PropertyDescriptor CLIENT_NAME = new PropertyDescriptor.Builder()
-	    .name("Client Name")
-	    .description("Client Name to use when communicating with Kafka")
-	    .required(true)
-	    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-	    .expressionLanguageSupported(false)
-	    .build();
 
-    
+    public static final AllowableValue DELIVERY_REPLICATED = new AllowableValue("-1", "Guarantee Replicated Delivery", "FlowFile will be routed to"
+            + " failure unless the message is replicated to the appropriate number of Kafka Nodes according to the Topic configuration");
+    public static final AllowableValue DELIVERY_ONE_NODE = new AllowableValue("1", "Guarantee Single Node Delivery", "FlowFile will be routed"
+            + " to success if the message is received by a single Kafka node, whether or not it is replicated. This is faster than"
+            + " <Guarantee Replicated Delivery> but can result in data loss if a Kafka node crashes");
+    public static final AllowableValue DELIVERY_BEST_EFFORT = new AllowableValue("0", "Best Effort", "FlowFile will be routed to success after"
+            + " successfully writing the content to a Kafka node, without waiting for a response. This provides the best performance but may result"
+            + " in data loss.");
+
+    public static final PropertyDescriptor SEED_BROKERS = new PropertyDescriptor.Builder()
+            .name("Known Brokers")
+            .description("A comma-separated list of known Kafka Brokers in the format <host>:<port>")
+            .required(true)
+            .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile(BROKER_REGEX)))
+            .expressionLanguageSupported(false)
+            .build();
+    public static final PropertyDescriptor TOPIC = new PropertyDescriptor.Builder()
+            .name("Topic Name")
+            .description("The Kafka Topic of interest")
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
+            .build();
+    public static final PropertyDescriptor KEY = new PropertyDescriptor.Builder()
+            .name("Kafka Key")
+            .description("The Key to use for the Message")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
+            .build();
+    public static final PropertyDescriptor DELIVERY_GUARANTEE = new PropertyDescriptor.Builder()
+            .name("Delivery Guarantee")
+            .description("Specifies the requirement for guaranteeing that a message is sent to Kafka")
+            .required(true)
+            .expressionLanguageSupported(false)
+            .allowableValues(DELIVERY_BEST_EFFORT, DELIVERY_ONE_NODE, DELIVERY_REPLICATED)
+            .defaultValue(DELIVERY_BEST_EFFORT.getValue())
+            .build();
+    public static final PropertyDescriptor MESSAGE_DELIMITER = new PropertyDescriptor.Builder()
+            .name("Message Delimiter")
+            .description("Specifies the delimiter to use for splitting apart multiple messages within a single FlowFile. "
+                    + "If not specified, the entire content of the FlowFile will be used as a single message. "
+                    + "If specified, the contents of the FlowFile will be split on this delimiter and each section "
+                    + "sent as a separate Kafka message.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
+            .build();
+    public static final PropertyDescriptor MAX_BUFFER_SIZE = new PropertyDescriptor.Builder()
+            .name("Max Buffer Size")
+            .description("The maximum amount of data to buffer in memory before sending to Kafka")
+            .required(true)
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .expressionLanguageSupported(false)
+            .defaultValue("1 MB")
+            .build();
+    public static final PropertyDescriptor TIMEOUT = new PropertyDescriptor.Builder()
+            .name("Communications Timeout")
+            .description("The amount of time to wait for a response from Kafka before determining that there is a communications error")
+            .required(true)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .expressionLanguageSupported(false)
+            .defaultValue("30 secs")
+            .build();
+    public static final PropertyDescriptor CLIENT_NAME = new PropertyDescriptor.Builder()
+            .name("Client Name")
+            .description("Client Name to use when communicating with Kafka")
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(false)
+            .build();
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
-	    .name("success")
-	    .description("Any FlowFile that is successfully sent to Kafka will be routed to this Relationship")
-	    .build();
+            .name("success")
+            .description("Any FlowFile that is successfully sent to Kafka will be routed to this Relationship")
+            .build();
     public static final Relationship REL_FAILURE = new Relationship.Builder()
-	    .name("failure")
-	    .description("Any FlowFile that cannot be sent to Kafka will be routed to this Relationship")
-	    .build();
+            .name("failure")
+            .description("Any FlowFile that cannot be sent to Kafka will be routed to this Relationship")
+            .build();
 
     private final BlockingQueue<Producer<byte[], byte[]>> producers = new LinkedBlockingQueue<>();
-    
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-    	final PropertyDescriptor clientName = new PropertyDescriptor.Builder()
-    		.fromPropertyDescriptor(CLIENT_NAME)
-    		.defaultValue("NiFi-" + getIdentifier())
-    		.build();
-    	
+        final PropertyDescriptor clientName = new PropertyDescriptor.Builder()
+                .fromPropertyDescriptor(CLIENT_NAME)
+                .defaultValue("NiFi-" + getIdentifier())
+                .build();
+
         final List<PropertyDescriptor> props = new ArrayList<>();
         props.add(SEED_BROKERS);
         props.add(TOPIC);
@@ -161,7 +166,7 @@ public class PutKafka extends AbstractProcessor {
         props.add(clientName);
         return props;
     }
-    
+
     @Override
     public Set<Relationship> getRelationships() {
         final Set<Relationship> relationships = new HashSet<>(1);
@@ -169,17 +174,16 @@ public class PutKafka extends AbstractProcessor {
         relationships.add(REL_FAILURE);
         return relationships;
     }
-    
-    
+
     @OnStopped
     public void closeProducers() {
-    	Producer<byte[], byte[]> producer;
-    	
-    	while ((producer = producers.poll()) != null) {
-    		producer.close();
-    	}
+        Producer<byte[], byte[]> producer;
+
+        while ((producer = producers.poll()) != null) {
+            producer.close();
+        }
     }
-    
+
     protected ProducerConfig createConfig(final ProcessContext context) {
         final String brokers = context.getProperty(SEED_BROKERS).getValue();
 
@@ -188,76 +192,76 @@ public class PutKafka extends AbstractProcessor {
         properties.setProperty("request.required.acks", context.getProperty(DELIVERY_GUARANTEE).getValue());
         properties.setProperty("client.id", context.getProperty(CLIENT_NAME).getValue());
         properties.setProperty("request.timeout.ms", String.valueOf(context.getProperty(TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).longValue()));
-        
+
         properties.setProperty("message.send.max.retries", "1");
         properties.setProperty("producer.type", "sync");
-        
+
         return new ProducerConfig(properties);
     }
-    
+
     protected Producer<byte[], byte[]> createProducer(final ProcessContext context) {
-    	return new Producer<>(createConfig(context));
+        return new Producer<>(createConfig(context));
     }
-    
+
     private Producer<byte[], byte[]> borrowProducer(final ProcessContext context) {
-    	Producer<byte[], byte[]> producer = producers.poll();
-    	return producer == null ? createProducer(context) : producer;
+        Producer<byte[], byte[]> producer = producers.poll();
+        return producer == null ? createProducer(context) : producer;
     }
-    
+
     private void returnProducer(final Producer<byte[], byte[]> producer) {
-    	producers.offer(producer);
+        producers.offer(producer);
     }
-    
+
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-    	FlowFile flowFile = session.get();
-    	if ( flowFile == null ) {
-    		return;
-    	}
-    	
-    	final long start = System.nanoTime();
+        FlowFile flowFile = session.get();
+        if (flowFile == null) {
+            return;
+        }
+
+        final long start = System.nanoTime();
         final String topic = context.getProperty(TOPIC).evaluateAttributeExpressions(flowFile).getValue();
         final String key = context.getProperty(KEY).evaluateAttributeExpressions(flowFile).getValue();
         final byte[] keyBytes = (key == null) ? null : key.getBytes(StandardCharsets.UTF_8);
         String delimiter = context.getProperty(MESSAGE_DELIMITER).evaluateAttributeExpressions(flowFile).getValue();
-        if ( delimiter != null ) {
+        if (delimiter != null) {
             delimiter = delimiter.replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t");
         }
-        
+
         final long maxBufferSize = context.getProperty(MAX_BUFFER_SIZE).asDataSize(DataUnit.B).longValue();
         final Producer<byte[], byte[]> producer = borrowProducer(context);
-        
-        if ( delimiter == null ) {
+
+        if (delimiter == null) {
             // Send the entire FlowFile as a single message.
             final byte[] value = new byte[(int) flowFile.getSize()];
             session.read(flowFile, new InputStreamCallback() {
-    			@Override
-    			public void process(final InputStream in) throws IOException {
-    				StreamUtils.fillBuffer(in, value);
-    			}
+                @Override
+                public void process(final InputStream in) throws IOException {
+                    StreamUtils.fillBuffer(in, value);
+                }
             });
-            
+
             boolean error = false;
             try {
                 final KeyedMessage<byte[], byte[]> message;
-                if ( key == null ) {
+                if (key == null) {
                     message = new KeyedMessage<>(topic, value);
                 } else {
                     message = new KeyedMessage<>(topic, keyBytes, value);
                 }
-                
+
                 producer.send(message);
                 final long nanos = System.nanoTime() - start;
-                
+
                 session.getProvenanceReporter().send(flowFile, "kafka://" + topic);
                 session.transfer(flowFile, REL_SUCCESS);
-                getLogger().info("Successfully sent {} to Kafka in {} millis", new Object[] {flowFile, TimeUnit.NANOSECONDS.toMillis(nanos)});
+                getLogger().info("Successfully sent {} to Kafka in {} millis", new Object[]{flowFile, TimeUnit.NANOSECONDS.toMillis(nanos)});
             } catch (final Exception e) {
-                getLogger().error("Failed to send {} to Kafka due to {}; routing to failure", new Object[] {flowFile, e});
+                getLogger().error("Failed to send {} to Kafka due to {}; routing to failure", new Object[]{flowFile, e});
                 session.transfer(flowFile, REL_FAILURE);
                 error = true;
             } finally {
-                if ( error ) {
+                if (error) {
                     producer.close();
                 } else {
                     returnProducer(producer);
@@ -265,53 +269,53 @@ public class PutKafka extends AbstractProcessor {
             }
         } else {
             final byte[] delimiterBytes = delimiter.getBytes(StandardCharsets.UTF_8);
-            
+
             // The NonThreadSafeCircularBuffer allows us to add a byte from the stream one at a time and see
             // if it matches some pattern. We can use this to search for the delimiter as we read through
             // the stream of bytes in the FlowFile
             final NonThreadSafeCircularBuffer buffer = new NonThreadSafeCircularBuffer(delimiterBytes);
-            
+
             boolean error = false;
             final LongHolder lastMessageOffset = new LongHolder(0L);
             final LongHolder messagesSent = new LongHolder(0L);
-            
+
             try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
                 session.read(flowFile, new InputStreamCallback() {
                     @Override
                     public void process(final InputStream rawIn) throws IOException {
                         byte[] data = null; // contents of a single message
-                        
+
                         boolean streamFinished = false;
-                        
+
                         final List<KeyedMessage<byte[], byte[]>> messages = new ArrayList<>(); // batch to send
                         long messageBytes = 0L; // size of messages in the 'messages' list
-                        
+
                         int nextByte;
                         try (final InputStream bufferedIn = new BufferedInputStream(rawIn);
-                             final ByteCountingInputStream in = new ByteCountingInputStream(bufferedIn)) {
-                            
+                                final ByteCountingInputStream in = new ByteCountingInputStream(bufferedIn)) {
+
                             // read until we're out of data.
                             while (!streamFinished) {
                                 nextByte = in.read();
 
-                                if ( nextByte > -1 ) {
+                                if (nextByte > -1) {
                                     baos.write(nextByte);
                                 }
-                                
+
                                 if (nextByte == -1) {
                                     // we ran out of data. This message is complete.
                                     data = baos.toByteArray();
                                     streamFinished = true;
-                                } else if ( buffer.addAndCompare((byte) nextByte) ) {
+                                } else if (buffer.addAndCompare((byte) nextByte)) {
                                     // we matched our delimiter. This message is complete. We want all of the bytes from the
                                     // underlying BAOS exception for the last 'delimiterBytes.length' bytes because we don't want
                                     // the delimiter itself to be sent.
                                     data = Arrays.copyOfRange(baos.getUnderlyingBuffer(), 0, baos.size() - delimiterBytes.length);
                                 }
-                                
-                                if ( data != null ) {
+
+                                if (data != null) {
                                     // If the message has no data, ignore it.
-                                    if ( data.length != 0 ) {
+                                    if (data.length != 0) {
                                         // either we ran out of data or we reached the end of the message.
                                         // Either way, create the message because it's ready to send.
                                         final KeyedMessage<byte[], byte[]> message;
@@ -361,7 +365,7 @@ public class PutKafka extends AbstractProcessor {
                             }
 
                             // If there are messages left, send them
-                            if ( !messages.isEmpty() ) {
+                            if (!messages.isEmpty()) {
                                 try {
                                     messagesSent.addAndGet(messages.size());    // add count of messages
                                     producer.send(messages);
@@ -372,44 +376,45 @@ public class PutKafka extends AbstractProcessor {
                         }
                     }
                 });
-                
+
                 final long nanos = System.nanoTime() - start;
                 session.getProvenanceReporter().send(flowFile, "kafka://" + topic, "Sent " + messagesSent.get() + " messages");
                 session.transfer(flowFile, REL_SUCCESS);
-                getLogger().info("Successfully sent {} messages to Kafka for {} in {} millis", new Object[] {messagesSent.get(), flowFile, TimeUnit.NANOSECONDS.toMillis(nanos)});
+                getLogger().info("Successfully sent {} messages to Kafka for {} in {} millis", new Object[]{messagesSent.get(), flowFile, TimeUnit.NANOSECONDS.toMillis(nanos)});
             } catch (final ProcessException pe) {
                 error = true;
-                
+
                 // There was a failure sending messages to Kafka. Iff the lastMessageOffset is 0, then all of them failed and we can
                 // just route the FlowFile to failure. Otherwise, some messages were successful, so split them off and send them to
                 // 'success' while we send the others to 'failure'.
                 final long offset = lastMessageOffset.get();
-                if ( offset == 0L ) {
+                if (offset == 0L) {
                     // all of the messages failed to send. Route FlowFile to failure
-                    getLogger().error("Failed to send {} to Kafka due to {}; routing to fialure", new Object[] {flowFile, pe.getCause()});
+                    getLogger().error("Failed to send {} to Kafka due to {}; routing to fialure", new Object[]{flowFile, pe.getCause()});
                     session.transfer(flowFile, REL_FAILURE);
                 } else {
                     // Some of the messages were sent successfully. We want to split off the successful messages from the failed messages.
                     final FlowFile successfulMessages = session.clone(flowFile, 0L, offset);
                     final FlowFile failedMessages = session.clone(flowFile, offset, flowFile.getSize() - offset);
-                    
-                    getLogger().error("Successfully sent {} of the messages from {} but then failed to send the rest. Original FlowFile split into two: {} routed to 'success', {} routed to 'failure'. Failure was due to {}", new Object[] {
-                         messagesSent.get(), flowFile, successfulMessages, failedMessages, pe.getCause() });
-                    
+
+                    getLogger().error("Successfully sent {} of the messages from {} but then failed to send the rest. Original FlowFile split into"
+                            + " two: {} routed to 'success', {} routed to 'failure'. Failure was due to {}", new Object[]{
+                        messagesSent.get(), flowFile, successfulMessages, failedMessages, pe.getCause()});
+
                     session.transfer(successfulMessages, REL_SUCCESS);
                     session.transfer(failedMessages, REL_FAILURE);
                     session.remove(flowFile);
                     session.getProvenanceReporter().send(successfulMessages, "kafka://" + topic);
                 }
             } finally {
-                if ( error ) {
+                if (error) {
                     producer.close();
                 } else {
                     returnProducer(producer);
                 }
             }
-            
+
         }
     }
-    
+
 }

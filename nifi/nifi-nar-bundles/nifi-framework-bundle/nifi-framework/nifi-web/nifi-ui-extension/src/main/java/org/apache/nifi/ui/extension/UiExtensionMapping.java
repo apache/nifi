@@ -31,22 +31,21 @@ public class UiExtensionMapping {
     }
 
     /**
-     * Returns whether there are any UI extensions for the specified component type.
-     * 
-     * @param type
-     * @return 
+     * @param type type
+     * @return whether there are any UI extensions for the specified component
+     * type
      */
     public boolean hasUiExtension(final String type) {
         return uiExtensions.containsKey(type);
     }
-    
+
     /**
-     * Gets the listing of all discovered UI extensions for the specified component type.
-     * @param type
-     * @return 
+     * @param type type
+     * @return the listing of all discovered UI extensions for the specified
+     * component type
      */
     public List<UiExtension> getUiExtension(final String type) {
         return uiExtensions.get(type);
     }
-    
+
 }

@@ -32,21 +32,21 @@ import org.apache.nifi.cluster.protocol.message.ReconnectionResponseMessage;
 import org.apache.nifi.reporting.BulletinRepository;
 
 /**
- * A wrapper class for consolidating a protocol sender and listener for the cluster
- * manager.
- * 
+ * A wrapper class for consolidating a protocol sender and listener for the
+ * cluster manager.
+ *
  * @author unattributed
  */
 public class ClusterManagerProtocolSenderListener implements ClusterManagerProtocolSender, ProtocolListener {
-    
+
     private final ClusterManagerProtocolSender sender;
-    
+
     private final ProtocolListener listener;
-    
+
     public ClusterManagerProtocolSenderListener(final ClusterManagerProtocolSender sender, final ProtocolListener listener) {
-        if(sender == null) {
+        if (sender == null) {
             throw new IllegalArgumentException("ClusterManagerProtocolSender may not be null.");
-        } else if(listener == null) {
+        } else if (listener == null) {
             throw new IllegalArgumentException("ProtocolListener may not be null.");
         }
         this.sender = sender;
@@ -55,7 +55,7 @@ public class ClusterManagerProtocolSenderListener implements ClusterManagerProto
 
     @Override
     public void stop() throws IOException {
-        if(!isRunning()) {
+        if (!isRunning()) {
             throw new IllegalStateException("Instance is already stopped.");
         }
         listener.stop();
@@ -63,7 +63,7 @@ public class ClusterManagerProtocolSenderListener implements ClusterManagerProto
 
     @Override
     public void start() throws IOException {
-        if(isRunning()) {
+        if (isRunning()) {
             throw new IllegalStateException("Instance is already started.");
         }
         listener.start();
@@ -88,13 +88,13 @@ public class ClusterManagerProtocolSenderListener implements ClusterManagerProto
     public void addHandler(final ProtocolHandler handler) {
         listener.addHandler(handler);
     }
-    
+
     @Override
     public void setBulletinRepository(final BulletinRepository bulletinRepository) {
         listener.setBulletinRepository(bulletinRepository);
         sender.setBulletinRepository(bulletinRepository);
     }
-    
+
     @Override
     public FlowResponseMessage requestFlow(final FlowRequestMessage msg) throws ProtocolException {
         return sender.requestFlow(msg);
@@ -109,10 +109,10 @@ public class ClusterManagerProtocolSenderListener implements ClusterManagerProto
     public void disconnect(DisconnectMessage msg) throws ProtocolException {
         sender.disconnect(msg);
     }
-    
+
     @Override
     public void assignPrimaryRole(PrimaryRoleAssignmentMessage msg) throws ProtocolException {
         sender.assignPrimaryRole(msg);
     }
-    
+
 }

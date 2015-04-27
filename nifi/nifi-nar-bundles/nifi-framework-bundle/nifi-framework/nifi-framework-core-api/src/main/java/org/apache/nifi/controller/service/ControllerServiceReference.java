@@ -26,26 +26,21 @@ import org.apache.nifi.controller.ConfiguredComponent;
 public interface ControllerServiceReference {
 
     /**
-     * Returns the component that is being referenced
-     *
-     * @return
+     * @return the component that is being referenced
      */
     ControllerServiceNode getReferencedComponent();
 
     /**
-     * Returns a {@link Set} of all components that are referencing this
+     * @return a {@link Set} of all components that are referencing this
      * Controller Service
-     *
-     * @return
      */
     Set<ConfiguredComponent> getReferencingComponents();
 
     /**
-     * Returns a {@link Set} of all Processors, Reporting Tasks, and Controller Services that are
-     * referencing the Controller Service and are running (in the case of Processors and Reporting Tasks)
-     * or enabled (in the case of Controller Services)
-     *
-     * @return
+     * @return a {@link Set} of all Processors, Reporting Tasks, and Controller
+     * Services that are referencing the Controller Service and are running (in
+     * the case of Processors and Reporting Tasks) or enabled (in the case of
+     * Controller Services)
      */
     Set<ConfiguredComponent> getActiveReferences();
 }

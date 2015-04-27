@@ -26,22 +26,23 @@ import org.apache.nifi.util.NiFiProperties;
 import org.springframework.beans.factory.FactoryBean;
 
 /**
- * Factory bean for creating a singleton ServerSocketConfiguration instance.  
+ * Factory bean for creating a singleton ServerSocketConfiguration instance.
  */
 public class ServerSocketConfigurationFactoryBean implements FactoryBean<ServerSocketConfiguration> {
+
     private ServerSocketConfiguration configuration;
     private NiFiProperties properties;
-    
+
     @Override
     public ServerSocketConfiguration getObject() throws Exception {
-        if(configuration == null) {
+        if (configuration == null) {
             configuration = new ServerSocketConfiguration();
             configuration.setNeedClientAuth(properties.getNeedClientAuth());
-            
+
             final int timeout = (int) FormatUtils.getTimeDuration(properties.getClusterProtocolSocketTimeout(), TimeUnit.MILLISECONDS);
             configuration.setSocketTimeout(timeout);
             configuration.setReuseAddress(true);
-            if(Boolean.valueOf(properties.getProperty(NiFiProperties.CLUSTER_PROTOCOL_IS_SECURE))) {
+            if (Boolean.valueOf(properties.getProperty(NiFiProperties.CLUSTER_PROTOCOL_IS_SECURE))) {
                 configuration.setSSLContextFactory(new SSLContextFactory(properties));
             }
         }
@@ -58,7 +59,7 @@ public class ServerSocketConfigurationFactoryBean implements FactoryBean<ServerS
     public boolean isSingleton() {
         return true;
     }
-    
+
     public void setProperties(NiFiProperties properties) {
         this.properties = properties;
     }

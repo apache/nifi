@@ -37,51 +37,47 @@ import com.sun.jersey.api.client.UniformInterfaceException;
 import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.core.util.MultivaluedMapImpl;
 
-/**
- *
- */
 public class RemoteNiFiUtils {
 
     public static final String CONTROLLER_URI_PATH = "/controller";
 
     private static final int CONNECT_TIMEOUT = 10000;
     private static final int READ_TIMEOUT = 10000;
-    
+
     private final Client client;
-    
+
     public RemoteNiFiUtils(final SSLContext sslContext) {
         this.client = getClient(sslContext);
     }
-    
 
     /**
      * Gets the content at the specified URI.
      *
-     * @param uri
-     * @param timeoutMillis
-     * @return
-     * @throws ClientHandlerException
-     * @throws UniformInterfaceException
+     * @param uri uri to retrieve
+     * @param timeoutMillis time to wait in millis
+     * @return response
+     * @throws ClientHandlerException ex
+     * @throws UniformInterfaceException ex
      */
     public ClientResponse get(final URI uri, final int timeoutMillis) throws ClientHandlerException, UniformInterfaceException {
         return get(uri, timeoutMillis, null);
     }
-    
+
     /**
      * Gets the content at the specified URI using the given query parameters.
      *
-     * @param uri
-     * @param timeoutMillis
-     * @param queryParams 
-     * @return
-     * @throws ClientHandlerException
-     * @throws UniformInterfaceException
+     * @param uri to retrieve
+     * @param timeoutMillis wait period in millis
+     * @param queryParams query parameters
+     * @return response
+     * @throws ClientHandlerException ex
+     * @throws UniformInterfaceException ex
      */
     public ClientResponse get(final URI uri, final int timeoutMillis, final Map<String, String> queryParams) throws ClientHandlerException, UniformInterfaceException {
         // perform the request
         WebResource webResource = client.resource(uri);
-        if ( queryParams != null ) {
-            for ( final Map.Entry<String, String> queryEntry : queryParams.entrySet() ) {
+        if (queryParams != null) {
+            for (final Map.Entry<String, String> queryEntry : queryParams.entrySet()) {
                 webResource = webResource.queryParam(queryEntry.getKey(), queryEntry.getValue());
             }
         }
@@ -95,11 +91,11 @@ public class RemoteNiFiUtils {
     /**
      * Performs a HEAD request to the specified URI.
      *
-     * @param uri
-     * @param timeoutMillis
-     * @return
-     * @throws ClientHandlerException
-     * @throws UniformInterfaceException
+     * @param uri to retrieve
+     * @param timeoutMillis wait time in millis
+     * @return response
+     * @throws ClientHandlerException ex
+     * @throws UniformInterfaceException ex
      */
     public ClientResponse head(final URI uri, final int timeoutMillis) throws ClientHandlerException, UniformInterfaceException {
         // perform the request
@@ -109,12 +105,6 @@ public class RemoteNiFiUtils {
         return webResource.head();
     }
 
-    /**
-     * Gets a client based on the specified URI.
-     * 
-     * @param uri
-     * @return 
-     */
     private Client getClient(final SSLContext sslContext) {
         final Client client;
         if (sslContext == null) {
@@ -128,26 +118,27 @@ public class RemoteNiFiUtils {
 
         return client;
     }
-    
-    
+
     /**
-     * Returns the port on which the remote instance is listening for Flow File transfers, or <code>null</code> if the remote instance
-     * is not configured to use Site-to-Site transfers.
-     * 
-     * @param uri the base URI of the remote instance. This should include the path only to the nifi-api level, as well as the protocol, host, and port.
-     * @param timeoutMillis
-     * @return
-     * @throws IOException
+     * Returns the port on which the remote instance is listening for Flow File
+     * transfers, or <code>null</code> if the remote instance is not configured
+     * to use Site-to-Site transfers.
+     *
+     * @param uri the base URI of the remote instance. This should include the
+     * path only to the nifi-api level, as well as the protocol, host, and port.
+     * @param timeoutMillis wait time in millis
+     * @return port number
+     * @throws IOException ex
      */
     public Integer getRemoteListeningPort(final String uri, final int timeoutMillis) throws IOException {
-    	try {
-			final URI uriObject = new URI(uri + CONTROLLER_URI_PATH);
-			return getRemoteListeningPort(uriObject, timeoutMillis);
-		} catch (URISyntaxException e) {
-			throw new IOException("Unable to establish connection to remote host because URI is invalid: " + uri);
-		}
+        try {
+            final URI uriObject = new URI(uri + CONTROLLER_URI_PATH);
+            return getRemoteListeningPort(uriObject, timeoutMillis);
+        } catch (URISyntaxException e) {
+            throw new IOException("Unable to establish connection to remote host because URI is invalid: " + uri);
+        }
     }
-    
+
     public String getRemoteRootGroupId(final String uri, final int timeoutMillis) throws IOException {
         try {
             final URI uriObject = new URI(uri + CONTROLLER_URI_PATH);
@@ -156,7 +147,7 @@ public class RemoteNiFiUtils {
             throw new IOException("Unable to establish connection to remote host because URI is invalid: " + uri);
         }
     }
-    
+
     public String getRemoteInstanceId(final String uri, final int timeoutMillis) throws IOException {
         try {
             final URI uriObject = new URI(uri + CONTROLLER_URI_PATH);
@@ -165,26 +156,27 @@ public class RemoteNiFiUtils {
             throw new IOException("Unable to establish connection to remote host because URI is invalid: " + uri);
         }
     }
-    
+
     /**
-     * Returns the port on which the remote instance is listening for Flow File transfers, or <code>null</code> if the remote instance
-     * is not configured to use Site-to-Site transfers.
-     * 
+     * Returns the port on which the remote instance is listening for Flow File
+     * transfers, or <code>null</code> if the remote instance is not configured
+     * to use Site-to-Site transfers.
+     *
      * @param uri the full URI to fetch, including the path.
-     * @return
-     * @throws IOException
+     * @return port
+     * @throws IOException ex
      */
     private Integer getRemoteListeningPort(final URI uri, final int timeoutMillis) throws IOException {
-    	return getController(uri, timeoutMillis).getRemoteSiteListeningPort();
+        return getController(uri, timeoutMillis).getRemoteSiteListeningPort();
     }
-    
+
     private String getRemoteRootGroupId(final URI uri, final int timeoutMillis) throws IOException {
         return getController(uri, timeoutMillis).getId();
     }
-    
+
     public ControllerDTO getController(final URI uri, final int timeoutMillis) throws IOException {
         final ClientResponse response = get(uri, timeoutMillis);
-        
+
         if (Status.OK.getStatusCode() == response.getStatusInfo().getStatusCode()) {
             final ControllerEntity entity = response.getEntity(ControllerEntity.class);
             return entity.getController();
@@ -193,12 +185,12 @@ public class RemoteNiFiUtils {
             throw new IOException("Got HTTP response Code " + response.getStatusInfo().getStatusCode() + ": " + response.getStatusInfo().getReasonPhrase() + " with explanation: " + responseMessage);
         }
     }
-    
+
     /**
      * Issues a registration request on behalf of the current user.
-     * 
-     * @param baseApiUri 
-     * @return  
+     *
+     * @param baseApiUri uri to register with
+     * @return response
      */
     public ClientResponse issueRegistrationRequest(String baseApiUri) {
         final URI uri = URI.create(String.format("%s/%s", baseApiUri, "/controller/users"));
@@ -206,10 +198,10 @@ public class RemoteNiFiUtils {
         // set up the query params
         MultivaluedMapImpl entity = new MultivaluedMapImpl();
         entity.add("justification", "A Remote instance of NiFi has attempted to create a reference to this NiFi. This action must be approved first.");
-        
+
         // create the web resource
         WebResource webResource = client.resource(uri);
-        
+
         // get the client utils and make the request
         return webResource.accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_FORM_URLENCODED).entity(entity).post(ClientResponse.class);
     }

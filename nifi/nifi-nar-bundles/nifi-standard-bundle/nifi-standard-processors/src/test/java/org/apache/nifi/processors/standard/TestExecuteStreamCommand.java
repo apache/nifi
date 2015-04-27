@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.nifi.processors.standard.ExecuteStreamCommand;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -77,8 +76,7 @@ public class TestExecuteStreamCommand {
         assertEquals("java", outputFlowFile.getAttribute("execution.command"));
         assertEquals("-jar;", outputFlowFile.getAttribute("execution.command.args").substring(0, 5));
         String attribute = outputFlowFile.getAttribute("execution.command.args");
-        String expected = "src" + File.separator + "test" + File.separator + "resources" + File.separator + "ExecuteCommand" + File.separator
-                + "TestSuccess.jar";
+        String expected = "src" + File.separator + "test" + File.separator + "resources" + File.separator + "ExecuteCommand" + File.separator + "TestSuccess.jar";
         assertEquals(expected, attribute.substring(attribute.length() - expected.length()));
 
         MockFlowFile originalFlowFile = controller.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP).get(0);

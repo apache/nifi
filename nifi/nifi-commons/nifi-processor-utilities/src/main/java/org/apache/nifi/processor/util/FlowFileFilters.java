@@ -32,7 +32,7 @@ public class FlowFileFilters {
      * @param maxSize the maximum size of the group of FlowFiles
      * @param unit the unit of the <code>maxSize</code> argument
      * @param maxCount the maximum number of FlowFiles to pull
-     * @return
+     * @return filter
      */
     public static FlowFileFilter newSizeBasedFilter(final double maxSize, final DataUnit unit, final int maxCount) {
         final double maxBytes = DataUnit.B.convert(maxSize, unit);

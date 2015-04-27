@@ -27,9 +27,7 @@ public class UserGroupSearchResultDTO {
     private String group;
 
     /**
-     * The name of the group that matched.
-     *
-     * @return
+     * @return name of the group that matched
      */
     public String getGroup() {
         return group;

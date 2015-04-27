@@ -26,26 +26,27 @@ package org.apache.nifi.web;
 public interface OptimisticLockingManager {
 
     /**
-     * Attempts to execute the specified configuration request using the specified revision within a lock.
-     * 
-     * @param <T>
-     * @param revision
-     * @param configurationRequest
-     * @return 
+     * Attempts to execute the specified configuration request using the
+     * specified revision within a lock.
+     *
+     * @param <T> type of snapshot
+     * @param revision revision
+     * @param configurationRequest request
+     * @return snapshot
      */
     <T> ConfigurationSnapshot<T> configureFlow(Revision revision, ConfigurationRequest<T> configurationRequest);
-    
+
     /**
      * Updates the revision using the specified revision within a lock.
-     * 
-     * @param updateRevision 
+     *
+     * @param updateRevision new revision
      */
     void setRevision(UpdateRevision updateRevision);
 
     /**
-     * Returns the last flow modification. This is a combination of the revision and the user
-     * who performed the modification.
-     * 
+     * Returns the last flow modification. This is a combination of the revision
+     * and the user who performed the modification.
+     *
      * @return the last modification
      */
     FlowModification getLastModification();

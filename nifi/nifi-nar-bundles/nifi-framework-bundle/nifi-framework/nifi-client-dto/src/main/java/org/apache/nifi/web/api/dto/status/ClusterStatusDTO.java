@@ -29,9 +29,7 @@ public class ClusterStatusDTO {
     private Collection<NodeStatusDTO> nodeStatus;
 
     /**
-     * The collection of the node status DTOs.
-     *
-     * @return
+     * @return collection of the node status DTOs
      */
     public Collection<NodeStatusDTO> getNodeStatus() {
         return nodeStatus;

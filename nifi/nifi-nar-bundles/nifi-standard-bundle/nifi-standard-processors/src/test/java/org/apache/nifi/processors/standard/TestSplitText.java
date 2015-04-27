@@ -36,16 +36,6 @@ public class TestSplitText {
     final Path dataPath = Paths.get("src/test/resources/TestSplitText");
     final Path file = dataPath.resolve(originalFilename);
 
-//    public static void main(final String[] args) throws IOException {
-//        for (int i=1; i <= 4; i++) {
-//            final Path path = Paths.get("src/test/resources/TestSplitText/" + i + ".txt");
-//            final byte[] data = Files.readAllBytes(path);
-//            final String text = new String(data, StandardCharsets.UTF_8);
-//            final String updated = text.replace("\n", "\r\n");
-//            final Path updatedPath = Paths.get("src/test/resources/TestSplitText/updated/" + i + ".txt");
-//            Files.write(updatedPath, updated.getBytes(StandardCharsets.UTF_8), StandardOpenOption.CREATE_NEW);
-//        }
-//    }
     @Test
     public void testRoutesToFailureIfHeaderLinesNotAllPresent() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new SplitText());

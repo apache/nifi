@@ -42,7 +42,7 @@ import org.apache.nifi.stream.io.DataOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@SeeAlso(classNames={"org.apache.nifi.distributed.cache.server.map.DistributedMapCacheServer", "org.apache.nifi.ssl.StandardSSLContextService"})
+@SeeAlso(classNames = {"org.apache.nifi.distributed.cache.server.map.DistributedMapCacheServer", "org.apache.nifi.ssl.StandardSSLContextService"})
 @CapabilityDescription("Provides the ability to communicate with a DistributedMapCacheServer. This can be used in order to share a Map "
         + "between nodes in a NiFi cluster")
 public class DistributedMapCacheClientService extends AbstractControllerService implements DistributedMapCacheClient {
@@ -65,14 +65,14 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
             .description("If specified, indicates the SSL Context Service that is used to communicate with the "
-            		+ "remote server. If not specified, communications will not be encrypted")
+                    + "remote server. If not specified, communications will not be encrypted")
             .required(false)
             .identifiesControllerService(SSLContextService.class)
             .build();
     public static final PropertyDescriptor COMMUNICATIONS_TIMEOUT = new PropertyDescriptor.Builder()
             .name("Communications Timeout")
             .description("Specifies how long to wait when communicating with the remote server before determining that "
-            		+ "there is a communications failure if data cannot be sent or received")
+                    + "there is a communications failure if data cannot be sent or received")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .defaultValue("30 secs")
@@ -321,6 +321,7 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
     }
 
     private static interface CommsAction<T> {
+
         T execute(CommsSession commsSession) throws IOException;
     }
 

@@ -32,7 +32,7 @@ public abstract class AbstractControllerService extends AbstractConfigurableComp
     private ControllerServiceLookup serviceLookup;
     private volatile ConfigurationContext configContext;
     private ComponentLog logger;
-    
+
     @Override
     public final void initialize(final ControllerServiceInitializationContext context) throws InitializationException {
         this.identifier = context.getIdentifier();
@@ -52,31 +52,25 @@ public abstract class AbstractControllerService extends AbstractConfigurableComp
     }
 
     /**
-     * Returns the currently configured value for the given
+     * @param descriptor to retrieve value of
+     * @return the currently configured value for the given
      * {@link PropertyDescriptor}
-     *
-     * @param descriptor
-     * @return
      */
     protected final PropertyValue getProperty(final PropertyDescriptor descriptor) {
         return configContext.getProperty(descriptor);
     }
 
     /**
-     * Returns an unmodifiable map of all configured properties for this
+     * @return an unmodifiable map of all configured properties for this
      * {@link ControllerService}
-     *
-     * @return
      */
     protected final Map<PropertyDescriptor, String> getProperties() {
         return configContext.getProperties();
     }
 
     /**
-     * Returns the {@link ControllerServiceLookup} that was passed to the
+     * @return the {@link ControllerServiceLookup} that was passed to the
      * {@link #init(ProcessorInitializationContext)} method
-     *
-     * @return
      */
     protected final ControllerServiceLookup getControllerServiceLookup() {
         return serviceLookup;
@@ -86,15 +80,15 @@ public abstract class AbstractControllerService extends AbstractConfigurableComp
      * Provides a mechanism by which subclasses can perform initialization of
      * the Reporting Task before it is scheduled to be run
      *
-     * @param config
-     * @throws InitializationException
+     * @param config of initialization context
+     * @throws InitializationException if unable to init
      */
     protected void init(final ControllerServiceInitializationContext config) throws InitializationException {
     }
-    
+
     /**
-     * Returns the logger that has been provided to the component by the framework in its initialize method.
-     * @return
+     * @return the logger that has been provided to the component by the
+     * framework in its initialize method
      */
     protected ComponentLog getLogger() {
         return logger;

@@ -76,8 +76,8 @@ public class NiFiAnonymousUserFilter extends AnonymousAuthenticationFilter {
     /**
      * Only supports anonymous users for non-secure requests or one way ssl.
      *
-     * @param request
-     * @return
+     * @param request request
+     * @return true if allowed
      */
     @Override
     protected boolean applyAnonymousForThisRequest(HttpServletRequest request) {

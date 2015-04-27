@@ -45,7 +45,14 @@ import org.apache.nifi.util.ObjectHolder;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -64,8 +71,10 @@ import java.util.concurrent.ConcurrentMap;
         + "If Destination is 'flowfile-content' and the JsonPath does not evaluate to a defined path, the FlowFile will be routed to 'unmatched' without having its contents modified. "
         + "If Destination is flowfile-attribute and the expression matches nothing, attributes will be created with "
         + "empty strings as the value, and the FlowFile will always be routed to 'matched.'")
-@DynamicProperty(name = "A FlowFile attribute(if <Destination> is set to 'flowfile-attribute')", value = "A JsonPath expression", description = "If <Destination>='flowfile-attribute' then that FlowFile attribute " +
-        "will be set to any JSON objects that match the JsonPath.  If <Destination>='flowfile-content' then the FlowFile content will be updated to any JSON objects that match the JsonPath.")
+@DynamicProperty(name = "A FlowFile attribute(if <Destination> is set to 'flowfile-attribute')",
+        value = "A JsonPath expression", description = "If <Destination>='flowfile-attribute' then that FlowFile attribute "
+        + "will be set to any JSON objects that match the JsonPath.  If <Destination>='flowfile-content' then the FlowFile "
+        + "content will be updated to any JSON objects that match the JsonPath.")
 public class EvaluateJsonPath extends AbstractJsonPathProcessor {
 
     public static final String DESTINATION_ATTRIBUTE = "flowfile-attribute";
@@ -77,34 +86,47 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
 
     public static final String PATH_NOT_FOUND_IGNORE = "ignore";
     public static final String PATH_NOT_FOUND_WARN = "warn";
-    
+
     public static final PropertyDescriptor DESTINATION = new PropertyDescriptor.Builder()
             .name("Destination")
-            .description("Indicates whether the results of the JsonPath evaluation are written to the FlowFile content or a FlowFile attribute; if using attribute, must specify the Attribute Name property. If set to flowfile-content, only one JsonPath may be specified, and the property name is ignored.")
+            .description("Indicates whether the results of the JsonPath evaluation are written to the FlowFile content or a FlowFile attribute; "
+                    + "if using attribute, must specify the Attribute Name property. If set to flowfile-content, only one JsonPath may be specified, "
+                    + "and the property name is ignored.")
             .required(true)
             .allowableValues(DESTINATION_CONTENT, DESTINATION_ATTRIBUTE)
             .defaultValue(DESTINATION_CONTENT)
             .build();
 
     public static final PropertyDescriptor RETURN_TYPE = new PropertyDescriptor.Builder()
-            .name("Return Type")
-            .description("Indicates the desired return type of the JSON Path expressions.  Selecting 'auto-detect' will set the return type to 'json' for a Destination of 'flowfile-content', and 'string' for a Destination of 'flowfile-attribute'.")
+            .name("Return Type").description("Indicates the desired return type of the JSON Path expressions.  Selecting 'auto-detect' will set the return type to 'json' "
+                    + "for a Destination of 'flowfile-content', and 'string' for a Destination of 'flowfile-attribute'.")
             .required(true)
             .allowableValues(RETURN_TYPE_AUTO, RETURN_TYPE_JSON, RETURN_TYPE_SCALAR)
             .defaultValue(RETURN_TYPE_AUTO)
             .build();
-    
+
     public static final PropertyDescriptor PATH_NOT_FOUND = new PropertyDescriptor.Builder()
             .name("Path Not Found Behavior")
-            .description("Indicates how to handle missing JSON path expressions when destination is set to 'flowfile-attribute'. Selecting 'warn' will generate a warning when a JSON path expression is not found.")
+            .description("Indicates how to handle missing JSON path expressions when destination is set to 'flowfile-attribute'. Selecting 'warn' will "
+                    + "generate a warning when a JSON path expression is not found.")
             .required(true)
             .allowableValues(PATH_NOT_FOUND_WARN, PATH_NOT_FOUND_IGNORE)
             .defaultValue(PATH_NOT_FOUND_IGNORE)
             .build();
 
-    public static final Relationship REL_MATCH = new Relationship.Builder().name("matched").description("FlowFiles are routed to this relationship when the JsonPath is successfully evaluated and the FlowFile is modified as a result").build();
-    public static final Relationship REL_NO_MATCH = new Relationship.Builder().name("unmatched").description("FlowFiles are routed to this relationship when the JsonPath does not match the content of the FlowFile and the Destination is set to flowfile-content").build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure").description("FlowFiles are routed to this relationship when the JsonPath cannot be evaluated against the content of the FlowFile; for instance, if the FlowFile is not valid JSON").build();
+    public static final Relationship REL_MATCH = new Relationship.Builder()
+            .name("matched")
+            .description("FlowFiles are routed to this relationship when the JsonPath is successfully evaluated and the FlowFile is modified as a result")
+            .build();
+    public static final Relationship REL_NO_MATCH = new Relationship.Builder()
+            .name("unmatched")
+            .description("FlowFiles are routed to this relationship when the JsonPath does not match the content of the FlowFile and the Destination is set to flowfile-content")
+            .build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("FlowFiles are routed to this relationship when the JsonPath cannot be evaluated against the content of the "
+                    + "FlowFile; for instance, if the FlowFile is not valid JSON")
+            .build();
 
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> properties;
@@ -142,7 +164,8 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
             }
 
             if (jsonPathCount != 1) {
-                results.add(new ValidationResult.Builder().subject("JsonPaths").valid(false).explanation("Exactly one JsonPath must be set if using destination of " + DESTINATION_CONTENT).build());
+                results.add(new ValidationResult.Builder().subject("JsonPaths").valid(false)
+                        .explanation("Exactly one JsonPath must be set if using destination of " + DESTINATION_CONTENT).build());
             }
         }
 
@@ -159,26 +182,19 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
         return properties;
     }
 
-
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
-        return new PropertyDescriptor.Builder()
-                .name(propertyDescriptorName)
-                .expressionLanguageSupported(false)
-                .addValidator(new JsonPathValidator() {
-                    @Override
-                    public void cacheComputedValue(String subject, String input, JsonPath computedJsonPath) {
-                        cachedJsonPathMap.put(input, computedJsonPath);
-                    }
+        return new PropertyDescriptor.Builder().name(propertyDescriptorName).expressionLanguageSupported(false).addValidator(new JsonPathValidator() {
+            @Override
+            public void cacheComputedValue(String subject, String input, JsonPath computedJsonPath) {
+                cachedJsonPathMap.put(input, computedJsonPath);
+            }
 
-                    @Override
-                    public boolean isStale(String subject, String input) {
-                        return cachedJsonPathMap.get(input) == null;
-                    }
-                })
-                .required(false)
-                .dynamic(true)
-                .build();
+            @Override
+            public boolean isStale(String subject, String input) {
+                return cachedJsonPathMap.get(input) == null;
+            }
+        }).required(false).dynamic(true).build();
     }
 
     @Override
@@ -193,9 +209,10 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
     }
 
     /**
-     * Provides cleanup of the map for any JsonPath values that may have been created.  This will remove common values
-     * shared between multiple instances, but will be regenerated when the next validation cycle occurs as a result of
-     * isStale()
+     * Provides cleanup of the map for any JsonPath values that may have been created. This will remove common values shared between multiple instances, but will be regenerated when the next
+     * validation cycle occurs as a result of isStale()
+     *
+     * @param processContext context
      */
     @OnRemoved
     public void onRemoved(ProcessContext processContext) {
@@ -264,11 +281,12 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
                 }
                 resultHolder.set(result);
             } catch (PathNotFoundException e) {
-            	
-            	if (pathNotFound.equals(PATH_NOT_FOUND_WARN)) {
-                    logger.warn("FlowFile {} could not find path {} for attribute key {}.", new Object[]{flowFile.getId(), jsonPathExp.getPath(), jsonPathAttrKey}, e);
-            	}
-            	
+
+                if (pathNotFound.equals(PATH_NOT_FOUND_WARN)) {
+                    logger.warn("FlowFile {} could not find path {} for attribute key {}.",
+                            new Object[]{flowFile.getId(), jsonPathExp.getPath(), jsonPathAttrKey}, e);
+                }
+
                 if (destination.equals(DESTINATION_ATTRIBUTE)) {
                     jsonPathResults.put(jsonPathAttrKey, StringUtils.EMPTY);
                     continue;
@@ -292,8 +310,7 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
                             }
                         }
                     });
-                    processSession.getProvenanceReporter().modifyContent(flowFile,
-                            "Replaced content with result of expression " + jsonPathExp.getPath());
+                    processSession.getProvenanceReporter().modifyContent(flowFile, "Replaced content with result of expression " + jsonPathExp.getPath());
                     break;
             }
         }

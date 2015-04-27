@@ -23,9 +23,9 @@ public interface UpdateRevision {
 
     /**
      * Executes the action that will result in an updated revision
-     * 
-     * @param currentRevision       The current revision
-     * @return                      The updated revision
+     *
+     * @param currentRevision The current revision
+     * @return The updated revision
      */
     Revision execute(Revision currentRevision);
 }

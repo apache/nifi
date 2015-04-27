@@ -73,7 +73,7 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
         if (reportingTaskDTO.getType() == null) {
             throw new IllegalArgumentException("The reporting task type must be specified.");
         }
-        
+
         try {
             // create the reporting task
             final ReportingTaskNode reportingTask = reportingTaskProvider.createReportingTask(reportingTaskDTO.getType(), reportingTaskDTO.getId(), true);
@@ -321,7 +321,7 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
         if (isNotNull(schedulingStrategy)) {
             reportingTask.setSchedulingStrategy(SchedulingStrategy.valueOf(schedulingStrategy));
         }
-        
+
         if (isNotNull(name)) {
             reportingTask.setName(name);
         }

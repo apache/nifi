@@ -29,6 +29,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
 
 public abstract class DistributedCacheServer extends AbstractControllerService {
+
     public static final String EVICTION_STRATEGY_LFU = "Least Frequently Used";
     public static final String EVICTION_STRATEGY_LRU = "Least Recently Used";
     public static final String EVICTION_STRATEGY_FIFO = "First In, First Out";
@@ -43,7 +44,7 @@ public abstract class DistributedCacheServer extends AbstractControllerService {
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
             .description("If specified, this service will be used to create an SSL Context that will be used "
-            		+ "to secure communications; if not specified, communications will not be secure")
+                    + "to secure communications; if not specified, communications will not be secure")
             .required(false)
             .identifiesControllerService(SSLContextService.class)
             .build();

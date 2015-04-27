@@ -18,13 +18,14 @@ package org.apache.nifi.remote.exception;
 
 import java.io.IOException;
 
-
 /**
- * A HandshakeException occurs when the client and the remote NiFi instance do not agree
- * on some condition during the handshake. For example, if the NiFi instance does not recognize
- * one of the parameters that the client passes during the Handshaking phase.
+ * A HandshakeException occurs when the client and the remote NiFi instance do
+ * not agree on some condition during the handshake. For example, if the NiFi
+ * instance does not recognize one of the parameters that the client passes
+ * during the Handshaking phase.
  */
 public class HandshakeException extends IOException {
+
     private static final long serialVersionUID = 178192341908726L;
 
     public HandshakeException(final String message) {

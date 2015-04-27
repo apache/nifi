@@ -24,13 +24,14 @@ import javax.xml.bind.annotation.XmlRootElement;
  */
 @XmlRootElement(name = "pingMessage")
 public class PingMessage extends ProtocolMessage {
-    
+
     private String id;
-    
+
     private Date date = new Date();
 
-    public PingMessage() {}
-    
+    public PingMessage() {
+    }
+
     public Date getDate() {
         return date;
     }
@@ -46,10 +47,10 @@ public class PingMessage extends ProtocolMessage {
     public void setId(String id) {
         this.id = id;
     }
-    
+
     @Override
     public MessageType getType() {
         return MessageType.PING;
     }
-    
+
 }

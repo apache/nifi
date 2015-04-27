@@ -27,9 +27,7 @@ public class RemoteProcessGroupDetailsDTO extends ComponentDetailsDTO {
     private String uri;
 
     /**
-     * The URI of the remote process group.
-     *
-     * @return
+     * @return URI of the remote process group
      */
     public String getUri() {
         return uri;

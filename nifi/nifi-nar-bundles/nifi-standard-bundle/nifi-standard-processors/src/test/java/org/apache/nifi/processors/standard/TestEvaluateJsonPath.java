@@ -62,7 +62,6 @@ public class TestEvaluateJsonPath {
         final MockFlowFile out = testRunner.getFlowFilesForRelationship(EvaluateJsonPath.REL_FAILURE).get(0);
     }
 
-
     @Test(expected = AssertionError.class)
     public void testInvalidConfiguration_destinationContent_twoPaths() throws Exception {
         final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateJsonPath());
@@ -201,7 +200,6 @@ public class TestEvaluateJsonPath {
         testRunner.getFlowFilesForRelationship(expectedRel).get(0).assertContentEquals("54df94072d5dbf7dc6340cc5");
     }
 
-
     @Test
     public void testExtractPath_destinationContent_indefiniteResult() throws Exception {
         String jsonPathAttrKey = "friends.indefinite.id.list";
@@ -250,7 +248,6 @@ public class TestEvaluateJsonPath {
         testRunner.assertAllFlowFilesTransferred(expectedRel, 1);
         testRunner.getFlowFilesForRelationship(expectedRel).get(0).assertContentEquals(JSON_SNIPPET);
     }
-
 
     @Test
     public void testRouteFailure_returnTypeScalar_resultArray() throws Exception {

@@ -34,10 +34,8 @@ public class DnUtils {
     private static final Pattern proxyChainPattern = Pattern.compile("<(.*?)>");
 
     /**
-     * Gets the X-ProxiedEntitiesChain from the specified request.
-     *
-     * @param request
-     * @return
+     * @param request http request
+     * @return the X-ProxiedEntitiesChain from the specified request
      */
     public static String getXProxiedEntitiesChain(final HttpServletRequest request) {
         String xProxiedEntitiesChain = request.getHeader("X-ProxiedEntitiesChain");
@@ -60,8 +58,8 @@ public class DnUtils {
      * Formats the specified DN to be set as a HTTP header using well known
      * conventions.
      *
-     * @param dn
-     * @return
+     * @param dn raw dn
+     * @return the dn formatted as an HTTP header
      */
     public static String formatProxyDn(String dn) {
         return "<" + dn + ">";
@@ -70,8 +68,8 @@ public class DnUtils {
     /**
      * Tokenizes the specified proxy chain.
      *
-     * @param rawProxyChain
-     * @return
+     * @param rawProxyChain raw chain
+     * @return tokenized proxy chain
      */
     public static Deque<String> tokenizeProxyChain(String rawProxyChain) {
         final Deque<String> dnList = new ArrayDeque<>();

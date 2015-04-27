@@ -18,7 +18,8 @@ package org.apache.nifi.controller.status.history;
 
 /**
  * Describes a particular metric that is derived from a Status History
- * @param <T>
+ *
+ * @param <T> type of metric
  */
 public interface MetricDescriptor<T> {
 
@@ -32,44 +33,34 @@ public interface MetricDescriptor<T> {
     /**
      * Specifies how the values should be formatted
      *
-     * @return
+     * @return formatter for values
      */
     Formatter getFormatter();
 
     /**
-     * Returns a human-readable description of the field
-     *
-     * @return
+     * @return a human-readable description of the field
      */
     String getDescription();
 
     /**
-     * Returns a human-readable label for the field
-     *
-     * @return
+     * @return a human-readable label for the field
      */
     String getLabel();
 
     /**
-     * Returns the name of a field
-     *
-     * @return
+     * @return the name of a field
      */
     String getField();
 
     /**
-     * Returns a {@link ValueMapper} that can be used to extract a value for the
+     * @return a {@link ValueMapper} that can be used to extract a value for the
      * status history
-     *
-     * @return
      */
     ValueMapper<T> getValueFunction();
 
     /**
-     * Returns a {@link ValueReducer} that can reduce multiple StatusSnapshots
+     * @return a {@link ValueReducer} that can reduce multiple StatusSnapshots
      * into a single Long value
-     *
-     * @return
      */
     ValueReducer<StatusSnapshot, Long> getValueReducer();
 }

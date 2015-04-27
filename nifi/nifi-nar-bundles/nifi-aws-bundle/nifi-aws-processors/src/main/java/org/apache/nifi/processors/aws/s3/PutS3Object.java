@@ -56,35 +56,35 @@ import com.amazonaws.services.s3.model.StorageClass;
 @SeeAlso({FetchS3Object.class})
 @Tags({"Amazon", "S3", "AWS", "Archive", "Put"})
 @CapabilityDescription("Puts FlowFiles to an Amazon S3 Bucket")
-@DynamicProperty(name="The name of a User-Defined Metadata field to add to the S3 Object", 
-	value="The value of a User-Defined Metadata field to add to the S3 Object", 
-	description="Allows user-defined metadata to be added to the S3 object as key/value pairs",
-	supportsExpressionLanguage=true)
-@ReadsAttribute(attribute="filename", description="Uses the FlowFile's filename as the filename for the S3 object")
+@DynamicProperty(name = "The name of a User-Defined Metadata field to add to the S3 Object",
+        value = "The value of a User-Defined Metadata field to add to the S3 Object",
+        description = "Allows user-defined metadata to be added to the S3 object as key/value pairs",
+        supportsExpressionLanguage = true)
+@ReadsAttribute(attribute = "filename", description = "Uses the FlowFile's filename as the filename for the S3 object")
 @WritesAttributes({
-	@WritesAttribute(attribute="s3.version", description="The version of the S3 Object that was put to S3"),
-	@WritesAttribute(attribute="s3.etag", description="The ETag of the S3 Object"),
-	@WritesAttribute(attribute="s3.expiration", description="A human-readable form of the expiration date of the S3 object, if one is set")
+    @WritesAttribute(attribute = "s3.version", description = "The version of the S3 Object that was put to S3"),
+    @WritesAttribute(attribute = "s3.etag", description = "The ETag of the S3 Object"),
+    @WritesAttribute(attribute = "s3.expiration", description = "A human-readable form of the expiration date of the S3 object, if one is set")
 })
 public class PutS3Object extends AbstractS3Processor {
+
     public static final PropertyDescriptor EXPIRATION_RULE_ID = new PropertyDescriptor.Builder()
-        .name("Expiration Time Rule")
-        .required(false)
-        .expressionLanguageSupported(true)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .build();
+            .name("Expiration Time Rule")
+            .required(false)
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
     public static final PropertyDescriptor STORAGE_CLASS = new PropertyDescriptor.Builder()
-        .name("Storage Class")
-        .required(true)
-        .allowableValues(StorageClass.Standard.name(), StorageClass.ReducedRedundancy.name())
-        .defaultValue(StorageClass.Standard.name())
-        .build();
+            .name("Storage Class")
+            .required(true)
+            .allowableValues(StorageClass.Standard.name(), StorageClass.ReducedRedundancy.name())
+            .defaultValue(StorageClass.Standard.name())
+            .build();
 
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-            Arrays.asList(KEY, BUCKET, ACCESS_KEY, SECRET_KEY, CREDENTAILS_FILE, STORAGE_CLASS, REGION, TIMEOUT, EXPIRATION_RULE_ID, 
-                    FULL_CONTROL_USER_LIST, READ_USER_LIST, WRITE_USER_LIST, READ_ACL_LIST, WRITE_ACL_LIST, OWNER) );
-
+            Arrays.asList(KEY, BUCKET, ACCESS_KEY, SECRET_KEY, CREDENTAILS_FILE, STORAGE_CLASS, REGION, TIMEOUT, EXPIRATION_RULE_ID,
+                    FULL_CONTROL_USER_LIST, READ_USER_LIST, WRITE_USER_LIST, READ_ACL_LIST, WRITE_ACL_LIST, OWNER));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -94,21 +94,21 @@ public class PutS3Object extends AbstractS3Processor {
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
-            .name(propertyDescriptorName)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(true)
-            .dynamic(true)
-            .build();
+                .name(propertyDescriptorName)
+                .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+                .expressionLanguageSupported(true)
+                .dynamic(true)
+                .build();
     }
 
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
         FlowFile flowFile = session.get();
-        if ( flowFile == null ) {
+        if (flowFile == null) {
             return;
         }
-        
+
         final long startNanos = System.nanoTime();
-        
+
         final String bucket = context.getProperty(BUCKET).evaluateAttributeExpressions(flowFile).getValue();
         final String key = context.getProperty(KEY).evaluateAttributeExpressions(flowFile).getValue();
 
@@ -123,58 +123,58 @@ public class PutS3Object extends AbstractS3Processor {
                         final ObjectMetadata objectMetadata = new ObjectMetadata();
                         objectMetadata.setContentDisposition(ff.getAttribute(CoreAttributes.FILENAME.key()));
                         objectMetadata.setContentLength(ff.getSize());
-                        
+
                         final String expirationRule = context.getProperty(EXPIRATION_RULE_ID).evaluateAttributeExpressions(ff).getValue();
-                        if ( expirationRule != null ) {
+                        if (expirationRule != null) {
                             objectMetadata.setExpirationTimeRuleId(expirationRule);
                         }
-    
+
                         final Map<String, String> userMetadata = new HashMap<>();
-                        for ( final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet() ) {
-                            if ( entry.getKey().isDynamic() ) {
+                        for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
+                            if (entry.getKey().isDynamic()) {
                                 final String value = context.getProperty(entry.getKey()).evaluateAttributeExpressions(ff).getValue();
                                 userMetadata.put(entry.getKey().getName(), value);
                             }
                         }
-                        
-                        if ( !userMetadata.isEmpty() ) {
+
+                        if (!userMetadata.isEmpty()) {
                             objectMetadata.setUserMetadata(userMetadata);
                         }
-                        
+
                         final PutObjectRequest request = new PutObjectRequest(bucket, key, in, objectMetadata);
                         request.setStorageClass(StorageClass.valueOf(context.getProperty(STORAGE_CLASS).getValue()));
                         final AccessControlList acl = createACL(context, ff);
-                        if ( acl != null ) {
+                        if (acl != null) {
                             request.setAccessControlList(acl);
                         }
-                        
+
                         final PutObjectResult result = s3.putObject(request);
-                        if ( result.getVersionId() != null ) {
+                        if (result.getVersionId() != null) {
                             attributes.put("s3.version", result.getVersionId());
                         }
-                        
+
                         attributes.put("s3.etag", result.getETag());
-                        
+
                         final Date expiration = result.getExpirationTime();
-                        if ( expiration != null ) {
+                        if (expiration != null) {
                             attributes.put("s3.expiration", expiration.toString());
                         }
                     }
                 }
             });
-            
-            if ( !attributes.isEmpty() ) {
+
+            if (!attributes.isEmpty()) {
                 flowFile = session.putAllAttributes(flowFile, attributes);
             }
             session.transfer(flowFile, REL_SUCCESS);
-            
+
             final String url = "http://" + bucket + ".s3.amazonaws.com/" + key;
             final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
             session.getProvenanceReporter().send(flowFile, url, millis);
-            
-            getLogger().info("Successfully put {} to Amazon S3 in {} milliseconds", new Object[] {ff, millis});
+
+            getLogger().info("Successfully put {} to Amazon S3 in {} milliseconds", new Object[]{ff, millis});
         } catch (final ProcessException | AmazonClientException pe) {
-            getLogger().error("Failed to put {} to Amazon S3 due to {}", new Object[] {flowFile, pe});
+            getLogger().error("Failed to put {} to Amazon S3 due to {}", new Object[]{flowFile, pe});
             session.transfer(flowFile, REL_FAILURE);
         }
     }

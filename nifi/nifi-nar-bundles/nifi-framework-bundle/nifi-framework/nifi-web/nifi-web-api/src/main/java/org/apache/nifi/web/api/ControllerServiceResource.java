@@ -84,12 +84,12 @@ public class ControllerServiceResource extends ApplicationResource {
 
     @Context
     private ServletContext servletContext;
-    
+
     /**
      * Populates the uri for the specified controller service.
-     * 
+     *
      * @param controllerServices
-     * @return 
+     * @return
      */
     private Set<ControllerServiceDTO> populateRemainingControllerServicesContent(final String availability, final Set<ControllerServiceDTO> controllerServices) {
         for (ControllerServiceDTO controllerService : controllerServices) {
@@ -97,7 +97,7 @@ public class ControllerServiceResource extends ApplicationResource {
         }
         return controllerServices;
     }
-    
+
     /**
      * Populates the uri for the specified controller service.
      */
@@ -105,7 +105,7 @@ public class ControllerServiceResource extends ApplicationResource {
         // populate the controller service href
         controllerService.setUri(generateResourceUri("controller", "controller-services", availability, controllerService.getId()));
         controllerService.setAvailability(availability);
-        
+
         // see if this processor has any ui extensions
         final UiExtensionMapping uiExtensionMapping = (UiExtensionMapping) servletContext.getAttribute("nifi-ui-extensions");
         if (uiExtensionMapping.hasUiExtension(controllerService.getType())) {
@@ -116,16 +116,16 @@ public class ControllerServiceResource extends ApplicationResource {
                 }
             }
         }
-        
+
         return controllerService;
     }
 
     /**
-     * Parses the availability and ensure that the specified availability makes sense for the
-     * given NiFi instance.
-     * 
+     * Parses the availability and ensure that the specified availability makes
+     * sense for the given NiFi instance.
+     *
      * @param availability
-     * @return 
+     * @return
      */
     private Availability parseAvailability(final String availability) {
         final Availability avail;
@@ -134,23 +134,24 @@ public class ControllerServiceResource extends ApplicationResource {
         } catch (IllegalArgumentException iae) {
             throw new IllegalArgumentException(String.format("Availability: Value must be one of [%s]", StringUtils.join(Availability.values(), ", ")));
         }
-        
+
         // ensure this nifi is an NCM is specifying NCM availability
         if (!properties.isClusterManager() && Availability.NCM.equals(avail)) {
             throw new IllegalArgumentException("Availability of NCM is only applicable when the NiFi instance is the cluster manager.");
         }
-        
+
         return avail;
     }
-    
+
     /**
      * Retrieves all the of controller services in this NiFi.
      *
      * @param clientId Optional client id. If the client id is not specified, a
      * new one will be generated. This value (whether specified or generated) is
      * included in the response.
-     * @param availability Whether the controller service is available on the NCM only (ncm) or on the 
-     * nodes only (node). If this instance is not clustered all services should use the node availability.
+     * @param availability Whether the controller service is available on the
+     * NCM only (ncm) or on the nodes only (node). If this instance is not
+     * clustered all services should use the node availability.
      * @return A controllerServicesEntity.
      */
     @GET
@@ -160,7 +161,7 @@ public class ControllerServiceResource extends ApplicationResource {
     @TypeHint(ControllerServicesEntity.class)
     public Response getControllerServices(@QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId, @PathParam("availability") String availability) {
         final Availability avail = parseAvailability(availability);
-        
+
         // replicate if cluster manager
         if (properties.isClusterManager() && Availability.NODE.equals(avail)) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
@@ -168,7 +169,7 @@ public class ControllerServiceResource extends ApplicationResource {
 
         // get all the controller services
         final Set<ControllerServiceDTO> controllerServices = populateRemainingControllerServicesContent(availability, serviceFacade.getControllerServices());
-        
+
         // create the revision
         final RevisionDTO revision = new RevisionDTO();
         revision.setClientId(clientId.getClientId());
@@ -191,8 +192,9 @@ public class ControllerServiceResource extends ApplicationResource {
      * @param clientId Optional client id. If the client id is not specified, a
      * new one will be generated. This value (whether specified or generated) is
      * included in the response.
-     * @param availability Whether the controller service is available on the NCM only (ncm) or on the 
-     * nodes only (node). If this instance is not clustered all services should use the node availability.
+     * @param availability Whether the controller service is available on the
+     * NCM only (ncm) or on the nodes only (node). If this instance is not
+     * clustered all services should use the node availability.
      * @param type The type of controller service to create.
      * @return A controllerServiceEntity.
      */
@@ -206,9 +208,9 @@ public class ControllerServiceResource extends ApplicationResource {
             @Context HttpServletRequest httpServletRequest,
             @FormParam(VERSION) LongParameter version,
             @FormParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @PathParam("availability") String availability, 
+            @PathParam("availability") String availability,
             @FormParam("type") String type) {
-        
+
         // create the controller service DTO
         final ControllerServiceDTO controllerServiceDTO = new ControllerServiceDTO();
         controllerServiceDTO.setType(type);
@@ -232,8 +234,9 @@ public class ControllerServiceResource extends ApplicationResource {
      * Creates a new Controller Service.
      *
      * @param httpServletRequest
-     * @param availability Whether the controller service is available on the NCM only (ncm) or on the 
-     * nodes only (node). If this instance is not clustered all services should use the node availability.
+     * @param availability Whether the controller service is available on the
+     * NCM only (ncm) or on the nodes only (node). If this instance is not
+     * clustered all services should use the node availability.
      * @param controllerServiceEntity A controllerServiceEntity.
      * @return A controllerServiceEntity.
      */
@@ -245,19 +248,19 @@ public class ControllerServiceResource extends ApplicationResource {
     @TypeHint(ControllerServiceEntity.class)
     public Response createControllerService(
             @Context HttpServletRequest httpServletRequest,
-            @PathParam("availability") String availability, 
+            @PathParam("availability") String availability,
             ControllerServiceEntity controllerServiceEntity) {
-        
+
         final Availability avail = parseAvailability(availability);
 
-        if (controllerServiceEntity == null || controllerServiceEntity.getControllerService()== null) {
+        if (controllerServiceEntity == null || controllerServiceEntity.getControllerService() == null) {
             throw new IllegalArgumentException("Controller service details must be specified.");
         }
 
         if (controllerServiceEntity.getRevision() == null) {
             throw new IllegalArgumentException("Revision must be specified.");
         }
-        
+
         if (controllerServiceEntity.getControllerService().getId() != null) {
             throw new IllegalArgumentException("Controller service ID cannot be specified.");
         }
@@ -265,10 +268,10 @@ public class ControllerServiceResource extends ApplicationResource {
         if (StringUtils.isBlank(controllerServiceEntity.getControllerService().getType())) {
             throw new IllegalArgumentException("The type of controller service to create must be specified.");
         }
-        
+
         // get the revision
         final RevisionDTO revision = controllerServiceEntity.getRevision();
-        
+
         // if cluster manager, convert POST to PUT (to maintain same ID across nodes) and replicate
         if (properties.isClusterManager() && Availability.NODE.equals(avail)) {
             // create ID for resource
@@ -324,8 +327,9 @@ public class ControllerServiceResource extends ApplicationResource {
      * @param clientId Optional client id. If the client id is not specified, a
      * new one will be generated. This value (whether specified or generated) is
      * included in the response.
-     * @param availability Whether the controller service is available on the NCM only (ncm) or on the 
-     * nodes only (node). If this instance is not clustered all services should use the node availability.
+     * @param availability Whether the controller service is available on the
+     * NCM only (ncm) or on the nodes only (node). If this instance is not
+     * clustered all services should use the node availability.
      * @param id The id of the controller service to retrieve
      * @return A controllerServiceEntity.
      */
@@ -334,11 +338,11 @@ public class ControllerServiceResource extends ApplicationResource {
     @Path("/{availability}/{id}")
     @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @TypeHint(ControllerServiceEntity.class)
-    public Response getControllerService(@QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId, 
+    public Response getControllerService(@QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
             @PathParam("availability") String availability, @PathParam("id") String id) {
 
         final Availability avail = parseAvailability(availability);
-        
+
         // replicate if cluster manager
         if (properties.isClusterManager() && Availability.NODE.equals(avail)) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
@@ -358,10 +362,10 @@ public class ControllerServiceResource extends ApplicationResource {
 
         return clusterContext(generateOkResponse(entity)).build();
     }
-    
+
     /**
      * Returns the descriptor for the specified property.
-     * 
+     *
      * @param clientId Optional client id. If the client id is not specified, a
      * new one will be generated. This value (whether specified or generated) is
      * included in the response.
@@ -376,46 +380,47 @@ public class ControllerServiceResource extends ApplicationResource {
     @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @TypeHint(PropertyDescriptorEntity.class)
     public Response getPropertyDescriptor(
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId, 
-            @PathParam("availability") String availability, @PathParam("id") String id, 
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @PathParam("availability") String availability, @PathParam("id") String id,
             @QueryParam("propertyName") String propertyName) {
-        
+
         final Availability avail = parseAvailability(availability);
-        
+
         // ensure the property name is specified
         if (propertyName == null) {
             throw new IllegalArgumentException("The property name must be specified.");
         }
-        
+
         // replicate if cluster manager and service is on node
         if (properties.isClusterManager() && Availability.NODE.equals(avail)) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
         }
-        
+
         // get the property descriptor
         final PropertyDescriptorDTO descriptor = serviceFacade.getControllerServicePropertyDescriptor(id, propertyName);
-        
+
         // create the revision
         final RevisionDTO revision = new RevisionDTO();
         revision.setClientId(clientId.getClientId());
-        
+
         // generate the response entity
         final PropertyDescriptorEntity entity = new PropertyDescriptorEntity();
         entity.setRevision(revision);
         entity.setPropertyDescriptor(descriptor);
-        
+
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();
     }
-    
+
     /**
      * Retrieves the references of the specified controller service.
      *
      * @param clientId Optional client id. If the client id is not specified, a
      * new one will be generated. This value (whether specified or generated) is
      * included in the response.
-     * @param availability Whether the controller service is available on the NCM only (ncm) or on the 
-     * nodes only (node). If this instance is not clustered all services should use the node availability.
+     * @param availability Whether the controller service is available on the
+     * NCM only (ncm) or on the nodes only (node). If this instance is not
+     * clustered all services should use the node availability.
      * @param id The id of the controller service to retrieve
      * @return A controllerServiceEntity.
      */
@@ -429,7 +434,7 @@ public class ControllerServiceResource extends ApplicationResource {
             @PathParam("availability") String availability, @PathParam("id") String id) {
 
         final Availability avail = parseAvailability(availability);
-        
+
         // replicate if cluster manager
         if (properties.isClusterManager() && Availability.NODE.equals(avail)) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
@@ -449,7 +454,7 @@ public class ControllerServiceResource extends ApplicationResource {
 
         return clusterContext(generateOkResponse(entity)).build();
     }
-    
+
     /**
      * Updates the references of the specified controller service.
      *
@@ -459,12 +464,14 @@ public class ControllerServiceResource extends ApplicationResource {
      * @param clientId Optional client id. If the client id is not specified, a
      * new one will be generated. This value (whether specified or generated) is
      * included in the response.
-     * @param availability Whether the controller service is available on the NCM only (ncm) or on the 
-     * nodes only (node). If this instance is not clustered all services should use the node availability.
+     * @param availability Whether the controller service is available on the
+     * NCM only (ncm) or on the nodes only (node). If this instance is not
+     * clustered all services should use the node availability.
      * @param id The id of the controller service to retrieve
-     * @param state Sets the state of referencing components. A value of RUNNING or STOPPED will update
-     * referencing schedulable components (Processors and Reporting Tasks). A value of ENABLED or
-     * DISABLED will update referencing controller services.
+     * @param state Sets the state of referencing components. A value of RUNNING
+     * or STOPPED will update referencing schedulable components (Processors and
+     * Reporting Tasks). A value of ENABLED or DISABLED will update referencing
+     * controller services.
      * @return A controllerServiceEntity.
      */
     @PUT
@@ -481,7 +488,6 @@ public class ControllerServiceResource extends ApplicationResource {
             @FormParam("state") @DefaultValue(StringUtils.EMPTY) String state) {
 
         // parse the state to determine the desired action
-        
         // need to consider controller service state first as it shares a state with
         // scheduled state (disabled) which is applicable for referencing services
         // but not referencing schedulable components
@@ -491,29 +497,29 @@ public class ControllerServiceResource extends ApplicationResource {
         } catch (final IllegalArgumentException iae) {
             // ignore
         }
-        
+
         ScheduledState scheduledState = null;
         try {
             scheduledState = ScheduledState.valueOf(state);
         } catch (final IllegalArgumentException iae) {
             // ignore
         }
-        
+
         // ensure an action has been specified
         if (scheduledState == null && controllerServiceState == null) {
             throw new IllegalArgumentException("Must specify the updated state. To update referencing Processors "
                     + "and Reporting Tasks the state should be RUNNING or STOPPED. To update the referencing Controller Services the "
                     + "state should be ENABLED or DISABLED.");
         }
-        
+
         // ensure the controller service state is not ENABLING or DISABLING
         if (controllerServiceState != null && (ControllerServiceState.ENABLING.equals(controllerServiceState) || ControllerServiceState.DISABLING.equals(controllerServiceState))) {
             throw new IllegalArgumentException("Cannot set the referencing services to ENABLING or DISABLING");
         }
-        
+
         // determine the availability
         final Availability avail = parseAvailability(availability);
-        
+
         // replicate if cluster manager
         if (properties.isClusterManager() && Availability.NODE.equals(avail)) {
             return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
@@ -525,16 +531,16 @@ public class ControllerServiceResource extends ApplicationResource {
             serviceFacade.verifyUpdateControllerServiceReferencingComponents(id, scheduledState, controllerServiceState);
             return generateContinueResponse().build();
         }
-        
+
         // determine the specified version
         Long clientVersion = null;
         if (version != null) {
             clientVersion = version.getLong();
         }
-        
+
         // get the controller service
-        final ConfigurationSnapshot<Set<ControllerServiceReferencingComponentDTO>> response = 
-                serviceFacade.updateControllerServiceReferencingComponents(new Revision(clientVersion, clientId.getClientId()), id, scheduledState, controllerServiceState);
+        final ConfigurationSnapshot<Set<ControllerServiceReferencingComponentDTO>> response
+                = serviceFacade.updateControllerServiceReferencingComponents(new Revision(clientVersion, clientId.getClientId()), id, scheduledState, controllerServiceState);
 
         // create the revision
         final RevisionDTO revision = new RevisionDTO();
@@ -558,14 +564,17 @@ public class ControllerServiceResource extends ApplicationResource {
      * @param clientId Optional client id. If the client id is not specified, a
      * new one will be generated. This value (whether specified or generated) is
      * included in the response.
-     * @param availability Whether the controller service is available on the NCM only (ncm) or on the 
-     * nodes only (node). If this instance is not clustered all services should use the node availability.
+     * @param availability Whether the controller service is available on the
+     * NCM only (ncm) or on the nodes only (node). If this instance is not
+     * clustered all services should use the node availability.
      * @param id The id of the controller service to update.
      * @param name The name of the controller service
      * @param annotationData The annotation data for the controller service
      * @param comments The comments for the controller service
-     * @param state The state of this controller service. Should be ENABLED or DISABLED.
-     * @param markedForDeletion Array of property names whose value should be removed.
+     * @param state The state of this controller service. Should be ENABLED or
+     * DISABLED.
+     * @param markedForDeletion Array of property names whose value should be
+     * removed.
      * @param formParams Additionally, the processor properties and styles are
      * specified in the form parameters. Because the property names and styles
      * differ from processor to processor they are specified in a map-like
@@ -599,7 +608,7 @@ public class ControllerServiceResource extends ApplicationResource {
 
         // create collections for holding the controller service properties
         final Map<String, String> updatedProperties = new LinkedHashMap<>();
-        
+
         // go through each parameter and look for processor properties
         for (String parameterName : formParams.keySet()) {
             if (StringUtils.isNotBlank(parameterName)) {
@@ -615,12 +624,12 @@ public class ControllerServiceResource extends ApplicationResource {
                 }
             }
         }
-        
+
         // set the properties to remove
         for (String propertyToDelete : markedForDeletion) {
             updatedProperties.put(propertyToDelete, null);
         }
-        
+
         // create the controller service DTO
         final ControllerServiceDTO controllerServiceDTO = new ControllerServiceDTO();
         controllerServiceDTO.setId(id);
@@ -633,7 +642,7 @@ public class ControllerServiceResource extends ApplicationResource {
         if (!updatedProperties.isEmpty()) {
             controllerServiceDTO.setProperties(updatedProperties);
         }
-        
+
         // create the revision
         final RevisionDTO revision = new RevisionDTO();
         revision.setClientId(clientId.getClientId());
@@ -654,8 +663,9 @@ public class ControllerServiceResource extends ApplicationResource {
      * Updates the specified a new Controller Service.
      *
      * @param httpServletRequest
-     * @param availability Whether the controller service is available on the NCM only (ncm) or on the 
-     * nodes only (node). If this instance is not clustered all services should use the node availability.
+     * @param availability Whether the controller service is available on the
+     * NCM only (ncm) or on the nodes only (node). If this instance is not
+     * clustered all services should use the node availability.
      * @param id The id of the controller service to update.
      * @param controllerServiceEntity A controllerServiceEntity.
      * @return A controllerServiceEntity.
@@ -668,13 +678,13 @@ public class ControllerServiceResource extends ApplicationResource {
     @TypeHint(ControllerServiceEntity.class)
     public Response updateControllerService(
             @Context HttpServletRequest httpServletRequest,
-            @PathParam("availability") String availability, 
+            @PathParam("availability") String availability,
             @PathParam("id") String id,
             ControllerServiceEntity controllerServiceEntity) {
 
         final Availability avail = parseAvailability(availability);
-        
-        if (controllerServiceEntity == null || controllerServiceEntity.getControllerService()== null) {
+
+        if (controllerServiceEntity == null || controllerServiceEntity.getControllerService() == null) {
             throw new IllegalArgumentException("Controller service details must be specified.");
         }
 
@@ -698,7 +708,7 @@ public class ControllerServiceResource extends ApplicationResource {
             // replicate the request
             return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), updateClientId(controllerServiceEntity), getHeaders(headersToOverride)).getResponse();
         }
-        
+
         // handle expects request (usually from the cluster manager)
         final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
         if (expects != null) {
@@ -736,8 +746,9 @@ public class ControllerServiceResource extends ApplicationResource {
      * @param clientId Optional client id. If the client id is not specified, a
      * new one will be generated. This value (whether specified or generated) is
      * included in the response.
-     * @param availability Whether the controller service is available on the NCM only (ncm) or on the 
-     * nodes only (node). If this instance is not clustered all services should use the node availability.
+     * @param availability Whether the controller service is available on the
+     * NCM only (ncm) or on the nodes only (node). If this instance is not
+     * clustered all services should use the node availability.
      * @param id The id of the controller service to remove.
      * @return A entity containing the client id and an updated revision.
      */
@@ -753,7 +764,7 @@ public class ControllerServiceResource extends ApplicationResource {
             @PathParam("availability") String availability, @PathParam("id") String id) {
 
         final Availability avail = parseAvailability(availability);
-        
+
         // replicate if cluster manager
         if (properties.isClusterManager() && Availability.NODE.equals(avail)) {
             return clusterManager.applyRequest(HttpMethod.DELETE, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
@@ -788,7 +799,6 @@ public class ControllerServiceResource extends ApplicationResource {
     }
 
     // setters
-    
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }

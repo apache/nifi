@@ -29,20 +29,20 @@ import org.apache.nifi.distributed.cache.client.exception.SerializationException
 
 public class LongSerDe implements Serializer<Long>, Deserializer<Long> {
 
-	@Override
-	public Long deserialize(final byte[] input) throws DeserializationException, IOException {
-		if ( input == null || input.length == 0 ) {
-			return null;
-		}
-		
-		final DataInputStream dis = new DataInputStream(new ByteArrayInputStream(input));
-		return dis.readLong();
-	}
+    @Override
+    public Long deserialize(final byte[] input) throws DeserializationException, IOException {
+        if ( input == null || input.length == 0 ) {
+            return null;
+        }
 
-	@Override
-	public void serialize(final Long value, final OutputStream out) throws SerializationException, IOException {
-		final DataOutputStream dos = new DataOutputStream(out);
-		dos.writeLong(value);
-	}
+        final DataInputStream dis = new DataInputStream(new ByteArrayInputStream(input));
+        return dis.readLong();
+    }
+
+    @Override
+    public void serialize(final Long value, final OutputStream out) throws SerializationException, IOException {
+        final DataOutputStream dos = new DataOutputStream(out);
+        dos.writeLong(value);
+    }
 
 }

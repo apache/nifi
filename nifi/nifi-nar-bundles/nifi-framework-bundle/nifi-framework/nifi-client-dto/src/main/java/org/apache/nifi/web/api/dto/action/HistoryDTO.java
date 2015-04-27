@@ -33,9 +33,7 @@ public class HistoryDTO {
     private Collection<ActionDTO> actions;
 
     /**
-     * The total number of actions.
-     *
-     * @return
+     * @return total number of actions
      */
     public Integer getTotal() {
         return total;
@@ -46,9 +44,7 @@ public class HistoryDTO {
     }
 
     /**
-     * Timestamp when these records were returned.
-     *
-     * @return
+     * @return timestamp when these records were returned
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
     public Date getLastRefreshed() {
@@ -60,9 +56,7 @@ public class HistoryDTO {
     }
 
     /**
-     * The actions for this range.
-     *
-     * @return
+     * @return actions for this range
      */
     public Collection<ActionDTO> getActions() {
         return actions;

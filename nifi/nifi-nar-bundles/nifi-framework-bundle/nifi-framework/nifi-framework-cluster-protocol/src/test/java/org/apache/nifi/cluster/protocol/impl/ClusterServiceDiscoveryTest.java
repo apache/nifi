@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.cluster.protocol.impl;
 
-import org.apache.nifi.cluster.protocol.impl.ClusterServiceDiscovery;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -32,7 +31,8 @@ import org.apache.nifi.cluster.protocol.message.ServiceBroadcastMessage;
 import org.apache.nifi.io.socket.multicast.MulticastConfiguration;
 import org.apache.nifi.io.socket.multicast.MulticastUtils;
 import org.junit.After;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -41,60 +41,60 @@ import org.junit.Test;
  * @author unattributed
  */
 public class ClusterServiceDiscoveryTest {
-    
+
     private ClusterServiceDiscovery discovery;
-    
+
     private String serviceName;
-    
+
     private MulticastSocket socket;
-    
+
     private InetSocketAddress multicastAddress;
-    
+
     private MulticastConfiguration configuration;
-    
+
     private ProtocolContext protocolContext;
-    
+
     @Before
     public void setup() throws Exception {
 
         serviceName = "some-service";
         multicastAddress = new InetSocketAddress("225.1.1.1", 22222);
         configuration = new MulticastConfiguration();
-        
+
         protocolContext = new JaxbProtocolContext(JaxbProtocolUtils.JAXB_CONTEXT);
-        
+
         discovery = new ClusterServiceDiscovery(serviceName, multicastAddress, configuration, protocolContext);
         discovery.start();
 
         socket = MulticastUtils.createMulticastSocket(multicastAddress.getPort(), configuration);
     }
-    
+
     @After
     public void teardown() throws IOException {
         try {
-            if(discovery.isRunning()) {
+            if (discovery.isRunning()) {
                 discovery.stop();
             }
         } finally {
             MulticastUtils.closeQuietly(socket);
         }
     }
-    
+
     @Ignore("Test needs to be fixed.  Requires an active network connection")
     @Test
     public void testGetAddressOnStartup() {
         assertNull(discovery.getService());
-    }   
-            
+    }
+
     @Ignore("This test has an NPE after ignoring another...perhaps has a bad inter-test dependency")
     @Test
     public void testGetAddressAfterBroadcast() throws Exception {
-        
+
         ServiceBroadcastMessage msg = new ServiceBroadcastMessage();
         msg.setServiceName("some-service");
         msg.setAddress("3.3.3.3");
         msg.setPort(1234);
-        
+
         // marshal message to output stream
         ProtocolMessageMarshaller marshaller = protocolContext.createMarshaller();
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -102,22 +102,22 @@ public class ClusterServiceDiscoveryTest {
         byte[] requestPacketBytes = baos.toByteArray();
         DatagramPacket packet = new DatagramPacket(requestPacketBytes, requestPacketBytes.length, multicastAddress);
         socket.send(packet);
-        
+
         Thread.sleep(250);
-       
+
         InetSocketAddress updatedAddress = discovery.getService().getServiceAddress();
         assertEquals("some-service", discovery.getServiceName());
         assertEquals("3.3.3.3", updatedAddress.getHostName());
         assertEquals(1234, updatedAddress.getPort());
-        
+
     }
-    
+
     @Ignore("Test needs to be fixed.  Requires an active network connection")
     @Test
     public void testBadBroadcastMessage() throws Exception {
-        
+
         ProtocolMessage msg = new PingMessage();
-        
+
         // marshal message to output stream
         ProtocolMessageMarshaller marshaller = protocolContext.createMarshaller();
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -125,11 +125,11 @@ public class ClusterServiceDiscoveryTest {
         byte[] requestPacketBytes = baos.toByteArray();
         DatagramPacket packet = new DatagramPacket(requestPacketBytes, requestPacketBytes.length, multicastAddress);
         socket.send(packet);
-        
+
         Thread.sleep(250);
-       
+
         assertNull(discovery.getService());
-        
+
     }
-    
+
 }

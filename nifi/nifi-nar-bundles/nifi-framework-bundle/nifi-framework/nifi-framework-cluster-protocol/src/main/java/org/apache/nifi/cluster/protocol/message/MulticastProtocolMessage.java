@@ -20,28 +20,29 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 /**
  * Wraps a protocol message and an identifier for sending the message by way
- * multicast.  The identifier is necessary for the sender to identify a message
+ * multicast. The identifier is necessary for the sender to identify a message
  * sent by it.
- * 
+ *
  * @author unattributed
  */
 @XmlRootElement(name = "multicastMessage")
 public class MulticastProtocolMessage extends ProtocolMessage {
-    
+
     private ProtocolMessage protocolMessage;
-    
+
     private String id;
-    
-    public MulticastProtocolMessage() {}
+
+    public MulticastProtocolMessage() {
+    }
 
     public MulticastProtocolMessage(final String id, final ProtocolMessage protocolMessage) {
         this.protocolMessage = protocolMessage;
         this.id = id;
     }
-    
+
     @Override
     public MessageType getType() {
-        if(protocolMessage == null) {
+        if (protocolMessage == null) {
             return null;
         }
         return protocolMessage.getType();

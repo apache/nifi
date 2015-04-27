@@ -34,8 +34,6 @@ public class ClusterPortStatusDTO {
     private String portName;
 
     /**
-     * The time the status was last refreshed.
-     *
      * @return the time the status were last refreshed
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
@@ -48,9 +46,7 @@ public class ClusterPortStatusDTO {
     }
 
     /**
-     * The port status from each node in the cluster.
-     *
-     * @return
+     * @return port status from each node in the cluster
      */
     public Collection<NodePortStatusDTO> getNodePortStatus() {
         return nodePortStatus;
@@ -61,9 +57,7 @@ public class ClusterPortStatusDTO {
     }
 
     /**
-     * The port id.
-     *
-     * @return
+     * @return port id
      */
     public String getPortId() {
         return portId;
@@ -74,9 +68,7 @@ public class ClusterPortStatusDTO {
     }
 
     /**
-     * The port name.
-     *
-     * @return
+     * @return port name
      */
     public String getPortName() {
         return portName;

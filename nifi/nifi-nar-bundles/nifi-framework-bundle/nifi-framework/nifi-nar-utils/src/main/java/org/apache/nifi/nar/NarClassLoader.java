@@ -49,10 +49,10 @@ import org.slf4j.LoggerFactory;
  * directory structure:
  *
  * <pre>
- *	+META-INF/
- *	+-- bundled-dependencies/
- *	    +-- &lt;JAR files&gt;
- *	+-- MANIFEST.MF
+ *   +META-INF/
+ *   +-- bundled-dependencies/
+ *   +-- &lt;JAR files&gt;
+ *   +-- MANIFEST.MF
  * </pre>
  * </p>
  *
@@ -134,7 +134,7 @@ public class NarClassLoader extends URLClassLoader {
     /**
      * Construct a nar class loader.
      *
-     * @param narWorkingDirectory
+     * @param narWorkingDirectory directory to explode nar contents to
      * @throws IllegalArgumentException if the NAR is missing the Java Services
      * API file for <tt>FlowFileProcessor</tt> implementations.
      * @throws ClassNotFoundException if any of the <tt>FlowFileProcessor</tt>
@@ -152,8 +152,8 @@ public class NarClassLoader extends URLClassLoader {
     /**
      * Construct a nar class loader with the specific parent.
      *
-     * @param narWorkingDirectory
-     * @param parentClassLoader
+     * @param narWorkingDirectory directory to explode nar contents to
+     * @param parentClassLoader parent class loader of this nar
      * @throws IllegalArgumentException if the NAR is missing the Java Services
      * API file for <tt>FlowFileProcessor</tt> implementations.
      * @throws ClassNotFoundException if any of the <tt>FlowFileProcessor</tt>
@@ -204,22 +204,22 @@ public class NarClassLoader extends URLClassLoader {
         if (!dependencies.isDirectory()) {
             LOGGER.warn(narWorkingDirectory + " does not contain META-INF/bundled-dependencies!");
         }
-        
+
         final File nativeDir = new File(dependencies, "native");
         final File soFile = new File(nativeDir, libname + ".so");
-        if ( soFile.exists() ) {
+        if (soFile.exists()) {
             return soFile.getAbsolutePath();
         } else {
             final File dllFile = new File(nativeDir, libname + ".dll");
-            if ( dllFile.exists() ) {
+            if (dllFile.exists()) {
                 return dllFile.getAbsolutePath();
             }
         }
-        
+
         // not found in the nar. try system native dir
         return null;
     }
-    
+
     @Override
     public String toString() {
         return NarClassLoader.class.getName() + "[" + narWorkingDirectory.getPath() + "]";

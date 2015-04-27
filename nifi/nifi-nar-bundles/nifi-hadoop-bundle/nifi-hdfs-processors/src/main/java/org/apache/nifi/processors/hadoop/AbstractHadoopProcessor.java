@@ -45,16 +45,15 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.net.NetUtils;
 
 /**
- * This is a base class that is helpful when building processors interacting
- * with HDFS.
+ * This is a base class that is helpful when building processors interacting with HDFS.
  */
 public abstract class AbstractHadoopProcessor extends AbstractProcessor {
 
     // properties
     public static final PropertyDescriptor HADOOP_CONFIGURATION_RESOURCES = new PropertyDescriptor.Builder()
             .name("Hadoop Configuration Resources")
-            .description(
-                    "A file or comma separated list of files which contains the Hadoop file system configuration. Without this, Hadoop will search the classpath for a 'core-site.xml' and 'hdfs-site.xml' file or will revert to a default configuration.")
+            .description("A file or comma separated list of files which contains the Hadoop file system configuration. Without this, Hadoop "
+                    + "will search the classpath for a 'core-site.xml' and 'hdfs-site.xml' file or will revert to a default configuration.")
             .required(false)
             .addValidator(createMultipleFilesExistValidator())
             .build();
@@ -217,13 +216,13 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         };
     }
 
-    
+
     /**
      * Returns the relative path of the child that does not include the filename
      * or the root path.
-     * @param root
-     * @param child
-     * @return 
+     * @param root the path to relativize from
+     * @param child the path to relativize
+     * @return the relative path
      */
     public static String getPathDifference(final Path root, final Path child) {
         final int depthDiff = child.depth() - root.depth();

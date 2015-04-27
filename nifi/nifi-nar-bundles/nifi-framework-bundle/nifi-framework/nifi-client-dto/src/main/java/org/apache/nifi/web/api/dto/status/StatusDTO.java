@@ -29,9 +29,7 @@ public abstract class StatusDTO {
     private List<BulletinDTO> bulletins;
 
     /**
-     * Bulletins for this component.
-     *
-     * @return
+     * @return Bulletins for this component
      */
     public List<BulletinDTO> getBulletins() {
         return bulletins;

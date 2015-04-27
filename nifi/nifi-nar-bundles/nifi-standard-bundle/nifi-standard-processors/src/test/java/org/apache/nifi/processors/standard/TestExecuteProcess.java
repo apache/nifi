@@ -34,43 +34,43 @@ public class TestExecuteProcess {
         final List<String> nullArgs = ExecuteProcess.splitArgs(null);
         assertNotNull(nullArgs);
         assertTrue(nullArgs.isEmpty());
-        
+
         final List<String> zeroArgs = ExecuteProcess.splitArgs("  ");
         assertNotNull(zeroArgs);
         assertTrue(zeroArgs.isEmpty());
-        
+
         final List<String> singleArg = ExecuteProcess.splitArgs("    hello   ");
         assertEquals(1, singleArg.size());
         assertEquals("hello", singleArg.get(0));
-        
+
         final List<String> twoArg = ExecuteProcess.splitArgs("   hello    good-bye   ");
         assertEquals(2, twoArg.size());
         assertEquals("hello", twoArg.get(0));
         assertEquals("good-bye", twoArg.get(1));
-        
+
         final List<String> singleQuotedArg = ExecuteProcess.splitArgs("  \"hello\" ");
         assertEquals(1, singleQuotedArg.size());
         assertEquals("hello", singleQuotedArg.get(0));
-        
+
         final List<String> twoQuotedArg = ExecuteProcess.splitArgs("   hello \"good   bye\"");
         assertEquals(2, twoQuotedArg.size());
         assertEquals("hello", twoQuotedArg.get(0));
         assertEquals("good   bye", twoQuotedArg.get(1));
     }
-    
+
     @Test
     public void testEcho() {
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi", "TRACE");
-        
+
         final TestRunner runner = TestRunners.newTestRunner(ExecuteProcess.class);
         runner.setProperty(ExecuteProcess.COMMAND, "echo");
         runner.setProperty(ExecuteProcess.COMMAND_ARGUMENTS, "test-args");
         runner.setProperty(ExecuteProcess.BATCH_DURATION, "500 millis");
-        
+
         runner.run();
 
         final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteProcess.REL_SUCCESS);
-        for ( final MockFlowFile flowFile : flowFiles ) {
+        for (final MockFlowFile flowFile : flowFiles) {
             System.out.println(flowFile);
             System.out.println(new String(flowFile.toByteArray()));
         }

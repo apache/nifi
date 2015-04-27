@@ -29,9 +29,7 @@ public class RelationshipDTO {
     private Boolean autoTerminate;
 
     /**
-     * The relationship name.
-     *
-     * @return
+     * @return the relationship name
      */
     public String getName() {
         return name;
@@ -42,9 +40,7 @@ public class RelationshipDTO {
     }
 
     /**
-     * The relationship description.
-     *
-     * @return
+     * @return the relationship description
      */
     public String getDescription() {
         return description;
@@ -55,9 +51,7 @@ public class RelationshipDTO {
     }
 
     /**
-     * Whether or not this relationship is auto terminated.
-     *
-     * @return
+     * @return true if relationship is auto terminated;false otherwise
      */
     public Boolean isAutoTerminate() {
         return autoTerminate;

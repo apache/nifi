@@ -506,12 +506,20 @@ public final class DtoFactory {
         processGroupStatusDto.setId(processGroupStatus.getId());
         processGroupStatusDto.setName(processGroupStatus.getName());
         processGroupStatusDto.setStatsLastRefreshed(new Date(processGroupStatus.getCreationTimestamp()));
-        processGroupStatusDto.setQueued(formatCount(processGroupStatus.getQueuedCount()) + " / " + formatDataSize(processGroupStatus.getQueuedContentSize()));
         processGroupStatusDto.setRead(formatDataSize(processGroupStatus.getBytesRead()));
         processGroupStatusDto.setWritten(formatDataSize(processGroupStatus.getBytesWritten()));
         processGroupStatusDto.setInput(formatCount(processGroupStatus.getInputCount()) + " / " + formatDataSize(processGroupStatus.getInputContentSize()));
         processGroupStatusDto.setOutput(formatCount(processGroupStatus.getOutputCount()) + " / " + formatDataSize(processGroupStatus.getOutputContentSize()));
+        processGroupStatusDto.setTransferred(formatCount(processGroupStatus.getFlowFilesTransferred()) + " / " + formatDataSize(processGroupStatus.getBytesTransferred()));
+        processGroupStatusDto.setSent(formatCount(processGroupStatus.getFlowFilesSent()) + " / " + formatDataSize(processGroupStatus.getBytesSent()));
+        processGroupStatusDto.setReceived(formatCount(processGroupStatus.getFlowFilesReceived()) + " / " + formatDataSize(processGroupStatus.getBytesReceived()));
         processGroupStatusDto.setActiveThreadCount(processGroupStatus.getActiveThreadCount());
+
+        final String queuedCount = FormatUtils.formatCount(processGroupStatus.getQueuedCount());
+        final String queuedSize = FormatUtils.formatDataSize(processGroupStatus.getQueuedContentSize());
+        processGroupStatusDto.setQueuedCount(queuedCount);
+        processGroupStatusDto.setQueuedSize(queuedSize);
+        processGroupStatusDto.setQueued(queuedCount + " / " + queuedSize);
 
         final Map<String, StatusDTO> componentStatusDtoMap = new HashMap<>();
 
@@ -854,7 +862,7 @@ public final class DtoFactory {
         defaultSchedulingPeriod.put(SchedulingStrategy.TIMER_DRIVEN.name(), SchedulingStrategy.TIMER_DRIVEN.getDefaultSchedulingPeriod());
         defaultSchedulingPeriod.put(SchedulingStrategy.CRON_DRIVEN.name(), SchedulingStrategy.CRON_DRIVEN.getDefaultSchedulingPeriod());
         dto.setDefaultSchedulingPeriod(defaultSchedulingPeriod);
-        
+
         // sort a copy of the properties
         final Map<PropertyDescriptor, String> sortedProperties = new TreeMap<>(new Comparator<PropertyDescriptor>() {
             @Override
@@ -874,7 +882,7 @@ public final class DtoFactory {
             }
         }
         orderedProperties.putAll(sortedProperties);
-        
+
         // build the descriptor and property dtos
         dto.setDescriptors(new LinkedHashMap<String, PropertyDescriptorDTO>());
         dto.setProperties(new LinkedHashMap<String, String>());
@@ -893,7 +901,7 @@ public final class DtoFactory {
             // set the property value
             dto.getProperties().put(descriptor.getName(), propertyValue);
         }
-        
+
         // add the validation errors
         final Collection<ValidationResult> validationErrors = reportingTaskNode.getValidationErrors();
         if (validationErrors != null && !validationErrors.isEmpty()) {
@@ -904,10 +912,10 @@ public final class DtoFactory {
 
             dto.setValidationErrors(errors);
         }
-        
+
         return dto;
     }
-    
+
     public ControllerServiceDTO createControllerServiceDto(final ControllerServiceNode controllerServiceNode) {
         final ControllerServiceDTO dto = new ControllerServiceDTO();
         dto.setId(controllerServiceNode.getIdentifier());
@@ -916,7 +924,7 @@ public final class DtoFactory {
         dto.setState(controllerServiceNode.getState().name());
         dto.setAnnotationData(controllerServiceNode.getAnnotationData());
         dto.setComments(controllerServiceNode.getComments());
-        
+
         // sort a copy of the properties
         final Map<PropertyDescriptor, String> sortedProperties = new TreeMap<>(new Comparator<PropertyDescriptor>() {
             @Override
@@ -936,7 +944,7 @@ public final class DtoFactory {
             }
         }
         orderedProperties.putAll(sortedProperties);
-        
+
         // build the descriptor and property dtos
         dto.setDescriptors(new LinkedHashMap<String, PropertyDescriptorDTO>());
         dto.setProperties(new LinkedHashMap<String, String>());
@@ -955,7 +963,7 @@ public final class DtoFactory {
             // set the property value
             dto.getProperties().put(descriptor.getName(), propertyValue);
         }
-        
+
         // create the reference dto's
         dto.setReferencingComponents(createControllerServiceReferencingComponentsDto(controllerServiceNode.getReferences()));
 
@@ -969,23 +977,23 @@ public final class DtoFactory {
 
             dto.setValidationErrors(errors);
         }
-        
+
         return dto;
     }
-    
+
     public Set<ControllerServiceReferencingComponentDTO> createControllerServiceReferencingComponentsDto(final ControllerServiceReference reference) {
         return createControllerServiceReferencingComponentsDto(reference, new HashSet<ControllerServiceNode>());
     }
-    
+
     private Set<ControllerServiceReferencingComponentDTO> createControllerServiceReferencingComponentsDto(final ControllerServiceReference reference, final Set<ControllerServiceNode> visited) {
         final Set<ControllerServiceReferencingComponentDTO> referencingComponents = new LinkedHashSet<>();
-        
+
         // get all references
         for (final ConfiguredComponent component : reference.getReferencingComponents()) {
             final ControllerServiceReferencingComponentDTO dto = new ControllerServiceReferencingComponentDTO();
             dto.setId(component.getIdentifier());
             dto.setName(component.getName());
-            
+
             List<PropertyDescriptor> propertyDescriptors = null;
             Collection<ValidationResult> validationErrors = null;
             if (component instanceof ProcessorNode) {
@@ -995,7 +1003,7 @@ public final class DtoFactory {
                 dto.setActiveThreadCount(node.getActiveThreadCount());
                 dto.setType(node.getProcessor().getClass().getName());
                 dto.setReferenceType(Processor.class.getSimpleName());
-                
+
                 propertyDescriptors = node.getProcessor().getPropertyDescriptors();
                 validationErrors = node.getValidationErrors();
             } else if (component instanceof ControllerServiceNode) {
@@ -1004,12 +1012,12 @@ public final class DtoFactory {
                 dto.setType(node.getControllerServiceImplementation().getClass().getName());
                 dto.setReferenceType(ControllerService.class.getSimpleName());
                 dto.setReferenceCycle(visited.contains(node));
-                
+
                 // if we haven't encountered this service before include it's referencing components
                 if (!dto.getReferenceCycle()) {
                     dto.setReferencingComponents(createControllerServiceReferencingComponentsDto(node.getReferences(), visited));
                 }
-                
+
                 propertyDescriptors = node.getControllerServiceImplementation().getPropertyDescriptors();
                 validationErrors = node.getValidationErrors();
             } else if (component instanceof ReportingTaskNode) {
@@ -1018,11 +1026,11 @@ public final class DtoFactory {
                 dto.setActiveThreadCount(node.getActiveThreadCount());
                 dto.setType(node.getReportingTask().getClass().getName());
                 dto.setReferenceType(ReportingTask.class.getSimpleName());
-                
+
                 propertyDescriptors = node.getReportingTask().getPropertyDescriptors();
                 validationErrors = node.getValidationErrors();
             }
-            
+
             if (propertyDescriptors != null && !propertyDescriptors.isEmpty()) {
                 final Map<PropertyDescriptor, String> sortedProperties = new TreeMap<>(new Comparator<PropertyDescriptor>() {
                     @Override
@@ -1057,7 +1065,7 @@ public final class DtoFactory {
                     dto.getProperties().put(descriptor.getName(), propertyValue);
                 }
             }
-            
+
             if (validationErrors != null && !validationErrors.isEmpty()) {
                 final List<String> errors = new ArrayList<>();
                 for (final ValidationResult validationResult : validationErrors) {
@@ -1066,13 +1074,13 @@ public final class DtoFactory {
 
                 dto.setValidationErrors(errors);
             }
-            
+
             referencingComponents.add(dto);
         }
-        
+
         return referencingComponents;
     }
-    
+
     public RemoteProcessGroupPortDTO createRemoteProcessGroupPortDto(final RemoteGroupPort port) {
         if (port == null) {
             return null;
@@ -1135,7 +1143,7 @@ public final class DtoFactory {
                 if (port.isRunning()) {
                     activeRemoteOutputPortCount++;
                 } else {
-                    activeRemoteOutputPortCount++;
+                    inactiveRemoteOutputPortCount++;
                 }
             }
         }
@@ -1324,13 +1332,13 @@ public final class DtoFactory {
     @SuppressWarnings("deprecation")
     private String getCapabilityDescription(final Class<?> cls) {
         final CapabilityDescription capabilityDesc = cls.getAnnotation(CapabilityDescription.class);
-        if ( capabilityDesc != null ) {
+        if (capabilityDesc != null) {
             return capabilityDesc.value();
         }
-        
-        final org.apache.nifi.processor.annotation.CapabilityDescription deprecatedCapabilityDesc =
-                cls.getAnnotation(org.apache.nifi.processor.annotation.CapabilityDescription.class);
-        
+
+        final org.apache.nifi.processor.annotation.CapabilityDescription deprecatedCapabilityDesc
+                = cls.getAnnotation(org.apache.nifi.processor.annotation.CapabilityDescription.class);
+
         return (deprecatedCapabilityDesc == null) ? null : deprecatedCapabilityDesc.value();
     }
 
@@ -1350,8 +1358,8 @@ public final class DtoFactory {
             }
         } else {
             final org.apache.nifi.processor.annotation.Tags deprecatedTagsAnnotation = cls.getAnnotation(org.apache.nifi.processor.annotation.Tags.class);
-            if ( deprecatedTagsAnnotation != null ) {
-                for ( final String tag : deprecatedTagsAnnotation.value() ) {
+            if (deprecatedTagsAnnotation != null) {
+                for (final String tag : deprecatedTagsAnnotation.value()) {
                     tags.add(tag);
                 }
             }
@@ -1382,7 +1390,7 @@ public final class DtoFactory {
 
         return types;
     }
-    
+
     /**
      * Creates a ProcessorDTO from the specified ProcessorNode.
      *
@@ -1504,8 +1512,7 @@ public final class DtoFactory {
     }
 
     /**
-     * Creates a ProvenanceEventNodeDTO for the specified
-     * ProvenanceEventLineageNode.
+     * Creates a ProvenanceEventNodeDTO for the specified ProvenanceEventLineageNode.
      *
      * @param node
      * @return
@@ -1829,7 +1836,7 @@ public final class DtoFactory {
         dto.setDescription(propertyDescriptor.getDescription());
         dto.setDefaultValue(propertyDescriptor.getDefaultValue());
         dto.setSupportsEl(propertyDescriptor.isExpressionLanguageSupported());
-        
+
         // set the identifies controller service is applicable
         if (propertyDescriptor.getControllerServiceDefinition() != null) {
             dto.setIdentifiesControllerService(propertyDescriptor.getControllerServiceDefinition().getName());
@@ -1842,7 +1849,7 @@ public final class DtoFactory {
             } else {
                 final List<AllowableValueDTO> allowableValues = new ArrayList<>();
                 for (final String serviceIdentifier : controllerServiceLookup.getControllerServiceIdentifiers(serviceDefinition)) {
-                	final String displayName = controllerServiceLookup.getControllerServiceName(serviceIdentifier);
+                    final String displayName = controllerServiceLookup.getControllerServiceName(serviceIdentifier);
 
                     final AllowableValueDTO allowableValue = new AllowableValueDTO();
                     allowableValue.setDisplayName(displayName);
@@ -1883,7 +1890,6 @@ public final class DtoFactory {
         return copy;
     }
 
-    
     public ControllerServiceDTO copy(final ControllerServiceDTO original) {
         final ControllerServiceDTO copy = new ControllerServiceDTO();
         copy.setAnnotationData(original.getAnnotationData());
@@ -1901,7 +1907,7 @@ public final class DtoFactory {
         copy.setValidationErrors(copy(original.getValidationErrors()));
         return copy;
     }
-    
+
     public FunnelDTO copy(final FunnelDTO original) {
         final FunnelDTO copy = new FunnelDTO();
         copy.setId(original.getId());
@@ -2159,9 +2165,8 @@ public final class DtoFactory {
     /**
      *
      * @param original
-     * @param deep if <code>true</code>, all Connections, ProcessGroups, Ports,
-     * Processors, etc. will be copied. If <code>false</code>, the copy will
-     * have links to the same objects referenced by <code>original</code>.
+     * @param deep if <code>true</code>, all Connections, ProcessGroups, Ports, Processors, etc. will be copied. If <code>false</code>, the copy will have links to the same objects referenced by
+     * <code>original</code>.
      *
      * @return
      */
@@ -2294,7 +2299,7 @@ public final class DtoFactory {
      */
     public RevisionDTO createRevisionDTO(FlowModification lastMod) {
         final Revision revision = lastMod.getRevision();
-        
+
         // create the dto
         final RevisionDTO revisionDTO = new RevisionDTO();
         revisionDTO.setVersion(revision.getVersion());
@@ -2409,7 +2414,6 @@ public final class DtoFactory {
     }
 
     /* setters */
-
     public void setControllerServiceLookup(ControllerServiceLookup lookup) {
         this.controllerServiceLookup = lookup;
     }

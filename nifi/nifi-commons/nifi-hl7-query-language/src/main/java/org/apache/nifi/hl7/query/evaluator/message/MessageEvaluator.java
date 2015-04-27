@@ -23,12 +23,12 @@ import org.apache.nifi.hl7.query.evaluator.Evaluator;
 
 public class MessageEvaluator implements Evaluator<HL7Message> {
 
-	public HL7Message evaluate(final Map<String, Object> objectMap) {
-		return (HL7Message) objectMap.get(Evaluator.MESSAGE_KEY);
-	}
+    public HL7Message evaluate(final Map<String, Object> objectMap) {
+        return (HL7Message) objectMap.get(Evaluator.MESSAGE_KEY);
+    }
 
-	public Class<? extends HL7Message> getType() {
-		return HL7Message.class;
-	}
+    public Class<? extends HL7Message> getType() {
+        return HL7Message.class;
+    }
 
 }

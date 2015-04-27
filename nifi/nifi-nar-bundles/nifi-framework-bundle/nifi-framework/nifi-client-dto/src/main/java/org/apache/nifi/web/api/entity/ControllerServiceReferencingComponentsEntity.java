@@ -31,9 +31,8 @@ public class ControllerServiceReferencingComponentsEntity extends Entity {
     private Set<ControllerServiceReferencingComponentDTO> controllerServiceReferencingComponents;
 
     /**
-     * The list of controller service referencing components that are being serialized.
-     *
-     * @return
+     * @return list of controller service referencing components that are being
+     * serialized
      */
     public Set<ControllerServiceReferencingComponentDTO> getControllerServiceReferencingComponents() {
         return controllerServiceReferencingComponents;

@@ -16,46 +16,44 @@
  */
 package org.apache.nifi.remote.protocol.socket;
 
-
 /**
- * Enumeration of Properties that can be used for the Site-to-Site Socket Protocol.
+ * Enumeration of Properties that can be used for the Site-to-Site Socket
+ * Protocol.
  */
 public enum HandshakeProperty {
+
     /**
-     * Boolean value indicating whether or not the contents of a FlowFile should be
-     * GZipped when transferred.
+     * Boolean value indicating whether or not the contents of a FlowFile should
+     * be GZipped when transferred.
      */
     GZIP,
-    
     /**
      * The unique identifier of the port to communicate with
      */
     PORT_IDENTIFIER,
-    
     /**
-     * Indicates the number of milliseconds after the request was made that the client
-     * will wait for a response. If no response has been received by the time this value
-     * expires, the server can move on without attempting to service the request because
-     * the client will have already disconnected.
+     * Indicates the number of milliseconds after the request was made that the
+     * client will wait for a response. If no response has been received by the
+     * time this value expires, the server can move on without attempting to
+     * service the request because the client will have already disconnected.
      */
     REQUEST_EXPIRATION_MILLIS,
-    
     /**
-     * The preferred number of FlowFiles that the server should send to the client
-     * when pulling data. This property was introduced in version 5 of the protocol.
+     * The preferred number of FlowFiles that the server should send to the
+     * client when pulling data. This property was introduced in version 5 of
+     * the protocol.
      */
     BATCH_COUNT,
-    
     /**
-     * The preferred number of bytes that the server should send to the client when
-     * pulling data. This property was introduced in version 5 of the protocol.
+     * The preferred number of bytes that the server should send to the client
+     * when pulling data. This property was introduced in version 5 of the
+     * protocol.
      */
     BATCH_SIZE,
-    
     /**
-     * The preferred amount of time that the server should send data to the client
-     * when pulling data. This property was introduced in version 5 of the protocol.
-     * Value is in milliseconds.
+     * The preferred amount of time that the server should send data to the
+     * client when pulling data. This property was introduced in version 5 of
+     * the protocol. Value is in milliseconds.
      */
     BATCH_DURATION;
 }

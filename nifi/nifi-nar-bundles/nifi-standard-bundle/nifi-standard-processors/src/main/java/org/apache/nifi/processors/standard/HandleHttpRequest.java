@@ -76,141 +76,155 @@ import org.eclipse.jetty.util.ssl.SslContextFactory;
 import com.sun.jersey.api.client.ClientResponse.Status;
 
 @Tags({"http", "https", "request", "listen", "ingress", "web service"})
-@CapabilityDescription("Starts an HTTP Server and listens for HTTP Requests. For each request, creates a FlowFile and transfers to 'success'. This Processor is designed to be used in conjunction with the HandleHttpResponse Processor in order to create a Web Service")
-@WritesAttributes({@WritesAttribute(attribute = "http.context.identifier", description="An identifier that allows the HandleHttpRequest and HandleHttpResponse to coordinate which FlowFile belongs to which HTTP Request/Response."),
-    @WritesAttribute(attribute = "mime.type", description="The MIME Type of the data, according to the HTTP Header \"Content-Type\""),
-    @WritesAttribute(attribute = "http.servlet.path", description="The part of the request URL that is considered the Servlet Path"),
-    @WritesAttribute(attribute = "http.context.path", description="The part of the request URL that is considered to be the Context Path"),
-    @WritesAttribute(attribute = "http.method", description="The HTTP Method that was used for the request, such as GET or POST"),
-    @WritesAttribute(attribute = "http.query.string", description="The query string portion of hte Request URL"),
-    @WritesAttribute(attribute = "http.remote.host", description="The hostname of the requestor"),
-    @WritesAttribute(attribute = "http.remote.addr", description="The hostname:port combination of the requestor"),
-    @WritesAttribute(attribute = "http.remote.user", description="The username of the requestor"),
-    @WritesAttribute(attribute = "http.request.uri", description="The full Request URL"),
-    @WritesAttribute(attribute = "http.auth.type", description="The type of HTTP Authorization used"),
-    @WritesAttribute(attribute = "http.principal.name", description="The name of the authenticated user making the request"),
-    @WritesAttribute(attribute = "http.subject.dn", description="The Distinguished Name of the requestor. This value will not be populated unless the Processor is configured to use an SSLContext Service"),
-    @WritesAttribute(attribute = "http.issuer.dn", description="The Distinguished Name of the entity that issued the Subject's certificate. This value will not be populated unless the Processor is configured to use an SSLContext Service"),
-    @WritesAttribute(attribute = "http.headers.XXX", description="Each of the HTTP Headers that is received in the request will be added as an attribute, prefixed with \"http.headers.\" For example, if the request contains an HTTP Header named \"x-my-header\", then the value will be added to an attribute named \"http.headers.x-my-header\"")})
-@SeeAlso(value={HandleHttpResponse.class}, classNames={"org.apache.nifi.http.StandardHttpContextMap", "org.apache.nifi.ssl.StandardSSLContextService"})
+@CapabilityDescription("Starts an HTTP Server and listens for HTTP Requests. For each request, creates a FlowFile and transfers to 'success'. "
+        + "This Processor is designed to be used in conjunction with the HandleHttpResponse Processor in order to create a Web Service")
+@WritesAttributes({
+    @WritesAttribute(attribute = "http.context.identifier", description = "An identifier that allows the HandleHttpRequest and HandleHttpResponse "
+            + "to coordinate which FlowFile belongs to which HTTP Request/Response."),
+    @WritesAttribute(attribute = "mime.type", description = "The MIME Type of the data, according to the HTTP Header \"Content-Type\""),
+    @WritesAttribute(attribute = "http.servlet.path", description = "The part of the request URL that is considered the Servlet Path"),
+    @WritesAttribute(attribute = "http.context.path", description = "The part of the request URL that is considered to be the Context Path"),
+    @WritesAttribute(attribute = "http.method", description = "The HTTP Method that was used for the request, such as GET or POST"),
+    @WritesAttribute(attribute = "http.query.string", description = "The query string portion of hte Request URL"),
+    @WritesAttribute(attribute = "http.remote.host", description = "The hostname of the requestor"),
+    @WritesAttribute(attribute = "http.remote.addr", description = "The hostname:port combination of the requestor"),
+    @WritesAttribute(attribute = "http.remote.user", description = "The username of the requestor"),
+    @WritesAttribute(attribute = "http.request.uri", description = "The full Request URL"),
+    @WritesAttribute(attribute = "http.auth.type", description = "The type of HTTP Authorization used"),
+    @WritesAttribute(attribute = "http.principal.name", description = "The name of the authenticated user making the request"),
+    @WritesAttribute(attribute = "http.subject.dn", description = "The Distinguished Name of the requestor. This value will not be populated "
+            + "unless the Processor is configured to use an SSLContext Service"),
+    @WritesAttribute(attribute = "http.issuer.dn", description = "The Distinguished Name of the entity that issued the Subject's certificate. "
+            + "This value will not be populated unless the Processor is configured to use an SSLContext Service"),
+    @WritesAttribute(attribute = "http.headers.XXX", description = "Each of the HTTP Headers that is received in the request will be added as an "
+            + "attribute, prefixed with \"http.headers.\" For example, if the request contains an HTTP Header named \"x-my-header\", then the value "
+            + "will be added to an attribute named \"http.headers.x-my-header\"")})
+@SeeAlso(value = {HandleHttpResponse.class},
+        classNames = {"org.apache.nifi.http.StandardHttpContextMap", "org.apache.nifi.ssl.StandardSSLContextService"})
 public class HandleHttpRequest extends AbstractProcessor {
+
     public static final String HTTP_CONTEXT_ID = "http.context.identifier";
     private static final Pattern URL_QUERY_PARAM_DELIMITER = Pattern.compile("&");
-    
+
     // Allowable values for client auth
-    public static final AllowableValue CLIENT_NONE = new AllowableValue("No Authentication", "No Authentication", "Processor will not authenticate clients. Anyone can communicate with this Processor anonymously");
-    public static final AllowableValue CLIENT_WANT = new AllowableValue("Want Authentication", "Want Authentication", "Processor will try to verify the client but if unable to verify will allow the client to communicate anonymously");
-    public static final AllowableValue CLIENT_NEED = new AllowableValue("Need Authentication", "Need Authentication", "Processor will reject communications from any client unless the client provides a certificate that is trusted by the TrustStore specified in the SSL Context Service");
-    
-    
+    public static final AllowableValue CLIENT_NONE = new AllowableValue("No Authentication", "No Authentication",
+            "Processor will not authenticate clients. Anyone can communicate with this Processor anonymously");
+    public static final AllowableValue CLIENT_WANT = new AllowableValue("Want Authentication", "Want Authentication",
+            "Processor will try to verify the client but if unable to verify will allow the client to communicate anonymously");
+    public static final AllowableValue CLIENT_NEED = new AllowableValue("Need Authentication", "Need Authentication",
+            "Processor will reject communications from any client unless the client provides a certificate that is trusted by the TrustStore"
+            + "specified in the SSL Context Service");
+
     public static final PropertyDescriptor PORT = new PropertyDescriptor.Builder()
-        .name("Listening Port")
-        .description("The Port to listen on for incoming HTTP requests")
-        .required(true)
-        .addValidator(StandardValidators.createLongValidator(0L, 65535L, true))
-        .expressionLanguageSupported(false)
-        .defaultValue("80")
-        .build();
+            .name("Listening Port")
+            .description("The Port to listen on for incoming HTTP requests")
+            .required(true)
+            .addValidator(StandardValidators.createLongValidator(0L, 65535L, true))
+            .expressionLanguageSupported(false)
+            .defaultValue("80")
+            .build();
     public static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
-        .name("Hostname")
-        .description("The Hostname to bind to. If not specified, will bind to all hosts")
-        .required(false)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(false)
-        .build();
+            .name("Hostname")
+            .description("The Hostname to bind to. If not specified, will bind to all hosts")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(false)
+            .build();
     public static final PropertyDescriptor HTTP_CONTEXT_MAP = new PropertyDescriptor.Builder()
-        .name("HTTP Context Map")
-        .description("The HTTP Context Map Controller Service to use for caching the HTTP Request Information")
-        .required(true)
-        .identifiesControllerService(HttpContextMap.class)
-        .build();
+            .name("HTTP Context Map")
+            .description("The HTTP Context Map Controller Service to use for caching the HTTP Request Information")
+            .required(true)
+            .identifiesControllerService(HttpContextMap.class)
+            .build();
     public static final PropertyDescriptor SSL_CONTEXT = new PropertyDescriptor.Builder()
-        .name("SSL Context Service")
-        .description("The SSL Context Service to use in order to secure the server. If specified, the server will accept only HTTPS requests; otherwise, the server will accept only HTTP requests")
-        .required(false)
-        .identifiesControllerService(SSLContextService.class)
-        .build();
+            .name("SSL Context Service")
+            .description("The SSL Context Service to use in order to secure the server. If specified, the server will accept only HTTPS requests; "
+                    + "otherwise, the server will accept only HTTP requests")
+            .required(false)
+            .identifiesControllerService(SSLContextService.class)
+            .build();
     public static final PropertyDescriptor URL_CHARACTER_SET = new PropertyDescriptor.Builder()
-        .name("Default URL Character Set")
-        .description("The character set to use for decoding URL parameters if the HTTP Request does not supply one")
-        .required(true)
-        .defaultValue("UTF-8")
-        .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
-        .build();
+            .name("Default URL Character Set")
+            .description("The character set to use for decoding URL parameters if the HTTP Request does not supply one")
+            .required(true)
+            .defaultValue("UTF-8")
+            .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
+            .build();
     public static final PropertyDescriptor PATH_REGEX = new PropertyDescriptor.Builder()
-        .name("Allowed Paths")
-        .description("A Regular Expression that specifies the valid HTTP Paths that are allowed in the incoming URL Requests. If this value is specified and the path of the HTTP Requests does not match this Regular Expression, the Processor will respond with a 404: NotFound")
-        .required(false)
-        .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
-        .expressionLanguageSupported(false)
-        .build();
+            .name("Allowed Paths")
+            .description("A Regular Expression that specifies the valid HTTP Paths that are allowed in the incoming URL Requests. If this value is "
+                    + "specified and the path of the HTTP Requests does not match this Regular Expression, the Processor will respond with a "
+                    + "404: NotFound")
+            .required(false)
+            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+            .expressionLanguageSupported(false)
+            .build();
     public static final PropertyDescriptor ALLOW_GET = new PropertyDescriptor.Builder()
-        .name("Allow GET")
-        .description("Allow HTTP GET Method")
-        .required(true)
-        .allowableValues("true", "false")
-        .defaultValue("true")
-        .build();
+            .name("Allow GET")
+            .description("Allow HTTP GET Method")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("true")
+            .build();
     public static final PropertyDescriptor ALLOW_POST = new PropertyDescriptor.Builder()
-        .name("Allow POST")
-        .description("Allow HTTP POST Method")
-        .required(true)
-        .allowableValues("true", "false")
-        .defaultValue("true")
-        .build();
+            .name("Allow POST")
+            .description("Allow HTTP POST Method")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("true")
+            .build();
     public static final PropertyDescriptor ALLOW_PUT = new PropertyDescriptor.Builder()
-        .name("Allow PUT")
-        .description("Allow HTTP PUT Method")
-        .required(true)
-        .allowableValues("true", "false")
-        .defaultValue("true")
-        .build();
+            .name("Allow PUT")
+            .description("Allow HTTP PUT Method")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("true")
+            .build();
     public static final PropertyDescriptor ALLOW_DELETE = new PropertyDescriptor.Builder()
-        .name("Allow DELETE")
-        .description("Allow HTTP DELETE Method")
-        .required(true)
-        .allowableValues("true", "false")
-        .defaultValue("true")
-        .build();
+            .name("Allow DELETE")
+            .description("Allow HTTP DELETE Method")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("true")
+            .build();
     public static final PropertyDescriptor ALLOW_HEAD = new PropertyDescriptor.Builder()
-        .name("Allow HEAD")
-        .description("Allow HTTP HEAD Method")
-        .required(true)
-        .allowableValues("true", "false")
-        .defaultValue("false")
-        .build();
+            .name("Allow HEAD")
+            .description("Allow HTTP HEAD Method")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .build();
     public static final PropertyDescriptor ALLOW_OPTIONS = new PropertyDescriptor.Builder()
-        .name("Allow OPTIONS")
-        .description("Allow HTTP OPTIONS Method")
-        .required(true)
-        .allowableValues("true", "false")
-        .defaultValue("false")
-        .build();
+            .name("Allow OPTIONS")
+            .description("Allow HTTP OPTIONS Method")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .build();
     public static final PropertyDescriptor ADDITIONAL_METHODS = new PropertyDescriptor.Builder()
-        .name("Additional HTTP Methods")
-        .description("A comma-separated list of non-standard HTTP Methods that should be allowed")
-        .required(false)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(false)
-        .build();
+            .name("Additional HTTP Methods")
+            .description("A comma-separated list of non-standard HTTP Methods that should be allowed")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(false)
+            .build();
     public static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
-        .name("Client Authentication")
-        .description("Specifies whether or not the Processor should authenticate clients. This value is ignored if the <SSL Context Service> Property is not specified or the SSL Context provided uses only a KeyStore and not a TrustStore.")
-        .required(true)
-        .allowableValues(CLIENT_NONE, CLIENT_WANT, CLIENT_NEED)
-        .defaultValue(CLIENT_NONE.getValue())
-        .build();
-    
-    
+            .name("Client Authentication")
+            .description("Specifies whether or not the Processor should authenticate clients. This value is ignored if the <SSL Context Service> "
+                    + "Property is not specified or the SSL Context provided uses only a KeyStore and not a TrustStore.")
+            .required(true)
+            .allowableValues(CLIENT_NONE, CLIENT_WANT, CLIENT_NEED)
+            .defaultValue(CLIENT_NONE.getValue())
+            .build();
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
-        .name("success")
-        .description("All content that is received is routed to the 'success' relationship")
-        .build();
-    
+            .name("success")
+            .description("All content that is received is routed to the 'success' relationship")
+            .build();
+
     private volatile Server server;
     private final BlockingQueue<HttpRequestContainer> containerQueue = new LinkedBlockingQueue<>(50);
-    
-    
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
@@ -231,39 +245,38 @@ public class HandleHttpRequest extends AbstractProcessor {
 
         return descriptors;
     }
-    
+
     @Override
     public Set<Relationship> getRelationships() {
         return Collections.singleton(REL_SUCCESS);
     }
-    
-    
+
     @OnScheduled
     public void initializeServer(final ProcessContext context) throws Exception {
         final String host = context.getProperty(HOSTNAME).getValue();
         final int port = context.getProperty(PORT).asInteger();
         final SSLContextService sslService = context.getProperty(SSL_CONTEXT).asControllerService(SSLContextService.class);
-        
+
         final String clientAuthValue = context.getProperty(CLIENT_AUTH).getValue();
         final boolean need;
         final boolean want;
-        if ( CLIENT_NEED.equals(clientAuthValue) ) {
+        if (CLIENT_NEED.equals(clientAuthValue)) {
             need = true;
             want = false;
-        } else if ( CLIENT_WANT.equals(clientAuthValue) ) {
+        } else if (CLIENT_WANT.equals(clientAuthValue)) {
             need = false;
             want = true;
         } else {
             need = false;
             want = false;
         }
-        
+
         final SslContextFactory sslFactory = (sslService == null) ? null : createSslFactory(sslService, need, want);
         final Server server = new Server(port);
-        
+
         // create the http configuration
         final HttpConfiguration httpConfiguration = new HttpConfiguration();
-        if ( sslFactory == null ) {
+        if (sslFactory == null) {
             // create the connector
             final ServerConnector http = new ServerConnector(server, new HttpConnectionFactory(httpConfiguration));
 
@@ -274,7 +287,7 @@ public class HandleHttpRequest extends AbstractProcessor {
             http.setPort(port);
 
             // add this connector
-            server.setConnectors(new Connector[] {http});
+            server.setConnectors(new Connector[]{http});
         } else {
             // add some secure config
             final HttpConfiguration httpsConfiguration = new HttpConfiguration(httpConfiguration);
@@ -283,9 +296,7 @@ public class HandleHttpRequest extends AbstractProcessor {
             httpsConfiguration.addCustomizer(new SecureRequestCustomizer());
 
             // build the connector
-            final ServerConnector https = new ServerConnector(server,
-                    new SslConnectionFactory(sslFactory, "http/1.1"),
-                    new HttpConnectionFactory(httpsConfiguration));
+            final ServerConnector https = new ServerConnector(server, new SslConnectionFactory(sslFactory, "http/1.1"), new HttpConnectionFactory(httpsConfiguration));
 
             // set host and port
             if (StringUtils.isNotBlank(host)) {
@@ -294,87 +305,88 @@ public class HandleHttpRequest extends AbstractProcessor {
             https.setPort(port);
 
             // add this connector
-            server.setConnectors(new Connector[] {https});
+            server.setConnectors(new Connector[]{https});
         }
-        
+
         final Set<String> allowedMethods = new HashSet<>();
-        if ( context.getProperty(ALLOW_GET).asBoolean() ) {
+        if (context.getProperty(ALLOW_GET).asBoolean()) {
             allowedMethods.add("GET");
         }
-        if ( context.getProperty(ALLOW_POST).asBoolean() ) {
+        if (context.getProperty(ALLOW_POST).asBoolean()) {
             allowedMethods.add("POST");
         }
-        if ( context.getProperty(ALLOW_PUT).asBoolean() ) {
+        if (context.getProperty(ALLOW_PUT).asBoolean()) {
             allowedMethods.add("PUT");
         }
-        if ( context.getProperty(ALLOW_DELETE).asBoolean() ) {
+        if (context.getProperty(ALLOW_DELETE).asBoolean()) {
             allowedMethods.add("DELETE");
         }
-        if ( context.getProperty(ALLOW_HEAD).asBoolean() ) {
+        if (context.getProperty(ALLOW_HEAD).asBoolean()) {
             allowedMethods.add("HEAD");
         }
-        if ( context.getProperty(ALLOW_OPTIONS).asBoolean() ) {
+        if (context.getProperty(ALLOW_OPTIONS).asBoolean()) {
             allowedMethods.add("OPTIONS");
         }
-        
+
         final String additionalMethods = context.getProperty(ADDITIONAL_METHODS).getValue();
-        if ( additionalMethods != null ) {
-            for ( final String additionalMethod : additionalMethods.split(",") ) {
+        if (additionalMethods != null) {
+            for (final String additionalMethod : additionalMethods.split(",")) {
                 final String trimmed = additionalMethod.trim();
-                if ( !trimmed.isEmpty() ) {
+                if (!trimmed.isEmpty()) {
                     allowedMethods.add(trimmed.toUpperCase());
                 }
             }
         }
-        
+
         final String pathRegex = context.getProperty(PATH_REGEX).getValue();
         final Pattern pathPattern = (pathRegex == null) ? null : Pattern.compile(pathRegex);
-        
+
         server.setHandler(new AbstractHandler() {
             @Override
-            public void handle(final String target, final Request baseRequest, final HttpServletRequest request, 
-                        final HttpServletResponse response) throws IOException, ServletException {
-                
+            public void handle(final String target, final Request baseRequest, final HttpServletRequest request, final HttpServletResponse response)
+                    throws IOException, ServletException {
+
                 final String requestUri = request.getRequestURI();
-                if ( !allowedMethods.contains(request.getMethod().toUpperCase()) ) {
-                    getLogger().info("Sending back METHOD_NOT_ALLOWED response to {}; method was {}; request URI was {}", 
-                            new Object[] {request.getRemoteAddr(), request.getMethod(), requestUri});
+                if (!allowedMethods.contains(request.getMethod().toUpperCase())) {
+                    getLogger().info("Sending back METHOD_NOT_ALLOWED response to {}; method was {}; request URI was {}",
+                            new Object[]{request.getRemoteAddr(), request.getMethod(), requestUri});
                     response.sendError(Status.METHOD_NOT_ALLOWED.getStatusCode());
                     return;
                 }
-                
-                if ( pathPattern != null ) {
+
+                if (pathPattern != null) {
                     final URI uri;
                     try {
                         uri = new URI(requestUri);
                     } catch (final URISyntaxException e) {
                         throw new ServletException(e);
                     }
-                    
-                    if ( !pathPattern.matcher(uri.getPath()).matches() ) {
+
+                    if (!pathPattern.matcher(uri.getPath()).matches()) {
                         response.sendError(Status.NOT_FOUND.getStatusCode());
-                        getLogger().info("Sending back NOT_FOUND response to {}; request was {} {}", 
-                                new Object[] {request.getRemoteAddr(), request.getMethod(), requestUri});
+                        getLogger().info("Sending back NOT_FOUND response to {}; request was {} {}",
+                                new Object[]{request.getRemoteAddr(), request.getMethod(), requestUri});
                         return;
                     }
                 }
-                
+
                 // If destination queues full, send back a 503: Service Unavailable.
-                if ( context.getAvailableRelationships().isEmpty() ) {
+                if (context.getAvailableRelationships().isEmpty()) {
                     response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
                     return;
                 }
-                
+
                 // Right now, that information, though, is only in the ProcessSession, not the ProcessContext,
                 // so it is not known to us. Should see if it can be added to the ProcessContext.
                 final AsyncContext async = baseRequest.startAsync();
                 final boolean added = containerQueue.offer(new HttpRequestContainer(request, response, async));
-                
-                if ( added ) {
-                    getLogger().debug("Added Http Request to queue for {} {} from {}", new Object[] {request.getMethod(), requestUri, request.getRemoteAddr()});
+
+                if (added) {
+                    getLogger().debug("Added Http Request to queue for {} {} from {}",
+                            new Object[]{request.getMethod(), requestUri, request.getRemoteAddr()});
                 } else {
-                    getLogger().info("Sending back a SERVICE_UNAVAILABLE response to {}; request was {} {}", 
-                            new Object[] {request.getRemoteAddr(), request.getMethod(), request.getRemoteAddr()});
+                    getLogger().info("Sending back a SERVICE_UNAVAILABLE response to {}; request was {} {}",
+                            new Object[]{request.getRemoteAddr(), request.getMethod(), request.getRemoteAddr()});
 
                     response.sendError(Status.SERVICE_UNAVAILABLE.getStatusCode());
                     response.flushBuffer();
@@ -382,63 +394,63 @@ public class HandleHttpRequest extends AbstractProcessor {
                 }
             }
         });
-        
+
         this.server = server;
         server.start();
-        
+
         getLogger().info("Server started and listening on port " + getPort());
     }
-    
+
     protected int getPort() {
-        for ( final Connector connector : server.getConnectors() ) {
-            if ( connector instanceof ServerConnector ) {
+        for (final Connector connector : server.getConnectors()) {
+            if (connector instanceof ServerConnector) {
                 return ((ServerConnector) connector).getLocalPort();
             }
         }
-        
+
         throw new IllegalStateException("Server is not listening on any ports");
     }
-    
+
     protected int getRequestQueueSize() {
         return containerQueue.size();
     }
-    
+
     private SslContextFactory createSslFactory(final SSLContextService sslService, final boolean needClientAuth, final boolean wantClientAuth) {
         final SslContextFactory sslFactory = new SslContextFactory();
-        
+
         sslFactory.setNeedClientAuth(needClientAuth);
         sslFactory.setWantClientAuth(wantClientAuth);
-        
-        if ( sslService.isKeyStoreConfigured() ) {
+
+        if (sslService.isKeyStoreConfigured()) {
             sslFactory.setKeyStorePath(sslService.getKeyStoreFile());
             sslFactory.setKeyStorePassword(sslService.getKeyStorePassword());
             sslFactory.setKeyStoreType(sslService.getKeyStoreType());
         }
 
-        if ( sslService.isTrustStoreConfigured() ) {
+        if (sslService.isTrustStoreConfigured()) {
             sslFactory.setTrustStorePath(sslService.getTrustStoreFile());
             sslFactory.setTrustStorePassword(sslService.getTrustStorePassword());
             sslFactory.setTrustStoreType(sslService.getTrustStoreType());
         }
-        
+
         return sslFactory;
     }
-    
+
     @OnStopped
     public void shutdown() throws Exception {
-        if ( server != null ) {
+        if (server != null) {
             getLogger().debug("Shutting down server");
             server.stop();
             server.destroy();
             server.join();
-            getLogger().info("Shut down {}", new Object[] {server});
+            getLogger().info("Shut down {}", new Object[]{server});
         }
     }
-    
+
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final HttpRequestContainer container = containerQueue.poll();
-        if ( container == null ) {
+        if (container == null) {
             return;
         }
 
@@ -448,13 +460,14 @@ public class HandleHttpRequest extends AbstractProcessor {
         try {
             flowFile = session.importFrom(request.getInputStream(), flowFile);
         } catch (final IOException e) {
-            getLogger().error("Failed to receive content from HTTP Request from {} due to {}", new Object[] {request.getRemoteAddr(), e});
+            getLogger().error("Failed to receive content from HTTP Request from {} due to {}",
+                    new Object[]{request.getRemoteAddr(), e});
             session.remove(flowFile);
             return;
         }
-        
+
         final String charset = request.getCharacterEncoding() == null ? context.getProperty(URL_CHARACTER_SET).getValue() : request.getCharacterEncoding();
-        
+
         final String contextIdentifier = UUID.randomUUID().toString();
         final Map<String, String> attributes = new HashMap<>();
         try {
@@ -465,7 +478,7 @@ public class HandleHttpRequest extends AbstractProcessor {
             putAttribute(attributes, "http.method", request.getMethod());
             putAttribute(attributes, "http.local.addr", request.getLocalAddr());
             putAttribute(attributes, "http.local.name", request.getLocalName());
-            if ( request.getQueryString() != null ) {
+            if (request.getQueryString() != null) {
                 putAttribute(attributes, "http.query.string", URLDecoder.decode(request.getQueryString(), charset));
             }
             putAttribute(attributes, "http.remote.host", request.getRemoteHost());
@@ -474,26 +487,26 @@ public class HandleHttpRequest extends AbstractProcessor {
             putAttribute(attributes, "http.request.uri", request.getRequestURI());
             putAttribute(attributes, "http.request.url", request.getRequestURL().toString());
             putAttribute(attributes, "http.auth.type", request.getAuthType());
-            
+
             putAttribute(attributes, "http.requested.session.id", request.getRequestedSessionId());
-            if ( request.getDispatcherType() != null ) {
+            if (request.getDispatcherType() != null) {
                 putAttribute(attributes, "http.dispatcher.type", request.getDispatcherType().name());
             }
             putAttribute(attributes, "http.character.encoding", request.getCharacterEncoding());
             putAttribute(attributes, "http.locale", request.getLocale());
             putAttribute(attributes, "http.server.name", request.getServerName());
             putAttribute(attributes, "http.server.port", request.getServerPort());
-            
+
             final Enumeration<String> paramEnumeration = request.getParameterNames();
-            while ( paramEnumeration.hasMoreElements() ) {
+            while (paramEnumeration.hasMoreElements()) {
                 final String paramName = paramEnumeration.nextElement();
                 final String value = request.getParameter(paramName);
                 attributes.put("http.param." + paramName, value);
             }
-            
+
             final Cookie[] cookies = request.getCookies();
-            if ( cookies != null ) {
-                for ( final Cookie cookie : cookies ) {
+            if (cookies != null) {
+                for (final Cookie cookie : cookies) {
                     final String name = cookie.getName();
                     final String cookiePrefix = "http.cookie." + name + ".";
                     attributes.put(cookiePrefix + "value", cookie.getValue());
@@ -504,25 +517,25 @@ public class HandleHttpRequest extends AbstractProcessor {
                     attributes.put(cookiePrefix + "secure", String.valueOf(cookie.getSecure()));
                 }
             }
-            
+
             final String queryString = request.getQueryString();
-            if ( queryString != null ) {
+            if (queryString != null) {
                 final String[] params = URL_QUERY_PARAM_DELIMITER.split(queryString);
-                for ( final String keyValueString : params ) {
+                for (final String keyValueString : params) {
                     final int indexOf = keyValueString.indexOf("=");
-                    if ( indexOf < 0 ) {
+                    if (indexOf < 0) {
                         // no =, then it's just a key with no value
                         attributes.put("http.query.param." + URLDecoder.decode(keyValueString, charset), "");
                     } else {
                         final String key = keyValueString.substring(0, indexOf);
                         final String value;
-                        
-                        if ( indexOf == keyValueString.length() - 1 ) {
+
+                        if (indexOf == keyValueString.length() - 1) {
                             value = "";
                         } else {
                             value = keyValueString.substring(indexOf + 1);
                         }
-                        
+
                         attributes.put("http.query.param." + URLDecoder.decode(key, charset), URLDecoder.decode(value, charset));
                     }
                 }
@@ -530,79 +543,81 @@ public class HandleHttpRequest extends AbstractProcessor {
         } catch (final UnsupportedEncodingException uee) {
             throw new ProcessException("Invalid character encoding", uee);  // won't happen because charset has been validated
         }
-        
+
         final Enumeration<String> headerNames = request.getHeaderNames();
-        while ( headerNames.hasMoreElements() ) {
+        while (headerNames.hasMoreElements()) {
             final String headerName = headerNames.nextElement();
             final String headerValue = request.getHeader(headerName);
             putAttribute(attributes, "http.headers." + headerName, headerValue);
         }
-        
+
         final Principal principal = request.getUserPrincipal();
-        if ( principal != null ) {
+        if (principal != null) {
             putAttribute(attributes, "http.principal.name", principal.getName());
         }
-        
+
         final X509Certificate certs[] = (X509Certificate[]) request.getAttribute("javax.servlet.request.X509Certificate");
         final String subjectDn;
-        if ( certs != null && certs.length > 0 ) {
+        if (certs != null && certs.length > 0) {
             final X509Certificate cert = certs[0];
             subjectDn = cert.getSubjectDN().getName();
             final String issuerDn = cert.getIssuerDN().getName();
-            
+
             putAttribute(attributes, "http.subject.dn", subjectDn);
             putAttribute(attributes, "http.issuer.dn", issuerDn);
         } else {
             subjectDn = null;
         }
-        
+
         flowFile = session.putAllAttributes(flowFile, attributes);
-        
+
         final HttpContextMap contextMap = context.getProperty(HTTP_CONTEXT_MAP).asControllerService(HttpContextMap.class);
-		final boolean registered = contextMap.register(contextIdentifier, request, container.getResponse(), container.getContext());
-		
-		if ( !registered ) {
-            getLogger().warn("Received request from {} but could not process it because too many requests are already outstanding; responding with SERVICE_UNAVAILABLE", new Object[] {request.getRemoteAddr()});
-            
+        final boolean registered = contextMap.register(contextIdentifier, request, container.getResponse(), container.getContext());
+
+        if (!registered) {
+            getLogger().warn("Received request from {} but could not process it because too many requests are already outstanding; responding with SERVICE_UNAVAILABLE",
+                    new Object[]{request.getRemoteAddr()});
+
             try {
                 container.getResponse().setStatus(Status.SERVICE_UNAVAILABLE.getStatusCode());
                 container.getResponse().flushBuffer();
                 container.getContext().complete();
             } catch (final Exception e) {
-                getLogger().warn("Failed to respond with SERVICE_UNAVAILABLE message to {} due to {}", new Object[] {request.getRemoteAddr(), e});
+                getLogger().warn("Failed to respond with SERVICE_UNAVAILABLE message to {} due to {}",
+                        new Object[]{request.getRemoteAddr(), e});
             }
-            
+
             return;
         }
-        
+
         final long receiveMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
         session.getProvenanceReporter().receive(flowFile, request.getRequestURI(), "Received from " + request.getRemoteAddr() + (subjectDn == null ? "" : " with DN=" + subjectDn), receiveMillis);
         session.transfer(flowFile, REL_SUCCESS);
-        getLogger().info("Transferring {} to 'success'; received from {}", new Object[] {flowFile, request.getRemoteAddr()});
+        getLogger().info("Transferring {} to 'success'; received from {}", new Object[]{flowFile, request.getRemoteAddr()});
     }
-    
+
     private void putAttribute(final Map<String, String> map, final String key, final Object value) {
-        if ( value == null ) {
+        if (value == null) {
             return;
         }
-        
+
         putAttribute(map, key, value.toString());
     }
-    
+
     private void putAttribute(final Map<String, String> map, final String key, final String value) {
-        if ( value == null ) {
+        if (value == null) {
             return;
         }
-        
+
         map.put(key, value);
     }
-    
-    
+
     private static class HttpRequestContainer {
+
         private final HttpServletRequest request;
         private final HttpServletResponse response;
         private final AsyncContext context;
-        
+
         public HttpRequestContainer(final HttpServletRequest request, final HttpServletResponse response, final AsyncContext async) {
             this.request = request;
             this.response = response;

@@ -34,7 +34,7 @@ import org.apache.nifi.controller.repository.claim.ContentClaimManager;
 public class VolatileFlowFileRepository implements FlowFileRepository {
 
     private final AtomicLong idGenerator = new AtomicLong(0L);
-    private ContentClaimManager claimManager;	// effectively final
+    private ContentClaimManager claimManager; // effectively final
 
     @Override
     public void initialize(final ContentClaimManager claimManager) {

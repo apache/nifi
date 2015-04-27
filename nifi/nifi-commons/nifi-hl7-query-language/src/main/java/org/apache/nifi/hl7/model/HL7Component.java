@@ -19,6 +19,8 @@ package org.apache.nifi.hl7.model;
 import java.util.List;
 
 public interface HL7Component {
-	String getValue();
-	List<HL7Component> getComponents();
+
+    String getValue();
+
+    List<HL7Component> getComponents();
 }

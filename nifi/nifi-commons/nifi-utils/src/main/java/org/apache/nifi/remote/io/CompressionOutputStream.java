@@ -61,7 +61,7 @@ public class CompressionOutputStream extends OutputStream {
      * Compresses the currently buffered chunk of data and sends it to the
      * output stream
      *
-     * @throws IOException
+     * @throws IOException if issues occur writing to stream
      */
     protected void compressAndWrite() throws IOException {
         if (bufferIndex <= 0) {

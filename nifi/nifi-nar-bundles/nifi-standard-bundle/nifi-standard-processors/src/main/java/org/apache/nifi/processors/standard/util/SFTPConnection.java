@@ -23,10 +23,6 @@ import java.io.IOException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-/**
- *
- * @author
- */
 public final class SFTPConnection implements Closeable {
 
     private static final Log logger = LogFactory.getLog(SFTPConnection.class);
@@ -46,11 +42,6 @@ public final class SFTPConnection implements Closeable {
         return sftp;
     }
 
-    /**
-     * Call this method to release the connection properly.
-     *
-     * @throws IOException
-     */
     @Override
     public void close() throws IOException {
         if (null == sftp) {

@@ -64,8 +64,10 @@ import org.apache.nifi.util.search.ahocorasick.SearchState;
 @SideEffectFree
 @SupportsBatching
 @Tags({"aho-corasick", "scan", "content", "byte sequence", "search", "find", "dictionary"})
-@CapabilityDescription("Scans the content of FlowFiles for terms that are found in a user-supplied dictionary. If a term is matched, the UTF-8 encoded version of the term will be added to the FlowFile using the 'matching.term' attribute")
-@WritesAttribute(attribute="matching.term", description="The term that caused the Processor to route the FlowFile to the 'matched' relationship; if FlowFile is routed to the 'unmatched' relationship, this attribute is not added")
+@CapabilityDescription("Scans the content of FlowFiles for terms that are found in a user-supplied dictionary. If a term is matched, the UTF-8 "
+        + "encoded version of the term will be added to the FlowFile using the 'matching.term' attribute")
+@WritesAttribute(attribute = "matching.term", description = "The term that caused the Processor to route the FlowFile to the 'matched' relationship; "
+        + "if FlowFile is routed to the 'unmatched' relationship, this attribute is not added")
 public class ScanContent extends AbstractProcessor {
 
     public static final String TEXT_ENCODING = "text";
@@ -80,14 +82,23 @@ public class ScanContent extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor DICTIONARY_ENCODING = new PropertyDescriptor.Builder()
             .name("Dictionary Encoding")
-            .description("Indicates how the dictionary is encoded. If 'text', dictionary terms are new-line delimited and UTF-8 encoded; if 'binary', dictionary terms are denoted by a 4-byte integer indicating the term length followed by the term itself")
+            .description("Indicates how the dictionary is encoded. If 'text', dictionary terms are new-line delimited and UTF-8 encoded; "
+                    + "if 'binary', dictionary terms are denoted by a 4-byte integer indicating the term length followed by the term itself")
             .required(true)
             .allowableValues(TEXT_ENCODING, BINARY_ENCODING)
             .defaultValue(TEXT_ENCODING)
             .build();
 
-    public static final Relationship REL_MATCH = new Relationship.Builder().name("matched").description("FlowFiles that match at least one term in the dictionary are routed to this relationship").build();
-    public static final Relationship REL_NO_MATCH = new Relationship.Builder().name("unmatched").description("FlowFiles that do not match any term in the dictionary are routed to this relationship").build();
+    public static final Relationship REL_MATCH = new Relationship.Builder()
+            .name("matched")
+            .description("FlowFiles that match at least one "
+                    + "term in the dictionary are routed to this relationship")
+            .build();
+    public static final Relationship REL_NO_MATCH = new Relationship.Builder()
+            .name("unmatched")
+            .description("FlowFiles that do not match any "
+                    + "term in the dictionary are routed to this relationship")
+            .build();
 
     public static final Charset UTF8 = Charset.forName("UTF-8");
 

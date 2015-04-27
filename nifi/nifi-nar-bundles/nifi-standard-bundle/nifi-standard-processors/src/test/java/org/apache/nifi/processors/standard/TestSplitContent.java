@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.nifi.processors.standard.MergeContent;
-import org.apache.nifi.processors.standard.SplitContent;
 import java.io.IOException;
 import java.util.List;
 
@@ -50,8 +48,7 @@ public class TestSplitContent {
         splits.get(2).assertContentEquals("ub-d");
         splits.get(3).assertContentEquals("ub");
     }
-    
-    
+
     @Test
     public void testTextFormatSplits() {
         final TestRunner runner = TestRunners.newTestRunner(new SplitContent());
@@ -74,7 +71,7 @@ public class TestSplitContent {
         splits.get(2).assertContentEquals("test. And this is yet another ");
         splits.get(3).assertContentEquals("test. Finally this is the last Test.");
         runner.clearTransferState();
-        
+
         runner.setProperty(SplitContent.KEEP_SEQUENCE, "false");
         runner.enqueue(input);
         runner.run();
@@ -86,7 +83,7 @@ public class TestSplitContent {
         splits.get(2).assertContentEquals(". And this is yet another ");
         splits.get(3).assertContentEquals(". Finally this is the last Test.");
         runner.clearTransferState();
-        
+
         runner.setProperty(SplitContent.KEEP_SEQUENCE, "true");
         runner.setProperty(SplitContent.BYTE_SEQUENCE_LOCATION, SplitContent.TRAILING_POSITION.getValue());
         runner.enqueue(input);
@@ -99,7 +96,7 @@ public class TestSplitContent {
         splits.get(2).assertContentEquals(". And this is yet another test");
         splits.get(3).assertContentEquals(". Finally this is the last Test.");
         runner.clearTransferState();
-        
+
         runner.setProperty(SplitContent.KEEP_SEQUENCE, "true");
         runner.setProperty(SplitContent.BYTE_SEQUENCE_LOCATION, SplitContent.TRAILING_POSITION.getValue());
         runner.enqueue("This is a test. This is another test. And this is yet another test. Finally this is the last test".getBytes());
@@ -112,7 +109,7 @@ public class TestSplitContent {
         splits.get(2).assertContentEquals(". And this is yet another test");
         splits.get(3).assertContentEquals(". Finally this is the last test");
         runner.clearTransferState();
-        
+
         runner.setProperty(SplitContent.KEEP_SEQUENCE, "true");
         runner.setProperty(SplitContent.BYTE_SEQUENCE_LOCATION, SplitContent.LEADING_POSITION.getValue());
         runner.enqueue("This is a test. This is another test. And this is yet another test. Finally this is the last test".getBytes());
@@ -125,11 +122,10 @@ public class TestSplitContent {
         splits.get(2).assertContentEquals("test. And this is yet another ");
         splits.get(3).assertContentEquals("test. Finally this is the last ");
         splits.get(4).assertContentEquals("test");
-        
+
         runner.clearTransferState();
     }
-    
-    
+
     @Test
     public void testTextFormatTrailingPosition() {
         final TestRunner runner = TestRunners.newTestRunner(new SplitContent());
@@ -150,8 +146,7 @@ public class TestSplitContent {
         splits.get(1).assertContentEquals("-a-dub");
         splits.get(2).assertContentEquals("-dub");
     }
-    
-    
+
     @Test
     public void testSmallSplits() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new SplitContent());

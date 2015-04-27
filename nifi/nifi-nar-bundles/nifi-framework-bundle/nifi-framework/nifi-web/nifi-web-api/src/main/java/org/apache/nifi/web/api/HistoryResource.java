@@ -262,7 +262,7 @@ public class HistoryResource extends ApplicationResource {
         // generate the response
         return generateOkResponse(entity).build();
     }
-    
+
     /**
      * Gets the actions for the specified controller service.
      *
@@ -293,7 +293,7 @@ public class HistoryResource extends ApplicationResource {
         // generate the response
         return generateOkResponse(entity).build();
     }
-    
+
     /**
      * Gets the actions for the specified reporting task.
      *
@@ -324,7 +324,7 @@ public class HistoryResource extends ApplicationResource {
         // generate the response
         return generateOkResponse(entity).build();
     }
-    
+
     /* setters */
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;

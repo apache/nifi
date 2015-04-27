@@ -43,13 +43,23 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Base class for PutFTP & PutSFTP
- * @param <T>
+ *
+ * @param <T> type of transfer
  */
 public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractProcessor {
 
-    public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("FlowFiles that are successfully sent will be routed to success").build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure").description("FlowFiles that failed to send to the remote system; failure is usually looped back to this processor").build();
-    public static final Relationship REL_REJECT = new Relationship.Builder().name("reject").description("FlowFiles that were rejected by the destination system").build();
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("FlowFiles that are successfully sent will be routed to success")
+            .build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("FlowFiles that failed to send to the remote system; failure is usually looped back to this processor")
+            .build();
+    public static final Relationship REL_REJECT = new Relationship.Builder()
+            .name("reject")
+            .description("FlowFiles that were rejected by the destination system")
+            .build();
 
     private final Set<Relationship> relationships;
 
@@ -104,8 +114,8 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
                 }
 
                 final boolean rejectZeroByteFiles = context.getProperty(FileTransfer.REJECT_ZERO_BYTE).asBoolean();
-                final ConflictResult conflictResult = identifyAndResolveConflictFile(context.getProperty(FileTransfer.CONFLICT_RESOLUTION).getValue(),
-                        transfer, workingDirPath, flowFile, rejectZeroByteFiles, logger);
+                final ConflictResult conflictResult
+                        = identifyAndResolveConflictFile(context.getProperty(FileTransfer.CONFLICT_RESOLUTION).getValue(), transfer, workingDirPath, flowFile, rejectZeroByteFiles, logger);
 
                 if (conflictResult.isTransfer()) {
                     final StopWatch stopWatch = new StopWatch();
@@ -148,7 +158,10 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
 
                 session.transfer(flowFile, conflictResult.getRelationship());
                 session.commit();
-            } while (isScheduled() && (getRelationships().size() == context.getAvailableRelationships().size()) && (++fileCount < maxNumberOfFiles) && ((flowFile = session.get()) != null));
+            } while (isScheduled()
+                    && (getRelationships().size() == context.getAvailableRelationships().size())
+                    && (++fileCount < maxNumberOfFiles)
+                    && ((flowFile = session.get()) != null));
         } catch (final IOException e) {
             context.yield();
             logger.error("Unable to transfer {} to remote host {} due to {}", new Object[]{flowFile, hostname, e});
@@ -168,7 +181,14 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
     }
 
     //Attempts to identify naming or content issues with files before they are transferred.
-    private ConflictResult identifyAndResolveConflictFile(final String conflictResolutionType, final T transfer, final String path, final FlowFile flowFile, final boolean rejectZeroByteFiles, final ProcessorLog logger) throws IOException {
+    private ConflictResult identifyAndResolveConflictFile(
+            final String conflictResolutionType,
+            final T transfer,
+            final String path,
+            final FlowFile flowFile,
+            final boolean rejectZeroByteFiles,
+            final ProcessorLog logger)
+            throws IOException {
         Relationship destinationRelationship = REL_SUCCESS;
         String fileName = flowFile.getAttribute(CoreAttributes.FILENAME.key());
         boolean transferFile = true;

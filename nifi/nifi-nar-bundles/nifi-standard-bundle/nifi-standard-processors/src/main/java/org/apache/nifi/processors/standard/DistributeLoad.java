@@ -63,9 +63,11 @@ import org.apache.nifi.processor.util.StandardValidators;
         + "strategy, the default is to assign each destination a weighting of 1 (evenly distributed). However, optional properties"
         + "can be added to the change this; adding a property with the name '5' and value '10' means that the relationship with name "
         + "'5' will be receive 10 FlowFiles in each iteration instead of 1.")
-@DynamicProperty(name="The relationship name(positive number)", value="The relationship Weight(positive number)", description="adding a property with the name '5' and value '10' means that the relationship with name "
+@DynamicProperty(name = "The relationship name(positive number)", value = "The relationship Weight(positive number)", description = "adding a "
+        + "property with the name '5' and value '10' means that the relationship with name "
         + "'5' will be receive 10 FlowFiles in each iteration instead of 1.")
-@DynamicRelationship(name="A number 1..<Number Of Relationships>", description="FlowFiles are sent to this relationship per the <Distribution Strategy>")
+@DynamicRelationship(name = "A number 1..<Number Of Relationships>", description = "FlowFiles are sent to this relationship per the "
+        + "<Distribution Strategy>")
 public class DistributeLoad extends AbstractProcessor {
 
     public static final String STRATEGY_ROUND_ROBIN = "round robin";
@@ -81,8 +83,9 @@ public class DistributeLoad extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor DISTRIBUTION_STRATEGY = new PropertyDescriptor.Builder()
             .name("Distribution Strategy")
-            .description(
-                    "Determines how the load will be distributed. If using Round Robin, will not distribute any FlowFiles unless all destinations can accept FlowFiles; when using Next Available, will distribute FlowFiles as long as at least 1 destination can accept FlowFiles.")
+            .description("Determines how the load will be distributed. If using Round Robin, will not distribute any FlowFiles unless all "
+                    + "destinations can accept FlowFiles; when using Next Available, will distribute FlowFiles as long as at least 1 "
+                    + "destination can accept FlowFiles.")
             .required(true)
             .allowableValues(STRATEGY_ROUND_ROBIN, STRATEGY_NEXT_AVAILABLE, STRATEGY_LOAD_DISTRIBUTION_SERVICE)
             .defaultValue(STRATEGY_ROUND_ROBIN)
@@ -96,37 +99,23 @@ public class DistributeLoad extends AbstractProcessor {
 
                 @Override
                 public ValidationResult validate(String subject, String input, ValidationContext context) {
-                    ValidationResult result = new ValidationResult.Builder()
-                    .subject(subject)
-                    .valid(true)
-                    .input(input)
-                    .explanation("Good FQDNs")
-                    .build();
+                    ValidationResult result = new ValidationResult.Builder().subject(subject).valid(true).input(input).explanation("Good FQDNs").build();
                     if (null == input) {
-                        result = new ValidationResult.Builder()
-                        .subject(subject)
-                        .input(input)
-                        .valid(false)
-                        .explanation("Need to specify delimited list of FQDNs")
-                        .build();
+                        result = new ValidationResult.Builder().subject(subject).input(input).valid(false)
+                        .explanation("Need to specify delimited list of FQDNs").build();
                         return result;
                     }
                     String[] hostNames = input.split("(?:,+|;+|\\s+)");
                     for (String hostName : hostNames) {
                         if (StringUtils.isNotBlank(hostName) && !hostName.contains(".")) {
-                            result = new ValidationResult.Builder()
-                            .subject(subject)
-                            .input(input)
-                            .valid(false)
-                            .explanation("Need a FQDN rather than a simple host name.")
-                            .build();
+                            result = new ValidationResult.Builder().subject(subject).input(input).valid(false)
+                            .explanation("Need a FQDN rather than a simple host name.").build();
                             return result;
                         }
                     }
                     return result;
                 }
-            })
-            .build();
+            }).build();
     public static final PropertyDescriptor LOAD_DISTRIBUTION_SERVICE_TEMPLATE = new PropertyDescriptor.Builder()
             .name("Load Distribution Service ID")
             .description("The identifier of the Load Distribution Service")
@@ -155,7 +144,8 @@ public class DistributeLoad extends AbstractProcessor {
     }
 
     private static Relationship createRelationship(final int num) {
-        return new Relationship.Builder().name(String.valueOf(num)).description("Where to route flowfiles for this relationship index").build();
+        return new Relationship.Builder().name(String.valueOf(num))
+                .description("Where to route flowfiles for this relationship index").build();
     }
 
     @Override
@@ -210,12 +200,12 @@ public class DistributeLoad extends AbstractProcessor {
         try {
             final int value = Integer.parseInt(propertyDescriptorName);
             if (value <= 0 || value > numRelationships) {
-                return new PropertyDescriptor.Builder().addValidator(new InvalidPropertyNameValidator(propertyDescriptorName))
-                        .name(propertyDescriptorName).build();
+                return new PropertyDescriptor.Builder()
+                        .addValidator(new InvalidPropertyNameValidator(propertyDescriptorName)).name(propertyDescriptorName).build();
             }
         } catch (final NumberFormatException e) {
-            return new PropertyDescriptor.Builder().addValidator(new InvalidPropertyNameValidator(propertyDescriptorName))
-                    .name(propertyDescriptorName).build();
+            return new PropertyDescriptor.Builder()
+                    .addValidator(new InvalidPropertyNameValidator(propertyDescriptorName)).name(propertyDescriptorName).build();
         }
 
         // validate that the property value is valid
@@ -232,19 +222,15 @@ public class DistributeLoad extends AbstractProcessor {
                 // make sure Hostnames and Controller service are set
                 PropertyValue propDesc = validationContext.getProperty(HOSTNAMES);
                 if (null == propDesc || null == propDesc.getValue() || propDesc.getValue().isEmpty()) {
-                    results.add(new ValidationResult.Builder()
-                            .subject(HOSTNAMES.getName())
-                            .explanation("Must specify Hostnames when using 'Load Distribution Strategy'")
-                            .valid(false)
-                            .build());
+                    results.add(new ValidationResult.Builder().subject(HOSTNAMES.getName())
+                            .explanation("Must specify Hostnames when using 'Load Distribution Strategy'").valid(false).build());
                 }
                 propDesc = validationContext.getProperty(LOAD_DISTRIBUTION_SERVICE_TEMPLATE);
                 if (null == propDesc || null == propDesc.getValue() || propDesc.getValue().isEmpty()) {
                     results.add(new ValidationResult.Builder()
                             .subject(LOAD_DISTRIBUTION_SERVICE_TEMPLATE.getName())
                             .explanation("Must specify 'Load Distribution Service ID' when using 'Load Distribution Strategy'")
-                            .valid(false)
-                            .build());
+                            .valid(false).build());
                 }
                 if (results.isEmpty()) {
                     int numRels = validationContext.getProperty(NUM_RELATIONSHIPS).asInteger();
@@ -260,13 +246,13 @@ public class DistributeLoad extends AbstractProcessor {
                         results.add(new ValidationResult.Builder()
                                 .subject("Number of Relationships and Hostnames")
                                 .explanation("Number of Relationships must be equal to, or greater than, the number of host names")
-                                .valid(false)
-                                .build());
+                                .valid(false).build());
                     } else {
                         // create new relationships with descriptions of hostname
                         Set<Relationship> relsWithDesc = new TreeSet<>();
                         for (int i = 0; i < numHosts; i++) {
-                            relsWithDesc.add(new Relationship.Builder().name(String.valueOf(i + 1)).description(hostNames[i]).build());
+                            relsWithDesc.add(new Relationship.Builder().name(String.valueOf(i + 1))
+                                    .description(hostNames[i]).build());
                         }
                         // add add'l rels if configuration requires it...it probably shouldn't
                         for (int i = numHosts + 1; i <= numRels; i++) {
@@ -389,8 +375,7 @@ public class DistributeLoad extends AbstractProcessor {
         public ValidationResult validate(final String subject, final String input, final ValidationContext validationContext) {
             return new ValidationResult.Builder().subject("Property Name").input(propertyName)
                     .explanation("Property Name must be a positive integer between 1 and the number of relationships (inclusive)")
-                    .valid(false)
-                    .build();
+                    .valid(false).build();
         }
     }
 
@@ -400,12 +385,9 @@ public class DistributeLoad extends AbstractProcessor {
     private static interface DistributionStrategy {
 
         /**
-         * Returns a mapping of FlowFile to Relationship or <code>null</code> if
-         * the needed relationships are not available to accept files.
-         *
-         * @param session
-         * @param flowFiles
-         * @return
+         * @param context context
+         * @param flowFile flowFile
+         * @return a mapping of FlowFile to Relationship or <code>null</code> if the needed relationships are not available to accept files
          */
         Relationship mapToRelationship(ProcessContext context, FlowFile flowFile);
 

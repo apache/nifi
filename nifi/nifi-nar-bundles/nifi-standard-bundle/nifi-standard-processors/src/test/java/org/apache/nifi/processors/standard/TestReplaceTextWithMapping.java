@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.nifi.processors.standard.ReplaceTextWithMapping;
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
@@ -190,7 +189,8 @@ public class TestReplaceTextWithMapping {
     @Test
     public void testBackReferenceWithTooLargeOfIndexIsEscapedSimple() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new ReplaceTextWithMapping());
-        runner.setProperty(ReplaceTextWithMapping.MAPPING_FILE, Paths.get("src/test/resources/TestReplaceTextWithMapping/color-fruit-excessive-backreference-mapping-simple.txt").toFile().getAbsolutePath());
+        runner.setProperty(ReplaceTextWithMapping.MAPPING_FILE,
+                Paths.get("src/test/resources/TestReplaceTextWithMapping/color-fruit-excessive-backreference-mapping-simple.txt").toFile().getAbsolutePath());
 
         runner.enqueue(Paths.get("src/test/resources/TestReplaceTextWithMapping/colors-without-dashes.txt"));
         runner.run();

@@ -28,56 +28,56 @@ import org.apache.hadoop.fs.Path;
 
 /**
  * A simple POJO for maintaining state about the last HDFS Listing that was performed so that
- * we can avoid pulling the same file multiple times 
+ * we can avoid pulling the same file multiple times
  */
 @XmlType(name = "listing")
 public class HDFSListing {
-	private Date latestTimestamp;
-	private Collection<String> matchingPaths;
-	
-	/**
-	 * @return the modification date of the newest file that was contained in the HDFS Listing
-	 */
-	public Date getLatestTimestamp() {
-		return latestTimestamp;
-	}
-	
-	/**
-	 * Sets the timestamp of the modification date of the newest file that was contained in the HDFS Listing
-	 * 
-	 * @param latestTimestamp the timestamp of the modification date of the newest file that was contained in the HDFS Listing
-	 */
-	public void setLatestTimestamp(Date latestTimestamp) {
-		this.latestTimestamp = latestTimestamp;
-	}
-	
-	/**
-	 * @return a Collection containing the paths of all files in the HDFS Listing whose Modification date
-	 * was equal to {@link #getLatestTimestamp()}
-	 */
-	@XmlTransient
-	public Collection<String> getMatchingPaths() {
-		return matchingPaths;
-	}
-	
-	/**
-	 * @return a Collection of {@link Path} objects equivalent to those returned by {@link #getMatchingPaths()}
-	 */
-	public Set<Path> toPaths() {
-		final Set<Path> paths = new HashSet<>(matchingPaths.size());
-		for ( final String pathname : matchingPaths ) {
-			paths.add(new Path(pathname));
-		}
-		return paths;
-	}
+    private Date latestTimestamp;
+    private Collection<String> matchingPaths;
 
-	/**
-	 * Sets the Collection containing the paths of all files in the HDFS Listing whose Modification Date was
-	 * equal to {@link #getLatestTimestamp()}
-	 * @param matchingPaths
-	 */
-	public void setMatchingPaths(Collection<String> matchingPaths) {
-		this.matchingPaths = matchingPaths;
-	}
+    /**
+     * @return the modification date of the newest file that was contained in the HDFS Listing
+     */
+    public Date getLatestTimestamp() {
+        return latestTimestamp;
+    }
+
+    /**
+     * Sets the timestamp of the modification date of the newest file that was contained in the HDFS Listing
+     *
+     * @param latestTimestamp the timestamp of the modification date of the newest file that was contained in the HDFS Listing
+     */
+    public void setLatestTimestamp(Date latestTimestamp) {
+        this.latestTimestamp = latestTimestamp;
+    }
+
+    /**
+     * @return a Collection containing the paths of all files in the HDFS Listing whose Modification date
+     * was equal to {@link #getLatestTimestamp()}
+     */
+    @XmlTransient
+    public Collection<String> getMatchingPaths() {
+        return matchingPaths;
+    }
+
+    /**
+     * @return a Collection of {@link Path} objects equivalent to those returned by {@link #getMatchingPaths()}
+     */
+    public Set<Path> toPaths() {
+        final Set<Path> paths = new HashSet<>(matchingPaths.size());
+        for ( final String pathname : matchingPaths ) {
+            paths.add(new Path(pathname));
+        }
+        return paths;
+    }
+
+    /**
+     * Sets the Collection containing the paths of all files in the HDFS Listing whose Modification Date was
+     * equal to {@link #getLatestTimestamp()}
+     * @param matchingPaths the paths that have last modified date matching the latest timestamp
+     */
+    public void setMatchingPaths(Collection<String> matchingPaths) {
+        this.matchingPaths = matchingPaths;
+    }
 
 }

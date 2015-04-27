@@ -27,9 +27,7 @@ public class ExtensionDetailsDTO extends ComponentDetailsDTO {
     private String type;
 
     /**
-     * The extension type.
-     *
-     * @return
+     * @return extension type
      */
     public String getType() {
         return type;

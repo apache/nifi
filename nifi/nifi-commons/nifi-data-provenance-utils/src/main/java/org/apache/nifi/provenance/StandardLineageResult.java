@@ -266,7 +266,8 @@ public class StandardLineageResult implements ComputeLineageResult {
                             final FlowFileNode childNode = new FlowFileNode(childUuid, record.getEventTime());
                             final boolean isNewFlowFile = nodes.add(childNode);
                             if (!isNewFlowFile) {
-                                final String msg = "Unable to generate Lineage Graph because multiple events were registered claiming to have generated the same FlowFile (UUID = " + childNode.getFlowFileUuid() + ")";
+                                final String msg = "Unable to generate Lineage Graph because multiple "
+                                        + "events were registered claiming to have generated the same FlowFile (UUID = " + childNode.getFlowFileUuid() + ")";
                                 logger.error(msg);
                                 setError(msg);
                                 return;
@@ -288,12 +289,13 @@ public class StandardLineageResult implements ComputeLineageResult {
                 break;
                 case RECEIVE:
                 case CREATE: {
-                        // for a receive event, we want to create a FlowFile Node that represents the FlowFile received
+                    // for a receive event, we want to create a FlowFile Node that represents the FlowFile received
                     // and create an edge from the Receive Event to the FlowFile Node
                     final LineageNode flowFileNode = new FlowFileNode(record.getFlowFileUuid(), record.getEventTime());
                     final boolean isNewFlowFile = nodes.add(flowFileNode);
                     if (!isNewFlowFile) {
-                        final String msg = "Found cycle in graph. This indicates that multiple events were registered claiming to have generated the same FlowFile (UUID = " + flowFileNode.getFlowFileUuid() + ")";
+                        final String msg = "Found cycle in graph. This indicates that multiple events "
+                                + "were registered claiming to have generated the same FlowFile (UUID = " + flowFileNode.getFlowFileUuid() + ")";
                         setError(msg);
                         logger.error(msg);
                         return;

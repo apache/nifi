@@ -51,13 +51,10 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
 
     /**
      * Writes all the attributes that a processor says it reads and writes
-     * 
-     * @param processor
-     *            the processor to describe
-     * @param xmlStreamWriter
-     *            the xml stream writer to use
-     * @throws XMLStreamException
-     *             thrown if there was a problem writing the XML
+     *
+     * @param processor the processor to describe
+     * @param xmlStreamWriter the xml stream writer to use
+     * @throws XMLStreamException thrown if there was a problem writing the XML
      */
     private void writeAttributeInfo(Processor processor, XMLStreamWriter xmlStreamWriter)
             throws XMLStreamException {
@@ -67,20 +64,18 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
     }
 
     private String defaultIfBlank(final String test, final String defaultValue) {
-    	if ( test == null || test.trim().isEmpty() ) {
-    		return defaultValue;
-    	}
-    	return test;
+        if (test == null || test.trim().isEmpty()) {
+            return defaultValue;
+        }
+        return test;
     }
-    
+
     /**
      * Writes out just the attributes that are being read in a table form.
-     * 
-     * @param xmlStreamWriter
-     *            the xml stream writer to use
-     * @param processor
-     *            the processor to describe
-     * @throws XMLStreamException
+     *
+     * @param xmlStreamWriter the xml stream writer to use
+     * @param processor the processor to describe
+     * @throws XMLStreamException xse
      */
     private void handleReadsAttributes(XMLStreamWriter xmlStreamWriter, final Processor processor)
             throws XMLStreamException {
@@ -102,7 +97,7 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
                 writeSimpleElement(xmlStreamWriter, "td",
                         defaultIfBlank(attribute.description(), "Not Specified"));
                 xmlStreamWriter.writeEndElement();
-                
+
             }
             xmlStreamWriter.writeEndElement();
 
@@ -113,12 +108,10 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
 
     /**
      * Writes out just the attributes that are being written to in a table form.
-     * 
-     * @param xmlStreamWriter
-     *            the xml stream writer to use
-     * @param processor
-     *            the processor to describe
-     * @throws XMLStreamException
+     *
+     * @param xmlStreamWriter the xml stream writer to use
+     * @param processor the processor to describe
+     * @throws XMLStreamException xse
      */
     private void handleWritesAttributes(XMLStreamWriter xmlStreamWriter, final Processor processor)
             throws XMLStreamException {
@@ -150,9 +143,8 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
 
     /**
      * Collects the attributes that a processor is reading from.
-     * 
-     * @param processor
-     *            the processor to describe
+     *
+     * @param processor the processor to describe
      * @return the list of attributes that processor is reading
      */
     private List<ReadsAttribute> getReadsAttributes(Processor processor) {
@@ -173,9 +165,8 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
 
     /**
      * Collects the attributes that a processor is writing to.
-     * 
-     * @param processor
-     *            the processor to describe
+     *
+     * @param processor the processor to describe
      * @return the list of attributes the processor is writing
      */
     private List<WritesAttribute> getWritesAttributes(Processor processor) {
@@ -196,13 +187,10 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
 
     /**
      * Writes a table describing the relations a processor has.
-     * 
-     * @param processor
-     *            the processor to describe
-     * @param xmlStreamWriter
-     *            the stream writer to use
-     * @throws XMLStreamException
-     *             thrown if there was a problem writing the xml
+     *
+     * @param processor the processor to describe
+     * @param xmlStreamWriter the stream writer to use
+     * @throws XMLStreamException thrown if there was a problem writing the xml
      */
     private void writeRelationships(final Processor processor, final XMLStreamWriter xmlStreamWriter)
             throws XMLStreamException {
@@ -229,15 +217,8 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
         }
     }
 
-    /**
-     * Writes dynamic relationship information
-     * 
-     * @param processor
-     * @param xmlStreamWriter
-     * @throws XMLStreamException 
-     */
     private void writeDynamicRelationships(final Processor processor, final XMLStreamWriter xmlStreamWriter) throws XMLStreamException {
-        
+
         List<DynamicRelationship> dynamicRelationships = getDynamicRelationships(processor);
 
         if (dynamicRelationships.size() > 0) {
@@ -264,12 +245,12 @@ public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
 
     private List<DynamicRelationship> getDynamicRelationships(Processor processor) {
         List<DynamicRelationship> results = new ArrayList<>();
-        
+
         DynamicRelationship dynamicRelationships = processor.getClass().getAnnotation(DynamicRelationship.class);
         if (dynamicRelationships != null) {
             results.add(dynamicRelationships);
         }
-        
+
         return results;
     }
 }

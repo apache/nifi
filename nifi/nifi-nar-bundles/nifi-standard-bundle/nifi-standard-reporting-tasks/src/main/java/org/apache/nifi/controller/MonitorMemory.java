@@ -255,7 +255,8 @@ public class MonitorMemory extends AbstractReportingTask {
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
 
             if (!PERCENTAGE_PATTERN.matcher(input).matches() && !DATA_SIZE_PATTERN.matcher(input).matches()) {
-                return new ValidationResult.Builder().input(input).subject(subject).valid(false).explanation("Valid value is a number in the range of 0-99 followed by a percent sign (e.g. 65%) or a Data Size (e.g. 100 MB)").build();
+                return new ValidationResult.Builder().input(input).subject(subject).valid(false)
+                        .explanation("Valid value is a number in the range of 0-99 followed by a percent sign (e.g. 65%) or a Data Size (e.g. 100 MB)").build();
             }
 
             return new ValidationResult.Builder().input(input).subject(subject).valid(true).build();

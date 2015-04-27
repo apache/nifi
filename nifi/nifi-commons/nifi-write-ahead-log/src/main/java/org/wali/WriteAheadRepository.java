@@ -48,7 +48,7 @@ import java.util.Set;
  * one partition or may allow many partitions.
  * </p>
  *
- * @param <T>
+ * @param <T> the type of Record this repository is for
  */
 public interface WriteAheadRepository<T> {
 
@@ -63,7 +63,7 @@ public interface WriteAheadRepository<T> {
      * to be flushed to disk. If false, the data may be stored in Operating
      * System buffers, which improves performance but could cause loss of data
      * if power is lost or the Operating System crashes
-     * @throws IOException
+     * @throws IOException if failure to update repo
      * @throws IllegalArgumentException if multiple records within the given
      * Collection have the same ID, as specified by {@link Record#getId()}
      * method
@@ -78,8 +78,8 @@ public interface WriteAheadRepository<T> {
      * before any updates are issued to the Repository.
      * </p>
      *
-     * @return
-     * @throws IOException
+     * @return recovered records
+     * @throws IOException if failure to read from repo
      * @throws IllegalStateException if any updates have been issued against
      * this Repository before this method is invoked
      */
@@ -92,8 +92,8 @@ public interface WriteAheadRepository<T> {
      * BEFORE {@link update}.
      * </p>
      *
-     * @return
-     * @throws IOException
+     * @return swap location
+     * @throws IOException if failure reading swap locations
      */
     Set<String> getRecoveredSwapLocations() throws IOException;
 
@@ -107,7 +107,7 @@ public interface WriteAheadRepository<T> {
      *
      *
      * @return the number of records that were written to the new snapshot
-     * @throws java.io.IOException
+     * @throws java.io.IOException if failure during checkpoint
      */
     int checkpoint() throws IOException;
 
@@ -116,7 +116,7 @@ public interface WriteAheadRepository<T> {
      * Causes the repository to checkpoint and then close any open resources.
      * </p>
      *
-     * @throws IOException
+     * @throws IOException if failure to shutdown cleanly
      */
     void shutdown() throws IOException;
 }

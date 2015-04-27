@@ -31,9 +31,7 @@ public class ControllerServiceTypesEntity extends Entity {
     private Set<DocumentedTypeDTO> controllerServiceTypes;
 
     /**
-     * The list of controller service types that are being serialized.
-     *
-     * @return
+     * @return list of controller service types that are being serialized
      */
     public Set<DocumentedTypeDTO> getControllerServiceTypes() {
         return controllerServiceTypes;

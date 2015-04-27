@@ -41,7 +41,12 @@ import org.apache.nifi.processor.util.StandardValidators;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 @EventDriven
@@ -61,9 +66,20 @@ public class SplitJson extends AbstractJsonPathProcessor {
             .required(true)
             .build();
 
-    public static final Relationship REL_ORIGINAL = new Relationship.Builder().name("original").description("The original FlowFile that was split into segments. If the FlowFile fails processing, nothing will be sent to this relationship").build();
-    public static final Relationship REL_SPLIT = new Relationship.Builder().name("split").description("All segments of the original FlowFile will be routed to this relationship").build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure").description("If a FlowFile fails processing for any reason (for example, the FlowFile is not valid JSON or the specified path does not exist), it will be routed to this relationship").build();
+    public static final Relationship REL_ORIGINAL = new Relationship.Builder()
+            .name("original")
+            .description("The original FlowFile that was split into segments. If the FlowFile fails processing, nothing will be sent to "
+                    + "this relationship")
+            .build();
+    public static final Relationship REL_SPLIT = new Relationship.Builder()
+            .name("split")
+            .description("All segments of the original FlowFile will be routed to this relationship")
+            .build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("If a FlowFile fails processing for any reason (for example, the FlowFile is not valid JSON or the specified "
+                    + "path does not exist), it will be routed to this relationship")
+            .build();
 
     private List<PropertyDescriptor> properties;
     private Set<Relationship> relationships;
@@ -158,8 +174,7 @@ public class SplitJson extends AbstractJsonPathProcessor {
         }
 
         if (!(jsonPathResult instanceof List)) {
-            logger.error("The evaluated value {} of {} was not a JSON Array compatible type and cannot be split.",
-                    new Object[]{jsonPathResult, jsonPath.getPath()});
+            logger.error("The evaluated value {} of {} was not a JSON Array compatible type and cannot be split.", new Object[]{jsonPathResult, jsonPath.getPath()});
             processSession.transfer(original, REL_FAILURE);
             return;
         }

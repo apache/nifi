@@ -66,11 +66,11 @@ public class MapCacheServer extends AbstractCacheServer {
                 break;
             }
             case "put": {
-            	final byte[] key = readValue(dis);
-            	final byte[] value = readValue(dis);
-            	cache.put(ByteBuffer.wrap(key), ByteBuffer.wrap(value));
+                final byte[] key = readValue(dis);
+                final byte[] value = readValue(dis);
+                cache.put(ByteBuffer.wrap(key), ByteBuffer.wrap(value));
                 dos.writeBoolean(true);
-            	break;
+                break;
             }
             case "containsKey": {
                 final byte[] key = readValue(dis);
@@ -138,8 +138,9 @@ public class MapCacheServer extends AbstractCacheServer {
 
     @Override
     protected void finalize() throws Throwable {
-        if (!stopped)
+        if (!stopped) {
             stop();
+        }
     }
 
     private byte[] readValue(final DataInputStream dis) throws IOException {

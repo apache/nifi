@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.nifi.processors.standard.SplitXml;
 import java.io.IOException;
 import java.io.StringReader;
 import java.nio.file.Paths;

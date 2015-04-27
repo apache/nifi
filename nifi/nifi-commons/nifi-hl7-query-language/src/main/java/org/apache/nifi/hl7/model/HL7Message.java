@@ -20,8 +20,8 @@ import java.util.List;
 
 public interface HL7Message {
 
-	List<HL7Segment> getSegments();
-	
-	List<HL7Segment> getSegments(String segmentType);
-	
+    List<HL7Segment> getSegments();
+
+    List<HL7Segment> getSegments(String segmentType);
+
 }

@@ -36,9 +36,7 @@ public class RemoteProcessGroupPortDTO {
     private Boolean connected;
 
     /**
-     * The comments as configured in the target port.
-     *
-     * @return
+     * @return comments as configured in the target port
      */
     public String getComments() {
         return comments;
@@ -49,10 +47,8 @@ public class RemoteProcessGroupPortDTO {
     }
 
     /**
-     * The number tasks that may transmit flow files to the target port
-     * concurrently.
-     *
-     * @return
+     * @return number tasks that may transmit flow files to the target port
+     * concurrently
      */
     public Integer getConcurrentlySchedulableTaskCount() {
         return concurrentlySchedulableTaskCount;
@@ -63,9 +59,7 @@ public class RemoteProcessGroupPortDTO {
     }
 
     /**
-     * The id of the target port.
-     *
-     * @return
+     * @return id of the target port
      */
     public String getId() {
         return id;
@@ -76,9 +70,7 @@ public class RemoteProcessGroupPortDTO {
     }
 
     /**
-     * The id of the remote process group that this port resides in.
-     *
-     * @return
+     * @return id of the remote process group that this port resides in
      */
     public String getGroupId() {
         return groupId;
@@ -89,9 +81,7 @@ public class RemoteProcessGroupPortDTO {
     }
 
     /**
-     * The name of the target port.
-     *
-     * @return
+     * @return name of the target port
      */
     public String getName() {
         return name;
@@ -102,9 +92,7 @@ public class RemoteProcessGroupPortDTO {
     }
 
     /**
-     * Whether or not this remote group port is configured for transmission.
-     *
-     * @return
+     * @return whether or not this remote group port is configured for transmission
      */
     public Boolean isTransmitting() {
         return transmitting;
@@ -115,9 +103,7 @@ public class RemoteProcessGroupPortDTO {
     }
 
     /**
-     * Whether or not flow file are compressed when sent to this target port.
-     *
-     * @return
+     * @return whether or not flow file are compressed when sent to this target port
      */
     public Boolean getUseCompression() {
         return useCompression;
@@ -128,9 +114,7 @@ public class RemoteProcessGroupPortDTO {
     }
 
     /**
-     * Whether or not the target port exists.
-     *
-     * @return
+     * @return whether or not the target port exists
      */
     public Boolean getExists() {
         return exists;
@@ -141,9 +125,7 @@ public class RemoteProcessGroupPortDTO {
     }
 
     /**
-     * Whether or not the target port is running.
-     *
-     * @return
+     * @return whether or not the target port is running
      */
     public Boolean isTargetRunning() {
         return targetRunning;
@@ -154,9 +136,7 @@ public class RemoteProcessGroupPortDTO {
     }
 
     /**
-     * Whether or not this port has either an incoming or outgoing connection.
-     *
-     * @return
+     * @return whether or not this port has either an incoming or outgoing connection
      */
     public Boolean isConnected() {
         return connected;

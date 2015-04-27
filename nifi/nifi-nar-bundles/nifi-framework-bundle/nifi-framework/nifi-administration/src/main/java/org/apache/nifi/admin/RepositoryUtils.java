@@ -25,7 +25,6 @@ import org.slf4j.Logger;
 /**
  * A utility class for useful methods dealing with the repository
  *
- * @author unattributed
  */
 public class RepositoryUtils {
 
@@ -45,7 +44,7 @@ public class RepositoryUtils {
     /**
      * Closes the given statement quietly - no logging, no exceptions
      *
-     * @param statement
+     * @param statement to close
      */
     public static void closeQuietly(final Statement statement) {
 
@@ -61,7 +60,7 @@ public class RepositoryUtils {
     /**
      * Closes the given result set quietly - no logging, no exceptions
      *
-     * @param resultSet
+     * @param resultSet to close
      */
     public static void closeQuietly(final ResultSet resultSet) {
         if (null != resultSet) {
@@ -76,7 +75,7 @@ public class RepositoryUtils {
     /**
      * Closes the given connection quietly - no logging, no exceptions
      *
-     * @param conn
+     * @param conn to close
      */
     public static void closeQuietly(final Connection conn) {
         if (null != conn) {

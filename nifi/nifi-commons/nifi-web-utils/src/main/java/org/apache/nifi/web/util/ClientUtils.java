@@ -40,10 +40,10 @@ public class ClientUtils {
     /**
      * Gets the content at the specified URI.
      *
-     * @param uri
-     * @return
-     * @throws ClientHandlerException
-     * @throws UniformInterfaceException
+     * @param uri the URI to get the content of
+     * @return the client response resulting from getting the content of the URI
+     * @throws ClientHandlerException if issues occur handling the request
+     * @throws UniformInterfaceException if any interface violations occur
      */
     public ClientResponse get(final URI uri) throws ClientHandlerException, UniformInterfaceException {
         return get(uri, null);
@@ -52,11 +52,11 @@ public class ClientUtils {
     /**
      * Gets the content at the specified URI using the given query parameters.
      *
-     * @param uri
-     * @param queryParams
-     * @return
-     * @throws ClientHandlerException
-     * @throws UniformInterfaceException
+     * @param uri the URI to get the content of
+     * @param queryParams the query parameters to use in the request
+     * @return the client response resulting from getting the content of the URI
+     * @throws ClientHandlerException if issues occur handling the request
+     * @throws UniformInterfaceException if any interface violations occur
      */
     public ClientResponse get(final URI uri, final Map<String, String> queryParams) throws ClientHandlerException, UniformInterfaceException {
         // perform the request
@@ -73,9 +73,9 @@ public class ClientUtils {
     /**
      * Performs a POST using the specified url and entity body.
      *
-     * @param uri
-     * @param entity
-     * @return
+     * @param uri the URI to post to
+     * @param entity the item to post
+     * @return the client response of the request
      */
     public ClientResponse post(URI uri, Object entity) throws ClientHandlerException, UniformInterfaceException {
         // get the resource
@@ -93,9 +93,9 @@ public class ClientUtils {
     /**
      * Performs a POST using the specified url and form data.
      *
-     * @param uri
-     * @param formData
-     * @return
+     * @param uri the uri to post to
+     * @param formData the data to post
+     * @return the client reponse of the post
      */
     public ClientResponse post(URI uri, Map<String, String> formData) throws ClientHandlerException, UniformInterfaceException {
         // convert the form data
@@ -119,10 +119,10 @@ public class ClientUtils {
     /**
      * Performs a HEAD request to the specified URI.
      *
-     * @param uri
-     * @return
-     * @throws ClientHandlerException
-     * @throws UniformInterfaceException
+     * @param uri the uri to request the head of
+     * @return the client response of the request
+     * @throws ClientHandlerException for issues handling the request
+     * @throws UniformInterfaceException for issues with the request
      */
     public ClientResponse head(final URI uri) throws ClientHandlerException, UniformInterfaceException {
         // perform the request

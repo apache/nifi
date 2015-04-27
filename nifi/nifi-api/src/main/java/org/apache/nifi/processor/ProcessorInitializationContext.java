@@ -29,25 +29,19 @@ import org.apache.nifi.logging.ProcessorLog;
 public interface ProcessorInitializationContext {
 
     /**
-     * Returns the unique identifier for this processor
-     *
-     * @return
+     * @return the unique identifier for this processor
      */
     String getIdentifier();
 
     /**
-     * Returns a {@link ProcessorLog} that is tied to this processor that can be
+     * @return a {@link ProcessorLog} that is tied to this processor that can be
      * used to log events
-     *
-     * @return
      */
     ProcessorLog getLogger();
 
     /**
-     * Returns the {@link ControllerServiceLookup} which can be used to obtain
+     * @return the {@link ControllerServiceLookup} which can be used to obtain
      * Controller Services
-     *
-     * @return
      */
     ControllerServiceLookup getControllerServiceLookup();
 }

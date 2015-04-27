@@ -16,13 +16,12 @@
  */
 package org.apache.nifi.cluster.protocol.message;
 
-/**
- * @author unattributed
- */
 public abstract class ProtocolMessage {
+
     private volatile String requestorDN;
-    
+
     public static enum MessageType {
+
         BULLETINS,
         CONNECTION_REQUEST,
         CONNECTION_RESPONSE,
@@ -39,23 +38,24 @@ public abstract class ProtocolMessage {
         RECONNECTION_RESPONSE,
         SERVICE_BROADCAST,
     }
-    
+
     public abstract MessageType getType();
-    
+
     /**
      * Sets the DN of the entity making the request
-     * @param dn
+     *
+     * @param dn dn of the entity making the request
      */
     public void setRequestorDN(final String dn) {
         this.requestorDN = dn;
     }
-    
+
     /**
-     * Returns the DN of the entity that made the request, if using a secure socket. Otherwise, returns <code>null</code>
-     * @return
+     * @return the DN of the entity that made the request, if using a secure
+     * socket. Otherwise, returns <code>null</code>
      */
     public String getRequestorDN() {
         return requestorDN;
     }
-    
+
 }

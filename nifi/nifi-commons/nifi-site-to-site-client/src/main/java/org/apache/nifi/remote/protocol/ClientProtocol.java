@@ -48,37 +48,27 @@ public interface ClientProtocol extends VersionedRemoteResource {
 
     boolean isReadyForFileTransfer();
 
-    
-    
-    
     Transaction startTransaction(Peer peer, FlowFileCodec codec, TransferDirection direction) throws IOException;
-    
-    
+
     /**
-     * returns <code>true</code> if remote instance indicates that the port is
+     * @return <code>true</code> if remote instance indicates that the port is
      * invalid
-     *
-     * @return
      * @throws IllegalStateException if a handshake has not successfully
      * completed
      */
     boolean isPortInvalid() throws IllegalStateException;
 
     /**
-     * returns <code>true</code> if remote instance indicates that the port is
+     * @return <code>true</code> if remote instance indicates that the port is
      * unknown
-     *
-     * @return
      * @throws IllegalStateException if a handshake has not successfully
      * completed
      */
     boolean isPortUnknown();
 
     /**
-     * returns <code>true</code> if remote instance indicates that the port's
+     * @return <code>true</code> if remote instance indicates that the port's
      * destination is full
-     *
-     * @return
      * @throws IllegalStateException if a handshake has not successfully
      * completed
      */

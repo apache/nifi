@@ -26,9 +26,6 @@ import java.security.cert.CertificateException;
 
 import javax.net.ssl.SSLContext;
 
-/**
- * @author unattributed
- */
 public final class ServerSocketConfiguration {
 
     private boolean needClientAuth;
@@ -40,7 +37,8 @@ public final class ServerSocketConfiguration {
     public ServerSocketConfiguration() {
     }
 
-    public SSLContext createSSLContext() throws KeyManagementException, NoSuchAlgorithmException, UnrecoverableKeyException, KeyStoreException, CertificateException, FileNotFoundException, IOException {
+    public SSLContext createSSLContext()
+            throws KeyManagementException, NoSuchAlgorithmException, UnrecoverableKeyException, KeyStoreException, CertificateException, FileNotFoundException, IOException {
         return sslContextFactory == null ? null : sslContextFactory.createSslContext();
     }
 

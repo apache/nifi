@@ -35,7 +35,6 @@ import org.slf4j.LoggerFactory;
  * then the message is wrapped with a MulticastProtocolMessage before being sent
  * to the originator.
  *
- * @author unattributed
  */
 public abstract class MulticastListener {
 
@@ -80,8 +79,8 @@ public abstract class MulticastListener {
      * Implements the action to perform when a new datagram is received. This
      * class must not close the multicast socket.
      *
-     * @param multicastSocket
-     * @param packet the datagram socket
+     * @param multicastSocket socket
+     * @param packet the datagram packet
      */
     public abstract void dispatchRequest(final MulticastSocket multicastSocket, final DatagramPacket packet);
 

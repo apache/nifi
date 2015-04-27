@@ -46,81 +46,80 @@ import org.apache.nifi.util.StopWatch;
 @SupportsBatching
 @Tags({"hadoop", "hdfs", "get", "ingest", "fetch", "source"})
 @CapabilityDescription("Retrieves a file from HDFS. The content of the incoming FlowFile is replaced by the content of the file in HDFS. "
-		+ "The file in HDFS is left intact without any changes being made to it.")
+        + "The file in HDFS is left intact without any changes being made to it.")
 @WritesAttribute(attribute="hdfs.failure.reason", description="When a FlowFile is routed to 'failure', this attribute is added indicating why the file could "
-		+ "not be fetched from HDFS")
+        + "not be fetched from HDFS")
 @SeeAlso({ListHDFS.class, GetHDFS.class, PutHDFS.class})
 public class FetchHDFS extends AbstractHadoopProcessor {
+    static final PropertyDescriptor FILENAME = new PropertyDescriptor.Builder()
+        .name("HDFS Filename")
+        .description("The name of the HDFS file to retrieve")
+        .required(true)
+        .expressionLanguageSupported(true)
+        .defaultValue("${path}/${filename}")
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .build();
 
-	static final PropertyDescriptor FILENAME = new PropertyDescriptor.Builder()
-		.name("HDFS Filename")
-		.description("The name of the HDFS file to retrieve")
-		.required(true)
-		.expressionLanguageSupported(true)
-		.defaultValue("${path}/${filename}")
-		.addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-		.build();
-	
-	static final Relationship REL_SUCCESS = new Relationship.Builder()
-		.name("success")
-		.description("FlowFiles will be routed to this relationship once they have been updated with the content of the HDFS file")
-		.build();
-	static final Relationship REL_FAILURE = new Relationship.Builder()
-		.name("failure")
-		.description("FlowFiles will be routed to this relationship if the content of the HDFS file cannot be retrieved and trying again will likely not be helpful. "
-				+ "This would occur, for instance, if the file is not found or if there is a permissions issue")
-		.build();
-	static final Relationship REL_COMMS_FAILURE = new Relationship.Builder()
-		.name("comms.failure")
-		.description("FlowFiles will be routed to this relationship if the content of the HDFS file cannot be retrieve due to a communications failure. "
-				+ "This generally indicates that the Fetch should be tried again.")
-		.build();
+    static final Relationship REL_SUCCESS = new Relationship.Builder()
+        .name("success")
+        .description("FlowFiles will be routed to this relationship once they have been updated with the content of the HDFS file")
+        .build();
+    static final Relationship REL_FAILURE = new Relationship.Builder()
+        .name("failure")
+        .description("FlowFiles will be routed to this relationship if the content of the HDFS file cannot be retrieved and trying again will likely not be helpful. "
+                + "This would occur, for instance, if the file is not found or if there is a permissions issue")
+        .build();
+    static final Relationship REL_COMMS_FAILURE = new Relationship.Builder()
+        .name("comms.failure")
+        .description("FlowFiles will be routed to this relationship if the content of the HDFS file cannot be retrieve due to a communications failure. "
+                + "This generally indicates that the Fetch should be tried again.")
+        .build();
 
-	@Override
-	protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-		final List<PropertyDescriptor> properties = new ArrayList<>();
-		properties.add(HADOOP_CONFIGURATION_RESOURCES);
-		properties.add(FILENAME);
-		return properties;
-	}
-	
-	@Override
-	public Set<Relationship> getRelationships() {
-		final Set<Relationship> relationships = new HashSet<>();
-		relationships.add(REL_SUCCESS);
-		relationships.add(REL_FAILURE);
-		relationships.add(REL_COMMS_FAILURE);
-		return relationships;
-	}
-	
-	@Override
-	public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-		FlowFile flowFile = session.get();
-		if ( flowFile == null ) {
-			return;
-		}
-		
-		final FileSystem hdfs = hdfsResources.get().getValue();
-		final Path path = new Path(context.getProperty(FILENAME).evaluateAttributeExpressions(flowFile).getValue());
-		final URI uri = path.toUri();
-		
-		final StopWatch stopWatch = new StopWatch(true);
-		try (final FSDataInputStream inStream = hdfs.open(path, 16384)) {
-			flowFile = session.importFrom(inStream, flowFile);
-			stopWatch.stop();
-			getLogger().info("Successfully received content from {} for {} in {}", new Object[] {uri, flowFile, stopWatch.getDuration()});
-			session.getProvenanceReporter().modifyContent(flowFile, "Fetched content from " + uri, stopWatch.getDuration(TimeUnit.MILLISECONDS));
-			session.transfer(flowFile, REL_SUCCESS);
-		} catch (final FileNotFoundException | AccessControlException e) {
-			getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to failure", new Object[] {uri, flowFile, e});
-			flowFile = session.putAttribute(flowFile, "hdfs.failure.reason", e.getMessage());
-			flowFile = session.penalize(flowFile);
-			session.transfer(flowFile, REL_FAILURE);
-		} catch (final IOException e) {
-			getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to comms.failure", new Object[] {uri, flowFile, e});
-			flowFile = session.penalize(flowFile);
-			session.transfer(flowFile, REL_COMMS_FAILURE);
-		}
-	}
+    @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        final List<PropertyDescriptor> properties = new ArrayList<>();
+        properties.add(HADOOP_CONFIGURATION_RESOURCES);
+        properties.add(FILENAME);
+        return properties;
+    }
+
+    @Override
+    public Set<Relationship> getRelationships() {
+        final Set<Relationship> relationships = new HashSet<>();
+        relationships.add(REL_SUCCESS);
+        relationships.add(REL_FAILURE);
+        relationships.add(REL_COMMS_FAILURE);
+        return relationships;
+    }
+
+    @Override
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        FlowFile flowFile = session.get();
+        if ( flowFile == null ) {
+            return;
+        }
+
+        final FileSystem hdfs = hdfsResources.get().getValue();
+        final Path path = new Path(context.getProperty(FILENAME).evaluateAttributeExpressions(flowFile).getValue());
+        final URI uri = path.toUri();
+
+        final StopWatch stopWatch = new StopWatch(true);
+        try (final FSDataInputStream inStream = hdfs.open(path, 16384)) {
+            flowFile = session.importFrom(inStream, flowFile);
+            stopWatch.stop();
+            getLogger().info("Successfully received content from {} for {} in {}", new Object[] {uri, flowFile, stopWatch.getDuration()});
+            session.getProvenanceReporter().modifyContent(flowFile, "Fetched content from " + uri, stopWatch.getDuration(TimeUnit.MILLISECONDS));
+            session.transfer(flowFile, REL_SUCCESS);
+        } catch (final FileNotFoundException | AccessControlException e) {
+            getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to failure", new Object[] {uri, flowFile, e});
+            flowFile = session.putAttribute(flowFile, "hdfs.failure.reason", e.getMessage());
+            flowFile = session.penalize(flowFile);
+            session.transfer(flowFile, REL_FAILURE);
+        } catch (final IOException e) {
+            getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to comms.failure", new Object[] {uri, flowFile, e});
+            flowFile = session.penalize(flowFile);
+            session.transfer(flowFile, REL_COMMS_FAILURE);
+        }
+    }
 
 }

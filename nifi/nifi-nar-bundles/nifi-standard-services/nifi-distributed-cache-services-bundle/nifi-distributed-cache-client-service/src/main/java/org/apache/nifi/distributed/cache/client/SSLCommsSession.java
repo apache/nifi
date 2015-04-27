@@ -30,36 +30,37 @@ import org.apache.nifi.remote.io.socket.ssl.SSLSocketChannelInputStream;
 import org.apache.nifi.remote.io.socket.ssl.SSLSocketChannelOutputStream;
 
 public class SSLCommsSession implements CommsSession {
+
     private final SSLSocketChannel sslSocketChannel;
     private final SSLContext sslContext;
     private final String hostname;
     private final int port;
-    
+
     private final SSLSocketChannelInputStream in;
     private final BufferedInputStream bufferedIn;
-    
+
     private final SSLSocketChannelOutputStream out;
     private final BufferedOutputStream bufferedOut;
 
-    public SSLCommsSession(final SSLContext sslContext, final String hostname, final int port) throws IOException { 
+    public SSLCommsSession(final SSLContext sslContext, final String hostname, final int port) throws IOException {
         sslSocketChannel = new SSLSocketChannel(sslContext, hostname, port, true);
-        
+
         in = new SSLSocketChannelInputStream(sslSocketChannel);
         bufferedIn = new BufferedInputStream(in);
-        
+
         out = new SSLSocketChannelOutputStream(sslSocketChannel);
         bufferedOut = new BufferedOutputStream(out);
-        
+
         this.sslContext = sslContext;
         this.hostname = hostname;
         this.port = port;
     }
-    
+
     @Override
     public void interrupt() {
         sslSocketChannel.interrupt();
     }
-    
+
     @Override
     public void close() throws IOException {
         sslSocketChannel.close();
@@ -84,23 +85,25 @@ public class SSLCommsSession implements CommsSession {
     public boolean isClosed() {
         return sslSocketChannel.isClosed();
     }
-    
+
     @Override
     public String getHostname() {
         return hostname;
     }
-    
+
     @Override
     public int getPort() {
         return port;
     }
+
     @Override
     public SSLContext getSSLContext() {
         return sslContext;
     }
+
     @Override
     public long getTimeout(final TimeUnit timeUnit) {
         return timeUnit.convert(sslSocketChannel.getTimeout(), TimeUnit.MILLISECONDS);
     }
-    
+
 }

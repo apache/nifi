@@ -24,21 +24,21 @@
     <packaging>jar</packaging>
 	
     <dependencies>
-    	<dependency>
-    		<groupId>org.apache.nifi</groupId>
-    		<artifactId>nifi-api</artifactId>
-    	</dependency>
-    	<dependency>
-    		<groupId>org.apache.nifi</groupId>
-    		<artifactId>nifi-processor-utils</artifactId>
-    	</dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-processor-utils</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-http-context-map-api</artifactId>
         </dependency>
         <dependency>
-        	<groupId>javax.servlet</groupId>
-        	<artifactId>javax.servlet-api</artifactId>
+            <groupId>javax.servlet</groupId>
+            <artifactId>javax.servlet-api</artifactId>
         </dependency>
     </dependencies>
 </project>

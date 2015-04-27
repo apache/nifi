@@ -37,12 +37,12 @@ public class Revision implements Serializable {
      * the client ID
      */
     private final String clientId;
-    
+
     public Revision(Long revision, String clientId) {
         this.version = revision;
         this.clientId = clientId;
     }
-    
+
     public String getClientId() {
         return clientId;
     }

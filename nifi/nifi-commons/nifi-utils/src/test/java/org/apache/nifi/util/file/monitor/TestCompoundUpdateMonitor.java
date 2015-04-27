@@ -27,7 +27,6 @@ import java.io.OutputStream;
 import java.nio.file.Path;
 import java.util.UUID;
 
-
 import org.junit.Test;
 
 public class TestCompoundUpdateMonitor {

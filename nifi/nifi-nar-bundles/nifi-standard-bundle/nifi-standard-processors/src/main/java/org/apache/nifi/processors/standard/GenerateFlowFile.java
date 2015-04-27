@@ -73,13 +73,16 @@ public class GenerateFlowFile extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor UNIQUE_FLOWFILES = new PropertyDescriptor.Builder()
             .name("Unique FlowFiles")
-            .description("If true, each FlowFile that is generated will be unique. If false, a random value will be generated and all FlowFiles will get the same content but this offers much higher throughput")
+            .description("If true, each FlowFile that is generated will be unique. If false, a random value will be generated and all FlowFiles "
+                    + "will get the same content but this offers much higher throughput")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
             .build();
 
-    public static final Relationship SUCCESS = new Relationship.Builder().name("success").build();
+    public static final Relationship SUCCESS = new Relationship.Builder()
+            .name("success")
+            .build();
 
     private List<PropertyDescriptor> descriptors;
     private Set<Relationship> relationships;

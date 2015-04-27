@@ -35,9 +35,9 @@ public interface DistributedSetCacheClient extends ControllerService {
      * Adds the specified value to the cache, serializing the value with the
      * given {@link Serializer}.
      *
-     * @param <T>
-     * @param value
-     * @param serializer
+     * @param <T> type
+     * @param value value
+     * @param serializer serializer
      * @return true if the value was added to the cache, false if the value
      * already existed in the cache
      *
@@ -46,13 +46,11 @@ public interface DistributedSetCacheClient extends ControllerService {
     <T> boolean addIfAbsent(T value, Serializer<T> serializer) throws IOException;
 
     /**
-     * Returns if the given value is present in the cache and if so returns
+     * @param <T> type
+     * @param value value
+     * @param serializer serializer
+     * @return if the given value is present in the cache and if so returns
      * <code>true</code>, else returns <code>false</code>
-     *
-     * @param <T>
-     * @param value
-     * @param serializer
-     * @return
      *
      * @throws IOException if unable to communicate with the remote instance
      */
@@ -61,19 +59,20 @@ public interface DistributedSetCacheClient extends ControllerService {
     /**
      * Removes the given value from the cache, if it is present.
      *
-     * @param <T>
-     * @param value
-     * @param serializer
+     * @param <T> type
+     * @param value value
+     * @param serializer serializer
      * @return <code>true</code> if the value is removed, <code>false</code> if
      * the value did not exist in the cache
-     * @throws IOException
+     * @throws IOException ex
      */
     <T> boolean remove(T value, Serializer<T> serializer) throws IOException;
 
     /**
      * Attempts to notify the server that we are finished communicating with it
      * and cleans up resources
-     * @throws java.io.IOException
+     *
+     * @throws java.io.IOException ex
      */
     void close() throws IOException;
 }

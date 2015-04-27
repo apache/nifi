@@ -33,9 +33,7 @@ public class BulletinQueryDTO {
     private Integer limit;
 
     /**
-     * Include bulletins after this id.
-     *
-     * @return
+     * @return Include bulletins after this id
      */
     public Long getAfter() {
         return after;
@@ -46,9 +44,7 @@ public class BulletinQueryDTO {
     }
 
     /**
-     * Include bulletin within this group. Supports a regular expression.
-     *
-     * @return
+     * @return Include bulletin within this group. Supports a regular expression
      */
     public String getGroupId() {
         return groupId;
@@ -59,9 +55,7 @@ public class BulletinQueryDTO {
     }
 
     /**
-     * Include bulletins that match this message. Supports a regular expression.
-     *
-     * @return
+     * @return Include bulletins that match this message. Supports a regular expression
      */
     public String getMessage() {
         return message;
@@ -72,9 +66,7 @@ public class BulletinQueryDTO {
     }
 
     /**
-     * Include bulletins that match this name. Supports a regular expression.
-     *
-     * @return
+     * @return Include bulletins that match this name. Supports a regular expression
      */
     public String getName() {
         return name;
@@ -85,9 +77,7 @@ public class BulletinQueryDTO {
     }
 
     /**
-     * Include bulletins that match this id. Supports a source id.
-     *
-     * @return
+     * @return Include bulletins that match this id. Supports a source id
      */
     public String getSourceId() {
         return sourceId;
@@ -98,9 +88,7 @@ public class BulletinQueryDTO {
     }
 
     /**
-     * The maximum number of bulletins to return.
-     *
-     * @return
+     * @return The maximum number of bulletins to return
      */
     public Integer getLimit() {
         return limit;

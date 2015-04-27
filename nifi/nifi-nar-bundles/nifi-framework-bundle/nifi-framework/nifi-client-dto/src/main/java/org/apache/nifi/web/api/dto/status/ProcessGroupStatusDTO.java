@@ -38,10 +38,15 @@ public class ProcessGroupStatusDTO extends StatusDTO {
     private Collection<PortStatusDTO> outputPortStatus;
 
     private String input;
+    private String queuedCount;
+    private String queuedSize;
     private String queued;
     private String read;
     private String written;
     private String output;
+    private String transferred;
+    private String received;
+    private String sent;
     private Integer activeThreadCount;
     private Date statsLastRefreshed;
 
@@ -59,9 +64,7 @@ public class ProcessGroupStatusDTO extends StatusDTO {
     }
 
     /**
-     * The name of this process group.
-     *
-     * @return
+     * @return name of this process group
      */
     public String getName() {
         return name;
@@ -72,9 +75,7 @@ public class ProcessGroupStatusDTO extends StatusDTO {
     }
 
     /**
-     * The active thread count for this process group.
-     *
-     * @return
+     * @return active thread count for this process group
      */
     public Integer getActiveThreadCount() {
         return activeThreadCount;
@@ -173,6 +174,74 @@ public class ProcessGroupStatusDTO extends StatusDTO {
 
     public void setOutput(String output) {
         this.output = output;
+    }
+
+    /**
+     * The transferred stats for this process group. This represents the
+     * count/size of flowfiles transferred to/from queues.
+     *
+     * @return The transferred status for this process group
+     */
+    public String getTransferred() {
+        return transferred;
+    }
+
+    public void setTransferred(String transferred) {
+        this.transferred = transferred;
+    }
+
+    /**
+     * The received stats for this process group. This represents the count/size
+     * of flowfiles received.
+     *
+     * @return The received stats for this process group
+     */
+    public String getReceived() {
+        return received;
+    }
+
+    public void setReceived(String received) {
+        this.received = received;
+    }
+
+    /**
+     * The sent stats for this process group. This represents the count/size of
+     * flowfiles sent.
+     *
+     * @return The sent stats for this process group
+     */
+    public String getSent() {
+        return sent;
+    }
+
+    public void setSent(String sent) {
+        this.sent = sent;
+    }
+
+    /**
+     * The queued count for this process group.
+     *
+     * @return The queued count for this process group
+     */
+    public String getQueuedCount() {
+        return queuedCount;
+    }
+
+    public void setQueuedCount(String queuedCount) {
+        this.queuedCount = queuedCount;
+    }
+
+    /**
+     * The queued size for this process group.
+     *
+     * @return The queued size for this process group
+     */
+    public String getQueuedSize() {
+        return queuedSize;
+    }
+
+    public void setQueuedSize(String queuedSize) {
+        this.queuedSize = queuedSize;
     }
 
     /**

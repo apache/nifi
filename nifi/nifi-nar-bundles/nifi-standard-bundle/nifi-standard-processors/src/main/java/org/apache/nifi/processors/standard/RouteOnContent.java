@@ -60,9 +60,9 @@ import org.apache.nifi.util.IntegerHolder;
         + "of the property is the name of the relationship and the value is a Regular Expression to match against the FlowFile "
         + "content. User-Defined properties do support the Attribute Expression Language, but the results are interpreted as "
         + "literal values, not Regular Expressions")
-@DynamicProperty(name="Relationship Name", value="A Regular Expression", supportsExpressionLanguage=true, description="Routes FlowFiles whose " + 
-        "content matches the regular expressoin defined by Dynamic Property's value to the Relationship defined by the Dynamic Property's key")
-@DynamicRelationship(name="Name from Dynamic Property", description="FlowFiles that match the Dynamic Property's Regular Expression")
+@DynamicProperty(name = "Relationship Name", value = "A Regular Expression", supportsExpressionLanguage = true, description = "Routes FlowFiles whose "
+        + "content matches the regular expressoin defined by Dynamic Property's value to the Relationship defined by the Dynamic Property's key")
+@DynamicRelationship(name = "Name from Dynamic Property", description = "FlowFiles that match the Dynamic Property's Regular Expression")
 public class RouteOnContent extends AbstractProcessor {
 
     public static final String ROUTE_ATTRIBUTE_KEY = "RouteOnContent.Route";
@@ -72,14 +72,16 @@ public class RouteOnContent extends AbstractProcessor {
 
     public static final PropertyDescriptor BUFFER_SIZE = new PropertyDescriptor.Builder()
             .name("Content Buffer Size")
-            .description("Specifies the maximum amount of data to buffer in order to apply the regular expressions. If the size of the FlowFile exceeds this value, any amount of this value will be ignored")
+            .description("Specifies the maximum amount of data to buffer in order to apply the regular expressions. If the size of the FlowFile "
+                    + "exceeds this value, any amount of this value will be ignored")
             .required(true)
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .defaultValue("1 MB")
             .build();
     public static final PropertyDescriptor MATCH_REQUIREMENT = new PropertyDescriptor.Builder()
             .name("Match Requirement")
-            .description("Specifies whether the entire content of the file must match the regular expression exactly, or if any part of the file (up to Content Buffer Size) can contain the regular expression in order to be considered a match")
+            .description("Specifies whether the entire content of the file must match the regular expression exactly, or if any part of the file "
+                    + "(up to Content Buffer Size) can contain the regular expression in order to be considered a match")
             .required(true)
             .allowableValues(MATCH_ALL, MATCH_SUBSEQUENCE)
             .defaultValue(MATCH_ALL)
@@ -92,8 +94,10 @@ public class RouteOnContent extends AbstractProcessor {
             .defaultValue("UTF-8")
             .build();
 
-    public static final Relationship REL_NO_MATCH = new Relationship.Builder().name("unmatched")
-            .description("FlowFiles that do not match any of the user-supplied regular expressions will be routed to this relationship").build();
+    public static final Relationship REL_NO_MATCH = new Relationship.Builder()
+            .name("unmatched")
+            .description("FlowFiles that do not match any of the user-supplied regular expressions will be routed to this relationship")
+            .build();
 
     private final AtomicReference<Set<Relationship>> relationships = new AtomicReference<>();
     private List<PropertyDescriptor> properties;

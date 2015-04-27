@@ -48,16 +48,10 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 /**
  * <p>
- * This processor routes a FlowFile based on its flow file attributes by using
- * the Attribute Expression Language. The Expression Language is used by adding
- * Optional Properties to the processor. The name of the Property indicates the
- * name of the relationship to which a FlowFile will be routed if matched. The
- * value of the Property indicates an Attribute Expression Language Expression
- * that will be used to determine whether or not a given FlowFile will be routed
- * to the associated relationship. If multiple expressions match a FlowFile's
- * attributes, that FlowFile will be cloned and routed to each corresponding
- * relationship. If none of the supplied expressions matches for a given
- * FlowFile, that FlowFile will be routed to the 'unmatched' relationship.
+ * This processor routes a FlowFile based on its flow file attributes by using the Attribute Expression Language. The Expression Language is used by adding Optional Properties to the processor. The
+ * name of the Property indicates the name of the relationship to which a FlowFile will be routed if matched. The value of the Property indicates an Attribute Expression Language Expression that will
+ * be used to determine whether or not a given FlowFile will be routed to the associated relationship. If multiple expressions match a FlowFile's attributes, that FlowFile will be cloned and routed to
+ * each corresponding relationship. If none of the supplied expressions matches for a given FlowFile, that FlowFile will be routed to the 'unmatched' relationship.
  * </p>
  *
  * @author unattributed
@@ -67,9 +61,9 @@ import org.apache.nifi.processor.util.StandardValidators;
 @SupportsBatching
 @Tags({"attributes", "routing", "Attribute Expression Language", "regexp", "regex", "Regular Expression", "Expression Language"})
 @CapabilityDescription("Routes FlowFiles based on their Attributes using the Attribute Expression Language")
-@DynamicProperty(name="Relationship Name", value="Attribute Expression Language", supportsExpressionLanguage=true, description="Routes FlowFiles whose " + 
-"attributes match the Attribute Expression Language specified in the Dynamic Property Value to the Relationship specified in the Dynamic Property Key")
-@DynamicRelationship(name="Name from Dynamic Property", description="FlowFiles that match the Dynamic Property's Attribute Expression Language")
+@DynamicProperty(name = "Relationship Name", value = "Attribute Expression Language", supportsExpressionLanguage = true, description = "Routes FlowFiles whose "
+        + "attributes match the Attribute Expression Language specified in the Dynamic Property Value to the Relationship specified in the Dynamic Property Key")
+@DynamicRelationship(name = "Name from Dynamic Property", description = "FlowFiles that match the Dynamic Property's Attribute Expression Language")
 public class RouteOnAttribute extends AbstractProcessor {
 
     public static final String ROUTE_ATTRIBUTE_KEY = "RouteOnAttribute.Route";
@@ -79,21 +73,14 @@ public class RouteOnAttribute extends AbstractProcessor {
     private static final String routeAnyMatches = "Route to 'match' if any matches";
     private static final String routePropertyNameValue = "Route to Property name";
 
-    public static final AllowableValue ROUTE_PROPERTY_NAME = new AllowableValue(
-            routePropertyNameValue,
-            "Route to Property name",
-            "A copy of the FlowFile will be routed to each relationship whose corresponding expression evaluates to 'true'"
-    );
-    public static final AllowableValue ROUTE_ALL_MATCH = new AllowableValue(
-            routeAllMatchValue,
-            "Route to 'matched' if all match",
-            "Requires that all user-defined expressions evaluate to 'true' for the FlowFile to be considered a match"
-    );
-    public static final AllowableValue ROUTE_ANY_MATCHES = new AllowableValue(
-            routeAnyMatches, // keep the word 'match' instead of 'matched' to maintain backward compatibility (there was a typo originally)
+    public static final AllowableValue ROUTE_PROPERTY_NAME = new AllowableValue(routePropertyNameValue, "Route to Property name",
+            "A copy of the FlowFile will be routed to each relationship whose corresponding expression evaluates to 'true'");
+    public static final AllowableValue ROUTE_ALL_MATCH = new AllowableValue(routeAllMatchValue, "Route to 'matched' if all match",
+            "Requires that all user-defined expressions evaluate to 'true' for the FlowFile to be considered a match");
+    // keep the word 'match' instead of 'matched' to maintain backward compatibility (there was a typo originally)
+    public static final AllowableValue ROUTE_ANY_MATCHES = new AllowableValue(routeAnyMatches,
             "Route to 'matched' if any matches",
-            "Requires that at least one user-defined expression evaluate to 'true' for hte FlowFile to be considered a match"
-    );
+            "Requires that at least one user-defined expression evaluate to 'true' for hte FlowFile to be considered a match");
 
     public static final PropertyDescriptor ROUTE_STRATEGY = new PropertyDescriptor.Builder()
             .name("Routing Strategy")

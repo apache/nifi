@@ -37,10 +37,8 @@ public class PropertyDescriptorDTO {
     private String identifiesControllerService;
 
     /**
-     * The set of allowable values for this property. If empty then the
-     * allowable values are not constrained.
-     *
-     * @return
+     * @return set of allowable values for this property. If empty then the
+     * allowable values are not constrained
      */
     public List<AllowableValueDTO> getAllowableValues() {
         return allowableValues;
@@ -51,9 +49,7 @@ public class PropertyDescriptorDTO {
     }
 
     /**
-     * The default value for this property.
-     *
-     * @return
+     * @return default value for this property
      */
     public String getDefaultValue() {
         return defaultValue;
@@ -64,11 +60,9 @@ public class PropertyDescriptorDTO {
     }
 
     /**
-     * And explanation of the meaning of the given property. This
+     * @return An explanation of the meaning of the given property. This
      * description is meant to be displayed to a user or simply provide a
-     * mechanism of documenting intent.
-     *
-     * @return
+     * mechanism of documenting intent
      */
     public String getDescription() {
         return description;
@@ -79,9 +73,7 @@ public class PropertyDescriptorDTO {
     }
 
     /**
-     * The property name.
-     *
-     * @return
+     * @return property name
      */
     public String getName() {
         return name;
@@ -92,9 +84,7 @@ public class PropertyDescriptorDTO {
     }
 
     /**
-     * The human-readable name to display to users.
-     *
-     * @return
+     * @return human-readable name to display to users
      */
     public String getDisplayName() {
         return displayName;
@@ -105,9 +95,7 @@ public class PropertyDescriptorDTO {
     }
 
     /**
-     * Determines whether the property is required for this processor.
-     *
-     * @return
+     * @return whether the property is required for this processor
      */
     public boolean isRequired() {
         return required;
@@ -118,10 +106,8 @@ public class PropertyDescriptorDTO {
     }
 
     /**
-     * Indicates that the value for this property should be considered
-     * sensitive and protected whenever stored or represented.
-     *
-     * @return
+     * @return indicates that the value for this property should be considered
+     * sensitive and protected whenever stored or represented
      */
     public boolean isSensitive() {
         return sensitive;
@@ -132,9 +118,7 @@ public class PropertyDescriptorDTO {
     }
 
     /**
-     * Indicates whether this property is dynamic.
-     *
-     * @return
+     * @return indicates whether this property is dynamic
      */
     public boolean isDynamic() {
         return dynamic;
@@ -145,9 +129,8 @@ public class PropertyDescriptorDTO {
     }
 
     /**
-     * Specifies whether or not this property support expression language.
-     *
-     * @return
+     * @return specifies whether or not this property support expression
+     * language
      */
     public boolean getSupportsEl() {
         return supportsEl;
@@ -158,10 +141,8 @@ public class PropertyDescriptorDTO {
     }
 
     /**
-     * If this property identifies a controller service, this returns the 
-     * fully qualified type, null otherwise.
-     * 
-     * @return 
+     * @return if this property identifies a controller service, this returns
+     * the fully qualified type, null otherwise
      */
     public String getIdentifiesControllerService() {
         return identifiesControllerService;
@@ -170,7 +151,7 @@ public class PropertyDescriptorDTO {
     public void setIdentifiesControllerService(String identifiesControllerService) {
         this.identifiesControllerService = identifiesControllerService;
     }
-    
+
     /**
      * The allowable values for a property with a constrained set of options.
      */
@@ -182,10 +163,8 @@ public class PropertyDescriptorDTO {
         private String description;
 
         /**
-         * Returns the human-readable value that is allowed for this
+         * @return the human-readable value that is allowed for this
          * PropertyDescriptor
-         *
-         * @return
          */
         public String getDisplayName() {
             return displayName;
@@ -196,9 +175,7 @@ public class PropertyDescriptorDTO {
         }
 
         /**
-         * Returns the value for this allowable value.
-         *
-         * @return
+         * @return the value for this allowable value
          */
         public String getValue() {
             return value;
@@ -209,10 +186,8 @@ public class PropertyDescriptorDTO {
         }
 
         /**
-         * Returns a description of this Allowable Value, or <code>null</code>
+         * @return a description of this Allowable Value, or <code>null</code>
          * if no description is given
-         *
-         * @return
          */
         public String getDescription() {
             return description;

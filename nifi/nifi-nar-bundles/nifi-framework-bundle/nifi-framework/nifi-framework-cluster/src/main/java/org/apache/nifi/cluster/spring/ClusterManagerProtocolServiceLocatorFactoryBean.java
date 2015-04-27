@@ -51,7 +51,7 @@ public class ClusterManagerProtocolServiceLocatorFactoryBean implements FactoryB
     @Override
     public Object getObject() throws Exception {
         /*
-         * If configured for the cluster manager, then the service locator is never used.  
+         * If configured for the cluster manager, then the service locator is never used.
          */
         if (properties.isClusterManager()) {
             return null;

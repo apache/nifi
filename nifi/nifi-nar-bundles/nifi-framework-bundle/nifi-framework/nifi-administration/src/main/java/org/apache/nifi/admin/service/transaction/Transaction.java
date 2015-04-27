@@ -27,9 +27,9 @@ public interface Transaction extends Closeable {
     /**
      * Executes the specified action within the current transaction.
      *
-     * @param <T>
-     * @param action
-     * @return
+     * @param <T> type of action to execute
+     * @param action action to execute
+     * @return executed action
      * @throws IllegalStateException - if there is no current transaction
      */
     <T> T execute(AdministrationAction<T> action);

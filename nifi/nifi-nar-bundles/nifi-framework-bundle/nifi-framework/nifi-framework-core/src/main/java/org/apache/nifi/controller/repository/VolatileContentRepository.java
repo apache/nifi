@@ -103,7 +103,7 @@ public class VolatileContentRepository implements ContentRepository {
     private final ConcurrentMap<ContentClaim, ContentClaim> backupRepoClaimMap = new ConcurrentHashMap<>(256);
     private final AtomicReference<ContentRepository> backupRepositoryRef = new AtomicReference<>(null);
 
-    private ContentClaimManager claimManager;	// effectively final
+    private ContentClaimManager claimManager; // effectively final
 
     public VolatileContentRepository() {
         this(NiFiProperties.getInstance());
@@ -137,7 +137,7 @@ public class VolatileContentRepository implements ContentRepository {
     public void initialize(final ContentClaimManager claimManager) {
         this.claimManager = claimManager;
     }
-    
+
     @Override
     public void shutdown() {
         executor.shutdown();
@@ -147,7 +147,7 @@ public class VolatileContentRepository implements ContentRepository {
      * Specifies a Backup Repository where data should be written if this
      * Repository fills up
      *
-     * @param backup
+     * @param backup repo backup
      */
     public void setBackupRepository(final ContentRepository backup) {
         final boolean updated = backupRepositoryRef.compareAndSet(null, backup);

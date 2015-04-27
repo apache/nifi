@@ -19,11 +19,12 @@ package org.apache.nifi.hl7.query;
 import java.util.List;
 
 public interface QueryResult {
-	boolean isMatch();
-	
-	List<String> getLabels();
-	
-	int getHitCount();
-	
-	ResultHit nextHit();
+
+    boolean isMatch();
+
+    List<String> getLabels();
+
+    int getHitCount();
+
+    ResultHit nextHit();
 }

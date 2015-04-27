@@ -50,11 +50,6 @@ public class ContentAcknowledgmentServlet extends HttpServlet {
     private ProcessorLog logger;
     private ConcurrentMap<String, FlowFileEntryTimeWrapper> flowFileMap;
 
-    /**
-     *
-     * @param config
-     * @throws ServletException
-     */
     @SuppressWarnings("unchecked")
     @Override
     public void init(final ServletConfig config) throws ServletException {
@@ -92,7 +87,8 @@ public class ContentAcknowledgmentServlet extends HttpServlet {
         final String uuid = uri.substring(slashIndex + 1, questionIndex);
         final FlowFileEntryTimeWrapper timeWrapper = flowFileMap.remove(uuid);
         if (timeWrapper == null) {
-            logger.warn("received DELETE for HOLD with ID " + uuid + " from Remote Host: [" + request.getRemoteHost() + "] Port [" + request.getRemotePort() + "] SubjectDN [" + foundSubject + "], but no HOLD exists with that ID; sending response with Status Code 404");
+            logger.warn("received DELETE for HOLD with ID " + uuid + " from Remote Host: [" + request.getRemoteHost()
+                    + "] Port [" + request.getRemotePort() + "] SubjectDN [" + foundSubject + "], but no HOLD exists with that ID; sending response with Status Code 404");
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
@@ -113,7 +109,8 @@ public class ContentAcknowledgmentServlet extends HttpServlet {
             final double bytesPerSecond = ((double) totalFlowFileSize / seconds);
             final String transferRate = FormatUtils.formatDataSize(bytesPerSecond) + "/sec";
 
-            logger.info("received {} files/{} bytes from Remote Host: [{}] Port [{}] SubjectDN [{}] in {} milliseconds at a rate of {}; transferring to 'success': {}",
+            logger.info("received {} files/{} bytes from Remote Host: [{}] Port [{}] SubjectDN [{}] in {} milliseconds at a rate of {}; "
+                    + "transferring to 'success': {}",
                     new Object[]{flowFiles.size(), totalFlowFileSize, request.getRemoteHost(), request.getRemotePort(), foundSubject, transferTime, transferRate, flowFiles});
 
             final ProcessSession session = timeWrapper.getSession();

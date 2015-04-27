@@ -50,30 +50,21 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 /**
  * <p>
- * This processor identifies groups of user-specified flowfile attributes and
- * assigns a unique hash value to each group, recording this hash value in the
- * flowfile's attributes using a user-specified attribute key. The groups are
- * identified dynamically and preserved across application restarts. </p>
+ * This processor identifies groups of user-specified flowfile attributes and assigns a unique hash value to each group, recording this hash value in the flowfile's attributes using a user-specified
+ * attribute key. The groups are identified dynamically and preserved across application restarts. </p>
  *
  * <p>
- * The user must supply optional processor properties during runtime to
- * correctly configure this processor. The optional property key will be used as
- * the flowfile attribute key for attribute inspection. The value must be a
- * valid regular expression. This regular expression is evaluated against the
- * flowfile attribute values. If the regular expression contains a capturing
- * group, the value of that group will be used when comparing flow file
- * attributes. Otherwise, the original flow file attribute's value will be used
- * if and only if the value matches the given regular expression. </p>
+ * The user must supply optional processor properties during runtime to correctly configure this processor. The optional property key will be used as the flowfile attribute key for attribute
+ * inspection. The value must be a valid regular expression. This regular expression is evaluated against the flowfile attribute values. If the regular expression contains a capturing group, the value
+ * of that group will be used when comparing flow file attributes. Otherwise, the original flow file attribute's value will be used if and only if the value matches the given regular expression. </p>
  *
  * <p>
- * If a flowfile does not have an attribute entry for one or more processor
- * configured values, then the flowfile is routed to failure. </p>
+ * If a flowfile does not have an attribute entry for one or more processor configured values, then the flowfile is routed to failure. </p>
  *
  * <p>
  * An example hash value identification:
  *
- * Assume Processor Configured with Two Properties ("MDKey1" = ".*" and "MDKey2"
- * = "(.).*").
+ * Assume Processor Configured with Two Properties ("MDKey1" = ".*" and "MDKey2" = "(.).*").
  *
  * FlowFile 1 has the following attributes: MDKey1 = a MDKey2 = b
  *
@@ -89,17 +80,12 @@ import org.apache.nifi.processor.util.StandardValidators;
  *
  * FlowFile 4 has the following attribute: MDKey1 = a MDKey2 = bad
  *
- * and will be assigned to group 1 (because the value of MDKey1 has the regular
- * expression ".*" applied to it, and that evaluates to the same as MDKey1
- * attribute of the first flow file. Similarly, the capturing group for the
- * MDKey2 property indicates that only the first character of the MDKey2
- * attribute must match, and the first character of MDKey2 for Flow File 1 and
- * Flow File 4 are both 'b'.)
+ * and will be assigned to group 1 (because the value of MDKey1 has the regular expression ".*" applied to it, and that evaluates to the same as MDKey1 attribute of the first flow file. Similarly, the
+ * capturing group for the MDKey2 property indicates that only the first character of the MDKey2 attribute must match, and the first character of MDKey2 for Flow File 1 and Flow File 4 are both 'b'.)
  *
  * FlowFile 5 has the following attributes: MDKey1 = a
  *
- * and will route to failure because it does not have MDKey2 entry in its
- * attribute
+ * and will route to failure because it does not have MDKey2 entry in its attribute
  * </p>
  *
  * <p>
@@ -115,12 +101,14 @@ import org.apache.nifi.processor.util.StandardValidators;
         + "and the value of the property is a regular expression that, if matched by the attribute value, will cause that attribute "
         + "to be used as part of the hash. If the regular expression contains a capturing group, only the value of the capturing "
         + "group will be used.")
-@WritesAttribute(attribute="<Hash Value Attribute Key>", description="This Processor adds an attribute whose value is the result of Hashing the existing FlowFile attributes. The name of this attribute is specified by the <Hash Value Attribute Key> property.")
-@DynamicProperty(name="A flowfile attribute key for attribute inspection", value="A Regular Expression", description="This regular expression is evaluated against the " +
- "flowfile attribute values. If the regular expression contains a capturing " +
- "group, the value of that group will be used when comparing flow file " +
- "attributes. Otherwise, the original flow file attribute's value will be used " +
- "if and only if the value matches the given regular expression.")
+@WritesAttribute(attribute = "<Hash Value Attribute Key>", description = "This Processor adds an attribute whose value is the result of "
+        + "Hashing the existing FlowFile attributes. The name of this attribute is specified by the <Hash Value Attribute Key> property.")
+@DynamicProperty(name = "A flowfile attribute key for attribute inspection", value = "A Regular Expression",
+        description = "This regular expression is evaluated against the "
+        + "flowfile attribute values. If the regular expression contains a capturing "
+        + "group, the value of that group will be used when comparing flow file "
+        + "attributes. Otherwise, the original flow file attribute's value will be used "
+        + "if and only if the value matches the given regular expression.")
 public class HashAttribute extends AbstractProcessor {
 
     public static final PropertyDescriptor HASH_VALUE_ATTRIBUTE = new PropertyDescriptor.Builder()
@@ -130,8 +118,14 @@ public class HashAttribute extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("Used for FlowFiles that have a hash value added").build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure").description("Used for FlowFiles that are missing required attributes").build();
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("Used for FlowFiles that have a hash value added")
+            .build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("Used for FlowFiles that are missing required attributes")
+            .build();
 
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> properties;
@@ -162,11 +156,7 @@ public class HashAttribute extends AbstractProcessor {
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
-                .name(propertyDescriptorName)
-                .addValidator(StandardValidators.createRegexValidator(0, 1, false))
-                .required(false)
-                .dynamic(true)
-                .build();
+                .name(propertyDescriptorName).addValidator(StandardValidators.createRegexValidator(0, 1, false)).required(false).dynamic(true).build();
     }
 
     @Override

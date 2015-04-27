@@ -91,7 +91,8 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
 
     @Override
     public synchronized void capture(final ProcessGroupStatus rootGroupStatus, final Date timestamp) {
-        captures.add(new Capture(timestamp, ComponentStatusReport.fromProcessGroupStatus(rootGroupStatus, ComponentType.PROCESSOR, ComponentType.CONNECTION, ComponentType.PROCESS_GROUP, ComponentType.REMOTE_PROCESS_GROUP)));
+        captures.add(new Capture(timestamp, ComponentStatusReport.fromProcessGroupStatus(rootGroupStatus, ComponentType.PROCESSOR,
+                ComponentType.CONNECTION, ComponentType.PROCESS_GROUP, ComponentType.REMOTE_PROCESS_GROUP)));
         logger.debug("Captured metrics for {}", this);
         lastCaptureTime = Math.max(lastCaptureTime, timestamp.getTime());
     }
@@ -269,48 +270,57 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
 
     public static enum RemoteProcessGroupStatusDescriptor {
 
-        SENT_BYTES(new StandardMetricDescriptor<RemoteProcessGroupStatus>("sentBytes", "Bytes Sent (5 mins)", "The cumulative size of all FlowFiles that have been successfully sent to the remote system in the past 5 minutes", Formatter.DATA_SIZE, new ValueMapper<RemoteProcessGroupStatus>() {
-            @Override
-            public Long getValue(final RemoteProcessGroupStatus status) {
-                return status.getSentContentSize();
-            }
-        })),
-        SENT_COUNT(new StandardMetricDescriptor<RemoteProcessGroupStatus>("sentCount", "FlowFiles Sent (5 mins)", "The number of FlowFiles that have been successfully sent to the remote system in the past 5 minutes", Formatter.COUNT, new ValueMapper<RemoteProcessGroupStatus>() {
-            @Override
-            public Long getValue(final RemoteProcessGroupStatus status) {
-                return Long.valueOf(status.getSentCount().longValue());
-            }
-        })),
-        RECEIVED_BYTES(new StandardMetricDescriptor<RemoteProcessGroupStatus>("receivedBytes", "Bytes Received (5 mins)", "The cumulative size of all FlowFiles that have been received from the remote system in the past 5 minutes", Formatter.DATA_SIZE, new ValueMapper<RemoteProcessGroupStatus>() {
-            @Override
-            public Long getValue(final RemoteProcessGroupStatus status) {
-                return status.getReceivedContentSize();
-            }
-        })),
-        RECEIVED_COUNT(new StandardMetricDescriptor<RemoteProcessGroupStatus>("receivedCount", "FlowFiles Received (5 mins)", "The number of FlowFiles that have been received from the remote system in the past 5 minutes", Formatter.COUNT, new ValueMapper<RemoteProcessGroupStatus>() {
-            @Override
-            public Long getValue(final RemoteProcessGroupStatus status) {
-                return Long.valueOf(status.getReceivedCount().longValue());
-            }
-        })),
-        RECEIVED_BYTES_PER_SECOND(new StandardMetricDescriptor<RemoteProcessGroupStatus>("receivedBytesPerSecond", "Received Bytes Per Second", "The data rate at which data was received from the remote system in the past 5 minutes in terms of Bytes Per Second", Formatter.DATA_SIZE, new ValueMapper<RemoteProcessGroupStatus>() {
-            @Override
-            public Long getValue(final RemoteProcessGroupStatus status) {
-                return Long.valueOf(status.getReceivedContentSize().longValue() / 300L);
-            }
-        })),
-        SENT_BYTES_PER_SECOND(new StandardMetricDescriptor<RemoteProcessGroupStatus>("sentBytesPerSecond", "Sent Bytes Per Second", "The data rate at which data was received from the remote system in the past 5 minutes in terms of Bytes Per Second", Formatter.DATA_SIZE, new ValueMapper<RemoteProcessGroupStatus>() {
-            @Override
-            public Long getValue(final RemoteProcessGroupStatus status) {
-                return Long.valueOf(status.getSentContentSize().longValue() / 300L);
-            }
-        })),
-        TOTAL_BYTES_PER_SECOND(new StandardMetricDescriptor<RemoteProcessGroupStatus>("totalBytesPerSecond", "Total Bytes Per Second", "The sum of the send and receive data rate from the remote system in the past 5 minutes in terms of Bytes Per Second", Formatter.DATA_SIZE, new ValueMapper<RemoteProcessGroupStatus>() {
-            @Override
-            public Long getValue(final RemoteProcessGroupStatus status) {
-                return Long.valueOf((status.getReceivedContentSize().longValue() + status.getSentContentSize().longValue()) / 300L);
-            }
-        })),
+        SENT_BYTES(new StandardMetricDescriptor<RemoteProcessGroupStatus>("sentBytes", "Bytes Sent (5 mins)",
+                "The cumulative size of all FlowFiles that have been successfully sent to the remote system in the past 5 minutes", Formatter.DATA_SIZE, new ValueMapper<RemoteProcessGroupStatus>() {
+                    @Override
+                    public Long getValue(final RemoteProcessGroupStatus status) {
+                        return status.getSentContentSize();
+                    }
+                })),
+        SENT_COUNT(new StandardMetricDescriptor<RemoteProcessGroupStatus>("sentCount", "FlowFiles Sent (5 mins)",
+                "The number of FlowFiles that have been successfully sent to the remote system in the past 5 minutes", Formatter.COUNT, new ValueMapper<RemoteProcessGroupStatus>() {
+                    @Override
+                    public Long getValue(final RemoteProcessGroupStatus status) {
+                        return Long.valueOf(status.getSentCount().longValue());
+                    }
+                })),
+        RECEIVED_BYTES(new StandardMetricDescriptor<RemoteProcessGroupStatus>("receivedBytes", "Bytes Received (5 mins)",
+                "The cumulative size of all FlowFiles that have been received from the remote system in the past 5 minutes", Formatter.DATA_SIZE, new ValueMapper<RemoteProcessGroupStatus>() {
+                    @Override
+                    public Long getValue(final RemoteProcessGroupStatus status) {
+                        return status.getReceivedContentSize();
+                    }
+                })),
+        RECEIVED_COUNT(new StandardMetricDescriptor<RemoteProcessGroupStatus>("receivedCount", "FlowFiles Received (5 mins)",
+                "The number of FlowFiles that have been received from the remote system in the past 5 minutes", Formatter.COUNT, new ValueMapper<RemoteProcessGroupStatus>() {
+                    @Override
+                    public Long getValue(final RemoteProcessGroupStatus status) {
+                        return Long.valueOf(status.getReceivedCount().longValue());
+                    }
+                })),
+        RECEIVED_BYTES_PER_SECOND(new StandardMetricDescriptor<RemoteProcessGroupStatus>("receivedBytesPerSecond", "Received Bytes Per Second",
+                "The data rate at which data was received from the remote system in the past 5 minutes in terms of Bytes Per Second",
+                Formatter.DATA_SIZE, new ValueMapper<RemoteProcessGroupStatus>() {
+                    @Override
+                    public Long getValue(final RemoteProcessGroupStatus status) {
+                        return Long.valueOf(status.getReceivedContentSize().longValue() / 300L);
+                    }
+                })),
+        SENT_BYTES_PER_SECOND(new StandardMetricDescriptor<RemoteProcessGroupStatus>("sentBytesPerSecond", "Sent Bytes Per Second",
+                "The data rate at which data was received from the remote system in the past 5 minutes in terms of Bytes Per Second", Formatter.DATA_SIZE, new ValueMapper<RemoteProcessGroupStatus>() {
+                    @Override
+                    public Long getValue(final RemoteProcessGroupStatus status) {
+                        return Long.valueOf(status.getSentContentSize().longValue() / 300L);
+                    }
+                })),
+        TOTAL_BYTES_PER_SECOND(new StandardMetricDescriptor<RemoteProcessGroupStatus>("totalBytesPerSecond", "Total Bytes Per Second",
+                "The sum of the send and receive data rate from the remote system in the past 5 minutes in terms of Bytes Per Second",
+                Formatter.DATA_SIZE, new ValueMapper<RemoteProcessGroupStatus>() {
+                    @Override
+                    public Long getValue(final RemoteProcessGroupStatus status) {
+                        return Long.valueOf((status.getReceivedContentSize().longValue() + status.getSentContentSize().longValue()) / 300L);
+                    }
+                })),
         AVERAGE_LINEAGE_DURATION(new StandardMetricDescriptor<RemoteProcessGroupStatus>(
                 "averageLineageDuration",
                 "Average Lineage Duration (5 mins)",
@@ -358,66 +368,83 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
 
     public static enum ProcessGroupStatusDescriptor {
 
-        BYTES_READ(new StandardMetricDescriptor<ProcessGroupStatus>("bytesRead", "Bytes Read (5 mins)", "The total number of bytes read from Content Repository by Processors in this Process Group in the past 5 minutes", Formatter.DATA_SIZE, new ValueMapper<ProcessGroupStatus>() {
-            @Override
-            public Long getValue(final ProcessGroupStatus status) {
-                return status.getBytesRead();
-            }
-        })),
-        BYTES_WRITTEN(new StandardMetricDescriptor<ProcessGroupStatus>("bytesWritten", "Bytes Written (5 mins)", "The total number of bytes written to Content Repository by Processors in this Process Group in the past 5 minutes", Formatter.DATA_SIZE, new ValueMapper<ProcessGroupStatus>() {
-            @Override
-            public Long getValue(final ProcessGroupStatus status) {
-                return status.getBytesWritten();
-            }
-        })),
-        BYTES_TRANSFERRED(new StandardMetricDescriptor<ProcessGroupStatus>("bytesTransferred", "Bytes Transferred (5 mins)", "The total number of bytes read from or written to Content Repository by Processors in this Process Group in the past 5 minutes", Formatter.DATA_SIZE, new ValueMapper<ProcessGroupStatus>() {
-            @Override
-            public Long getValue(final ProcessGroupStatus status) {
-                return status.getBytesRead() + status.getBytesWritten();
-            }
-        })),
-        INPUT_BYTES(new StandardMetricDescriptor<ProcessGroupStatus>("inputBytes", "Bytes In (5 mins)", "The cumulative size of all FlowFiles that have entered this Process Group via its Input Ports in the past 5 minutes", Formatter.DATA_SIZE, new ValueMapper<ProcessGroupStatus>() {
-            @Override
-            public Long getValue(final ProcessGroupStatus status) {
-                return status.getInputContentSize();
-            }
-        })),
-        INPUT_COUNT(new StandardMetricDescriptor<ProcessGroupStatus>("inputCount", "FlowFiles In (5 mins)", "The number of FlowFiles that have entered this Process Group via its Input Ports in the past 5 minutes", Formatter.COUNT, new ValueMapper<ProcessGroupStatus>() {
-            @Override
-            public Long getValue(final ProcessGroupStatus status) {
-                return status.getInputCount().longValue();
-            }
-        })),
-        OUTPUT_BYTES(new StandardMetricDescriptor<ProcessGroupStatus>("outputBytes", "Bytes Out (5 mins)", "The cumulative size of all FlowFiles that have exited this Process Group via its Output Ports in the past 5 minutes", Formatter.DATA_SIZE, new ValueMapper<ProcessGroupStatus>() {
-            @Override
-            public Long getValue(final ProcessGroupStatus status) {
-                return status.getOutputContentSize();
-            }
-        })),
-        OUTPUT_COUNT(new StandardMetricDescriptor<ProcessGroupStatus>("outputCount", "FlowFiles Out (5 mins)", "The number of FlowFiles that have exited this Process Group via its Output Ports in the past 5 minutes", Formatter.COUNT, new ValueMapper<ProcessGroupStatus>() {
-            @Override
-            public Long getValue(final ProcessGroupStatus status) {
-                return status.getOutputCount().longValue();
-            }
-        })),
-        QUEUED_BYTES(new StandardMetricDescriptor<ProcessGroupStatus>("queuedBytes", "Queued Bytes", "The cumulative size of all FlowFiles queued in all Connections of this Process Group", Formatter.DATA_SIZE, new ValueMapper<ProcessGroupStatus>() {
-            @Override
-            public Long getValue(final ProcessGroupStatus status) {
-                return status.getQueuedContentSize();
-            }
-        })),
-        QUEUED_COUNT(new StandardMetricDescriptor<ProcessGroupStatus>("queuedCount", "Queued Count", "The number of FlowFiles queued in all Connections of this Process Group", Formatter.COUNT, new ValueMapper<ProcessGroupStatus>() {
-            @Override
-            public Long getValue(final ProcessGroupStatus status) {
-                return status.getQueuedCount().longValue();
-            }
-        })),
-        TASK_MILLIS(new StandardMetricDescriptor<ProcessGroupStatus>("taskMillis", "Total Task Duration (5 mins)", "The total number of thread-milliseconds that the Processors within this ProcessGroup have used to complete their tasks in the past 5 minutes", Formatter.DURATION, new ValueMapper<ProcessGroupStatus>() {
-            @Override
-            public Long getValue(final ProcessGroupStatus status) {
-                return calculateTaskMillis(status);
-            }
-        }));
+        BYTES_READ(new StandardMetricDescriptor<ProcessGroupStatus>("bytesRead", "Bytes Read (5 mins)",
+                "The total number of bytes read from Content Repository by Processors in this Process Group in the past 5 minutes", Formatter.DATA_SIZE, new ValueMapper<ProcessGroupStatus>() {
+                    @Override
+                    public Long getValue(final ProcessGroupStatus status) {
+                        return status.getBytesRead();
+                    }
+                })),
+        BYTES_WRITTEN(new StandardMetricDescriptor<ProcessGroupStatus>("bytesWritten", "Bytes Written (5 mins)",
+                "The total number of bytes written to Content Repository by Processors in this Process Group in the past 5 minutes", Formatter.DATA_SIZE, new ValueMapper<ProcessGroupStatus>() {
+                    @Override
+                    public Long getValue(final ProcessGroupStatus status) {
+                        return status.getBytesWritten();
+                    }
+                })),
+        BYTES_TRANSFERRED(new StandardMetricDescriptor<ProcessGroupStatus>("bytesTransferred", "Bytes Transferred (5 mins)",
+                "The total number of bytes read from or written to Content Repository by Processors in this Process Group in the past 5 minutes",
+                Formatter.DATA_SIZE, new ValueMapper<ProcessGroupStatus>() {
+                    @Override
+                    public Long getValue(final ProcessGroupStatus status) {
+                        return status.getBytesRead() + status.getBytesWritten();
+                    }
+                })),
+        INPUT_BYTES(new StandardMetricDescriptor<ProcessGroupStatus>("inputBytes", "Bytes In (5 mins)",
+                "The cumulative size of all FlowFiles that have entered this Process Group via its Input Ports in the past 5 minutes",
+                Formatter.DATA_SIZE, new ValueMapper<ProcessGroupStatus>() {
+                    @Override
+                    public Long getValue(final ProcessGroupStatus status) {
+                        return status.getInputContentSize();
+                    }
+                })),
+        INPUT_COUNT(new StandardMetricDescriptor<ProcessGroupStatus>("inputCount", "FlowFiles In (5 mins)",
+                "The number of FlowFiles that have entered this Process Group via its Input Ports in the past 5 minutes",
+                Formatter.COUNT, new ValueMapper<ProcessGroupStatus>() {
+                    @Override
+                    public Long getValue(final ProcessGroupStatus status) {
+                        return status.getInputCount().longValue();
+                    }
+                })),
+        OUTPUT_BYTES(new StandardMetricDescriptor<ProcessGroupStatus>("outputBytes", "Bytes Out (5 mins)",
+                "The cumulative size of all FlowFiles that have exited this Process Group via its Output Ports in the past 5 minutes",
+                Formatter.DATA_SIZE, new ValueMapper<ProcessGroupStatus>() {
+                    @Override
+                    public Long getValue(final ProcessGroupStatus status) {
+                        return status.getOutputContentSize();
+                    }
+                })),
+        OUTPUT_COUNT(new StandardMetricDescriptor<ProcessGroupStatus>("outputCount", "FlowFiles Out (5 mins)",
+                "The number of FlowFiles that have exited this Process Group via its Output Ports in the past 5 minutes",
+                Formatter.COUNT, new ValueMapper<ProcessGroupStatus>() {
+                    @Override
+                    public Long getValue(final ProcessGroupStatus status) {
+                        return status.getOutputCount().longValue();
+                    }
+                })),
+        QUEUED_BYTES(new StandardMetricDescriptor<ProcessGroupStatus>("queuedBytes", "Queued Bytes",
+                "The cumulative size of all FlowFiles queued in all Connections of this Process Group",
+                Formatter.DATA_SIZE, new ValueMapper<ProcessGroupStatus>() {
+                    @Override
+                    public Long getValue(final ProcessGroupStatus status) {
+                        return status.getQueuedContentSize();
+                    }
+                })),
+        QUEUED_COUNT(new StandardMetricDescriptor<ProcessGroupStatus>("queuedCount", "Queued Count",
+                "The number of FlowFiles queued in all Connections of this Process Group", Formatter.COUNT, new ValueMapper<ProcessGroupStatus>() {
+                    @Override
+                    public Long getValue(final ProcessGroupStatus status) {
+                        return status.getQueuedCount().longValue();
+                    }
+                })),
+        TASK_MILLIS(new StandardMetricDescriptor<ProcessGroupStatus>("taskMillis", "Total Task Duration (5 mins)",
+                "The total number of thread-milliseconds that the Processors within this ProcessGroup have used to complete their tasks in the past 5 minutes",
+                Formatter.DURATION, new ValueMapper<ProcessGroupStatus>() {
+                    @Override
+                    public Long getValue(final ProcessGroupStatus status) {
+                        return calculateTaskMillis(status);
+                    }
+                }));
 
         private MetricDescriptor<ProcessGroupStatus> descriptor;
 
@@ -436,42 +463,48 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
 
     public static enum ConnectionStatusDescriptor {
 
-        INPUT_BYTES(new StandardMetricDescriptor<ConnectionStatus>("inputBytes", "Bytes In (5 mins)", "The cumulative size of all FlowFiles that were transferred to this Connection in the past 5 minutes", Formatter.DATA_SIZE, new ValueMapper<ConnectionStatus>() {
-            @Override
-            public Long getValue(final ConnectionStatus status) {
-                return status.getInputBytes();
-            }
-        })),
-        INPUT_COUNT(new StandardMetricDescriptor<ConnectionStatus>("inputCount", "FlowFiles In (5 mins)", "The number of FlowFiles that were transferred to this Connection in the past 5 minutes", Formatter.COUNT, new ValueMapper<ConnectionStatus>() {
-            @Override
-            public Long getValue(final ConnectionStatus status) {
-                return Long.valueOf(status.getInputCount());
-            }
-        })),
-        OUTPUT_BYTES(new StandardMetricDescriptor<ConnectionStatus>("outputBytes", "Bytes Out (5 mins)", "The cumulative size of all FlowFiles that were pulled from this Connection in the past 5 minutes", Formatter.DATA_SIZE, new ValueMapper<ConnectionStatus>() {
-            @Override
-            public Long getValue(final ConnectionStatus status) {
-                return status.getOutputBytes();
-            }
-        })),
-        OUTPUT_COUNT(new StandardMetricDescriptor<ConnectionStatus>("outputCount", "FlowFiles Out (5 mins)", "The number of FlowFiles that were pulled from this Connection in the past 5 minutes", Formatter.COUNT, new ValueMapper<ConnectionStatus>() {
-            @Override
-            public Long getValue(final ConnectionStatus status) {
-                return Long.valueOf(status.getOutputCount());
-            }
-        })),
-        QUEUED_BYTES(new StandardMetricDescriptor<ConnectionStatus>("queuedBytes", "Queued Bytes", "The number of Bytes queued in this Connection", Formatter.DATA_SIZE, new ValueMapper<ConnectionStatus>() {
-            @Override
-            public Long getValue(final ConnectionStatus status) {
-                return status.getQueuedBytes();
-            }
-        })),
-        QUEUED_COUNT(new StandardMetricDescriptor<ConnectionStatus>("queuedCount", "Queued Count", "The number of FlowFiles queued in this Connection", Formatter.COUNT, new ValueMapper<ConnectionStatus>() {
-            @Override
-            public Long getValue(final ConnectionStatus status) {
-                return Long.valueOf(status.getQueuedCount());
-            }
-        }));
+        INPUT_BYTES(new StandardMetricDescriptor<ConnectionStatus>("inputBytes", "Bytes In (5 mins)",
+                "The cumulative size of all FlowFiles that were transferred to this Connection in the past 5 minutes", Formatter.DATA_SIZE, new ValueMapper<ConnectionStatus>() {
+                    @Override
+                    public Long getValue(final ConnectionStatus status) {
+                        return status.getInputBytes();
+                    }
+                })),
+        INPUT_COUNT(new StandardMetricDescriptor<ConnectionStatus>("inputCount", "FlowFiles In (5 mins)",
+                "The number of FlowFiles that were transferred to this Connection in the past 5 minutes", Formatter.COUNT, new ValueMapper<ConnectionStatus>() {
+                    @Override
+                    public Long getValue(final ConnectionStatus status) {
+                        return Long.valueOf(status.getInputCount());
+                    }
+                })),
+        OUTPUT_BYTES(new StandardMetricDescriptor<ConnectionStatus>("outputBytes", "Bytes Out (5 mins)",
+                "The cumulative size of all FlowFiles that were pulled from this Connection in the past 5 minutes", Formatter.DATA_SIZE, new ValueMapper<ConnectionStatus>() {
+                    @Override
+                    public Long getValue(final ConnectionStatus status) {
+                        return status.getOutputBytes();
+                    }
+                })),
+        OUTPUT_COUNT(new StandardMetricDescriptor<ConnectionStatus>("outputCount", "FlowFiles Out (5 mins)",
+                "The number of FlowFiles that were pulled from this Connection in the past 5 minutes", Formatter.COUNT, new ValueMapper<ConnectionStatus>() {
+                    @Override
+                    public Long getValue(final ConnectionStatus status) {
+                        return Long.valueOf(status.getOutputCount());
+                    }
+                })),
+        QUEUED_BYTES(new StandardMetricDescriptor<ConnectionStatus>("queuedBytes", "Queued Bytes",
+                "The number of Bytes queued in this Connection", Formatter.DATA_SIZE, new ValueMapper<ConnectionStatus>() {
+                    @Override
+                    public Long getValue(final ConnectionStatus status) {
+                        return status.getQueuedBytes();
+                    }
+                })),
+        QUEUED_COUNT(new StandardMetricDescriptor<ConnectionStatus>("queuedCount", "Queued Count",
+                "The number of FlowFiles queued in this Connection", Formatter.COUNT, new ValueMapper<ConnectionStatus>() {
+                    @Override
+                    public Long getValue(final ConnectionStatus status) {
+                        return Long.valueOf(status.getQueuedCount());
+                    }
+                }));
 
         private MetricDescriptor<ConnectionStatus> descriptor;
 
@@ -490,66 +523,76 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
 
     public static enum ProcessorStatusDescriptor {
 
-        BYTES_READ(new StandardMetricDescriptor<ProcessorStatus>("bytesRead", "Bytes Read (5 mins)", "The total number of bytes read from the Content Repository by this Processor in the past 5 minutes", Formatter.DATA_SIZE, new ValueMapper<ProcessorStatus>() {
-            @Override
-            public Long getValue(final ProcessorStatus status) {
-                return status.getBytesRead();
-            }
-        })),
-        BYTES_WRITTEN(new StandardMetricDescriptor<ProcessorStatus>("bytesWritten", "Bytes Written (5 mins)", "The total number of bytes written to the Content Repository by this Processor in the past 5 minutes", Formatter.DATA_SIZE, new ValueMapper<ProcessorStatus>() {
-            @Override
-            public Long getValue(final ProcessorStatus status) {
-                return status.getBytesWritten();
-            }
-        })),
-        BYTES_TRANSFERRED(new StandardMetricDescriptor<ProcessorStatus>("bytesTransferred", "Bytes Transferred (5 mins)", "The total number of bytes read from or written to the Content Repository by this Processor in the past 5 minutes", Formatter.DATA_SIZE, new ValueMapper<ProcessorStatus>() {
-            @Override
-            public Long getValue(final ProcessorStatus status) {
-                return status.getBytesRead() + status.getBytesWritten();
-            }
-        })),
-        INPUT_BYTES(new StandardMetricDescriptor<ProcessorStatus>("inputBytes", "Bytes In (5 mins)", "The cumulative size of all FlowFiles that this Processor has pulled from its queues in the past 5 minutes", Formatter.DATA_SIZE, new ValueMapper<ProcessorStatus>() {
-            @Override
-            public Long getValue(final ProcessorStatus status) {
-                return status.getInputBytes();
-            }
-        })),
-        INPUT_COUNT(new StandardMetricDescriptor<ProcessorStatus>("inputCount", "FlowFiles In (5 mins)", "The number of FlowFiles that this Processor has pulled from its queues in the past 5 minutes", Formatter.COUNT, new ValueMapper<ProcessorStatus>() {
-            @Override
-            public Long getValue(final ProcessorStatus status) {
-                return Long.valueOf(status.getInputCount());
-            }
-        })),
-        OUTPUT_BYTES(new StandardMetricDescriptor<ProcessorStatus>("outputBytes", "Bytes Out (5 mins)", "The cumulative size of all FlowFiles that this Processor has transferred to downstream queues in the past 5 minutes", Formatter.DATA_SIZE, new ValueMapper<ProcessorStatus>() {
-            @Override
-            public Long getValue(final ProcessorStatus status) {
-                return status.getOutputBytes();
-            }
-        })),
-        OUTPUT_COUNT(new StandardMetricDescriptor<ProcessorStatus>("outputCount", "FlowFiles Out (5 mins)", "The number of FlowFiles that this Processor has transferred to downstream queues in the past 5 minutes", Formatter.COUNT, new ValueMapper<ProcessorStatus>() {
-            @Override
-            public Long getValue(final ProcessorStatus status) {
-                return Long.valueOf(status.getOutputCount());
-            }
-        })),
-        TASK_COUNT(new StandardMetricDescriptor<ProcessorStatus>("taskCount", "Tasks (5 mins)", "The number of tasks that this Processor has completed in the past 5 minutes", Formatter.COUNT, new ValueMapper<ProcessorStatus>() {
-            @Override
-            public Long getValue(final ProcessorStatus status) {
-                return Long.valueOf(status.getInvocations());
-            }
-        })),
-        TASK_MILLIS(new StandardMetricDescriptor<ProcessorStatus>("taskMillis", "Total Task Duration (5 mins)", "The total number of thread-milliseconds that the Processor has used to complete its tasks in the past 5 minutes", Formatter.DURATION, new ValueMapper<ProcessorStatus>() {
-            @Override
-            public Long getValue(final ProcessorStatus status) {
-                return TimeUnit.MILLISECONDS.convert(status.getProcessingNanos(), TimeUnit.NANOSECONDS);
-            }
-        })),
-        FLOWFILES_REMOVED(new StandardMetricDescriptor<ProcessorStatus>("flowFilesRemoved", "FlowFiles Removed (5 mins)", "The total number of FlowFiles removed by this Processor in the last 5 minutes", Formatter.COUNT, new ValueMapper<ProcessorStatus>() {
-            @Override
-            public Long getValue(final ProcessorStatus status) {
-                return Long.valueOf(status.getFlowFilesRemoved());
-            }
-        })),
+        BYTES_READ(new StandardMetricDescriptor<ProcessorStatus>("bytesRead", "Bytes Read (5 mins)",
+                "The total number of bytes read from the Content Repository by this Processor in the past 5 minutes", Formatter.DATA_SIZE, new ValueMapper<ProcessorStatus>() {
+                    @Override
+                    public Long getValue(final ProcessorStatus status) {
+                        return status.getBytesRead();
+                    }
+                })),
+        BYTES_WRITTEN(new StandardMetricDescriptor<ProcessorStatus>("bytesWritten", "Bytes Written (5 mins)",
+                "The total number of bytes written to the Content Repository by this Processor in the past 5 minutes", Formatter.DATA_SIZE, new ValueMapper<ProcessorStatus>() {
+                    @Override
+                    public Long getValue(final ProcessorStatus status) {
+                        return status.getBytesWritten();
+                    }
+                })),
+        BYTES_TRANSFERRED(new StandardMetricDescriptor<ProcessorStatus>("bytesTransferred", "Bytes Transferred (5 mins)",
+                "The total number of bytes read from or written to the Content Repository by this Processor in the past 5 minutes", Formatter.DATA_SIZE, new ValueMapper<ProcessorStatus>() {
+                    @Override
+                    public Long getValue(final ProcessorStatus status) {
+                        return status.getBytesRead() + status.getBytesWritten();
+                    }
+                })),
+        INPUT_BYTES(new StandardMetricDescriptor<ProcessorStatus>("inputBytes", "Bytes In (5 mins)",
+                "The cumulative size of all FlowFiles that this Processor has pulled from its queues in the past 5 minutes", Formatter.DATA_SIZE, new ValueMapper<ProcessorStatus>() {
+                    @Override
+                    public Long getValue(final ProcessorStatus status) {
+                        return status.getInputBytes();
+                    }
+                })),
+        INPUT_COUNT(new StandardMetricDescriptor<ProcessorStatus>("inputCount", "FlowFiles In (5 mins)",
+                "The number of FlowFiles that this Processor has pulled from its queues in the past 5 minutes", Formatter.COUNT, new ValueMapper<ProcessorStatus>() {
+                    @Override
+                    public Long getValue(final ProcessorStatus status) {
+                        return Long.valueOf(status.getInputCount());
+                    }
+                })),
+        OUTPUT_BYTES(new StandardMetricDescriptor<ProcessorStatus>("outputBytes", "Bytes Out (5 mins)",
+                "The cumulative size of all FlowFiles that this Processor has transferred to downstream queues in the past 5 minutes", Formatter.DATA_SIZE, new ValueMapper<ProcessorStatus>() {
+                    @Override
+                    public Long getValue(final ProcessorStatus status) {
+                        return status.getOutputBytes();
+                    }
+                })),
+        OUTPUT_COUNT(new StandardMetricDescriptor<ProcessorStatus>("outputCount", "FlowFiles Out (5 mins)",
+                "The number of FlowFiles that this Processor has transferred to downstream queues in the past 5 minutes", Formatter.COUNT, new ValueMapper<ProcessorStatus>() {
+                    @Override
+                    public Long getValue(final ProcessorStatus status) {
+                        return Long.valueOf(status.getOutputCount());
+                    }
+                })),
+        TASK_COUNT(new StandardMetricDescriptor<ProcessorStatus>("taskCount", "Tasks (5 mins)", "The number of tasks that this Processor has completed in the past 5 minutes",
+                Formatter.COUNT, new ValueMapper<ProcessorStatus>() {
+                    @Override
+                    public Long getValue(final ProcessorStatus status) {
+                        return Long.valueOf(status.getInvocations());
+                    }
+                })),
+        TASK_MILLIS(new StandardMetricDescriptor<ProcessorStatus>("taskMillis", "Total Task Duration (5 mins)",
+                "The total number of thread-milliseconds that the Processor has used to complete its tasks in the past 5 minutes", Formatter.DURATION, new ValueMapper<ProcessorStatus>() {
+                    @Override
+                    public Long getValue(final ProcessorStatus status) {
+                        return TimeUnit.MILLISECONDS.convert(status.getProcessingNanos(), TimeUnit.NANOSECONDS);
+                    }
+                })),
+        FLOWFILES_REMOVED(new StandardMetricDescriptor<ProcessorStatus>("flowFilesRemoved", "FlowFiles Removed (5 mins)",
+                "The total number of FlowFiles removed by this Processor in the last 5 minutes", Formatter.COUNT, new ValueMapper<ProcessorStatus>() {
+                    @Override
+                    public Long getValue(final ProcessorStatus status) {
+                        return Long.valueOf(status.getFlowFilesRemoved());
+                    }
+                })),
         AVERAGE_LINEAGE_DURATION(new StandardMetricDescriptor<ProcessorStatus>(
                 "averageLineageDuration",
                 "Average Lineage Duration (5 mins)",
