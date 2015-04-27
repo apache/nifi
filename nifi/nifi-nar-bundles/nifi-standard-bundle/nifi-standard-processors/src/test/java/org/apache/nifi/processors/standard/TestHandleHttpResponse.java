@@ -51,14 +51,12 @@ public class TestHandleHttpResponse {
 
     @Test
     public void testEnsureCompleted() throws InitializationException {
-        final TestRunner runner = TestRunners.
-                newTestRunner(HandleHttpResponse.class);
+        final TestRunner runner = TestRunners.newTestRunner(HandleHttpResponse.class);
 
         final MockHttpContextMap contextMap = new MockHttpContextMap("my-id");
         runner.addControllerService("http-context-map", contextMap);
         runner.enableControllerService(contextMap);
-        runner.
-                setProperty(HandleHttpResponse.HTTP_CONTEXT_MAP, "http-context-map");
+        runner.setProperty(HandleHttpResponse.HTTP_CONTEXT_MAP, "http-context-map");
         runner.setProperty(HandleHttpResponse.STATUS_CODE, "${status.code}");
         runner.setProperty("my-attr", "${my-attr}");
         runner.setProperty("no-valid-attr", "${no-valid-attr}");
@@ -104,47 +102,42 @@ public class TestHandleHttpResponse {
         @Override
         public HttpServletResponse getResponse(final String identifier) {
             if (!id.equals(identifier)) {
-                Assert.
-                        fail("attempting to respond to wrong request; should have been " + id + " but was " + identifier);
+                Assert.fail("attempting to respond to wrong request; should have been " + id + " but was " + identifier);
             }
 
             try {
-                final HttpServletResponse response = Mockito.
-                        mock(HttpServletResponse.class);
-                Mockito.when(response.getOutputStream()).
-                        thenReturn(new ServletOutputStream() {
-                            @Override
-                            public boolean isReady() {
-                                return true;
-                            }
+                final HttpServletResponse response = Mockito.mock(HttpServletResponse.class);
+                Mockito.when(response.getOutputStream()).thenReturn(new ServletOutputStream() {
+                    @Override
+                    public boolean isReady() {
+                        return true;
+                    }
 
-                            @Override
-                            public void setWriteListener(WriteListener writeListener) {
-                            }
+                    @Override
+                    public void setWriteListener(WriteListener writeListener) {
+                    }
 
-                            @Override
-                            public void write(int b) throws IOException {
-                                baos.write(b);
-                            }
+                    @Override
+                    public void write(int b) throws IOException {
+                        baos.write(b);
+                    }
 
-                            @Override
-                            public void write(byte[] b) throws IOException {
-                                baos.write(b);
-                            }
+                    @Override
+                    public void write(byte[] b) throws IOException {
+                        baos.write(b);
+                    }
 
-                            @Override
-                            public void write(byte[] b, int off, int len) throws IOException {
-                                baos.write(b, off, len);
-                            }
-                        });
+                    @Override
+                    public void write(byte[] b, int off, int len) throws IOException {
+                        baos.write(b, off, len);
+                    }
+                });
 
                 Mockito.doAnswer(new Answer<Object>() {
                     @Override
                     public Object answer(final InvocationOnMock invocation) throws Throwable {
-                        final String key = invocation.
-                                getArgumentAt(0, String.class);
-                        final String value = invocation.
-                                getArgumentAt(1, String.class);
+                        final String key = invocation.getArgumentAt(0, String.class);
+                        final String value = invocation.getArgumentAt(1, String.class);
                         if (value == null) {
                             headersWithNoValue.add(key);
                         } else {
@@ -153,10 +146,7 @@ public class TestHandleHttpResponse {
 
                         return null;
                     }
-                }).
-                        when(response).
-                        setHeader(Mockito.any(String.class), Mockito.
-                                any(String.class));
+                }).when(response).setHeader(Mockito.any(String.class), Mockito.any(String.class));
 
                 Mockito.doAnswer(new Answer<Object>() {
                     @Override
@@ -164,9 +154,7 @@ public class TestHandleHttpResponse {
                         statusCode = invocation.getArgumentAt(0, int.class);
                         return null;
                     }
-                }).
-                        when(response).
-                        setStatus(Mockito.anyInt());
+                }).when(response).setStatus(Mockito.anyInt());
 
                 return response;
             } catch (final Exception e) {
@@ -179,8 +167,7 @@ public class TestHandleHttpResponse {
         @Override
         public void complete(final String identifier) {
             if (!id.equals(identifier)) {
-                Assert.
-                        fail("attempting to respond to wrong request; should have been " + id + " but was " + identifier);
+                Assert.fail("attempting to respond to wrong request; should have been " + id + " but was " + identifier);
             }
 
             completedCount.incrementAndGet();

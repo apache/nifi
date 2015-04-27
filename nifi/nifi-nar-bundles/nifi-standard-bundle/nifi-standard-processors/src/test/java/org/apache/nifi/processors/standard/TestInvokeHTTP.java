@@ -145,9 +145,7 @@ public class TestInvokeHTTP {
 
         //expected in request status.code and status.message
         //original flow file (+attributes)??????????
-        final MockFlowFile bundle = runner.
-                getFlowFilesForRelationship(Config.REL_SUCCESS_REQ).
-                get(0);
+        final MockFlowFile bundle = runner.getFlowFilesForRelationship(Config.REL_SUCCESS_REQ).get(0);
         bundle.assertAttributeEquals(Config.STATUS_CODE, "200");
         bundle.assertAttributeEquals(Config.STATUS_MESSAGE, "OK");
         final String actual = new String(bundle.toByteArray(), StandardCharsets.UTF_8);
@@ -159,15 +157,12 @@ public class TestInvokeHTTP {
         //status code, status message, all headers from server response --> ff attributes
         //server response message body into payload of ff
         //should not contain any original ff attributes
-        final MockFlowFile bundle1 = runner.
-                getFlowFilesForRelationship(Config.REL_SUCCESS_RESP).
-                get(0);
+        final MockFlowFile bundle1 = runner.getFlowFilesForRelationship(Config.REL_SUCCESS_RESP).get(0);
         bundle1.assertContentEquals("/status/200".getBytes("UTF-8"));
         bundle1.assertAttributeEquals(Config.STATUS_CODE, "200");
         bundle1.assertAttributeEquals(Config.STATUS_MESSAGE, "OK");
         bundle1.assertAttributeEquals("Foo", "Bar");
-        bundle1.
-                assertAttributeEquals("Content-Type", "text/plain; charset=ISO-8859-1");
+        bundle1.assertAttributeEquals("Content-Type", "text/plain; charset=ISO-8859-1");
         final String actual1 = new String(bundle1.toByteArray(), StandardCharsets.UTF_8);
         final String expected1 = "/status/200";
         Assert.assertEquals(expected1, actual1);
@@ -190,9 +185,7 @@ public class TestInvokeHTTP {
         runner.assertTransferCount(Config.REL_FAILURE, 0);
 
         //expected in response
-        final MockFlowFile bundle = runner.
-                getFlowFilesForRelationship(Config.REL_RETRY).
-                get(0);
+        final MockFlowFile bundle = runner.getFlowFilesForRelationship(Config.REL_RETRY).get(0);
         final String actual = new String(bundle.toByteArray(), StandardCharsets.UTF_8);
         bundle.assertAttributeEquals(Config.STATUS_CODE, "500");
         bundle.assertAttributeEquals(Config.STATUS_MESSAGE, "Server Error");
@@ -220,9 +213,7 @@ public class TestInvokeHTTP {
         runner.assertTransferCount(Config.REL_FAILURE, 0);
         //getMyFlowFiles();
         //expected in response
-        final MockFlowFile bundle = runner.
-                getFlowFilesForRelationship(Config.REL_NO_RETRY).
-                get(0);
+        final MockFlowFile bundle = runner.getFlowFilesForRelationship(Config.REL_NO_RETRY).get(0);
         final String actual = new String(bundle.toByteArray(), StandardCharsets.UTF_8);
 
         bundle.assertAttributeEquals(Config.STATUS_CODE, "302");
@@ -249,9 +240,7 @@ public class TestInvokeHTTP {
         runner.assertTransferCount(Config.REL_FAILURE, 0);
         //getMyFlowFiles();
         //expected in response
-        final MockFlowFile bundle = runner.
-                getFlowFilesForRelationship(Config.REL_NO_RETRY).
-                get(0);
+        final MockFlowFile bundle = runner.getFlowFilesForRelationship(Config.REL_NO_RETRY).get(0);
         final String actual = new String(bundle.toByteArray(), StandardCharsets.UTF_8);
 
         bundle.assertAttributeEquals(Config.STATUS_CODE, "304");
@@ -278,9 +267,7 @@ public class TestInvokeHTTP {
         runner.assertTransferCount(Config.REL_FAILURE, 0);
         //getMyFlowFiles();
         //expected in response
-        final MockFlowFile bundle = runner.
-                getFlowFilesForRelationship(Config.REL_NO_RETRY).
-                get(0);
+        final MockFlowFile bundle = runner.getFlowFilesForRelationship(Config.REL_NO_RETRY).get(0);
         final String actual = new String(bundle.toByteArray(), StandardCharsets.UTF_8);
 
         bundle.assertAttributeEquals(Config.STATUS_CODE, "400");
@@ -309,14 +296,11 @@ public class TestInvokeHTTP {
         runner.assertTransferCount(Config.REL_FAILURE, 0);
 
         //expected in response
-        final MockFlowFile bundle = runner.
-                getFlowFilesForRelationship(Config.REL_NO_RETRY).
-                get(0);
+        final MockFlowFile bundle = runner.getFlowFilesForRelationship(Config.REL_NO_RETRY).get(0);
         final String actual = new String(bundle.toByteArray(), StandardCharsets.UTF_8);
 
         bundle.assertAttributeEquals(Config.STATUS_CODE, "412");
-        bundle.
-                assertAttributeEquals(Config.STATUS_MESSAGE, "Precondition Failed");
+        bundle.assertAttributeEquals(Config.STATUS_MESSAGE, "Precondition Failed");
         bundle.assertAttributeEquals(Config.RESPONSE_BODY, "/status/412");
         final String expected = "Hello";
         Assert.assertEquals(expected, actual);
@@ -340,9 +324,7 @@ public class TestInvokeHTTP {
         runner.assertTransferCount(Config.REL_NO_RETRY, 0);
         runner.assertTransferCount(Config.REL_FAILURE, 0);
 
-        final MockFlowFile bundle = runner.
-                getFlowFilesForRelationship(Config.REL_SUCCESS_REQ).
-                get(0);
+        final MockFlowFile bundle = runner.getFlowFilesForRelationship(Config.REL_SUCCESS_REQ).get(0);
         bundle.assertAttributeEquals(Config.STATUS_CODE, "200");
         bundle.assertAttributeEquals(Config.STATUS_MESSAGE, "OK");
         final String actual = new String(bundle.toByteArray(), StandardCharsets.UTF_8);
@@ -350,9 +332,7 @@ public class TestInvokeHTTP {
         Assert.assertEquals(expected, actual);
         bundle.assertAttributeEquals("Foo", "Bar");
 
-        final MockFlowFile bundle1 = runner.
-                getFlowFilesForRelationship(Config.REL_SUCCESS_RESP).
-                get(0);
+        final MockFlowFile bundle1 = runner.getFlowFilesForRelationship(Config.REL_SUCCESS_RESP).get(0);
         bundle1.assertContentEquals("".getBytes("UTF-8"));
         bundle1.assertAttributeEquals(Config.STATUS_CODE, "200");
         bundle1.assertAttributeEquals(Config.STATUS_MESSAGE, "OK");
@@ -379,9 +359,7 @@ public class TestInvokeHTTP {
         runner.assertTransferCount(Config.REL_NO_RETRY, 0);
         runner.assertTransferCount(Config.REL_FAILURE, 0);
 
-        final MockFlowFile bundle = runner.
-                getFlowFilesForRelationship(Config.REL_SUCCESS_REQ).
-                get(0);
+        final MockFlowFile bundle = runner.getFlowFilesForRelationship(Config.REL_SUCCESS_REQ).get(0);
         bundle.assertAttributeEquals(Config.STATUS_CODE, "200");
         bundle.assertAttributeEquals(Config.STATUS_MESSAGE, "OK");
         final String actual = new String(bundle.toByteArray(), StandardCharsets.UTF_8);
@@ -389,9 +367,7 @@ public class TestInvokeHTTP {
         Assert.assertEquals(expected, actual);
         bundle.assertAttributeEquals("Foo", "Bar");
 
-        final MockFlowFile bundle1 = runner.
-                getFlowFilesForRelationship(Config.REL_SUCCESS_RESP).
-                get(0);
+        final MockFlowFile bundle1 = runner.getFlowFilesForRelationship(Config.REL_SUCCESS_RESP).get(0);
         bundle1.assertContentEquals("".getBytes("UTF-8"));
         bundle1.assertAttributeEquals(Config.STATUS_CODE, "200");
         bundle1.assertAttributeEquals(Config.STATUS_MESSAGE, "OK");
@@ -419,9 +395,7 @@ public class TestInvokeHTTP {
         runner.assertTransferCount(Config.REL_NO_RETRY, 0);
         runner.assertTransferCount(Config.REL_FAILURE, 0);
 
-        final MockFlowFile bundle = runner.
-                getFlowFilesForRelationship(Config.REL_SUCCESS_REQ).
-                get(0);
+        final MockFlowFile bundle = runner.getFlowFilesForRelationship(Config.REL_SUCCESS_REQ).get(0);
         bundle.assertAttributeEquals(Config.STATUS_CODE, "200");
         bundle.assertAttributeEquals(Config.STATUS_MESSAGE, "OK");
         final String actual = new String(bundle.toByteArray(), StandardCharsets.UTF_8);
@@ -429,9 +403,7 @@ public class TestInvokeHTTP {
         Assert.assertEquals(expected, actual);
         bundle.assertAttributeEquals("Foo", "Bar");
 
-        final MockFlowFile bundle1 = runner.
-                getFlowFilesForRelationship(Config.REL_SUCCESS_RESP).
-                get(0);
+        final MockFlowFile bundle1 = runner.getFlowFilesForRelationship(Config.REL_SUCCESS_RESP).get(0);
         bundle1.assertContentEquals("".getBytes("UTF-8"));
         bundle1.assertAttributeEquals(Config.STATUS_CODE, "200");
         bundle1.assertAttributeEquals(Config.STATUS_MESSAGE, "OK");
@@ -460,9 +432,7 @@ public class TestInvokeHTTP {
         runner.assertTransferCount(Config.REL_NO_RETRY, 0);
         runner.assertTransferCount(Config.REL_FAILURE, 1);
 
-        final MockFlowFile bundle = runner.
-                getFlowFilesForRelationship(Config.REL_FAILURE).
-                get(0);
+        final MockFlowFile bundle = runner.getFlowFilesForRelationship(Config.REL_FAILURE).get(0);
 
         final String actual = new String(bundle.toByteArray(), StandardCharsets.UTF_8);
         final String expected = "Hello";
@@ -470,54 +440,6 @@ public class TestInvokeHTTP {
         bundle.assertAttributeEquals("Foo", "Bar");
     }
 
-    //  @Test
-    //  public void testGetFlowfileAttributes() throws IOException {
-    //      Map<String, List<String>> input = new HashMap<>();
-    //      input.put("A", Arrays.asList("1"));
-    //      input.put("B", Arrays.asList("1", "2", "3"));
-    //      input.put("C", new ArrayList<String>());
-    //      input.put("D", null);
-    //
-    //      Map<String, String> expected = new HashMap<>();
-    //      expected.put(Config.STATUS_CODE, "200");
-    //      expected.put(Config.STATUS_MESSAGE, "OK");
-    //      expected.put(Config.STATUS_LINE, "HTTP/1.1 200 OK");
-    //      expected.put("A", "1");
-    //      expected.put("B", "1, 2, 3");
-    //
-    //      URL url = new URL("file:/dev/null");
-    //      HttpURLConnection conn = new MockHttpURLConnection(url, 200, "OK", input);
-    //
-    //      Map<String, String> actual = processor.getAttributesFromHeaders(conn);
-    //
-    //      assertEquals(expected, actual);
-    //  }
-    //  @Test
-    //  public void testCsv() {
-    //      // null input should return an empty string
-    //      assertEquals("", processor.csv(null));
-    //
-    //      // empty collection returns empty string
-    //      assertEquals("", processor.csv(new ArrayList<String>()));
-    //
-    //      // pretty normal checks
-    //      assertEquals("1", processor.csv(Arrays.asList("1")));
-    //      assertEquals("1, 2", processor.csv(Arrays.asList("1", "2")));
-    //      assertEquals("1, 2, 3", processor.csv(Arrays.asList("1", "2", "3")));
-    //
-    //      // values should be trimmed
-    //      assertEquals("1, 2, 3", processor.csv(Arrays.asList("    1", "    2       ", "3       ")));
-    //
-    //      // empty values should be skipped
-    //      assertEquals("1, 3", processor.csv(Arrays.asList("1", "", "3")));
-    //
-    //      // whitespace values should be skipped
-    //      assertEquals("1, 3", processor.csv(Arrays.asList("1", "      ", "3")));
-    //
-    //      // this (mis)behavior is currently expected, embedded comma delimiters are not escaped
-    //      // note the embedded unescaped comma in the "1, " value
-    //      assertEquals("1,, 2, 3", processor.csv(Arrays.asList("1, ", "2", "3")));
-    //  }
     @Test
     public void testConnectFailBadHost() throws Exception {
         addHandler(new GetOrHeadHandler());
@@ -534,9 +456,7 @@ public class TestInvokeHTTP {
         runner.assertTransferCount(Config.REL_NO_RETRY, 0);
         runner.assertTransferCount(Config.REL_FAILURE, 1);
 
-        final MockFlowFile bundle = runner.
-                getFlowFilesForRelationship(Config.REL_FAILURE).
-                get(0);
+        final MockFlowFile bundle = runner.getFlowFilesForRelationship(Config.REL_FAILURE).get(0);
 
         final String actual = new String(bundle.toByteArray(), StandardCharsets.UTF_8);
         final String expected = "Hello";
@@ -545,16 +465,12 @@ public class TestInvokeHTTP {
     }
 
     private static Map<String, String> createSslProperties() {
-        Map<String, String> map = new HashMap<String, String>();
-        map.
-                put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/localhost-ks.jks");
-        map.
-                put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "localtest");
+        Map<String, String> map = new HashMap<>();
+        map.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/localhost-ks.jks");
+        map.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "localtest");
         map.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), "JKS");
-        map.
-                put(StandardSSLContextService.TRUSTSTORE.getName(), "src/test/resources/localhost-ts.jks");
-        map.
-                put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "localtest");
+        map.put(StandardSSLContextService.TRUSTSTORE.getName(), "src/test/resources/localhost-ts.jks");
+        map.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "localtest");
         map.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), "JKS");
         return map;
     }
@@ -582,8 +498,7 @@ public class TestInvokeHTTP {
 
             assertEquals("/post", target);
 
-            String body = request.getReader().
-                    readLine();
+            String body = request.getReader().readLine();
             assertEquals("Hello", body);
 
         }
@@ -595,8 +510,7 @@ public class TestInvokeHTTP {
         public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
             baseRequest.setHandled(true);
 
-            int status = Integer.valueOf(target.
-                    substring("/status".length() + 1));
+            int status = Integer.valueOf(target.substring("/status".length() + 1));
             response.setStatus(status);
 
             response.setContentType("text/plain");
@@ -625,8 +539,7 @@ public class TestInvokeHTTP {
 
             response.setStatus(200);
             response.setContentType("text/plain");
-            response.getWriter().
-                    println("Way to go!");
+            response.getWriter().println("Way to go!");
         }
     }
 

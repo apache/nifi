@@ -59,28 +59,27 @@ import java.util.concurrent.atomic.AtomicReference;
         + "does not evaluate to an array element, the original file is routed to 'failure' and no files are generated.")
 public class SplitJson extends AbstractJsonPathProcessor {
 
-    public static final PropertyDescriptor ARRAY_JSON_PATH_EXPRESSION = new PropertyDescriptor.Builder().
-            name("JsonPath Expression").
-            description("A JsonPath expression that indicates the array element to split into JSON/scalar fragments.").
-            addValidator(StandardValidators.NON_EMPTY_VALIDATOR) // Full validation/caching occurs in #customValidate
-            .
-            required(true).
-            build();
+    public static final PropertyDescriptor ARRAY_JSON_PATH_EXPRESSION = new PropertyDescriptor.Builder()
+            .name("JsonPath Expression")
+            .description("A JsonPath expression that indicates the array element to split into JSON/scalar fragments.")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR) // Full validation/caching occurs in #customValidate
+            .required(true)
+            .build();
 
-    public static final Relationship REL_ORIGINAL = new Relationship.Builder().
-            name("original").
-            description("The original FlowFile that was split into segments. If the FlowFile fails processing, nothing will be sent to "
-                    + "this relationship").
-            build();
-    public static final Relationship REL_SPLIT = new Relationship.Builder().
-            name("split").
-            description("All segments of the original FlowFile will be routed to this relationship").
-            build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder().
-            name("failure").
-            description("If a FlowFile fails processing for any reason (for example, the FlowFile is not valid JSON or the specified "
-                    + "path does not exist), it will be routed to this relationship").
-            build();
+    public static final Relationship REL_ORIGINAL = new Relationship.Builder()
+            .name("original")
+            .description("The original FlowFile that was split into segments. If the FlowFile fails processing, nothing will be sent to "
+                    + "this relationship")
+            .build();
+    public static final Relationship REL_SPLIT = new Relationship.Builder()
+            .name("split")
+            .description("All segments of the original FlowFile will be routed to this relationship")
+            .build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("If a FlowFile fails processing for any reason (for example, the FlowFile is not valid JSON or the specified "
+                    + "path does not exist), it will be routed to this relationship")
+            .build();
 
     private List<PropertyDescriptor> properties;
     private Set<Relationship> relationships;
@@ -137,10 +136,8 @@ public class SplitJson extends AbstractJsonPathProcessor {
             }
         };
 
-        String value = validationContext.getProperty(ARRAY_JSON_PATH_EXPRESSION).
-                getValue();
-        return Collections.singleton(validator.
-                validate(ARRAY_JSON_PATH_EXPRESSION.getName(), value, validationContext));
+        String value = validationContext.getProperty(ARRAY_JSON_PATH_EXPRESSION).getValue();
+        return Collections.singleton(validator.validate(ARRAY_JSON_PATH_EXPRESSION.getName(), value, validationContext));
     }
 
     @Override
@@ -156,18 +153,14 @@ public class SplitJson extends AbstractJsonPathProcessor {
         try {
             documentContext = validateAndEstablishJsonContext(processSession, original);
         } catch (InvalidJsonException e) {
-            logger.
-                    error("FlowFile {} did not have valid JSON content.", new Object[]{original});
+            logger.error("FlowFile {} did not have valid JSON content.", new Object[]{original});
             processSession.transfer(original, REL_FAILURE);
             return;
         }
 
         final JsonPath jsonPath = JSON_PATH_REF.get();
-        String representationOption = processContext.
-                getProperty(NULL_VALUE_DEFAULT_REPRESENTATION).
-                getValue();
-        final String nullDefaultValue = NULL_REPRESENTATION_MAP.
-                get(representationOption);
+        String representationOption = processContext.getProperty(NULL_VALUE_DEFAULT_REPRESENTATION).getValue();
+        final String nullDefaultValue = NULL_REPRESENTATION_MAP.get(representationOption);
 
         final List<FlowFile> segments = new ArrayList<>();
 
@@ -175,17 +168,13 @@ public class SplitJson extends AbstractJsonPathProcessor {
         try {
             jsonPathResult = documentContext.read(jsonPath);
         } catch (PathNotFoundException e) {
-            logger.
-                    warn("JsonPath {} could not be found for FlowFile {}", new Object[]{jsonPath.
-                        getPath(), original});
+            logger.warn("JsonPath {} could not be found for FlowFile {}", new Object[]{jsonPath.getPath(), original});
             processSession.transfer(original, REL_FAILURE);
             return;
         }
 
         if (!(jsonPathResult instanceof List)) {
-            logger.
-                    error("The evaluated value {} of {} was not a JSON Array compatible type and cannot be split.",
-                            new Object[]{jsonPathResult, jsonPath.getPath()});
+            logger.error("The evaluated value {} of {} was not a JSON Array compatible type and cannot be split.", new Object[]{jsonPathResult, jsonPath.getPath()});
             processSession.transfer(original, REL_FAILURE);
             return;
         }
@@ -198,20 +187,16 @@ public class SplitJson extends AbstractJsonPathProcessor {
                 @Override
                 public void process(OutputStream out) throws IOException {
                     String resultSegmentContent = getResultRepresentation(resultSegment, nullDefaultValue);
-                    out.write(resultSegmentContent.
-                            getBytes(StandardCharsets.UTF_8));
+                    out.write(resultSegmentContent.getBytes(StandardCharsets.UTF_8));
                 }
             });
             segments.add(split);
         }
 
-        processSession.getProvenanceReporter().
-                fork(original, segments);
+        processSession.getProvenanceReporter().fork(original, segments);
 
         processSession.transfer(segments, REL_SPLIT);
         processSession.transfer(original, REL_ORIGINAL);
-        logger.
-                info("Split {} into {} FlowFiles", new Object[]{original, segments.
-                    size()});
+        logger.info("Split {} into {} FlowFiles", new Object[]{original, segments.size()});
     }
 }

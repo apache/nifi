@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.nifi.processors.standard.RouteOnContent;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -31,10 +30,8 @@ public class TestRouteOnContent {
 
     @Test
     public void testCloning() throws IOException {
-        final TestRunner runner = TestRunners.
-                newTestRunner(new RouteOnContent());
-        runner.
-                setProperty(RouteOnContent.MATCH_REQUIREMENT, RouteOnContent.MATCH_SUBSEQUENCE);
+        final TestRunner runner = TestRunners.newTestRunner(new RouteOnContent());
+        runner.setProperty(RouteOnContent.MATCH_REQUIREMENT, RouteOnContent.MATCH_SUBSEQUENCE);
         runner.setProperty("hello", "Hello");
         runner.setProperty("world", "World");
 
@@ -48,10 +45,8 @@ public class TestRouteOnContent {
 
     @Test
     public void testSubstituteAttributes() throws IOException {
-        final TestRunner runner = TestRunners.
-                newTestRunner(new RouteOnContent());
-        runner.
-                setProperty(RouteOnContent.MATCH_REQUIREMENT, RouteOnContent.MATCH_SUBSEQUENCE);
+        final TestRunner runner = TestRunners.newTestRunner(new RouteOnContent());
+        runner.setProperty(RouteOnContent.MATCH_REQUIREMENT, RouteOnContent.MATCH_SUBSEQUENCE);
         runner.setProperty("attr", "Hel${highLow}");
 
         final Map<String, String> attributes = new HashMap<>();
@@ -64,10 +59,8 @@ public class TestRouteOnContent {
 
     @Test
     public void testBufferSize() throws IOException {
-        final TestRunner runner = TestRunners.
-                newTestRunner(new RouteOnContent());
-        runner.
-                setProperty(RouteOnContent.MATCH_REQUIREMENT, RouteOnContent.MATCH_ALL);
+        final TestRunner runner = TestRunners.newTestRunner(new RouteOnContent());
+        runner.setProperty(RouteOnContent.MATCH_REQUIREMENT, RouteOnContent.MATCH_ALL);
         runner.setProperty(RouteOnContent.BUFFER_SIZE, "3 B");
         runner.setProperty("rel", "Hel");
 

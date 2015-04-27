@@ -40,80 +40,80 @@ import com.jcraft.jsch.SftpException;
 
 public class SFTPUtils {
 
-    public static final PropertyDescriptor SFTP_PRIVATEKEY_PATH = new PropertyDescriptor.Builder().
-            required(false).
-            description("sftp.privatekey.path").
-            defaultValue(null).
-            name("sftp.privatekey.path").
-            addValidator(StandardValidators.FILE_EXISTS_VALIDATOR).
-            sensitive(false).
-            build();
-    public static final PropertyDescriptor REMOTE_PASSWORD = new PropertyDescriptor.Builder().
-            required(false).
-            description("remote.password").
-            defaultValue(null).
-            name("remote.password").
-            addValidator(StandardValidators.NON_EMPTY_VALIDATOR).
-            sensitive(true).
-            build();
-    public static final PropertyDescriptor SFTP_PRIVATEKEY_PASSPHRASE = new PropertyDescriptor.Builder().
-            required(false).
-            description("sftp.privatekey.passphrase").
-            defaultValue(null).
-            name("sftp.privatekey.passphrase").
-            addValidator(StandardValidators.NON_EMPTY_VALIDATOR).
-            sensitive(true).
-            build();
-    public static final PropertyDescriptor SFTP_PORT = new PropertyDescriptor.Builder().
-            required(false).
-            description("sftp.port").
-            defaultValue(null).
-            name("sftp.port").
-            addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR).
-            sensitive(false).
-            build();
-    public static final PropertyDescriptor NETWORK_DATA_TIMEOUT = new PropertyDescriptor.Builder().
-            required(false).
-            description("network.data.timeout").
-            defaultValue(null).
-            name("network.data.timeout").
-            addValidator(StandardValidators.INTEGER_VALIDATOR).
-            sensitive(false).
-            build();
-    public static final PropertyDescriptor SFTP_HOSTKEY_FILENAME = new PropertyDescriptor.Builder().
-            required(false).
-            description("sftp.hostkey.filename").
-            defaultValue(null).
-            name("sftp.hostkey.filename").
-            addValidator(StandardValidators.FILE_EXISTS_VALIDATOR).
-            sensitive(false).
-            build();
-    public static final PropertyDescriptor NETWORK_CONNECTION_TIMEOUT = new PropertyDescriptor.Builder().
-            required(false).
-            description("network.connection.timeout").
-            defaultValue(null).
-            name("network.connection.timeout").
-            addValidator(StandardValidators.INTEGER_VALIDATOR).
-            sensitive(false).
-            build();
+    public static final PropertyDescriptor SFTP_PRIVATEKEY_PATH = new PropertyDescriptor.Builder()
+            .required(false)
+            .description("sftp.privatekey.path")
+            .defaultValue(null)
+            .name("sftp.privatekey.path")
+            .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+            .sensitive(false)
+            .build();
+    public static final PropertyDescriptor REMOTE_PASSWORD = new PropertyDescriptor.Builder()
+            .required(false)
+            .description("remote.password")
+            .defaultValue(null)
+            .name("remote.password")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .sensitive(true)
+            .build();
+    public static final PropertyDescriptor SFTP_PRIVATEKEY_PASSPHRASE = new PropertyDescriptor.Builder()
+            .required(false)
+            .description("sftp.privatekey.passphrase")
+            .defaultValue(null)
+            .name("sftp.privatekey.passphrase")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .sensitive(true)
+            .build();
+    public static final PropertyDescriptor SFTP_PORT = new PropertyDescriptor.Builder()
+            .required(false)
+            .description("sftp.port")
+            .defaultValue(null)
+            .name("sftp.port")
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .sensitive(false)
+            .build();
+    public static final PropertyDescriptor NETWORK_DATA_TIMEOUT = new PropertyDescriptor.Builder()
+            .required(false)
+            .description("network.data.timeout")
+            .defaultValue(null)
+            .name("network.data.timeout")
+            .addValidator(StandardValidators.INTEGER_VALIDATOR)
+            .sensitive(false)
+            .build();
+    public static final PropertyDescriptor SFTP_HOSTKEY_FILENAME = new PropertyDescriptor.Builder()
+            .required(false)
+            .description("sftp.hostkey.filename")
+            .defaultValue(null)
+            .name("sftp.hostkey.filename")
+            .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+            .sensitive(false)
+            .build();
+    public static final PropertyDescriptor NETWORK_CONNECTION_TIMEOUT = new PropertyDescriptor.Builder()
+            .required(false)
+            .description("network.connection.timeout")
+            .defaultValue(null)
+            .name("network.connection.timeout")
+            .addValidator(StandardValidators.INTEGER_VALIDATOR)
+            .sensitive(false)
+            .build();
 
     // required properties
-    public static final PropertyDescriptor REMOTE_HOSTNAME = new PropertyDescriptor.Builder().
-            required(true).
-            description("remote.hostname").
-            defaultValue(null).
-            name("remote.hostname").
-            addValidator(StandardValidators.NON_EMPTY_VALIDATOR).
-            sensitive(false).
-            build();
-    public static final PropertyDescriptor REMOTE_USERNAME = new PropertyDescriptor.Builder().
-            required(true).
-            description("remote.username").
-            defaultValue(null).
-            name("remote.username").
-            addValidator(StandardValidators.NON_EMPTY_VALIDATOR).
-            sensitive(false).
-            build();
+    public static final PropertyDescriptor REMOTE_HOSTNAME = new PropertyDescriptor.Builder()
+            .required(true)
+            .description("remote.hostname")
+            .defaultValue(null)
+            .name("remote.hostname")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .sensitive(false)
+            .build();
+    public static final PropertyDescriptor REMOTE_USERNAME = new PropertyDescriptor.Builder()
+            .required(true)
+            .description("remote.username")
+            .defaultValue(null)
+            .name("remote.username")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .sensitive(false)
+            .build();
 
     private static final List<PropertyDescriptor> propertyDescriptors = new ArrayList<>();
 
@@ -149,22 +149,16 @@ public class SFTPUtils {
         File dir = new File(dirPath);
         String currentWorkingDirectory = null;
         boolean dirExists = false;
-        final String forwardPaths = dir.getPath().
-                replaceAll(Matcher.quoteReplacement("\\"), Matcher.
-                        quoteReplacement("/"));
+        final String forwardPaths = dir.getPath().replaceAll(Matcher.quoteReplacement("\\"), Matcher.quoteReplacement("/"));
         try {
             currentWorkingDirectory = sftp.pwd();
-            logger.
-                    debug(proc + " attempting to change directory from " + currentWorkingDirectory + " to " + dir.
-                            getPath());
+            logger.debug(proc + " attempting to change directory from " + currentWorkingDirectory + " to " + dir.getPath());
             //always use forward paths for long string attempt
             sftp.cd(forwardPaths);
             dirExists = true;
-            logger.
-                    debug(proc + " changed working directory to '" + forwardPaths + "' from '" + currentWorkingDirectory + "'");
+            logger.debug(proc + " changed working directory to '" + forwardPaths + "' from '" + currentWorkingDirectory + "'");
         } catch (final SftpException sftpe) {
-            logger.
-                    debug(proc + " could not change directory to '" + forwardPaths + "' from '" + currentWorkingDirectory + "' so trying the hard way.");
+            logger.debug(proc + " could not change directory to '" + forwardPaths + "' from '" + currentWorkingDirectory + "' so trying the hard way.");
         }
         if (dirExists) {
             return;
@@ -185,14 +179,12 @@ public class SFTPUtils {
             try {
                 sftp.cd(dirName);
             } catch (final SftpException sftpe) {
-                logger.
-                        debug(proc + " creating new directory and changing to it " + dirName);
+                logger.debug(proc + " creating new directory and changing to it " + dirName);
                 try {
                     sftp.mkdir(dirName);
                     sftp.cd(dirName);
                 } catch (final SftpException e) {
-                    throw new IOException(proc + " could not make/change directory to [" + dirName + "] [" + e.
-                            getLocalizedMessage() + "]", e);
+                    throw new IOException(proc + " could not make/change directory to [" + dirName + "] [" + e.getLocalizedMessage() + "]", e);
                 }
             }
         }
@@ -205,8 +197,7 @@ public class SFTPUtils {
 
         final Hashtable<String, String> newOptions = new Hashtable<>();
 
-        Session session = jsch.
-                getSession(conf.username, conf.hostname, conf.port);
+        Session session = jsch.getSession(conf.username, conf.hostname, conf.port);
 
         final String hostKeyVal = conf.hostkeyFile;
 

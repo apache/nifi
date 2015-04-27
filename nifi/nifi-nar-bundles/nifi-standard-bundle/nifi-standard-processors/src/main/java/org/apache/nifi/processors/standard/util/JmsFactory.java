@@ -104,13 +104,9 @@ public class JmsFactory {
 
         final ConnectionFactory connectionFactory = createConnectionFactory(context);
 
-        final String username = context.getProperty(USERNAME).
-                getValue();
-        final String password = context.getProperty(PASSWORD).
-                getValue();
-        final Connection connection = (username == null && password == null) ? connectionFactory.
-                createConnection()
-                : connectionFactory.createConnection(username, password);
+        final String username = context.getProperty(USERNAME).getValue();
+        final String password = context.getProperty(PASSWORD).getValue();
+        final Connection connection = (username == null && password == null) ? connectionFactory.createConnection() : connectionFactory.createConnection(username, password);
 
         connection.setClientID(clientId);
         connection.start();
@@ -119,17 +115,12 @@ public class JmsFactory {
 
     public static Connection createConnection(final String url, final String jmsProvider, final String username, final String password, final int timeoutMillis) throws JMSException {
         final ConnectionFactory connectionFactory = createConnectionFactory(url, timeoutMillis, jmsProvider);
-        return (username == null && password == null) ? connectionFactory.
-                createConnection() : connectionFactory.
-                createConnection(username, password);
+        return (username == null && password == null) ? connectionFactory.createConnection() : connectionFactory.createConnection(username, password);
     }
 
     public static String createClientId(final ProcessContext context) {
-        final String clientIdPrefix = context.getProperty(CLIENT_ID_PREFIX).
-                getValue();
-        return CLIENT_ID_FIXED_PREFIX + (clientIdPrefix == null ? "" : clientIdPrefix) + "-" + UUID.
-                randomUUID().
-                toString();
+        final String clientIdPrefix = context.getProperty(CLIENT_ID_PREFIX).getValue();
+        return CLIENT_ID_FIXED_PREFIX + (clientIdPrefix == null ? "" : clientIdPrefix) + "-" + UUID.randomUUID().toString();
     }
 
     public static boolean clientIdPrefixEquals(final String one, final String two) {
@@ -138,14 +129,11 @@ public class JmsFactory {
         } else if (two == null) {
             return false;
         }
-        int uuidLen = UUID.randomUUID().
-                toString().
-                length();
+        int uuidLen = UUID.randomUUID().toString().length();
         if (one.length() <= uuidLen || two.length() <= uuidLen) {
             return false;
         }
-        return one.substring(0, one.length() - uuidLen).
-                equals(two.substring(0, two.length() - uuidLen));
+        return one.substring(0, one.length() - uuidLen).equals(two.substring(0, two.length() - uuidLen));
     }
 
     public static byte[] createByteArray(final Message message) throws JMSException {
@@ -164,8 +152,7 @@ public class JmsFactory {
     }
 
     private static byte[] getMessageBytes(TextMessage message) throws JMSException {
-        return (message.getText() == null) ? new byte[0] : message.getText().
-                getBytes();
+        return (message.getText() == null) ? new byte[0] : message.getText().getBytes();
     }
 
     private static byte[] getMessageBytes(BytesMessage message) throws JMSException {
@@ -204,8 +191,7 @@ public class JmsFactory {
             String key = (String) elements.nextElement();
             map.put(key, message.getString(key));
         }
-        return map.toString().
-                getBytes();
+        return map.toString().getBytes();
     }
 
     private static byte[] getMessageBytes(ObjectMessage message) throws JMSException {
@@ -224,9 +210,7 @@ public class JmsFactory {
     }
 
     public static Session createSession(final ProcessContext context, final Connection connection, final boolean transacted) throws JMSException {
-        final String configuredAckMode = context.
-                getProperty(ACKNOWLEDGEMENT_MODE).
-                getValue();
+        final String configuredAckMode = context.getProperty(ACKNOWLEDGEMENT_MODE).getValue();
         return createSession(connection, configuredAckMode, transacted);
     }
 
@@ -247,14 +231,11 @@ public class JmsFactory {
         Session jmsSession = null;
         try {
             connection = JmsFactory.createConnection(context);
-            jmsSession = JmsFactory.
-                    createSession(context, connection, DEFAULT_IS_TRANSACTED);
+            jmsSession = JmsFactory.createSession(context, connection, DEFAULT_IS_TRANSACTED);
 
-            final String messageSelector = context.getProperty(MESSAGE_SELECTOR).
-                    getValue();
+            final String messageSelector = context.getProperty(MESSAGE_SELECTOR).getValue();
             final Destination destination = createQueue(context);
-            final MessageConsumer messageConsumer = jmsSession.
-                    createConsumer(destination, messageSelector, false);
+            final MessageConsumer messageConsumer = jmsSession.createConsumer(destination, messageSelector, false);
 
             return new WrappedMessageConsumer(connection, jmsSession, messageConsumer);
         } catch (JMSException e) {
@@ -280,20 +261,15 @@ public class JmsFactory {
         Session jmsSession = null;
         try {
             connection = JmsFactory.createConnection(context, clientId);
-            jmsSession = JmsFactory.
-                    createSession(context, connection, DEFAULT_IS_TRANSACTED);
+            jmsSession = JmsFactory.createSession(context, connection, DEFAULT_IS_TRANSACTED);
 
-            final String messageSelector = context.getProperty(MESSAGE_SELECTOR).
-                    getValue();
+            final String messageSelector = context.getProperty(MESSAGE_SELECTOR).getValue();
             final Topic topic = createTopic(context);
             final MessageConsumer messageConsumer;
-            if (context.getProperty(DURABLE_SUBSCRIPTION).
-                    asBoolean()) {
-                messageConsumer = jmsSession.
-                        createDurableSubscriber(topic, clientId, messageSelector, false);
+            if (context.getProperty(DURABLE_SUBSCRIPTION).asBoolean()) {
+                messageConsumer = jmsSession.createDurableSubscriber(topic, clientId, messageSelector, false);
             } else {
-                messageConsumer = jmsSession.
-                        createConsumer(topic, messageSelector, false);
+                messageConsumer = jmsSession.createConsumer(topic, messageSelector, false);
             }
 
             return new WrappedMessageConsumer(connection, jmsSession, messageConsumer);
@@ -309,8 +285,7 @@ public class JmsFactory {
     }
 
     private static Destination getDestination(final ProcessContext context) throws JMSException {
-        final String destinationType = context.getProperty(DESTINATION_TYPE).
-                getValue();
+        final String destinationType = context.getProperty(DESTINATION_TYPE).getValue();
         switch (destinationType) {
             case DESTINATION_TYPE_TOPIC:
                 return createTopic(context);
@@ -330,12 +305,10 @@ public class JmsFactory {
 
         try {
             connection = JmsFactory.createConnection(context);
-            jmsSession = JmsFactory.
-                    createSession(context, connection, transacted);
+            jmsSession = JmsFactory.createSession(context, connection, transacted);
 
             final Destination destination = getDestination(context);
-            final MessageProducer messageProducer = jmsSession.
-                    createProducer(destination);
+            final MessageProducer messageProducer = jmsSession.createProducer(destination);
 
             return new WrappedMessageProducer(connection, jmsSession, messageProducer);
         } catch (JMSException e) {
@@ -350,13 +323,11 @@ public class JmsFactory {
     }
 
     public static Destination createQueue(final ProcessContext context) {
-        return createQueue(context, context.getProperty(DESTINATION_NAME).
-                getValue());
+        return createQueue(context, context.getProperty(DESTINATION_NAME).getValue());
     }
 
     public static Queue createQueue(final ProcessContext context, final String queueName) {
-        return createQueue(context.getProperty(JMS_PROVIDER).
-                getValue(), queueName);
+        return createQueue(context.getProperty(JMS_PROVIDER).getValue(), queueName);
     }
 
     public static Queue createQueue(final String jmsProvider, final String queueName) {
@@ -368,10 +339,8 @@ public class JmsFactory {
     }
 
     private static Topic createTopic(final ProcessContext context) {
-        final String topicName = context.getProperty(DESTINATION_NAME).
-                getValue();
-        switch (context.getProperty(JMS_PROVIDER).
-                getValue()) {
+        final String topicName = context.getProperty(DESTINATION_NAME).getValue();
+        switch (context.getProperty(JMS_PROVIDER).getValue()) {
             case ACTIVEMQ_PROVIDER:
             default:
                 return new ActiveMQTopic(topicName);
@@ -379,13 +348,9 @@ public class JmsFactory {
     }
 
     private static ConnectionFactory createConnectionFactory(final ProcessContext context) throws JMSException {
-        final String url = context.getProperty(URL).
-                getValue();
-        final int timeoutMillis = context.getProperty(TIMEOUT).
-                asTimePeriod(TimeUnit.MILLISECONDS).
-                intValue();
-        final String provider = context.getProperty(JMS_PROVIDER).
-                getValue();
+        final String url = context.getProperty(URL).getValue();
+        final int timeoutMillis = context.getProperty(TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+        final String provider = context.getProperty(JMS_PROVIDER).getValue();
         return createConnectionFactory(url, timeoutMillis, provider);
     }
 
@@ -412,8 +377,7 @@ public class JmsFactory {
 
             if (value == null) {
                 attributes.put(ATTRIBUTE_PREFIX + propName, "");
-                attributes.
-                        put(ATTRIBUTE_PREFIX + propName + ATTRIBUTE_TYPE_SUFFIX, "Unknown");
+                attributes.put(ATTRIBUTE_PREFIX + propName + ATTRIBUTE_TYPE_SUFFIX, "Unknown");
                 continue;
             }
 
@@ -441,42 +405,30 @@ public class JmsFactory {
                 propType = PROP_TYPE_OBJECT;
             }
 
-            attributes.
-                    put(ATTRIBUTE_PREFIX + propName + ATTRIBUTE_TYPE_SUFFIX, propType);
+            attributes.put(ATTRIBUTE_PREFIX + propName + ATTRIBUTE_TYPE_SUFFIX, propType);
         }
 
         if (message.getJMSCorrelationID() != null) {
-            attributes.put(ATTRIBUTE_PREFIX + JMS_CORRELATION_ID, message.
-                    getJMSCorrelationID());
+            attributes.put(ATTRIBUTE_PREFIX + JMS_CORRELATION_ID, message.getJMSCorrelationID());
         }
         if (message.getJMSDestination() != null) {
-            attributes.put(ATTRIBUTE_PREFIX + JMS_DESTINATION, message.
-                    getJMSDestination().
-                    toString());
+            attributes.put(ATTRIBUTE_PREFIX + JMS_DESTINATION, message.getJMSDestination().toString());
         }
         if (message.getJMSMessageID() != null) {
-            attributes.put(ATTRIBUTE_PREFIX + JMS_MESSAGE_ID, message.
-                    getJMSMessageID());
+            attributes.put(ATTRIBUTE_PREFIX + JMS_MESSAGE_ID, message.getJMSMessageID());
         }
         if (message.getJMSReplyTo() != null) {
-            attributes.put(ATTRIBUTE_PREFIX + JMS_REPLY_TO, message.
-                    getJMSReplyTo().
-                    toString());
+            attributes.put(ATTRIBUTE_PREFIX + JMS_REPLY_TO, message.getJMSReplyTo().toString());
         }
         if (message.getJMSType() != null) {
             attributes.put(ATTRIBUTE_PREFIX + JMS_TYPE, message.getJMSType());
         }
 
-        attributes.put(ATTRIBUTE_PREFIX + JMS_DELIVERY_MODE, String.
-                valueOf(message.getJMSDeliveryMode()));
-        attributes.put(ATTRIBUTE_PREFIX + JMS_EXPIRATION, String.
-                valueOf(message.getJMSExpiration()));
-        attributes.put(ATTRIBUTE_PREFIX + JMS_PRIORITY, String.valueOf(message.
-                getJMSPriority()));
-        attributes.put(ATTRIBUTE_PREFIX + JMS_REDELIVERED, String.
-                valueOf(message.getJMSRedelivered()));
-        attributes.put(ATTRIBUTE_PREFIX + JMS_TIMESTAMP, String.valueOf(message.
-                getJMSTimestamp()));
+        attributes.put(ATTRIBUTE_PREFIX + JMS_DELIVERY_MODE, String.valueOf(message.getJMSDeliveryMode()));
+        attributes.put(ATTRIBUTE_PREFIX + JMS_EXPIRATION, String.valueOf(message.getJMSExpiration()));
+        attributes.put(ATTRIBUTE_PREFIX + JMS_PRIORITY, String.valueOf(message.getJMSPriority()));
+        attributes.put(ATTRIBUTE_PREFIX + JMS_REDELIVERED, String.valueOf(message.getJMSRedelivered()));
+        attributes.put(ATTRIBUTE_PREFIX + JMS_TIMESTAMP, String.valueOf(message.getJMSTimestamp()));
         return attributes;
     }
 }

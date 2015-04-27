@@ -96,14 +96,14 @@ public class PutJMS extends AbstractProcessor {
     public static final Charset UTF8 = Charset.forName("UTF-8");
     public static final int DEFAULT_MESSAGE_PRIORITY = 4;
 
-    public static final Relationship REL_SUCCESS = new Relationship.Builder().
-            name("success").
-            description("All FlowFiles that are sent to the JMS destination are routed to this relationship").
-            build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder().
-            name("failure").
-            description("All FlowFiles that cannot be routed to the JMS destination are routed to this relationship").
-            build();
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("All FlowFiles that are sent to the JMS destination are routed to this relationship")
+            .build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("All FlowFiles that cannot be routed to the JMS destination are routed to this relationship")
+            .build();
 
     private final Queue<WrappedMessageProducer> producerQueue = new LinkedBlockingQueue<>();
     private final List<PropertyDescriptor> properties;
@@ -156,10 +156,7 @@ public class PutJMS extends AbstractProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final ProcessorLog logger = getLogger();
-        final List<FlowFile> flowFiles = session.get(context.
-                getProperty(BATCH_SIZE).
-                asInteger().
-                intValue());
+        final List<FlowFile> flowFiles = session.get(context.getProperty(BATCH_SIZE).asInteger().intValue());
         if (flowFiles.isEmpty()) {
             return;
         }
@@ -167,14 +164,10 @@ public class PutJMS extends AbstractProcessor {
         WrappedMessageProducer wrappedProducer = producerQueue.poll();
         if (wrappedProducer == null) {
             try {
-                wrappedProducer = JmsFactory.
-                        createMessageProducer(context, true);
-                logger.info("Connected to JMS server {}", new Object[]{context.
-                    getProperty(URL).
-                    getValue()});
+                wrappedProducer = JmsFactory.createMessageProducer(context, true);
+                logger.info("Connected to JMS server {}", new Object[]{context.getProperty(URL).getValue()});
             } catch (final JMSException e) {
-                logger.
-                        error("Failed to connect to JMS Server due to {}", new Object[]{e});
+                logger.error("Failed to connect to JMS Server due to {}", new Object[]{e});
                 session.transfer(flowFiles, REL_FAILURE);
                 context.yield();
                 return;
@@ -184,9 +177,7 @@ public class PutJMS extends AbstractProcessor {
         final Session jmsSession = wrappedProducer.getSession();
         final MessageProducer producer = wrappedProducer.getProducer();
 
-        final int maxBufferSize = context.getProperty(MAX_BUFFER_SIZE).
-                asDataSize(DataUnit.B).
-                intValue();
+        final int maxBufferSize = context.getProperty(MAX_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
 
         try {
             final Set<FlowFile> successfulFlowFiles = new HashSet<>();
@@ -194,8 +185,7 @@ public class PutJMS extends AbstractProcessor {
             for (FlowFile flowFile : flowFiles) {
                 if (flowFile.getSize() > maxBufferSize) {
                     session.transfer(flowFile, REL_FAILURE);
-                    logger.
-                            warn("Routing {} to failure because its size exceeds the configured max", new Object[]{flowFile});
+                    logger.warn("Routing {} to failure because its size exceeds the configured max", new Object[]{flowFile});
                     continue;
                 }
 
@@ -208,29 +198,18 @@ public class PutJMS extends AbstractProcessor {
                     }
                 });
 
-                final Long ttl = context.getProperty(MESSAGE_TTL).
-                        asTimePeriod(TimeUnit.MILLISECONDS);
+                final Long ttl = context.getProperty(MESSAGE_TTL).asTimePeriod(TimeUnit.MILLISECONDS);
 
-                final String replyToQueueName = context.
-                        getProperty(REPLY_TO_QUEUE).
-                        evaluateAttributeExpressions(flowFile).
-                        getValue();
-                final Destination replyToQueue = replyToQueueName == null ? null : JmsFactory.
-                        createQueue(context, replyToQueueName);
+                final String replyToQueueName = context.getProperty(REPLY_TO_QUEUE).evaluateAttributeExpressions(flowFile).getValue();
+                final Destination replyToQueue = replyToQueueName == null ? null : JmsFactory.createQueue(context, replyToQueueName);
 
                 int priority = DEFAULT_MESSAGE_PRIORITY;
                 try {
-                    final Integer priorityInt = context.
-                            getProperty(MESSAGE_PRIORITY).
-                            evaluateAttributeExpressions(flowFile).
-                            asInteger();
+                    final Integer priorityInt = context.getProperty(MESSAGE_PRIORITY).evaluateAttributeExpressions(flowFile).asInteger();
                     priority = priorityInt == null ? priority : priorityInt;
                 } catch (final NumberFormatException e) {
-                    logger.
-                            warn("Invalid value for JMS Message Priority: {}; defaulting to priority of {}", new Object[]{
-                                context.getProperty(MESSAGE_PRIORITY).
-                                evaluateAttributeExpressions(flowFile).
-                                getValue(), DEFAULT_MESSAGE_PRIORITY});
+                    logger.warn("Invalid value for JMS Message Priority: {}; defaulting to priority of {}",
+                            new Object[]{context.getProperty(MESSAGE_PRIORITY).evaluateAttributeExpressions(flowFile).getValue(), DEFAULT_MESSAGE_PRIORITY});
                 }
 
                 try {
@@ -242,16 +221,14 @@ public class PutJMS extends AbstractProcessor {
                     }
                     producer.send(message);
                 } catch (final JMSException e) {
-                    logger.
-                            error("Failed to send {} to JMS Server due to {}", new Object[]{flowFile, e});
+                    logger.error("Failed to send {} to JMS Server due to {}", new Object[]{flowFile, e});
                     session.transfer(flowFiles, REL_FAILURE);
                     context.yield();
 
                     try {
                         jmsSession.rollback();
                     } catch (final JMSException jmse) {
-                        logger.
-                                warn("Unable to roll back JMS Session due to {}", new Object[]{jmse});
+                        logger.warn("Unable to roll back JMS Session due to {}", new Object[]{jmse});
                     }
 
                     wrappedProducer.close(logger);
@@ -259,22 +236,17 @@ public class PutJMS extends AbstractProcessor {
                 }
 
                 successfulFlowFiles.add(flowFile);
-                session.getProvenanceReporter().
-                        send(flowFile, "jms://" + context.getProperty(URL).
-                                getValue());
+                session.getProvenanceReporter().send(flowFile, "jms://" + context.getProperty(URL).getValue());
             }
 
             try {
                 jmsSession.commit();
 
                 session.transfer(successfulFlowFiles, REL_SUCCESS);
-                final String flowFileDescription = successfulFlowFiles.size() > 10 ? successfulFlowFiles.
-                        size() + " FlowFiles" : successfulFlowFiles.toString();
-                logger.
-                        info("Sent {} to JMS Server and transferred to 'success'", new Object[]{flowFileDescription});
+                final String flowFileDescription = successfulFlowFiles.size() > 10 ? successfulFlowFiles.size() + " FlowFiles" : successfulFlowFiles.toString();
+                logger.info("Sent {} to JMS Server and transferred to 'success'", new Object[]{flowFileDescription});
             } catch (JMSException e) {
-                logger.
-                        error("Failed to commit JMS Session due to {}; rolling back session", new Object[]{e});
+                logger.error("Failed to commit JMS Session due to {}; rolling back session", new Object[]{e});
                 session.rollback();
                 wrappedProducer.close(logger);
             }
@@ -289,22 +261,19 @@ public class PutJMS extends AbstractProcessor {
             final FlowFile flowFile, final Destination replyToQueue, final Integer priority) throws JMSException {
         final Message message;
 
-        switch (context.getProperty(MESSAGE_TYPE).
-                getValue()) {
+        switch (context.getProperty(MESSAGE_TYPE).getValue()) {
             case MSG_TYPE_EMPTY: {
                 message = jmsSession.createTextMessage("");
                 break;
             }
             case MSG_TYPE_STREAM: {
-                final StreamMessage streamMessage = jmsSession.
-                        createStreamMessage();
+                final StreamMessage streamMessage = jmsSession.createStreamMessage();
                 streamMessage.writeBytes(messageContent);
                 message = streamMessage;
                 break;
             }
             case MSG_TYPE_TEXT: {
-                message = jmsSession.
-                        createTextMessage(new String(messageContent, UTF8));
+                message = jmsSession.createTextMessage(new String(messageContent, UTF8));
                 break;
             }
             case MSG_TYPE_MAP: {
@@ -313,8 +282,7 @@ public class PutJMS extends AbstractProcessor {
             }
             case MSG_TYPE_BYTE:
             default: {
-                final BytesMessage bytesMessage = jmsSession.
-                        createBytesMessage();
+                final BytesMessage bytesMessage = jmsSession.createBytesMessage();
                 bytesMessage.writeBytes(messageContent);
                 message = bytesMessage;
             }
@@ -330,8 +298,7 @@ public class PutJMS extends AbstractProcessor {
             message.setJMSPriority(priority);
         }
 
-        if (context.getProperty(ATTRIBUTES_TO_JMS_PROPS).
-                asBoolean()) {
+        if (context.getProperty(ATTRIBUTES_TO_JMS_PROPS).asBoolean()) {
             copyAttributesToJmsProps(flowFile, message);
         }
 
@@ -339,35 +306,25 @@ public class PutJMS extends AbstractProcessor {
     }
 
     /**
-     * Iterates through all of the flow file's metadata and for any metadata key
-     * that starts with <code>jms.</code>, the value for the corresponding key
-     * is written to the JMS message as a property. The name of this property is
-     * equal to the key of the flow file's metadata minus the <code>jms.</code>.
-     * For example, if the flowFile has a metadata entry:
+     * Iterates through all of the flow file's metadata and for any metadata key that starts with <code>jms.</code>, the value for the corresponding key is written to the JMS message as a property.
+     * The name of this property is equal to the key of the flow file's metadata minus the <code>jms.</code>. For example, if the flowFile has a metadata entry:
      * <br /><br />
      * <code>jms.count</code> = <code>8</code>
      * <br /><br />
-     * then the JMS message will have a String property added to it with the
-     * property name <code>count</code> and value <code>8</code>.
+     * then the JMS message will have a String property added to it with the property name <code>count</code> and value <code>8</code>.
      *
-     * If the flow file also has a metadata key with the name
-     * <code>jms.count.type</code>, then the value of that metadata entry will
-     * determine the JMS property type to use for the value. For example, if the
-     * flow file has the following properties:
+     * If the flow file also has a metadata key with the name <code>jms.count.type</code>, then the value of that metadata entry will determine the JMS property type to use for the value. For example,
+     * if the flow file has the following properties:
      * <br /><br />
      * <code>jms.count</code> = <code>8</code><br />
      * <code>jms.count.type</code> = <code>integer</code>
      * <br /><br />
-     * Then <code>message</code> will have an INTEGER property added with the
-     * value 8.
+     * Then <code>message</code> will have an INTEGER property added with the value 8.
      * <br /><br/>
-     * If the type is not valid for the given value (e.g.,
-     * <code>jms.count.type</code> = <code>integer</code> and
-     * <code>jms.count</code> = <code>hello</code>, then this JMS property will
-     * not be added to <code>message</code>.
+     * If the type is not valid for the given value (e.g., <code>jms.count.type</code> = <code>integer</code> and <code>jms.count</code> = <code>hello</code>, then this JMS property will not be added
+     * to <code>message</code>.
      *
-     * @param flowFile The flow file whose metadata should be examined for JMS
-     * properties.
+     * @param flowFile The flow file whose metadata should be examined for JMS properties.
      * @param message The JMS message to which we want to add properties.
      * @throws JMSException ex
      */
@@ -380,49 +337,37 @@ public class PutJMS extends AbstractProcessor {
             final String value = entry.getValue();
 
             if (key.toLowerCase().
-                    startsWith(ATTRIBUTE_PREFIX.toLowerCase())
-                    && !key.toLowerCase().
-                    endsWith(ATTRIBUTE_TYPE_SUFFIX.toLowerCase())) {
+                    startsWith(ATTRIBUTE_PREFIX.toLowerCase()) && !key.toLowerCase().endsWith(ATTRIBUTE_TYPE_SUFFIX.toLowerCase())) {
 
-                final String jmsPropName = key.substring(ATTRIBUTE_PREFIX.
-                        length());
+                final String jmsPropName = key.substring(ATTRIBUTE_PREFIX.length());
                 final String type = attributes.get(key + ATTRIBUTE_TYPE_SUFFIX);
 
                 try {
                     if (type == null || type.equalsIgnoreCase(PROP_TYPE_STRING)) {
                         message.setStringProperty(jmsPropName, value);
                     } else if (type.equalsIgnoreCase(PROP_TYPE_INTEGER)) {
-                        message.setIntProperty(jmsPropName, Integer.
-                                parseInt(value));
+                        message.setIntProperty(jmsPropName, Integer.parseInt(value));
                     } else if (type.equalsIgnoreCase(PROP_TYPE_BOOLEAN)) {
-                        message.setBooleanProperty(jmsPropName, Boolean.
-                                parseBoolean(value));
+                        message.setBooleanProperty(jmsPropName, Boolean.parseBoolean(value));
                     } else if (type.equalsIgnoreCase(PROP_TYPE_SHORT)) {
-                        message.setShortProperty(jmsPropName, Short.
-                                parseShort(value));
+                        message.setShortProperty(jmsPropName, Short.parseShort(value));
                     } else if (type.equalsIgnoreCase(PROP_TYPE_LONG)) {
-                        message.setLongProperty(jmsPropName, Long.
-                                parseLong(value));
+                        message.setLongProperty(jmsPropName, Long.parseLong(value));
                     } else if (type.equalsIgnoreCase(PROP_TYPE_BYTE)) {
-                        message.setByteProperty(jmsPropName, Byte.
-                                parseByte(value));
+                        message.setByteProperty(jmsPropName, Byte.parseByte(value));
                     } else if (type.equalsIgnoreCase(PROP_TYPE_DOUBLE)) {
-                        message.setDoubleProperty(jmsPropName, Double.
-                                parseDouble(value));
+                        message.setDoubleProperty(jmsPropName, Double.parseDouble(value));
                     } else if (type.equalsIgnoreCase(PROP_TYPE_FLOAT)) {
-                        message.setFloatProperty(jmsPropName, Float.
-                                parseFloat(value));
+                        message.setFloatProperty(jmsPropName, Float.parseFloat(value));
                     } else if (type.equalsIgnoreCase(PROP_TYPE_OBJECT)) {
                         message.setObjectProperty(jmsPropName, value);
                     } else {
-                        logger.
-                                warn("Attribute key '{}' for {} has value '{}', but expected one of: integer, string, object, byte, double, float, long, short, boolean; not adding this property",
-                                        new Object[]{key, flowFile, value});
+                        logger.warn("Attribute key '{}' for {} has value '{}', but expected one of: integer, string, object, byte, double, float, long, short, boolean; not adding this property",
+                                new Object[]{key, flowFile, value});
                     }
                 } catch (NumberFormatException e) {
-                    logger.
-                            warn("Attribute key '{}' for {} has value '{}', but attribute key '{}' has value '{}'. Not adding this JMS property",
-                                    new Object[]{key, flowFile, value, key + ATTRIBUTE_TYPE_SUFFIX, PROP_TYPE_INTEGER});
+                    logger.warn("Attribute key '{}' for {} has value '{}', but attribute key '{}' has value '{}'. Not adding this JMS property",
+                            new Object[]{key, flowFile, value, key + ATTRIBUTE_TYPE_SUFFIX, PROP_TYPE_INTEGER});
                 }
             }
         }

@@ -55,22 +55,19 @@ public class WrappedMessageConsumer {
         try {
             connection.close();
         } catch (final JMSException e) {
-            logger.
-                    warn("unable to close connection to JMS Server due to {}; resources may not be cleaned up appropriately", e);
+            logger.warn("unable to close connection to JMS Server due to {}; resources may not be cleaned up appropriately", e);
         }
 
         try {
             session.close();
         } catch (final JMSException e) {
-            logger.
-                    warn("unable to close connection to JMS Server due to {}; resources may not be cleaned up appropriately", e);
+            logger.warn("unable to close connection to JMS Server due to {}; resources may not be cleaned up appropriately", e);
         }
 
         try {
             consumer.close();
         } catch (final JMSException e) {
-            logger.
-                    warn("unable to close connection to JMS Server due to {}; resources may not be cleaned up appropriately", e);
+            logger.warn("unable to close connection to JMS Server due to {}; resources may not be cleaned up appropriately", e);
         }
     }
 

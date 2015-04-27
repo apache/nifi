@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.nifi.processors.standard.DistributeLoad;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 
@@ -36,8 +35,7 @@ public class TestDistributeLoad {
 
     @Test
     public void testDefaultRoundRobin() {
-        final TestRunner testRunner = TestRunners.
-                newTestRunner(new DistributeLoad());
+        final TestRunner testRunner = TestRunners.newTestRunner(new DistributeLoad());
         testRunner.setProperty(DistributeLoad.NUM_RELATIONSHIPS, "100");
 
         for (int i = 0; i < 101; i++) {
@@ -53,8 +51,7 @@ public class TestDistributeLoad {
 
     @Test
     public void testWeightedRoundRobin() {
-        final TestRunner testRunner = TestRunners.
-                newTestRunner(new DistributeLoad());
+        final TestRunner testRunner = TestRunners.newTestRunner(new DistributeLoad());
         testRunner.setProperty(DistributeLoad.NUM_RELATIONSHIPS, "100");
 
         testRunner.setProperty("1", "5");
@@ -74,8 +71,7 @@ public class TestDistributeLoad {
 
     @Test
     public void testValidationOnAddedProperties() {
-        final TestRunner testRunner = TestRunners.
-                newTestRunner(new DistributeLoad());
+        final TestRunner testRunner = TestRunners.newTestRunner(new DistributeLoad());
         testRunner.setProperty(DistributeLoad.NUM_RELATIONSHIPS, "100");
 
         testRunner.setProperty("1", "5");
@@ -121,13 +117,10 @@ public class TestDistributeLoad {
 
     @Test
     public void testNextAvailable() {
-        final TestRunner testRunner = TestRunners.
-                newTestRunner(new DistributeLoad());
+        final TestRunner testRunner = TestRunners.newTestRunner(new DistributeLoad());
 
-        testRunner.
-                setProperty(DistributeLoad.NUM_RELATIONSHIPS.getName(), "100");
-        testRunner.
-                setProperty(DistributeLoad.DISTRIBUTION_STRATEGY.getName(), DistributeLoad.STRATEGY_NEXT_AVAILABLE);
+        testRunner.setProperty(DistributeLoad.NUM_RELATIONSHIPS.getName(), "100");
+        testRunner.setProperty(DistributeLoad.DISTRIBUTION_STRATEGY.getName(), DistributeLoad.STRATEGY_NEXT_AVAILABLE);
 
         for (int i = 0; i < 99; i++) {
             testRunner.enqueue(new byte[0]);

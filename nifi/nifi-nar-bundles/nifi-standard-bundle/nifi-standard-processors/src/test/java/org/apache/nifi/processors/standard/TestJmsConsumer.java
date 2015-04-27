@@ -56,8 +56,7 @@ public class TestJmsConsumer {
     }
 
     /**
-     * Test method for
-     * {@link org.apache.nifi.processors.standard.JmsConsumer#createMapMessageAttrs(javax.jms.MapMessage)}.
+     * Test method for {@link org.apache.nifi.processors.standard.JmsConsumer#createMapMessageAttrs(javax.jms.MapMessage)}.
      *
      * @throws JMSException jms
      */
@@ -66,17 +65,12 @@ public class TestJmsConsumer {
 
         MapMessage mapMessage = createMapMessage();
 
-        Map<String, String> mapMessageValues = JmsConsumer.
-                createMapMessageValues(mapMessage);
+        Map<String, String> mapMessageValues = JmsConsumer.createMapMessageValues(mapMessage);
         assertEquals("", 4, mapMessageValues.size());
-        assertEquals("", "Arnold", mapMessageValues.
-                get(JmsConsumer.MAP_MESSAGE_PREFIX + "name"));
-        assertEquals("", "97", mapMessageValues.
-                get(JmsConsumer.MAP_MESSAGE_PREFIX + "age"));
-        assertEquals("", "89686.564", mapMessageValues.
-                get(JmsConsumer.MAP_MESSAGE_PREFIX + "xyz"));
-        assertEquals("", "true", mapMessageValues.
-                get(JmsConsumer.MAP_MESSAGE_PREFIX + "good"));
+        assertEquals("", "Arnold", mapMessageValues.get(JmsConsumer.MAP_MESSAGE_PREFIX + "name"));
+        assertEquals("", "97", mapMessageValues.get(JmsConsumer.MAP_MESSAGE_PREFIX + "age"));
+        assertEquals("", "89686.564", mapMessageValues.get(JmsConsumer.MAP_MESSAGE_PREFIX + "xyz"));
+        assertEquals("", "true", mapMessageValues.get(JmsConsumer.MAP_MESSAGE_PREFIX + "good"));
     }
 
     /**
@@ -91,28 +85,18 @@ public class TestJmsConsumer {
         MapMessage mapMessage = createMapMessage();
 
         ProcessContext context = runner.getProcessContext();
-        ProcessSession session = runner.getProcessSessionFactory().
-                createSession();
-        ProcessorInitializationContext pic = new MockProcessorInitializationContext(runner.
-                getProcessor(),
-                (MockProcessContext) runner.getProcessContext());
+        ProcessSession session = runner.getProcessSessionFactory().createSession();
+        ProcessorInitializationContext pic = new MockProcessorInitializationContext(runner.getProcessor(), (MockProcessContext) runner.getProcessContext());
 
-        JmsProcessingSummary summary = JmsConsumer.
-                map2FlowFile(context, session, mapMessage, true, pic.getLogger());
+        JmsProcessingSummary summary = JmsConsumer.map2FlowFile(context, session, mapMessage, true, pic.getLogger());
 
-        assertEquals("MapMessage should not create FlowFile content", 0, summary.
-                getBytesReceived());
+        assertEquals("MapMessage should not create FlowFile content", 0, summary.getBytesReceived());
 
-        Map<String, String> attributes = summary.getLastFlowFile().
-                getAttributes();
-        assertEquals("", "Arnold", attributes.
-                get(JmsConsumer.MAP_MESSAGE_PREFIX + "name"));
-        assertEquals("", "97", attributes.
-                get(JmsConsumer.MAP_MESSAGE_PREFIX + "age"));
-        assertEquals("", "89686.564", attributes.
-                get(JmsConsumer.MAP_MESSAGE_PREFIX + "xyz"));
-        assertEquals("", "true", attributes.
-                get(JmsConsumer.MAP_MESSAGE_PREFIX + "good"));
+        Map<String, String> attributes = summary.getLastFlowFile().getAttributes();
+        assertEquals("", "Arnold", attributes.get(JmsConsumer.MAP_MESSAGE_PREFIX + "name"));
+        assertEquals("", "97", attributes.get(JmsConsumer.MAP_MESSAGE_PREFIX + "age"));
+        assertEquals("", "89686.564", attributes.get(JmsConsumer.MAP_MESSAGE_PREFIX + "xyz"));
+        assertEquals("", "true", attributes.get(JmsConsumer.MAP_MESSAGE_PREFIX + "good"));
     }
 
     @Test
@@ -125,19 +109,12 @@ public class TestJmsConsumer {
         textMessage.setText(payload);
 
         ProcessContext context = runner.getProcessContext();
-        ProcessSession session = runner.getProcessSessionFactory().
-                createSession();
-        ProcessorInitializationContext pic = new MockProcessorInitializationContext(runner.
-                getProcessor(),
-                (MockProcessContext) runner.getProcessContext());
+        ProcessSession session = runner.getProcessSessionFactory().createSession();
+        ProcessorInitializationContext pic = new MockProcessorInitializationContext(runner.getProcessor(), (MockProcessContext) runner.getProcessContext());
 
-        JmsProcessingSummary summary = JmsConsumer.
-                map2FlowFile(context, session, textMessage, true, pic.
-                        getLogger());
+        JmsProcessingSummary summary = JmsConsumer.map2FlowFile(context, session, textMessage, true, pic.getLogger());
 
-        assertEquals("TextMessage content length should equal to FlowFile content size", payload.
-                length(), summary.getLastFlowFile().
-                getSize());
+        assertEquals("TextMessage content length should equal to FlowFile content size", payload.length(), summary.getLastFlowFile().getSize());
 
         final byte[] buffer = new byte[payload.length()];
         runner.clearTransferState();
@@ -155,6 +132,8 @@ public class TestJmsConsumer {
 
     /**
      * Test BytesMessage to FlowFile conversion
+     *
+     * @throws java.lang.Exception ex
      */
     @Test
     public void testMap2FlowFileBytesMessage() throws Exception {
@@ -168,19 +147,12 @@ public class TestJmsConsumer {
         bytesMessage.reset();
 
         ProcessContext context = runner.getProcessContext();
-        ProcessSession session = runner.getProcessSessionFactory().
-                createSession();
-        ProcessorInitializationContext pic = new MockProcessorInitializationContext(runner.
-                getProcessor(),
-                (MockProcessContext) runner.getProcessContext());
+        ProcessSession session = runner.getProcessSessionFactory().createSession();
+        ProcessorInitializationContext pic = new MockProcessorInitializationContext(runner.getProcessor(), (MockProcessContext) runner.getProcessContext());
 
-        JmsProcessingSummary summary = JmsConsumer.
-                map2FlowFile(context, session, bytesMessage, true, pic.
-                        getLogger());
+        JmsProcessingSummary summary = JmsConsumer.map2FlowFile(context, session, bytesMessage, true, pic.getLogger());
 
-        assertEquals("BytesMessage content length should equal to FlowFile content size", payload.length, summary.
-                getLastFlowFile().
-                getSize());
+        assertEquals("BytesMessage content length should equal to FlowFile content size", payload.length, summary.getLastFlowFile().getSize());
 
         final byte[] buffer = new byte[payload.length];
         runner.clearTransferState();

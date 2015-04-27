@@ -29,21 +29,16 @@ public class TestConvertCharacterSet {
 
     @Test
     public void test() throws IOException {
-        final TestRunner runner = TestRunners.
-                newTestRunner(new ConvertCharacterSet());
+        final TestRunner runner = TestRunners.newTestRunner(new ConvertCharacterSet());
         runner.setProperty(ConvertCharacterSet.INPUT_CHARSET, "ASCII");
         runner.setProperty(ConvertCharacterSet.OUTPUT_CHARSET, "UTF-32");
 
-        runner.enqueue(Paths.
-                get("src/test/resources/CharacterSetConversionSamples/Original.txt"));
+        runner.enqueue(Paths.get("src/test/resources/CharacterSetConversionSamples/Original.txt"));
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ConvertCharacterSet.REL_SUCCESS, 1);
-        final MockFlowFile output = runner.
-                getFlowFilesForRelationship(ConvertCharacterSet.REL_SUCCESS).
-                get(0);
-        output.
-                assertContentEquals(new File("src/test/resources/CharacterSetConversionSamples/Converted2.txt"));
+        final MockFlowFile output = runner.getFlowFilesForRelationship(ConvertCharacterSet.REL_SUCCESS).get(0);
+        output.assertContentEquals(new File("src/test/resources/CharacterSetConversionSamples/Converted2.txt"));
     }
 
 }

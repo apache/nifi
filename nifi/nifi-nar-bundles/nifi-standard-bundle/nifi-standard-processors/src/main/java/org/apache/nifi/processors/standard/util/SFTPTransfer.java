@@ -50,64 +50,61 @@ import com.jcraft.jsch.SftpException;
 
 public class SFTPTransfer implements FileTransfer {
 
-    public static final PropertyDescriptor PRIVATE_KEY_PATH = new PropertyDescriptor.Builder().
-            name("Private Key Path").
-            description("The fully qualified path to the Private Key file").
-            required(false).
-            addValidator(StandardValidators.FILE_EXISTS_VALIDATOR).
-            build();
-    public static final PropertyDescriptor PRIVATE_KEY_PASSPHRASE = new PropertyDescriptor.Builder().
-            name("Private Key Passphrase").
-            description("Password for the private key").
-            required(false).
-            addValidator(StandardValidators.NON_EMPTY_VALIDATOR).
-            sensitive(true).
-            build();
-    public static final PropertyDescriptor HOST_KEY_FILE = new PropertyDescriptor.Builder().
-            name("Host Key File").
-            description("If supplied, the given file will be used as the Host Key; otherwise, no use host key file will be used").
-            addValidator(StandardValidators.FILE_EXISTS_VALIDATOR).
-            required(false).
-            build();
-    public static final PropertyDescriptor STRICT_HOST_KEY_CHECKING = new PropertyDescriptor.Builder().
-            name("Strict Host Key Checking").
-            description("Indicates whether or not strict enforcement of hosts keys should be applied").
-            allowableValues("true", "false").
-            defaultValue("false").
-            required(true).
-            build();
-    public static final PropertyDescriptor PORT = new PropertyDescriptor.Builder().
-            name("Port").
-            description("The port that the remote system is listening on for file transfers").
-            addValidator(StandardValidators.PORT_VALIDATOR).
-            required(true).
-            defaultValue("22").
-            build();
-    public static final PropertyDescriptor USE_KEEPALIVE_ON_TIMEOUT = new PropertyDescriptor.Builder().
-            name("Send Keep Alive On Timeout").
-            description("Indicates whether or not to send a single Keep Alive message when SSH socket times out").
-            allowableValues("true", "false").
-            defaultValue("true").
-            required(true).
-            build();
+    public static final PropertyDescriptor PRIVATE_KEY_PATH = new PropertyDescriptor.Builder()
+            .name("Private Key Path")
+            .description("The fully qualified path to the Private Key file")
+            .required(false)
+            .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+            .build();
+    public static final PropertyDescriptor PRIVATE_KEY_PASSPHRASE = new PropertyDescriptor.Builder()
+            .name("Private Key Passphrase")
+            .description("Password for the private key")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .sensitive(true)
+            .build();
+    public static final PropertyDescriptor HOST_KEY_FILE = new PropertyDescriptor.Builder()
+            .name("Host Key File")
+            .description("If supplied, the given file will be used as the Host Key; otherwise, no use host key file will be used")
+            .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+            .required(false)
+            .build();
+    public static final PropertyDescriptor STRICT_HOST_KEY_CHECKING = new PropertyDescriptor.Builder()
+            .name("Strict Host Key Checking")
+            .description("Indicates whether or not strict enforcement of hosts keys should be applied")
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .required(true)
+            .build();
+    public static final PropertyDescriptor PORT = new PropertyDescriptor.Builder()
+            .name("Port")
+            .description("The port that the remote system is listening on for file transfers")
+            .addValidator(StandardValidators.PORT_VALIDATOR)
+            .required(true)
+            .defaultValue("22")
+            .build();
+    public static final PropertyDescriptor USE_KEEPALIVE_ON_TIMEOUT = new PropertyDescriptor.Builder()
+            .name("Send Keep Alive On Timeout")
+            .description("Indicates whether or not to send a single Keep Alive message when SSH socket times out")
+            .allowableValues("true", "false")
+            .defaultValue("true")
+            .required(true)
+            .build();
 
     /**
-     * Dynamic property which is used to decide if the
-     * {@link #ensureDirectoryExists(FlowFile, File)} method should perform a
-     * {@link ChannelSftp#ls(String)} before calling
-     * {@link ChannelSftp#mkdir(String)}. In most cases, the code should call ls
-     * before mkdir, but some weird permission setups (chmod 100) on a directory
-     * would cause the 'ls' to throw a permission exception.
+     * Dynamic property which is used to decide if the {@link #ensureDirectoryExists(FlowFile, File)} method should perform a {@link ChannelSftp#ls(String)} before calling
+     * {@link ChannelSftp#mkdir(String)}. In most cases, the code should call ls before mkdir, but some weird permission setups (chmod 100) on a directory would cause the 'ls' to throw a permission
+     * exception.
      * <p>
      * This property is dynamic until deemed a worthy inclusion as proper.
      */
-    public static final PropertyDescriptor DISABLE_DIRECTORY_LISTING = new PropertyDescriptor.Builder().
-            name("Disable Directory Listing").
-            description("Disables directory listings before operations which might fail, such as configurations which create directory structures.").
-            addValidator(StandardValidators.BOOLEAN_VALIDATOR).
-            dynamic(true).
-            defaultValue("false").
-            build();
+    public static final PropertyDescriptor DISABLE_DIRECTORY_LISTING = new PropertyDescriptor.Builder()
+            .name("Disable Directory Listing")
+            .description("Disables directory listings before operations which might fail, such as configurations which create directory structures.")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .dynamic(true)
+            .defaultValue("false")
+            .build();
 
     private final ProcessorLog logger;
 
@@ -123,10 +120,8 @@ public class SFTPTransfer implements FileTransfer {
         this.ctx = processContext;
         this.logger = logger;
 
-        final PropertyValue disableListing = processContext.
-                getProperty(DISABLE_DIRECTORY_LISTING);
-        disableDirectoryListing = disableListing == null ? false : Boolean.TRUE.
-                equals(disableListing.asBoolean());
+        final PropertyValue disableListing = processContext.getProperty(DISABLE_DIRECTORY_LISTING);
+        disableDirectoryListing = disableListing == null ? false : Boolean.TRUE.equals(disableListing.asBoolean());
     }
 
     @Override
@@ -136,13 +131,9 @@ public class SFTPTransfer implements FileTransfer {
 
     @Override
     public List<FileInfo> getListing() throws IOException {
-        final String path = ctx.getProperty(FileTransfer.REMOTE_PATH).
-                evaluateAttributeExpressions().
-                getValue();
+        final String path = ctx.getProperty(FileTransfer.REMOTE_PATH).evaluateAttributeExpressions().getValue();
         final int depth = 0;
-        final int maxResults = ctx.
-                getProperty(FileTransfer.REMOTE_POLL_BATCH_SIZE).
-                asInteger();
+        final int maxResults = ctx.getProperty(FileTransfer.REMOTE_POLL_BATCH_SIZE).asInteger();
         final List<FileInfo> listing = new ArrayList<>(1000);
         getListing(path, depth, maxResults, listing);
         return listing;
@@ -154,43 +145,28 @@ public class SFTPTransfer implements FileTransfer {
         }
 
         if (depth >= 100) {
-            logger.
-                    warn(this + " had to stop recursively searching directories at a recursive depth of " + depth + " to avoid memory issues");
+            logger.warn(this + " had to stop recursively searching directories at a recursive depth of " + depth + " to avoid memory issues");
             return;
         }
 
         final boolean ignoreDottedFiles = ctx.
-                getProperty(FileTransfer.IGNORE_DOTTED_FILES).
-                asBoolean();
-        final boolean recurse = ctx.getProperty(FileTransfer.RECURSIVE_SEARCH).
-                asBoolean();
-        final String fileFilterRegex = ctx.
-                getProperty(FileTransfer.FILE_FILTER_REGEX).
-                getValue();
-        final Pattern pattern = (fileFilterRegex == null) ? null : Pattern.
-                compile(fileFilterRegex);
-        final String pathFilterRegex = ctx.
-                getProperty(FileTransfer.PATH_FILTER_REGEX).
-                getValue();
-        final Pattern pathPattern = (!recurse || pathFilterRegex == null) ? null : Pattern.
-                compile(pathFilterRegex);
-        final String remotePath = ctx.getProperty(FileTransfer.REMOTE_PATH).
-                evaluateAttributeExpressions().
-                getValue();
+                getProperty(FileTransfer.IGNORE_DOTTED_FILES).asBoolean();
+        final boolean recurse = ctx.getProperty(FileTransfer.RECURSIVE_SEARCH).asBoolean();
+        final String fileFilterRegex = ctx.getProperty(FileTransfer.FILE_FILTER_REGEX).getValue();
+        final Pattern pattern = (fileFilterRegex == null) ? null : Pattern.compile(fileFilterRegex);
+        final String pathFilterRegex = ctx.getProperty(FileTransfer.PATH_FILTER_REGEX).getValue();
+        final Pattern pathPattern = (!recurse || pathFilterRegex == null) ? null : Pattern.compile(pathFilterRegex);
+        final String remotePath = ctx.getProperty(FileTransfer.REMOTE_PATH).evaluateAttributeExpressions().getValue();
 
         // check if this directory path matches the PATH_FILTER_REGEX
         boolean pathFilterMatches = true;
         if (pathPattern != null) {
             Path reldir = path == null ? Paths.get(".") : Paths.get(path);
             if (remotePath != null) {
-                reldir = Paths.get(remotePath).
-                        relativize(reldir);
+                reldir = Paths.get(remotePath).relativize(reldir);
             }
-            if (reldir != null && !reldir.toString().
-                    isEmpty()) {
-                if (!pathPattern.matcher(reldir.toString().
-                        replace("\\", "/")).
-                        matches()) {
+            if (reldir != null && !reldir.toString().isEmpty()) {
+                if (!pathPattern.matcher(reldir.toString().replace("\\", "/")).matches()) {
                     pathFilterMatches = false;
                 }
             }
@@ -219,19 +195,15 @@ public class SFTPTransfer implements FileTransfer {
                     }
 
                     // if is a directory and we're supposed to recurse
-                    if (recurse && entry.getAttrs().
-                            isDir()) {
+                    if (recurse && entry.getAttrs().isDir()) {
                         subDirs.add(entry);
                         return LsEntrySelector.CONTINUE;
                     }
 
                     // if is not a directory and is not a link and it matches
                     // FILE_FILTER_REGEX - then let's add it
-                    if (!entry.getAttrs().
-                            isDir() && !entry.getAttrs().
-                            isLink() && isPathMatch) {
-                        if (pattern == null || pattern.matcher(entryFilename).
-                                matches()) {
+                    if (!entry.getAttrs().isDir() && !entry.getAttrs().isLink() && isPathMatch) {
+                        if (pattern == null || pattern.matcher(entryFilename).matches()) {
                             listing.add(newFileInfo(entry, path));
                         }
                     }
@@ -245,8 +217,7 @@ public class SFTPTransfer implements FileTransfer {
 
             };
 
-            if (path == null || path.trim().
-                    isEmpty()) {
+            if (path == null || path.trim().isEmpty()) {
                 sftp.ls(".", filter);
             } else {
                 sftp.ls(path, filter);
@@ -258,8 +229,7 @@ public class SFTPTransfer implements FileTransfer {
         for (final LsEntry entry : subDirs) {
             final String entryFilename = entry.getFilename();
             final File newFullPath = new File(path, entryFilename);
-            final String newFullForwardPath = newFullPath.getPath().
-                    replace("\\", "/");
+            final String newFullForwardPath = newFullPath.getPath().replace("\\", "/");
 
             try {
                 getListing(newFullForwardPath, depth + 1, maxResults, listing);
@@ -275,29 +245,22 @@ public class SFTPTransfer implements FileTransfer {
             return null;
         }
         final File newFullPath = new File(path, entry.getFilename());
-        final String newFullForwardPath = newFullPath.getPath().
-                replace("\\", "/");
+        final String newFullForwardPath = newFullPath.getPath().replace("\\", "/");
 
-        String perms = entry.getAttrs().
-                getPermissionsString();
+        String perms = entry.getAttrs().getPermissionsString();
         if (perms.length() > 9) {
             perms = perms.substring(perms.length() - 9);
         }
 
         FileInfo.Builder builder = new FileInfo.Builder()
-                .filename(entry.getFilename()).
-                fullPathFileName(newFullForwardPath).
-                directory(entry.getAttrs().
-                        isDir()).
-                size(entry.getAttrs().
-                        getSize()).
-                lastModifiedTime(entry.getAttrs().
-                        getMTime() * 1000L).
-                permissions(perms).
-                owner(Integer.toString(entry.getAttrs().
-                                getUId())).
-                group(Integer.toString(entry.getAttrs().
-                                getGId()));
+                .filename(entry.getFilename())
+                .fullPathFileName(newFullForwardPath)
+                .directory(entry.getAttrs().isDir())
+                .size(entry.getAttrs().getSize())
+                .lastModifiedTime(entry.getAttrs().getMTime() * 1000L)
+                .permissions(perms)
+                .owner(Integer.toString(entry.getAttrs().getUId()))
+                .group(Integer.toString(entry.getAttrs().getGId()));
         return builder.build();
     }
 
@@ -318,9 +281,7 @@ public class SFTPTransfer implements FileTransfer {
 
     @Override
     public void deleteFile(final String path, final String remoteFileName) throws IOException {
-        final String fullPath = (path == null)
-                ? remoteFileName
-                : (path.endsWith("/")) ? path + remoteFileName : path + "/" + remoteFileName;
+        final String fullPath = (path == null) ? remoteFileName : (path.endsWith("/")) ? path + remoteFileName : path + "/" + remoteFileName;
         try {
             sftp.rm(fullPath);
         } catch (final SftpException e) {
@@ -340,9 +301,7 @@ public class SFTPTransfer implements FileTransfer {
     @Override
     public void ensureDirectoryExists(final FlowFile flowFile, final File directoryName) throws IOException {
         final ChannelSftp channel = getChannel(flowFile);
-        final String remoteDirectory = directoryName.getAbsolutePath().
-                replace("\\", "/").
-                replaceAll("^.\\:", "");
+        final String remoteDirectory = directoryName.getAbsolutePath().replace("\\", "/").replaceAll("^.\\:", "");
 
         // if we disable the directory listing, we just want to blindly perform the mkdir command,
         // eating any exceptions thrown (like if the directory already exists).
@@ -374,13 +333,10 @@ public class SFTPTransfer implements FileTransfer {
 
         if (!exists) {
             // first ensure parent directories exist before creating this one
-            if (directoryName.getParent() != null && !directoryName.
-                    getParentFile().
-                    equals(new File(File.separator))) {
+            if (directoryName.getParent() != null && !directoryName.getParentFile().equals(new File(File.separator))) {
                 ensureDirectoryExists(flowFile, directoryName.getParentFile());
             }
-            logger.
-                    debug("Remote Directory {} does not exist; creating it", new Object[]{remoteDirectory});
+            logger.debug("Remote Directory {} does not exist; creating it", new Object[]{remoteDirectory});
             try {
                 channel.mkdir(remoteDirectory);
                 logger.debug("Created {}", new Object[]{remoteDirectory});
@@ -393,9 +349,7 @@ public class SFTPTransfer implements FileTransfer {
     private ChannelSftp getChannel(final FlowFile flowFile) throws IOException {
         if (sftp != null) {
             String sessionhost = session.getHost();
-            String desthost = ctx.getProperty(HOSTNAME).
-                    evaluateAttributeExpressions(flowFile).
-                    getValue();
+            String desthost = ctx.getProperty(HOSTNAME).evaluateAttributeExpressions(flowFile).getValue();
             if (sessionhost.equals(desthost)) {
                 // destination matches so we can keep our current session
                 return sftp;
@@ -407,35 +361,22 @@ public class SFTPTransfer implements FileTransfer {
 
         final JSch jsch = new JSch();
         try {
-            final Session session = jsch.getSession(ctx.getProperty(USERNAME).
-                    getValue(),
-                    ctx.getProperty(HOSTNAME).
-                    evaluateAttributeExpressions(flowFile).
-                    getValue(),
-                    ctx.getProperty(PORT).
-                    evaluateAttributeExpressions(flowFile).
-                    asInteger().
-                    intValue());
+            final Session session = jsch.getSession(ctx.getProperty(USERNAME).getValue(),
+                    ctx.getProperty(HOSTNAME).evaluateAttributeExpressions(flowFile).getValue(),
+                    ctx.getProperty(PORT).evaluateAttributeExpressions(flowFile).asInteger().intValue());
 
-            final String hostKeyVal = ctx.getProperty(HOST_KEY_FILE).
-                    getValue();
+            final String hostKeyVal = ctx.getProperty(HOST_KEY_FILE).getValue();
             if (hostKeyVal != null) {
                 jsch.setKnownHosts(hostKeyVal);
             }
 
             final Properties properties = new Properties();
-            properties.setProperty("StrictHostKeyChecking", ctx.
-                    getProperty(STRICT_HOST_KEY_CHECKING).
-                    asBoolean() ? "yes" : "no");
-            properties.
-                    setProperty("PreferredAuthentications", "publickey,password");
+            properties.setProperty("StrictHostKeyChecking", ctx.getProperty(STRICT_HOST_KEY_CHECKING).asBoolean() ? "yes" : "no");
+            properties.setProperty("PreferredAuthentications", "publickey,password");
 
-            if (ctx.getProperty(FileTransfer.USE_COMPRESSION).
-                    asBoolean()) {
-                properties.
-                        setProperty("compression.s2c", "zlib@openssh.com,zlib,none");
-                properties.
-                        setProperty("compression.c2s", "zlib@openssh.com,zlib,none");
+            if (ctx.getProperty(FileTransfer.USE_COMPRESSION).asBoolean()) {
+                properties.setProperty("compression.s2c", "zlib@openssh.com,zlib,none");
+                properties.setProperty("compression.c2s", "zlib@openssh.com,zlib,none");
             } else {
                 properties.setProperty("compression.s2c", "none");
                 properties.setProperty("compression.c2s", "none");
@@ -443,42 +384,32 @@ public class SFTPTransfer implements FileTransfer {
 
             session.setConfig(properties);
 
-            final String privateKeyFile = ctx.getProperty(PRIVATE_KEY_PATH).
-                    getValue();
+            final String privateKeyFile = ctx.getProperty(PRIVATE_KEY_PATH).getValue();
             if (privateKeyFile != null) {
-                jsch.addIdentity(privateKeyFile, ctx.
-                        getProperty(PRIVATE_KEY_PASSPHRASE).
-                        getValue());
+                jsch.addIdentity(privateKeyFile, ctx.getProperty(PRIVATE_KEY_PASSPHRASE).getValue());
             }
 
-            final String password = ctx.getProperty(FileTransfer.PASSWORD).
-                    getValue();
+            final String password = ctx.getProperty(FileTransfer.PASSWORD).getValue();
             if (password != null) {
                 session.setPassword(password);
             }
 
-            session.setTimeout(ctx.getProperty(FileTransfer.CONNECTION_TIMEOUT).
-                    asTimePeriod(TimeUnit.MILLISECONDS).
-                    intValue());
+            session.setTimeout(ctx.getProperty(FileTransfer.CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
             session.connect();
             this.session = session;
             this.closed = false;
 
             sftp = (ChannelSftp) session.openChannel("sftp");
             sftp.connect();
-            session.setTimeout(ctx.getProperty(FileTransfer.DATA_TIMEOUT).
-                    asTimePeriod(TimeUnit.MILLISECONDS).
-                    intValue());
-            if (!ctx.getProperty(USE_KEEPALIVE_ON_TIMEOUT).
-                    asBoolean()) {
+            session.setTimeout(ctx.getProperty(FileTransfer.DATA_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
+            if (!ctx.getProperty(USE_KEEPALIVE_ON_TIMEOUT).asBoolean()) {
                 session.setServerAliveCountMax(0); // do not send keepalive message on SocketTimeoutException
             }
             this.homeDir = sftp.getHome();
             return sftp;
 
         } catch (final SftpException | JSchException e) {
-            throw new IOException("Failed to obtain connection to remote host due to " + e.
-                    toString(), e);
+            throw new IOException("Failed to obtain connection to remote host due to " + e.toString(), e);
         }
     }
 
@@ -500,9 +431,7 @@ public class SFTPTransfer implements FileTransfer {
                 sftp.exit();
             }
         } catch (final Exception ex) {
-            logger.
-                    warn("Failed to close ChannelSftp due to {}", new Object[]{ex.
-                        toString()}, ex);
+            logger.warn("Failed to close ChannelSftp due to {}", new Object[]{ex.toString()}, ex);
         }
         sftp = null;
 
@@ -511,8 +440,7 @@ public class SFTPTransfer implements FileTransfer {
                 session.disconnect();
             }
         } catch (final Exception ex) {
-            logger.warn("Failed to close session due to {}", new Object[]{ex.
-                toString()}, ex);
+            logger.warn("Failed to close session due to {}", new Object[]{ex.toString()}, ex);
         }
         session = null;
     }
@@ -552,8 +480,7 @@ public class SFTPTransfer implements FileTransfer {
 
         LsEntry matchingEntry = null;
         for (final LsEntry entry : vector) {
-            if (entry.getFilename().
-                    equalsIgnoreCase(filename)) {
+            if (entry.getFilename().equalsIgnoreCase(filename)) {
                 matchingEntry = entry;
                 break;
             }
@@ -567,22 +494,15 @@ public class SFTPTransfer implements FileTransfer {
         final ChannelSftp sftp = getChannel(flowFile);
 
         // destination path + filename
-        final String fullPath = (path == null)
-                ? filename
-                : (path.endsWith("/")) ? path + filename : path + "/" + filename;
+        final String fullPath = (path == null) ? filename : (path.endsWith("/")) ? path + filename : path + "/" + filename;
 
         // temporary path + filename
-        String tempFilename = ctx.getProperty(TEMP_FILENAME).
-                evaluateAttributeExpressions(flowFile).
-                getValue();
+        String tempFilename = ctx.getProperty(TEMP_FILENAME).evaluateAttributeExpressions(flowFile).getValue();
         if (tempFilename == null) {
-            final boolean dotRename = ctx.getProperty(DOT_RENAME).
-                    asBoolean();
+            final boolean dotRename = ctx.getProperty(DOT_RENAME).asBoolean();
             tempFilename = dotRename ? "." + filename : filename;
         }
-        final String tempPath = (path == null)
-                ? tempFilename
-                : (path.endsWith("/")) ? path + tempFilename : path + "/" + tempFilename;
+        final String tempPath = (path == null) ? tempFilename : (path.endsWith("/")) ? path + tempFilename : path + "/" + tempFilename;
 
         try {
             sftp.put(content, tempPath);
@@ -590,61 +510,45 @@ public class SFTPTransfer implements FileTransfer {
             throw new IOException("Unable to put content to " + fullPath + " due to " + e, e);
         }
 
-        final String lastModifiedTime = ctx.getProperty(LAST_MODIFIED_TIME).
-                evaluateAttributeExpressions(flowFile).
-                getValue();
-        if (lastModifiedTime != null && !lastModifiedTime.trim().
-                isEmpty()) {
+        final String lastModifiedTime = ctx.getProperty(LAST_MODIFIED_TIME).evaluateAttributeExpressions(flowFile).getValue();
+        if (lastModifiedTime != null && !lastModifiedTime.trim().isEmpty()) {
             try {
                 final DateFormat formatter = new SimpleDateFormat(FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
                 final Date fileModifyTime = formatter.parse(lastModifiedTime);
                 int time = (int) (fileModifyTime.getTime() / 1000L);
                 sftp.setMtime(tempPath, time);
             } catch (final Exception e) {
-                logger.
-                        error("Failed to set lastModifiedTime on {} to {} due to {}", new Object[]{tempPath, lastModifiedTime, e});
+                logger.error("Failed to set lastModifiedTime on {} to {} due to {}", new Object[]{tempPath, lastModifiedTime, e});
             }
         }
 
-        final String permissions = ctx.getProperty(PERMISSIONS).
-                evaluateAttributeExpressions(flowFile).
-                getValue();
-        if (permissions != null && !permissions.trim().
-                isEmpty()) {
+        final String permissions = ctx.getProperty(PERMISSIONS).evaluateAttributeExpressions(flowFile).getValue();
+        if (permissions != null && !permissions.trim().isEmpty()) {
             try {
                 int perms = numberPermissions(permissions);
                 if (perms >= 0) {
                     sftp.chmod(perms, tempPath);
                 }
             } catch (final Exception e) {
-                logger.
-                        error("Failed to set permission on {} to {} due to {}", new Object[]{tempPath, permissions, e});
+                logger.error("Failed to set permission on {} to {} due to {}", new Object[]{tempPath, permissions, e});
             }
         }
 
-        final String owner = ctx.getProperty(REMOTE_OWNER).
-                evaluateAttributeExpressions(flowFile).
-                getValue();
-        if (owner != null && !owner.trim().
-                isEmpty()) {
+        final String owner = ctx.getProperty(REMOTE_OWNER).evaluateAttributeExpressions(flowFile).getValue();
+        if (owner != null && !owner.trim().isEmpty()) {
             try {
                 sftp.chown(Integer.parseInt(owner), tempPath);
             } catch (final Exception e) {
-                logger.
-                        error("Failed to set owner on {} to {} due to {}", new Object[]{tempPath, owner, e});
+                logger.error("Failed to set owner on {} to {} due to {}", new Object[]{tempPath, owner, e});
             }
         }
 
-        final String group = ctx.getProperty(REMOTE_GROUP).
-                evaluateAttributeExpressions(flowFile).
-                getValue();
-        if (group != null && !group.trim().
-                isEmpty()) {
+        final String group = ctx.getProperty(REMOTE_GROUP).evaluateAttributeExpressions(flowFile).getValue();
+        if (group != null && !group.trim().isEmpty()) {
             try {
                 sftp.chgrp(Integer.parseInt(group), tempPath);
             } catch (final Exception e) {
-                logger.
-                        error("Failed to set group on {} to {} due to {}", new Object[]{tempPath, group, e});
+                logger.error("Failed to set group on {} to {} due to {}", new Object[]{tempPath, group, e});
             }
         }
 
@@ -668,8 +572,7 @@ public class SFTPTransfer implements FileTransfer {
         int number = -1;
         final Pattern rwxPattern = Pattern.compile("^[rwx-]{9}$");
         final Pattern numPattern = Pattern.compile("\\d+");
-        if (rwxPattern.matcher(perms).
-                matches()) {
+        if (rwxPattern.matcher(perms).matches()) {
             number = 0;
             if (perms.charAt(0) == 'r') {
                 number |= 0x100;
@@ -698,8 +601,7 @@ public class SFTPTransfer implements FileTransfer {
             if (perms.charAt(8) == 'x') {
                 number |= 0x1;
             }
-        } else if (numPattern.matcher(perms).
-                matches()) {
+        } else if (numPattern.matcher(perms).matches()) {
             try {
                 number = Integer.parseInt(perms, 8);
             } catch (NumberFormatException ignore) {
@@ -717,8 +619,7 @@ public class SFTPTransfer implements FileTransfer {
 
             @Override
             public void log(int level, String message) {
-                LoggerFactory.getLogger(SFTPTransfer.class).
-                        debug("SFTP Log: {}", message);
+                LoggerFactory.getLogger(SFTPTransfer.class).debug("SFTP Log: {}", message);
             }
         });
     }

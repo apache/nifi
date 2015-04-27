@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.nifi.processors.standard.RouteOnAttribute;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
@@ -40,8 +39,7 @@ public class TestRouteOnAttribute {
     public void testInvalidOnMisconfiguredProperty() {
         final RouteOnAttribute proc = new RouteOnAttribute();
         final MockProcessContext ctx = new MockProcessContext(proc);
-        final ValidationResult validationResult = ctx.
-                setProperty("RouteA", "${a:equals('b')"); // Missing closing brace
+        final ValidationResult validationResult = ctx.setProperty("RouteA", "${a:equals('b')"); // Missing closing brace
         assertFalse(validationResult.isValid());
     }
 
@@ -49,15 +47,13 @@ public class TestRouteOnAttribute {
     public void testInvalidOnNonBooleanProperty() {
         final RouteOnAttribute proc = new RouteOnAttribute();
         final MockProcessContext ctx = new MockProcessContext(proc);
-        final ValidationResult validationResult = ctx.
-                setProperty("RouteA", "${a:length()"); // Should be boolean
+        final ValidationResult validationResult = ctx.setProperty("RouteA", "${a:length()"); // Should be boolean
         assertFalse(validationResult.isValid());
     }
 
     @Test
     public void testSimpleEquals() {
-        final TestRunner runner = TestRunners.
-                newTestRunner(new RouteOnAttribute());
+        final TestRunner runner = TestRunners.newTestRunner(new RouteOnAttribute());
         runner.setProperty("RouteA", "${a:equals('b')}");
 
         final Map<String, String> attributes = new HashMap<>();
@@ -66,24 +62,16 @@ public class TestRouteOnAttribute {
 
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(new Relationship.Builder().
-                name("RouteA").
-                build(), 1);
-        final List<MockFlowFile> flowFiles = runner.
-                getFlowFilesForRelationship("RouteA");
-        flowFiles.get(0).
-                assertAttributeEquals("a", "b");
-        flowFiles.get(0).
-                assertAttributeEquals(RouteOnAttribute.ROUTE_ATTRIBUTE_KEY, "RouteA");
+        runner.assertAllFlowFilesTransferred(new Relationship.Builder().name("RouteA").build(), 1);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship("RouteA");
+        flowFiles.get(0).assertAttributeEquals("a", "b");
+        flowFiles.get(0).assertAttributeEquals(RouteOnAttribute.ROUTE_ATTRIBUTE_KEY, "RouteA");
     }
 
     @Test
     public void testMatchAll() {
-        final TestRunner runner = TestRunners.
-                newTestRunner(new RouteOnAttribute());
-        runner.
-                setProperty(RouteOnAttribute.ROUTE_STRATEGY, RouteOnAttribute.ROUTE_ALL_MATCH.
-                        getValue());
+        final TestRunner runner = TestRunners.newTestRunner(new RouteOnAttribute());
+        runner.setProperty(RouteOnAttribute.ROUTE_STRATEGY, RouteOnAttribute.ROUTE_ALL_MATCH.getValue());
         runner.setProperty("RouteA", "${a:equals('b')}");
         runner.setProperty("RouteB", "${b:equals('a')}");
 
@@ -103,36 +91,27 @@ public class TestRouteOnAttribute {
 
         runner.run(4);
 
-        final List<MockFlowFile> match = runner.
-                getFlowFilesForRelationship(RouteOnAttribute.REL_MATCH);
-        final List<MockFlowFile> noMatch = runner.
-                getFlowFilesForRelationship(RouteOnAttribute.REL_NO_MATCH);
+        final List<MockFlowFile> match = runner.getFlowFilesForRelationship(RouteOnAttribute.REL_MATCH);
+        final List<MockFlowFile> noMatch = runner.getFlowFilesForRelationship(RouteOnAttribute.REL_NO_MATCH);
 
         assertEquals(1, match.size());
         assertEquals(3, noMatch.size());
 
         for (final MockFlowFile ff : noMatch) {
-            ff.
-                    assertAttributeEquals(RouteOnAttribute.ROUTE_ATTRIBUTE_KEY, "unmatched");
+            ff.assertAttributeEquals(RouteOnAttribute.ROUTE_ATTRIBUTE_KEY, "unmatched");
         }
 
-        final Map<String, String> matchedAttrs = match.iterator().
-                next().
-                getAttributes();
+        final Map<String, String> matchedAttrs = match.iterator().next().getAttributes();
         assertEquals("b", matchedAttrs.get("a"));
         assertEquals("a", matchedAttrs.get("b"));
-        assertEquals("matched", matchedAttrs.
-                get(RouteOnAttribute.ROUTE_ATTRIBUTE_KEY));
+        assertEquals("matched", matchedAttrs.get(RouteOnAttribute.ROUTE_ATTRIBUTE_KEY));
     }
 
     @Test
     public void testMatchAny() {
-        final TestRunner runner = TestRunners.
-                newTestRunner(new RouteOnAttribute());
+        final TestRunner runner = TestRunners.newTestRunner(new RouteOnAttribute());
         runner.setThreadCount(4);
-        runner.
-                setProperty(RouteOnAttribute.ROUTE_STRATEGY, RouteOnAttribute.ROUTE_ANY_MATCHES.
-                        getValue());
+        runner.setProperty(RouteOnAttribute.ROUTE_STRATEGY, RouteOnAttribute.ROUTE_ANY_MATCHES.getValue());
         runner.setProperty("RouteA", "${a:equals('b')}");
         runner.setProperty("RouteB", "${b:equals('a')}");
 
@@ -152,20 +131,16 @@ public class TestRouteOnAttribute {
 
         runner.run(4);
 
-        final List<MockFlowFile> match = runner.
-                getFlowFilesForRelationship(RouteOnAttribute.REL_MATCH);
-        final List<MockFlowFile> noMatch = runner.
-                getFlowFilesForRelationship(RouteOnAttribute.REL_NO_MATCH);
+        final List<MockFlowFile> match = runner.getFlowFilesForRelationship(RouteOnAttribute.REL_MATCH);
+        final List<MockFlowFile> noMatch = runner.getFlowFilesForRelationship(RouteOnAttribute.REL_NO_MATCH);
 
         assertEquals(2, match.size());
         assertEquals(2, noMatch.size());
 
         // Get attributes for both matching FlowFiles
         final Iterator<MockFlowFile> itr = match.iterator();
-        final Map<String, String> attrs1 = itr.next().
-                getAttributes();
-        final Map<String, String> attrs2 = itr.next().
-                getAttributes();
+        final Map<String, String> attrs1 = itr.next().getAttributes();
+        final Map<String, String> attrs2 = itr.next().getAttributes();
 
         // Both matches should map a -> b
         assertEquals("b", attrs1.get("a"));

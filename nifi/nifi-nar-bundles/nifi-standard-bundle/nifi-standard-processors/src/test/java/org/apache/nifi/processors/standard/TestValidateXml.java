@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.nifi.processors.standard.ValidateXml;
 import java.io.IOException;
 import java.nio.file.Paths;
 
@@ -31,8 +30,7 @@ public class TestValidateXml {
     @Test
     public void testValid() throws IOException, SAXException {
         final TestRunner runner = TestRunners.newTestRunner(new ValidateXml());
-        runner.
-                setProperty(ValidateXml.SCHEMA_FILE, "src/test/resources/TestXml/XmlBundle.xsd");
+        runner.setProperty(ValidateXml.SCHEMA_FILE, "src/test/resources/TestXml/XmlBundle.xsd");
 
         runner.enqueue(Paths.get("src/test/resources/TestXml/xml-snippet.xml"));
         runner.run();

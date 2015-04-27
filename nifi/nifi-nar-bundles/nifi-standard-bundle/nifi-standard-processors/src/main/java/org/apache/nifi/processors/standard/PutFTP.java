@@ -104,8 +104,7 @@ public class PutFTP extends PutFileTransfer<FTPTransfer> {
 
     @Override
     protected void beforePut(final FlowFile flowFile, final ProcessContext context, final FTPTransfer transfer) throws IOException {
-        transfer.
-                sendCommands(getCommands(preSendDescriptorRef.get(), context, flowFile), flowFile);
+        transfer.sendCommands(getCommands(preSendDescriptorRef.get(), context, flowFile), flowFile);
     }
 
     @Override
@@ -122,10 +121,10 @@ public class PutFTP extends PutFileTransfer<FTPTransfer> {
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
-                .name(propertyDescriptorName).
-                addValidator(StandardValidators.NON_EMPTY_VALIDATOR).
-                dynamic(true).
-                build();
+                .name(propertyDescriptorName)
+                .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+                .dynamic(true)
+                .build();
     }
 
     @OnScheduled
@@ -133,8 +132,7 @@ public class PutFTP extends PutFileTransfer<FTPTransfer> {
         final Map<Integer, PropertyDescriptor> preDescriptors = new TreeMap<>();
         final Map<Integer, PropertyDescriptor> postDescriptors = new TreeMap<>();
 
-        for (final PropertyDescriptor descriptor : context.getProperties().
-                keySet()) {
+        for (final PropertyDescriptor descriptor : context.getProperties().keySet()) {
             final String name = descriptor.getName();
             final Matcher preMatcher = PRE_SEND_CMD_PATTERN.matcher(name);
             if (preMatcher.matches()) {
@@ -149,10 +147,8 @@ public class PutFTP extends PutFileTransfer<FTPTransfer> {
             }
         }
 
-        final List<PropertyDescriptor> preDescriptorList = new ArrayList<>(preDescriptors.
-                values());
-        final List<PropertyDescriptor> postDescriptorList = new ArrayList<>(postDescriptors.
-                values());
+        final List<PropertyDescriptor> preDescriptorList = new ArrayList<>(preDescriptors.values());
+        final List<PropertyDescriptor> postDescriptorList = new ArrayList<>(postDescriptors.values());
         this.preSendDescriptorRef.set(preDescriptorList);
         this.postSendDescriptorRef.set(postDescriptorList);
     }
@@ -160,9 +156,7 @@ public class PutFTP extends PutFileTransfer<FTPTransfer> {
     private List<String> getCommands(final List<PropertyDescriptor> descriptors, final ProcessContext context, final FlowFile flowFile) {
         final List<String> cmds = new ArrayList<>();
         for (final PropertyDescriptor descriptor : descriptors) {
-            cmds.add(context.getProperty(descriptor).
-                    evaluateAttributeExpressions(flowFile).
-                    getValue());
+            cmds.add(context.getProperty(descriptor).evaluateAttributeExpressions(flowFile).getValue());
         }
 
         return cmds;

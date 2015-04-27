@@ -85,43 +85,43 @@ public class SplitContent extends AbstractProcessor {
     static final AllowableValue TRAILING_POSITION = new AllowableValue("Trailing", "Trailing", "Keep the Byte Sequence at the end of the first split if <Keep Byte Sequence> is true");
     static final AllowableValue LEADING_POSITION = new AllowableValue("Leading", "Leading", "Keep the Byte Sequence at the beginning of the second split if <Keep Byte Sequence> is true");
 
-    public static final PropertyDescriptor FORMAT = new PropertyDescriptor.Builder().
-            name("Byte Sequence Format").
-            description("Specifies how the <Byte Sequence> property should be interpreted").
-            required(true).
-            allowableValues(HEX_FORMAT, UTF8_FORMAT).
-            defaultValue(HEX_FORMAT.getValue()).
-            build();
-    public static final PropertyDescriptor BYTE_SEQUENCE = new PropertyDescriptor.Builder().
-            name("Byte Sequence").
-            description("A representation of bytes to look for and upon which to split the source file into separate files").
-            addValidator(StandardValidators.NON_EMPTY_VALIDATOR).
-            required(true).
-            build();
-    public static final PropertyDescriptor KEEP_SEQUENCE = new PropertyDescriptor.Builder().
-            name("Keep Byte Sequence").
-            description("Determines whether or not the Byte Sequence should be included with each Split").
-            required(true).
-            allowableValues("true", "false").
-            defaultValue("false").
-            build();
-    public static final PropertyDescriptor BYTE_SEQUENCE_LOCATION = new PropertyDescriptor.Builder().
-            name("Byte Sequence Location").
-            description("If <Keep Byte Sequence> is set to true, specifies whether the byte sequence should be added to the end of the first "
-                    + "split or the beginning of the second; if <Keep Byte Sequence> is false, this property is ignored.").
-            required(true).
-            allowableValues(TRAILING_POSITION, LEADING_POSITION).
-            defaultValue(TRAILING_POSITION.getValue()).
-            build();
+    public static final PropertyDescriptor FORMAT = new PropertyDescriptor.Builder()
+            .name("Byte Sequence Format")
+            .description("Specifies how the <Byte Sequence> property should be interpreted")
+            .required(true)
+            .allowableValues(HEX_FORMAT, UTF8_FORMAT)
+            .defaultValue(HEX_FORMAT.getValue())
+            .build();
+    public static final PropertyDescriptor BYTE_SEQUENCE = new PropertyDescriptor.Builder()
+            .name("Byte Sequence")
+            .description("A representation of bytes to look for and upon which to split the source file into separate files")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .required(true)
+            .build();
+    public static final PropertyDescriptor KEEP_SEQUENCE = new PropertyDescriptor.Builder()
+            .name("Keep Byte Sequence")
+            .description("Determines whether or not the Byte Sequence should be included with each Split")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .build();
+    public static final PropertyDescriptor BYTE_SEQUENCE_LOCATION = new PropertyDescriptor.Builder()
+            .name("Byte Sequence Location")
+            .description("If <Keep Byte Sequence> is set to true, specifies whether the byte sequence should be added to the end of the first "
+                    + "split or the beginning of the second; if <Keep Byte Sequence> is false, this property is ignored.")
+            .required(true)
+            .allowableValues(TRAILING_POSITION, LEADING_POSITION)
+            .defaultValue(TRAILING_POSITION.getValue())
+            .build();
 
     public static final Relationship REL_SPLITS = new Relationship.Builder()
-            .name("splits").
-            description("All Splits will be routed to the splits relationship").
-            build();
+            .name("splits")
+            .description("All Splits will be routed to the splits relationship")
+            .build();
     public static final Relationship REL_ORIGINAL = new Relationship.Builder()
-            .name("original").
-            description("The original file").
-            build();
+            .name("original")
+            .description("The original file")
+            .build();
 
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> properties;
@@ -156,15 +156,10 @@ public class SplitContent extends AbstractProcessor {
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>(1);
-        final String format = validationContext.getProperty(FORMAT).
-                getValue();
-        if (HEX_FORMAT.getValue().
-                equals(format)) {
-            final String byteSequence = validationContext.
-                    getProperty(BYTE_SEQUENCE).
-                    getValue();
-            final ValidationResult result = new HexStringPropertyValidator().
-                    validate(BYTE_SEQUENCE.getName(), byteSequence, validationContext);
+        final String format = validationContext.getProperty(FORMAT).getValue();
+        if (HEX_FORMAT.getValue().equals(format)) {
+            final String byteSequence = validationContext.getProperty(BYTE_SEQUENCE).getValue();
+            final ValidationResult result = new HexStringPropertyValidator().validate(BYTE_SEQUENCE.getName(), byteSequence, validationContext);
             results.add(result);
         }
         return results;
@@ -172,13 +167,10 @@ public class SplitContent extends AbstractProcessor {
 
     @OnScheduled
     public void initializeByteSequence(final ProcessContext context) throws DecoderException {
-        final String bytePattern = context.getProperty(BYTE_SEQUENCE).
-                getValue();
+        final String bytePattern = context.getProperty(BYTE_SEQUENCE).getValue();
 
-        final String format = context.getProperty(FORMAT).
-                getValue();
-        if (HEX_FORMAT.getValue().
-                equals(format)) {
+        final String format = context.getProperty(FORMAT).getValue();
+        if (HEX_FORMAT.getValue().equals(format)) {
             this.byteSequence.set(Hex.decodeHex(bytePattern.toCharArray()));
         } else {
             this.byteSequence.set(bytePattern.getBytes(StandardCharsets.UTF_8));
@@ -193,14 +185,11 @@ public class SplitContent extends AbstractProcessor {
         }
 
         final ProcessorLog logger = getLogger();
-        final boolean keepSequence = context.getProperty(KEEP_SEQUENCE).
-                asBoolean();
+        final boolean keepSequence = context.getProperty(KEEP_SEQUENCE).asBoolean();
         final boolean keepTrailingSequence;
         final boolean keepLeadingSequence;
         if (keepSequence) {
-            if (context.getProperty(BYTE_SEQUENCE_LOCATION).
-                    getValue().
-                    equals(TRAILING_POSITION.getValue())) {
+            if (context.getProperty(BYTE_SEQUENCE_LOCATION).getValue().equals(TRAILING_POSITION.getValue())) {
                 keepTrailingSequence = true;
                 keepLeadingSequence = false;
             } else {
@@ -214,8 +203,7 @@ public class SplitContent extends AbstractProcessor {
 
         final byte[] byteSequence = this.byteSequence.get();
         if (byteSequence == null) {   // should never happen. But just in case...
-            logger.
-                    error("{} Unable to obtain Byte Sequence", new Object[]{this});
+            logger.error("{} Unable to obtain Byte Sequence", new Object[]{this});
             session.rollback();
             return;
         }
@@ -292,8 +280,7 @@ public class SplitContent extends AbstractProcessor {
             finalSplitOffset += byteSequence.length;
         }
         if (finalSplitOffset > -1L && finalSplitOffset < flowFile.getSize()) {
-            FlowFile finalSplit = session.
-                    clone(flowFile, finalSplitOffset, flowFile.getSize() - finalSplitOffset);
+            FlowFile finalSplit = session.clone(flowFile, finalSplitOffset, flowFile.getSize() - finalSplitOffset);
             splitList.add(finalSplit);
         }
 
@@ -302,13 +289,9 @@ public class SplitContent extends AbstractProcessor {
         session.transfer(flowFile, REL_ORIGINAL);
 
         if (splitList.size() > 10) {
-            logger.
-                    info("Split {} into {} files", new Object[]{flowFile, splitList.
-                        size()});
+            logger.info("Split {} into {} files", new Object[]{flowFile, splitList.size()});
         } else {
-            logger.
-                    info("Split {} into {} files: {}", new Object[]{flowFile, splitList.
-                        size(), splitList});
+            logger.info("Split {} into {} files: {}", new Object[]{flowFile, splitList.size(), splitList});
         }
     }
 
@@ -323,8 +306,7 @@ public class SplitContent extends AbstractProcessor {
         final String originalFilename = source.
                 getAttribute(CoreAttributes.FILENAME.key());
 
-        final String fragmentId = UUID.randomUUID().
-                toString();
+        final String fragmentId = UUID.randomUUID().toString();
         final ArrayList<FlowFile> newList = new ArrayList<>(splits);
         splits.clear();
         for (int i = 1; i <= newList.size(); i++) {
@@ -345,16 +327,9 @@ public class SplitContent extends AbstractProcessor {
         public ValidationResult validate(final String subject, final String input, final ValidationContext validationContext) {
             try {
                 Hex.decodeHex(input.toCharArray());
-                return new ValidationResult.Builder().valid(true).
-                        input(input).
-                        subject(subject).
-                        build();
+                return new ValidationResult.Builder().valid(true).input(input).subject(subject).build();
             } catch (final Exception e) {
-                return new ValidationResult.Builder().valid(false).
-                        explanation("Not a valid Hex String").
-                        input(input).
-                        subject(subject).
-                        build();
+                return new ValidationResult.Builder().valid(false).explanation("Not a valid Hex String").input(input).subject(subject).build();
             }
         }
     }

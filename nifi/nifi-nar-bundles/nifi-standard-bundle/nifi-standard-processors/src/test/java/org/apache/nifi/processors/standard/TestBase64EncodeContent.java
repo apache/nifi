@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.nifi.processors.standard.Base64EncodeContent;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -31,68 +30,53 @@ public class TestBase64EncodeContent {
 
     @Test
     public void testRoundTrip() throws IOException {
-        final TestRunner testRunner = TestRunners.
-                newTestRunner(new Base64EncodeContent());
+        final TestRunner testRunner = TestRunners.newTestRunner(new Base64EncodeContent());
 
-        testRunner.
-                setProperty(Base64EncodeContent.MODE, Base64EncodeContent.ENCODE_MODE);
+        testRunner.setProperty(Base64EncodeContent.MODE, Base64EncodeContent.ENCODE_MODE);
 
         testRunner.enqueue(Paths.get("src/test/resources/hello.txt"));
         testRunner.clearTransferState();
         testRunner.run();
 
-        testRunner.
-                assertAllFlowFilesTransferred(Base64EncodeContent.REL_SUCCESS, 1);
+        testRunner.assertAllFlowFilesTransferred(Base64EncodeContent.REL_SUCCESS, 1);
 
-        MockFlowFile flowFile = testRunner.
-                getFlowFilesForRelationship(Base64EncodeContent.REL_SUCCESS).
-                get(0);
+        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(Base64EncodeContent.REL_SUCCESS).get(0);
         testRunner.assertQueueEmpty();
 
-        testRunner.
-                setProperty(Base64EncodeContent.MODE, Base64EncodeContent.DECODE_MODE);
+        testRunner.setProperty(Base64EncodeContent.MODE, Base64EncodeContent.DECODE_MODE);
         testRunner.enqueue(flowFile);
         testRunner.clearTransferState();
         testRunner.run();
-        testRunner.
-                assertAllFlowFilesTransferred(Base64EncodeContent.REL_SUCCESS, 1);
+        testRunner.assertAllFlowFilesTransferred(Base64EncodeContent.REL_SUCCESS, 1);
 
-        flowFile = testRunner.
-                getFlowFilesForRelationship(Base64EncodeContent.REL_SUCCESS).
-                get(0);
+        flowFile = testRunner.getFlowFilesForRelationship(Base64EncodeContent.REL_SUCCESS).get(0);
         flowFile.assertContentEquals(new File("src/test/resources/hello.txt"));
     }
 
     @Test
     public void testFailDecodeNotBase64() throws IOException {
-        final TestRunner testRunner = TestRunners.
-                newTestRunner(new Base64EncodeContent());
+        final TestRunner testRunner = TestRunners.newTestRunner(new Base64EncodeContent());
 
-        testRunner.
-                setProperty(Base64EncodeContent.MODE, Base64EncodeContent.DECODE_MODE);
+        testRunner.setProperty(Base64EncodeContent.MODE, Base64EncodeContent.DECODE_MODE);
 
         testRunner.enqueue(Paths.get("src/test/resources/hello.txt"));
         testRunner.clearTransferState();
         testRunner.run();
 
-        testRunner.
-                assertAllFlowFilesTransferred(Base64EncodeContent.REL_FAILURE, 1);
+        testRunner.assertAllFlowFilesTransferred(Base64EncodeContent.REL_FAILURE, 1);
     }
 
     @Test
     public void testFailDecodeNotBase64ButIsAMultipleOfFourBytes() throws IOException {
-        final TestRunner testRunner = TestRunners.
-                newTestRunner(new Base64EncodeContent());
+        final TestRunner testRunner = TestRunners.newTestRunner(new Base64EncodeContent());
 
-        testRunner.
-                setProperty(Base64EncodeContent.MODE, Base64EncodeContent.DECODE_MODE);
+        testRunner.setProperty(Base64EncodeContent.MODE, Base64EncodeContent.DECODE_MODE);
 
         testRunner.enqueue("four@@@@multiple".getBytes());
         testRunner.clearTransferState();
         testRunner.run();
 
-        testRunner.
-                assertAllFlowFilesTransferred(Base64EncodeContent.REL_FAILURE, 1);
+        testRunner.assertAllFlowFilesTransferred(Base64EncodeContent.REL_FAILURE, 1);
     }
 
 }

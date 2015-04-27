@@ -83,22 +83,22 @@ public class SegmentContent extends AbstractProcessor {
     public static final String FRAGMENT_INDEX = "fragment.index";
     public static final String FRAGMENT_COUNT = "fragment.count";
 
-    public static final PropertyDescriptor SIZE = new PropertyDescriptor.Builder().
-            name("Segment Size").
-            description("The maximum data size for each segment").
-            addValidator(StandardValidators.DATA_SIZE_VALIDATOR).
-            required(true).
-            build();
+    public static final PropertyDescriptor SIZE = new PropertyDescriptor.Builder()
+            .name("Segment Size")
+            .description("The maximum data size for each segment")
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .required(true)
+            .build();
 
-    public static final Relationship REL_SEGMENTS = new Relationship.Builder().
-            name("segments").
-            description("All segments will be sent to this relationship. If the file was small enough that it was not segmented, "
-                    + "a copy of the original is sent to this relationship as well as original").
-            build();
-    public static final Relationship REL_ORIGINAL = new Relationship.Builder().
-            name("original").
-            description("The original FlowFile will be sent to this relationship").
-            build();
+    public static final Relationship REL_SEGMENTS = new Relationship.Builder()
+            .name("segments")
+            .description("All segments will be sent to this relationship. If the file was small enough that it was not segmented, "
+                    + "a copy of the original is sent to this relationship as well as original")
+            .build();
+    public static final Relationship REL_ORIGINAL = new Relationship.Builder()
+            .name("original")
+            .description("The original FlowFile will be sent to this relationship")
+            .build();
 
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> propertyDescriptors;
@@ -132,21 +132,16 @@ public class SegmentContent extends AbstractProcessor {
             return;
         }
 
-        final String segmentId = UUID.randomUUID().
-                toString();
-        final long segmentSize = context.getProperty(SIZE).
-                asDataSize(DataUnit.B).
-                longValue();
+        final String segmentId = UUID.randomUUID().toString();
+        final long segmentSize = context.getProperty(SIZE).asDataSize(DataUnit.B).longValue();
 
-        final String originalFileName = flowFile.
-                getAttribute(CoreAttributes.FILENAME.key());
+        final String originalFileName = flowFile.getAttribute(CoreAttributes.FILENAME.key());
 
         if (flowFile.getSize() <= segmentSize) {
             flowFile = session.putAttribute(flowFile, SEGMENT_ID, segmentId);
             flowFile = session.putAttribute(flowFile, SEGMENT_INDEX, "1");
             flowFile = session.putAttribute(flowFile, SEGMENT_COUNT, "1");
-            flowFile = session.
-                    putAttribute(flowFile, SEGMENT_ORIGINAL_FILENAME, originalFileName);
+            flowFile = session.putAttribute(flowFile, SEGMENT_ORIGINAL_FILENAME, originalFileName);
 
             flowFile = session.putAttribute(flowFile, FRAGMENT_ID, segmentId);
             flowFile = session.putAttribute(flowFile, FRAGMENT_INDEX, "1");
@@ -174,8 +169,7 @@ public class SegmentContent extends AbstractProcessor {
         final Set<FlowFile> segmentSet = new HashSet<>();
         for (int i = 1; i <= totalSegments; i++) {
             final long segmentOffset = segmentSize * (i - 1);
-            FlowFile segment = session.clone(flowFile, segmentOffset, Math.
-                    min(segmentSize, flowFile.getSize() - segmentOffset));
+            FlowFile segment = session.clone(flowFile, segmentOffset, Math.min(segmentSize, flowFile.getSize() - segmentOffset));
             segmentAttributes.put(SEGMENT_INDEX, String.valueOf(i));
             segmentAttributes.put(FRAGMENT_INDEX, String.valueOf(i));
             segment = session.putAllAttributes(segment, segmentAttributes);
@@ -186,11 +180,9 @@ public class SegmentContent extends AbstractProcessor {
         session.transfer(flowFile, REL_ORIGINAL);
 
         if (totalSegments <= 10) {
-            getLogger().
-                    info("Segmented {} into {} segments: {}", new Object[]{flowFile, totalSegments, segmentSet});
+            getLogger().info("Segmented {} into {} segments: {}", new Object[]{flowFile, totalSegments, segmentSet});
         } else {
-            getLogger().
-                    info("Segmented {} into {} segments", new Object[]{flowFile, totalSegments});
+            getLogger().info("Segmented {} into {} segments", new Object[]{flowFile, totalSegments});
         }
     }
 }
