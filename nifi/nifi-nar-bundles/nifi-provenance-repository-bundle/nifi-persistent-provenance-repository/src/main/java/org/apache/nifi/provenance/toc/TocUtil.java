@@ -22,16 +22,19 @@ import org.apache.nifi.provenance.lucene.LuceneUtil;
 
 public class TocUtil {
 
-	/**
-	 * Returns the file that should be used as the Table of Contents for the given Journal File
-	 * @param journalFile
-	 * @return
-	 */
-	public static File getTocFile(final File journalFile) {
-    	final File tocDir = new File(journalFile.getParentFile(), "toc");
-    	final String basename = LuceneUtil.substringBefore(journalFile.getName(), ".");
-    	final File tocFile = new File(tocDir, basename + ".toc");
-    	return tocFile;
-	}
-	
+    /**
+     * Returns the file that should be used as the Table of Contents for the given Journal File.
+     * Note, if no TOC exists for the given Journal File, a File will still be returned but the file
+     * will not actually exist.
+     *
+     * @param journalFile the journal file for which to get the Table of Contents
+     * @return the file that represents the Table of Contents for the specified journal file.
+     */
+    public static File getTocFile(final File journalFile) {
+        final File tocDir = new File(journalFile.getParentFile(), "toc");
+        final String basename = LuceneUtil.substringBefore(journalFile.getName(), ".");
+        final File tocFile = new File(tocDir, basename + ".toc");
+        return tocFile;
+    }
+
 }

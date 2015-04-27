@@ -92,7 +92,7 @@ public class IndexConfiguration {
             }
             return firstRecord.getEventTime();
         } catch (final FileNotFoundException | EOFException fnf) {
-            return null;	// file no longer exists or there's no record in this file
+            return null; // file no longer exists or there's no record in this file
         } catch (final IOException ioe) {
             logger.warn("Failed to read first entry in file {} due to {}", provenanceLogFile, ioe.toString());
             logger.warn("", ioe);
@@ -201,7 +201,8 @@ public class IndexConfiguration {
      * desired
      * @param endTime the end time of the query for which the indices are
      * desired
-     * @return
+     * @return the index directories that are applicable only for the given time
+     * span (times inclusive).
      */
     public List<File> getIndexDirectories(final Long startTime, final Long endTime) {
         if (startTime == null && endTime == null) {
@@ -252,7 +253,8 @@ public class IndexConfiguration {
      *
      * @param provenanceLogFile the provenance log file for which the index
      * directories are desired
-     * @return
+     * @return the index directories that are applicable only for the given
+     * event log
      */
     public List<File> getIndexDirectories(final File provenanceLogFile) {
         final List<File> dirs = new ArrayList<>();
@@ -334,9 +336,7 @@ public class IndexConfiguration {
     }
 
     /**
-     * Returns the amount of disk space in bytes used by all of the indices
-     *
-     * @return
+     * @return the amount of disk space in bytes used by all of the indices
      */
     public long getIndexSize() {
         lock.lock();

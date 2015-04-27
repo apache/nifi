@@ -31,12 +31,12 @@ public class TestStandardTocWriter {
         final File tocFile = new File("target/" + UUID.randomUUID().toString() + ".toc");
         try {
             assertTrue( tocFile.createNewFile() );
-            
+
             try (final StandardTocWriter writer = new StandardTocWriter(tocFile, false, false)) {
             }
         } finally {
             FileUtils.deleteFile(tocFile, false);
         }
     }
-    
+
 }

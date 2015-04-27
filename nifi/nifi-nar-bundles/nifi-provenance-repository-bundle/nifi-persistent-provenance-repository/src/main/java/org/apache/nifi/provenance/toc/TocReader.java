@@ -32,27 +32,31 @@ public interface TocReader extends Closeable {
 
     /**
      * Indicates whether or not the corresponding Journal file is compressed
-     * @return
+     * @return <code>true</code> if the event file is compressed
      */
     boolean isCompressed();
 
     /**
      * Returns the byte offset into the Journal File for the Block with the given index.
-     * @param blockIndex
-     * @return
+     *
+     * @param blockIndex the block index to get the byte offset for
+     * @return the byte offset for the given block index, or <code>-1</code> if the given block index
+     * does not exist
      */
     long getBlockOffset(int blockIndex);
-    
+
     /**
      * Returns the byte offset into the Journal File of the last Block in the given index
-     * @return
+     * @return the byte offset into the Journal File of the last Block in the given index
      */
     long getLastBlockOffset();
-    
+
     /**
      * Returns the index of the block that contains the given offset
-     * @param blockOffset
-     * @return
+     *
+     * @param blockOffset the byte offset for which the block index is desired
+     *
+     * @return the index of the block that contains the given offset
      */
     int getBlockIndex(long blockOffset);
 }

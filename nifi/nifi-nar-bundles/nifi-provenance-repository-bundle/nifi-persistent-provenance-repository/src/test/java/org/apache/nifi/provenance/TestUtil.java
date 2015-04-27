@@ -24,7 +24,7 @@ import java.util.Set;
 import org.apache.nifi.flowfile.FlowFile;
 
 public class TestUtil {
-	public static FlowFile createFlowFile(final long id, final long fileSize, final Map<String, String> attributes) {
+    public static FlowFile createFlowFile(final long id, final long fileSize, final Map<String, String> attributes) {
         final Map<String, String> attrCopy = new HashMap<>(attributes);
 
         return new FlowFile() {

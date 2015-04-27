@@ -75,7 +75,7 @@ public class TestPersistentProvenanceRepository {
 
     private PersistentProvenanceRepository repo;
     private RepositoryConfiguration config;
-    
+
     public static final int DEFAULT_ROLLOVER_MILLIS = 2000;
 
     private RepositoryConfiguration createConfiguration() {
@@ -89,9 +89,9 @@ public class TestPersistentProvenanceRepository {
 
     @BeforeClass
     public static void setLogLevel() {
-    	System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.provenance", "DEBUG");
+        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.provenance", "DEBUG");
     }
-    
+
     @Before
     public void printTestName() {
         System.out.println("\n\n\n***********************  " + name.getMethodName() + "  *****************************");
@@ -105,33 +105,33 @@ public class TestPersistentProvenanceRepository {
             } catch (final IOException ioe) {
             }
         }
-        
+
         // Delete all of the storage files. We do this in order to clean up the tons of files that
         // we create but also to ensure that we have closed all of the file handles. If we leave any
         // streams open, for instance, this will throw an IOException, causing our unit test to fail.
         for ( final File storageDir : config.getStorageDirectories() ) {
-        	int i;
-        	for (i=0; i < 3; i++) {
-        		try {
-        			FileUtils.deleteFile(storageDir, true);
-        			break;
-	        	} catch (final IOException ioe) {
-	        		// if there is a virus scanner, etc. running in the background we may not be able to
-	        		// delete the file. Wait a sec and try again.
-	        		if ( i == 2 ) {
-	        			throw ioe;
-	        		} else {
-	        			try {
-	        				Thread.sleep(1000L);
-	        			} catch (final InterruptedException ie) {
-	        			}
-	        		}
-	        	}
-	        }
+            int i;
+            for (i=0; i < 3; i++) {
+                try {
+                    FileUtils.deleteFile(storageDir, true);
+                    break;
+                } catch (final IOException ioe) {
+                    // if there is a virus scanner, etc. running in the background we may not be able to
+                    // delete the file. Wait a sec and try again.
+                    if ( i == 2 ) {
+                        throw ioe;
+                    } else {
+                        try {
+                            Thread.sleep(1000L);
+                        } catch (final InterruptedException ie) {
+                        }
+                    }
+                }
+            }
         }
     }
 
-    
+
 
     private EventReporter getEventReporter() {
         return new EventReporter() {
@@ -241,7 +241,7 @@ public class TestPersistentProvenanceRepository {
         }
 
         Thread.sleep(1000L);
-        
+
         repo.close();
         Thread.sleep(500L); // Give the repo time to shutdown (i.e., close all file handles, etc.)
 
@@ -431,7 +431,7 @@ public class TestPersistentProvenanceRepository {
         repo.waitForRollover();
 
         final Query query = new Query(UUID.randomUUID().toString());
-//        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.FlowFileUUID, "00000000-0000-0000-0000*"));
+        //        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.FlowFileUUID, "00000000-0000-0000-0000*"));
         query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.Filename, "file-*"));
         query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.ComponentID, "12?4"));
         query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.TransitURI, "nifi://*"));
@@ -905,14 +905,14 @@ public class TestPersistentProvenanceRepository {
         secondRepo.initialize(getEventReporter());
 
         try {
-	        final ProvenanceEventRecord event11 = builder.build();
-	        secondRepo.registerEvent(event11);
-	        secondRepo.waitForRollover();
-	        final ProvenanceEventRecord event11Retrieved = secondRepo.getEvent(10L);
-	        assertNotNull(event11Retrieved);
-	        assertEquals(10, event11Retrieved.getEventId());
+            final ProvenanceEventRecord event11 = builder.build();
+            secondRepo.registerEvent(event11);
+            secondRepo.waitForRollover();
+            final ProvenanceEventRecord event11Retrieved = secondRepo.getEvent(10L);
+            assertNotNull(event11Retrieved);
+            assertEquals(10, event11Retrieved.getEventId());
         } finally {
-        	secondRepo.close();
+            secondRepo.close();
         }
     }
 
@@ -983,26 +983,26 @@ public class TestPersistentProvenanceRepository {
         storageDirFiles = config.getStorageDirectories().get(0).listFiles(indexFileFilter);
         assertEquals(0, storageDirFiles.length);
     }
-    
-    
+
+
     @Test
     public void testBackPressure() throws IOException, InterruptedException {
         final RepositoryConfiguration config = createConfiguration();
-        config.setMaxEventFileCapacity(1L);	// force rollover on each record.
+        config.setMaxEventFileCapacity(1L);  // force rollover on each record.
         config.setJournalCount(1);
-        
+
         final AtomicInteger journalCountRef = new AtomicInteger(0);
-        
-    	repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS) {
-    		@Override
-    		protected int getJournalCount() {
-    			return journalCountRef.get();
-    		}
-    	};
+
+        repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS) {
+            @Override
+            protected int getJournalCount() {
+                return journalCountRef.get();
+            }
+        };
         repo.initialize(getEventReporter());
 
-    	final Map<String, String> attributes = new HashMap<>();
-    	final ProvenanceEventBuilder builder = new StandardProvenanceEventRecord.Builder();
+        final Map<String, String> attributes = new HashMap<>();
+        final ProvenanceEventBuilder builder = new StandardProvenanceEventRecord.Builder();
         builder.setEventTime(System.currentTimeMillis());
         builder.setEventType(ProvenanceEventType.RECEIVE);
         builder.setTransitUri("nifi://unit-test");
@@ -1023,31 +1023,31 @@ public class TestPersistentProvenanceRepository {
 
         final AtomicLong threadNanos = new AtomicLong(0L);
         final Thread t = new Thread(new Runnable() {
-			@Override
-			public void run() {
-				final long start = System.nanoTime();
-		        builder.fromFlowFile(createFlowFile(13, 3000L, attributes));
-		        attributes.put("uuid", "00000000-0000-0000-0000-00000000000" + 13);
-		        repo.registerEvent(builder.build());
-		        threadNanos.set(System.nanoTime() - start);
-			}
+            @Override
+            public void run() {
+                final long start = System.nanoTime();
+                builder.fromFlowFile(createFlowFile(13, 3000L, attributes));
+                attributes.put("uuid", "00000000-0000-0000-0000-00000000000" + 13);
+                repo.registerEvent(builder.build());
+                threadNanos.set(System.nanoTime() - start);
+            }
         });
         t.start();
 
         Thread.sleep(1500L);
-        
+
         journalCountRef.set(1);
         t.join();
-        
+
         final int threadMillis = (int) TimeUnit.NANOSECONDS.toMillis(threadNanos.get());
-        assertTrue(threadMillis > 1200);	// use 1200 to account for the fact that the timing is not exact
-        
+        assertTrue(threadMillis > 1200); // use 1200 to account for the fact that the timing is not exact
+
         builder.fromFlowFile(createFlowFile(15, 3000L, attributes));
         attributes.put("uuid", "00000000-0000-0000-0000-00000000000" + 15);
         repo.registerEvent(builder.build());
     }
-    
-    
+
+
     // TODO: test EOF on merge
     // TODO: Test journal with no records
 

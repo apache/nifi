@@ -45,12 +45,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DocsReader {
-	private final Logger logger = LoggerFactory.getLogger(DocsReader.class);
-	
+    private final Logger logger = LoggerFactory.getLogger(DocsReader.class);
+
     public DocsReader(final List<File> storageDirectories) {
     }
 
-    public Set<ProvenanceEventRecord> read(final TopDocs topDocs, final IndexReader indexReader, final Collection<Path> allProvenanceLogFiles, final AtomicInteger retrievalCount, final int maxResults) throws IOException {
+    public Set<ProvenanceEventRecord> read(final TopDocs topDocs, final IndexReader indexReader, final Collection<Path> allProvenanceLogFiles,
+            final AtomicInteger retrievalCount, final int maxResults) throws IOException {
         if (retrievalCount.get() >= maxResults) {
             return Collections.emptySet();
         }
@@ -73,42 +74,42 @@ public class DocsReader {
         return read(docs, allProvenanceLogFiles);
     }
 
-    
+
     private long getByteOffset(final Document d, final RecordReader reader) {
         final IndexableField blockField = d.getField(FieldNames.BLOCK_INDEX);
         if ( blockField != null ) {
-        	final int blockIndex = blockField.numericValue().intValue();
-        	final TocReader tocReader = reader.getTocReader();
-        	return tocReader.getBlockOffset(blockIndex);
+            final int blockIndex = blockField.numericValue().intValue();
+            final TocReader tocReader = reader.getTocReader();
+            return tocReader.getBlockOffset(blockIndex);
         }
-        
-    	return d.getField(FieldNames.STORAGE_FILE_OFFSET).numericValue().longValue();
+
+        return d.getField(FieldNames.STORAGE_FILE_OFFSET).numericValue().longValue();
     }
-    
-    
+
+
     private ProvenanceEventRecord getRecord(final Document d, final RecordReader reader) throws IOException {
-    	IndexableField blockField = d.getField(FieldNames.BLOCK_INDEX);
-    	if ( blockField == null ) {
-    		reader.skipTo(getByteOffset(d, reader));
-    	} else {
-    		reader.skipToBlock(blockField.numericValue().intValue());
-    	}
-    	
+        IndexableField blockField = d.getField(FieldNames.BLOCK_INDEX);
+        if ( blockField == null ) {
+            reader.skipTo(getByteOffset(d, reader));
+        } else {
+            reader.skipToBlock(blockField.numericValue().intValue());
+        }
+
         StandardProvenanceEventRecord record;
         while ( (record = reader.nextRecord()) != null) {
-        	IndexableField idField = d.getField(SearchableFields.Identifier.getSearchableFieldName());
-        	if ( idField == null || idField.numericValue().longValue() == record.getEventId() ) {
-        		break;
-        	}
+            IndexableField idField = d.getField(SearchableFields.Identifier.getSearchableFieldName());
+            if ( idField == null || idField.numericValue().longValue() == record.getEventId() ) {
+                break;
+            }
         }
-        
+
         if ( record == null ) {
-        	throw new IOException("Failed to find Provenance Event " + d);
+            throw new IOException("Failed to find Provenance Event " + d);
         } else {
-        	return record;
+            return record;
         }
     }
-    
+
 
     public Set<ProvenanceEventRecord> read(final List<Document> docs, final Collection<Path> allProvenanceLogFiles) throws IOException {
         LuceneUtil.sortDocsForRetrieval(docs);
@@ -119,23 +120,23 @@ public class DocsReader {
 
         final long start = System.nanoTime();
         int logFileCount = 0;
-        
+
         final Set<String> storageFilesToSkip = new HashSet<>();
-        
+
         try {
             for (final Document d : docs) {
                 final String storageFilename = d.getField(FieldNames.STORAGE_FILENAME).stringValue();
                 if ( storageFilesToSkip.contains(storageFilename) ) {
-                	continue;
+                    continue;
                 }
-                
+
                 try {
                     if (reader != null && storageFilename.equals(lastStorageFilename)) {
-                       	matchingRecords.add(getRecord(d, reader));
+                        matchingRecords.add(getRecord(d, reader));
                     } else {
-                    	logger.debug("Opening log file {}", storageFilename);
-                    	
-                    	logFileCount++;
+                        logger.debug("Opening log file {}", storageFilename);
+
+                        logFileCount++;
                         if (reader != null) {
                             reader.close();
                         }
@@ -143,20 +144,20 @@ public class DocsReader {
                         List<File> potentialFiles = LuceneUtil.getProvenanceLogFiles(storageFilename, allProvenanceLogFiles);
                         if (potentialFiles.isEmpty()) {
                             logger.warn("Could not find Provenance Log File with basename {} in the "
-                            		+ "Provenance Repository; assuming file has expired and continuing without it", storageFilename);
+                                    + "Provenance Repository; assuming file has expired and continuing without it", storageFilename);
                             storageFilesToSkip.add(storageFilename);
                             continue;
                         }
 
                         if (potentialFiles.size() > 1) {
-                            throw new FileNotFoundException("Found multiple Provenance Log Files with basename " + 
-                            		storageFilename + " in the Provenance Repository");
+                            throw new FileNotFoundException("Found multiple Provenance Log Files with basename " +
+                                    storageFilename + " in the Provenance Repository");
                         }
 
                         for (final File file : potentialFiles) {
                             try {
-                            	reader = RecordReaders.newRecordReader(file, allProvenanceLogFiles);
-                               	matchingRecords.add(getRecord(d, reader));
+                                reader = RecordReaders.newRecordReader(file, allProvenanceLogFiles);
+                                matchingRecords.add(getRecord(d, reader));
                             } catch (final IOException e) {
                                 throw new IOException("Failed to retrieve record " + d + " from Provenance File " + file + " due to " + e, e);
                             }

@@ -34,7 +34,7 @@ public class RepositoryConfiguration {
     private long desiredIndexBytes = 1024L * 1024L * 500L; // 500 MB
     private int journalCount = 16;
     private int compressionBlockBytes = 1024 * 1024;
-    
+
     private List<SearchableField> searchableFields = new ArrayList<>();
     private List<SearchableField> searchableAttributes = new ArrayList<>();
     private boolean compress = true;
@@ -50,19 +50,19 @@ public class RepositoryConfiguration {
         return allowRollover;
     }
 
-    
+
     public int getCompressionBlockBytes() {
-		return compressionBlockBytes;
-	}
+        return compressionBlockBytes;
+    }
 
-	public void setCompressionBlockBytes(int compressionBlockBytes) {
-		this.compressionBlockBytes = compressionBlockBytes;
-	}
+    public void setCompressionBlockBytes(int compressionBlockBytes) {
+        this.compressionBlockBytes = compressionBlockBytes;
+    }
 
-	/**
+    /**
      * Specifies where the repository will store data
      *
-     * @return
+     * @return the directories where provenance files will be stored
      */
     public List<File> getStorageDirectories() {
         return Collections.unmodifiableList(storageDirectories);
@@ -71,18 +71,15 @@ public class RepositoryConfiguration {
     /**
      * Specifies where the repository should store data
      *
-     * @param storageDirectory
+     * @param storageDirectory the directory to store provenance files
      */
     public void addStorageDirectory(final File storageDirectory) {
         this.storageDirectories.add(storageDirectory);
     }
 
     /**
-     * Returns the minimum amount of time that a given record will stay in the
-     * repository
-     *
-     * @param timeUnit
-     * @return
+     * @param timeUnit the desired time unit
+     * @return the max amount of time that a given record will stay in the repository
      */
     public long getMaxRecordLife(final TimeUnit timeUnit) {
         return timeUnit.convert(recordLifeMillis, TimeUnit.MILLISECONDS);
@@ -91,8 +88,8 @@ public class RepositoryConfiguration {
     /**
      * Specifies how long a record should stay in the repository
      *
-     * @param maxRecordLife
-     * @param timeUnit
+     * @param maxRecordLife the max amount of time to keep a record in the repo
+     * @param timeUnit the period of time used by maxRecordLife
      */
     public void setMaxRecordLife(final long maxRecordLife, final TimeUnit timeUnit) {
         this.recordLifeMillis = TimeUnit.MILLISECONDS.convert(maxRecordLife, timeUnit);
@@ -101,7 +98,7 @@ public class RepositoryConfiguration {
     /**
      * Returns the maximum amount of data to store in the repository (in bytes)
      *
-     * @return
+     * @return the maximum amount of disk space to use for the prov repo
      */
     public long getMaxStorageCapacity() {
         return storageCapacity;
@@ -109,107 +106,91 @@ public class RepositoryConfiguration {
 
     /**
      * Sets the maximum amount of data to store in the repository (in bytes)
-     * @param maxStorageCapacity
+     *
+     * @param maxStorageCapacity the maximum amount of disk space to use for the prov repo
      */
     public void setMaxStorageCapacity(final long maxStorageCapacity) {
         this.storageCapacity = maxStorageCapacity;
     }
 
     /**
-     * Returns the maximum amount of time to write to a single event file
-     *
-     * @param timeUnit
-     * @return
+     * @param timeUnit the desired time unit for the returned value
+     * @return the maximum amount of time that the repo will write to a single event file
      */
     public long getMaxEventFileLife(final TimeUnit timeUnit) {
         return timeUnit.convert(eventFileMillis, TimeUnit.MILLISECONDS);
     }
 
     /**
-     * Sets the maximum amount of time to write to a single event file
-     *
-     * @param maxEventFileTime
-     * @param timeUnit
+     * @param maxEventFileTime the max amount of time to write to a single event file
+     * @param timeUnit the units for the value supplied by maxEventFileTime
      */
     public void setMaxEventFileLife(final long maxEventFileTime, final TimeUnit timeUnit) {
         this.eventFileMillis = TimeUnit.MILLISECONDS.convert(maxEventFileTime, timeUnit);
     }
 
     /**
-     * Returns the maximum number of bytes (pre-compression) that will be
+     * @return the maximum number of bytes (pre-compression) that will be
      * written to a single event file before the file is rolled over
-     *
-     * @return
      */
     public long getMaxEventFileCapacity() {
         return eventFileBytes;
     }
 
     /**
-     * Sets the maximum number of bytes (pre-compression) that will be written
+     * @param maxEventFileBytes the maximum number of bytes (pre-compression) that will be written
      * to a single event file before the file is rolled over
-     *
-     * @param maxEventFileBytes
      */
     public void setMaxEventFileCapacity(final long maxEventFileBytes) {
         this.eventFileBytes = maxEventFileBytes;
     }
 
     /**
-     * Returns the fields that can be indexed
-     *
-     * @return
+     * @return the fields that should be indexed
      */
     public List<SearchableField> getSearchableFields() {
         return Collections.unmodifiableList(searchableFields);
     }
 
     /**
-     * Sets the fields to index
-     *
-     * @param searchableFields
+     * @param searchableFields the fields to index
      */
     public void setSearchableFields(final List<SearchableField> searchableFields) {
         this.searchableFields = new ArrayList<>(searchableFields);
     }
 
     /**
-     * Returns the FlowFile attributes that can be indexed
-     *
-     * @return
+     * @return the FlowFile attributes that should be indexed
      */
     public List<SearchableField> getSearchableAttributes() {
         return Collections.unmodifiableList(searchableAttributes);
     }
 
     /**
-     * Sets the FlowFile attributes to index
-     *
-     * @param searchableAttributes
+     * @param searchableAttributes the FlowFile attributes to index
      */
     public void setSearchableAttributes(final List<SearchableField> searchableAttributes) {
         this.searchableAttributes = new ArrayList<>(searchableAttributes);
     }
 
     /**
-     * Indicates whether or not event files will be compressed when they are
+     * @return whether or not event files will be compressed when they are
      * rolled over
-     *
-     * @return
      */
     public boolean isCompressOnRollover() {
         return compress;
     }
 
     /**
-     * Specifies whether or not to compress event files on rollover
-     *
-     * @param compress
+     * @param compress if true, the data will be compressed when rolled over
      */
     public void setCompressOnRollover(final boolean compress) {
         this.compress = compress;
     }
 
+    /**
+     * @return the number of threads to use to query the repo
+     */
     public int getQueryThreadPoolSize() {
         return queryThreadPoolSize;
     }
@@ -246,27 +227,23 @@ public class RepositoryConfiguration {
      * </li>
      * </ol>
      *
-     * @param bytes
+     * @param bytes the number of bytes to write to an index before beginning a new shard
      */
     public void setDesiredIndexSize(final long bytes) {
         this.desiredIndexBytes = bytes;
     }
 
     /**
-     * Returns the desired size of each index shard. See the
-     * {@Link #setDesiredIndexSize} method for an explanation of why we choose
+     * @return the desired size of each index shard. See the
+     * {@link #setDesiredIndexSize} method for an explanation of why we choose
      * to shard the index.
-     *
-     * @return
      */
     public long getDesiredIndexSize() {
         return desiredIndexBytes;
     }
 
     /**
-     * Sets the number of Journal files to use when persisting records.
-     *
-     * @param numJournals
+     * @param numJournals the number of Journal files to use when persisting records.
      */
     public void setJournalCount(final int numJournals) {
         if (numJournals < 1) {
@@ -277,19 +254,14 @@ public class RepositoryConfiguration {
     }
 
     /**
-     * Returns the number of Journal files that will be used when persisting
-     * records.
-     *
-     * @return
+     * @return the number of Journal files that will be used when persisting records.
      */
     public int getJournalCount() {
         return journalCount;
     }
 
     /**
-     * Specifies whether or not the Repository should sync all updates to disk.
-     *
-     * @return
+     * @return <code>true</code> if the repository will perform an 'fsync' for all updates to disk
      */
     public boolean isAlwaysSync() {
         return alwaysSync;
@@ -301,7 +273,7 @@ public class RepositoryConfiguration {
      * persisted across restarted, even if there is a power failure or a sudden
      * Operating System crash, but it can be very expensive.
      *
-     * @param alwaysSync
+     * @param alwaysSync whether or not to perform an 'fsync' for all updates to disk
      */
     public void setAlwaysSync(boolean alwaysSync) {
         this.alwaysSync = alwaysSync;
