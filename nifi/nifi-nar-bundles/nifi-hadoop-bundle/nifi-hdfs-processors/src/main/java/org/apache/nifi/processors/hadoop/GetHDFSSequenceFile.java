@@ -40,19 +40,13 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 /**
- * This processor is used to pull files from HDFS. The files being pulled in
- * MUST be SequenceFile formatted files. The processor creates a flow file for
- * each key/value entry in the ingested SequenceFile. The created flow file's
- * content depends on the value of the optional configuration property FlowFile
- * Content. Currently, there are two choices: VALUE ONLY and KEY VALUE PAIR.
- * With the prior, only the SequenceFile value element is written to the flow
- * file contents. With the latter, the SequenceFile key and value are written to
- * the flow file contents as serialized objects; the format is key length (int),
- * key(String), value length(int), value(bytes). The default is VALUE ONLY.
+ * This processor is used to pull files from HDFS. The files being pulled in MUST be SequenceFile formatted files. The processor creates a flow file for each key/value entry in the ingested
+ * SequenceFile. The created flow file's content depends on the value of the optional configuration property FlowFile Content. Currently, there are two choices: VALUE ONLY and KEY VALUE PAIR. With the
+ * prior, only the SequenceFile value element is written to the flow file contents. With the latter, the SequenceFile key and value are written to the flow file contents as serialized objects; the
+ * format is key length (int), key(String), value length(int), value(bytes). The default is VALUE ONLY.
  * <p>
- * NOTE: This processor loads the entire value entry into memory. While the size
- * limit for a value entry is 2GB, this will cause memory problems if there are
- * too many concurrent tasks and the data being ingested is large.
+ * NOTE: This processor loads the entire value entry into memory. While the size limit for a value entry is 2GB, this will cause memory problems if there are too many concurrent tasks and the data
+ * being ingested is large.
  *
  */
 @TriggerWhenEmpty

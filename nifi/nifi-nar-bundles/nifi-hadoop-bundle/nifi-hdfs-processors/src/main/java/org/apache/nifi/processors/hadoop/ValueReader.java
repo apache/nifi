@@ -42,9 +42,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * This class reads a SequenceFile and generates FlowFiles, one per each
- * KeyValue Pair in the SequenceFile. The FlowFile name is the key, which is
- * typically a file name but may not be; the FlowFile content is the value.
+ * This class reads a SequenceFile and generates FlowFiles, one per each KeyValue Pair in the SequenceFile. The FlowFile name is the key, which is typically a file name but may not be; the FlowFile
+ * content is the value.
  *
  */
 public class ValueReader implements SequenceFileReader<Set<FlowFile>> {

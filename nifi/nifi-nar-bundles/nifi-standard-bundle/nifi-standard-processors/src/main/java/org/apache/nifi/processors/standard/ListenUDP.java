@@ -226,11 +226,11 @@ public class ListenUDP extends AbstractSessionFactoryProcessor {
         } catch (SocketException e) {
         }
     }
-    public static final PropertyDescriptor NETWORK_INTF_NAME = new PropertyDescriptor.Builder().
-            name("Local Network Interface").
-            description("The name of a local network interface to be used to restrict listening for UDP Datagrams to a specific LAN."
-                    + "May be a system property or an environment variable.").
-            addValidator(new Validator() {
+    public static final PropertyDescriptor NETWORK_INTF_NAME = new PropertyDescriptor.Builder()
+            .name("Local Network Interface")
+            .description("The name of a local network interface to be used to restrict listening for UDP Datagrams to a specific LAN."
+                    + "May be a system property or an environment variable.")
+            .addValidator(new Validator() {
                 @Override
                 public ValidationResult validate(String subject, String input, ValidationContext context) {
                     ValidationResult result = new ValidationResult.Builder()
@@ -257,7 +257,8 @@ public class ListenUDP extends AbstractSessionFactoryProcessor {
 
                     return result;
                 }
-            }).expressionLanguageSupported(true).build();
+            })
+            .expressionLanguageSupported(true).build();
 
     static {
         List<PropertyDescriptor> props = new ArrayList<>();
@@ -303,102 +304,100 @@ public class ListenUDP extends AbstractSessionFactoryProcessor {
     /**
      * Create the ChannelListener and a thread that causes the Consumer to create flow files.
      *
-     * @param context
-     * @throws IOException
+     * @param context context
+     * @throws IOException ex
      */
     @OnScheduled
     public void initializeChannelListenerAndConsumerProcessing(final ProcessContext context) throws IOException {
         getChannelListener(context);
         stopping.set(false);
-        Future<Tuple<ProcessSession, List<FlowFile>>> consumerFuture = consumerExecutorService.
-                submit(new Callable<Tuple<ProcessSession, List<FlowFile>>>() {
+        Future<Tuple<ProcessSession, List<FlowFile>>> consumerFuture = consumerExecutorService.submit(new Callable<Tuple<ProcessSession, List<FlowFile>>>() {
 
-                    @Override
-                    public Tuple<ProcessSession, List<FlowFile>> call() {
-                        final int maxFlowFilesPerSession = context.getProperty(FLOW_FILES_PER_SESSION).asInteger();
-                        final long channelReaderIntervalMSecs = context.getProperty(CHANNEL_READER_PERIOD).asTimePeriod(TimeUnit.MILLISECONDS);
-                        // number of waits in 5 secs, or 1
-                        final int maxWaits = (int) (channelReaderIntervalMSecs <= 1000 ? 5000 / channelReaderIntervalMSecs : 1);
-                        final ProcessorLog logger = getLogger();
-                        int flowFileCount = maxFlowFilesPerSession;
-                        ProcessSession session = null;
-                        int numWaits = 0;
-                        while (!stopping.get()) {
-                            UDPStreamConsumer consumer = consumerRef.get();
-                            if (consumer == null || sessionFactoryRef.get() == null) {
-                                try {
-                                    Thread.sleep(100L);
-                                } catch (InterruptedException swallow) {
+            @Override
+            public Tuple<ProcessSession, List<FlowFile>> call() {
+                final int maxFlowFilesPerSession = context.getProperty(FLOW_FILES_PER_SESSION).asInteger();
+                final long channelReaderIntervalMSecs = context.getProperty(CHANNEL_READER_PERIOD).asTimePeriod(TimeUnit.MILLISECONDS);
+                // number of waits in 5 secs, or 1
+                final int maxWaits = (int) (channelReaderIntervalMSecs <= 1000 ? 5000 / channelReaderIntervalMSecs : 1);
+                final ProcessorLog logger = getLogger();
+                int flowFileCount = maxFlowFilesPerSession;
+                ProcessSession session = null;
+                int numWaits = 0;
+                while (!stopping.get()) {
+                    UDPStreamConsumer consumer = consumerRef.get();
+                    if (consumer == null || sessionFactoryRef.get() == null) {
+                        try {
+                            Thread.sleep(100L);
+                        } catch (InterruptedException swallow) {
+                        }
+                    } else {
+                        try {
+                                    // first time through, flowFileCount is maxFlowFilesPerSession so that a session
+                            // is created and the consumer is updated with it.
+                            if (flowFileCount == maxFlowFilesPerSession || numWaits == maxWaits) {
+                                logger.debug("Have waited {} times", new Object[]{numWaits});
+                                numWaits = 0;
+                                if (session != null) {
+                                    Tuple<ProcessSession, List<FlowFile>> flowFilesPerSession = new Tuple<ProcessSession, List<FlowFile>>(session, new ArrayList<>(newFlowFiles));
+                                    newFlowFiles.clear();
+                                    flowFilesPerSessionQueue.add(flowFilesPerSession);
+                                }
+                                session = sessionFactoryRef.get().createSession();
+                                consumer.setSession(session);
+                                flowFileCount = 0;
+                            }
+                                    // this will throttle the processing of the received datagrams. If there are no more
+                            // buffers to read into because none have been returned to the pool via consumer.process(),
+                            // then the desired back pressure on the channel is created.
+                            if (context.getAvailableRelationships().size() > 0) {
+                                consumer.process();
+                                if (flowFileCount == newFlowFiles.size()) {
+                                            // no new datagrams received, need to throttle this thread back so it does
+                                    // not consume all cpu...but don't want to cause back pressure on the channel
+                                    // so the sleep time is same as the reader interval
+                                    // If have done this for approx. 5 secs, assume datagram sender is down. So, push
+                                    // out the remaining flow files (see numWaits == maxWaits above)
+                                    Thread.sleep(channelReaderIntervalMSecs);
+                                    if (flowFileCount > 0) {
+                                        numWaits++;
+                                    }
+                                } else {
+                                    flowFileCount = newFlowFiles.size();
                                 }
                             } else {
-                                try {
-                                    // first time through, flowFileCount is maxFlowFilesPerSession so that a session
-                                    // is created and the consumer is updated with it.
-                                    if (flowFileCount == maxFlowFilesPerSession || numWaits == maxWaits) {
-                                        logger.debug("Have waited {} times", new Object[]{numWaits});
-                                        numWaits = 0;
-                                        if (session != null) {
-                                            Tuple<ProcessSession, List<FlowFile>> flowFilesPerSession = new Tuple<ProcessSession, List<FlowFile>>(session, new ArrayList<>(newFlowFiles));
-                                            newFlowFiles.clear();
-                                            flowFilesPerSessionQueue.
-                                            add(flowFilesPerSession);
-                                        }
-                                        session = sessionFactoryRef.get().createSession();
-                                        consumer.setSession(session);
-                                        flowFileCount = 0;
-                                    }
-                                    // this will throttle the processing of the received datagrams. If there are no more
-                                    // buffers to read into because none have been returned to the pool via consumer.process(),
-                                    // then the desired back pressure on the channel is created.
-                                    if (context.getAvailableRelationships().size() > 0) {
-                                        consumer.process();
-                                        if (flowFileCount == newFlowFiles.size()) {
-                                            // no new datagrams received, need to throttle this thread back so it does
-                                            // not consume all cpu...but don't want to cause back pressure on the channel
-                                            // so the sleep time is same as the reader interval
-                                            // If have done this for approx. 5 secs, assume datagram sender is down. So, push
-                                            // out the remaining flow files (see numWaits == maxWaits above)
-                                            Thread.sleep(channelReaderIntervalMSecs);
-                                            if (flowFileCount > 0) {
-                                                numWaits++;
-                                            }
-                                        } else {
-                                            flowFileCount = newFlowFiles.size();
-                                        }
-                                    } else {
-                                        logger.debug("Creating back pressure...no available destinations");
-                                        Thread.sleep(1000L);
-                                    }
-                                } catch (final IOException ioe) {
-                                    logger.error("Unable to fully process consumer {}", new Object[]{consumer}, ioe);
-                                } catch (InterruptedException e) {
-                                    // don't care
-                                } finally {
-                                    if (consumer.isConsumerFinished()) {
-                                        logger.info("Consumer {} was closed and is finished", new Object[]{consumer});
-                                        consumerRef.set(null);
-                                        disconnect();
-                                        if (!stopping.get()) {
-                                            resetChannelListener.set(true);
-                                        }
-                                    }
+                                logger.debug("Creating back pressure...no available destinations");
+                                Thread.sleep(1000L);
+                            }
+                        } catch (final IOException ioe) {
+                            logger.error("Unable to fully process consumer {}", new Object[]{consumer}, ioe);
+                        } catch (InterruptedException e) {
+                            // don't care
+                        } finally {
+                            if (consumer.isConsumerFinished()) {
+                                logger.info("Consumer {} was closed and is finished", new Object[]{consumer});
+                                consumerRef.set(null);
+                                disconnect();
+                                if (!stopping.get()) {
+                                    resetChannelListener.set(true);
                                 }
                             }
                         }
-                        // when shutting down, need consumer to drain rest of cached buffers and clean up.
-                        // prior to getting here, the channelListener was shutdown
-                        UDPStreamConsumer consumer;
-                        while ((consumer = consumerRef.get()) != null && !consumer.isConsumerFinished()) {
-                            try {
-                                consumer.process();
-                            } catch (IOException swallow) {
-                                // if this is blown...consumer.isConsumerFinished will be true
-                            }
-                        }
-                        Tuple<ProcessSession, List<FlowFile>> flowFilesPerSession = new Tuple<ProcessSession, List<FlowFile>>(session, new ArrayList<>(newFlowFiles));
-                        return flowFilesPerSession;
                     }
-                });
+                }
+                        // when shutting down, need consumer to drain rest of cached buffers and clean up.
+                // prior to getting here, the channelListener was shutdown
+                UDPStreamConsumer consumer;
+                while ((consumer = consumerRef.get()) != null && !consumer.isConsumerFinished()) {
+                    try {
+                        consumer.process();
+                    } catch (IOException swallow) {
+                        // if this is blown...consumer.isConsumerFinished will be true
+                    }
+                }
+                Tuple<ProcessSession, List<FlowFile>> flowFilesPerSession = new Tuple<ProcessSession, List<FlowFile>>(session, new ArrayList<>(newFlowFiles));
+                return flowFilesPerSession;
+            }
+        });
         consumerFutureRef.set(consumerFuture);
     }
 
@@ -434,8 +433,7 @@ public class ListenUDP extends AbstractSessionFactoryProcessor {
 
                     @Override
                     public StreamConsumer newInstance(final String streamId) {
-                        final UDPStreamConsumer consumer = new UDPStreamConsumer(streamId, newFlowFiles, flowFileSizeTrigger.
-                                intValue(), getLogger());
+                        final UDPStreamConsumer consumer = new UDPStreamConsumer(streamId, newFlowFiles, flowFileSizeTrigger.intValue(), getLogger());
                         consumerRef.set(consumer);
                         return consumer;
                     }

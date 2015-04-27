@@ -244,17 +244,16 @@ public final class InvokeHTTP extends AbstractProcessor {
                 .identifiesControllerService(SSLContextService.class)
                 .build();
 
-        public static final List<PropertyDescriptor> PROPERTIES = Collections.
-                unmodifiableList(Arrays.asList(
-                                PROP_METHOD,
-                                PROP_URL,
-                                PROP_SSL_CONTEXT_SERVICE,
-                                PROP_CONNECT_TIMEOUT,
-                                PROP_READ_TIMEOUT,
-                                PROP_DATE_HEADER,
-                                PROP_FOLLOW_REDIRECTS,
-                                PROP_ATTRIBUTES_TO_SEND
-                        ));
+        public static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
+                PROP_METHOD,
+                PROP_URL,
+                PROP_SSL_CONTEXT_SERVICE,
+                PROP_CONNECT_TIMEOUT,
+                PROP_READ_TIMEOUT,
+                PROP_DATE_HEADER,
+                PROP_FOLLOW_REDIRECTS,
+                PROP_ATTRIBUTES_TO_SEND
+        ));
 
         // property to allow the hostname verifier to be overridden
         // this is a "hidden" property - it's configured using a dynamic user property
@@ -559,8 +558,7 @@ public final class InvokeHTTP extends AbstractProcessor {
         private Map<String, String> convertAttributesFromHeaders() throws IOException {
             // create a new hashmap to store the values from the connection
             Map<String, String> map = new HashMap<>();
-            for (Map.Entry<String, List<String>> entry : conn.getHeaderFields().
-                    entrySet()) {
+            for (Map.Entry<String, List<String>> entry : conn.getHeaderFields().entrySet()) {
                 String key = entry.getKey();
                 if (key == null) {
                     continue;

@@ -76,12 +76,10 @@ public class PutSFTP extends PutFileTransfer<SFTPTransfer> {
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(String propertyDescriptorName) {
-        if (SFTPTransfer.DISABLE_DIRECTORY_LISTING.getName().
-                equalsIgnoreCase(propertyDescriptorName)) {
+        if (SFTPTransfer.DISABLE_DIRECTORY_LISTING.getName().equalsIgnoreCase(propertyDescriptorName)) {
             return SFTPTransfer.DISABLE_DIRECTORY_LISTING;
         }
-        return super.
-                getSupportedDynamicPropertyDescriptor(propertyDescriptorName);
+        return super.getSupportedDynamicPropertyDescriptor(propertyDescriptorName);
     }
 
     @Override

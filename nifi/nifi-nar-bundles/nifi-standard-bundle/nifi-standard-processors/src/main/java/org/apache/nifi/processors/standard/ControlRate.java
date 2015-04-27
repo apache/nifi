@@ -156,10 +156,10 @@ public class ControlRate extends AbstractProcessor {
                 rateValidator = StandardValidators.POSITIVE_LONG_VALIDATOR;
                 final String rateAttr = context.getProperty(RATE_CONTROL_ATTRIBUTE_NAME).getValue();
                 if (rateAttr == null) {
-                    validationResults.add(new ValidationResult.Builder().
-                            subject(RATE_CONTROL_ATTRIBUTE_NAME.getName()).
-                            explanation("<Rate Controlled Attribute> property must be set if using <Rate Control Criteria> of 'attribute value'").
-                            build());
+                    validationResults.add(new ValidationResult.Builder()
+                            .subject(RATE_CONTROL_ATTRIBUTE_NAME.getName())
+                            .explanation("<Rate Controlled Attribute> property must be set if using <Rate Control Criteria> of 'attribute value'")
+                            .build());
                 }
                 break;
             case FLOWFILE_RATE:
@@ -281,8 +281,7 @@ public class ControlRate extends AbstractProcessor {
         throttle.lock();
         try {
             if (throttle.tryAdd(rateValue)) {
-                logger.
-                        info("transferring {} to 'success'", new Object[]{flowFile});
+                logger.info("transferring {} to 'success'", new Object[]{flowFile});
                 session.transfer(flowFile, REL_SUCCESS);
             } else {
                 flowFile = session.penalize(flowFile);

@@ -151,8 +151,7 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext context) {
-        final List<ValidationResult> results = new ArrayList<>(super.
-                customValidate(context));
+        final List<ValidationResult> results = new ArrayList<>(super.customValidate(context));
 
         final String destination = context.getProperty(DESTINATION).getValue();
         if (DESTINATION_CONTENT.equals(destination)) {
@@ -165,8 +164,8 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
             }
 
             if (jsonPathCount != 1) {
-                results.add(new ValidationResult.Builder().subject("JsonPaths").valid(false).
-                        explanation("Exactly one JsonPath must be set if using destination of " + DESTINATION_CONTENT).build());
+                results.add(new ValidationResult.Builder().subject("JsonPaths").valid(false)
+                        .explanation("Exactly one JsonPath must be set if using destination of " + DESTINATION_CONTENT).build());
             }
         }
 
@@ -185,18 +184,17 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
-        return new PropertyDescriptor.Builder().name(propertyDescriptorName).expressionLanguageSupported(false).
-                addValidator(new JsonPathValidator() {
-                    @Override
-                    public void cacheComputedValue(String subject, String input, JsonPath computedJsonPath) {
-                        cachedJsonPathMap.put(input, computedJsonPath);
-                    }
+        return new PropertyDescriptor.Builder().name(propertyDescriptorName).expressionLanguageSupported(false).addValidator(new JsonPathValidator() {
+            @Override
+            public void cacheComputedValue(String subject, String input, JsonPath computedJsonPath) {
+                cachedJsonPathMap.put(input, computedJsonPath);
+            }
 
-                    @Override
-                    public boolean isStale(String subject, String input) {
-                        return cachedJsonPathMap.get(input) == null;
-                    }
-                }).required(false).dynamic(true).build();
+            @Override
+            public boolean isStale(String subject, String input) {
+                return cachedJsonPathMap.get(input) == null;
+            }
+        }).required(false).dynamic(true).build();
     }
 
     @Override
@@ -235,8 +233,7 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
 
         final ProcessorLog logger = getLogger();
 
-        String representationOption = processContext.
-                getProperty(NULL_VALUE_DEFAULT_REPRESENTATION).getValue();
+        String representationOption = processContext.getProperty(NULL_VALUE_DEFAULT_REPRESENTATION).getValue();
         final String nullDefaultValue = NULL_REPRESENTATION_MAP.get(representationOption);
 
         /* Build the JsonPath expressions from attributes */
@@ -309,8 +306,7 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
                         @Override
                         public void process(final OutputStream out) throws IOException {
                             try (OutputStream outputStream = new BufferedOutputStream(out)) {
-                                outputStream.write(resultRepresentation.
-                                        getBytes(StandardCharsets.UTF_8));
+                                outputStream.write(resultRepresentation.getBytes(StandardCharsets.UTF_8));
                             }
                         }
                     });

@@ -327,8 +327,7 @@ public class MergeContent extends BinFiles {
     protected boolean processBin(final Bin unmodifiableBin, final List<FlowFileSessionWrapper> binCopy, final ProcessContext context,
             final ProcessSession session) throws ProcessException {
 
-        final String mergeFormat = context.getProperty(MERGE_FORMAT).
-                getValue();
+        final String mergeFormat = context.getProperty(MERGE_FORMAT).getValue();
         MergeBin merger;
         switch (mergeFormat) {
             case MERGE_FORMAT_TAR_VALUE:
@@ -458,8 +457,7 @@ public class MergeContent extends BinFiles {
             return false;
         }
 
-        return NUMBER_PATTERN.matcher(value).
-                matches();
+        return NUMBER_PATTERN.matcher(value).matches();
     }
 
     private class BinaryConcatenationMerge implements MergeBin {

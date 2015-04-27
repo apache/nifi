@@ -146,8 +146,7 @@ public class CompressContent extends AbstractProcessor {
         mimeTypeMap.put("application/gzip", COMPRESSION_FORMAT_GZIP);
         mimeTypeMap.put("application/bzip2", COMPRESSION_FORMAT_BZIP2);
         mimeTypeMap.put("application/x-lzma", COMPRESSION_FORMAT_LZMA);
-        this.compressionFormatMimeTypeMap = Collections.
-                unmodifiableMap(mimeTypeMap);
+        this.compressionFormatMimeTypeMap = Collections.unmodifiableMap(mimeTypeMap);
     }
 
     @Override
@@ -286,8 +285,7 @@ public class CompressContent extends AbstractProcessor {
 
             final long sizeAfterCompression = flowFile.getSize();
             if (MODE_DECOMPRESS.equalsIgnoreCase(compressionMode)) {
-                flowFile = session.
-                        removeAttribute(flowFile, CoreAttributes.MIME_TYPE.key());
+                flowFile = session.removeAttribute(flowFile, CoreAttributes.MIME_TYPE.key());
 
                 if (context.getProperty(UPDATE_FILENAME).asBoolean()) {
                     final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
@@ -296,8 +294,7 @@ public class CompressContent extends AbstractProcessor {
                     }
                 }
             } else {
-                flowFile = session.
-                        putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), mimeTypeRef.get());
+                flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), mimeTypeRef.get());
 
                 if (context.getProperty(UPDATE_FILENAME).asBoolean()) {
                     final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());

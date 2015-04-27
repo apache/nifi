@@ -205,7 +205,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
         }
         return results;
     }
-    
+
     private void verifySslConfig(final ValidationContext validationContext) throws ProcessException {
         try {
             final String keystoreFile = validationContext.getProperty(KEYSTORE).getValue();
@@ -237,7 +237,6 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             throw new ProcessException(e);
         }
     }
-    
 
     @Override
     public SSLContext createSSLContext(final ClientAuth clientAuth) throws ProcessException {

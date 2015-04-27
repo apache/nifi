@@ -274,8 +274,7 @@ public class PutEmail extends AbstractProcessor {
         final String bcc = context.getProperty(BCC).getValue();
 
         if (to == null && cc == null && bcc == null) {
-            errors.add(new ValidationResult.Builder().subject("To, CC, BCC").
-                    valid(false).explanation("Must specify at least one To/CC/BCC address").build());
+            errors.add(new ValidationResult.Builder().subject("To, CC, BCC").valid(false).explanation("Must specify at least one To/CC/BCC address").build());
         }
 
         return errors;
@@ -390,8 +389,7 @@ public class PutEmail extends AbstractProcessor {
 
         final ProcessorLog logger = this.getLogger();
 
-        for (Entry<String, PropertyDescriptor> entry : propertyToContext.
-                entrySet()) {
+        for (Entry<String, PropertyDescriptor> entry : propertyToContext.entrySet()) {
 
             // Evaluate the property descriptor against the flow file
             String flowFileValue = context.getProperty(entry.getValue()).evaluateAttributeExpressions(flowFile).getValue();

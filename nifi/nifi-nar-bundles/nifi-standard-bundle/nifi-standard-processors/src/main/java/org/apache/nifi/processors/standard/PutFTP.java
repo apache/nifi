@@ -57,10 +57,8 @@ import org.apache.nifi.processors.standard.util.FTPTransfer;
             + " you leave off the .")})
 public class PutFTP extends PutFileTransfer<FTPTransfer> {
 
-    private static final Pattern PRE_SEND_CMD_PATTERN = Pattern.
-            compile("^pre\\.cmd\\.(\\d+)$");
-    private static final Pattern POST_SEND_CMD_PATTERN = Pattern.
-            compile("^post\\.cmd\\.(\\d+)$");
+    private static final Pattern PRE_SEND_CMD_PATTERN = Pattern.compile("^pre\\.cmd\\.(\\d+)$");
+    private static final Pattern POST_SEND_CMD_PATTERN = Pattern.compile("^post\\.cmd\\.(\\d+)$");
 
     private final AtomicReference<List<PropertyDescriptor>> preSendDescriptorRef = new AtomicReference<>();
     private final AtomicReference<List<PropertyDescriptor>> postSendDescriptorRef = new AtomicReference<>();
@@ -109,8 +107,7 @@ public class PutFTP extends PutFileTransfer<FTPTransfer> {
 
     @Override
     protected void afterPut(final FlowFile flowFile, final ProcessContext context, final FTPTransfer transfer) throws IOException {
-        transfer.
-                sendCommands(getCommands(postSendDescriptorRef.get(), context, flowFile), flowFile);
+        transfer.sendCommands(getCommands(postSendDescriptorRef.get(), context, flowFile), flowFile);
     }
 
     @Override

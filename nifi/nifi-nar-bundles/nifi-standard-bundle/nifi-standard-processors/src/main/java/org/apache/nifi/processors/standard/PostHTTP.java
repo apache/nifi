@@ -418,9 +418,8 @@ public class PostHTTP extends AbstractProcessor {
             try {
                 new java.net.URL(url);
             } catch (final MalformedURLException e) {
-                logger.
-                        error("After substituting attribute values for {}, URL is {}; this is not a valid URL, so routing to failure",
-                                new Object[]{flowFile, url});
+                logger.error("After substituting attribute values for {}, URL is {}; this is not a valid URL, so routing to failure",
+                        new Object[]{flowFile, url});
                 flowFile = session.penalize(flowFile);
                 session.transfer(flowFile, REL_FAILURE);
                 continue;
@@ -442,29 +441,28 @@ public class PostHTTP extends AbstractProcessor {
                 final HttpClientBuilder clientBuilder = HttpClientBuilder.create();
                 clientBuilder.setConnectionManager(conMan);
                 clientBuilder.setUserAgent(userAgent);
-                clientBuilder.
-                        addInterceptorFirst(new HttpResponseInterceptor() {
-                            @Override
-                            public void process(final HttpResponse response, final HttpContext httpContext) throws HttpException, IOException {
-                                HttpCoreContext coreContext = HttpCoreContext.adapt(httpContext);
-                                ManagedHttpClientConnection conn = coreContext.getConnection(ManagedHttpClientConnection.class);
-                                if (!conn.isOpen()) {
-                                    return;
-                                }
+                clientBuilder.addInterceptorFirst(new HttpResponseInterceptor() {
+                    @Override
+                    public void process(final HttpResponse response, final HttpContext httpContext) throws HttpException, IOException {
+                        HttpCoreContext coreContext = HttpCoreContext.adapt(httpContext);
+                        ManagedHttpClientConnection conn = coreContext.getConnection(ManagedHttpClientConnection.class);
+                        if (!conn.isOpen()) {
+                            return;
+                        }
 
-                                SSLSession sslSession = conn.getSSLSession();
+                        SSLSession sslSession = conn.getSSLSession();
 
-                                if (sslSession != null) {
-                                    final X509Certificate[] certChain = sslSession.getPeerCertificateChain();
-                                    if (certChain == null || certChain.length == 0) {
-                                        throw new SSLPeerUnverifiedException("No certificates found");
-                                    }
-
-                                    final X509Certificate cert = certChain[0];
-                                    dnHolder.set(cert.getSubjectDN().getName().trim());
-                                }
+                        if (sslSession != null) {
+                            final X509Certificate[] certChain = sslSession.getPeerCertificateChain();
+                            if (certChain == null || certChain.length == 0) {
+                                throw new SSLPeerUnverifiedException("No certificates found");
                             }
-                        });
+
+                            final X509Certificate cert = certChain[0];
+                            dnHolder.set(cert.getSubjectDN().getName().trim());
+                        }
+                    }
+                });
 
                 clientBuilder.disableAutomaticRetries();
                 clientBuilder.disableContentCompression();
@@ -783,8 +781,7 @@ public class PostHTTP extends AbstractProcessor {
 
             if (!isScheduled()) {
                 context.yield();
-                logger.
-                        warn("Failed to delete Hold that destination placed on {}; Processor has been stopped so routing FlowFile(s) to failure", new Object[]{flowFileDescription});
+                logger.warn("Failed to delete Hold that destination placed on {}; Processor has been stopped so routing FlowFile(s) to failure", new Object[]{flowFileDescription});
                 for (FlowFile flowFile : toSend) {
                     flowFile = session.penalize(flowFile);
                     session.transfer(flowFile, REL_FAILURE);

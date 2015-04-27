@@ -41,11 +41,11 @@ public class Bin {
     /**
      * Constructs a new bin
      *
-     * @param minSizeBytes
-     * @param maxSizeBytes
-     * @param minEntries
-     * @param maxEntries
-     * @param fileCountAttribute
+     * @param minSizeBytes min bytes
+     * @param maxSizeBytes max bytes
+     * @param minEntries min entries
+     * @param maxEntries max entries
+     * @param fileCountAttribute num files
      * @throws IllegalArgumentException if the min is not less than or equal to the max.
      */
     public Bin(final long minSizeBytes, final long maxSizeBytes, final int minEntries, final int maxEntries, final String fileCountAttribute) {
@@ -75,7 +75,7 @@ public class Bin {
     /**
      * Indicates enough size exists to meet the minimum requirements
      *
-     * @return
+     * @return true if full enough
      */
     public boolean isFullEnough() {
         return isFull() || (size >= minimumSizeBytes && (binContents.size() >= minimumEntries));
@@ -84,8 +84,8 @@ public class Bin {
     /**
      * Determines if this bin is older than the time specified.
      *
-     * @param duration
-     * @param unit
+     * @param duration duration
+     * @param unit unit
      * @return true if this bin is older than the length of time given; false otherwise
      */
     public boolean isOlderThan(final int duration, final TimeUnit unit) {
@@ -96,8 +96,8 @@ public class Bin {
     /**
      * Determines if this bin is older than the specified bin
      *
-     * @param other
-     * @return
+     * @param other other bin
+     * @return true if this is older than given bin
      */
     public boolean isOlderThan(final Bin other) {
         return creationMomentEpochNs < other.creationMomentEpochNs;
@@ -106,7 +106,7 @@ public class Bin {
     /**
      * If this bin has enough room for the size of the given flow file then it is added otherwise it is not
      *
-     * @param flowFile
+     * @param flowFile flowfile to offer
      * @param session the ProcessSession to which the FlowFile belongs
      * @return true if added; false otherwise
      */

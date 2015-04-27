@@ -132,35 +132,33 @@ public class TransformXml extends AbstractProcessor {
         final StopWatch stopWatch = new StopWatch(true);
 
         try {
-            FlowFile transformed = session.
-                    write(original, new StreamCallback() {
-                        @Override
-                        public void process(final InputStream rawIn, final OutputStream out) throws IOException {
-                            try (final InputStream in = new BufferedInputStream(rawIn)) {
+            FlowFile transformed = session.write(original, new StreamCallback() {
+                @Override
+                public void process(final InputStream rawIn, final OutputStream out) throws IOException {
+                    try (final InputStream in = new BufferedInputStream(rawIn)) {
 
-                                File stylesheet = new File(context.getProperty(XSLT_FILE_NAME).getValue());
-                                StreamSource styleSource = new StreamSource(stylesheet);
-                                TransformerFactory tfactory = new net.sf.saxon.TransformerFactoryImpl();
-                                Transformer transformer = tfactory.newTransformer(styleSource);
+                        File stylesheet = new File(context.getProperty(XSLT_FILE_NAME).getValue());
+                        StreamSource styleSource = new StreamSource(stylesheet);
+                        TransformerFactory tfactory = new net.sf.saxon.TransformerFactoryImpl();
+                        Transformer transformer = tfactory.newTransformer(styleSource);
 
-                                // pass all dynamic properties to the transformer
-                                for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().
-                                entrySet()) {
-                                    if (entry.getKey().isDynamic()) {
-                                        String value = context.newPropertyValue(entry.getValue()).evaluateAttributeExpressions(original).getValue();
-                                        transformer.setParameter(entry.getKey().getName(), value);
-                                    }
-                                }
-
-                                // use a StreamSource with Saxon
-                                StreamSource source = new StreamSource(in);
-                                StreamResult result = new StreamResult(out);
-                                transformer.transform(source, result);
-                            } catch (final Exception e) {
-                                throw new IOException(e);
+                        // pass all dynamic properties to the transformer
+                        for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
+                            if (entry.getKey().isDynamic()) {
+                                String value = context.newPropertyValue(entry.getValue()).evaluateAttributeExpressions(original).getValue();
+                                transformer.setParameter(entry.getKey().getName(), value);
                             }
                         }
-                    });
+
+                        // use a StreamSource with Saxon
+                        StreamSource source = new StreamSource(in);
+                        StreamResult result = new StreamResult(out);
+                        transformer.transform(source, result);
+                    } catch (final Exception e) {
+                        throw new IOException(e);
+                    }
+                }
+            });
             session.transfer(transformed, REL_SUCCESS);
             session.getProvenanceReporter().modifyContent(transformed, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
             logger.info("Transformed {}", new Object[]{original});

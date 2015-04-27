@@ -272,8 +272,7 @@ public class ExtractText extends AbstractProcessor {
         final Map<String, Pattern> patternMap = compiledPattersMapRef.get();
         for (final Map.Entry<String, Pattern> entry : patternMap.entrySet()) {
 
-            final Matcher matcher = entry.getValue().
-                    matcher(contentString);
+            final Matcher matcher = entry.getValue().matcher(contentString);
 
             if (matcher.find()) {
                 final String baseKey = entry.getKey();

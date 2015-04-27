@@ -43,10 +43,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * This class reads a SequenceFile and generates FlowFiles, one per KeyValue
- * pair in the SequenceFile. The FlowFile name is based on the the incoming file
- * name with System nanotime appended; the FlowFile content is the key/value
- * pair serialized via Text.
+ * This class reads a SequenceFile and generates FlowFiles, one per KeyValue pair in the SequenceFile. The FlowFile name is based on the the incoming file name with System nanotime appended; the
+ * FlowFile content is the key/value pair serialized via Text.
  */
 public class KeyValueReader implements SequenceFileReader<Set<FlowFile>> {
 

@@ -184,8 +184,7 @@ public class EvaluateXQuery extends AbstractProcessor {
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext context) {
-        final List<ValidationResult> results = new ArrayList<>(super.
-                customValidate(context));
+        final List<ValidationResult> results = new ArrayList<>(super.customValidate(context));
 
         final String destination = context.getProperty(DESTINATION).getValue();
         if (DESTINATION_CONTENT.equals(destination)) {
@@ -311,8 +310,7 @@ public class EvaluateXQuery extends AbstractProcessor {
                         }
                     } else { // if (DESTINATION_CONTENT.equals(destination)){
                         if (result.size() == 0) {
-                            logger.
-                                    info("Routing {} to 'unmatched'", new Object[]{flowFile});
+                            logger.info("Routing {} to 'unmatched'", new Object[]{flowFile});
                             session.transfer(flowFile, REL_NO_MATCH);
                             continue flowFileLoop;
                         } else if (result.size() == 1) {

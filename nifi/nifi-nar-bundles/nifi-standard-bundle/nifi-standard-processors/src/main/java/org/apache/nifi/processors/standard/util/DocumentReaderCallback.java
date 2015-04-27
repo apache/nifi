@@ -42,12 +42,6 @@ public class DocumentReaderCallback implements InputStreamCallback {
         this.isNamespaceAware = isNamespaceAware;
     }
 
-    /**
-     * Loads the Document from the specified stream.
-     *
-     * @param stream
-     * @throws IOException
-     */
     @Override
     public void process(final InputStream stream) throws IOException {
         try {
@@ -63,9 +57,7 @@ public class DocumentReaderCallback implements InputStreamCallback {
     }
 
     /**
-     * Returns the document.
-     *
-     * @return
+     * @return the document
      */
     public Document getDocument() {
         return document;

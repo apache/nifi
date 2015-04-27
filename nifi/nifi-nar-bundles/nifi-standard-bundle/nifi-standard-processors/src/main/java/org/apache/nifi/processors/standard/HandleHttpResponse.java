@@ -154,8 +154,7 @@ public class HandleHttpResponse extends AbstractProcessor {
             response.flushBuffer();
         } catch (final IOException ioe) {
             session.transfer(flowFile, REL_FAILURE);
-            getLogger().
-                    error("Failed to respond to HTTP request for {} due to {}", new Object[]{flowFile, ioe});
+            getLogger().error("Failed to respond to HTTP request for {} due to {}", new Object[]{flowFile, ioe});
             return;
         }
 

@@ -75,7 +75,7 @@ public class FTPUtils {
      * value of zero means do not timeout. Users should probably set a value here unless using very reliable communications links or else risk indefinite hangs that require a restart.</li>
      * </ul>
      *
-     * @param conf
+     * @param conf conf
      * @param monitor if provided will be used to monitor FTP commands processed but may be null
      * @return FTPClient connected to FTP server as configured
      * @throws NullPointerException if either argument is null

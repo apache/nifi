@@ -50,11 +50,6 @@ public class ContentAcknowledgmentServlet extends HttpServlet {
     private ProcessorLog logger;
     private ConcurrentMap<String, FlowFileEntryTimeWrapper> flowFileMap;
 
-    /**
-     *
-     * @param config
-     * @throws ServletException
-     */
     @SuppressWarnings("unchecked")
     @Override
     public void init(final ServletConfig config) throws ServletException {

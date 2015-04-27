@@ -149,8 +149,7 @@ public class SFTPTransfer implements FileTransfer {
             return;
         }
 
-        final boolean ignoreDottedFiles = ctx.
-                getProperty(FileTransfer.IGNORE_DOTTED_FILES).asBoolean();
+        final boolean ignoreDottedFiles = ctx.getProperty(FileTransfer.IGNORE_DOTTED_FILES).asBoolean();
         final boolean recurse = ctx.getProperty(FileTransfer.RECURSIVE_SEARCH).asBoolean();
         final String fileFilterRegex = ctx.getProperty(FileTransfer.FILE_FILTER_REGEX).getValue();
         final Pattern pattern = (fileFilterRegex == null) ? null : Pattern.compile(fileFilterRegex);
@@ -234,8 +233,7 @@ public class SFTPTransfer implements FileTransfer {
             try {
                 getListing(newFullForwardPath, depth + 1, maxResults, listing);
             } catch (final IOException e) {
-                logger.
-                        error("Unable to get listing from " + newFullForwardPath + "; skipping this subdirectory");
+                logger.error("Unable to get listing from " + newFullForwardPath + "; skipping this subdirectory");
             }
         }
     }
@@ -310,8 +308,7 @@ public class SFTPTransfer implements FileTransfer {
                 channel.mkdir(remoteDirectory);
             } catch (SftpException e) {
                 if (e.id != ChannelSftp.SSH_FX_FAILURE) {
-                    throw new IOException("Could not blindly create remote directory due to " + e.
-                            getMessage(), e);
+                    throw new IOException("Could not blindly create remote directory due to " + e.getMessage(), e);
                 }
             }
             return;

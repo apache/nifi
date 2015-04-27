@@ -16,27 +16,26 @@
  */
 package org.apache.nifi.distributed.cache.server.set;
 
-
-
 public class SetCacheResult {
+
     private final boolean result;
     private final SetCacheRecord stats;
     private final SetCacheRecord evictedRecord;
-    
+
     public SetCacheResult(final boolean result, final SetCacheRecord stats, final SetCacheRecord evictedRecord) {
         this.result = result;
         this.stats = stats;
         this.evictedRecord = evictedRecord;
     }
-    
+
     public boolean getResult() {
         return result;
     }
-    
+
     public SetCacheRecord getRecord() {
         return stats;
     }
-    
+
     public SetCacheRecord getEvictedRecord() {
         return evictedRecord;
     }
