@@ -38,9 +38,7 @@ public class BufferStateManager {
     }
 
     /**
-     * Ensures that the buffer is at least as big as the size specified,
-     * resizing the buffer if necessary. This operation MAY change the direction
-     * of the buffer.
+     * Ensures that the buffer is at least as big as the size specified, resizing the buffer if necessary. This operation MAY change the direction of the buffer.
      *
      * @param requiredSize the desired size of the buffer
      */

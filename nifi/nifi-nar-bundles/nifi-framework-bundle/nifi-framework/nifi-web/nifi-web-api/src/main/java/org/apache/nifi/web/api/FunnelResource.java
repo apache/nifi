@@ -73,8 +73,8 @@ public class FunnelResource extends ApplicationResource {
     /**
      * Populates the uri for the specified funnels.
      *
-     * @param funnels
-     * @return
+     * @param funnels funnels
+     * @return funnels
      */
     public Set<FunnelDTO> populateRemainingFunnelsContent(Set<FunnelDTO> funnels) {
         for (FunnelDTO funnel : funnels) {
@@ -95,9 +95,7 @@ public class FunnelResource extends ApplicationResource {
     /**
      * Retrieves all the of funnels in this NiFi.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return A funnelsEntity.
      */
     @GET
@@ -130,12 +128,9 @@ public class FunnelResource extends ApplicationResource {
     /**
      * Creates a new funnel.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param x The x coordinate for this funnels position.
      * @param y The y coordinate for this funnels position.
      * @return A funnelEntity.
@@ -179,7 +174,7 @@ public class FunnelResource extends ApplicationResource {
     /**
      * Creates a new Funnel.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param funnelEntity A funnelEntity.
      * @return A funnelEntity.
      */
@@ -259,9 +254,7 @@ public class FunnelResource extends ApplicationResource {
     /**
      * Retrieves the specified funnel.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the funnel to retrieve
      * @return A funnelEntity.
      */
@@ -295,12 +288,9 @@ public class FunnelResource extends ApplicationResource {
     /**
      * Updates the specified funnel.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the funnel to update.
      * @param parentGroupId The id of the process group to move this funnel to.
      * @param x The x coordinate for this funnels position.
@@ -350,7 +340,7 @@ public class FunnelResource extends ApplicationResource {
     /**
      * Creates a new Funnel.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param id The id of the funnel to update.
      * @param funnelEntity A funnelEntity.
      * @return A funnelEntity.
@@ -422,12 +412,9 @@ public class FunnelResource extends ApplicationResource {
     /**
      * Removes the specified funnel.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the funnel to remove.
      * @return A entity containing the client id and an updated revision.
      */

@@ -19,8 +19,7 @@ package org.apache.nifi.web.api.dto;
 import javax.xml.bind.annotation.XmlType;
 
 /**
- * A query for bulletin board. Will filter the resulting bulletin board
- * according to the criteria in this query.
+ * A query for bulletin board. Will filter the resulting bulletin board according to the criteria in this query.
  */
 @XmlType(name = "bulletinQuery")
 public class BulletinQueryDTO {

@@ -31,24 +31,10 @@ public class StandardLabelDAO extends ComponentDAO implements LabelDAO {
 
     private FlowController flowController;
 
-    /**
-     * Locates the specified label.
-     *
-     * @param groupId
-     * @param labelId
-     * @return
-     */
     private Label locateLabel(String groupId, String labelId) {
         return locateLabel(locateProcessGroup(flowController, groupId), labelId);
     }
 
-    /**
-     * Locates the specified label.
-     *
-     * @param group
-     * @param labelId
-     * @return
-     */
     private Label locateLabel(ProcessGroup group, String labelId) {
         // get the label
         Label label = group.getLabel(labelId);
@@ -61,12 +47,6 @@ public class StandardLabelDAO extends ComponentDAO implements LabelDAO {
         return label;
     }
 
-    /**
-     * Creates a label.
-     *
-     * @param labelDTO The label DTO
-     * @return The label
-     */
     @Override
     public Label createLabel(String groupId, LabelDTO labelDTO) {
         if (labelDTO.getParentGroupId() != null && !flowController.areGroupsSame(groupId, labelDTO.getParentGroupId())) {
@@ -91,23 +71,11 @@ public class StandardLabelDAO extends ComponentDAO implements LabelDAO {
         return label;
     }
 
-    /**
-     * Gets the specified label.
-     *
-     * @param labelId The label id
-     * @return The label
-     */
     @Override
     public Label getLabel(String groupId, String labelId) {
         return locateLabel(groupId, labelId);
     }
 
-    /**
-     * Determines if the specified label exists.
-     *
-     * @param labelId
-     * @return
-     */
     @Override
     public boolean hasLabel(String groupId, String labelId) {
         ProcessGroup group;
@@ -120,23 +88,12 @@ public class StandardLabelDAO extends ComponentDAO implements LabelDAO {
         return group.getLabel(labelId) != null;
     }
 
-    /**
-     * Gets all of the labels.
-     *
-     * @return The labels
-     */
     @Override
     public Set<Label> getLabels(String groupId) {
         ProcessGroup group = locateProcessGroup(flowController, groupId);
         return group.getLabels();
     }
 
-    /**
-     * Updates the specified label.
-     *
-     * @param labelDTO The label DTO
-     * @return The label
-     */
     @Override
     public Label updateLabel(String groupId, LabelDTO labelDTO) {
         ProcessGroup group = locateProcessGroup(flowController, groupId);
@@ -161,11 +118,6 @@ public class StandardLabelDAO extends ComponentDAO implements LabelDAO {
         return label;
     }
 
-    /**
-     * Deletes the specified label.
-     *
-     * @param labelId The label id
-     */
     @Override
     public void deleteLabel(String groupId, String labelId) {
         ProcessGroup group = locateProcessGroup(flowController, groupId);

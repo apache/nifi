@@ -205,7 +205,18 @@
                             <version>6.5</version>
                         </dependency>
                     </dependencies>
-                </plugin>                
+                </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>findbugs-maven-plugin</artifactId>
+                    <version>3.0.1</version>
+                    <configuration>
+                        <xmlOutput>true</xmlOutput>
+                        <effort>Max</effort>
+                        <failOnError>true</failOnError>
+                        <maxRank>14</maxRank>
+                    </configuration>
+                </plugin>                              
             </plugins>
         </pluginManagement>
         <plugins>
@@ -248,6 +259,14 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>check-style</id>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>                
                 <configuration>
                     <checkstyleRules>
                         <module name="Checker">
@@ -327,7 +346,6 @@
                     </checkstyleRules>
                     <violationSeverity>warning</violationSeverity>
                     <includeTestSourceDirectory>true</includeTestSourceDirectory>
-                    <excludes>**/HelpMojo.java,**/generated-sources</excludes>
                 </configuration>
             </plugin>      
             <plugin>
@@ -354,38 +372,49 @@
                         </exclusions>
                     </dependency>
                 </dependencies>
-                <executions>
-                    <execution>
-                        <id>check-licenses</id>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>             
         </plugins>
     </build>
     <profiles>
-        <profile> <!-- will move this up with the always on plugins once we get all checkstyle stuff resolved-->
-            <id>checkstyle</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
+        <profile>
+            <!-- Automatically check for licenses.  Too slow to always run.
+            Activate with -P check-licenses -->
+            <id>check-licenses</id>
             <build>
                 <plugins>
                     <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-checkstyle-plugin</artifactId>
+                        <groupId>org.apache.rat</groupId>
+                        <artifactId>apache-rat-plugin</artifactId>
                         <executions>
                             <execution>
-                                <id>check-style</id>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                                <phase>verify</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <!-- Run findbugs.  Activate with -Pfindbugs -->
+            <id>findbugs</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>findbugs-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>run-findbugs</id>
                                 <goals>
                                     <goal>check</goal>
                                 </goals>
                             </execution>
                         </executions>
-                    </plugin>
-                </plugins>                
+                    </plugin>                  
+                </plugins>
             </build>
         </profile>
     </profiles>

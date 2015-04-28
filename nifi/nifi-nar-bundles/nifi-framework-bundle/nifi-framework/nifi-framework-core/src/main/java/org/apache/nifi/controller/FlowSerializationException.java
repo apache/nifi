@@ -17,8 +17,7 @@
 package org.apache.nifi.controller;
 
 /**
- * Represents the exceptional case when flow configuration is malformed and
- * therefore, cannot be serialized or deserialized.
+ * Represents the exceptional case when flow configuration is malformed and therefore, cannot be serialized or deserialized.
  *
  * @author unattributed
  */

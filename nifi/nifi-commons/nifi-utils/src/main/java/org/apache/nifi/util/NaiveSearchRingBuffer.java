@@ -24,9 +24,8 @@ import java.util.Arrays;
  * </p>
  *
  * <p>
- * This class implements an efficient naive search algorithm, which allows the
- * user of the library to identify byte sequences in a stream on-the-fly so that
- * the stream can be segmented without having to buffer the data.
+ * This class implements an efficient naive search algorithm, which allows the user of the library to identify byte sequences in a stream on-the-fly so that the stream can be segmented without having
+ * to buffer the data.
  * </p>
  *
  * <p>
@@ -60,10 +59,8 @@ public class NaiveSearchRingBuffer {
     }
 
     /**
-     * @return the contents of the internal buffer, which represents the last X
-     * bytes added to the buffer, where X is the minimum of the number of bytes
-     * added to the buffer or the length of the byte sequence for which we are
-     * looking
+     * @return the contents of the internal buffer, which represents the last X bytes added to the buffer, where X is the minimum of the number of bytes added to the buffer or the length of the byte
+     * sequence for which we are looking
      */
     public byte[] getBufferContents() {
         final int contentLength = Math.min(lookingFor.length, bufferSize);
@@ -83,9 +80,7 @@ public class NaiveSearchRingBuffer {
     }
 
     /**
-     * @return <code>true</code> if the number of bytes that have been added to
-     * the buffer is at least equal to the length of the byte sequence for which
-     * we are searching
+     * @return <code>true</code> if the number of bytes that have been added to the buffer is at least equal to the length of the byte sequence for which we are searching
      */
     public boolean isFilled() {
         return bufferSize >= buffer.length;
@@ -101,12 +96,10 @@ public class NaiveSearchRingBuffer {
     }
 
     /**
-     * Add the given byte to the buffer and notify whether or not the byte
-     * completes the desired byte sequence.
+     * Add the given byte to the buffer and notify whether or not the byte completes the desired byte sequence.
      *
      * @param data the data to add to the buffer
-     * @return <code>true</code> if this byte completes the byte sequence,
-     * <code>false</code> otherwise.
+     * @return <code>true</code> if this byte completes the byte sequence, <code>false</code> otherwise.
      */
     public boolean addAndCompare(final byte data) {
         buffer[insertionPointer] = data;

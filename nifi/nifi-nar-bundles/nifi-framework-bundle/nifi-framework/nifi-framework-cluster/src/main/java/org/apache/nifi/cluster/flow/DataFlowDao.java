@@ -42,8 +42,7 @@ public interface DataFlowDao {
     void saveDataFlow(ClusterDataFlow dataFlow) throws DaoException;
 
     /**
-     * Sets the state of the dataflow. If the dataflow does not exist, then an
-     * exception is thrown.
+     * Sets the state of the dataflow. If the dataflow does not exist, then an exception is thrown.
      *
      * @param flowState the state of the dataflow
      *

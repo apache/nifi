@@ -100,8 +100,8 @@ public class ProcessorResource extends ApplicationResource {
     /**
      * Populate the uri's for the specified processors and their relationships.
      *
-     * @param processors
-     * @return
+     * @param processors processors
+     * @return dtos
      */
     public Set<ProcessorDTO> populateRemainingProcessorsContent(Set<ProcessorDTO> processors) {
         for (ProcessorDTO processor : processors) {
@@ -112,9 +112,6 @@ public class ProcessorResource extends ApplicationResource {
 
     /**
      * Populate the uri's for the specified processor and its relationships.
-     *
-     * @param processor
-     * @return
      */
     private ProcessorDTO populateRemainingProcessorContent(ProcessorDTO processor) {
         // populate the remaining properties
@@ -147,9 +144,7 @@ public class ProcessorResource extends ApplicationResource {
     /**
      * Retrieves all the processors in this NiFi.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return A processorsEntity.
      */
     @GET
@@ -182,15 +177,11 @@ public class ProcessorResource extends ApplicationResource {
     /**
      * Creates a new processor.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param name The name of the new processor.
-     * @param type The type of the new processor. This type should refer to one
-     * of the types in the GET /controller/processor-types response.
+     * @param type The type of the new processor. This type should refer to one of the types in the GET /controller/processor-types response.
      * @param x The x coordinate for this funnels position.
      * @param y The y coordinate for this funnels position.
      * @return A processorEntity.
@@ -238,7 +229,7 @@ public class ProcessorResource extends ApplicationResource {
     /**
      * Creates a new processor.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param processorEntity A processorEntity.
      * @return A processorEntity.
      */
@@ -324,9 +315,7 @@ public class ProcessorResource extends ApplicationResource {
     /**
      * Retrieves the specified processor.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the processor to retrieve.
      * @return A processorEntity.
      */
@@ -361,9 +350,7 @@ public class ProcessorResource extends ApplicationResource {
     /**
      * Retrieves the specified processor status history.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the processor history to retrieve.
      * @return A statusHistoryEntity.
      */
@@ -398,9 +385,7 @@ public class ProcessorResource extends ApplicationResource {
     /**
      * Returns the descriptor for the specified property.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the processor
      * @param propertyName The property
      * @return a propertyDescriptorEntity
@@ -443,18 +428,14 @@ public class ProcessorResource extends ApplicationResource {
     /**
      * Updates the specified processor with the specified values.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the processor to update.
      * @param x The x coordinate for this processors position.
      * @param y The y coordinate for this processors position.
      * @param name The name of the processor.
-     * @param concurrentlySchedulableTaskCount The number of
-     * concurrentlySchedulableTasks
+     * @param concurrentlySchedulableTaskCount The number of concurrentlySchedulableTasks
      * @param schedulingPeriod The scheduling period
      * @param schedulingStrategy The scheduling strategy
      * @param penaltyDuration The penalty duration
@@ -462,13 +443,10 @@ public class ProcessorResource extends ApplicationResource {
      * @param runDurationMillis The run duration in milliseconds
      * @param bulletinLevel The bulletin level
      * @param comments Any comments about this processor.
-     * @param markedForDeletion Array of property names whose value should be
-     * removed.
+     * @param markedForDeletion Array of property names whose value should be removed.
      * @param state The processors state.
-     * @param formParams Additionally, the processor properties and styles are
-     * specified in the form parameters. Because the property names and styles
-     * differ from processor to processor they are specified in a map-like
-     * fashion:
+     * @param formParams Additionally, the processor properties and styles are specified in the form parameters. Because the property names and styles differ from processor to processor they are
+     * specified in a map-like fashion:
      * <br>
      * <ul>
      * <li>properties[required.file.path]=/path/to/file</li>
@@ -604,7 +582,7 @@ public class ProcessorResource extends ApplicationResource {
     /**
      * Updates the specified processor with the specified values.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param id The id of the processor to update.
      * @param processorEntity A processorEntity.
      * @return A processorEntity.
@@ -686,12 +664,9 @@ public class ProcessorResource extends ApplicationResource {
     /**
      * Removes the specified processor.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the processor to remove.
      * @return A processorEntity.
      */

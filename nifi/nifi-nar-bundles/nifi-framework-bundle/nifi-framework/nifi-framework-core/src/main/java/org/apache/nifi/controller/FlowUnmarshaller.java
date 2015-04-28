@@ -38,9 +38,7 @@ import org.xml.sax.SAXException;
 public class FlowUnmarshaller {
 
     /**
-     * Interprets the given byte array as an XML document that conforms to the
-     * Flow Configuration schema and returns a FlowSnippetDTO representing the
-     * flow
+     * Interprets the given byte array as an XML document that conforms to the Flow Configuration schema and returns a FlowSnippetDTO representing the flow
      *
      * @param flowContents contents
      * @param encryptor encryptor

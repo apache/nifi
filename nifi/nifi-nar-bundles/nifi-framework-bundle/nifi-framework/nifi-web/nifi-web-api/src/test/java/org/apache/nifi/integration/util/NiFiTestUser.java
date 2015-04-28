@@ -32,8 +32,8 @@ public class NiFiTestUser {
 
     public static final long REVISION = 0L;
 
-    private Client client;
-    private String proxyDn;
+    private final Client client;
+    private final String proxyDn;
 
     public NiFiTestUser(Client client, String dn) {
         this.client = client;
@@ -43,10 +43,9 @@ public class NiFiTestUser {
     /**
      * Performs a GET using the specified url.
      *
-     * @param client
-     * @param url
-     * @return
-     * @throws Exception
+     * @param url url
+     * @return response
+     * @throws Exception ex
      */
     public ClientResponse testGet(String url) throws Exception {
         return testGet(url, null);
@@ -55,10 +54,9 @@ public class NiFiTestUser {
     /**
      * Performs a GET using the specified url and query parameters.
      *
-     * @param client
-     * @param url
-     * @param queryParams
-     * @return
+     * @param url url
+     * @param queryParams params
+     * @return response
      */
     public ClientResponse testGet(String url, Map<String, String> queryParams) {
         // get the resource
@@ -78,10 +76,9 @@ public class NiFiTestUser {
     /**
      * Performs a POST using the specified url.
      *
-     * @param client
-     * @param url
-     * @return
-     * @throws Exception
+     * @param url url
+     * @return response
+     * @throws Exception ex
      */
     public ClientResponse testPost(String url) throws Exception {
         return testPost(url, (Object) null);
@@ -90,11 +87,10 @@ public class NiFiTestUser {
     /**
      * Performs a POST using the specified url and entity body.
      *
-     * @param client
-     * @param url
-     * @param entity
-     * @return
-     * @throws Exception
+     * @param url url
+     * @param entity entity
+     * @return response
+     * @throws Exception ex
      */
     public ClientResponse testPost(String url, Object entity) throws Exception {
         // get the resource
@@ -112,11 +108,10 @@ public class NiFiTestUser {
     /**
      * Performs a POST using the specified url and entity body.
      *
-     * @param client
-     * @param url
-     * @param entity
-     * @return
-     * @throws Exception
+     * @param url url
+     * @param entity entity
+     * @return repsonse
+     * @throws Exception ex
      */
     public ClientResponse testPostMultiPart(String url, Object entity) throws Exception {
         // get the resource
@@ -134,9 +129,10 @@ public class NiFiTestUser {
     /**
      * Performs a POST using the specified url and form data.
      *
-     * @param url
-     * @param formData
-     * @return
+     * @param url url
+     * @param formData form data
+     * @return response
+     * @throws java.lang.Exception ex
      */
     public ClientResponse testPost(String url, Map<String, String> formData) throws Exception {
         // convert the form data
@@ -146,7 +142,8 @@ public class NiFiTestUser {
         }
 
         // get the resource
-        WebResource.Builder resourceBuilder = client.resource(url).accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_FORM_URLENCODED).header(X509AuthenticationFilter.PROXY_ENTITIES_CHAIN, proxyDn);
+        WebResource.Builder resourceBuilder
+                = client.resource(url).accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_FORM_URLENCODED).header(X509AuthenticationFilter.PROXY_ENTITIES_CHAIN, proxyDn);
 
         // add the form data if necessary
         if (!entity.isEmpty()) {
@@ -160,9 +157,10 @@ public class NiFiTestUser {
     /**
      * Performs a PUT using the specified url and entity body.
      *
-     * @param url
-     * @param entity
-     * @return
+     * @param url url
+     * @param entity entity
+     * @return response
+     * @throws java.lang.Exception ex
      */
     public ClientResponse testPut(String url, Object entity) throws Exception {
         // get the resource
@@ -180,9 +178,10 @@ public class NiFiTestUser {
     /**
      * Performs a PUT using the specified url and form data.
      *
-     * @param url
-     * @param formData
-     * @return
+     * @param url url
+     * @param formData form data
+     * @return response
+     * @throws java.lang.Exception ex
      */
     public ClientResponse testPut(String url, Map<String, String> formData) throws Exception {
         // convert the form data
@@ -192,7 +191,8 @@ public class NiFiTestUser {
         }
 
         // get the resource
-        WebResource.Builder resourceBuilder = client.resource(url).accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_FORM_URLENCODED).header(X509AuthenticationFilter.PROXY_ENTITIES_CHAIN, proxyDn);
+        WebResource.Builder resourceBuilder
+                = client.resource(url).accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_FORM_URLENCODED).header(X509AuthenticationFilter.PROXY_ENTITIES_CHAIN, proxyDn);
 
         // add the form data if necessary
         if (!entity.isEmpty()) {
@@ -206,7 +206,9 @@ public class NiFiTestUser {
     /**
      * Performs a DELETE using the specified url.
      *
-     * @param url
+     * @param url url
+     * @return response
+     * @throws java.lang.Exception ex
      */
     public ClientResponse testDelete(String url) throws Exception {
         return testDelete(url, (Object) null);
@@ -215,9 +217,10 @@ public class NiFiTestUser {
     /**
      * Performs a DELETE using the specified url and entity.
      *
-     * @param url
-     * @param entity
-     * @return
+     * @param url url
+     * @param entity entity
+     * @return repsonse
+     * @throws java.lang.Exception ex
      */
     public ClientResponse testDelete(String url, Object entity) throws Exception {
         // get the resource
@@ -235,9 +238,10 @@ public class NiFiTestUser {
     /**
      * Performs a DELETE using the specified url and query parameters.
      *
-     * @param url
-     * @param queryParams
-     * @return
+     * @param url url
+     * @param queryParams params
+     * @return response
+     * @throws java.lang.Exception ex
      */
     public ClientResponse testDelete(String url, Map<String, String> queryParams) throws Exception {
         // get the resource

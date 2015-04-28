@@ -17,8 +17,7 @@
 package org.apache.nifi.web.api.request;
 
 /**
- * Class for parsing double parameters and providing a user friendly error
- * message.
+ * Class for parsing double parameters and providing a user friendly error message.
  */
 public class DoubleParameter {
 

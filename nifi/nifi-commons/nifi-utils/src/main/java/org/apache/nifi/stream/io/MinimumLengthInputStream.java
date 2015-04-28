@@ -22,8 +22,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 /**
- * An InputStream that will throw EOFException if the underlying InputStream
- * runs out of data before reaching the configured minimum amount of data
+ * An InputStream that will throw EOFException if the underlying InputStream runs out of data before reaching the configured minimum amount of data
  */
 public class MinimumLengthInputStream extends FilterInputStream {
 

@@ -22,8 +22,7 @@ import java.util.Date;
 import java.util.Locale;
 
 /**
- * Class for parsing integer parameters and providing a user friendly error
- * message.
+ * Class for parsing integer parameters and providing a user friendly error message.
  */
 public class DateTimeParameter {
 

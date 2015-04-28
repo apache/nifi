@@ -47,12 +47,6 @@ import org.junit.Ignore;
 @Ignore
 public class NiFiWebApiTest {
 
-    /**
-     * Populates the flow.
-     *
-     * @param revision The revision to use
-     * @return The new revision
-     */
     public static void populateFlow(Client client, String baseUrl, String clientId) throws Exception {
         NiFiTestUser dfm = new NiFiTestUser(client, DfmAccessControlTest.DFM_USER_DN);
 
@@ -248,27 +242,6 @@ public class NiFiWebApiTest {
             throw new Exception("Unable to populate initial flow: " + responseEntity);
         }
 
-//        // -----------------------------------------------
-//        // Create a remote process group
-//        // -----------------------------------------------
-//        
-//        // create the remote process group
-//        RemoteProcessGroupDTO remoteProcessGroup = new RemoteProcessGroupDTO();
-//        remoteProcessGroup.setTargetUri(baseUrl);
-//        
-//        // create the remote process group entity
-//        RemoteProcessGroupEntity remoteProcessGroupEntity = new RemoteProcessGroupEntity();
-//        remoteProcessGroupEntity.setRevision(NiFiTestUser.REVISION);
-//        remoteProcessGroupEntity.setClientId(clientId);
-//        remoteProcessGroupEntity.setRemoteProcessGroup(remoteProcessGroup);
-//        
-//        // add the remote process group
-//        response = dfm.testPost(baseUrl + "/controller/process-groups/root/remote-process-groups", remoteProcessGroupEntity);
-//        
-//        // ensure a successful response
-//        if (Status.CREATED.getStatusCode() != response.getStatusInfo().getStatusCode()) {
-//            throw new Exception("Unable to populate initial flow.");
-//        }
     }
 
 }

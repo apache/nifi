@@ -1805,14 +1805,11 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     /**
-     * Verifies that all ID's defined within the given snippet reference
-     * components within this ProcessGroup. If this is not the case, throws
-     * {@link IllegalStateException}.
+     * Verifies that all ID's defined within the given snippet reference components within this ProcessGroup. If this is not the case, throws {@link IllegalStateException}.
      *
      * @param snippet the snippet
      * @throws NullPointerException if the argument is null
-     * @throws IllegalStateException if the snippet contains an ID that
-     * references a component that is not part of this ProcessGroup
+     * @throws IllegalStateException if the snippet contains an ID that references a component that is not part of this ProcessGroup
      */
     private void verifyContents(final Snippet snippet) throws NullPointerException, IllegalStateException {
         requireNonNull(snippet);
@@ -1829,10 +1826,8 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     /**
      * <p>
-     * Verifies that all ID's specified by the given set exist as keys in the
-     * given Map. If any of the ID's does not exist as a key in the map, will
-     * throw {@link IllegalStateException} indicating the ID that is invalid and
-     * specifying the Component Type.
+     * Verifies that all ID's specified by the given set exist as keys in the given Map. If any of the ID's does not exist as a key in the map, will throw {@link IllegalStateException} indicating the
+     * ID that is invalid and specifying the Component Type.
      * </p>
      *
      * <p>

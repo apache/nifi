@@ -37,9 +37,8 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 
 /**
- * Provides a mechanism by which <code>FlowFile</code>s can be transferred into
- * and out of a <code>ProcessGroup</code> to and/or from another
- * <code>ProcessGroup</code> within the same instance of NiFi.
+ * Provides a mechanism by which <code>FlowFile</code>s can be transferred into and out of a <code>ProcessGroup</code> to and/or from another <code>ProcessGroup</code> within the same instance of
+ * NiFi.
  */
 public class LocalPort extends AbstractPort {
 

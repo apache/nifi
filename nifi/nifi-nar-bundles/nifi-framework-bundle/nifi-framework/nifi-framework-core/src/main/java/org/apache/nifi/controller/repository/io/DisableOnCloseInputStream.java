@@ -20,9 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 /**
- * Wraps an existing InputStream, so that when {@link InputStream#close()} is
- * called, the underlying InputStream is NOT closed but this InputStream can no
- * longer be written to
+ * Wraps an existing InputStream, so that when {@link InputStream#close()} is called, the underlying InputStream is NOT closed but this InputStream can no longer be written to
  */
 public class DisableOnCloseInputStream extends InputStream {
 

@@ -75,8 +75,8 @@ public class LabelResource extends ApplicationResource {
     /**
      * Populates the uri for the specified labels.
      *
-     * @param labels
-     * @return
+     * @param labels labels
+     * @return dtos
      */
     public Set<LabelDTO> populateRemainingLabelsContent(Set<LabelDTO> labels) {
         for (LabelDTO label : labels) {
@@ -97,9 +97,7 @@ public class LabelResource extends ApplicationResource {
     /**
      * Retrieves all the of labels in this NiFi.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return A labelsEntity.
      */
     @GET
@@ -132,12 +130,9 @@ public class LabelResource extends ApplicationResource {
     /**
      * Creates a new label.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param x The x coordinate for this funnels position.
      * @param y The y coordinate for this funnels position.
      * @param width The width of the label.
@@ -195,7 +190,7 @@ public class LabelResource extends ApplicationResource {
     /**
      * Creates a new Label.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param labelEntity A labelEntity.
      * @return A labelEntity.
      */
@@ -275,9 +270,7 @@ public class LabelResource extends ApplicationResource {
     /**
      * Retrieves the specified label.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the label to retrieve
      * @return A labelEntity.
      */
@@ -311,20 +304,16 @@ public class LabelResource extends ApplicationResource {
     /**
      * Updates the specified label.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the label to update.
      * @param x The x coordinate for this funnels position.
      * @param y The y coordinate for this funnels position.
      * @param width The width of the label.
      * @param height The height of the label.
      * @param label The label's value.
-     * @param formParams Additionally, the label styles are specified in the
-     * form parameters. They are specified in a map-like fashion:
+     * @param formParams Additionally, the label styles are specified in the form parameters. They are specified in a map-like fashion:
      * <br>
      * <ul>
      * <li>style[background-color]=#aaaaaa</li>
@@ -405,7 +394,7 @@ public class LabelResource extends ApplicationResource {
     /**
      * Updates the specified label.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param id The id of the label to update.
      * @param labelEntity A labelEntity.
      * @return A labelEntity.
@@ -477,12 +466,9 @@ public class LabelResource extends ApplicationResource {
     /**
      * Removes the specified label.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the label to remove.
      * @return A entity containing the client id and an updated revision.
      */

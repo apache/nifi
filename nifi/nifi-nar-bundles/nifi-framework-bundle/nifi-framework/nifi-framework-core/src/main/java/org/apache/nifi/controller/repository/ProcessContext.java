@@ -77,9 +77,7 @@ public class ProcessContext {
     }
 
     /**
-     * @return an unmodifiable list containing a copy of all incoming
-     * connections for the processor from which FlowFiles are allowed to be
-     * pulled
+     * @return an unmodifiable list containing a copy of all incoming connections for the processor from which FlowFiles are allowed to be pulled
      */
     List<Connection> getPollableConnections() {
         if (pollFromSelfLoopsOnly()) {
@@ -106,9 +104,7 @@ public class ProcessContext {
     }
 
     /**
-     * @return true if we are allowed to take FlowFiles only from self-loops.
-     * This is the case when no Relationships are available except for
-     * self-looping Connections
+     * @return true if we are allowed to take FlowFiles only from self-loops. This is the case when no Relationships are available except for self-looping Connections
      */
     private boolean pollFromSelfLoopsOnly() {
         if (isTriggerWhenAnyDestinationAvailable()) {
@@ -217,14 +213,10 @@ public class ProcessContext {
     }
 
     /**
-     * A Relationship is said to be Available if and only if all Connections for
-     * that Relationship are either self-loops or have non-full queues.
+     * A Relationship is said to be Available if and only if all Connections for that Relationship are either self-loops or have non-full queues.
      *
-     * @param requiredNumber minimum number of relationships that must have
-     * availability
-     * @return Checks if at least <code>requiredNumber</code> of
-     * Relationationships are "available." If so, returns <code>true</code>,
-     * otherwise returns <code>false</code>
+     * @param requiredNumber minimum number of relationships that must have availability
+     * @return Checks if at least <code>requiredNumber</code> of Relationationships are "available." If so, returns <code>true</code>, otherwise returns <code>false</code>
      */
     public boolean isRelationshipAvailabilitySatisfied(final int requiredNumber) {
         int unavailable = 0;

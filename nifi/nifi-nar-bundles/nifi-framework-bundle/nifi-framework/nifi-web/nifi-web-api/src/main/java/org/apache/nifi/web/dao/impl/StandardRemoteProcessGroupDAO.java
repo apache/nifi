@@ -105,8 +105,8 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
     /**
      * Determines if the specified remote process group exists.
      *
-     * @param remoteProcessGroupId
-     * @return
+     * @param remoteProcessGroupId id
+     * @return true if exists
      */
     @Override
     public boolean hasRemoteProcessGroup(String groupId, String remoteProcessGroupId) {
@@ -139,9 +139,6 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
 
     /**
      * Verifies the specified remote group can be updated, if necessary.
-     *
-     * @param remoteProcessGroup
-     * @param remoteProcessGroupDto
      */
     private void verifyUpdate(RemoteProcessGroup remoteProcessGroup, RemoteProcessGroupDTO remoteProcessGroupDto) {
         // see if the remote process group can start/stop transmitting
@@ -192,9 +189,6 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
 
     /**
      * Verified the specified remote port can be updated, if necessary.
-     *
-     * @param port
-     * @param remoteProcessGroupPortDto
      */
     private void verifyUpdatePort(RemoteGroupPort port, RemoteProcessGroupPortDTO remoteProcessGroupPortDto) {
         // see if the remote process group can start/stop transmitting
@@ -217,10 +211,6 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
 
     /**
      * Validates the proposed configuration for the specified remote port.
-     *
-     * @param remoteGroupPort
-     * @param remoteProcessGroupPortDTO
-     * @return
      */
     private List<String> validateProposedRemoteProcessGroupPortConfiguration(RemoteGroupPort remoteGroupPort, RemoteProcessGroupPortDTO remoteProcessGroupPortDTO) {
         final List<String> validationErrors = new ArrayList<>();
@@ -235,10 +225,6 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
 
     /**
      * Validates the proposed configuration for the specified remote group.
-     *
-     * @param remoteProcessGroup
-     * @param remoteProcessGroupDTO
-     * @return
      */
     private List<String> validateProposedRemoteProcessGroupConfiguration(RemoteProcessGroupDTO remoteProcessGroupDTO) {
         final List<String> validationErrors = new ArrayList<>();
@@ -327,12 +313,6 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
         return port;
     }
 
-    /**
-     * Updates the specified remote process group.
-     *
-     * @param remoteProcessGroupDTO
-     * @return The remote process group
-     */
     @Override
     public RemoteProcessGroup updateRemoteProcessGroup(String groupId, RemoteProcessGroupDTO remoteProcessGroupDTO) {
         ProcessGroup group = locateProcessGroup(flowController, groupId);
@@ -383,11 +363,6 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
         remoteProcessGroup.verifyCanDelete();
     }
 
-    /**
-     * Deletes the specified remote process group.
-     *
-     * @param remoteProcessGroupId The remote process group id
-     */
     @Override
     public void deleteRemoteProcessGroup(String groupId, String remoteProcessGroupId) {
         ProcessGroup group = locateProcessGroup(flowController, groupId);

@@ -20,9 +20,7 @@ import java.util.Set;
 import javax.xml.bind.annotation.XmlType;
 
 /**
- * Configuration details for a NiFi controller. Primary use of this DTO is for
- * consumption by a remote NiFi instance to initiate site to site
- * communications.
+ * Configuration details for a NiFi controller. Primary use of this DTO is for consumption by a remote NiFi instance to initiate site to site communications.
  */
 @XmlType(name = "controller")
 public class ControllerDTO {
@@ -105,8 +103,7 @@ public class ControllerDTO {
     }
 
     /**
-     * @return Instance ID of the cluster, if this node is connected to a Cluster
-     * Manager, or of this individual instance of in standalone mode
+     * @return Instance ID of the cluster, if this node is connected to a Cluster Manager, or of this individual instance of in standalone mode
      */
     public String getInstanceId() {
         return instanceId;
@@ -117,12 +114,9 @@ public class ControllerDTO {
     }
 
     /**
-     * The Socket Port on which this instance is listening for Remote Transfers
-     * of Flow Files. If this instance is not configured to receive Flow Files
-     * from remote instances, this will be null.
+     * The Socket Port on which this instance is listening for Remote Transfers of Flow Files. If this instance is not configured to receive Flow Files from remote instances, this will be null.
      *
-     * @return a integer between 1 and 65535, or null, if not configured for
-     * remote transfer
+     * @return a integer between 1 and 65535, or null, if not configured for remote transfer
      */
     public Integer getRemoteSiteListeningPort() {
         return remoteSiteListeningPort;
@@ -133,8 +127,7 @@ public class ControllerDTO {
     }
 
     /**
-     * @return Indicates whether or not Site-to-Site communications with this instance
-     * is secure (2-way authentication)
+     * @return Indicates whether or not Site-to-Site communications with this instance is secure (2-way authentication)
      */
     public Boolean isSiteToSiteSecure() {
         return siteToSiteSecure;

@@ -26,9 +26,7 @@ import org.apache.nifi.controller.repository.claim.ContentClaimManager;
 
 /**
  * <p>
- * An in-memory implementation of the {@link FlowFileRepository}. Upon restart,
- * all FlowFiles will be discarded, including those that have been swapped out
- * by a {@link FlowFileSwapManager}.
+ * An in-memory implementation of the {@link FlowFileRepository}. Upon restart, all FlowFiles will be discarded, including those that have been swapped out by a {@link FlowFileSwapManager}.
  * </p>
  */
 public class VolatileFlowFileRepository implements FlowFileRepository {

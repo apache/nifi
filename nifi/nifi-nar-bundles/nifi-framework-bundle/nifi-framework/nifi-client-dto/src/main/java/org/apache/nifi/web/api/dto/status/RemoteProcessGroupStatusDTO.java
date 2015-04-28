@@ -115,8 +115,7 @@ public class RemoteProcessGroupStatusDTO extends StatusDTO {
     }
 
     /**
-     * @return Formatted description of the amount of data sent to this remote process
-     * group
+     * @return Formatted description of the amount of data sent to this remote process group
      */
     public String getSent() {
         return sent;
@@ -127,8 +126,7 @@ public class RemoteProcessGroupStatusDTO extends StatusDTO {
     }
 
     /**
-     * @return Formatted description of the amount of data received from this remote
-     * process group
+     * @return Formatted description of the amount of data received from this remote process group
      */
     public String getReceived() {
         return received;

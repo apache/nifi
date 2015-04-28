@@ -177,8 +177,7 @@ public class ProcessGroupStatusDTO extends StatusDTO {
     }
 
     /**
-     * The transferred stats for this process group. This represents the
-     * count/size of flowfiles transferred to/from queues.
+     * The transferred stats for this process group. This represents the count/size of flowfiles transferred to/from queues.
      *
      * @return The transferred status for this process group
      */
@@ -191,8 +190,7 @@ public class ProcessGroupStatusDTO extends StatusDTO {
     }
 
     /**
-     * The received stats for this process group. This represents the count/size
-     * of flowfiles received.
+     * The received stats for this process group. This represents the count/size of flowfiles received.
      *
      * @return The received stats for this process group
      */
@@ -205,8 +203,7 @@ public class ProcessGroupStatusDTO extends StatusDTO {
     }
 
     /**
-     * The sent stats for this process group. This represents the count/size of
-     * flowfiles sent.
+     * The sent stats for this process group. This represents the count/size of flowfiles sent.
      *
      * @return The sent stats for this process group
      */

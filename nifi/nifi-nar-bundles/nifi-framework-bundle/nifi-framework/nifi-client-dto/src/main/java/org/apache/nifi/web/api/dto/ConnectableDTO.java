@@ -89,8 +89,7 @@ public class ConnectableDTO {
     }
 
     /**
-     * @return If this represents a remote port it is used to indicate whether the
-     * target exists
+     * @return If this represents a remote port it is used to indicate whether the target exists
      */
     public Boolean getExists() {
         return exists;
@@ -101,8 +100,7 @@ public class ConnectableDTO {
     }
 
     /**
-     * @return If this represents a remote port it is used to indicate whether is it
-     * configured to transmit
+     * @return If this represents a remote port it is used to indicate whether is it configured to transmit
      */
     public Boolean getTransmitting() {
         return transmitting;

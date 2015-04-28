@@ -22,9 +22,7 @@ import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
 /**
- * A bulletin that represents a notification about a passing event including,
- * the source component (if applicable), the timestamp, the message, and where
- * the bulletin originated (if applicable).
+ * A bulletin that represents a notification about a passing event including, the source component (if applicable), the timestamp, the message, and where the bulletin originated (if applicable).
  */
 @XmlType(name = "bulletin")
 public class BulletinDTO {
@@ -51,8 +49,7 @@ public class BulletinDTO {
     }
 
     /**
-     * @return When clustered, the address of the node from which this bulletin
-     * originated
+     * @return When clustered, the address of the node from which this bulletin originated
      */
     public String getNodeAddress() {
         return nodeAddress;

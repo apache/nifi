@@ -17,19 +17,16 @@
 package org.apache.nifi.controller.repository.claim;
 
 /**
- * Specifies one side of the Provenance Event for which the Content Claim is
- * being referenced
+ * Specifies one side of the Provenance Event for which the Content Claim is being referenced
  */
 public enum ContentDirection {
 
     /**
-     * Indicates the Content Claim that was the Input to the Process that
-     * generating a Provenance Event
+     * Indicates the Content Claim that was the Input to the Process that generating a Provenance Event
      */
     INPUT,
     /**
-     * Indicates the Content Claim that is the Output of the process that
-     * generated the Provenance Event.
+     * Indicates the Content Claim that is the Output of the process that generated the Provenance Event.
      */
     OUTPUT;
 }

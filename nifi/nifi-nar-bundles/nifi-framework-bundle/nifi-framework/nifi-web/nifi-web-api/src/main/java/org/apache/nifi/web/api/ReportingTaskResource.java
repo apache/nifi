@@ -84,8 +84,8 @@ public class ReportingTaskResource extends ApplicationResource {
     /**
      * Populates the uri for the specified reporting task.
      *
-     * @param reportingTasks
-     * @return
+     * @param reportingTasks tasks
+     * @return tasks
      */
     private Set<ReportingTaskDTO> populateRemainingReportingTasksContent(final String availability, final Set<ReportingTaskDTO> reportingTasks) {
         for (ReportingTaskDTO reportingTask : reportingTasks) {
@@ -117,11 +117,7 @@ public class ReportingTaskResource extends ApplicationResource {
     }
 
     /**
-     * Parses the availability and ensure that the specified availability makes
-     * sense for the given NiFi instance.
-     *
-     * @param availability
-     * @return
+     * Parses the availability and ensure that the specified availability makes sense for the given NiFi instance.
      */
     private Availability parseAvailability(final String availability) {
         final Availability avail;
@@ -142,12 +138,8 @@ public class ReportingTaskResource extends ApplicationResource {
     /**
      * Retrieves all the of reporting tasks in this NiFi.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param availability Whether the reporting task is available on the NCM
-     * only (ncm) or on the nodes only (node). If this instance is not clustered
-     * all tasks should use the node availability.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param availability Whether the reporting task is available on the NCM only (ncm) or on the nodes only (node). If this instance is not clustered all tasks should use the node availability.
      * @return A reportingTasksEntity.
      */
     @GET
@@ -182,15 +174,10 @@ public class ReportingTaskResource extends ApplicationResource {
     /**
      * Creates a new reporting task.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param availability Whether the reporting task is available on the NCM
-     * only (ncm) or on the nodes only (node). If this instance is not clustered
-     * all tasks should use the node availability.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param availability Whether the reporting task is available on the NCM only (ncm) or on the nodes only (node). If this instance is not clustered all tasks should use the node availability.
      * @param type The type of reporting task to create.
      * @return A reportingTaskEntity.
      */
@@ -229,10 +216,8 @@ public class ReportingTaskResource extends ApplicationResource {
     /**
      * Creates a new Reporting Task.
      *
-     * @param httpServletRequest
-     * @param availability Whether the reporting task is available on the NCM
-     * only (ncm) or on the nodes only (node). If this instance is not clustered
-     * all tasks should use the node availability.
+     * @param httpServletRequest request
+     * @param availability Whether the reporting task is available on the NCM only (ncm) or on the nodes only (node). If this instance is not clustered all tasks should use the node availability.
      * @param reportingTaskEntity A reportingTaskEntity.
      * @return A reportingTaskEntity.
      */
@@ -320,12 +305,8 @@ public class ReportingTaskResource extends ApplicationResource {
     /**
      * Retrieves the specified reporting task.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param availability Whether the reporting task is available on the NCM
-     * only (ncm) or on the nodes only (node). If this instance is not clustered
-     * all tasks should use the node availability.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param availability Whether the reporting task is available on the NCM only (ncm) or on the nodes only (node). If this instance is not clustered all tasks should use the node availability.
      * @param id The id of the reporting task to retrieve
      * @return A reportingTaskEntity.
      */
@@ -362,10 +343,8 @@ public class ReportingTaskResource extends ApplicationResource {
     /**
      * Returns the descriptor for the specified property.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param availability
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param availability availability
      * @param id The id of the reporting task.
      * @param propertyName The property
      * @return a propertyDescriptorEntity
@@ -411,28 +390,20 @@ public class ReportingTaskResource extends ApplicationResource {
     /**
      * Updates the specified reporting task.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param availability Whether the reporting task is available on the NCM
-     * only (ncm) or on the nodes only (node). If this instance is not clustered
-     * all tasks should use the node availability.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param availability Whether the reporting task is available on the NCM only (ncm) or on the nodes only (node). If this instance is not clustered all tasks should use the node availability.
      * @param id The id of the reporting task to update.
      * @param name The name of the reporting task
      * @param annotationData The annotation data for the reporting task
-     * @param markedForDeletion Array of property names whose value should be
-     * removed.
+     * @param markedForDeletion Array of property names whose value should be removed.
      * @param state The updated scheduled state
      * @param schedulingStrategy The scheduling strategy for this reporting task
      * @param schedulingPeriod The scheduling period for this reporting task
      * @param comments The comments for this reporting task
-     * @param formParams Additionally, the processor properties and styles are
-     * specified in the form parameters. Because the property names and styles
-     * differ from processor to processor they are specified in a map-like
-     * fashion:
+     * @param formParams Additionally, the processor properties and styles are specified in the form parameters. Because the property names and styles differ from processor to processor they are
+     * specified in a map-like fashion:
      * <br>
      * <ul>
      * <li>properties[required.file.path]=/path/to/file</li>
@@ -519,10 +490,8 @@ public class ReportingTaskResource extends ApplicationResource {
     /**
      * Updates the specified a Reporting Task.
      *
-     * @param httpServletRequest
-     * @param availability Whether the reporting task is available on the NCM
-     * only (ncm) or on the nodes only (node). If this instance is not clustered
-     * all tasks should use the node availability.
+     * @param httpServletRequest request
+     * @param availability Whether the reporting task is available on the NCM only (ncm) or on the nodes only (node). If this instance is not clustered all tasks should use the node availability.
      * @param id The id of the reporting task to update.
      * @param reportingTaskEntity A reportingTaskEntity.
      * @return A reportingTaskEntity.
@@ -597,15 +566,10 @@ public class ReportingTaskResource extends ApplicationResource {
     /**
      * Removes the specified reporting task.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param availability Whether the reporting task is available on the NCM
-     * only (ncm) or on the nodes only (node). If this instance is not clustered
-     * all tasks should use the node availability.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param availability Whether the reporting task is available on the NCM only (ncm) or on the nodes only (node). If this instance is not clustered all tasks should use the node availability.
      * @param id The id of the reporting task to remove.
      * @return A entity containing the client id and an updated revision.
      */

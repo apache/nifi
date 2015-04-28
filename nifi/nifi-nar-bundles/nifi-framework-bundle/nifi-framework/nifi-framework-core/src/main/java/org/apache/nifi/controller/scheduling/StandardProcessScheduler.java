@@ -69,8 +69,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Responsible for scheduling Processors, Ports, and Funnels to run at regular
- * intervals
+ * Responsible for scheduling Processors, Ports, and Funnels to run at regular intervals
  */
 public final class StandardProcessScheduler implements ProcessScheduler {
 
@@ -257,10 +256,8 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     }
 
     /**
-     * Starts scheduling the given processor to run after invoking all methods
-     * on the underlying {@link nifi.processor.Processor
-     * FlowFileProcessor} that are annotated with the {@link OnScheduled}
-     * annotation.
+     * Starts scheduling the given processor to run after invoking all methods on the underlying {@link nifi.processor.Processor
+     * FlowFileProcessor} that are annotated with the {@link OnScheduled} annotation.
      */
     @Override
     public synchronized void startProcessor(final ProcessorNode procNode) {
@@ -379,9 +376,8 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     }
 
     /**
-     * Stops scheduling the given processor to run and invokes all methods on
-     * the underlying {@link nifi.processor.Processor FlowFileProcessor} that
-     * are annotated with the {@link OnUnscheduled} annotation.
+     * Stops scheduling the given processor to run and invokes all methods on the underlying {@link nifi.processor.Processor FlowFileProcessor} that are annotated with the {@link OnUnscheduled}
+     * annotation.
      */
     @Override
     public synchronized void stopProcessor(final ProcessorNode procNode) {
@@ -577,9 +573,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     }
 
     /**
-     * Returns the ScheduleState that is registered for the given component; if
-     * no ScheduleState current is registered, one is created and registered
-     * atomically, and then that value is returned.
+     * Returns the ScheduleState that is registered for the given component; if no ScheduleState current is registered, one is created and registered atomically, and then that value is returned.
      *
      * @param schedulable schedulable
      * @return scheduled state

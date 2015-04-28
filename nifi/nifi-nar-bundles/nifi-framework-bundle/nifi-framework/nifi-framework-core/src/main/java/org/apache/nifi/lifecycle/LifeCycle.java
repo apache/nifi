@@ -17,37 +17,30 @@
 package org.apache.nifi.lifecycle;
 
 /**
- * Represents a start/stop lifecyle for a component.  <code>start</code> should
- * only be called once per lifecyle unless otherwise documented by implementing
- * classes.
+ * Represents a start/stop lifecyle for a component.  <code>start</code> should only be called once per lifecyle unless otherwise documented by implementing classes.
  *
  * @author unattributed
  */
 public interface LifeCycle {
 
     /**
-     * Initiates the start state of the lifecyle. Should not throw an exception
-     * if the component is already running.
+     * Initiates the start state of the lifecyle. Should not throw an exception if the component is already running.
      *
      * @throws LifeCycleStartException if startup or initialization failed
      */
     void start() throws LifeCycleStartException;
 
     /**
-     * Initiates the stop state of the lifecycle. Should not throw an exception
-     * if the component is already stopped.
+     * Initiates the stop state of the lifecycle. Should not throw an exception if the component is already stopped.
      *
-     * @param force true if all efforts such as thread interruption should be
-     * attempted to stop the component; false if a graceful stopping should be
-     * employed
+     * @param force true if all efforts such as thread interruption should be attempted to stop the component; false if a graceful stopping should be employed
      *
      * @throws LifeCycleStopException if the shutdown failed
      */
     void stop(boolean force) throws LifeCycleStopException;
 
     /**
-     * @return true if the component is started, but not yet stopped; false
-     * otherwise
+     * @return true if the component is started, but not yet stopped; false otherwise
      */
     boolean isRunning();
 

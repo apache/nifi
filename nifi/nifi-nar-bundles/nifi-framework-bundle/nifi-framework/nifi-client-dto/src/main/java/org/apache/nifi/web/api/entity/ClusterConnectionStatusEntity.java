@@ -20,9 +20,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.web.api.dto.status.ClusterConnectionStatusDTO;
 
 /**
- * A serialized representation of this class can be placed in the entity body of
- * a request or response to or from the API. This particular entity holds a
- * reference to a ClusterConnectionStatusDTO.
+ * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a ClusterConnectionStatusDTO.
  */
 @XmlRootElement(name = "clusterConnectionStatusEntity")
 public class ClusterConnectionStatusEntity extends Entity {

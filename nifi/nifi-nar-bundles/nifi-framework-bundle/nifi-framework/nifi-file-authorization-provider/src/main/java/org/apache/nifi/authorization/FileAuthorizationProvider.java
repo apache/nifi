@@ -167,23 +167,10 @@ public class FileAuthorizationProvider implements AuthorityProvider {
     public void preDestruction() {
     }
 
-    /**
-     * Determines if this provider has a default role.
-     *
-     * @return
-     */
     private boolean hasDefaultRoles() {
         return !defaultAuthorities.isEmpty();
     }
 
-    /**
-     * Determines if the specified dn is known to this authority provider. When
-     * this provider is configured to have default role(s), all dn are
-     * considered to exist.
-     *
-     * @param dn
-     * @return True if he dn is known, false otherwise
-     */
     @Override
     public boolean doesDnExist(String dn) throws AuthorityAccessException {
         if (hasDefaultRoles()) {
@@ -194,21 +181,11 @@ public class FileAuthorizationProvider implements AuthorityProvider {
         return user != null;
     }
 
-    /**
-     * Loads the authorities for the specified user. If this provider is
-     * configured for default user role(s) and a non existent dn is specified, a
-     * new user will be automatically created with the default role(s).
-     *
-     * @param dn
-     * @return
-     * @throws UnknownIdentityException
-     * @throws AuthorityAccessException
-     */
     @Override
     public synchronized Set<Authority> getAuthorities(String dn) throws UnknownIdentityException, AuthorityAccessException {
         final Set<Authority> authorities = EnumSet.noneOf(Authority.class);
 
-        // get the user 
+        // get the user
         final User user = getUser(dn);
 
         // ensure the user was located
@@ -234,16 +211,6 @@ public class FileAuthorizationProvider implements AuthorityProvider {
         return authorities;
     }
 
-    /**
-     * Adds the specified authorities to the specified user. Regardless of
-     * whether this provider is configured for a default user role, when a non
-     * existent dn is specified, an UnknownIdentityException will be thrown.
-     *
-     * @param dn
-     * @param authorities
-     * @throws UnknownIdentityException
-     * @throws AuthorityAccessException
-     */
     @Override
     public synchronized void setAuthorities(String dn, Set<Authority> authorities) throws UnknownIdentityException, AuthorityAccessException {
         // get the user
@@ -265,12 +232,6 @@ public class FileAuthorizationProvider implements AuthorityProvider {
         }
     }
 
-    /**
-     * Adds the specified authorities to the specified user.
-     *
-     * @param user
-     * @param authorities
-     */
     private void setUserAuthorities(final User user, final Set<Authority> authorities) {
         // clear the existing rules
         user.getRole().clear();
@@ -286,15 +247,6 @@ public class FileAuthorizationProvider implements AuthorityProvider {
         }
     }
 
-    /**
-     * Adds the specified user. If this provider is configured with default
-     * role(s) they will be added to the new user.
-     *
-     * @param dn
-     * @param group
-     * @throws UnknownIdentityException
-     * @throws AuthorityAccessException
-     */
     @Override
     public synchronized void addUser(String dn, String group) throws IdentityAlreadyExistsException, AuthorityAccessException {
         final User user = getUser(dn);
@@ -334,13 +286,6 @@ public class FileAuthorizationProvider implements AuthorityProvider {
         }
     }
 
-    /**
-     * Gets the users for the specified authority.
-     *
-     * @param authority
-     * @return
-     * @throws AuthorityAccessException
-     */
     @Override
     public synchronized Set<String> getUsers(Authority authority) throws AuthorityAccessException {
         final Set<String> userSet = new HashSet<>();
@@ -354,15 +299,6 @@ public class FileAuthorizationProvider implements AuthorityProvider {
         return userSet;
     }
 
-    /**
-     * Removes the specified user. Regardless of whether this provider is
-     * configured for a default user role, when a non existent dn is specified,
-     * an UnknownIdentityException will be thrown.
-     *
-     * @param dn
-     * @throws UnknownIdentityException
-     * @throws AuthorityAccessException
-     */
     @Override
     public synchronized void revokeUser(String dn) throws UnknownIdentityException, AuthorityAccessException {
         // get the user
@@ -496,24 +432,12 @@ public class FileAuthorizationProvider implements AuthorityProvider {
 
     /**
      * Grants access to download content regardless of FlowFile attributes.
-     * 
-     * @param dnChain
-     * @param attributes
-     * @return
-     * @throws UnknownIdentityException
-     * @throws AuthorityAccessException 
      */
     @Override
     public DownloadAuthorization authorizeDownload(List<String> dnChain, Map<String, String> attributes) throws UnknownIdentityException, AuthorityAccessException {
         return DownloadAuthorization.approved();
     }
 
-    /**
-     * Locates the user with the specified DN.
-     *
-     * @param dn
-     * @return
-     */
     private User getUser(String dn) throws UnknownIdentityException {
         // ensure the DN was specified
         if (dn == null) {
@@ -532,13 +456,6 @@ public class FileAuthorizationProvider implements AuthorityProvider {
         return desiredUser;
     }
 
-    /**
-     * Locates all users that are part of the specified group.
-     *
-     * @param group
-     * @return
-     * @throws UnknownIdentityException
-     */
     private Collection<User> getUserGroup(String group) throws UnknownIdentityException {
         // ensure the DN was specified
         if (group == null) {
@@ -559,11 +476,6 @@ public class FileAuthorizationProvider implements AuthorityProvider {
         return userGroup;
     }
 
-    /**
-     * Saves the users file.
-     *
-     * @throws Exception
-     */
     private void save() throws Exception {
         final Marshaller marshaller = JAXB_CONTEXT.createMarshaller();
         marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);

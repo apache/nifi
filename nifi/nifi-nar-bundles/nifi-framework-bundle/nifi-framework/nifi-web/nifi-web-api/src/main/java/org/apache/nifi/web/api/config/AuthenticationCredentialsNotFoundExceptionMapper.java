@@ -25,8 +25,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 
 /**
- * Maps exceptions that occur because no valid credentials were found into the
- * corresponding response.
+ * Maps exceptions that occur because no valid credentials were found into the corresponding response.
  */
 @Provider
 public class AuthenticationCredentialsNotFoundExceptionMapper implements ExceptionMapper<AuthenticationCredentialsNotFoundException> {

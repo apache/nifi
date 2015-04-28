@@ -20,9 +20,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.web.api.dto.PortDTO;
 
 /**
- * A serialized representation of this class can be placed in the entity body of
- * a response to the API. This particular entity holds a reference to an input
- * PortDTO.
+ * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to an input PortDTO.
  */
 @XmlRootElement(name = "inputPortEntity")
 public class InputPortEntity extends Entity {

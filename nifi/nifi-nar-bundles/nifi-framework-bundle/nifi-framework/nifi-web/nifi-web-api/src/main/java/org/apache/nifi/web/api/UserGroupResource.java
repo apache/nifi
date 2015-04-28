@@ -54,7 +54,7 @@ public class UserGroupResource extends ApplicationResource {
 
     /*
      * Developer Note: Clustering assumes a centralized security provider. The
-     * cluster manager will manage user accounts when in clustered mode and 
+     * cluster manager will manage user accounts when in clustered mode and
      * interface with the authorization provider. However, when nodes perform
      * Site-to-Site, the authorization details of the remote NiFi will be cached
      * locally. These details need to be invalidated when certain actions are
@@ -68,18 +68,14 @@ public class UserGroupResource extends ApplicationResource {
     /**
      * Updates a new user group.
      *
-     * @param httpServletRequest
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param userIds A collection of user ids to include in this group. If a
-     * user already belongs to another group, they will be placed in this group
-     * instead. Existing users in this group will remain in this group.
+     * @param httpServletRequest request
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param userIds A collection of user ids to include in this group. If a user already belongs to another group, they will be placed in this group instead. Existing users in this group will remain
+     * in this group.
      * @param group The name of the group.
-     * @param rawAuthorities Array of authorities to assign to the specified
-     * user.
+     * @param rawAuthorities Array of authorities to assign to the specified user.
      * @param status The status of the specified users account.
-     * @param formParams
+     * @param formParams form params
      * @return A userGroupEntity.
      */
     @PUT
@@ -132,7 +128,7 @@ public class UserGroupResource extends ApplicationResource {
     /**
      * Creates a new user group with the specified users.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param group The user group.
      * @param userGroupEntity A userGroupEntity.
      * @return A userGroupEntity.
@@ -177,7 +173,7 @@ public class UserGroupResource extends ApplicationResource {
         // this user is being modified, replicate to the nodes to invalidate this account
         // so that it will be re-authorized during the next attempted access - if this wasn't
         // done the account would remain stale for up to the configured cache duration. this
-        // is acceptable sometimes but when updating a users authorities or groups via the UI 
+        // is acceptable sometimes but when updating a users authorities or groups via the UI
         // they shouldn't have to wait for the changes to take effect`
         if (properties.isClusterManager()) {
             // change content type to JSON for serializing entity
@@ -233,15 +229,12 @@ public class UserGroupResource extends ApplicationResource {
     }
 
     /**
-     * Deletes the user from the specified group. The user will not be removed,
-     * just the fact that they were in this group.
+     * Deletes the user from the specified group. The user will not be removed, just the fact that they were in this group.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param group The user group.
      * @param userId The user id to remove.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return A userGroupEntity.
      */
     @DELETE
@@ -258,7 +251,7 @@ public class UserGroupResource extends ApplicationResource {
         // this user is being modified, replicate to the nodes to invalidate this account
         // so that it will be re-authorized during the next attempted access - if this wasn't
         // done the account would remain stale for up to the configured cache duration. this
-        // is acceptable sometimes but when removing a user via the UI they shouldn't have to 
+        // is acceptable sometimes but when removing a user via the UI they shouldn't have to
         // wait for the changes to take effect
         if (properties.isClusterManager()) {
             // identify yourself as the NCM attempting to invalidate the user
@@ -302,14 +295,11 @@ public class UserGroupResource extends ApplicationResource {
     }
 
     /**
-     * Deletes the user group. The users will not be removed, just the fact that
-     * they were grouped.
+     * Deletes the user group. The users will not be removed, just the fact that they were grouped.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param group The user group.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return A userGroupEntity.
      */
     @DELETE
@@ -325,7 +315,7 @@ public class UserGroupResource extends ApplicationResource {
         // this user is being modified, replicate to the nodes to invalidate this account
         // so that it will be re-authorized during the next attempted access - if this wasn't
         // done the account would remain stale for up to the configured cache duration. this
-        // is acceptable sometimes but when removing a user via the UI they shouldn't have to 
+        // is acceptable sometimes but when removing a user via the UI they shouldn't have to
         // wait for the changes to take effect
         if (properties.isClusterManager()) {
             // identify yourself as the NCM attempting to invalidate the user

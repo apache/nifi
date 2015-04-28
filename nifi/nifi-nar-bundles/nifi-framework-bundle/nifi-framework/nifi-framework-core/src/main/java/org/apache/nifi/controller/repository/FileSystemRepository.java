@@ -1280,9 +1280,7 @@ public class FileSystemRepository implements ContentRepository {
         }
 
         /**
-         * @return {@code true} if wait is required to create claims against
-         * this Container, based on whether or not the container has reached its
-         * back pressure threshold
+         * @return {@code true} if wait is required to create claims against this Container, based on whether or not the container has reached its back pressure threshold
          */
         public boolean isWaitRequired() {
             if (!archiveEnabled) {

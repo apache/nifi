@@ -49,6 +49,14 @@
                     <generateDirectory>${project.build.directory}/generated-sources/jaxb</generateDirectory>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <configuration>
+                    <excludes>**/user/generated/*.java</excludes>
+                </configuration>
+            </plugin>            
+
         </plugins>
     </build>
     <dependencies>

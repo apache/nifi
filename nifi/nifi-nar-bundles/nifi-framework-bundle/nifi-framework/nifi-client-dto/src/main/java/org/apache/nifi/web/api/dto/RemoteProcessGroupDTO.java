@@ -129,8 +129,7 @@ public class RemoteProcessGroupDTO extends NiFiComponentDTO {
     }
 
     /**
-     * @return the time period used for the timeout when communicating with this
-     * RemoteProcessGroup
+     * @return the time period used for the timeout when communicating with this RemoteProcessGroup
      */
     public String getCommunicationsTimeout() {
         return communicationsTimeout;
@@ -141,8 +140,7 @@ public class RemoteProcessGroupDTO extends NiFiComponentDTO {
     }
 
     /**
-     * @return when yielding, this amount of time must elaspe before this remote process
-     * group is scheduled again
+     * @return when yielding, this amount of time must elaspe before this remote process group is scheduled again
      */
     public String getYieldDuration() {
         return yieldDuration;
@@ -197,8 +195,7 @@ public class RemoteProcessGroupDTO extends NiFiComponentDTO {
     }
 
     /**
-     * @return number of Remote Input Ports currently available in the remote NiFi
-     * instance
+     * @return number of Remote Input Ports currently available in the remote NiFi instance
      */
     public Integer getInputPortCount() {
         return inputPortCount;
@@ -209,8 +206,7 @@ public class RemoteProcessGroupDTO extends NiFiComponentDTO {
     }
 
     /**
-     * @return number of Remote Output Ports currently available in the remote NiFi
-     * instance
+     * @return number of Remote Output Ports currently available in the remote NiFi instance
      */
     public Integer getOutputPortCount() {
         return outputPortCount;
@@ -221,8 +217,7 @@ public class RemoteProcessGroupDTO extends NiFiComponentDTO {
     }
 
     /**
-     * @return contents of this remote process group. Will contain available
-     * input/output ports
+     * @return contents of this remote process group. Will contain available input/output ports
      */
     public RemoteProcessGroupContentsDTO getContents() {
         return contents;

@@ -29,8 +29,7 @@ import org.apache.nifi.cluster.node.Node.Status;
 public interface HttpResponseMapper {
 
     /**
-     * Maps a HTTP response to a node response and the corresponding node
-     * status.
+     * Maps a HTTP response to a node response and the corresponding node status.
      *
      * @param requestURI the original request URI
      * @param nodeResponses a set of node resource responses

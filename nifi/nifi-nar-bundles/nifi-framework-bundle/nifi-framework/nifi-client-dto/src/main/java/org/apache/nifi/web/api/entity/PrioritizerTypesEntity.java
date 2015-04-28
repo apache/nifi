@@ -21,9 +21,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.web.api.dto.DocumentedTypeDTO;
 
 /**
- * A serialized representation of this class can be placed in the entity body of
- * a response to the API. This particular entity holds a reference to a list of
- * prioritizer types.
+ * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to a list of prioritizer types.
  */
 @XmlRootElement(name = "prioritizerTypesEntity")
 public class PrioritizerTypesEntity extends Entity {

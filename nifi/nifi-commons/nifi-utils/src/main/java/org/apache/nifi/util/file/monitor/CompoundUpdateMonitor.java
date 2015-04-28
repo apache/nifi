@@ -22,11 +22,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * An {@link UpdateMonitor} that combines multiple <code>UpdateMonitor</code>s
- * such that it will indicate a change in a file only if ALL sub-monitors
- * indicate a change. The sub-monitors will be applied in the order given and if
- * any indicates that the state has not changed, the subsequent sub-monitors may
- * not be given a chance to run
+ * An {@link UpdateMonitor} that combines multiple <code>UpdateMonitor</code>s such that it will indicate a change in a file only if ALL sub-monitors indicate a change. The sub-monitors will be
+ * applied in the order given and if any indicates that the state has not changed, the subsequent sub-monitors may not be given a chance to run
  */
 public class CompoundUpdateMonitor implements UpdateMonitor {
 

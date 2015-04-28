@@ -51,29 +51,17 @@ public class HistoryResource extends ApplicationResource {
     /**
      * Queries the history of this Controller.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param offset The offset into the data. This parameter is required and is
-     * used in conjunction with count.
-     * @param count The number of rows that should be returned. This parameter
-     * is required and is used in conjunction with page.
-     * @param sortColumn The column to sort on. This parameter is optional. If
-     * not specified the results will be returned with the most recent first.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param offset The offset into the data. This parameter is required and is used in conjunction with count.
+     * @param count The number of rows that should be returned. This parameter is required and is used in conjunction with page.
+     * @param sortColumn The column to sort on. This parameter is optional. If not specified the results will be returned with the most recent first.
      * @param sortOrder The sort order.
-     * @param startDate The start date/time for the query. The start date/time
-     * must be formatted as 'MM/dd/yyyy HH:mm:ss'. This parameter is optional
-     * and must be specified in the timezone of the server. The server's
-     * timezone can be determined by inspecting the result of a status or
-     * history request.
-     * @param endDate The end date/time for the query. The end date/time must be
-     * formatted as 'MM/dd/yyyy HH:mm:ss'. This parameter is optional and must
-     * be specified in the timezone of the server. The server's timezone can be
-     * determined by inspecting the result of a status or history request.
-     * @param userName The user name of the user who's actions are being
-     * queried. This parameter is optional.
-     * @param sourceId The id of the source being queried (usually a processor
-     * id). This parameter is optional.
+     * @param startDate The start date/time for the query. The start date/time must be formatted as 'MM/dd/yyyy HH:mm:ss'. This parameter is optional and must be specified in the timezone of the
+     * server. The server's timezone can be determined by inspecting the result of a status or history request.
+     * @param endDate The end date/time for the query. The end date/time must be formatted as 'MM/dd/yyyy HH:mm:ss'. This parameter is optional and must be specified in the timezone of the server. The
+     * server's timezone can be determined by inspecting the result of a status or history request.
+     * @param userName The user name of the user who's actions are being queried. This parameter is optional.
+     * @param sourceId The id of the source being queried (usually a processor id). This parameter is optional.
      * @return A historyEntity.
      */
     @GET
@@ -160,9 +148,7 @@ public class HistoryResource extends ApplicationResource {
     /**
      * Gets the action for the corresponding id.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the action to get.
      * @return An actionEntity.
      */
@@ -198,9 +184,7 @@ public class HistoryResource extends ApplicationResource {
     /**
      * Deletes flow history from the specified end date.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param endDate The end date for the purge action.
      * @return A historyEntity
      */
@@ -235,9 +219,7 @@ public class HistoryResource extends ApplicationResource {
     /**
      * Gets the actions for the specified processor.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param processorId The id of the processor.
      * @return An processorHistoryEntity.
      */
@@ -266,9 +248,7 @@ public class HistoryResource extends ApplicationResource {
     /**
      * Gets the actions for the specified controller service.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param controllerServiceId The id of the controller service.
      * @return An componentHistoryEntity.
      */
@@ -297,9 +277,7 @@ public class HistoryResource extends ApplicationResource {
     /**
      * Gets the actions for the specified reporting task.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param reportingTaskId The id of the reporting task.
      * @return An componentHistoryEntity.
      */

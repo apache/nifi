@@ -87,7 +87,7 @@ public class ClusterResource extends ApplicationResource {
     /**
      * Locates the ClusterConnection sub-resource.
      *
-     * @return
+     * @return node resource
      */
     @Path("/nodes")
     public NodeResource getNodeResource() {
@@ -261,7 +261,7 @@ public class ClusterResource extends ApplicationResource {
     /**
      * Updates the processors annotation data.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param version The revision is used to verify the client is working with the latest version of the flow.
      * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param processorId The id of the processor.
@@ -314,7 +314,7 @@ public class ClusterResource extends ApplicationResource {
     /**
      * Updates the processors annotation data.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param processorId The id of the processor.
      * @param processorEntity A processorEntity.
      * @return A processorEntity.

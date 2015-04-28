@@ -93,7 +93,7 @@ public class ControllerResource extends ApplicationResource {
     /**
      * Locates the Provenance sub-resource.
      *
-     * @return
+     * @return the Provenance sub-resource
      */
     @Path("/provenance")
     public ProvenanceResource getProvenanceResource() {
@@ -103,7 +103,7 @@ public class ControllerResource extends ApplicationResource {
     /**
      * Locates the User sub-resource.
      *
-     * @return
+     * @return the User sub-resource
      */
     @Path("/users")
     public UserResource getUserResource() {
@@ -113,7 +113,7 @@ public class ControllerResource extends ApplicationResource {
     /**
      * Locates the User sub-resource.
      *
-     * @return
+     * @return the User sub-resource
      */
     @Path("/user-groups")
     public UserGroupResource getUserGroupResource() {
@@ -123,7 +123,7 @@ public class ControllerResource extends ApplicationResource {
     /**
      * Locates the History sub-resource.
      *
-     * @return
+     * @return the History sub-resource
      */
     @Path("/history")
     public HistoryResource getHistoryResource() {
@@ -133,7 +133,7 @@ public class ControllerResource extends ApplicationResource {
     /**
      * Locates the History sub-resource.
      *
-     * @return
+     * @return the History sub-resource
      */
     @Path("/bulletin-board")
     public BulletinBoardResource getBulletinBoardResource() {
@@ -143,7 +143,7 @@ public class ControllerResource extends ApplicationResource {
     /**
      * Locates the Template sub-resource.
      *
-     * @return
+     * @return the Template sub-resource
      */
     @Path("/templates")
     public TemplateResource getTemplateResource() {
@@ -153,7 +153,7 @@ public class ControllerResource extends ApplicationResource {
     /**
      * Locates the Snippets sub-resource.
      *
-     * @return
+     * @return the Snippets sub-resource
      */
     @Path("/snippets")
     public SnippetResource getSnippetResource() {
@@ -163,7 +163,7 @@ public class ControllerResource extends ApplicationResource {
     /**
      * Locates the Controller Services sub-resource.
      *
-     * @return
+     * @return the Controller Services sub-resource
      */
     @Path("/controller-services")
     public ControllerServiceResource getControllerServiceResource() {
@@ -173,7 +173,7 @@ public class ControllerResource extends ApplicationResource {
     /**
      * Locates the Reporting Tasks sub-resource.
      *
-     * @return
+     * @return the Reporting Tasks sub-resource
      */
     @Path("/reporting-tasks")
     public ReportingTaskResource getReportingTaskResource() {
@@ -184,7 +184,7 @@ public class ControllerResource extends ApplicationResource {
      * Locates the Group sub-resource.
      *
      * @param groupId The process group id
-     * @return
+     * @return the Group sub-resource
      */
     @Path("/process-groups/{process-group-id}")
     public ProcessGroupResource getGroupResource(@PathParam("process-group-id") String groupId) {
@@ -194,8 +194,7 @@ public class ControllerResource extends ApplicationResource {
     }
 
     /**
-     * Returns a 200 OK response to indicate this is a valid controller
-     * endpoint.
+     * Returns a 200 OK response to indicate this is a valid controller endpoint.
      *
      * @return An OK response with an empty entity body.
      */
@@ -212,9 +211,7 @@ public class ControllerResource extends ApplicationResource {
     /**
      * Returns the details of this NiFi.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return A controllerEntity.
      */
     @GET
@@ -272,22 +269,14 @@ public class ControllerResource extends ApplicationResource {
     }
 
     /**
-     * Creates a new archive of this flow controller. Note, this is a POST
-     * operation that returns a URI that is not representative of the thing that
-     * was actually created. The archive that is created cannot be referenced at
-     * a later time, therefore there is no corresponding URI. Instead the
-     * request URI is returned.
+     * Creates a new archive of this flow controller. Note, this is a POST operation that returns a URI that is not representative of the thing that was actually created. The archive that is created
+     * cannot be referenced at a later time, therefore there is no corresponding URI. Instead the request URI is returned.
      *
-     * Alternatively, we could have performed a PUT request. However, PUT
-     * requests are supposed to be idempotent and this endpoint is certainly
-     * not.
+     * Alternatively, we could have performed a PUT request. However, PUT requests are supposed to be idempotent and this endpoint is certainly not.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return A processGroupEntity.
      */
     @POST
@@ -361,9 +350,7 @@ public class ControllerResource extends ApplicationResource {
     /**
      * Retrieves the status for this NiFi.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return A controllerStatusEntity.
      */
     @GET
@@ -391,9 +378,7 @@ public class ControllerResource extends ApplicationResource {
     /**
      * Retrieves the counters report for this NiFi.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return A countersEntity.
      */
     @GET
@@ -421,10 +406,8 @@ public class ControllerResource extends ApplicationResource {
     /**
      * Update the specified counter. This will reset the counter value to 0.
      *
-     * @param httpServletRequest
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the counter.
      * @return A counterEntity.
      */
@@ -468,9 +451,7 @@ public class ControllerResource extends ApplicationResource {
     /**
      * Retrieves the configuration for this NiFi.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return A controllerConfigurationEntity.
      */
     @GET
@@ -503,18 +484,13 @@ public class ControllerResource extends ApplicationResource {
     /**
      * Update the configuration for this NiFi.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param name The name of this controller.
      * @param comments The comments of this controller.
-     * @param maxTimerDrivenThreadCount The maximum number of timer driven
-     * threads this controller has available.
-     * @param maxEventDrivenThreadCount The maximum number of timer driven
-     * threads this controller has available.
+     * @param maxTimerDrivenThreadCount The maximum number of timer driven threads this controller has available.
+     * @param maxEventDrivenThreadCount The maximum number of timer driven threads this controller has available.
      * @return A controllerConfigurationEntity.
      */
     @PUT
@@ -565,7 +541,7 @@ public class ControllerResource extends ApplicationResource {
     /**
      * Update the configuration for this NiFi.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param configEntity A controllerConfigurationEntity.
      * @return A controllerConfigurationEntity.
      */
@@ -624,12 +600,9 @@ public class ControllerResource extends ApplicationResource {
     }
 
     /**
-     * Retrieves the user details, including the authorities, about the user
-     * making the request.
+     * Retrieves the user details, including the authorities, about the user making the request.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return A authoritiesEntity.
      */
     @GET
@@ -661,9 +634,7 @@ public class ControllerResource extends ApplicationResource {
     /**
      * Retrieves the banners for this NiFi.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return A bannerEntity.
      */
     @GET
@@ -701,9 +672,7 @@ public class ControllerResource extends ApplicationResource {
     /**
      * Retrieves the types of processors that this NiFi supports.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return A processorTypesEntity.
      */
     @GET
@@ -734,9 +703,7 @@ public class ControllerResource extends ApplicationResource {
     /**
      * Retrieves the types of controller services that this NiFi supports.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param serviceType Returns only services that implement this type
      * @return A controllerServicesTypesEntity.
      */
@@ -770,9 +737,7 @@ public class ControllerResource extends ApplicationResource {
     /**
      * Retrieves the types of reporting tasks that this NiFi supports.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return A controllerServicesTypesEntity.
      */
     @GET
@@ -803,9 +768,7 @@ public class ControllerResource extends ApplicationResource {
     /**
      * Retrieves the types of prioritizers that this NiFi supports.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return A prioritizerTypesEntity.
      */
     @GET
@@ -836,9 +799,7 @@ public class ControllerResource extends ApplicationResource {
     /**
      * Retrieves details about this NiFi to put in the About dialog.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return An aboutEntity.
      */
     @GET

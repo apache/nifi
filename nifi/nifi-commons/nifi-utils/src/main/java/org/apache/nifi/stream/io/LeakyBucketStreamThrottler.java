@@ -190,8 +190,7 @@ public class LeakyBucketStreamThrottler implements StreamThrottler {
     }
 
     /**
-     * This class is responsible for draining water from the leaky bucket. I.e.,
-     * it actually moves the data
+     * This class is responsible for draining water from the leaky bucket. I.e., it actually moves the data
      */
     private class Drain implements Runnable {
 

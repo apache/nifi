@@ -88,8 +88,7 @@ public class ControllerServiceDTO extends NiFiComponentDTO {
     }
 
     /**
-     * @return The state of this controller service. Possible values are ENABLED,
-     * ENABLING, DISABLED, DISABLING
+     * @return The state of this controller service. Possible values are ENABLED, ENABLING, DISABLED, DISABLING
      */
     public String getState() {
         return state;
@@ -122,8 +121,7 @@ public class ControllerServiceDTO extends NiFiComponentDTO {
     }
 
     /**
-     * @return the URL for this controller services custom configuration UI if
-     * applicable. Null otherwise
+     * @return the URL for this controller services custom configuration UI if applicable. Null otherwise
      */
     public String getCustomUiUrl() {
         return customUiUrl;
@@ -156,9 +154,7 @@ public class ControllerServiceDTO extends NiFiComponentDTO {
     }
 
     /**
-     * Gets the validation errors from this controller service. These validation
-     * errors represent the problems with the controller service that must be
-     * resolved before it can be enabled.
+     * Gets the validation errors from this controller service. These validation errors represent the problems with the controller service that must be resolved before it can be enabled.
      *
      * @return The validation errors
      */

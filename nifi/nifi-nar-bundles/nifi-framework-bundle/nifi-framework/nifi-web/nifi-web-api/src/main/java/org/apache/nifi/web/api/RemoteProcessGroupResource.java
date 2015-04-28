@@ -81,11 +81,10 @@ public class RemoteProcessGroupResource extends ApplicationResource {
     private String groupId;
 
     /**
-     * Populates the remaining content for each remote process group. The uri
-     * must be generated and the remote process groups name must be retrieved.
+     * Populates the remaining content for each remote process group. The uri must be generated and the remote process groups name must be retrieved.
      *
-     * @param remoteProcessGroups
-     * @return
+     * @param remoteProcessGroups groups
+     * @return dtos
      */
     public Set<RemoteProcessGroupDTO> populateRemainingRemoteProcessGroupsContent(Set<RemoteProcessGroupDTO> remoteProcessGroups) {
         for (RemoteProcessGroupDTO remoteProcessGroup : remoteProcessGroups) {
@@ -95,12 +94,10 @@ public class RemoteProcessGroupResource extends ApplicationResource {
     }
 
     /**
-     * Populates the remaining content for the specified remote process group.
-     * The uri must be generated and the remote process groups name must be
-     * retrieved.
+     * Populates the remaining content for the specified remote process group. The uri must be generated and the remote process groups name must be retrieved.
      *
-     * @param remoteProcessGroup
-     * @return
+     * @param remoteProcessGroup group
+     * @return dto
      */
     private RemoteProcessGroupDTO populateRemainingRemoteProcessGroupContent(RemoteProcessGroupDTO remoteProcessGroup) {
         // populate the remaining content
@@ -112,12 +109,8 @@ public class RemoteProcessGroupResource extends ApplicationResource {
     /**
      * Retrieves all the of remote process groups in this NiFi.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param verbose Optional verbose flag that defaults to false. If the
-     * verbose flag is set to true remote group contents (ports) will be
-     * included.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param verbose Optional verbose flag that defaults to false. If the verbose flag is set to true remote group contents (ports) will be included.
      * @return A remoteProcessGroupEntity.
      */
     @GET
@@ -159,12 +152,8 @@ public class RemoteProcessGroupResource extends ApplicationResource {
     /**
      * Retrieves the specified remote process group.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param verbose Optional verbose flag that defaults to false. If the
-     * verbose flag is set to true remote group contents (ports) will be
-     * included.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param verbose Optional verbose flag that defaults to false. If the verbose flag is set to true remote group contents (ports) will be included.
      * @param id The id of the remote process group to retrieve
      * @return A remoteProcessGroupEntity.
      */
@@ -206,9 +195,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
     /**
      * Retrieves the specified remote process groups status history.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the remote process group to retrieve the status fow.
      * @return A statusHistoryEntity.
      */
@@ -243,12 +230,9 @@ public class RemoteProcessGroupResource extends ApplicationResource {
     /**
      * Creates a new remote process group.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param uri The uri to the remote process group that is being referenced.
      * @param x The x coordinate for this funnels position.
      * @param y The y coordinate for this funnels position.
@@ -296,7 +280,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
     /**
      * Creates a new remote process group.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param remoteProcessGroupEntity A remoteProcessGroupEntity.
      * @return A remoteProcessGroupEntity.
      */
@@ -409,12 +393,9 @@ public class RemoteProcessGroupResource extends ApplicationResource {
     /**
      * Removes the specified remote process group.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the remote process group to be removed.
      * @return A remoteProcessGroupEntity.
      */
@@ -465,18 +446,14 @@ public class RemoteProcessGroupResource extends ApplicationResource {
     /**
      * Updates the specified remote process group input port.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the remote process group to update.
      * @param portId The id of the input port to update.
      * @param isTransmitting Whether or not this port is transmitting.
      * @param isCompressed Whether or not this port should compress.
-     * @param concurrentlySchedulableTaskCount The number of concurrent tasks
-     * that should be supported
+     * @param concurrentlySchedulableTaskCount The number of concurrent tasks that should be supported
      *
      * @return A remoteProcessGroupPortEntity
      */
@@ -525,7 +502,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
     /**
      * Updates the specified remote process group input port.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param id The id of the remote process group to update.
      * @param portId The id of the input port to update.
      * @param remoteProcessGroupPortEntity The remoteProcessGroupPortEntity
@@ -599,18 +576,14 @@ public class RemoteProcessGroupResource extends ApplicationResource {
     /**
      * Updates the specified remote process group output port.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the remote process group to update.
      * @param portId The id of the output port to update.
      * @param isTransmitting Whether or not this port is transmitting.
      * @param isCompressed Whether or not this port should compress.
-     * @param concurrentlySchedulableTaskCount The number of concurrent tasks
-     * that should be supported
+     * @param concurrentlySchedulableTaskCount The number of concurrent tasks that should be supported
      *
      * @return A remoteProcessGroupPortEntity
      */
@@ -659,7 +632,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
     /**
      * Updates the specified remote process group output port.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param id The id of the remote process group to update.
      * @param portId The id of the output port to update.
      * @param remoteProcessGroupPortEntity The remoteProcessGroupPortEntity
@@ -733,18 +706,14 @@ public class RemoteProcessGroupResource extends ApplicationResource {
     /**
      * Updates the specified remote process group.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the remote process group to update.
      * @param isTransmitting Whether this remote process group is transmitting.
      * @param x The x coordinate for this funnels position.
      * @param y The y coordinate for this funnels position.
-     * @param communicationsTimeout The timeout to use when communication with
-     * this remote process group.
+     * @param communicationsTimeout The timeout to use when communication with this remote process group.
      * @param yieldDuration The yield duration
      *
      * @return A remoteProcessGroupEntity.
@@ -798,7 +767,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
     /**
      * Updates the specified remote process group.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param id The id of the remote process group to update.
      * @param remoteProcessGroupEntity A remoteProcessGroupEntity.
      * @return A remoteProcessGroupEntity.
@@ -847,7 +816,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
             return generateContinueResponse().build();
         }
 
-        // if the target uri is set we have to verify it here - we don't support updating the target uri on 
+        // if the target uri is set we have to verify it here - we don't support updating the target uri on
         // an existing remote process group, however if the remote process group is being created with an id
         // as is the case in clustered mode we need to verify the remote process group. treat this request as
         // though its a new remote process group.

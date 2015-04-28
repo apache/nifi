@@ -100,8 +100,7 @@ public class PortStatusDTO extends StatusDTO {
     }
 
     /**
-     * @return The total count and size of flow files that have been accepted in the
-     * last five minutes
+     * @return The total count and size of flow files that have been accepted in the last five minutes
      */
     public String getInput() {
         return input;
@@ -112,8 +111,7 @@ public class PortStatusDTO extends StatusDTO {
     }
 
     /**
-     * @return The total count and size of flow files that have been processed in the
-     * last five minutes
+     * @return The total count and size of flow files that have been processed in the last five minutes
      */
     public String getOutput() {
         return output;

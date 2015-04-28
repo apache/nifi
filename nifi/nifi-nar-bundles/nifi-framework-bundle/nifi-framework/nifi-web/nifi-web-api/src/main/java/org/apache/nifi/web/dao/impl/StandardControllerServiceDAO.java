@@ -37,12 +37,6 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
 
     private ControllerServiceProvider serviceProvider;
 
-    /**
-     * Locates the specified controller service.
-     *
-     * @param controllerServiceId
-     * @return
-     */
     private ControllerServiceNode locateControllerService(final String controllerServiceId) {
         // get the controller service
         final ControllerServiceNode controllerService = serviceProvider.getControllerServiceNode(controllerServiceId);
@@ -55,12 +49,6 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
         return controllerService;
     }
 
-    /**
-     * Creates a controller service.
-     *
-     * @param controllerServiceDTO The controller service DTO
-     * @return The controller service
-     */
     @Override
     public ControllerServiceNode createControllerService(final ControllerServiceDTO controllerServiceDTO) {
         // ensure the type is specified
@@ -72,7 +60,7 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
             // create the controller service
             final ControllerServiceNode controllerService = serviceProvider.createControllerService(controllerServiceDTO.getType(), controllerServiceDTO.getId(), true);
 
-            // ensure we can perform the update 
+            // ensure we can perform the update
             verifyUpdate(controllerService, controllerServiceDTO);
 
             // perform the update
@@ -84,50 +72,27 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
         }
     }
 
-    /**
-     * Gets the specified controller service.
-     *
-     * @param controllerServiceId The controller service id
-     * @return The controller service
-     */
     @Override
     public ControllerServiceNode getControllerService(final String controllerServiceId) {
         return locateControllerService(controllerServiceId);
     }
 
-    /**
-     * Determines if the specified controller service exists.
-     *
-     * @param controllerServiceId
-     * @return
-     */
     @Override
     public boolean hasControllerService(final String controllerServiceId) {
         return serviceProvider.getControllerServiceNode(controllerServiceId) != null;
     }
 
-    /**
-     * Gets all of the controller services.
-     *
-     * @return The controller services
-     */
     @Override
     public Set<ControllerServiceNode> getControllerServices() {
         return serviceProvider.getAllControllerServices();
     }
 
-    /**
-     * Updates the specified controller service.
-     *
-     * @param controllerServiceDTO The controller service DTO
-     * @return The controller service
-     */
     @Override
     public ControllerServiceNode updateControllerService(final ControllerServiceDTO controllerServiceDTO) {
         // get the controller service
         final ControllerServiceNode controllerService = locateControllerService(controllerServiceDTO.getId());
 
-        // ensure we can perform the update 
+        // ensure we can perform the update
         verifyUpdate(controllerService, controllerServiceDTO);
 
         // perform the update
@@ -151,7 +116,8 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
     }
 
     @Override
-    public ControllerServiceReference updateControllerServiceReferencingComponents(final String controllerServiceId, final ScheduledState scheduledState, final ControllerServiceState controllerServiceState) {
+    public ControllerServiceReference updateControllerServiceReferencingComponents(
+            final String controllerServiceId, final ScheduledState scheduledState, final ControllerServiceState controllerServiceState) {
         // get the controller service
         final ControllerServiceNode controllerService = locateControllerService(controllerServiceId);
 
@@ -173,14 +139,6 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
         return controllerService.getReferences();
     }
 
-    /**
-     * Validates the specified configuration for the specified controller
-     * service.
-     *
-     * @param controllerService
-     * @param controllerServiceDTO
-     * @return
-     */
     private List<String> validateProposedConfiguration(final ControllerServiceNode controllerService, final ControllerServiceDTO controllerServiceDTO) {
         final List<String> validationErrors = new ArrayList<>();
         return validationErrors;
@@ -217,12 +175,6 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
         }
     }
 
-    /**
-     * Verifies the controller service can be updated.
-     *
-     * @param controllerService
-     * @param controllerServiceDTO
-     */
     private void verifyUpdate(final ControllerServiceNode controllerService, final ControllerServiceDTO controllerServiceDTO) {
         // validate the new controller service state if appropriate
         if (isNotNull(controllerServiceDTO.getState())) {
@@ -269,12 +221,6 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
         }
     }
 
-    /**
-     * Configures the specified controller service.
-     *
-     * @param controllerService
-     * @param controllerServiceDTO
-     */
     private void configureControllerService(final ControllerServiceNode controllerService, final ControllerServiceDTO controllerServiceDTO) {
         final String name = controllerServiceDTO.getName();
         final String annotationData = controllerServiceDTO.getAnnotationData();
@@ -303,11 +249,6 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
         }
     }
 
-    /**
-     * Deletes the specified controller service.
-     *
-     * @param controllerServiceId The controller service id
-     */
     @Override
     public void deleteControllerService(String controllerServiceId) {
         final ControllerServiceNode controllerService = locateControllerService(controllerServiceId);

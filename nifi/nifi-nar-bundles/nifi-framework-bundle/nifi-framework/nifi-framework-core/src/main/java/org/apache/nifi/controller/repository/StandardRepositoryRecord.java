@@ -37,8 +37,7 @@ public class StandardRepositoryRecord implements RepositoryRecord {
     private final Map<String, String> originalAttributes;
 
     /**
-     * Creates a new record which has no original claim or flow file - it is
-     * entirely new
+     * Creates a new record which has no original claim or flow file - it is entirely new
      *
      * @param originalQueue queue
      */

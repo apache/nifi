@@ -17,9 +17,8 @@
 package org.apache.nifi.cluster.manager.exception;
 
 /**
- * Represents the exceptional case when the cluster is unable to service a
- * request because no nodes returned a response. When the given request is not
- * mutable the nodes are left in their previous state.
+ * Represents the exceptional case when the cluster is unable to service a request because no nodes returned a response. When the given request is not mutable the nodes are left in their previous
+ * state.
  *
  * @author unattributed
  */

@@ -54,33 +54,24 @@ import org.slf4j.LoggerFactory;
 
 /**
  * <p>
- * An in-memory implementation of the {@link ContentRepository} interface. This
- * implementation stores FlowFile content in the Java heap and keeps track of
- * the number of bytes used. If the number of bytes used by FlowFile content
- * exceeds some threshold (configured via the
- * <code>nifi.volatile.content.repository.max.size</code> property in the NiFi
- * properties with a default of 100 MB), one of two situations will occur:
+ * An in-memory implementation of the {@link ContentRepository} interface. This implementation stores FlowFile content in the Java heap and keeps track of the number of bytes used. If the number of
+ * bytes used by FlowFile content exceeds some threshold (configured via the <code>nifi.volatile.content.repository.max.size</code> property in the NiFi properties with a default of 100 MB), one of
+ * two situations will occur:
  * </p>
  *
  * <ul>
- * <li><b>Backup Repository:</b> If a Backup Repository has been specified (via
- * the {@link #setBackupRepository(ContentRepository)} method), the content will
- * be stored in the backup repository and all access to the FlowFile content
- * will automatically and transparently be proxied to the backup repository.
+ * <li><b>Backup Repository:</b> If a Backup Repository has been specified (via the {@link #setBackupRepository(ContentRepository)} method), the content will be stored in the backup repository and all
+ * access to the FlowFile content will automatically and transparently be proxied to the backup repository.
  * </li>
  * <li>
- * <b>Without Backup Repository:</b> If no Backup Repository has been specified,
- * when the threshold is exceeded, an IOException will be thrown.
+ * <b>Without Backup Repository:</b> If no Backup Repository has been specified, when the threshold is exceeded, an IOException will be thrown.
  * </li>
  * </ul>
  *
  * <p>
- * When a Content Claim is created via the {@link #create(boolean)} method, if
- * the <code>lossTolerant</code> flag is set to <code>false</code>, the Backup
- * Repository will be used to create the Content Claim and any accesses to the
- * ContentClaim will be proxied to the Backup Repository. If the Backup
- * Repository has not been specified, attempting to create a non-loss-tolerant
- * ContentClaim will result in an {@link IllegalStateException} being thrown.
+ * When a Content Claim is created via the {@link #create(boolean)} method, if the <code>lossTolerant</code> flag is set to <code>false</code>, the Backup Repository will be used to create the Content
+ * Claim and any accesses to the ContentClaim will be proxied to the Backup Repository. If the Backup Repository has not been specified, attempting to create a non-loss-tolerant ContentClaim will
+ * result in an {@link IllegalStateException} being thrown.
  * </p>
  */
 public class VolatileContentRepository implements ContentRepository {
@@ -144,8 +135,7 @@ public class VolatileContentRepository implements ContentRepository {
     }
 
     /**
-     * Specifies a Backup Repository where data should be written if this
-     * Repository fills up
+     * Specifies a Backup Repository where data should be written if this Repository fills up
      *
      * @param backup repo backup
      */

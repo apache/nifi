@@ -56,16 +56,12 @@ public class ReportingTaskAuditor extends NiFiAuditor {
     /**
      * Audits the creation of reporting task via createReportingTask().
      *
-     * This method only needs to be run 'after returning'. However, in Java 7
-     * the order in which these methods are returned from
-     * Class.getDeclaredMethods (even though there is no order guaranteed) seems
-     * to differ from Java 6. SpringAOP depends on this ordering to determine
-     * advice precedence. By normalizing all advice into Around advice we can
-     * alleviate this issue.
+     * This method only needs to be run 'after returning'. However, in Java 7 the order in which these methods are returned from Class.getDeclaredMethods (even though there is no order guaranteed)
+     * seems to differ from Java 6. SpringAOP depends on this ordering to determine advice precedence. By normalizing all advice into Around advice we can alleviate this issue.
      *
-     * @param proceedingJoinPoint
-     * @return
-     * @throws java.lang.Throwable
+     * @param proceedingJoinPoint joinpoint
+     * @return node
+     * @throws java.lang.Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.ReportingTaskDAO+) && "
             + "execution(org.apache.nifi.controller.ReportingTaskNode createReportingTask(org.apache.nifi.web.api.dto.ReportingTaskDTO))")
@@ -87,11 +83,11 @@ public class ReportingTaskAuditor extends NiFiAuditor {
     /**
      * Audits the configuration of a reporting task.
      *
-     * @param proceedingJoinPoint
-     * @param reportingTaskDTO
-     * @param reportingTaskDAO
-     * @return
-     * @throws Throwable
+     * @param proceedingJoinPoint joinpoint
+     * @param reportingTaskDTO dto
+     * @param reportingTaskDAO dao
+     * @return object
+     * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.ReportingTaskDAO+) && "
             + "execution(org.apache.nifi.controller.ReportingTaskNode updateReportingTask(org.apache.nifi.web.api.dto.ReportingTaskDTO)) && "
@@ -220,10 +216,10 @@ public class ReportingTaskAuditor extends NiFiAuditor {
     /**
      * Audits the removal of a reporting task via deleteReportingTask().
      *
-     * @param proceedingJoinPoint
-     * @param reportingTaskId
-     * @param reportingTaskDAO
-     * @throws Throwable
+     * @param proceedingJoinPoint join point
+     * @param reportingTaskId task id
+     * @param reportingTaskDAO task dao
+     * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.ReportingTaskDAO+) && "
             + "execution(void deleteReportingTask(java.lang.String)) && "
@@ -249,9 +245,9 @@ public class ReportingTaskAuditor extends NiFiAuditor {
     /**
      * Generates an audit record for the creation of a reporting task.
      *
-     * @param reportingTask
-     * @param operation
-     * @return
+     * @param reportingTask task
+     * @param operation operation
+     * @return action
      */
     public Action generateAuditRecord(ReportingTaskNode reportingTask, Operation operation) {
         return generateAuditRecord(reportingTask, operation, null);
@@ -260,10 +256,10 @@ public class ReportingTaskAuditor extends NiFiAuditor {
     /**
      * Generates an audit record for the creation of a reporting task.
      *
-     * @param reportingTask
-     * @param operation
-     * @param actionDetails
-     * @return
+     * @param reportingTask task
+     * @param operation operation
+     * @param actionDetails details
+     * @return action
      */
     public Action generateAuditRecord(ReportingTaskNode reportingTask, Operation operation, ActionDetails actionDetails) {
         Action action = null;
@@ -297,12 +293,11 @@ public class ReportingTaskAuditor extends NiFiAuditor {
     }
 
     /**
-     * Extracts the values for the configured properties from the specified
-     * ReportingTask.
+     * Extracts the values for the configured properties from the specified ReportingTask.
      *
-     * @param reportingTask
-     * @param reportingTaskDTO
-     * @return
+     * @param reportingTask task
+     * @param reportingTaskDTO dto
+     * @return properties of task
      */
     private Map<String, String> extractConfiguredPropertyValues(ReportingTaskNode reportingTask, ReportingTaskDTO reportingTaskDTO) {
         Map<String, String> values = new HashMap<>();
@@ -335,12 +330,11 @@ public class ReportingTaskAuditor extends NiFiAuditor {
     }
 
     /**
-     * Locates the actual property descriptor for the given spec property
-     * descriptor.
+     * Locates the actual property descriptor for the given spec property descriptor.
      *
-     * @param propertyDescriptors
-     * @param specDescriptor
-     * @return
+     * @param propertyDescriptors properties
+     * @param specDescriptor example property
+     * @return property
      */
     private PropertyDescriptor locatePropertyDescriptor(Set<PropertyDescriptor> propertyDescriptors, PropertyDescriptor specDescriptor) {
         for (PropertyDescriptor propertyDescriptor : propertyDescriptors) {

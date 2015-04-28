@@ -111,7 +111,8 @@ public class NodeProtocolSenderImplTest {
         when(mockServiceLocator.getService()).thenReturn(service);
         when(mockHandler.canHandle(any(ProtocolMessage.class))).thenReturn(Boolean.TRUE);
         ConnectionResponseMessage mockMessage = new ConnectionResponseMessage();
-        mockMessage.setConnectionResponse(new ConnectionResponse(nodeIdentifier, new StandardDataFlow("flow".getBytes("UTF-8"), new byte[0], new byte[0]), false, null, null, UUID.randomUUID().toString()));
+        mockMessage.setConnectionResponse(new ConnectionResponse(nodeIdentifier,
+                new StandardDataFlow("flow".getBytes("UTF-8"), new byte[0], new byte[0]), false, null, null, UUID.randomUUID().toString()));
         when(mockHandler.handle(any(ProtocolMessage.class))).thenReturn(mockMessage);
 
         ConnectionRequestMessage request = new ConnectionRequestMessage();

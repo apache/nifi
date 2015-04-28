@@ -90,8 +90,8 @@ public abstract class ApplicationResource {
     /**
      * Generate a resource uri based off of the specified parameters.
      *
-     * @param path
-     * @return
+     * @param path path
+     * @return resource uri
      */
     protected String generateResourceUri(String... path) {
         UriBuilder uriBuilder = uriInfo.getBaseUriBuilder();
@@ -150,8 +150,8 @@ public abstract class ApplicationResource {
     /**
      * Edit the response headers to indicating no caching.
      *
-     * @param response
-     * @return
+     * @param response response
+     * @return builder
      */
     protected ResponseBuilder noCache(ResponseBuilder response) {
         CacheControl cacheControl = new CacheControl();
@@ -162,12 +162,10 @@ public abstract class ApplicationResource {
     }
 
     /**
-     * If the application is operating as a node, then this method adds the
-     * cluster context information to the response using the response header
-     * 'X-CLUSTER_CONTEXT'.
+     * If the application is operating as a node, then this method adds the cluster context information to the response using the response header 'X-CLUSTER_CONTEXT'.
      *
-     * @param response
-     * @return
+     * @param response response
+     * @return builder
      */
     protected ResponseBuilder clusterContext(ResponseBuilder response) {
 
@@ -208,7 +206,7 @@ public abstract class ApplicationResource {
                 Action batchAction = new Action();
                 batchAction.setOperation(Operation.Batch);
 
-                // copy values from prototype action 
+                // copy values from prototype action
                 batchAction.setTimestamp(prototypeAction.getTimestamp());
                 batchAction.setUserDn(prototypeAction.getUserDn());
                 batchAction.setUserName(prototypeAction.getUserName());
@@ -231,8 +229,7 @@ public abstract class ApplicationResource {
     }
 
     /**
-     * @return the cluster context if found in the request header
-     * 'X-CLUSTER_CONTEXT'.
+     * @return the cluster context if found in the request header 'X-CLUSTER_CONTEXT'.
      */
     protected ClusterContext getClusterContextFromRequest() {
         String clusterContextHeaderValue = httpServletRequest.getHeader(WebClusterManager.CLUSTER_CONTEXT_HTTP_HEADER);
@@ -253,7 +250,7 @@ public abstract class ApplicationResource {
     /**
      * Generates an Ok response with no content.
      *
-     * @return
+     * @return an Ok response with no content
      */
     protected ResponseBuilder generateOkResponse() {
         return noCache(Response.ok());
@@ -274,7 +271,7 @@ public abstract class ApplicationResource {
      * Generates a 201 Created response with the specified content.
      *
      * @param uri The URI
-     * @param jsonResponse The content
+     * @param entity entity
      * @return The response to be built
      */
     protected ResponseBuilder generateCreatedResponse(URI uri, Object entity) {
@@ -283,10 +280,9 @@ public abstract class ApplicationResource {
     }
 
     /**
-     * Generates a 150 Node Continue response to be used within the cluster
-     * request handshake.
+     * Generates a 150 Node Continue response to be used within the cluster request handshake.
      *
-     * @return
+     * @return a 150 Node Continue response to be used within the cluster request handshake
      */
     protected ResponseBuilder generateContinueResponse() {
         return Response.status(WebClusterManager.NODE_CONTINUE_STATUS_CODE);
@@ -341,8 +337,8 @@ public abstract class ApplicationResource {
 
     protected Map<String, String> getHeaders(final Map<String, String> overriddenHeaders) {
 
-        final Map<String, String> result = new HashMap<String, String>();
-        final Map<String, String> overriddenHeadersIgnoreCaseMap = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
+        final Map<String, String> result = new HashMap<>();
+        final Map<String, String> overriddenHeadersIgnoreCaseMap = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         overriddenHeadersIgnoreCaseMap.putAll(overriddenHeaders);
 
         final Enumeration<String> headerNames = httpServletRequest.getHeaderNames();

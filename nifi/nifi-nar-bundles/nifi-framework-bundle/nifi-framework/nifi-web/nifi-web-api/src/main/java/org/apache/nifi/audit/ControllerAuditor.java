@@ -43,10 +43,10 @@ public class ControllerAuditor extends NiFiAuditor {
     /**
      * Audits updating the name of the controller.
      *
-     * @param proceedingJoinPoint
-     * @param name
-     * @param controllerFacade
-     * @throws java.lang.Throwable
+     * @param proceedingJoinPoint join point
+     * @param name name
+     * @param controllerFacade facade
+     * @throws java.lang.Throwable ex
      */
     @Around("within(org.apache.nifi.web.controller.ControllerFacade) && "
             + "execution(void setName(java.lang.String)) && "
@@ -96,10 +96,10 @@ public class ControllerAuditor extends NiFiAuditor {
     /**
      * Audits updating the comments of the controller.
      *
-     * @param proceedingJoinPoint
-     * @param comments
-     * @param controllerFacade
-     * @throws java.lang.Throwable
+     * @param proceedingJoinPoint join point
+     * @param comments comments
+     * @param controllerFacade facade
+     * @throws java.lang.Throwable ex
      */
     @Around("within(org.apache.nifi.web.controller.ControllerFacade) && "
             + "execution(void setComments(java.lang.String)) && "
@@ -147,13 +147,12 @@ public class ControllerAuditor extends NiFiAuditor {
     }
 
     /**
-     * Audits updating the max number of timer driven threads for the
-     * controller.
+     * Audits updating the max number of timer driven threads for the controller.
      *
-     * @param proceedingJoinPoint
-     * @param maxTimerDrivenThreadCount
-     * @param controllerFacade
-     * @throws java.lang.Throwable
+     * @param proceedingJoinPoint joint point
+     * @param maxTimerDrivenThreadCount thread count
+     * @param controllerFacade facade
+     * @throws java.lang.Throwable ex
      */
     @Around("within(org.apache.nifi.web.controller.ControllerFacade) && "
             + "execution(void setMaxTimerDrivenThreadCount(int)) && "
@@ -201,13 +200,12 @@ public class ControllerAuditor extends NiFiAuditor {
     }
 
     /**
-     * Audits updating the max number of event driven threads for the
-     * controller.
+     * Audits updating the max number of event driven threads for the controller.
      *
-     * @param proceedingJoinPoint
-     * @param maxEventDrivenThreadCount
-     * @param controllerFacade
-     * @throws java.lang.Throwable
+     * @param proceedingJoinPoint join point
+     * @param maxEventDrivenThreadCount thread count
+     * @param controllerFacade facade
+     * @throws java.lang.Throwable ex
      */
     @Around("within(org.apache.nifi.web.controller.ControllerFacade) && "
             + "execution(void setMaxEventDrivenThreadCount(int)) && "

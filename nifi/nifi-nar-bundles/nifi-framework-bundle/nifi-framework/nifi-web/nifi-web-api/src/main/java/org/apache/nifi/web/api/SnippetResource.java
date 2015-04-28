@@ -77,7 +77,7 @@ public class SnippetResource extends ApplicationResource {
     /**
      * Get the processor resource within the specified group.
      *
-     * @return
+     * @return the processor resource within the specified group
      */
     private ProcessorResource getProcessorResource(final String groupId) {
         ProcessorResource processorResource = resourceContext.getResource(ProcessorResource.class);
@@ -88,7 +88,7 @@ public class SnippetResource extends ApplicationResource {
     /**
      * Get the connection sub-resource within the specified group.
      *
-     * @return
+     * @return the connection sub-resource within the specified group
      */
     private ConnectionResource getConnectionResource(final String groupId) {
         ConnectionResource connectionResource = resourceContext.getResource(ConnectionResource.class);
@@ -99,7 +99,7 @@ public class SnippetResource extends ApplicationResource {
     /**
      * Get the input ports sub-resource within the specified group.
      *
-     * @return
+     * @return the input ports sub-resource within the specified group
      */
     private InputPortResource getInputPortResource(final String groupId) {
         InputPortResource inputPortResource = resourceContext.getResource(InputPortResource.class);
@@ -110,7 +110,7 @@ public class SnippetResource extends ApplicationResource {
     /**
      * Get the output ports sub-resource within the specified group.
      *
-     * @return
+     * @return the output ports sub-resource within the specified group
      */
     private OutputPortResource getOutputPortResource(final String groupId) {
         OutputPortResource outputPortResource = resourceContext.getResource(OutputPortResource.class);
@@ -121,7 +121,7 @@ public class SnippetResource extends ApplicationResource {
     /**
      * Locates the label sub-resource within the specified group.
      *
-     * @return
+     * @return the label sub-resource within the specified group
      */
     private LabelResource getLabelResource(final String groupId) {
         LabelResource labelResource = resourceContext.getResource(LabelResource.class);
@@ -132,7 +132,7 @@ public class SnippetResource extends ApplicationResource {
     /**
      * Locates the funnel sub-resource within the specified group.
      *
-     * @return
+     * @return the funnel sub-resource within the specified group
      */
     private FunnelResource getFunnelResource(final String groupId) {
         FunnelResource funnelResource = resourceContext.getResource(FunnelResource.class);
@@ -143,7 +143,7 @@ public class SnippetResource extends ApplicationResource {
     /**
      * Locates the remote process group sub-resource within the specified group.
      *
-     * @return
+     * @return the remote process group sub-resource within the specified group
      */
     private RemoteProcessGroupResource getRemoteProcessGroupResource(final String groupId) {
         RemoteProcessGroupResource remoteProcessGroupResource = resourceContext.getResource(RemoteProcessGroupResource.class);
@@ -154,8 +154,8 @@ public class SnippetResource extends ApplicationResource {
     /**
      * Locates the process group sub-resource within the specified group.
      *
-     * @param groupId
-     * @return
+     * @param groupId group id
+     * @return the process group sub-resource within the specified group
      */
     private ProcessGroupResource getProcessGroupResource(final String groupId) {
         ProcessGroupResource processGroupResource = resourceContext.getResource(ProcessGroupResource.class);
@@ -191,21 +191,14 @@ public class SnippetResource extends ApplicationResource {
     /**
      * Creates a new snippet based on the specified contents.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param parentGroupId The id of the process group the components in this
-     * snippet belong to.
-     * @param linked Whether or not this snippet is linked to the underlying
-     * data flow. If a linked snippet is deleted, the components that comprise
-     * the snippet are also deleted.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param parentGroupId The id of the process group the components in this snippet belong to.
+     * @param linked Whether or not this snippet is linked to the underlying data flow. If a linked snippet is deleted, the components that comprise the snippet are also deleted.
      * @param processorIds The ids of any processors in this snippet.
      * @param processGroupIds The ids of any process groups in this snippet.
-     * @param remoteProcessGroupIds The ids of any remote process groups in this
-     * snippet.
+     * @param remoteProcessGroupIds The ids of any remote process groups in this snippet.
      * @param inputPortIds The ids of any input ports in this snippet.
      * @param outputPortIds The ids of any output ports in this snippet.
      * @param connectionIds The ids of any connections in this snippet.
@@ -266,7 +259,7 @@ public class SnippetResource extends ApplicationResource {
     /**
      * Creates a snippet based off the specified configuration.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param snippetEntity A snippetEntity
      * @return A snippetEntity
      */
@@ -354,11 +347,8 @@ public class SnippetResource extends ApplicationResource {
     /**
      * Retrieves the specified snippet.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param verbose Whether or not to include the contents of the snippet in
-     * the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param verbose Whether or not to include the contents of the snippet in the response.
      * @param id The id of the snippet to retrieve.
      * @return A snippetEntity.
      */
@@ -400,20 +390,13 @@ public class SnippetResource extends ApplicationResource {
     /**
      * Updates the specified snippet.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param verbose Whether or not to include the contents of the snippet in
-     * the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param verbose Whether or not to include the contents of the snippet in the response.
      * @param id The id of the snippet to update.
-     * @param parentGroupId The id of the process group to move the contents of
-     * this snippet to.
-     * @param linked Whether or not this snippet is linked to the underlying
-     * data flow. If a linked snippet is deleted, the components that comprise
-     * the snippet are also deleted.
+     * @param parentGroupId The id of the process group to move the contents of this snippet to.
+     * @param linked Whether or not this snippet is linked to the underlying data flow. If a linked snippet is deleted, the components that comprise the snippet are also deleted.
      * @return A snippetEntity.
      */
     @PUT
@@ -455,10 +438,9 @@ public class SnippetResource extends ApplicationResource {
     }
 
     /**
-     * Updates the specified snippet. The contents of the snippet (component
-     * ids) cannot be updated once the snippet is created.
+     * Updates the specified snippet. The contents of the snippet (component ids) cannot be updated once the snippet is created.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param id The id of the snippet.
      * @param snippetEntity A snippetEntity
      * @return A snippetEntity
@@ -533,12 +515,9 @@ public class SnippetResource extends ApplicationResource {
     /**
      * Removes the specified snippet.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the snippet to remove.
      * @return A entity containing the client id and an updated revision.
      */
