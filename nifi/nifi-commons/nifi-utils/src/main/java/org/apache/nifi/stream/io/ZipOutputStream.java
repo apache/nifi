@@ -19,9 +19,8 @@ package org.apache.nifi.stream.io;
 import java.io.OutputStream;
 
 /**
- * This class extends the {@link java.util.zip.ZipOutputStream} by providing a
- * constructor that allows the user to specify the compression level. The
- * default compression level is 1, as opposed to Java's default of 5.
+ * This class extends the {@link java.util.zip.ZipOutputStream} by providing a constructor that allows the user to specify the compression level. The default compression level is 1, as opposed to
+ * Java's default of 5.
  */
 public class ZipOutputStream extends java.util.zip.ZipOutputStream {
 

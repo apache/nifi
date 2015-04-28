@@ -40,9 +40,7 @@ public class StreamUtils {
     }
 
     /**
-     * Copies <code>numBytes</code> from <code>source</code> to
-     * <code>destination</code>. If <code>numBytes</code> are not available from
-     * <code>source</code>, throws EOFException
+     * Copies <code>numBytes</code> from <code>source</code> to <code>destination</code>. If <code>numBytes</code> are not available from <code>source</code>, throws EOFException
      *
      * @param source the source of bytes to copy
      * @param destination the destination to copy bytes to
@@ -64,9 +62,7 @@ public class StreamUtils {
     }
 
     /**
-     * Reads data from the given input stream, copying it to the destination
-     * byte array. If the InputStream has less data than the given byte array,
-     * throws an EOFException
+     * Reads data from the given input stream, copying it to the destination byte array. If the InputStream has less data than the given byte array, throws an EOFException
      *
      * @param source the source to copy bytes from
      * @param destination the destination to fill
@@ -77,15 +73,12 @@ public class StreamUtils {
     }
 
     /**
-     * Reads data from the given input stream, copying it to the destination
-     * byte array. If the InputStream has less data than the given byte array,
-     * throws an EOFException if <code>ensureCapacity</code> is true and
-     * otherwise returns the number of bytes copied
+     * Reads data from the given input stream, copying it to the destination byte array. If the InputStream has less data than the given byte array, throws an EOFException if
+     * <code>ensureCapacity</code> is true and otherwise returns the number of bytes copied
      *
      * @param source the source to read bytes from
      * @param destination the destination to fill
-     * @param ensureCapacity whether or not to enforce that the InputStream have
-     * at least as much data as the capacity of the destination byte array
+     * @param ensureCapacity whether or not to enforce that the InputStream have at least as much data as the capacity of the destination byte array
      * @return the number of bytes actually filled
      * @throws IOException if unable to read from the underlying stream
      */
@@ -109,10 +102,8 @@ public class StreamUtils {
     }
 
     /**
-     * Copies data from in to out until either we are out of data (returns null)
-     * or we hit one of the byte patterns identified by the
-     * <code>stoppers</code> parameter (returns the byte pattern matched). The
-     * bytes in the stopper will be copied.
+     * Copies data from in to out until either we are out of data (returns null) or we hit one of the byte patterns identified by the <code>stoppers</code> parameter (returns the byte pattern
+     * matched). The bytes in the stopper will be copied.
      *
      * @param in the source to read bytes from
      * @param out the destination to write bytes to
@@ -151,11 +142,8 @@ public class StreamUtils {
     }
 
     /**
-     * Copies data from in to out until either we are out of data (returns null)
-     * or we hit one of the byte patterns identified by the
-     * <code>stoppers</code> parameter (returns the byte pattern matched). The
-     * byte pattern matched will NOT be copied to the output and will be un-read
-     * from the input.
+     * Copies data from in to out until either we are out of data (returns null) or we hit one of the byte patterns identified by the <code>stoppers</code> parameter (returns the byte pattern
+     * matched). The byte pattern matched will NOT be copied to the output and will be un-read from the input.
      *
      * @param in the source to read bytes from
      * @param out the destination to write bytes to

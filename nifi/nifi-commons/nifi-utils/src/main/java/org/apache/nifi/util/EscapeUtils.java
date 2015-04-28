@@ -19,9 +19,7 @@ package org.apache.nifi.util;
 public class EscapeUtils {
 
     /**
-     * Escapes the specified html by replacing &amp;, &lt;, &gt;, &quot;, &#39;,
-     * &#x2f; with their corresponding html entity. If html is null, null is
-     * returned.
+     * Escapes the specified html by replacing &amp;, &lt;, &gt;, &quot;, &#39;, &#x2f; with their corresponding html entity. If html is null, null is returned.
      *
      * @param html to escape
      * @return escaped html

@@ -42,8 +42,7 @@ public class RingBuffer<T> {
     }
 
     /**
-     * Adds the given value to the RingBuffer and returns the value that was
-     * removed in order to make room.
+     * Adds the given value to the RingBuffer and returns the value that was removed in order to make room.
      *
      * @param value the new value to add
      * @return value previously in the buffer
@@ -202,11 +201,8 @@ public class RingBuffer<T> {
     }
 
     /**
-     * Iterates over each element in the RingBuffer, calling the
-     * {@link ForEachEvaluator#evaluate(Object) evaluate} method on each element
-     * in the RingBuffer. If the Evaluator returns {@code false}, the method
-     * will skip all remaining elements in the RingBuffer; otherwise, the next
-     * element will be evaluated until all elements have been evaluated.
+     * Iterates over each element in the RingBuffer, calling the {@link ForEachEvaluator#evaluate(Object) evaluate} method on each element in the RingBuffer. If the Evaluator returns {@code false},
+     * the method will skip all remaining elements in the RingBuffer; otherwise, the next element will be evaluated until all elements have been evaluated.
      *
      * @param evaluator used to evaluate each item in the ring buffer
      */
@@ -215,15 +211,11 @@ public class RingBuffer<T> {
     }
 
     /**
-     * Iterates over each element in the RingBuffer, calling the
-     * {@link ForEachEvaluator#evaluate(Object) evaluate} method on each element
-     * in the RingBuffer. If the Evaluator returns {@code false}, the method
-     * will skip all remaining elements in the RingBuffer; otherwise, the next
-     * element will be evaluated until all elements have been evaluated.
+     * Iterates over each element in the RingBuffer, calling the {@link ForEachEvaluator#evaluate(Object) evaluate} method on each element in the RingBuffer. If the Evaluator returns {@code false},
+     * the method will skip all remaining elements in the RingBuffer; otherwise, the next element will be evaluated until all elements have been evaluated.
      *
      * @param evaluator the evaluator
-     * @param iterationDirection the order in which to iterate over the elements
-     * in the RingBuffer
+     * @param iterationDirection the order in which to iterate over the elements in the RingBuffer
      */
     public void forEach(final ForEachEvaluator<T> evaluator, final IterationDirection iterationDirection) {
         readLock.lock();
@@ -266,16 +258,14 @@ public class RingBuffer<T> {
     }
 
     /**
-     * Defines an interface that can be used to iterate over all of the elements
-     * in the RingBuffer via the {@link #forEach} method
+     * Defines an interface that can be used to iterate over all of the elements in the RingBuffer via the {@link #forEach} method
      *
      * @param <S> the type to evaluate
      */
     public static interface ForEachEvaluator<S> {
 
         /**
-         * Evaluates the given element and returns {@code true} if the next
-         * element should be evaluated, {@code false} otherwise
+         * Evaluates the given element and returns {@code true} if the next element should be evaluated, {@code false} otherwise
          *
          * @param value the value to evaluate
          * @return true if should continue evaluating; false otherwise

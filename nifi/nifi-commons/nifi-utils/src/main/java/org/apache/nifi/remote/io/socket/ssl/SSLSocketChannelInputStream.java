@@ -47,8 +47,7 @@ public class SSLSocketChannelInputStream extends InputStream {
     }
 
     /**
-     * Closes the underlying SSLSocketChannel, which will also close the
-     * OutputStream and connection
+     * Closes the underlying SSLSocketChannel, which will also close the OutputStream and connection
      */
     @Override
     public void close() throws IOException {

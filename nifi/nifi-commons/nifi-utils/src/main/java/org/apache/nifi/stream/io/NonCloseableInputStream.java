@@ -21,9 +21,8 @@ import java.io.IOException;
 import java.io.InputStream;
 
 /**
- * Wraps and InputStream so that the underlying InputStream cannot be closed.
- * This is used so that the InputStream can be wrapped with yet another
- * InputStream and prevent the outer layer from closing the inner InputStream
+ * Wraps and InputStream so that the underlying InputStream cannot be closed. This is used so that the InputStream can be wrapped with yet another InputStream and prevent the outer layer from closing
+ * the inner InputStream
  */
 public class NonCloseableInputStream extends FilterInputStream {
 

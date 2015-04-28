@@ -19,18 +19,15 @@ package org.apache.nifi.flowfile.attributes;
 public enum CoreAttributes implements FlowFileAttributeKey {
 
     /**
-     * The flowfile's path indicates the relative directory to which a FlowFile
-     * belongs and does not contain the filename
+     * The flowfile's path indicates the relative directory to which a FlowFile belongs and does not contain the filename
      */
     PATH("path"),
     /**
-     * The flowfile's absolute path indicates the absolute directory to which a
-     * FlowFile belongs and does not contain the filename
+     * The flowfile's absolute path indicates the absolute directory to which a FlowFile belongs and does not contain the filename
      */
     ABSOLUTE_PATH("absolute.path"),
     /**
-     * The filename of the FlowFile. The filename should not contain any
-     * directory structure.
+     * The filename of the FlowFile. The filename should not contain any directory structure.
      */
     FILENAME("filename"),
     /**
@@ -50,8 +47,7 @@ public enum CoreAttributes implements FlowFileAttributeKey {
      */
     DISCARD_REASON("discard.reason"),
     /**
-     * Indicates an identifier other than the FlowFile's UUID that is known to
-     * refer to this FlowFile.
+     * Indicates an identifier other than the FlowFile's UUID that is known to refer to this FlowFile.
      */
     ALTERNATE_IDENTIFIER("alternate.identifier");
 

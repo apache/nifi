@@ -58,8 +58,7 @@ public class CompressionOutputStream extends OutputStream {
     }
 
     /**
-     * Compresses the currently buffered chunk of data and sends it to the
-     * output stream
+     * Compresses the currently buffered chunk of data and sends it to the output stream
      *
      * @throws IOException if issues occur writing to stream
      */
