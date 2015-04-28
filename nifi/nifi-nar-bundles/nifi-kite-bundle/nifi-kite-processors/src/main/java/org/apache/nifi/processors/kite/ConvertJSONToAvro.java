@@ -38,6 +38,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.kitesdk.data.DatasetException;
 import org.kitesdk.data.DatasetIOException;
@@ -97,22 +98,22 @@ public class ConvertJSONToAvro extends AbstractKiteProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, final ProcessSession session)
+    public void onTrigger(final ProcessContext context, final ProcessSession session)
             throws ProcessException {
-        FlowFile flowFile = session.get();
-        if (flowFile == null) {
+        FlowFile successfulRecords = session.get();
+        if (successfulRecords == null) {
             return;
         }
 
         String schemaProperty = context.getProperty(SCHEMA)
-                .evaluateAttributeExpressions(flowFile)
+                .evaluateAttributeExpressions(successfulRecords)
                 .getValue();
         final Schema schema;
         try {
             schema = getSchema(schemaProperty, DefaultConfiguration.get());
         } catch (SchemaNotFoundException e) {
             getLogger().error("Cannot find schema: " + schemaProperty);
-            session.transfer(flowFile, FAILURE);
+            session.transfer(successfulRecords, FAILURE);
             return;
         }
 
@@ -121,21 +122,31 @@ public class ConvertJSONToAvro extends AbstractKiteProcessor {
         writer.setCodec(CodecFactory.snappyCodec());
 
         try {
-            flowFile = session.write(flowFile, new StreamCallback() {
+          successfulRecords = session.write(successfulRecords, new StreamCallback() {
                 @Override
                 public void process(InputStream in, OutputStream out) throws IOException {
+                    FlowFile failedRecords = session.create();
                     long written = 0L;
                     long errors = 0L;
+                    long total = 0L;
                     try (JSONFileReader<Record> reader = new JSONFileReader<>(
                             in, schema, Record.class)) {
                         reader.initialize();
                         try (DataFileWriter<Record> w = writer.create(schema, out)) {
                             while (reader.hasNext()) {
+                                total += 1;
                                 try {
                                     Record record = reader.next();
                                     w.append(record);
                                     written += 1;
-                                } catch (DatasetRecordException e) {
+                                } catch (final DatasetRecordException e) {
+                                    failedRecords = session.append(failedRecords, new OutputStreamCallback() {
+                                        @Override
+                                        public void process(OutputStream out) throws IOException {
+                                            out.write((e.getMessage() + " [" +
+                                              e.getCause().getMessage() + "]\n").getBytes());
+                                        }
+                                    });
                                     errors += 1;
                                 }
                             }
@@ -143,21 +154,26 @@ public class ConvertJSONToAvro extends AbstractKiteProcessor {
                         session.adjustCounter("Converted records", written,
                                 false /* update only if file transfer is successful */);
                         session.adjustCounter("Conversion errors", errors,
-                                false /* update only if file transfer is successful */);
+                          false /* update only if file transfer is successful */);
+
+                        if (errors > 0L) {
+                            getLogger().warn("Failed to convert " + errors + '/' + total + " records from JSON to Avro");
+                        }
                     }
+                    session.transfer(failedRecords, FAILURE);
                 }
             });
 
-            session.transfer(flowFile, SUCCESS);
+            session.transfer(successfulRecords, SUCCESS);
 
             //session.getProvenanceReporter().send(flowFile, target.getUri().toString());
         } catch (ProcessException | DatasetIOException e) {
             getLogger().error("Failed reading or writing", e);
-            session.transfer(flowFile, FAILURE);
+            session.transfer(successfulRecords, FAILURE);
 
         } catch (DatasetException e) {
             getLogger().error("Failed to read FlowFile", e);
-            session.transfer(flowFile, FAILURE);
+            session.transfer(successfulRecords, FAILURE);
 
         }
     }

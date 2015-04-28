@@ -18,9 +18,17 @@
  */
 package org.apache.nifi.processors.kite;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Path;
+import java.util.List;
+
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
@@ -38,8 +46,12 @@ public class TestJSONToAvroProcessor {
 
     public static final String JSON_CONTENT = ""
             + "{\"id\": 1,\"color\": \"green\"}"
-            + "{\"id\": \"120V\", \"color\": \"blue\"}\n" + // invalid, ID is a string
+            + "{\"id\": \"120V\", \"color\": \"blue\"}\n" // invalid, ID is a string
+            + "{\"id\": 10, \"color\": 15.23}\n" + // invalid, color as double
             "{\"id\": 2, \"color\": \"grey\", \"price\": 12.95 }";
+
+    public static final String FAILURE_CONTENT = "Cannot convert field id [Cannot convert to long: \"120V\"]\n" +
+      "Cannot convert field color [Cannot convert to string: 15.23]\n";
 
     @Test
     public void testBasicConversion() throws IOException {
@@ -54,8 +66,13 @@ public class TestJSONToAvroProcessor {
         long converted = runner.getCounterValue("Converted records");
         long errors = runner.getCounterValue("Conversion errors");
         Assert.assertEquals("Should convert 2 rows", 2, converted);
-        Assert.assertEquals("Should reject 1 row", 1, errors);
+        Assert.assertEquals("Should reject 2 rows", 2, errors);
 
-        runner.assertAllFlowFilesTransferred("success", 1);
+        runner.assertTransferCount("success", 1);
+        runner.assertTransferCount("failure", 1);
+
+        String failureContent = Bytes.toString(runner.getContentAsByteArray(
+          runner.getFlowFilesForRelationship("failure").get(0)));
+        Assert.assertEquals("Should reject an invalid string and double", FAILURE_CONTENT, failureContent);
     }
 }
