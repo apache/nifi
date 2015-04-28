@@ -22,9 +22,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.web.api.dto.LabelDTO;
 
 /**
- * A serialized representation of this class can be placed in the entity body of
- * a response to the API. This particular entity holds a reference to a list of
- * LabelDTOs.
+ * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to a list of LabelDTOs.
  */
 @XmlRootElement(name = "labelsEntity")
 public class LabelsEntity extends Entity {

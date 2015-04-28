@@ -84,8 +84,7 @@ public class ProcessGroupDTO extends NiFiComponentDTO {
     }
 
     /**
-     * @return contents of this process group. This field will be populated if the
-     * request is marked verbose
+     * @return contents of this process group. This field will be populated if the request is marked verbose
      */
     public FlowSnippetDTO getContents() {
         return contents;

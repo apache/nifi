@@ -22,9 +22,8 @@ import org.apache.nifi.web.api.dto.search.UserGroupSearchResultDTO;
 import org.apache.nifi.web.api.dto.search.UserSearchResultDTO;
 
 /**
- * A serialized representation of this class can be placed in the entity body of
- * a request or response to or from the API. This particular entity holds a
- * reference to UserSearchResultDTOs and UserGroupSearchResultDTOs.
+ * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to UserSearchResultDTOs and
+ * UserGroupSearchResultDTOs.
  */
 @XmlRootElement(name = "userSearchResultsEntity")
 public class UserSearchResultsEntity {

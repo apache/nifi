@@ -47,8 +47,7 @@ public class RemoteProcessGroupPortDTO {
     }
 
     /**
-     * @return number tasks that may transmit flow files to the target port
-     * concurrently
+     * @return number tasks that may transmit flow files to the target port concurrently
      */
     public Integer getConcurrentlySchedulableTaskCount() {
         return concurrentlySchedulableTaskCount;

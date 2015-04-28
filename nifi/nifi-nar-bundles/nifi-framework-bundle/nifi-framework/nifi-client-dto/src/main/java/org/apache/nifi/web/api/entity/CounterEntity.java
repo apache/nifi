@@ -20,9 +20,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.web.api.dto.CounterDTO;
 
 /**
- * A serialized representation of this class can be placed in the entity body of
- * a response from the API. This particular entity holds a reference to a
- * CounterDTO.
+ * A serialized representation of this class can be placed in the entity body of a response from the API. This particular entity holds a reference to a CounterDTO.
  */
 @XmlRootElement(name = "counterEntity")
 public class CounterEntity extends Entity {

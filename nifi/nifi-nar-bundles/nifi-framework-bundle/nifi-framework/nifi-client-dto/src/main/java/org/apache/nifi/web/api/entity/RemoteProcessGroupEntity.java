@@ -20,9 +20,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 
 /**
- * A serialized representation of this class can be placed in the entity body of
- * a request or response to or from the API. This particular entity holds a
- * reference to a RemoteProcessGroupDTO.
+ * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a RemoteProcessGroupDTO.
  */
 @XmlRootElement(name = "remoteProcessGroupEntity")
 public class RemoteProcessGroupEntity extends Entity {

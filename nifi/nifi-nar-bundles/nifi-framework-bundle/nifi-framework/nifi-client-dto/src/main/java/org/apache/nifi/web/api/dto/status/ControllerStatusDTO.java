@@ -65,8 +65,7 @@ public class ControllerStatusDTO {
     }
 
     /**
-     * @return Used in clustering, will report the number of nodes connected vs the
-     * number of nodes in the cluster
+     * @return Used in clustering, will report the number of nodes connected vs the number of nodes in the cluster
      */
     public String getConnectedNodes() {
         return connectedNodes;

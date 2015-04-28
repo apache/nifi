@@ -21,9 +21,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 
 /**
- * A serialized representation of this class can be placed in the entity body of
- * a response to the API. This particular entity holds a reference to a list of
- * reporting tasks.
+ * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to a list of reporting tasks.
  */
 @XmlRootElement(name = "reportingTasksEntity")
 public class ReportingTasksEntity extends Entity {

@@ -172,8 +172,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * @return id of the group that this component resides in. If the component is
-     * no longer in the flow, the group id will not be set
+     * @return id of the group that this component resides in. If the component is no longer in the flow, the group id will not be set
      */
     public String getGroupId() {
         return groupId;
@@ -316,8 +315,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * @return If this represents a route event, this is the relationship to which the
-     * flowfile was routed
+     * @return If this represents a route event, this is the relationship to which the flowfile was routed
      */
     public String getRelationship() {
         return relationship;
@@ -361,8 +359,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * @return the Section in which the output Content Claim lives, or
-     * <code>null</code> if no Content Claim exists
+     * @return the Section in which the output Content Claim lives, or <code>null</code> if no Content Claim exists
      */
     public String getOutputContentClaimSection() {
         return outputContentClaimSection;
@@ -373,8 +370,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * @return the Container in which the output Content Claim lives, or
-     * <code>null</code> if no Content Claim exists
+     * @return the Container in which the output Content Claim lives, or <code>null</code> if no Content Claim exists
      */
     public String getOutputContentClaimContainer() {
         return outputContentClaimContainer;
@@ -385,8 +381,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * @return the Identifier of the output Content Claim, or <code>null</code>
-     * if no Content Claim exists
+     * @return the Identifier of the output Content Claim, or <code>null</code> if no Content Claim exists
      */
     public String getOutputContentClaimIdentifier() {
         return outputContentClaimIdentifier;
@@ -397,8 +392,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * @return the offset into the the output Content Claim where the FlowFile's
-     * content begins, or <code>null</code> if no Content Claim exists
+     * @return the offset into the the output Content Claim where the FlowFile's content begins, or <code>null</code> if no Content Claim exists
      */
     public Long getOutputContentClaimOffset() {
         return outputContentClaimOffset;
@@ -442,8 +436,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * @return the Section in which the input Content Claim lives, or
-     * <code>null</code> if no Content Claim exists
+     * @return the Section in which the input Content Claim lives, or <code>null</code> if no Content Claim exists
      */
     public String getInputContentClaimSection() {
         return inputContentClaimSection;
@@ -454,8 +447,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * @return the Container in which the input Content Claim lives, or
-     * <code>null</code> if no Content Claim exists
+     * @return the Container in which the input Content Claim lives, or <code>null</code> if no Content Claim exists
      */
     public String getInputContentClaimContainer() {
         return inputContentClaimContainer;
@@ -466,8 +458,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * @return the Identifier of the input Content Claim, or <code>null</code>
-     * if no Content Claim exists
+     * @return the Identifier of the input Content Claim, or <code>null</code> if no Content Claim exists
      */
     public String getInputContentClaimIdentifier() {
         return inputContentClaimIdentifier;
@@ -478,8 +469,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * @return the offset into the the input Content Claim where the FlowFile's
-     * content begins, or <code>null</code> if no Content Claim exists
+     * @return the offset into the the input Content Claim where the FlowFile's content begins, or <code>null</code> if no Content Claim exists
      */
     public Long getInputContentClaimOffset() {
         return inputContentClaimOffset;
@@ -534,9 +524,8 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * @return identifier of the FlowFile Queue / Connection from which the
-     * FlowFile was pulled to generate this event, or <code>null</code> if
-     * either the queue is unknown or the FlowFile was created by this event
+     * @return identifier of the FlowFile Queue / Connection from which the FlowFile was pulled to generate this event, or <code>null</code> if either the queue is unknown or the FlowFile was created
+     * by this event
      */
     public String getSourceConnectionIdentifier() {
         return sourceConnectionIdentifier;

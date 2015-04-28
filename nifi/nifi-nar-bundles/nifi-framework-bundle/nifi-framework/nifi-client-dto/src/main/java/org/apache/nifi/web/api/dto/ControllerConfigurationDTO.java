@@ -86,8 +86,7 @@ public class ControllerConfigurationDTO {
     }
 
     /**
-     * @return interval in seconds between the automatic NiFi refresh requests. This
-     * value is read only
+     * @return interval in seconds between the automatic NiFi refresh requests. This value is read only
      */
     public Long getAutoRefreshIntervalSeconds() {
         return autoRefreshIntervalSeconds;
@@ -98,8 +97,7 @@ public class ControllerConfigurationDTO {
     }
 
     /**
-     * @return Indicates whether or not Site-to-Site communications with this instance
-     * is secure (2-way authentication). This value is read only
+     * @return Indicates whether or not Site-to-Site communications with this instance is secure (2-way authentication). This value is read only
      */
     public Boolean isSiteToSiteSecure() {
         return siteToSiteSecure;
