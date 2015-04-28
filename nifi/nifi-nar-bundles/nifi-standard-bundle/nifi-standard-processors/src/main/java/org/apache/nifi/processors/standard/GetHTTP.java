@@ -446,7 +446,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
                                     } catch (IOException e) {
                                         getLogger().error("Failed to persist ETag and LastMod due to " + e, e);
                                     }
-                                } 
+                                }
                             }
                             finally {
                                 readLock.lock();
