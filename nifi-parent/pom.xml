@@ -248,6 +248,14 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>check-style</id>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>                
                 <configuration>
                     <checkstyleRules>
                         <module name="Checker">
@@ -354,38 +362,29 @@
                         </exclusions>
                     </dependency>
                 </dependencies>
-                <executions>
-                    <execution>
-                        <id>check-licenses</id>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>             
         </plugins>
     </build>
     <profiles>
-        <profile> <!-- will move this up with the always on plugins once we get all checkstyle stuff resolved-->
-            <id>checkstyle</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
+        <profile>
+            <!-- Automatically check for licenses.  Too slow to always run.
+            Activate with -P check-licenses -->
+            <id>check-licenses</id>
             <build>
                 <plugins>
                     <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-checkstyle-plugin</artifactId>
+                        <groupId>org.apache.rat</groupId>
+                        <artifactId>apache-rat-plugin</artifactId>
                         <executions>
                             <execution>
-                                <id>check-style</id>
                                 <goals>
                                     <goal>check</goal>
                                 </goals>
+                                <phase>verify</phase>
                             </execution>
                         </executions>
                     </plugin>
-                </plugins>                
+                </plugins>
             </build>
         </profile>
     </profiles>

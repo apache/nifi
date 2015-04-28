@@ -100,7 +100,7 @@ public interface RemoteProcessGroupDAO {
      * @param groupId id
      * @param remoteProcessGroupId id
      * @param remoteProcessGroupPort port
-     * @return
+     * @return updated group port
      */
     RemoteGroupPort updateRemoteProcessGroupInputPort(String groupId, String remoteProcessGroupId, RemoteProcessGroupPortDTO remoteProcessGroupPort);
 
@@ -110,7 +110,7 @@ public interface RemoteProcessGroupDAO {
      * @param groupId group id
      * @param remoteProcessGroupId group id
      * @param remoteProcessGroupPort port
-     * @return
+     * @return group port
      */
     RemoteGroupPort updateRemoteProcessGroupOutputPort(String groupId, String remoteProcessGroupId, RemoteProcessGroupPortDTO remoteProcessGroupPort);
 

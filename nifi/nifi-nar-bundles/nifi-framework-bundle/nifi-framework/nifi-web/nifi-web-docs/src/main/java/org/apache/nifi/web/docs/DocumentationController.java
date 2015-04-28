@@ -41,7 +41,7 @@ public class DocumentationController extends HttpServlet {
 
     private static final int GENERAL_LINK_COUNT = 4;
     private static final int DEVELOPER_LINK_COUNT = 2;
-    
+
     // context for accessing the extension mapping
     private ServletContext servletContext;
 

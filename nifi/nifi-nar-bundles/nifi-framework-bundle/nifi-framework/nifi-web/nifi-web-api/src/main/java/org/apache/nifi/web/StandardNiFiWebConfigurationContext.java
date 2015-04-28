@@ -68,8 +68,7 @@ import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.util.ClientResponseUtils;
 
 /**
- * Implements the NiFiWebConfigurationContext interface to support a context in
- * both standalone and clustered environments.
+ * Implements the NiFiWebConfigurationContext interface to support a context in both standalone and clustered environments.
  */
 public class StandardNiFiWebConfigurationContext implements NiFiWebConfigurationContext {
 
@@ -95,7 +94,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
     public void saveActions(final NiFiWebRequestContext requestContext, final Collection<ConfigurationAction> configurationActions) {
         Objects.requireNonNull(configurationActions, "Actions cannot be null.");
 
-        // ensure the path could be 
+        // ensure the path could be
         if (requestContext.getExtensionType() == null) {
             throw new IllegalArgumentException("The UI extension type must be specified.");
         }
@@ -188,7 +187,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
             throw new ResourceNotFoundException(String.format("Configuration request context config did not have a component ID."));
         }
 
-        // ensure the path could be 
+        // ensure the path could be
         if (requestContext.getExtensionType() == null) {
             throw new IllegalArgumentException("The UI extension type must be specified.");
         }
@@ -225,7 +224,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
             throw new ResourceNotFoundException(String.format("Configuration request context did not have a component ID."));
         }
 
-        // ensure the path could be 
+        // ensure the path could be
         if (requestContext.getExtensionType() == null) {
             throw new IllegalArgumentException("The UI extension type must be specified.");
         }
@@ -259,17 +258,17 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
         /**
          * Gets the component details using the specified request context.
          *
-         * @param requestContext
-         * @return
+         * @param requestContext context
+         * @return the component details using the specified request context
          */
         ComponentDetails getComponentDetails(NiFiWebRequestContext requestContext);
 
         /**
          * Sets the annotation data using the specified request context.
          *
-         * @param requestContext
-         * @param annotationData
-         * @return
+         * @param requestContext context
+         * @param annotationData data
+         * @return details
          */
         ComponentDetails setAnnotationData(NiFiWebConfigurationRequestContext requestContext, String annotationData);
     }
@@ -392,8 +391,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
     }
 
     /**
-     * Interprets the request/response with the underlying ControllerService
-     * model.
+     * Interprets the request/response with the underlying ControllerService model.
      */
     private class ControllerServiceFacade implements ComponentFacade {
 
@@ -528,8 +526,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
     }
 
     /**
-     * Interprets the request/response with the underlying ControllerService
-     * model.
+     * Interprets the request/response with the underlying ControllerService model.
      */
     private class ReportingTaskFacade implements ComponentFacade {
 
@@ -664,11 +661,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
     }
 
     /**
-     * Gets the headers for the request to replicate to each node while
-     * clustered.
-     *
-     * @param config
-     * @return
+     * Gets the headers for the request to replicate to each node while clustered.
      */
     private Map<String, String> getHeaders(final NiFiWebRequestContext config) {
         final Map<String, String> headers = new HashMap<>();
@@ -694,10 +687,6 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
 
     /**
      * Checks the specified response and drains the stream appropriately.
-     *
-     * @param nodeResponse
-     * @param revision
-     * @param id
      */
     private void checkResponse(final NodeResponse nodeResponse, final String id) {
         if (nodeResponse.hasThrowable()) {

@@ -66,7 +66,7 @@ public class UserResource extends ApplicationResource {
 
     /*
      * Developer Note: Clustering assumes a centralized security provider. The
-     * cluster manager will manage user accounts when in clustered mode and 
+     * cluster manager will manage user accounts when in clustered mode and
      * interface with the authorization provider. However, when nodes perform
      * Site-to-Site, the authorization details of the remote NiFi will be cached
      * locally. These details need to be invalidated when certain actions are
@@ -80,9 +80,7 @@ public class UserResource extends ApplicationResource {
     /**
      * Gets all users that are registered within this Controller.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param grouped Whether to return the users in their groups.
      * @return A usersEntity.
      */
@@ -114,9 +112,7 @@ public class UserResource extends ApplicationResource {
     /**
      * Gets the details for the specified user.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The user id.
      * @return A userEntity.
      */
@@ -237,15 +233,12 @@ public class UserResource extends ApplicationResource {
     /**
      * Updates the specified user.
      *
-     * @param httpServletRequest
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the user to update.
-     * @param rawAuthorities Array of authorities to assign to the specified
-     * user.
+     * @param rawAuthorities Array of authorities to assign to the specified user.
      * @param status The status of the specified users account.
-     * @param formParams
+     * @param formParams form params
      * @return A userEntity
      */
     @PUT
@@ -296,7 +289,7 @@ public class UserResource extends ApplicationResource {
     /**
      * Updates the specified user.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param id The id of the user to update.
      * @param userEntity A userEntity
      * @return A userEntity
@@ -334,7 +327,7 @@ public class UserResource extends ApplicationResource {
         // this user is being modified, replicate to the nodes to invalidate this account
         // so that it will be re-authorized during the next attempted access - if this wasn't
         // done the account would remain stale for up to the configured cache duration. this
-        // is acceptable sometimes but when updating a users authorities or groups via the UI 
+        // is acceptable sometimes but when updating a users authorities or groups via the UI
         // they shouldn't have to wait for the changes to take effect`
         if (properties.isClusterManager()) {
             // change content type to JSON for serializing entity
@@ -391,11 +384,9 @@ public class UserResource extends ApplicationResource {
     /**
      * Deletes the specified user.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param id The user id
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return A userEntity.
      */
     @DELETE
@@ -411,7 +402,7 @@ public class UserResource extends ApplicationResource {
         // this user is being modified, replicate to the nodes to invalidate this account
         // so that it will be re-authorized during the next attempted access - if this wasn't
         // done the account would remain stale for up to the configured cache duration. this
-        // is acceptable sometimes but when removing a user via the UI they shouldn't have to 
+        // is acceptable sometimes but when removing a user via the UI they shouldn't have to
         // wait for the changes to take effect
         if (properties.isClusterManager()) {
             // identify yourself as the NCM attempting to invalidate the user

@@ -130,7 +130,6 @@ public class NiFiTestServer {
         jetty.addConnector(https);
     }
 
-
     public void startServer() throws Exception {
         jetty.start();
 
@@ -169,16 +168,14 @@ public class NiFiTestServer {
     }
 
     /**
-     * Convenience method to provide access to Spring beans accessible from the
-     * web application context.
+     * Convenience method to provide access to Spring beans accessible from the web application context.
      *
      * @param <T> target cast
      * @param beanName name of the spring bean
      * @param clazz class of the spring bean
      * @return Spring bean with given name and class type
      *
-     * @throws ClassCastException if the bean found cannot be cast to the given
-     * class type
+     * @throws ClassCastException if the bean found cannot be cast to the given class type
      */
     public <T> T getSpringBean(String beanName, Class<T> clazz) {
         ServletContext servletContext = webappContext.getServletHandler().getServletContext();

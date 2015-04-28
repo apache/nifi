@@ -137,11 +137,6 @@ public class DfmAccessControlTest {
     // ----------------------------------------------
     // PROCESS GROUPS
     // ----------------------------------------------
-    /**
-     * Ensures the dfm user can get a group contents.
-     *
-     * @throws Exception
-     */
     @Test
     public void testGroupGet() throws Exception {
         String url = BASE_URL + "/controller/process-groups/root";
@@ -179,7 +174,7 @@ public class DfmAccessControlTest {
     /**
      * Verifies the dfm user can update a group.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testGroupPut() throws Exception {
@@ -203,7 +198,7 @@ public class DfmAccessControlTest {
     /**
      * Verifies the dfm user can retrieve the controller configuration.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testControllerConfiguration() throws Exception {
@@ -242,7 +237,7 @@ public class DfmAccessControlTest {
     /**
      * Verifies the read only user cannot create a new flow archive.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testFlowConfigurationArchivePost() throws Exception {
@@ -263,7 +258,7 @@ public class DfmAccessControlTest {
     /**
      * Verifies the dfm user can retrieve his credentials.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testAuthoritiesGet() throws Exception {
@@ -286,7 +281,7 @@ public class DfmAccessControlTest {
     /**
      * Verifies the dfm user can retrieve the banners.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testBannersGet() throws Exception {
@@ -309,7 +304,7 @@ public class DfmAccessControlTest {
     /**
      * Verifies the dfm user can retrieve the processor types.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testProcessorTypesGet() throws Exception {
@@ -331,7 +326,7 @@ public class DfmAccessControlTest {
     /**
      * Verifies the dfm user can retrieve the prioritizer types.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     @Ignore
@@ -357,7 +352,7 @@ public class DfmAccessControlTest {
     /**
      * Verifies that the dfm user can update a process group state.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testProcessGroupPutState() throws Exception {
@@ -387,7 +382,7 @@ public class DfmAccessControlTest {
     /**
      * Verifies that the dfm user can update a process group configuration.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testProcessGroupPutConfiguration() throws Exception {
@@ -422,7 +417,7 @@ public class DfmAccessControlTest {
     /**
      * Verifies that the dfm user can update processor state.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testProcessorPutState() throws Exception {
@@ -452,7 +447,7 @@ public class DfmAccessControlTest {
     /**
      * Verifies that the dfm user can update processor state.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testProcessorPutConfiguration() throws Exception {
@@ -487,7 +482,7 @@ public class DfmAccessControlTest {
     /**
      * Verifies that the dfm user can update connections.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testConnectionPut() throws Exception {
@@ -517,7 +512,7 @@ public class DfmAccessControlTest {
     /**
      * Verifies that the dfm user can update labels.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testLabelPut() throws Exception {
@@ -552,7 +547,7 @@ public class DfmAccessControlTest {
     /**
      * Verifies that the dfm user can update input ports.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testInputPortPut() throws Exception {
@@ -587,7 +582,7 @@ public class DfmAccessControlTest {
     /**
      * Verifies that the dfm user can update output ports.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testOutputPortPut() throws Exception {
@@ -619,37 +614,13 @@ public class DfmAccessControlTest {
         Assert.assertEquals("new output port name", entity.getOutputPort().getName());
     }
 
-//    /**
-//     * Verifies that the dfm user can update remote process groups.
-//     * 
-//     * @throws Exception 
-//     */
-//    @Test
-//    public void testRemoteProcessGroupPut() throws Exception {
-//        String url = BASE_URL + "/controller/process-groups/root/remote-process-groups";
-//        
-//        // get a random controller reference
-//        RemoteProcessGroupDTO controllerReference = getRandomRemoteProcessGroup();
-//        
-//        // create the entity body
-//        RemoteProcessGroupEntity entity = new RemoteProcessGroupEntity();
-//        entity.setRevision(NiFiTestUser.REVISION);
-//        entity.setClientId(CLIENT_ID);
-//        entity.setRemoteProcessGroup(controllerReference);
-//        
-//        // perform the request
-//        ClientResponse response = DFM_USER.testPut(url + "/" + controllerReference.getId(), entity);
-//        
-//        // ensure the request succeeded
-//        Assert.assertEquals(200, response.getStatus());
-//    }
     // ----------------------------------------------
     // POST and DELETE
     // ----------------------------------------------
     /**
      * Verifies that the dfm user can create/delete processors.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testProcessorCreateDelete() throws Exception {
@@ -660,7 +631,7 @@ public class DfmAccessControlTest {
     /**
      * Verifies that the dfm user can create/delete process groups.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testProcessGroupCreateDelete() throws Exception {
@@ -671,7 +642,7 @@ public class DfmAccessControlTest {
     /**
      * Verifies that the dfm user can create/delete input ports.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testInputPortCreateDelete() throws Exception {
@@ -682,7 +653,7 @@ public class DfmAccessControlTest {
     /**
      * Verifies that the dfm user can create/delete output ports.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testOutputPortCreateDelete() throws Exception {
@@ -693,7 +664,7 @@ public class DfmAccessControlTest {
     /**
      * Verifies that the dfm user can create/delete connections.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testConnectionCreateDelete() throws Exception {
@@ -707,7 +678,7 @@ public class DfmAccessControlTest {
     /**
      * Verifies that the dfm user can create/delete labels.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testLabelCreateDelete() throws Exception {
@@ -715,23 +686,13 @@ public class DfmAccessControlTest {
         deleteLabel(label.getId());
     }
 
-//    /**
-//     * Verifies that the dfm user can create/delete remote process groups.
-//     * 
-//     * @throws Exception 
-//     */
-//    @Test
-//    public void testRemoteProcessGroupCreateDelete() throws Exception {
-//        RemoteProcessGroupDTO remoteProcessGroup = createRemoteProcessGroup();
-//        deleteRemoteProcessGroup(remoteProcessGroup.getId());
-//    }
     // ----------------------------------------------
     // HISTORY
     // ----------------------------------------------
     /**
      * Tests the ability to retrieve the NiFi history.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testHistoryGet() throws Exception {
@@ -751,7 +712,7 @@ public class DfmAccessControlTest {
     /**
      * Tests the ability to retrieve a specific action.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testActionGet() throws Exception {
@@ -768,7 +729,7 @@ public class DfmAccessControlTest {
     /**
      * Verifies the dfm user can purge history.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testHistoryDelete() throws Exception {
@@ -920,27 +881,6 @@ public class DfmAccessControlTest {
         return inputPortsIter.next();
     }
 
-//    private RemoteProcessGroupDTO getRandomRemoteProcessGroup() throws Exception {
-//        String url = BASE_URL + "/controller/process-groups/root/remote-process-groups";
-//        
-//        // get the remote process groups
-//        ClientResponse response = DFM_USER.testGet(url);
-//        
-//        // ensure the response was successful
-//        Assert.assertEquals(200, response.getStatus());
-//        
-//        // get the remote process group dtos
-//        RemoteProcessGroupsEntity remoteProcessGroupEntity = response.getEntity(RemoteProcessGroupsEntity.class);
-//        Collection<RemoteProcessGroupDTO> remoteProcessGroup = remoteProcessGroupEntity.getRemoteProcessGroups();
-//        
-//        // ensure the correct number of remote process group
-//        Assert.assertFalse(remoteProcessGroup.isEmpty());
-//        
-//        // use the first remote process group as the target
-//        Iterator<RemoteProcessGroupDTO> controllerReferenceIter = remoteProcessGroup.iterator();
-//        Assert.assertTrue(controllerReferenceIter.hasNext());
-//        return controllerReferenceIter.next();
-//    }
     // ----------------------------------------------
     // Create resource utility methods
     // ----------------------------------------------
@@ -1169,32 +1109,6 @@ public class DfmAccessControlTest {
         return label;
     }
 
-//    public RemoteProcessGroupDTO createRemoteProcessGroup() throws Exception {
-//        String url = BASE_URL + "/controller/process-groups/root/remote-process-groups";
-//        
-//        // create the controller reference
-//        RemoteProcessGroupDTO remoteProcessGroup = new RemoteProcessGroupDTO();
-//        remoteProcessGroup.setTargetUri(BASE_URL);
-//        
-//        // create the entity body
-//        RemoteProcessGroupEntity entity = new RemoteProcessGroupEntity();
-//        entity.setRevision(NiFiTestUser.REVISION);
-//        entity.setClientId(CLIENT_ID);
-//        entity.setRemoteProcessGroup(remoteProcessGroup);
-//        
-//        // perform the request
-//        ClientResponse response = DFM_USER.testPost(url, entity);
-//        
-//        // ensure the request is successful
-//        Assert.assertEquals(201, response.getStatus());
-//        
-//        // get the entity body
-//        entity = response.getEntity(RemoteProcessGroupEntity.class);
-//        
-//        // get the controller reference id
-//        Assert.assertNotNull(entity.getRemoteProcessGroup());
-//        return entity.getRemoteProcessGroup();
-//    }
     // ----------------------------------------------
     // Delete resource utility methods
     // ----------------------------------------------
@@ -1339,7 +1253,7 @@ public class DfmAccessControlTest {
     /**
      * Tests the ability to retrieve the NiFi users.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testUsersGet() throws Exception {
@@ -1355,7 +1269,7 @@ public class DfmAccessControlTest {
     /**
      * Tests the ability to retrieve a specific user.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testUserGet() throws Exception {
@@ -1372,7 +1286,7 @@ public class DfmAccessControlTest {
     /**
      * Verifies the admin user can update a person.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testUserPut() throws Exception {

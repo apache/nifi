@@ -23,8 +23,7 @@ import org.apache.nifi.web.api.dto.SnippetDTO;
 public interface SnippetDAO {
 
     /**
-     * Copies the specified snippet and added the copy to the flow in the
-     * specified group.
+     * Copies the specified snippet and added the copy to the flow in the specified group.
      *
      * @param groupId group id
      * @param snippetId snippet id

@@ -32,12 +32,8 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 
 /**
- * Application context listener for starting the application. If the application
- * is configured for a standalone environment or the application is a node in a
- * clustered environment then a flow controller is created and managed.
- * Otherwise, we assume the application is running as the cluster manager in a
- * clustered environment. In this case, the cluster manager is created and
- * managed.
+ * Application context listener for starting the application. If the application is configured for a standalone environment or the application is a node in a clustered environment then a flow
+ * controller is created and managed. Otherwise, we assume the application is running as the cluster manager in a clustered environment. In this case, the cluster manager is created and managed.
  *
  */
 public class ApplicationStartupContextListener implements ServletContextListener {

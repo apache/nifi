@@ -21,16 +21,13 @@ import org.apache.nifi.controller.ReportingTaskNode;
 
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 
-/**
- *
- */
 public interface ReportingTaskDAO {
 
     /**
      * Determines if the specified reporting task exists.
      *
-     * @param reportingTaskId
-     * @return
+     * @param reportingTaskId id
+     * @return true if reporting task exists
      */
     boolean hasReportingTask(String reportingTaskId);
 
@@ -68,14 +65,14 @@ public interface ReportingTaskDAO {
     /**
      * Determines whether this reporting task can be updated.
      *
-     * @param reportingTaskDTO
+     * @param reportingTaskDTO dto
      */
     void verifyUpdate(ReportingTaskDTO reportingTaskDTO);
 
     /**
      * Determines whether this reporting task can be removed.
      *
-     * @param reportingTaskId
+     * @param reportingTaskId id
      */
     void verifyDelete(String reportingTaskId);
 

@@ -75,8 +75,8 @@ public class OutputPortResource extends ApplicationResource {
     /**
      * Populates the uri for the specified output ports.
      *
-     * @param outputPorts
-     * @return
+     * @param outputPorts ports
+     * @return dtos
      */
     public Set<PortDTO> populateRemainingOutputPortsContent(Set<PortDTO> outputPorts) {
         for (PortDTO outputPort : outputPorts) {
@@ -97,9 +97,7 @@ public class OutputPortResource extends ApplicationResource {
     /**
      * Retrieves all the of output ports in this NiFi.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return A outputPortsEntity.
      */
     @GET
@@ -132,12 +130,9 @@ public class OutputPortResource extends ApplicationResource {
     /**
      * Creates a new output port.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param x The x coordinate for this funnels position.
      * @param y The y coordinate for this funnels position.
      * @param name The output ports name.
@@ -185,7 +180,7 @@ public class OutputPortResource extends ApplicationResource {
     /**
      * Creates a new output port.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param portEntity A outputPortEntity.
      * @return A outputPortEntity.
      */
@@ -266,9 +261,7 @@ public class OutputPortResource extends ApplicationResource {
     /**
      * Retrieves the specified output port.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the output port to retrieve
      * @return A outputPortEntity.
      */
@@ -302,12 +295,9 @@ public class OutputPortResource extends ApplicationResource {
     /**
      * Updates the specified output port.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the output port to update.
      * @param x The x coordinate for this output ports position.
      * @param y The y coordinate for this output ports position.
@@ -316,9 +306,8 @@ public class OutputPortResource extends ApplicationResource {
      * @param groupAccessControl The allowed groups for this output port.
      * @param userAccessControl The allowed users for this output port.
      * @param state The state of this port.
-     * @param concurrentlySchedulableTaskCount The number of concurrently
-     * schedulable tasks.
-     * @param formParams
+     * @param concurrentlySchedulableTaskCount The number of concurrently schedulable tasks.
+     * @param formParams params
      * @return A outputPortEntity.
      */
     @PUT
@@ -388,7 +377,7 @@ public class OutputPortResource extends ApplicationResource {
     /**
      * Updates the specified output port.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param id The id of the output port to update.
      * @param portEntity A outputPortEntity.
      * @return A outputPortEntity.
@@ -461,12 +450,9 @@ public class OutputPortResource extends ApplicationResource {
     /**
      * Removes the specified output port.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the output port to remove.
      * @return A outputPortEntity.
      */

@@ -28,13 +28,6 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
 
     private FlowController flowController;
 
-    /**
-     * Creates a process group reference.
-     *
-     * @param parentGroupId The parent group id
-     * @param processGroup The process group
-     * @return The process group
-     */
     @Override
     public ProcessGroup createProcessGroup(String parentGroupId, ProcessGroupDTO processGroup) {
         if (processGroup.getParentGroupId() != null && !flowController.areGroupsSame(processGroup.getParentGroupId(), parentGroupId)) {
@@ -58,32 +51,16 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         return group;
     }
 
-    /**
-     * Gets the specified process group.
-     *
-     * @return The process group
-     */
     @Override
     public ProcessGroup getProcessGroup(String groupId) {
         return locateProcessGroup(flowController, groupId);
     }
 
-    /**
-     * Determines if the specified process group exists.
-     *
-     * @return
-     */
     @Override
     public boolean hasProcessGroup(String groupId) {
         return flowController.getGroup(groupId) != null;
     }
 
-    /**
-     * Gets all of the process groups.
-     *
-     * @param parentGroupId The parent group id
-     * @return The process groups
-     */
     @Override
     public Set<ProcessGroup> getProcessGroups(String parentGroupId) {
         ProcessGroup group = locateProcessGroup(flowController, parentGroupId);
@@ -104,12 +81,6 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         }
     }
 
-    /**
-     * Updates the specified process group.
-     *
-     * @param processGroupDTO
-     * @return The process group
-     */
     @Override
     public ProcessGroup updateProcessGroup(ProcessGroupDTO processGroupDTO) {
         final ProcessGroup group = locateProcessGroup(flowController, processGroupDTO.getId());
@@ -145,11 +116,6 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         group.verifyCanDelete();
     }
 
-    /**
-     * Deletes the specified process group.
-     *
-     * @param processGroupId The process group id
-     */
     @Override
     public void deleteProcessGroup(String processGroupId) {
         // get the group

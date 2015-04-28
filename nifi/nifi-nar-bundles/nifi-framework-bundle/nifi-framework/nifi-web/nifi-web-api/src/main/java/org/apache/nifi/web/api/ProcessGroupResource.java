@@ -84,7 +84,7 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Get the processor resource within the specified group.
      *
-     * @return
+     * @return the processor resource within the specified group
      */
     @Path("processors")
     public ProcessorResource getProcessorResource() {
@@ -96,7 +96,7 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Get the connection sub-resource within the specified group.
      *
-     * @return
+     * @return the connection sub-resource within the specified group
      */
     @Path("connections")
     public ConnectionResource getConnectionResource() {
@@ -108,7 +108,7 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Get the input ports sub-resource within the specified group.
      *
-     * @return
+     * @return the input ports sub-resource within the specified group
      */
     @Path("input-ports")
     public InputPortResource getInputPortResource() {
@@ -120,7 +120,7 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Get the output ports sub-resource within the specified group.
      *
-     * @return
+     * @return the output ports sub-resource within the specified group
      */
     @Path("output-ports")
     public OutputPortResource getOutputPortResource() {
@@ -132,7 +132,7 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Locates the label sub-resource within the specified group.
      *
-     * @return
+     * @return the label sub-resource within the specified group
      */
     @Path("labels")
     public LabelResource getLabelResource() {
@@ -144,7 +144,7 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Locates the funnel sub-resource within the specified group.
      *
-     * @return
+     * @return the funnel sub-resource within the specified group
      */
     @Path("funnels")
     public FunnelResource getFunnelResource() {
@@ -156,7 +156,7 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Locates the remote process group sub-resource within the specified group.
      *
-     * @return
+     * @return the remote process group sub-resource within the specified group
      */
     @Path("remote-process-groups")
     public RemoteProcessGroupResource getRemoteProcessGroupResource() {
@@ -168,8 +168,8 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Populates the remaining fields in the specified process groups.
      *
-     * @param processGroups
-     * @return
+     * @param processGroups groups
+     * @return group dto
      */
     public Set<ProcessGroupDTO> populateRemainingProcessGroupsContent(Set<ProcessGroupDTO> processGroups) {
         for (ProcessGroupDTO processGroup : processGroups) {
@@ -181,9 +181,9 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Populates the remaining fields in the specified process group.
      *
-     * @param processGroup
-     * @param verbose
-     * @return
+     * @param processGroup group
+     * @param processGroupUri processGroupUri
+     * @return group dto
      */
     private ProcessGroupDTO populateRemainingProcessGroupContent(ProcessGroupDTO processGroup, String processGroupUri) {
         FlowSnippetDTO flowSnippet = processGroup.getContents();
@@ -201,9 +201,6 @@ public class ProcessGroupResource extends ApplicationResource {
 
     /**
      * Populates the remaining content of the specified snippet.
-     *
-     * @param snippet
-     * @return
      */
     private FlowSnippetDTO populateRemainingSnippetContent(FlowSnippetDTO snippet) {
         getProcessorResource().populateRemainingProcessorsContent(snippet.getProcessors());
@@ -224,9 +221,6 @@ public class ProcessGroupResource extends ApplicationResource {
 
     /**
      * Generates a URI for a process group.
-     *
-     * @param processGroupId
-     * @return
      */
     private String getProcessGroupUri(String processGroupId) {
         return generateResourceUri("controller", "process-groups", processGroupId);
@@ -234,28 +228,17 @@ public class ProcessGroupResource extends ApplicationResource {
 
     /**
      * Generates a URI for a process group reference.
-     *
-     * @param processGroupId
-     * @return
      */
     private String getProcessGroupReferenceUri(ProcessGroupDTO processGroup) {
         return generateResourceUri("controller", "process-groups", processGroup.getParentGroupId(), "process-group-references", processGroup.getId());
     }
 
     /**
-     * Retrieves the content of the specified group. This includes all
-     * processors, the connections, the process group references, the remote
-     * process group references, and the labels.
+     * Retrieves the content of the specified group. This includes all processors, the connections, the process group references, the remote process group references, and the labels.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param recursive Optional recursive flag that defaults to false. If set
-     * to true, all descendent groups and their content will be included if the
-     * verbose flag is also set to true.
-     * @param verbose Optional verbose flag that defaults to false. If the
-     * verbose flag is set to true processor configuration and property details
-     * will be included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param recursive Optional recursive flag that defaults to false. If set to true, all descendent groups and their content will be included if the verbose flag is also set to true.
+     * @param verbose Optional verbose flag that defaults to false. If the verbose flag is set to true processor configuration and property details will be included in the response.
      * @return A processGroupEntity.
      */
     @GET
@@ -300,12 +283,9 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Copies the specified snippet within this ProcessGroup.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param snippetId The id of the snippet to copy.
      * @param originX The x coordinate of the origin of the bounding box.
      * @param originY The y coordinate of the origin of the bounding box.
@@ -379,12 +359,9 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Instantiates the specified template within this ProcessGroup.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param templateId The id of the template to instantiate.
      * @param originX The x coordinate of the origin of the bounding box.
      * @param originY The y coordinate of the origin of the bounding box.
@@ -453,18 +430,12 @@ public class ProcessGroupResource extends ApplicationResource {
     }
 
     /**
-     * Updates the state of all processors in the process group. Supports
-     * modifying whether the processors and process groups are running/stopped
-     * and instantiating templates.
+     * Updates the state of all processors in the process group. Supports modifying whether the processors and process groups are running/stopped and instantiating templates.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param running Optional flag that indicates whether all processors in
-     * this group should be started/stopped.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param running Optional flag that indicates whether all processors in this group should be started/stopped.
      * @return A processGroupEntity.
      */
     @PUT
@@ -501,11 +472,9 @@ public class ProcessGroupResource extends ApplicationResource {
     }
 
     /**
-     * Updates the state of all processors in the process group. Supports
-     * modifying whether the processors and process groups are running/stopped
-     * and instantiating templates.
+     * Updates the state of all processors in the process group. Supports modifying whether the processors and process groups are running/stopped and instantiating templates.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param processGroupEntity A processGroupEntity
      * @return A processGroupEntity
      */
@@ -573,16 +542,10 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Retrieves the contents of the specified group.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param recursive Optional recursive flag that defaults to false. If set
-     * to true, all descendent groups and their content will be included if the
-     * verbose flag is also set to true.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param recursive Optional recursive flag that defaults to false. If set to true, all descendent groups and their content will be included if the verbose flag is also set to true.
      * @param processGroupReferenceId The id of the process group.
-     * @param verbose Optional verbose flag that defaults to false. If the
-     * verbose flag is set to true processor configuration and property details
-     * will be included in the response.
+     * @param verbose Optional verbose flag that defaults to false. If the verbose flag is set to true processor configuration and property details will be included in the response.
      * @return A processGroupEntity.
      */
     @GET
@@ -629,12 +592,8 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Retrieves the content of the specified group reference.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param verbose Optional verbose flag that defaults to false. If the
-     * verbose flag is set to true processor configuration and property details
-     * will be included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param verbose Optional verbose flag that defaults to false. If the verbose flag is set to true processor configuration and property details will be included in the response.
      * @return A controllerEntity.
      */
     @GET
@@ -676,12 +635,9 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Adds the specified process group.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param name The name of the process group
      * @param x The x coordinate for this funnels position.
      * @param y The y coordinate for this funnels position.
@@ -729,7 +685,7 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Adds the specified process group.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param processGroupEntity A processGroupEntity
      * @return A processGroupEntity
      */
@@ -810,17 +766,13 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Updates the specified process group.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the process group
      * @param name The name of the process group.
      * @param comments The comments for the process group.
-     * @param running Optional flag that indicates whether all processors should
-     * be started/stopped.
+     * @param running Optional flag that indicates whether all processors should be started/stopped.
      * @param x The x coordinate for this funnels position.
      * @param y The y coordinate for this funnels position.
      * @return A processGroupEntity.
@@ -874,7 +826,7 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Updates the specified process group.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param id The id of the process group.
      * @param processGroupEntity A processGroupEntity.
      * @return A processGroupEntity.
@@ -945,12 +897,9 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Removes the specified process group reference.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the process group to be removed.
      * @return A processGroupEntity.
      */
@@ -1002,12 +951,8 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Retrieves the status report for this NiFi.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param recursive Optional recursive flag that defaults to false. If set
-     * to true, all descendent groups and their content will be included if the
-     * verbose flag is also set to true.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param recursive Optional recursive flag that defaults to false. If set to true, all descendent groups and their content will be included if the verbose flag is also set to true.
      * @return A processGroupStatusEntity.
      */
     @GET
@@ -1050,9 +995,7 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Retrieves the specified remote process groups status history.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return A processorEntity.
      */
     @GET
