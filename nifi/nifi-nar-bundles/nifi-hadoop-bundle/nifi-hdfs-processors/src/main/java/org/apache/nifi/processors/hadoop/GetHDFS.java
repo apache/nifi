@@ -236,8 +236,8 @@ public class GetHDFS extends AbstractHadoopProcessor {
         abstractOnScheduled(context);
         // copy configuration values to pass them around cleanly
         processorConfig = new ProcessorConfiguration(context);
-        FileSystem fs = hdfsResources.get().getValue();
-        Path dir = new Path(context.getProperty(DIRECTORY).getValue());
+        final FileSystem fs = getFileSystem();
+        final Path dir = new Path(context.getProperty(DIRECTORY).getValue());
         if (!fs.exists(dir)) {
             throw new IOException("PropertyDescriptor " + DIRECTORY + " has invalid value " + dir + ". The directory does not exist.");
         }
@@ -330,8 +330,8 @@ public class GetHDFS extends AbstractHadoopProcessor {
     protected void processBatchOfFiles(final List<Path> files, final ProcessContext context, final ProcessSession session) {
         // process the batch of files
         FSDataInputStream stream = null;
-        Configuration conf = hdfsResources.get().getKey();
-        FileSystem hdfs = hdfsResources.get().getValue();
+        Configuration conf = getConfiguration();
+        FileSystem hdfs = getFileSystem();
         final boolean keepSourceFiles = context.getProperty(KEEP_SOURCE_FILE).asBoolean();
         final Double bufferSizeProp = context.getProperty(BUFFER_SIZE).asDataSize(DataUnit.B);
         int bufferSize = bufferSizeProp != null ? bufferSizeProp.intValue() : conf.getInt(BUFFER_SIZE_KEY,
@@ -398,7 +398,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
 
         if (System.currentTimeMillis() >= nextPollTime && listingLock.tryLock()) {
             try {
-                final FileSystem hdfs = hdfsResources.get().getValue();
+                final FileSystem hdfs = getFileSystem();
                 // get listing
                 listing = selectFiles(hdfs, processorConfig.getConfiguredRootDirPath(), null);
                 lastPollTime.set(System.currentTimeMillis());

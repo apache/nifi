@@ -99,7 +99,7 @@ public class FetchHDFS extends AbstractHadoopProcessor {
             return;
         }
 
-        final FileSystem hdfs = hdfsResources.get().getValue();
+        final FileSystem hdfs = getFileSystem();
         final Path path = new Path(context.getProperty(FILENAME).evaluateAttributeExpressions(flowFile).getValue());
         final URI uri = path.toUri();
 

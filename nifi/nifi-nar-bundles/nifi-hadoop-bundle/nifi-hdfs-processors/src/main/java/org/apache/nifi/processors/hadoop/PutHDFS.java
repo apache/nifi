@@ -32,10 +32,10 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.ipc.RemoteException;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -54,7 +54,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.BufferedInputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
-import org.apache.nifi.util.Tuple;
 
 /**
  * This processor copies FlowFiles to HDFS.
@@ -183,8 +182,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
         } else {
             dfsUmask = FsPermission.DEFAULT_UMASK;
         }
-        final Tuple<Configuration, FileSystem> resources = hdfsResources.get();
-        final Configuration conf = resources.getKey();
+        final Configuration conf = getConfiguration();
         FsPermission.setUMask(conf, new FsPermission(dfsUmask));
     }
 
@@ -195,26 +193,23 @@ public class PutHDFS extends AbstractHadoopProcessor {
             return;
         }
 
-        final Tuple<Configuration, FileSystem> resources = hdfsResources.get();
-        if (resources == null || resources.getKey() == null || resources.getValue() == null) {
+        final Configuration configuration = getConfiguration();
+        final FileSystem hdfs = getFileSystem();
+        if (configuration == null || hdfs == null) {
             getLogger().error("HDFS not configured properly");
             session.transfer(flowFile, REL_FAILURE);
             context.yield();
             return;
         }
-        final Configuration conf = resources.getKey();
-        final FileSystem hdfs = resources.getValue();
 
-        final Path configuredRootDirPath = new Path(context.getProperty(DIRECTORY).evaluateAttributeExpressions(flowFile)
-                .getValue());
+        final Path configuredRootDirPath = new Path(context.getProperty(DIRECTORY).evaluateAttributeExpressions(flowFile).getValue());
         final String conflictResponse = context.getProperty(CONFLICT_RESOLUTION).getValue();
 
         final Double blockSizeProp = context.getProperty(BLOCK_SIZE).asDataSize(DataUnit.B);
         final long blockSize = blockSizeProp != null ? blockSizeProp.longValue() : hdfs.getDefaultBlockSize(configuredRootDirPath);
 
         final Double bufferSizeProp = context.getProperty(BUFFER_SIZE).asDataSize(DataUnit.B);
-        final int bufferSize = bufferSizeProp != null ? bufferSizeProp.intValue() : conf.getInt(BUFFER_SIZE_KEY,
-                BUFFER_SIZE_DEFAULT);
+        final int bufferSize = bufferSizeProp != null ? bufferSizeProp.intValue() : configuration.getInt(BUFFER_SIZE_KEY, BUFFER_SIZE_DEFAULT);
 
         final Integer replicationProp = context.getProperty(REPLICATION_FACTOR).asInteger();
         final short replication = replicationProp != null ? replicationProp.shortValue() : hdfs
@@ -230,7 +225,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
 
             // Create destination directory if it does not exist
             try {
-                if (!hdfs.getFileStatus(configuredRootDirPath).isDir()) {
+                if (!hdfs.getFileStatus(configuredRootDirPath).isDirectory()) {
                     throw new IOException(configuredRootDirPath.toString() + " already exists and is not a directory");
                 }
             } catch (FileNotFoundException fe) {
