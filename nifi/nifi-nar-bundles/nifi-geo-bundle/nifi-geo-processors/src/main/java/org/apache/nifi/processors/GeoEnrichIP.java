@@ -189,17 +189,17 @@ public class GeoEnrichIP extends AbstractProcessor {
         final Map<String, String> attrs = new HashMap<>();
         attrs.put(new StringBuilder(ipAttributeName).append(".geo.lookup.micros").toString(), String.valueOf(stopWatch.getDuration(TimeUnit.MICROSECONDS)));
         attrs.put(new StringBuilder(ipAttributeName).append(".geo.city").toString(), response.getCity().getName());
-        
+
         final Double latitude = response.getLocation().getLatitude();
-        if ( latitude != null ) {
-        	attrs.put(new StringBuilder(ipAttributeName).append(".geo.latitude").toString(), latitude.toString());
+        if (latitude != null) {
+            attrs.put(new StringBuilder(ipAttributeName).append(".geo.latitude").toString(), latitude.toString());
         }
-        
+
         final Double longitude = response.getLocation().getLongitude();
-        if ( longitude != null ) {
-        	attrs.put(new StringBuilder(ipAttributeName).append(".geo.longitude").toString(), longitude.toString());
+        if (longitude != null) {
+            attrs.put(new StringBuilder(ipAttributeName).append(".geo.longitude").toString(), longitude.toString());
         }
-        
+
         int i = 0;
         for (final Subdivision subd : response.getSubdivisions()) {
             attrs.put(new StringBuilder(ipAttributeName).append(".geo.subdivision.").append(i).toString(), subd.getName());
