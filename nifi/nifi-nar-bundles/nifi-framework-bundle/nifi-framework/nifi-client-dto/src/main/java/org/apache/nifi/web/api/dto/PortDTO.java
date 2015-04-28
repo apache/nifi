@@ -49,8 +49,7 @@ public class PortDTO extends NiFiComponentDTO {
     }
 
     /**
-     * @return The state of this port. Possible states are 'RUNNING', 'STOPPED', and
-     * 'DISABLED'
+     * @return The state of this port. Possible states are 'RUNNING', 'STOPPED', and 'DISABLED'
      */
     public String getState() {
         return state;
@@ -96,8 +95,7 @@ public class PortDTO extends NiFiComponentDTO {
     }
 
     /**
-     * @return whether this port has incoming or outgoing connections to a remote NiFi.
-     * This is only applicable when the port is running on the root group
+     * @return whether this port has incoming or outgoing connections to a remote NiFi. This is only applicable when the port is running on the root group
      */
     public Boolean isTransmitting() {
         return transmitting;
@@ -130,9 +128,7 @@ public class PortDTO extends NiFiComponentDTO {
     }
 
     /**
-     * Gets the validation errors from this port. These validation errors
-     * represent the problems with the port that must be resolved before it can
-     * be started.
+     * Gets the validation errors from this port. These validation errors represent the problems with the port that must be resolved before it can be started.
      *
      * @return The validation errors
      */

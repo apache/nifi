@@ -20,16 +20,13 @@ import java.util.Set;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 
-/**
- *
- */
 public interface ProcessGroupDAO {
 
     /**
      * Determines if the specified remote process group exists.
      *
-     * @param groupId
-     * @return
+     * @param groupId id
+     * @return true if group exists
      */
     boolean hasProcessGroup(String groupId);
 
@@ -61,7 +58,7 @@ public interface ProcessGroupDAO {
     /**
      * Verifies the specified process group can be modified.
      *
-     * @param processGroupDTO
+     * @param processGroupDTO dto
      */
     void verifyUpdate(ProcessGroupDTO processGroupDTO);
 
@@ -76,7 +73,7 @@ public interface ProcessGroupDAO {
     /**
      * Verifies the specified process group can be removed.
      *
-     * @param groupId
+     * @param groupId id
      */
     void verifyDelete(String groupId);
 

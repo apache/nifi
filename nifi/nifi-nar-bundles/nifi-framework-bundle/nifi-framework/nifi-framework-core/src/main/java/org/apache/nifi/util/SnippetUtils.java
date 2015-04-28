@@ -35,8 +35,7 @@ import org.apache.nifi.web.api.dto.PositionDTO;
 public final class SnippetUtils {
 
     /**
-     * Moves the content of the specified template around the specified
-     * location.
+     * Moves the content of the specified template around the specified location.
      *
      * @param snippet snippet
      * @param x x location
@@ -97,8 +96,7 @@ public final class SnippetUtils {
     }
 
     /**
-     * Gets all components, but not connections, that are part of the specified
-     * template.
+     * Gets all components, but not connections, that are part of the specified template.
      *
      * @param contents snippet
      * @return component dtos

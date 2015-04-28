@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.nifi.processors.standard.EvaluateXPath;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;

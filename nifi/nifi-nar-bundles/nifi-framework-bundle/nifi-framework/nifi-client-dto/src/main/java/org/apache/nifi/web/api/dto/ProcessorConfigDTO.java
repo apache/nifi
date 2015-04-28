@@ -54,8 +54,7 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * The frequency with which to schedule the processor. The format of the
-     * value will depend on the value of {@link #getSchedulingStrategy()}.
+     * The frequency with which to schedule the processor. The format of the value will depend on the value of {@link #getSchedulingStrategy()}.
      *
      * @return The scheduling period
      */
@@ -68,8 +67,7 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * Indicates whether the processor should be scheduled to run in
-     * event-driven mode or timer-driven mode
+     * Indicates whether the processor should be scheduled to run in event-driven mode or timer-driven mode
      *
      * @return scheduling strategy
      */
@@ -93,8 +91,7 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * @return amount of time must elaspe before this processor is
-     * scheduled again when yielding
+     * @return amount of time must elaspe before this processor is scheduled again when yielding
      */
     public String getYieldDuration() {
         return yieldDuration;
@@ -116,9 +113,7 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * The number of tasks that should be concurrently scheduled for this
-     * processor. If this processor doesn't allow parallel processing then any
-     * positive input will be ignored.
+     * The number of tasks that should be concurrently scheduled for this processor. If this processor doesn't allow parallel processing then any positive input will be ignored.
      *
      * @return the concurrently schedulable task count
      */
@@ -153,11 +148,8 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * The properties for this processor. Properties whose value is not set will
-     * only contain the property name. These properties are (un)marshalled
-     * differently since we need/want to control the ordering of the properties.
-     * The descriptors and metadata are used as a lookup when processing these
-     * properties.
+     * The properties for this processor. Properties whose value is not set will only contain the property name. These properties are (un)marshalled differently since we need/want to control the
+     * ordering of the properties. The descriptors and metadata are used as a lookup when processing these properties.
      *
      * @return The optional properties
      */
@@ -194,8 +186,7 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * @return the URL for this processors custom configuration UI if
-     * applicable. Null otherwise.
+     * @return the URL for this processors custom configuration UI if applicable. Null otherwise.
      */
     public String getCustomUiUrl() {
         return customUiUrl;
@@ -206,8 +197,7 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * @return the names of all processor relationships that cause a flow file to be
-     * terminated if the relationship is not connected to anything
+     * @return the names of all processor relationships that cause a flow file to be terminated if the relationship is not connected to anything
      */
     public Set<String> getAutoTerminatedRelationships() {
         return autoTerminatedRelationships;
@@ -218,8 +208,7 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * @return maps default values for concurrent tasks for each applicable scheduling
-     * strategy.
+     * @return maps default values for concurrent tasks for each applicable scheduling strategy.
      */
     public Map<String, String> getDefaultConcurrentTasks() {
         return defaultConcurrentTasks;
@@ -241,8 +230,7 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * @return Maps default values for scheduling period for each applicable scheduling
-     * strategy
+     * @return Maps default values for scheduling period for each applicable scheduling strategy
      */
     public Map<String, String> getDefaultSchedulingPeriod() {
         return defaultSchedulingPeriod;

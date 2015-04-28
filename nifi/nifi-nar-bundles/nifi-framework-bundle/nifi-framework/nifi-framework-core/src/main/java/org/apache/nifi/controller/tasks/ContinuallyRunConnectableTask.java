@@ -35,9 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Continually runs a Connectable as long as the processor has work to do.
- * {@link #call()} will return <code>true</code> if the Connectable should be
- * yielded, <code>false</code> otherwise.
+ * Continually runs a Connectable as long as the processor has work to do. {@link #call()} will return <code>true</code> if the Connectable should be yielded, <code>false</code> otherwise.
  */
 public class ContinuallyRunConnectableTask implements Callable<Boolean> {
 

@@ -22,8 +22,7 @@ import java.util.Map;
 import javax.xml.bind.annotation.XmlType;
 
 /**
- * Component that is capable of reporting internal NiFi state to an external
- * service
+ * Component that is capable of reporting internal NiFi state to an external service
  */
 @XmlType(name = "reportingTask")
 public class ReportingTaskDTO extends NiFiComponentDTO {
@@ -81,8 +80,7 @@ public class ReportingTaskDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The frequency with which to schedule the reporting task. The format of
-     * the value will depend on the value of {@link #getSchedulingStrategy()}.
+     * The frequency with which to schedule the reporting task. The format of the value will depend on the value of {@link #getSchedulingStrategy()}.
      *
      * @return The scheduling period
      */
@@ -106,8 +104,7 @@ public class ReportingTaskDTO extends NiFiComponentDTO {
     }
 
     /**
-     * @return The scheduling strategy that determines how the
-     * {@link #getSchedulingPeriod()} value should be interpreted
+     * @return The scheduling strategy that determines how the {@link #getSchedulingPeriod()} value should be interpreted
      */
     public String getSchedulingStrategy() {
         return schedulingStrategy;
@@ -118,8 +115,7 @@ public class ReportingTaskDTO extends NiFiComponentDTO {
     }
 
     /**
-     * @return Where this service is available. Possible values are
-     * CLUSTER_MANAGER_ONLY, NODE_ONLY, BOTH
+     * @return Where this service is available. Possible values are CLUSTER_MANAGER_ONLY, NODE_ONLY, BOTH
      */
     public String getAvailability() {
         return availability;
@@ -152,8 +148,7 @@ public class ReportingTaskDTO extends NiFiComponentDTO {
     }
 
     /**
-     * @return the URL for this reporting task custom configuration UI if
-     * applicable. Null otherwise
+     * @return the URL for this reporting task custom configuration UI if applicable. Null otherwise
      */
     public String getCustomUiUrl() {
         return customUiUrl;
@@ -175,9 +170,7 @@ public class ReportingTaskDTO extends NiFiComponentDTO {
     }
 
     /**
-     * Gets the validation errors from this reporting task. These validation
-     * errors represent the problems with the reporting task that must be
-     * resolved before it can be scheduled to run.
+     * Gets the validation errors from this reporting task. These validation errors represent the problems with the reporting task that must be resolved before it can be scheduled to run.
      *
      * @return The validation errors
      */

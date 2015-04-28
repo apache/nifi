@@ -106,8 +106,7 @@ public class JmsFactory {
 
         final String username = context.getProperty(USERNAME).getValue();
         final String password = context.getProperty(PASSWORD).getValue();
-        final Connection connection = (username == null && password == null) ? connectionFactory.createConnection()
-                : connectionFactory.createConnection(username, password);
+        final Connection connection = (username == null && password == null) ? connectionFactory.createConnection() : connectionFactory.createConnection(username, password);
 
         connection.setClientID(clientId);
         connection.start();

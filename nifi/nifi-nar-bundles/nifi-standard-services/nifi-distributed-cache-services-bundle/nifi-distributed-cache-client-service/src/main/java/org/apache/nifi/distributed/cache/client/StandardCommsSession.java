@@ -33,6 +33,7 @@ import org.apache.nifi.remote.io.socket.SocketChannelInputStream;
 import org.apache.nifi.remote.io.socket.SocketChannelOutputStream;
 
 public class StandardCommsSession implements CommsSession {
+
     private final SocketChannel socketChannel;
     private final String hostname;
     private final int port;

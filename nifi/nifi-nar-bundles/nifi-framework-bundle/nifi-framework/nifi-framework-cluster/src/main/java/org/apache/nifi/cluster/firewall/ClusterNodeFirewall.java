@@ -17,14 +17,12 @@
 package org.apache.nifi.cluster.firewall;
 
 /**
- * Defines the interface for restricting external client connections to a set of
- * hosts or IPs.
+ * Defines the interface for restricting external client connections to a set of hosts or IPs.
  */
 public interface ClusterNodeFirewall {
 
     /**
-     * Returns true if the given host or IP is permissible through the firewall;
-     * false otherwise.
+     * Returns true if the given host or IP is permissible through the firewall; false otherwise.
      *
      * If an IP is given, then it must be formatted in dotted decimal notation.
      *

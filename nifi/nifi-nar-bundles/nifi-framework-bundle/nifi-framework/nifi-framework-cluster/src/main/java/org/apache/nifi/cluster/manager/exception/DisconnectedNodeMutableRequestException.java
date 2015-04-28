@@ -17,8 +17,7 @@
 package org.apache.nifi.cluster.manager.exception;
 
 /**
- * Represents the exceptional case when a HTTP request that may change a node's
- * dataflow is to be replicated while one or more nodes are disconnected.
+ * Represents the exceptional case when a HTTP request that may change a node's dataflow is to be replicated while one or more nodes are disconnected.
  *
  * @author unattributed
  */

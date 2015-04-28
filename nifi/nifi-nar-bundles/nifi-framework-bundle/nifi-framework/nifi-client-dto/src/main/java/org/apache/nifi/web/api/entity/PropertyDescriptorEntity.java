@@ -20,9 +20,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 
 /**
- * A serialized representation of this class can be placed in the entity body of
- * a request or response to or from the API. This particular entity holds a
- * reference to a PropertyDescriptorDTO.
+ * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a PropertyDescriptorDTO.
  */
 @XmlRootElement(name = "propertyDescriptor")
 public class PropertyDescriptorEntity extends Entity {

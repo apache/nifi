@@ -20,9 +20,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * <p>
- * A ContentClaim is a reference to a given flow file's content. Multiple flow
- * files may reference the same content by both having the same content
- * claim.</p>
+ * A ContentClaim is a reference to a given flow file's content. Multiple flow files may reference the same content by both having the same content claim.</p>
  *
  * <p>
  * Must be thread safe</p>
@@ -88,8 +86,7 @@ public final class StandardContentClaim implements ContentClaim, Comparable<Cont
     }
 
     /**
-     * Provides the natural ordering for ContentClaim objects. By default they
-     * are sorted by their id, then container, then section
+     * Provides the natural ordering for ContentClaim objects. By default they are sorted by their id, then container, then section
      *
      * @param other other claim
      * @return x such that x <=1 if this is less than other;

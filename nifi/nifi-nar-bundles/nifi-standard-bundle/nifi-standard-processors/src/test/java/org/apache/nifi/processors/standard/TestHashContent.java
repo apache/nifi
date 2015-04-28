@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.nifi.processors.standard.HashContent;
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;

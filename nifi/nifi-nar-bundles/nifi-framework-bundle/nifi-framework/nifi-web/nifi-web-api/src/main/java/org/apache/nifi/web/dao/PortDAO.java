@@ -25,7 +25,7 @@ public interface PortDAO {
 
     /**
      * @param groupId group id
-     * @param portId  port id
+     * @param portId port id
      * @return Determines if the specified port exists in the specified group
      */
     boolean hasPort(String groupId, String portId);

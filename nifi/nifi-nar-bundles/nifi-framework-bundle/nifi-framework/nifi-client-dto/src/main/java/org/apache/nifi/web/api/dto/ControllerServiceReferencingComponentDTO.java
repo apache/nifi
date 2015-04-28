@@ -22,9 +22,7 @@ import java.util.Set;
 import javax.xml.bind.annotation.XmlType;
 
 /**
- * A component referencing a controller service. This can either be another
- * controller service or a processor. Depending on the type of component
- * different properties may be set.
+ * A component referencing a controller service. This can either be another controller service or a processor. Depending on the type of component different properties may be set.
  */
 @XmlType(name = "controllerServiceReferencingComponent")
 public class ControllerServiceReferencingComponentDTO {
@@ -47,8 +45,7 @@ public class ControllerServiceReferencingComponentDTO {
     private Set<ControllerServiceReferencingComponentDTO> referencingComponents;
 
     /**
-     * @return Group id for this component referencing a controller service. If this
-     * component is another service, this field is blank
+     * @return Group id for this component referencing a controller service. If this component is another service, this field is blank
      */
     public String getGroupId() {
         return groupId;
@@ -92,8 +89,7 @@ public class ControllerServiceReferencingComponentDTO {
     }
 
     /**
-     * @return state of the processor referencing a controller service. If this
-     * component is another service, this field is blank
+     * @return state of the processor referencing a controller service. If this component is another service, this field is blank
      */
     public String getState() {
         return state;
@@ -104,8 +100,7 @@ public class ControllerServiceReferencingComponentDTO {
     }
 
     /**
-     * @return type of reference this is (Processor, ControllerService, or
-     * ReportingTask)
+     * @return type of reference this is (Processor, ControllerService, or ReportingTask)
      */
     public String getReferenceType() {
         return referenceType;
@@ -160,8 +155,7 @@ public class ControllerServiceReferencingComponentDTO {
     }
 
     /**
-     * @return If this referencing component represents a ControllerService, these are
-     * the components that reference it
+     * @return If this referencing component represents a ControllerService, these are the components that reference it
      */
     public Set<ControllerServiceReferencingComponentDTO> getReferencingComponents() {
         return referencingComponents;
@@ -172,8 +166,7 @@ public class ControllerServiceReferencingComponentDTO {
     }
 
     /**
-     * @return If this referencing component represents a ControllerService, this
-     * indicates whether it has already been represented in this hierarchy
+     * @return If this referencing component represents a ControllerService, this indicates whether it has already been represented in this hierarchy
      */
     public Boolean getReferenceCycle() {
         return referenceCycle;

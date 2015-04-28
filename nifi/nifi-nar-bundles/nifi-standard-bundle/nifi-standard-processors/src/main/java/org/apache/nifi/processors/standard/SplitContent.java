@@ -65,10 +65,11 @@ import org.apache.nifi.util.Tuple;
 @SupportsBatching
 @Tags({"content", "split", "binary"})
 @CapabilityDescription("Splits incoming FlowFiles by a specified byte sequence")
-@WritesAttributes({ @WritesAttribute(attribute = "fragment.identifier", description = "All split FlowFiles produced from the same parent FlowFile will have the same randomly generated UUID added for this attribute"),
-        @WritesAttribute(attribute = "fragment.index", description = "A one-up number that indicates the ordering of the split FlowFiles that were created from a single parent FlowFile"),
-        @WritesAttribute(attribute = "fragment.count", description = "The number of split FlowFiles generated from the parent FlowFile"),
-        @WritesAttribute(attribute = "segment.original.filename ", description = "The filename of the parent FlowFile") })
+@WritesAttributes({
+    @WritesAttribute(attribute = "fragment.identifier", description = "All split FlowFiles produced from the same parent FlowFile will have the same randomly generated UUID added for this attribute"),
+    @WritesAttribute(attribute = "fragment.index", description = "A one-up number that indicates the ordering of the split FlowFiles that were created from a single parent FlowFile"),
+    @WritesAttribute(attribute = "fragment.count", description = "The number of split FlowFiles generated from the parent FlowFile"),
+    @WritesAttribute(attribute = "segment.original.filename ", description = "The filename of the parent FlowFile")})
 @SeeAlso(MergeContent.class)
 public class SplitContent extends AbstractProcessor {
 
@@ -80,10 +81,10 @@ public class SplitContent extends AbstractProcessor {
 
     static final AllowableValue HEX_FORMAT = new AllowableValue("Hexadecimal", "Hexadecimal", "The Byte Sequence will be interpreted as a hexadecimal representation of bytes");
     static final AllowableValue UTF8_FORMAT = new AllowableValue("Text", "Text", "The Byte Sequence will be interpreted as UTF-8 Encoded text");
-    
+
     static final AllowableValue TRAILING_POSITION = new AllowableValue("Trailing", "Trailing", "Keep the Byte Sequence at the end of the first split if <Keep Byte Sequence> is true");
     static final AllowableValue LEADING_POSITION = new AllowableValue("Leading", "Leading", "Keep the Byte Sequence at the beginning of the second split if <Keep Byte Sequence> is true");
-    
+
     public static final PropertyDescriptor FORMAT = new PropertyDescriptor.Builder()
             .name("Byte Sequence Format")
             .description("Specifies how the <Byte Sequence> property should be interpreted")
@@ -106,7 +107,8 @@ public class SplitContent extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor BYTE_SEQUENCE_LOCATION = new PropertyDescriptor.Builder()
             .name("Byte Sequence Location")
-            .description("If <Keep Byte Sequence> is set to true, specifies whether the byte sequence should be added to the end of the first split or the beginning of the second; if <Keep Byte Sequence> is false, this property is ignored.")
+            .description("If <Keep Byte Sequence> is set to true, specifies whether the byte sequence should be added to the end of the first "
+                    + "split or the beginning of the second; if <Keep Byte Sequence> is false, this property is ignored.")
             .required(true)
             .allowableValues(TRAILING_POSITION, LEADING_POSITION)
             .defaultValue(TRAILING_POSITION.getValue())
@@ -155,21 +157,20 @@ public class SplitContent extends AbstractProcessor {
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>(1);
         final String format = validationContext.getProperty(FORMAT).getValue();
-        if ( HEX_FORMAT.getValue().equals(format) ) {
+        if (HEX_FORMAT.getValue().equals(format)) {
             final String byteSequence = validationContext.getProperty(BYTE_SEQUENCE).getValue();
             final ValidationResult result = new HexStringPropertyValidator().validate(BYTE_SEQUENCE.getName(), byteSequence, validationContext);
             results.add(result);
         }
         return results;
     }
-    
 
     @OnScheduled
     public void initializeByteSequence(final ProcessContext context) throws DecoderException {
         final String bytePattern = context.getProperty(BYTE_SEQUENCE).getValue();
-        
+
         final String format = context.getProperty(FORMAT).getValue();
-        if ( HEX_FORMAT.getValue().equals(format) ) {
+        if (HEX_FORMAT.getValue().equals(format)) {
             this.byteSequence.set(Hex.decodeHex(bytePattern.toCharArray()));
         } else {
             this.byteSequence.set(bytePattern.getBytes(StandardCharsets.UTF_8));
@@ -187,8 +188,8 @@ public class SplitContent extends AbstractProcessor {
         final boolean keepSequence = context.getProperty(KEEP_SEQUENCE).asBoolean();
         final boolean keepTrailingSequence;
         final boolean keepLeadingSequence;
-        if ( keepSequence ) {
-            if ( context.getProperty(BYTE_SEQUENCE_LOCATION).getValue().equals(TRAILING_POSITION.getValue()) ) {
+        if (keepSequence) {
+            if (context.getProperty(BYTE_SEQUENCE_LOCATION).getValue().equals(TRAILING_POSITION.getValue())) {
                 keepTrailingSequence = true;
                 keepLeadingSequence = false;
             } else {
@@ -199,7 +200,7 @@ public class SplitContent extends AbstractProcessor {
             keepTrailingSequence = false;
             keepLeadingSequence = false;
         }
-        
+
         final byte[] byteSequence = this.byteSequence.get();
         if (byteSequence == null) {   // should never happen. But just in case...
             logger.error("{} Unable to obtain Byte Sequence", new Object[]{this});
@@ -234,10 +235,10 @@ public class SplitContent extends AbstractProcessor {
                                 splitLength = bytesRead - startOffset - byteSequence.length;
                             }
 
-                            if ( keepLeadingSequence && startOffset > 0 ) {
+                            if (keepLeadingSequence && startOffset > 0) {
                                 splitLength += byteSequence.length;
                             }
-                            
+
                             final long splitStart = (keepLeadingSequence && startOffset > 0) ? startOffset - byteSequence.length : startOffset;
                             splits.add(new Tuple<>(splitStart, splitLength));
                             startOffset = bytesRead;
@@ -295,9 +296,9 @@ public class SplitContent extends AbstractProcessor {
     /**
      * Apply split index, count and other attributes.
      *
-     * @param session
-     * @param source
-     * @param unpacked
+     * @param session session
+     * @param source source
+     * @param splits splits
      */
     private void finishFragmentAttributes(final ProcessSession session, final FlowFile source, final List<FlowFile> splits) {
         final String originalFilename = source.getAttribute(CoreAttributes.FILENAME.key());

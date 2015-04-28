@@ -582,8 +582,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
     /**
      * <p>
-     * Causes any processors that were added to the flow with a 'delayStart'
-     * flag of true to now start
+     * Causes any processors that were added to the flow with a 'delayStart' flag of true to now start
      * </p>
      *
      * @param startDelayedComponents true if start
@@ -697,17 +696,14 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      * Creates a connection between two Connectable objects.
      *
      * @param id required ID of the connection
-     * @param name the name of the connection, or <code>null</code> to leave the
-     * connection unnamed
+     * @param name the name of the connection, or <code>null</code> to leave the connection unnamed
      * @param source required source
      * @param destination required destination
      * @param relationshipNames required collection of relationship names
      * @return
      *
-     * @throws NullPointerException if the ID, source, destination, or set of
-     * relationships is null.
-     * @throws IllegalArgumentException if <code>relationships</code> is an
-     * empty collection
+     * @throws NullPointerException if the ID, source, destination, or set of relationships is null.
+     * @throws IllegalArgumentException if <code>relationships</code> is an empty collection
      */
     public Connection createConnection(final String id, final String name, final Connectable source, final Connectable destination, final Collection<String> relationshipNames) {
         final StandardConnection.Builder builder = new StandardConnection.Builder(processScheduler);
@@ -749,8 +745,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      * @param name port name
      * @return new port
      * @throws NullPointerException if the ID or name is not unique
-     * @throws IllegalStateException if an Input Port already exists with the
-     * same name or id.
+     * @throws IllegalStateException if an Input Port already exists with the same name or id.
      */
     public Port createLocalInputPort(String id, String name) {
         id = requireNonNull(id).intern();
@@ -766,8 +761,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      * @param name port name
      * @return new port
      * @throws NullPointerException if the ID or name is not unique
-     * @throws IllegalStateException if an Input Port already exists with the
-     * same name or id.
+     * @throws IllegalStateException if an Input Port already exists with the same name or id.
      */
     public Port createLocalOutputPort(String id, String name) {
         id = requireNonNull(id).intern();
@@ -789,16 +783,14 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
     /**
      * <p>
-     * Creates a new ProcessorNode with the given type and identifier and
-     * initializes it invoking the methods annotated with {@link OnAdded}.
+     * Creates a new ProcessorNode with the given type and identifier and initializes it invoking the methods annotated with {@link OnAdded}.
      * </p>
      *
      * @param type processor type
      * @param id processor id
      * @return new processor
      * @throws NullPointerException if either arg is null
-     * @throws ProcessorInstantiationException if the processor cannot be
-     * instantiated for any reason
+     * @throws ProcessorInstantiationException if the processor cannot be instantiated for any reason
      */
     public ProcessorNode createProcessor(final String type, String id) throws ProcessorInstantiationException {
         return createProcessor(type, id, true);
@@ -806,19 +798,15 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
     /**
      * <p>
-     * Creates a new ProcessorNode with the given type and identifier and
-     * optionally initializes it.
+     * Creates a new ProcessorNode with the given type and identifier and optionally initializes it.
      * </p>
      *
      * @param type the fully qualified Processor class name
      * @param id the unique ID of the Processor
-     * @param firstTimeAdded whether or not this is the first time this
-     * Processor is added to the graph. If {@code true}, will invoke methods
-     * annotated with the {@link OnAdded} annotation.
+     * @param firstTimeAdded whether or not this is the first time this Processor is added to the graph. If {@code true}, will invoke methods annotated with the {@link OnAdded} annotation.
      * @return new processor node
      * @throws NullPointerException if either arg is null
-     * @throws ProcessorInstantiationException if the processor cannot be
-     * instantiated for any reason
+     * @throws ProcessorInstantiationException if the processor cannot be instantiated for any reason
      */
     @SuppressWarnings("deprecation")
     public ProcessorNode createProcessor(final String type, String id, final boolean firstTimeAdded) throws ProcessorInstantiationException {
@@ -874,8 +862,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     }
 
     /**
-     * @return the ExtensionManager used for instantiating Processors,
-     * Prioritizers, etc.
+     * @return the ExtensionManager used for instantiating Processors, Prioritizers, etc.
      */
     public ExtensionManager getExtensionManager() {
         return extensionManager;
@@ -902,15 +889,13 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     }
 
     /**
-     * Creates a Port to use as an Input Port for the root Process Group, which
-     * is used for Site-to-Site communications
+     * Creates a Port to use as an Input Port for the root Process Group, which is used for Site-to-Site communications
      *
      * @param id port id
      * @param name port name
      * @return new port
      * @throws NullPointerException if the ID or name is not unique
-     * @throws IllegalStateException if an Input Port already exists with the
-     * same name or id.
+     * @throws IllegalStateException if an Input Port already exists with the same name or id.
      */
     public Port createRemoteInputPort(String id, String name) {
         id = requireNonNull(id).intern();
@@ -921,16 +906,13 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     }
 
     /**
-     * Creates a Port to use as an Output Port for the root Process Group, which
-     * is used for Site-to-Site communications and will queue flow files waiting
-     * to be delivered to remote instances
+     * Creates a Port to use as an Output Port for the root Process Group, which is used for Site-to-Site communications and will queue flow files waiting to be delivered to remote instances
      *
      * @param id port id
      * @param name port name
      * @return new port
      * @throws NullPointerException if the ID or name is not unique
-     * @throws IllegalStateException if an Input Port already exists with the
-     * same name or id.
+     * @throws IllegalStateException if an Input Port already exists with the same name or id.
      */
     public Port createRemoteOutputPort(String id, String name) {
         id = requireNonNull(id).intern();
@@ -941,8 +923,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     }
 
     /**
-     * Creates a new Remote Process Group with the given ID that points to the
-     * given URI
+     * Creates a new Remote Process Group with the given ID that points to the given URI
      *
      * @param id group id
      * @param uri group uri
@@ -955,8 +936,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     }
 
     /**
-     * Verifies that no output port exists with the given id or name. If this
-     * does not hold true, throws an IllegalStateException
+     * Verifies that no output port exists with the given id or name. If this does not hold true, throws an IllegalStateException
      *
      * @param id port identifier
      * @throws IllegalStateException port already exists
@@ -973,8 +953,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     }
 
     /**
-     * @return the name of this controller, which is also the name of the Root
-     * Group.
+     * @return the name of this controller, which is also the name of the Root Group.
      */
     public String getName() {
         readLock.lock();
@@ -986,8 +965,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     }
 
     /**
-     * Sets the name for the Root Group, which also changes the name for the
-     * controller.
+     * Sets the name for the Root Group, which also changes the name for the controller.
      *
      * @param name of root group
      */
@@ -1001,8 +979,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     }
 
     /**
-     * @return the comments of this controller, which is also the comment of the
-     * Root Group
+     * @return the comments of this controller, which is also the comment of the Root Group
      */
     public String getComments() {
         readLock.lock();
@@ -1016,8 +993,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     /**
      * Sets the comments
      *
-     * @param comments for the Root Group, which also changes the comment for
-     * the controller
+     * @param comments for the Root Group, which also changes the comment for the controller
      */
     public void setComments(final String comments) {
         readLock.lock();
@@ -1029,8 +1005,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     }
 
     /**
-     * @return <code>true</code> if the scheduling engine for this controller
-     * has been terminated.
+     * @return <code>true</code> if the scheduling engine for this controller has been terminated.
      */
     public boolean isTerminated() {
         this.readLock.lock();
@@ -1042,16 +1017,12 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     }
 
     /**
-     * Triggers the controller to begin shutdown, stopping all processors and
-     * terminating the scheduling engine. After calling this method, the
-     * {@link #isTerminated()} method will indicate whether or not the shutdown
-     * has finished.
+     * Triggers the controller to begin shutdown, stopping all processors and terminating the scheduling engine. After calling this method, the {@link #isTerminated()} method will indicate whether or
+     * not the shutdown has finished.
      *
-     * @param kill if <code>true</code>, attempts to stop all active threads,
-     * but makes no guarantee that this will happen
+     * @param kill if <code>true</code>, attempts to stop all active threads, but makes no guarantee that this will happen
      *
-     * @throws IllegalStateException if the controller is already stopped or
-     * currently in the processor of stopping
+     * @throws IllegalStateException if the controller is already stopped or currently in the processor of stopping
      */
     public void shutdown(final boolean kill) {
         this.shutdown = true;
@@ -1150,8 +1121,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      *
      * @param serializer serializer
      * @param os stream
-     * @throws FlowSerializationException if serialization of the flow fails for
-     * any reason
+     * @throws FlowSerializationException if serialization of the flow fails for any reason
      */
     public void serialize(final FlowSerializer serializer, final OutputStream os) throws FlowSerializationException {
         readLock.lock();
@@ -1165,21 +1135,14 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     /**
      * Synchronizes this controller with the proposed flow.
      *
-     * For more details, see
-     * {@link FlowSynchronizer#sync(FlowController, DataFlow)}.
+     * For more details, see {@link FlowSynchronizer#sync(FlowController, DataFlow)}.
      *
      * @param synchronizer synchronizer
-     * @param dataFlow the flow to load the controller with. If the flow is null
-     * or zero length, then the controller must not have a flow or else an
-     * UninheritableFlowException will be thrown.
+     * @param dataFlow the flow to load the controller with. If the flow is null or zero length, then the controller must not have a flow or else an UninheritableFlowException will be thrown.
      *
-     * @throws FlowSerializationException if proposed flow is not a valid flow
-     * configuration file
-     * @throws UninheritableFlowException if the proposed flow cannot be loaded
-     * by the controller because in doing so would risk orphaning flow files
-     * @throws FlowSynchronizationException if updates to the controller failed.
-     * If this exception is thrown, then the controller should be considered
-     * unsafe to be used
+     * @throws FlowSerializationException if proposed flow is not a valid flow configuration file
+     * @throws UninheritableFlowException if the proposed flow cannot be loaded by the controller because in doing so would risk orphaning flow files
+     * @throws FlowSynchronizationException if updates to the controller failed. If this exception is thrown, then the controller should be considered unsafe to be used
      */
     public void synchronize(final FlowSynchronizer synchronizer, final DataFlow dataFlow)
             throws FlowSerializationException, FlowSynchronizationException, UninheritableFlowException {
@@ -1194,8 +1157,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     }
 
     /**
-     * @return the currently configured maximum number of threads that can be
-     * used for executing processors at any given time.
+     * @return the currently configured maximum number of threads that can be used for executing processors at any given time.
      */
     public int getMaxTimerDrivenThreadCount() {
         return maxTimerDrivenThreads.get();
@@ -1225,8 +1187,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     }
 
     /**
-     * Updates the number of threads that can be simultaneously used for
-     * executing processors.
+     * Updates the number of threads that can be simultaneously used for executing processors.
      *
      * @param maxThreadCount
      *
@@ -1261,8 +1222,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      * @param group the ProcessGroup that is to become the new Root Group
      *
      * @throws IllegalArgumentException if the ProcessGroup has a parent
-     * @throws IllegalStateException if the FlowController does not know about
-     * the given process group
+     * @throws IllegalStateException if the FlowController does not know about the given process group
      */
     void setRootGroup(final ProcessGroup group) {
         if (requireNonNull(group).getParent() != null) {
@@ -1293,17 +1253,13 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     // ProcessGroup access
     //
     /**
-     * Updates the process group corresponding to the specified DTO. Any field
-     * in DTO that is <code>null</code> (with the exception of the required ID)
-     * will be ignored.
+     * Updates the process group corresponding to the specified DTO. Any field in DTO that is <code>null</code> (with the exception of the required ID) will be ignored.
      *
      * @param dto group
      * @throws ProcessorInstantiationException
      *
-     * @throws IllegalStateException if no process group can be found with the
-     * ID of DTO or with the ID of the DTO's parentGroupId, if the template ID
-     * specified is invalid, or if the DTO's Parent Group ID changes but the
-     * parent group has incoming or outgoing connections
+     * @throws IllegalStateException if no process group can be found with the ID of DTO or with the ID of the DTO's parentGroupId, if the template ID specified is invalid, or if the DTO's Parent
+     * Group ID changes but the parent group has incoming or outgoing connections
      *
      * @throws NullPointerException if the DTO or its ID is null
      */
@@ -1329,17 +1285,13 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     // Template access
     //
     /**
-     * Adds a template to this controller. The contents of this template must be
-     * part of the current flow. This is going create a template based on a
-     * snippet of this flow.
+     * Adds a template to this controller. The contents of this template must be part of the current flow. This is going create a template based on a snippet of this flow.
      *
      * @param dto template
      * @return a copy of the given DTO
      * @throws IOException if an I/O error occurs when persisting the Template
      * @throws NullPointerException if the DTO is null
-     * @throws IllegalArgumentException if does not contain all required
-     * information, such as the template name or a processor's configuration
-     * element
+     * @throws IllegalArgumentException if does not contain all required information, such as the template name or a processor's configuration element
      */
     public Template addTemplate(final TemplateDTO dto) throws IOException {
         return templateManager.addTemplate(dto);
@@ -1355,8 +1307,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     }
 
     /**
-     * Imports the specified template into this controller. The contents of this
-     * template may have come from another NiFi instance.
+     * Imports the specified template into this controller. The contents of this template may have come from another NiFi instance.
      *
      * @param dto dto
      * @return template
@@ -1368,8 +1319,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
     /**
      * @param id identifier
-     * @return the template with the given ID, or <code>null</code> if no
-     * template exists with the given ID
+     * @return the template with the given ID, or <code>null</code> if no template exists with the given ID
      */
     public Template getTemplate(final String id) {
         return templateManager.getTemplate(id);
@@ -1406,21 +1356,15 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     // Snippet
     //
     /**
-     * Creates an instance of the given snippet and adds the components to the
-     * given group
+     * Creates an instance of the given snippet and adds the components to the given group
      *
      * @param group group
      * @param dto dto
      *
      * @throws NullPointerException if either argument is null
-     * @throws IllegalStateException if the snippet is not valid because a
-     * component in the snippet has an ID that is not unique to this flow, or
-     * because it shares an Input Port or Output Port at the root level whose
-     * name already exists in the given ProcessGroup, or because the Template
-     * contains a Processor or a Prioritizer whose class is not valid within
-     * this instance of NiFi.
-     * @throws ProcessorInstantiationException if unable to instantiate a
-     * processor
+     * @throws IllegalStateException if the snippet is not valid because a component in the snippet has an ID that is not unique to this flow, or because it shares an Input Port or Output Port at the
+     * root level whose name already exists in the given ProcessGroup, or because the Template contains a Processor or a Prioritizer whose class is not valid within this instance of NiFi.
+     * @throws ProcessorInstantiationException if unable to instantiate a processor
      */
     public void instantiateSnippet(final ProcessGroup group, final FlowSnippetDTO dto) throws ProcessorInstantiationException {
         writeLock.lock();
@@ -1732,8 +1676,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     }
 
     /**
-     * Returns the parent of the specified Connectable. This only considers this
-     * group and any direct child sub groups.
+     * Returns the parent of the specified Connectable. This only considers this group and any direct child sub groups.
      *
      * @param parentGroupId group id
      * @return parent group
@@ -1751,20 +1694,16 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      * Verifies that the given DTO is valid, according to the following:
      *
      * <ul>
-     * <li>None of the ID's in any component of the DTO can be used in this
-     * flow.</li>
-     * <li>The ProcessGroup to which the template's contents will be added must
-     * not contain any InputPort or OutputPort with the same name as one of the
-     * corresponding components in the root level of the template.</li>
+     * <li>None of the ID's in any component of the DTO can be used in this flow.</li>
+     * <li>The ProcessGroup to which the template's contents will be added must not contain any InputPort or OutputPort with the same name as one of the corresponding components in the root level of
+     * the template.</li>
      * <li>All Processors' classes must exist in this instance.</li>
      * <li>All Flow File Prioritizers' classes must exist in this instance.</li>
      * </ul>
      * </p>
      *
      * <p>
-     * If any of the above statements does not hold true, an
-     * {@link IllegalStateException} or a
-     * {@link ProcessorInstantiationException} will be thrown.
+     * If any of the above statements does not hold true, an {@link IllegalStateException} or a {@link ProcessorInstantiationException} will be thrown.
      * </p>
      *
      * @param group group
@@ -1875,8 +1814,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     // Processor access
     //
     /**
-     * Indicates whether or not the two ID's point to the same ProcessGroup. If
-     * either id is null, will return <code>false</code>.
+     * Indicates whether or not the two ID's point to the same ProcessGroup. If either id is null, will return <code>false</code>.
      *
      * @param id1 group id
      * @param id2 other group id
@@ -2846,8 +2784,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     // Clustering methods
     //
     /**
-     * Starts heartbeating to the cluster. May only be called if the instance
-     * was constructed for a clustered environment.
+     * Starts heartbeating to the cluster. May only be called if the instance was constructed for a clustered environment.
      *
      * @throws IllegalStateException if not configured for clustering
      */
@@ -2874,31 +2811,23 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     }
 
     /**
-     * Notifies controller that the sending of heartbeats should be temporarily
-     * suspended. This method does not cancel any background tasks as does
-     * {@link #stopHeartbeating()} and does not require any lock on the
-     * FlowController. Background tasks will still generate heartbeat messages
-     * and any background task currently in the process of sending a Heartbeat
-     * to the cluster will continue.
+     * Notifies controller that the sending of heartbeats should be temporarily suspended. This method does not cancel any background tasks as does {@link #stopHeartbeating()} and does not require any
+     * lock on the FlowController. Background tasks will still generate heartbeat messages and any background task currently in the process of sending a Heartbeat to the cluster will continue.
      */
     public void suspendHeartbeats() {
         heartbeatsSuspended.set(true);
     }
 
     /**
-     * Notifies controller that the sending of heartbeats should be re-enabled.
-     * This method does not submit any background tasks to take affect as does
-     * {@link #startHeartbeating()} and does not require any lock on the
-     * FlowController.
+     * Notifies controller that the sending of heartbeats should be re-enabled. This method does not submit any background tasks to take affect as does {@link #startHeartbeating()} and does not
+     * require any lock on the FlowController.
      */
     public void resumeHeartbeats() {
         heartbeatsSuspended.set(false);
     }
 
     /**
-     * Stops heartbeating to the cluster. May only be called if the instance was
-     * constructed for a clustered environment. If the controller was not
-     * heartbeating, then this method has no effect.
+     * Stops heartbeating to the cluster. May only be called if the instance was constructed for a clustered environment. If the controller was not heartbeating, then this method has no effect.
      *
      * @throws IllegalStateException if not clustered
      */
@@ -2985,9 +2914,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     }
 
     /**
-     * @return true if this instance is clustered; false otherwise. Clustered
-     * means that a node is either connected or trying to connect to the
-     * cluster.
+     * @return true if this instance is clustered; false otherwise. Clustered means that a node is either connected or trying to connect to the cluster.
      */
     public boolean isClustered() {
         readLock.lock();
@@ -2999,10 +2926,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     }
 
     /**
-     * @return the DN of the Cluster Manager that we are currently connected to,
-     * if available. This will return null if the instance is not clustered or
-     * if the instance is clustered but the NCM's DN is not available - for
-     * instance, if cluster communications are not secure
+     * @return the DN of the Cluster Manager that we are currently connected to, if available. This will return null if the instance is not clustered or if the instance is clustered but the NCM's DN
+     * is not available - for instance, if cluster communications are not secure
      */
     public String getClusterManagerDN() {
         readLock.lock();
@@ -3014,24 +2939,20 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     }
 
     /**
-     * Sets whether this instance is clustered. Clustered means that a node is
-     * either connected or trying to connect to the cluster.
+     * Sets whether this instance is clustered. Clustered means that a node is either connected or trying to connect to the cluster.
      *
      * @param clustered true if clustered
-     * @param clusterInstanceId if clustered is true, indicates the InstanceID
-     * of the Cluster Manager
+     * @param clusterInstanceId if clustered is true, indicates the InstanceID of the Cluster Manager
      */
     public void setClustered(final boolean clustered, final String clusterInstanceId) {
         setClustered(clustered, clusterInstanceId, null);
     }
 
     /**
-     * Sets whether this instance is clustered. Clustered means that a node is
-     * either connected or trying to connect to the cluster.
+     * Sets whether this instance is clustered. Clustered means that a node is either connected or trying to connect to the cluster.
      *
      * @param clustered true if clustered
-     * @param clusterInstanceId if clustered is true, indicates the InstanceID
-     * of the Cluster Manager
+     * @param clusterInstanceId if clustered is true, indicates the InstanceID of the Cluster Manager
      * @param clusterManagerDn the DN of the NCM
      */
     public void setClustered(final boolean clustered, final String clusterInstanceId, final String clusterManagerDn) {
@@ -3077,8 +2998,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     }
 
     /**
-     * @return true if this instance is the primary node in the cluster; false
-     * otherwise
+     * @return true if this instance is the primary node in the cluster; false otherwise
      */
     public boolean isPrimary() {
         rwLock.readLock().lock();

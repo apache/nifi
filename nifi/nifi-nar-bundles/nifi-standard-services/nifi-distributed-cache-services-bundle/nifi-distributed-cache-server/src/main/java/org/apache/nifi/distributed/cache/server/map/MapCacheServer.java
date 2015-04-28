@@ -55,63 +55,63 @@ public class MapCacheServer extends AbstractCacheServer {
         final String action = dis.readUTF();
         try {
             switch (action) {
-            case "close": {
-                return false;
-            }
-            case "putIfAbsent": {
-                final byte[] key = readValue(dis);
-                final byte[] value = readValue(dis);
-                final MapPutResult putResult = cache.putIfAbsent(ByteBuffer.wrap(key), ByteBuffer.wrap(value));
-                dos.writeBoolean(putResult.isSuccessful());
-                break;
-            }
-            case "containsKey": {
-                final byte[] key = readValue(dis);
-                final boolean contains = cache.containsKey(ByteBuffer.wrap(key));
-                dos.writeBoolean(contains);
-                break;
-            }
-            case "getAndPutIfAbsent": {
-                final byte[] key = readValue(dis);
-                final byte[] value = readValue(dis);
-
-                final MapPutResult putResult = cache.putIfAbsent(ByteBuffer.wrap(key), ByteBuffer.wrap(value));
-                if (putResult.isSuccessful()) {
-                    // Put was successful. There was no old value to get.
-                    dos.writeInt(0);
-                } else {
-                    // we didn't put. Write back the previous value
-                    final byte[] byteArray = putResult.getExistingValue().array();
-                    dos.writeInt(byteArray.length);
-                    dos.write(byteArray);
+                case "close": {
+                    return false;
                 }
-
-                break;
-            }
-            case "get": {
-                final byte[] key = readValue(dis);
-                final ByteBuffer existingValue = cache.get(ByteBuffer.wrap(key));
-                if (existingValue == null) {
-                    // there was no existing value; we did a "put".
-                    dos.writeInt(0);
-                } else {
-                    // a value already existed. we did not update the map
-                    final byte[] byteArray = existingValue.array();
-                    dos.writeInt(byteArray.length);
-                    dos.write(byteArray);
+                case "putIfAbsent": {
+                    final byte[] key = readValue(dis);
+                    final byte[] value = readValue(dis);
+                    final MapPutResult putResult = cache.putIfAbsent(ByteBuffer.wrap(key), ByteBuffer.wrap(value));
+                    dos.writeBoolean(putResult.isSuccessful());
+                    break;
                 }
+                case "containsKey": {
+                    final byte[] key = readValue(dis);
+                    final boolean contains = cache.containsKey(ByteBuffer.wrap(key));
+                    dos.writeBoolean(contains);
+                    break;
+                }
+                case "getAndPutIfAbsent": {
+                    final byte[] key = readValue(dis);
+                    final byte[] value = readValue(dis);
 
-                break;
-            }
-            case "remove": {
-                final byte[] key = readValue(dis);
-                final boolean removed = cache.remove(ByteBuffer.wrap(key)) != null;
-                dos.writeBoolean(removed);
-                break;
-            }
-            default: {
-                throw new IOException("Illegal Request");
-            }
+                    final MapPutResult putResult = cache.putIfAbsent(ByteBuffer.wrap(key), ByteBuffer.wrap(value));
+                    if (putResult.isSuccessful()) {
+                        // Put was successful. There was no old value to get.
+                        dos.writeInt(0);
+                    } else {
+                        // we didn't put. Write back the previous value
+                        final byte[] byteArray = putResult.getExistingValue().array();
+                        dos.writeInt(byteArray.length);
+                        dos.write(byteArray);
+                    }
+
+                    break;
+                }
+                case "get": {
+                    final byte[] key = readValue(dis);
+                    final ByteBuffer existingValue = cache.get(ByteBuffer.wrap(key));
+                    if (existingValue == null) {
+                        // there was no existing value; we did a "put".
+                        dos.writeInt(0);
+                    } else {
+                        // a value already existed. we did not update the map
+                        final byte[] byteArray = existingValue.array();
+                        dos.writeInt(byteArray.length);
+                        dos.write(byteArray);
+                    }
+
+                    break;
+                }
+                case "remove": {
+                    final byte[] key = readValue(dis);
+                    final boolean removed = cache.remove(ByteBuffer.wrap(key)) != null;
+                    dos.writeBoolean(removed);
+                    break;
+                }
+                default: {
+                    throw new IOException("Illegal Request");
+                }
             }
         } finally {
             dos.flush();
@@ -131,8 +131,9 @@ public class MapCacheServer extends AbstractCacheServer {
 
     @Override
     protected void finalize() throws Throwable {
-        if (!stopped)
+        if (!stopped) {
             stop();
+        }
     }
 
     private byte[] readValue(final DataInputStream dis) throws IOException {

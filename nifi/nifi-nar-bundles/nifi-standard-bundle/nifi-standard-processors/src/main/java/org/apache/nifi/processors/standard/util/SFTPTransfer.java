@@ -92,12 +92,9 @@ public class SFTPTransfer implements FileTransfer {
             .build();
 
     /**
-     * Dynamic property which is used to decide if the
-     * {@link #ensureDirectoryExists(FlowFile, File)} method should perform a
-     * {@link ChannelSftp#ls(String)} before calling
-     * {@link ChannelSftp#mkdir(String)}. In most cases, the code should call ls
-     * before mkdir, but some weird permission setups (chmod 100) on a directory
-     * would cause the 'ls' to throw a permission exception.
+     * Dynamic property which is used to decide if the {@link #ensureDirectoryExists(FlowFile, File)} method should perform a {@link ChannelSftp#ls(String)} before calling
+     * {@link ChannelSftp#mkdir(String)}. In most cases, the code should call ls before mkdir, but some weird permission setups (chmod 100) on a directory would cause the 'ls' to throw a permission
+     * exception.
      * <p>
      * This property is dynamic until deemed a worthy inclusion as proper.
      */
@@ -282,9 +279,7 @@ public class SFTPTransfer implements FileTransfer {
 
     @Override
     public void deleteFile(final String path, final String remoteFileName) throws IOException {
-        final String fullPath = (path == null)
-                ? remoteFileName
-                : (path.endsWith("/")) ? path + remoteFileName : path + "/" + remoteFileName;
+        final String fullPath = (path == null) ? remoteFileName : (path.endsWith("/")) ? path + remoteFileName : path + "/" + remoteFileName;
         try {
             sftp.rm(fullPath);
         } catch (final SftpException e) {
@@ -421,11 +416,6 @@ public class SFTPTransfer implements FileTransfer {
         return this.homeDir;
     }
 
-    /**
-     * Call this method to release the connection properly.
-     *
-     * @throws IOException
-     */
     @Override
     public void close() throws IOException {
         if (closed) {
@@ -501,9 +491,7 @@ public class SFTPTransfer implements FileTransfer {
         final ChannelSftp sftp = getChannel(flowFile);
 
         // destination path + filename
-        final String fullPath = (path == null)
-                ? filename
-                : (path.endsWith("/")) ? path + filename : path + "/" + filename;
+        final String fullPath = (path == null) ? filename : (path.endsWith("/")) ? path + filename : path + "/" + filename;
 
         // temporary path + filename
         String tempFilename = ctx.getProperty(TEMP_FILENAME).evaluateAttributeExpressions(flowFile).getValue();
@@ -511,9 +499,7 @@ public class SFTPTransfer implements FileTransfer {
             final boolean dotRename = ctx.getProperty(DOT_RENAME).asBoolean();
             tempFilename = dotRename ? "." + filename : filename;
         }
-        final String tempPath = (path == null)
-                ? tempFilename
-                : (path.endsWith("/")) ? path + tempFilename : path + "/" + tempFilename;
+        final String tempPath = (path == null) ? tempFilename : (path.endsWith("/")) ? path + tempFilename : path + "/" + tempFilename;
 
         try {
             sftp.put(content, tempPath);

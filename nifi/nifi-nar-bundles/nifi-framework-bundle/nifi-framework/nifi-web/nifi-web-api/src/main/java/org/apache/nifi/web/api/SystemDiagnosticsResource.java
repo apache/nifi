@@ -49,9 +49,7 @@ public class SystemDiagnosticsResource extends ApplicationResource {
     /**
      * Gets the system diagnostics for this NiFi instance.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return A systemDiagnosticsEntity.
      */
     @GET

@@ -51,7 +51,8 @@ public abstract class AbstractCacheServer implements CacheServer {
     private final int port;
     private final SSLContext sslContext;
     protected volatile boolean stopped = false;
-    private final Set<Thread> processInputThreads = new CopyOnWriteArraySet<>();;
+    private final Set<Thread> processInputThreads = new CopyOnWriteArraySet<>();
+    ;
 
     private volatile ServerSocketChannel serverSocketChannel;
 
@@ -75,7 +76,7 @@ public abstract class AbstractCacheServer implements CacheServer {
                     final SocketChannel socketChannel;
                     try {
                         socketChannel = serverSocketChannel.accept();
-                        logger.debug("Connected to {}", new Object[] { socketChannel });
+                        logger.debug("Connected to {}", new Object[]{socketChannel});
                     } catch (final IOException e) {
                         if (!stopped) {
                             logger.error("{} unable to accept connection from remote peer due to {}", this, e.toString());
@@ -104,7 +105,7 @@ public abstract class AbstractCacheServer implements CacheServer {
                                     rawOutputStream = new SSLSocketChannelOutputStream(sslSocketChannel);
                                 }
                             } catch (IOException e) {
-                                logger.error("Cannot create input and/or output streams for {}", new Object[] { identifier }, e);
+                                logger.error("Cannot create input and/or output streams for {}", new Object[]{identifier}, e);
                                 if (logger.isDebugEnabled()) {
                                     logger.error("", e);
                                 }
@@ -112,7 +113,7 @@ public abstract class AbstractCacheServer implements CacheServer {
                                     socketChannel.close();
                                 } catch (IOException swallow) {
                                 }
-                               
+
                                 return;
                             }
                             try (final InputStream in = new BufferedInputStream(rawInputStream);
@@ -127,12 +128,12 @@ public abstract class AbstractCacheServer implements CacheServer {
                                     continueComms = listen(in, out, versionNegotiator.getVersion());
                                 }
                                 // client has issued 'close'
-                                logger.debug("Client issued close on {}", new Object[] { socketChannel });
+                                logger.debug("Client issued close on {}", new Object[]{socketChannel});
                             } catch (final SocketTimeoutException e) {
                                 logger.debug("30 sec timeout reached", e);
                             } catch (final IOException | HandshakeException e) {
                                 if (!stopped) {
-                                    logger.error("{} unable to communicate with remote peer {} due to {}", new Object[] { this, peer, e.toString() });
+                                    logger.error("{} unable to communicate with remote peer {} due to {}", new Object[]{this, peer, e.toString()});
                                     if (logger.isDebugEnabled()) {
                                         logger.error("", e);
                                     }
@@ -161,7 +162,7 @@ public abstract class AbstractCacheServer implements CacheServer {
     @Override
     public void stop() throws IOException {
         stopped = true;
-        logger.info("Stopping CacheServer {}", new Object[] { this.identifier });
+        logger.info("Stopping CacheServer {}", new Object[]{this.identifier});
 
         if (serverSocketChannel != null && serverSocketChannel.isOpen()) {
             serverSocketChannel.close();
@@ -188,12 +189,12 @@ public abstract class AbstractCacheServer implements CacheServer {
 
     /**
      * Listens for incoming data and communicates with remote peer
-     * 
-     * @param in
-     * @param out
-     * @param version
+     *
+     * @param in in
+     * @param out out
+     * @param version version
      * @return <code>true</code> if communications should continue, <code>false</code> otherwise
-     * @throws IOException
+     * @throws IOException ex
      */
     protected abstract boolean listen(InputStream in, OutputStream out, int version) throws IOException;
 }

@@ -43,12 +43,6 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
 
     private ReportingTaskProvider reportingTaskProvider;
 
-    /**
-     * Locates the specified reporting task.
-     *
-     * @param reportingTaskId
-     * @return
-     */
     private ReportingTaskNode locateReportingTask(final String reportingTaskId) {
         // get the reporting task
         final ReportingTaskNode reportingTask = reportingTaskProvider.getReportingTaskNode(reportingTaskId);
@@ -61,12 +55,6 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
         return reportingTask;
     }
 
-    /**
-     * Creates a reporting task.
-     *
-     * @param reportingTaskDTO The reporting task DTO
-     * @return The reporting task
-     */
     @Override
     public ReportingTaskNode createReportingTask(final ReportingTaskDTO reportingTaskDTO) {
         // ensure the type is specified
@@ -78,7 +66,7 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
             // create the reporting task
             final ReportingTaskNode reportingTask = reportingTaskProvider.createReportingTask(reportingTaskDTO.getType(), reportingTaskDTO.getId(), true);
 
-            // ensure we can perform the update 
+            // ensure we can perform the update
             verifyUpdate(reportingTask, reportingTaskDTO);
 
             // perform the update
@@ -90,50 +78,27 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
         }
     }
 
-    /**
-     * Gets the specified reporting task.
-     *
-     * @param reportingTaskId The reporting task id
-     * @return The reporting task
-     */
     @Override
     public ReportingTaskNode getReportingTask(final String reportingTaskId) {
         return locateReportingTask(reportingTaskId);
     }
 
-    /**
-     * Determines if the specified reporting task exists.
-     *
-     * @param reportingTaskId
-     * @return
-     */
     @Override
     public boolean hasReportingTask(final String reportingTaskId) {
         return reportingTaskProvider.getReportingTaskNode(reportingTaskId) != null;
     }
 
-    /**
-     * Gets all of the reporting tasks.
-     *
-     * @return The reporting tasks
-     */
     @Override
     public Set<ReportingTaskNode> getReportingTasks() {
         return reportingTaskProvider.getAllReportingTasks();
     }
 
-    /**
-     * Updates the specified reporting task.
-     *
-     * @param reportingTaskDTO The reporting task DTO
-     * @return The reporting task
-     */
     @Override
     public ReportingTaskNode updateReportingTask(final ReportingTaskDTO reportingTaskDTO) {
         // get the reporting task
         final ReportingTaskNode reportingTask = locateReportingTask(reportingTaskDTO.getId());
 
-        // ensure we can perform the update 
+        // ensure we can perform the update
         verifyUpdate(reportingTask, reportingTaskDTO);
 
         // perform the update
@@ -181,13 +146,6 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
         return reportingTask;
     }
 
-    /**
-     * Validates the specified configuration for the specified reporting task.
-     *
-     * @param reportingTask
-     * @param reportingTaskDTO
-     * @return
-     */
     private List<String> validateProposedConfiguration(final ReportingTaskNode reportingTask, final ReportingTaskDTO reportingTaskDTO) {
         final List<String> validationErrors = new ArrayList<>();
 
@@ -240,12 +198,6 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
         verifyUpdate(reportingTask, reportingTaskDTO);
     }
 
-    /**
-     * Verifies the reporting task can be updated.
-     *
-     * @param reportingTask
-     * @param reportingTaskDTO
-     */
     private void verifyUpdate(final ReportingTaskNode reportingTask, final ReportingTaskDTO reportingTaskDTO) {
         // ensure the state, if specified, is valid
         if (isNotNull(reportingTaskDTO.getState())) {
@@ -303,12 +255,6 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
         }
     }
 
-    /**
-     * Configures the specified reporting task.
-     *
-     * @param reportingTask
-     * @param reportingTaskDTO
-     */
     private void configureReportingTask(final ReportingTaskNode reportingTask, final ReportingTaskDTO reportingTaskDTO) {
         final String name = reportingTaskDTO.getName();
         final String schedulingStrategy = reportingTaskDTO.getSchedulingStrategy();
@@ -347,11 +293,6 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
         }
     }
 
-    /**
-     * Deletes the specified reporting task.
-     *
-     * @param reportingTaskId The reporting task id
-     */
     @Override
     public void deleteReportingTask(String reportingTaskId) {
         final ReportingTaskNode reportingTask = locateReportingTask(reportingTaskId);

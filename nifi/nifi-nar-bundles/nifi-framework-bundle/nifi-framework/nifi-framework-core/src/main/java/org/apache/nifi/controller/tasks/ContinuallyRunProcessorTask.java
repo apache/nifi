@@ -44,9 +44,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Continually runs a processor as long as the processor has work to do.
- * {@link #call()} will return <code>true</code> if the processor should be
- * yielded, <code>false</code> otherwise.
+ * Continually runs a processor as long as the processor has work to do. {@link #call()} will return <code>true</code> if the processor should be yielded, <code>false</code> otherwise.
  */
 public class ContinuallyRunProcessorTask implements Callable<Boolean> {
 

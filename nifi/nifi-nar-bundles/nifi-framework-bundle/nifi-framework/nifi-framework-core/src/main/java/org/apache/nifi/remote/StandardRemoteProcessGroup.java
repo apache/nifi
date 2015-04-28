@@ -72,9 +72,8 @@ import com.sun.jersey.api.client.ClientResponse.Status;
 import com.sun.jersey.api.client.UniformInterfaceException;
 
 /**
- * Represents the Root Process Group of a remote NiFi Instance. Holds
- * information about that remote instance, as well as {@link IncomingPort}s and
- * {@link OutgoingPort}s for communicating with the remote instance.
+ * Represents the Root Process Group of a remote NiFi Instance. Holds information about that remote instance, as well as {@link IncomingPort}s and {@link OutgoingPort}s for communicating with the
+ * remote instance.
  */
 public class StandardRemoteProcessGroup implements RemoteProcessGroup {
 
@@ -325,11 +324,8 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     }
 
     /**
-     * Changes the currently configured input ports to the ports described in
-     * the given set. If any port is currently configured that is not in the set
-     * given, that port will be shutdown and removed. If any port is currently
-     * not configured and is in the set given, that port will be instantiated
-     * and started.
+     * Changes the currently configured input ports to the ports described in the given set. If any port is currently configured that is not in the set given, that port will be shutdown and removed.
+     * If any port is currently not configured and is in the set given, that port will be instantiated and started.
      *
      * @param ports the new ports
      *
@@ -378,12 +374,10 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     }
 
     /**
-     * Returns a boolean indicating whether or not an Output Port exists with
-     * the given ID
+     * Returns a boolean indicating whether or not an Output Port exists with the given ID
      *
      * @param id identifier of port
-     * @return <code>true</code> if an Output Port exists with the given ID,
-     * <code>false</code> otherwise.
+     * @return <code>true</code> if an Output Port exists with the given ID, <code>false</code> otherwise.
      */
     public boolean containsOutputPort(final String id) {
         readLock.lock();
@@ -395,11 +389,8 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     }
 
     /**
-     * Changes the currently configured output ports to the ports described in
-     * the given set. If any port is currently configured that is not in the set
-     * given, that port will be shutdown and removed. If any port is currently
-     * not configured and is in the set given, that port will be instantiated
-     * and started.
+     * Changes the currently configured output ports to the ports described in the given set. If any port is currently configured that is not in the set given, that port will be shutdown and removed.
+     * If any port is currently not configured and is in the set given, that port will be instantiated and started.
      *
      * @param ports the new ports
      *
@@ -452,8 +443,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
      *
      *
      * @throws NullPointerException if the given output Port is null
-     * @throws IllegalStateException if the port does not belong to this remote
-     * process group
+     * @throws IllegalStateException if the port does not belong to this remote process group
      */
     @Override
     public void removeNonExistentPort(final RemoteGroupPort port) {
@@ -531,13 +521,11 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     }
 
     /**
-     * Adds an Output Port to this Remote Process Group that is described by
-     * this DTO.
+     * Adds an Output Port to this Remote Process Group that is described by this DTO.
      *
      * @param descriptor
      *
-     * @throws IllegalStateException if an Output Port already exists with the
-     * ID given by dto.getId()
+     * @throws IllegalStateException if an Output Port already exists with the ID given by dto.getId()
      */
     private void addOutputPort(final RemoteProcessGroupPortDescriptor descriptor) {
         writeLock.lock();
@@ -563,8 +551,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
 
     /**
      * @param portIdentifier the ID of the Port to send FlowFiles to
-     * @return {@link RemoteGroupPort} that can be used to send FlowFiles to the
-     * port whose ID is given on the remote instance
+     * @return {@link RemoteGroupPort} that can be used to send FlowFiles to the port whose ID is given on the remote instance
      */
     @Override
     public RemoteGroupPort getInputPort(final String portIdentifier) {
@@ -581,8 +568,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     }
 
     /**
-     * @return a set of {@link OutgoingPort}s used for transmitting FlowFiles to
-     * the remote instance
+     * @return a set of {@link OutgoingPort}s used for transmitting FlowFiles to the remote instance
      */
     @Override
     public Set<RemoteGroupPort> getInputPorts() {
@@ -597,13 +583,11 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     }
 
     /**
-     * Adds an InputPort to this ProcessGroup that is described by the given
-     * DTO.
+     * Adds an InputPort to this ProcessGroup that is described by the given DTO.
      *
      * @param descriptor port descriptor
      *
-     * @throws IllegalStateException if an Input Port already exists with the ID
-     * given by the ID of the DTO.
+     * @throws IllegalStateException if an Input Port already exists with the ID given by the ID of the DTO.
      */
     private void addInputPort(final RemoteProcessGroupPortDescriptor descriptor) {
         writeLock.lock();
@@ -643,8 +627,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     }
 
     /**
-     * @return a set of {@link RemoteGroupPort}s used for receiving FlowFiles
-     * from the remote instance
+     * @return a set of {@link RemoteGroupPort}s used for receiving FlowFiles from the remote instance
      */
     @Override
     public Set<RemoteGroupPort> getOutputPorts() {

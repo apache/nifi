@@ -17,9 +17,7 @@
 package org.apache.nifi.cluster.manager.testutils;
 
 /**
- * Wraps a HttpResponse with a time-delay. When the action is applied, the
- * currently executing thread sleeps for the given delay before returning the
- * response to the caller.
+ * Wraps a HttpResponse with a time-delay. When the action is applied, the currently executing thread sleeps for the given delay before returning the response to the caller.
  *
  * This class is good for simulating network latency.
  *

@@ -68,7 +68,8 @@ import org.apache.commons.lang3.StringUtils;
 @SideEffectFree
 @SupportsBatching
 @Tags({"Text", "Regular Expression", "Update", "Change", "Replace", "Modify", "Regex", "Mapping"})
-@CapabilityDescription("Updates the content of a FlowFile by evaluating a Regular Expression against it and replacing the section of the content that matches the Regular Expression with some alternate value provided in a mapping file.")
+@CapabilityDescription("Updates the content of a FlowFile by evaluating a Regular Expression against it and replacing the section of the content that "
+        + "matches the Regular Expression with some alternate value provided in a mapping file.")
 public class ReplaceTextWithMapping extends AbstractProcessor {
 
     public static final PropertyDescriptor REGEX = new PropertyDescriptor.Builder()
@@ -85,7 +86,8 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .required(true)
             .expressionLanguageSupported(true)
-            .defaultValue("0").build();
+            .defaultValue("0")
+            .build();
     public static final PropertyDescriptor MAPPING_FILE = new PropertyDescriptor.Builder()
             .name("Mapping File")
             .description("The name of the file (including the full path) containing the Mappings.")
@@ -97,7 +99,8 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
             .description("The polling interval in seconds to check for updates to the mapping file. The default is 60s.")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .required(true)
-            .defaultValue("60s").build();
+            .defaultValue("60s")
+            .build();
     public static final PropertyDescriptor CHARACTER_SET = new PropertyDescriptor.Builder()
             .name("Character Set")
             .description("The Character Set in which the file is encoded")
@@ -107,14 +110,21 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor MAX_BUFFER_SIZE = new PropertyDescriptor.Builder()
             .name("Maximum Buffer Size")
-            .description("Specifies the maximum amount of data to buffer (per file) in order to apply the regular expressions. If a FlowFile is larger than this value, the FlowFile will be routed to 'failure'")
+            .description("Specifies the maximum amount of data to buffer (per file) in order to apply the regular expressions. If a FlowFile is larger "
+                    + "than this value, the FlowFile will be routed to 'failure'")
             .required(true)
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .defaultValue("1 MB")
             .build();
 
-    public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("FlowFiles that have been successfully updated are routed to this relationship, as well as FlowFiles whose content does not match the given Regular Expression").build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure").description("FlowFiles that could not be updated are routed to this relationship").build();
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("FlowFiles that have been successfully updated are routed to this relationship, as well as FlowFiles whose content does not match the given Regular Expression")
+            .build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("FlowFiles that could not be updated are routed to this relationship")
+            .build();
 
     private final Pattern backReferencePattern = Pattern.compile("[^\\\\]\\$(\\d+)");
 
@@ -124,8 +134,7 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
     private final ReentrantLock processorLock = new ReentrantLock();
     private final AtomicLong lastModified = new AtomicLong(0L);
     final AtomicLong mappingTestTime = new AtomicLong(0);
-    private final AtomicReference<ConfigurationState> configurationStateRef = new AtomicReference<>(
-            new ConfigurationState(null));
+    private final AtomicReference<ConfigurationState> configurationStateRef = new AtomicReference<>(new ConfigurationState(null));
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext context) {
@@ -136,7 +145,12 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
         final int groupToMatch = context.getProperty(MATCHING_GROUP_FOR_LOOKUP_KEY).evaluateAttributeExpressions().asInteger();
 
         if (groupToMatch > numCapturingGroups) {
-            errors.add(new ValidationResult.Builder().subject("Insufficient Matching Groups").valid(false).explanation("The specified matching group does not exist for the regular expression provided").build());
+            errors.add(
+                    new ValidationResult.Builder()
+                    .subject("Insufficient Matching Groups")
+                    .valid(false)
+                    .explanation("The specified matching group does not exist for the regular expression provided")
+                    .build());
         }
         return errors;
     }
@@ -240,8 +254,7 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
                                 logger.info("Reloading mapping file: {}", new Object[]{fileName});
 
                                 final Map<String, String> mapping = loadMappingFile(is);
-                                final ConfigurationState newState = new ConfigurationState(
-                                        mapping);
+                                final ConfigurationState newState = new ConfigurationState(mapping);
                                 configurationStateRef.set(newState);
                             } catch (IOException e) {
                                 logger.error("Error reading mapping file: {}", new Object[]{e.getMessage()});
@@ -259,13 +272,6 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
         }
     }
 
-    /**
-     * Loads a file containing mappings.
-     *
-     * @param is
-     * @return 
-     * @throws IOException
-     */
     protected Map<String, String> loadMappingFile(InputStream is) throws IOException {
         Map<String, String> mapping = new HashMap<>();
         BufferedReader reader = new BufferedReader(new InputStreamReader(is));
@@ -335,8 +341,7 @@ public class ReplaceTextWithMapping extends AbstractProcessor {
         @Override
         public void process(final InputStream in, final OutputStream out) throws IOException {
 
-            final Map<String, String> mapping = configurationStateRef.get()
-                    .getMapping();
+            final Map<String, String> mapping = configurationStateRef.get().getMapping();
 
             StreamUtils.fillBuffer(in, buffer, false);
 

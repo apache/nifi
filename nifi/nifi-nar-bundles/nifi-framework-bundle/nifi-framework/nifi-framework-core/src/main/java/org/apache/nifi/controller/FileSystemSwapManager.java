@@ -74,8 +74,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * <p>
- * An implementation of the {@link FlowFileSwapManager} that swaps FlowFiles
- * to/from local disk
+ * An implementation of the {@link FlowFileSwapManager} that swaps FlowFiles to/from local disk
  * </p>
  */
 public class FileSystemSwapManager implements FlowFileSwapManager {
@@ -562,8 +561,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
     }
 
     /**
-     * Recovers FlowFiles from all Swap Files, returning the largest FlowFile ID
-     * that was recovered.
+     * Recovers FlowFiles from all Swap Files, returning the largest FlowFile ID that was recovered.
      *
      * @param queueProvider provider
      * @return the largest FlowFile ID that was recovered

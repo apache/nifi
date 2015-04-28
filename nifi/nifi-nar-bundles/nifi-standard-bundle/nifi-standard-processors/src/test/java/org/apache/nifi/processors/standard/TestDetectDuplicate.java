@@ -69,7 +69,7 @@ public class TestDetectDuplicate {
         props.put("hash.value", "1000");
         runner.enqueue(new byte[]{}, props);
         runner.enableControllerService(client);
-        
+
         runner.run();
         runner.assertAllFlowFilesTransferred(DetectDuplicate.REL_NON_DUPLICATE, 1);
         runner.clearTransferState();
@@ -93,11 +93,11 @@ public class TestDetectDuplicate {
         runner.setProperty(DetectDuplicate.FLOWFILE_DESCRIPTION, "The original flow file");
         runner.setProperty(DetectDuplicate.AGE_OFF_DURATION, "2 secs");
         runner.enableControllerService(client);
-        
+
         Map<String, String> props = new HashMap<>();
         props.put("hash.value", "1000");
         runner.enqueue(new byte[]{}, props);
-        
+
         runner.run();
         runner.assertAllFlowFilesTransferred(DetectDuplicate.REL_NON_DUPLICATE, 1);
         runner.clearTransferState();
@@ -154,8 +154,7 @@ public class TestDetectDuplicate {
         }
 
         @Override
-        public <K, V> V getAndPutIfAbsent(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer,
-                Deserializer<V> valueDeserializer) throws IOException {
+        public <K, V> V getAndPutIfAbsent(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer, Deserializer<V> valueDeserializer) throws IOException {
             if (exists) {
                 return (V) cacheValue;
             }

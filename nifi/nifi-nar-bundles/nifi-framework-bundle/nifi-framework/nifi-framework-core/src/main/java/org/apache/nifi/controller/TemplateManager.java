@@ -98,18 +98,14 @@ public class TemplateManager {
     }
 
     /**
-     * Adds a template to this manager. The contents of this template must be
-     * part of the current flow. This is going create a template based on a
-     * snippet of this flow. Any sensitive properties in the TemplateDTO will be
-     * removed.
+     * Adds a template to this manager. The contents of this template must be part of the current flow. This is going create a template based on a snippet of this flow. Any sensitive properties in the
+     * TemplateDTO will be removed.
      *
      * @param dto dto
      * @return a copy of the given DTO
      * @throws IOException if an I/O error occurs when persisting the Template
      * @throws NullPointerException if the DTO is null
-     * @throws IllegalArgumentException if does not contain all required
-     * information, such as the template name or a processor's configuration
-     * element
+     * @throws IllegalArgumentException if does not contain all required information, such as the template name or a processor's configuration element
      */
     public Template addTemplate(final TemplateDTO dto) throws IOException {
         scrubTemplate(dto.getSnippet());
@@ -246,8 +242,7 @@ public class TemplateManager {
     }
 
     /**
-     * Scrubs the template prior to persisting in order to remove fields that
-     * shouldn't be included or are unnecessary.
+     * Scrubs the template prior to persisting in order to remove fields that shouldn't be included or are unnecessary.
      *
      * @param snippet snippet
      */
@@ -294,8 +289,7 @@ public class TemplateManager {
     }
 
     /**
-     * Scrubs processors prior to saving. This includes removing sensitive
-     * properties, validation errors, property descriptors, etc.
+     * Scrubs processors prior to saving. This includes removing sensitive properties, validation errors, property descriptors, etc.
      *
      * @param processors procs
      */
@@ -348,8 +342,7 @@ public class TemplateManager {
     }
 
     /**
-     * Scrubs connections prior to saving. This includes removing available
-     * relationships.
+     * Scrubs connections prior to saving. This includes removing available relationships.
      *
      * @param connections conns
      */

@@ -72,8 +72,8 @@ public class TemplateResource extends ApplicationResource {
     /**
      * Populates the uri for the specified templates.
      *
-     * @param templates
-     * @return
+     * @param templates templates
+     * @return templates
      */
     public Set<TemplateDTO> populateRemainingTemplatesContent(Set<TemplateDTO> templates) {
         for (TemplateDTO template : templates) {
@@ -94,9 +94,7 @@ public class TemplateResource extends ApplicationResource {
     /**
      * Retrieves all the of templates in this NiFi.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return A templatesEntity.
      */
     @GET
@@ -130,10 +128,8 @@ public class TemplateResource extends ApplicationResource {
     /**
      * Creates a new template based off of the specified template.
      *
-     * @param httpServletRequest
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param name The name of the template.
      * @param description The description of the template.
      * @param snippetId The id of the snippet this template is based on.
@@ -181,10 +177,8 @@ public class TemplateResource extends ApplicationResource {
     /**
      * Imports the specified template.
      *
-     * @param httpServletRequest
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param in The template stream
      * @return A templateEntity or an errorResponse XML snippet.
      */
@@ -215,7 +209,8 @@ public class TemplateResource extends ApplicationResource {
             return Response.status(Response.Status.OK).entity(responseXml).type("application/xml").build();
         } catch (Exception e) {
             logger.warn("An error occurred while importing a template.", e);
-            String responseXml = String.format("<errorResponse status=\"%s\" statusText=\"Unable to import the specified template: %s\"/>", Response.Status.INTERNAL_SERVER_ERROR.getStatusCode(), e.getMessage());
+            String responseXml = String.format("<errorResponse status=\"%s\" statusText=\"Unable to import the specified template: %s\"/>",
+                    Response.Status.INTERNAL_SERVER_ERROR.getStatusCode(), e.getMessage());
             return Response.status(Response.Status.OK).entity(responseXml).type("application/xml").build();
         }
 
@@ -245,7 +240,7 @@ public class TemplateResource extends ApplicationResource {
     /**
      * Imports the specified template.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param templateEntity A templateEntity.
      * @return A templateEntity.
      */
@@ -295,7 +290,8 @@ public class TemplateResource extends ApplicationResource {
             return Response.status(Response.Status.OK).entity(responseXml).type("application/xml").build();
         } catch (Exception e) {
             logger.warn("An error occurred while importing a template.", e);
-            String responseXml = String.format("<errorResponse status=\"%s\" statusText=\"Unable to import the specified template: %s\"/>", Response.Status.INTERNAL_SERVER_ERROR.getStatusCode(), e.getMessage());
+            String responseXml
+                    = String.format("<errorResponse status=\"%s\" statusText=\"Unable to import the specified template: %s\"/>", Response.Status.INTERNAL_SERVER_ERROR.getStatusCode(), e.getMessage());
             return Response.status(Response.Status.OK).entity(responseXml).type("application/xml").build();
         }
     }
@@ -303,9 +299,7 @@ public class TemplateResource extends ApplicationResource {
     /**
      * Retrieves the specified template.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the template to retrieve
      * @return A templateEntity.
      */
@@ -344,10 +338,8 @@ public class TemplateResource extends ApplicationResource {
     /**
      * Removes the specified template.
      *
-     * @param httpServletRequest
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the template to remove.
      * @return A templateEntity.
      */

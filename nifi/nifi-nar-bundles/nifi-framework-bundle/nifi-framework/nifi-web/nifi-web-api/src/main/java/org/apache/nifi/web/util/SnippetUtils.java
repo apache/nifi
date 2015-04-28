@@ -70,9 +70,9 @@ public final class SnippetUtils {
     /**
      * Populates the specified snippet and returns the details.
      *
-     * @param snippet
-     * @param recurse
-     * @return
+     * @param snippet snippet
+     * @param recurse recurse
+     * @return snippet
      */
     public FlowSnippetDTO populateFlowSnippet(Snippet snippet, boolean recurse) {
         final FlowSnippetDTO snippetDto = new FlowSnippetDTO();
@@ -477,7 +477,7 @@ public final class SnippetUtils {
         // if there is any controller service that maps to another controller service, update the id's
         updateControllerServiceIdentifiers(snippetContentsCopy, serviceIdMap);
 
-        // 
+        //
         // Copy ProcessGroups
         //
         // instantiate the process groups, renaming as necessary
@@ -578,11 +578,7 @@ public final class SnippetUtils {
     }
 
     /**
-     * Generates a new id for the current id that is specified. If no seed is
-     * found, a new random id will be created.
-     *
-     * @param currentId
-     * @return
+     * Generates a new id for the current id that is specified. If no seed is found, a new random id will be created.
      */
     private String generateId(final String currentId) {
         final ClusterContext clusterContext = ClusterContextThreadLocal.getContext();

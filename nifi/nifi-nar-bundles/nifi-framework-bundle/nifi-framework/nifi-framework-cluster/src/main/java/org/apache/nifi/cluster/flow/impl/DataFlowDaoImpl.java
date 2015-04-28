@@ -67,34 +67,22 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
 /**
- * Implements the FlowDao interface. The implementation tracks the state of the
- * dataflow by annotating the filename of the flow state file. Specifically, the
- * implementation correlates PersistedFlowState states to filename extensions.
- * The correlation is as follows:
+ * Implements the FlowDao interface. The implementation tracks the state of the dataflow by annotating the filename of the flow state file. Specifically, the implementation correlates
+ * PersistedFlowState states to filename extensions. The correlation is as follows:
  * <ul>
  * <li> CURRENT maps to flow.xml </li>
  * <li> STALE maps to flow.xml.stale </li>
  * <li> UNKNOWN maps to flow.xml.unknown </li>
  * </ul>
- * Whenever the flow state changes, the flow state file's name is updated to
- * denote its state.
+ * Whenever the flow state changes, the flow state file's name is updated to denote its state.
  *
- * The implementation also provides for a restore directory that may be
- * configured for higher availability. At instance creation, if the primary or
- * restore directories have multiple flow state files, an exception is thrown.
- * If the primary directory has a current flow state file, but the restore
- * directory does not, then the primary flow state file is copied to the restore
- * directory. If the restore directory has a current flow state file, but the
- * primary directory does not, then the restore flow state file is copied to the
- * primary directory. If both the primary and restore directories have a current
- * flow state file and the files are different, then an exception is thrown.
+ * The implementation also provides for a restore directory that may be configured for higher availability. At instance creation, if the primary or restore directories have multiple flow state files,
+ * an exception is thrown. If the primary directory has a current flow state file, but the restore directory does not, then the primary flow state file is copied to the restore directory. If the
+ * restore directory has a current flow state file, but the primary directory does not, then the restore flow state file is copied to the primary directory. If both the primary and restore directories
+ * have a current flow state file and the files are different, then an exception is thrown.
  *
- * When the flow state file is saved, it is always saved first to the restore
- * directory followed by a save to the primary directory. When the flow state
- * file is loaded, a check is made to verify that the primary and restore flow
- * state files are both current. If either is not current, then an exception is
- * thrown. The primary flow state file is always read when the load method is
- * called.
+ * When the flow state file is saved, it is always saved first to the restore directory followed by a save to the primary directory. When the flow state file is loaded, a check is made to verify that
+ * the primary and restore flow state files are both current. If either is not current, then an exception is thrown. The primary flow state file is always read when the load method is called.
  *
  * @author unattributed
  */

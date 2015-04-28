@@ -152,7 +152,7 @@ public class TestServerAndClient {
         newServer.shutdownServer();
     }
 
-    @Ignore("Test fails when in a maven parallel build due to address/port already taken - need to vary these so tests can run in parallel")    
+    @Ignore("Test fails when in a maven parallel build due to address/port already taken - need to vary these so tests can run in parallel")
     @Test
     public void testPersistentSetServerAndClientWithLFUEvictions() throws InitializationException, IOException {
         LOGGER.info("Testing " + Thread.currentThread().getStackTrace()[1].getMethodName());
@@ -215,7 +215,7 @@ public class TestServerAndClient {
         newServer.shutdownServer();
     }
 
-    @Ignore("Test fails when in a maven parallel build due to address/port already taken - need to vary these so tests can run in parallel")    
+    @Ignore("Test fails when in a maven parallel build due to address/port already taken - need to vary these so tests can run in parallel")
     @Test
     public void testPersistentSetServerAndClientWithFIFOEvictions() throws InitializationException, IOException {
         LOGGER.info("Testing " + Thread.currentThread().getStackTrace()[1].getMethodName());
@@ -374,8 +374,7 @@ public class TestServerAndClient {
     public void testClientTermination() throws InitializationException, IOException, InterruptedException {
 
         /**
-         * This bypasses the test for build environments in OS X running Java 1.8 due to a JVM bug
-         * See:  https://issues.apache.org/jira/browse/NIFI-437
+         * This bypasses the test for build environments in OS X running Java 1.8 due to a JVM bug See: https://issues.apache.org/jira/browse/NIFI-437
          */
         Assume.assumeFalse("testClientTermination is skipped due to build environment being OS X with JDK 1.8. See https://issues.apache.org/jira/browse/NIFI-437",
                 SystemUtils.IS_OS_MAC && SystemUtils.IS_JAVA_1_8);
@@ -509,6 +508,7 @@ public class TestServerAndClient {
     }
 
     private static class StringSerializer implements Serializer<String> {
+
         @Override
         public void serialize(final String value, final OutputStream output) throws SerializationException, IOException {
             output.write(value.getBytes(StandardCharsets.UTF_8));
@@ -516,6 +516,7 @@ public class TestServerAndClient {
     }
 
     private static class StringDeserializer implements Deserializer<String> {
+
         @Override
         public String deserialize(final byte[] input) throws DeserializationException, IOException {
             return (input.length == 0) ? null : new String(input, StandardCharsets.UTF_8);

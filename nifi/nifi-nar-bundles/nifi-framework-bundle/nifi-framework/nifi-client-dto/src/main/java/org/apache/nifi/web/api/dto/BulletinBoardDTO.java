@@ -24,8 +24,7 @@ import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
 /**
- * The contents for the bulletin board including the bulletins and the timestamp
- * when the board was generated.
+ * The contents for the bulletin board including the bulletins and the timestamp when the board was generated.
  */
 @XmlType(name = "bulletinBoard")
 public class BulletinBoardDTO {

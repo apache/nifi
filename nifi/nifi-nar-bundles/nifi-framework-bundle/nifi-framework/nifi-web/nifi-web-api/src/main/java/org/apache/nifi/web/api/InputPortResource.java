@@ -75,8 +75,8 @@ public class InputPortResource extends ApplicationResource {
     /**
      * Populates the uri for the specified input ports.
      *
-     * @param inputPorts
-     * @return
+     * @param inputPorts ports
+     * @return ports
      */
     public Set<PortDTO> populateRemainingInputPortsContent(Set<PortDTO> inputPorts) {
         for (PortDTO inputPort : inputPorts) {
@@ -97,9 +97,7 @@ public class InputPortResource extends ApplicationResource {
     /**
      * Retrieves all the of input ports in this NiFi.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return A inputPortsEntity.
      */
     @GET
@@ -132,12 +130,9 @@ public class InputPortResource extends ApplicationResource {
     /**
      * Creates a new input port.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param x The x coordinate for this funnels position.
      * @param y The y coordinate for this funnels position.
      * @param name The input ports name.
@@ -185,7 +180,7 @@ public class InputPortResource extends ApplicationResource {
     /**
      * Creates a new input port.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param portEntity A inputPortEntity.
      * @return A inputPortEntity.
      */
@@ -266,9 +261,7 @@ public class InputPortResource extends ApplicationResource {
     /**
      * Retrieves the specified input port.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the input port to retrieve
      * @return A inputPortEntity.
      */
@@ -302,12 +295,9 @@ public class InputPortResource extends ApplicationResource {
     /**
      * Updates the specified input port.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the input port to update.
      * @param x The x coordinate for this funnels position.
      * @param y The y coordinate for this funnels position.
@@ -316,9 +306,8 @@ public class InputPortResource extends ApplicationResource {
      * @param comments Any comments about this input port.
      * @param name The input ports name.
      * @param state The state of this port.
-     * @param concurrentlySchedulableTaskCount The number of concurrently
-     * schedulable tasks.
-     * @param formParams
+     * @param concurrentlySchedulableTaskCount The number of concurrently schedulable tasks.
+     * @param formParams form params
      * @return A inputPortEntity.
      */
     @PUT
@@ -387,7 +376,7 @@ public class InputPortResource extends ApplicationResource {
     /**
      * Updates the specified input port.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param id The id of the input port to update.
      * @param portEntity A inputPortEntity.
      * @return A inputPortEntity.
@@ -460,12 +449,9 @@ public class InputPortResource extends ApplicationResource {
     /**
      * Removes the specified input port.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the input port to remove.
      * @return A inputPortEntity.
      */

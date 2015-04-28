@@ -56,8 +56,8 @@ import org.apache.nifi.processor.util.StandardValidators;
 @CapabilityDescription("Monitors the flow for activity and sends out an indicator when the flow has not had any data for "
         + "some specified amount of time and again when the flow's activity is restored")
 @WritesAttributes({
-        @WritesAttribute(attribute = "inactivityStartMillis", description = "The time at which Inactivity began, in the form of milliseconds since Epoch"),
-        @WritesAttribute(attribute = "inactivityDurationMillis", description = "The number of milliseconds that the inactivity has spanned") })
+    @WritesAttribute(attribute = "inactivityStartMillis", description = "The time at which Inactivity began, in the form of milliseconds since Epoch"),
+    @WritesAttribute(attribute = "inactivityDurationMillis", description = "The number of milliseconds that the inactivity has spanned")})
 public class MonitorActivity extends AbstractProcessor {
 
     public static final PropertyDescriptor THRESHOLD = new PropertyDescriptor.Builder()
@@ -69,7 +69,8 @@ public class MonitorActivity extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor CONTINUALLY_SEND_MESSAGES = new PropertyDescriptor.Builder()
             .name("Continually Send Messages")
-            .description("If true, will send inactivity indicator continually every Threshold Duration amount of time until activity is restored; if false, will send an indicator only when the flow first becomes inactive")
+            .description("If true, will send inactivity indicator continually every Threshold Duration amount of time until activity is restored; "
+                    + "if false, will send an indicator only when the flow first becomes inactive")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
@@ -95,11 +96,23 @@ public class MonitorActivity extends AbstractProcessor {
             .description("If true, will copy all flow file attributes from the flow file that resumed activity to the newly created indicator flow file")
             .required(false)
             .allowableValues("true", "false")
-            .defaultValue("false").build();
+            .defaultValue("false")
+            .build();
 
-    public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("All incoming FlowFiles are routed to success").build();
-    public static final Relationship REL_INACTIVE = new Relationship.Builder().name("inactive").description("This relationship is used to transfer an Inactivity indicator when no FlowFiles are routed to 'success' for Threshold Duration amount of time").build();
-    public static final Relationship REL_ACTIVITY_RESTORED = new Relationship.Builder().name("activity.restored").description("This relationship is used to transfer an Activity Restored indicator when FlowFiles are routing to 'success' following a period of inactivity").build();
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("All incoming FlowFiles are routed to success")
+            .build();
+    public static final Relationship REL_INACTIVE = new Relationship.Builder()
+            .name("inactive")
+            .description("This relationship is used to transfer an Inactivity indicator when no FlowFiles are routed to 'success' for Threshold "
+                    + "Duration amount of time")
+            .build();
+    public static final Relationship REL_ACTIVITY_RESTORED = new Relationship.Builder()
+            .name("activity.restored")
+            .description("This relationship is used to transfer an Activity Restored indicator when FlowFiles are routing to 'success' following a "
+                    + "period of inactivity")
+            .build();
     public static final Charset UTF8 = Charset.forName("UTF-8");
 
     private List<PropertyDescriptor> properties;

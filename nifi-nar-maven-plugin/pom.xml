@@ -66,6 +66,13 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <configuration>
+                    <excludes>**/HelpMojo.java</excludes>
+                </configuration>
+            </plugin>            
         </plugins>        
     </build>
     <dependencies>

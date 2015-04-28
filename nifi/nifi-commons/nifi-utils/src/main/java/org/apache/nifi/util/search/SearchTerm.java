@@ -40,9 +40,8 @@ public class SearchTerm<T> {
     }
 
     /**
-     * Constructs a search term. Optionally performs a defensive copy of the
-     * given byte array. If the caller indicates a defensive copy is not
-     * necessary then they must not change the given arrays state any longer
+     * Constructs a search term. Optionally performs a defensive copy of the given byte array. If the caller indicates a defensive copy is not necessary then they must not change the given arrays
+     * state any longer
      *
      * @param bytes the bytes of the new search term
      * @param defensiveCopy if true will make a defensive copy; false otherwise

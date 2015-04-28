@@ -24,10 +24,8 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * This class allows the user to define byte-array filters or single-byte
- * filters that will modify the content that is written to the underlying
- * stream. Each filter can be given a maximum number of replacements that it
- * should perform.
+ * This class allows the user to define byte-array filters or single-byte filters that will modify the content that is written to the underlying stream. Each filter can be given a maximum number of
+ * replacements that it should perform.
  */
 public class ByteFilteringOutputStream extends FilterOutputStream {
 
@@ -66,8 +64,7 @@ public class ByteFilteringOutputStream extends FilterOutputStream {
 
     /**
      * Causes this stream to write <tt>replaceWith</tt> in place of
-     * <tt>toReplace</tt> if {@link #write(byte[], int, int)} is called where
-     * the value to write is equal to
+     * <tt>toReplace</tt> if {@link #write(byte[], int, int)} is called where the value to write is equal to
      * <tt>toReplace</tt>.
      * <p/>
      * @param toReplace the byte array to replace
@@ -79,14 +76,12 @@ public class ByteFilteringOutputStream extends FilterOutputStream {
 
     /**
      * Causes this stream to write <tt>replaceWith</tt> in place of
-     * <tt>toReplace</tt> if {@link #write(byte[], int, int)} is called where
-     * the value to write is equal to
+     * <tt>toReplace</tt> if {@link #write(byte[], int, int)} is called where the value to write is equal to
      * <tt>toReplace</tt>.
      * <p/>
      * @param toReplace the byte array to replace
      * @param replaceWith the byte array to be substituted
-     * @param maxReplacements the maximum number of replacements that should be
-     * made
+     * @param maxReplacements the maximum number of replacements that should be made
      */
     public void addFilter(final byte[] toReplace, final byte[] replaceWith, final int maxReplacements) {
         multiByteFilters.add(new Filter(toReplace, replaceWith, maxReplacements));
@@ -94,8 +89,7 @@ public class ByteFilteringOutputStream extends FilterOutputStream {
 
     /**
      * Causes this stream to write <tt>replaceWith</tt> in place of
-     * <tt>toReplace</tt> if {@link #write(int)} is called where the value to
-     * write is equal to
+     * <tt>toReplace</tt> if {@link #write(int)} is called where the value to write is equal to
      * <tt>toReplace</tt>.
      * <p/>
      * @param toReplace the byte to replace
@@ -107,14 +101,12 @@ public class ByteFilteringOutputStream extends FilterOutputStream {
 
     /**
      * Causes this stream to write <tt>replaceWith</tt> in place of
-     * <tt>toReplace</tt> if {@link #write(int)} is called where the value to
-     * write is equal to
+     * <tt>toReplace</tt> if {@link #write(int)} is called where the value to write is equal to
      * <tt>toReplace</tt>.
      * <p/>
      * @param toReplace the byte to replace
      * @param replaceWith the byte to be substituted
-     * @param maxReplacements the maximum number of replacements that should be
-     * made
+     * @param maxReplacements the maximum number of replacements that should be made
      */
     public void addFilter(final byte toReplace, final byte replaceWith, final int maxReplacements) {
         singleByteFilters.add(new Filter(new byte[]{toReplace}, new byte[]{replaceWith}, maxReplacements));

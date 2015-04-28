@@ -39,9 +39,7 @@ import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 /**
- * Models a connection between connectable components. A connection may contain
- * one or more relationships that map the source component to the destination
- * component.
+ * Models a connection between connectable components. A connection may contain one or more relationships that map the source component to the destination component.
  */
 public final class StandardConnection implements Connection {
 
@@ -231,10 +229,8 @@ public final class StandardConnection implements Connection {
     }
 
     /**
-     * Gives this Connection ownership of the given FlowFile and allows the
-     * Connection to hold on to the FlowFile but NOT provide the FlowFile to
-     * consumers. This allows us to ensure that the Connection is not deleted
-     * during the middle of a Session commit.
+     * Gives this Connection ownership of the given FlowFile and allows the Connection to hold on to the FlowFile but NOT provide the FlowFile to consumers. This allows us to ensure that the
+     * Connection is not deleted during the middle of a Session commit.
      *
      * @param flowFile to add
      */

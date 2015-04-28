@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.nifi.processors.standard.EncryptContent;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;

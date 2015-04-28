@@ -17,10 +17,8 @@
 package org.apache.nifi.util;
 
 /**
- * Wraps a Long value so that it can be declared <code>final</code> and still be
- * accessed from which inner classes; the functionality is similar to that of an
- * AtomicLong, but operations on this class are not atomic. This results in
- * greater performance when the atomicity is not needed.
+ * Wraps a Long value so that it can be declared <code>final</code> and still be accessed from which inner classes; the functionality is similar to that of an AtomicLong, but operations on this class
+ * are not atomic. This results in greater performance when the atomicity is not needed.
  */
 public class LongHolder extends ObjectHolder<Long> {
 

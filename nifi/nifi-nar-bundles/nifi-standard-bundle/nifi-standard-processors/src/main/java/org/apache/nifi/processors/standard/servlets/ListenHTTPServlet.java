@@ -94,11 +94,6 @@ public class ListenHTTPServlet extends HttpServlet {
     private ConcurrentMap<String, FlowFileEntryTimeWrapper> flowFileMap;
     private StreamThrottler streamThrottler;
 
-    /**
-     *
-     * @param config
-     * @throws ServletException
-     */
     @SuppressWarnings("unchecked")
     @Override
     public void init(final ServletConfig config) throws ServletException {
@@ -122,7 +117,7 @@ public class ListenHTTPServlet extends HttpServlet {
     @Override
     protected void doPost(final HttpServletRequest request, final HttpServletResponse response) throws ServletException, IOException {
         final ProcessContext context = processContext;
-        
+
         ProcessSessionFactory sessionFactory;
         do {
             sessionFactory = sessionFactoryHolder.get();
@@ -249,15 +244,15 @@ public class ListenHTTPServlet extends HttpServlet {
                 if (StringUtils.isNotBlank(nameVal)) {
                     attributes.put(CoreAttributes.FILENAME.key(), nameVal);
                 }
-                
+
                 // put arbitrary headers on flow file
-                for(Enumeration<String> headerEnum = request.getHeaderNames(); 
-                		headerEnum.hasMoreElements(); ) {
-                	String headerName = headerEnum.nextElement();
-                	if (headerPattern != null && headerPattern.matcher(headerName).matches()) {
-	                	String headerValue = request.getHeader(headerName);
-	                	attributes.put(headerName, headerValue);
-	                }
+                for (Enumeration<String> headerEnum = request.getHeaderNames();
+                        headerEnum.hasMoreElements();) {
+                    String headerName = headerEnum.nextElement();
+                    if (headerPattern != null && headerPattern.matcher(headerName).matches()) {
+                        String headerValue = request.getHeader(headerName);
+                        attributes.put(headerName, headerValue);
+                    }
                 }
 
                 String sourceSystemFlowFileIdentifier = attributes.get(CoreAttributes.UUID.key());
@@ -315,9 +310,11 @@ public class ListenHTTPServlet extends HttpServlet {
         } catch (final Throwable t) {
             session.rollback();
             if (flowFile == null) {
-                logger.error("Unable to receive file from Remote Host: [{}] SubjectDN [{}] due to {}", new Object[]{request.getRemoteHost(), foundSubject, t});
+                logger.error("Unable to receive file from Remote Host: [{}] SubjectDN [{}] due to {}",
+                        new Object[]{request.getRemoteHost(), foundSubject, t});
             } else {
-                logger.error("Unable to receive file {} from Remote Host: [{}] SubjectDN [{}] due to {}", new Object[]{flowFile, request.getRemoteHost(), foundSubject, t});
+                logger.error("Unable to receive file {} from Remote Host: [{}] SubjectDN [{}] due to {}",
+                        new Object[]{flowFile, request.getRemoteHost(), foundSubject, t});
             }
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, t.toString());
         }

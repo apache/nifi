@@ -28,23 +28,24 @@ import org.apache.activemq.util.ByteArrayOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 
 public class CaptureServlet extends HttpServlet {
+
     private static final long serialVersionUID = 8402271018449653919L;
 
     private volatile byte[] lastPost;
-    
+
     public byte[] getLastPost() {
         return lastPost;
     }
-    
+
     @Override
     protected void doPost(final HttpServletRequest request, final HttpServletResponse response) throws ServletException, IOException {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         StreamUtils.copy(request.getInputStream(), baos);
         this.lastPost = baos.toByteArray();
-        
+
         response.setStatus(Status.OK.getStatusCode());
     }
-    
+
     @Override
     protected void doHead(final HttpServletRequest request, final HttpServletResponse response) throws ServletException, IOException {
         response.setHeader("Accept", "application/flowfile-v3,application/flowfile-v2");

@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.nifi.processors.standard.ControlRate;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -51,7 +50,7 @@ public class TestControlRate {
         runner.assertTransferCount(ControlRate.REL_FAILURE, 0);
         runner.assertQueueNotEmpty();
 
-        // at this point, we have sent through 27,000 but our max is 20,000 per second. 
+        // at this point, we have sent through 27,000 but our max is 20,000 per second.
         // After 1 second, we should be able to send another 13,000
         Thread.sleep(1200L);
         runner.run();

@@ -45,16 +45,15 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.net.NetUtils;
 
 /**
- * This is a base class that is helpful when building processors interacting
- * with HDFS.
+ * This is a base class that is helpful when building processors interacting with HDFS.
  */
 public abstract class AbstractHadoopProcessor extends AbstractProcessor {
 
     // properties
     public static final PropertyDescriptor HADOOP_CONFIGURATION_RESOURCES = new PropertyDescriptor.Builder()
             .name("Hadoop Configuration Resources")
-            .description(
-                    "A file or comma separated list of files which contains the Hadoop file system configuration. Without this, Hadoop will search the classpath for a 'core-site.xml' and 'hdfs-site.xml' file or will revert to a default configuration.")
+            .description("A file or comma separated list of files which contains the Hadoop file system configuration. Without this, Hadoop "
+                    + "will search the classpath for a 'core-site.xml' and 'hdfs-site.xml' file or will revert to a default configuration.")
             .required(false)
             .addValidator(createMultipleFilesExistValidator())
             .build();

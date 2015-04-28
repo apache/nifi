@@ -36,9 +36,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
 /**
- * Factory bean for creating a singleton WebClusterManager instance. If the
- * application is not configured to act as the cluster manager, then null is
- * always returned as the created instance.
+ * Factory bean for creating a singleton WebClusterManager instance. If the application is not configured to act as the cluster manager, then null is always returned as the created instance.
  */
 public class WebClusterManagerFactoryBean implements FactoryBean, ApplicationContextAware {
 

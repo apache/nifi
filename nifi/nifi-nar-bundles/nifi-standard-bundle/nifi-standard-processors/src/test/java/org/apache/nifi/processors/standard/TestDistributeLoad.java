@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.nifi.processors.standard.DistributeLoad;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 

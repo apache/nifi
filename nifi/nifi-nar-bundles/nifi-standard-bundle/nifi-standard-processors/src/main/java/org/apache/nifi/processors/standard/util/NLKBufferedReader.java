@@ -35,8 +35,7 @@ public class NLKBufferedReader extends BufferedReader {
     private static int defaultExpectedLineLength = 80;
 
     /**
-     * Creates a buffering character-input stream that uses an input buffer of
-     * the specified size.
+     * Creates a buffering character-input stream that uses an input buffer of the specified size.
      *
      * @param in A Reader
      * @param sz Input-buffer size
@@ -51,8 +50,7 @@ public class NLKBufferedReader extends BufferedReader {
     }
 
     /**
-     * Creates a buffering character-input stream that uses a default-sized
-     * input buffer.
+     * Creates a buffering character-input stream that uses a default-sized input buffer.
      *
      * @param in A Reader
      */
@@ -61,13 +59,9 @@ public class NLKBufferedReader extends BufferedReader {
     }
 
     /**
-     * Reads a line of text. A line is considered to be terminated by any one of
-     * a line feed ('\n'), a carriage return ('\r'), or a carriage return
-     * followed immediately by a linefeed.
+     * Reads a line of text. A line is considered to be terminated by any one of a line feed ('\n'), a carriage return ('\r'), or a carriage return followed immediately by a linefeed.
      *
-     * @return A String containing the contents of the line, including any
-     * line-termination characters, or null if the end of the stream has been
-     * reached
+     * @return A String containing the contents of the line, including any line-termination characters, or null if the end of the stream has been reached
      *
      * @exception IOException If an I/O error occurs
      */

@@ -21,9 +21,7 @@ import java.util.Set;
 import javax.xml.bind.annotation.XmlRootElement;
 
 /**
- * A serialized representation of this class can be placed in the entity body of
- * a response to the API. This particular entity holds a set of user
- * authorities.
+ * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a set of user authorities.
  */
 @XmlRootElement(name = "authoritiesEntity")
 public class AuthorityEntity extends Entity {

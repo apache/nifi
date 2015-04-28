@@ -58,8 +58,7 @@ public final class StopWatch {
      * @param timeUnit the unit for which the duration should be reported
      * @return the duration of the stopwatch in the specified unit
      *
-     * @throws IllegalStateException if the StopWatch has not been stopped via
-     * {@link #stop()}
+     * @throws IllegalStateException if the StopWatch has not been stopped via {@link #stop()}
      */
     public long getDuration(final TimeUnit timeUnit) {
         if (duration < 0) {

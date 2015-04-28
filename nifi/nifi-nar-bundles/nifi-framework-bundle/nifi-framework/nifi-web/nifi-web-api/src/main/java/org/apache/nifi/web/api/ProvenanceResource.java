@@ -113,9 +113,7 @@ public class ProvenanceResource extends ApplicationResource {
     /**
      * Gets the provenance search options for this NiFi.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return A provenanceOptionsEntity
      */
     @GET
@@ -146,15 +144,11 @@ public class ProvenanceResource extends ApplicationResource {
     }
 
     /**
-     * Creates a new replay request for the content associated with the
-     * specified provenance event id.
+     * Creates a new replay request for the content associated with the specified provenance event id.
      *
-     * @param httpServletRequest
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param clusterNodeId The id of the node in the cluster that has the
-     * specified event. Required if clustered.
+     * @param httpServletRequest request
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param clusterNodeId The id of the node in the cluster that has the specified event. Required if clustered.
      * @param eventId The provenance event id.
      * @return A provenanceEventEntity
      */
@@ -220,11 +214,8 @@ public class ProvenanceResource extends ApplicationResource {
     /**
      * Gets the content for the input of the specified event.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param clusterNodeId The id of the node within the cluster this content
-     * is on. Required if clustered.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param clusterNodeId The id of the node within the cluster this content is on. Required if clustered.
      * @param id The id of the provenance event associated with this content.
      * @return The content stream
      */
@@ -294,11 +285,8 @@ public class ProvenanceResource extends ApplicationResource {
     /**
      * Gets the content for the output of the specified event.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param clusterNodeId The id of the node within the cluster this content
-     * is on. Required if clustered.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param clusterNodeId The id of the node within the cluster this content is on. Required if clustered.
      * @param id The id of the provenance event associated with this content.
      * @return The content stream
      */
@@ -368,21 +356,15 @@ public class ProvenanceResource extends ApplicationResource {
     /**
      * Creates provenance using the specified query criteria.
      *
-     * @param httpServletRequest
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param startDate The start date.
      * @param endDate The end date.
      * @param minimumFileSize The minimum size of the content after the event.
      * @param maximumFileSize The maximum size of the content after the event.
      * @param maxResults The maximum number of results to return.
-     * @param clusterNodeId The id of node in the cluster to search. This is
-     * optional and only relevant when clustered. If clustered and it is not
-     * specified the entire cluster is searched.
-     * @param formParams Additionally, the search parameters are specified in
-     * the form parameters. Because the search parameters differ based on
-     * configuration they are specified in a map-like fashion:
+     * @param clusterNodeId The id of node in the cluster to search. This is optional and only relevant when clustered. If clustered and it is not specified the entire cluster is searched.
+     * @param formParams Additionally, the search parameters are specified in the form parameters. Because the search parameters differ based on configuration they are specified in a map-like fashion:
      * <br>
      * <ul>
      * <li>search[filename]=myFile.txt</li>
@@ -467,7 +449,7 @@ public class ProvenanceResource extends ApplicationResource {
     /**
      * Creates provenance using the specified query criteria.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param provenanceEntity A provenanceEntity
      * @return A provenanceEntity
      */
@@ -560,13 +542,9 @@ public class ProvenanceResource extends ApplicationResource {
     /**
      * Gets the provenance with the specified id.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the provenance
-     * @param clusterNodeId The id of node in the cluster to search. This is
-     * optional and only relevant when clustered. If clustered and it is not
-     * specified the entire cluster is searched.
+     * @param clusterNodeId The id of node in the cluster to search. This is optional and only relevant when clustered. If clustered and it is not specified the entire cluster is searched.
      * @return A provenanceEntity
      */
     @GET
@@ -621,14 +599,10 @@ public class ProvenanceResource extends ApplicationResource {
     /**
      * Deletes the provenance with the specified id.
      *
-     * @param httpServletRequest
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the provenance
-     * @param clusterNodeId The id of node in the cluster to search. This is
-     * optional and only relevant when clustered. If clustered and it is not
-     * specified the entire cluster is searched.
+     * @param clusterNodeId The id of node in the cluster to search. This is optional and only relevant when clustered. If clustered and it is not specified the entire cluster is searched.
      * @return A provenanceEntity
      */
     @DELETE
@@ -687,12 +661,9 @@ public class ProvenanceResource extends ApplicationResource {
     /**
      * Gets the details for a provenance event.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the event
-     * @param clusterNodeId The id of node in the cluster that the
-     * event/flowfile originated from. This is only required when clustered.
+     * @param clusterNodeId The id of node in the cluster that the event/flowfile originated from. This is only required when clustered.
      * @return A provenanceEventEntity
      */
     @GET
@@ -752,29 +723,18 @@ public class ProvenanceResource extends ApplicationResource {
     /**
      * Submits a lineage request based on an event or a flowfile uuid.
      *
-     * When querying for the lineage of an event you must specify the eventId
-     * and the eventDirection. The eventDirection must be 'parents' or
-     * 'children' and specifies whether we are going up or down the flowfile
-     * ancestry. The uuid cannot be specified in these cases.
+     * When querying for the lineage of an event you must specify the eventId and the eventDirection. The eventDirection must be 'parents' or 'children' and specifies whether we are going up or down
+     * the flowfile ancestry. The uuid cannot be specified in these cases.
      *
-     * When querying for the lineage of a flowfile you must specify the uuid.
-     * The eventId and eventDirection cannot be specified in this case.
+     * When querying for the lineage of a flowfile you must specify the uuid. The eventId and eventDirection cannot be specified in this case.
      *
-     * @param httpServletRequest
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param eventId The id of an event to get the lineage for. Must also
-     * specify the eventDirection and not the uuid.
-     * @param lineageRequest Either 'PARENTS', 'CHILDREN', or 'FLOWFILE'.
-     * PARENTS will return the lineage for the flowfiles that are parents of the
-     * specified event. CHILDREN will return the lineage of for the flowfiles
-     * that are children of the specified event. FLOWFILE will return the
-     * lineage for the specified flowfile.
-     * @param uuid The uuid of the flowfile to get the lineage for. Must not
-     * specify the eventId or eventDirection.
-     * @param clusterNodeId The id of node in the cluster that the
-     * event/flowfile originated from. This is only required when clustered.
+     * @param httpServletRequest request
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param eventId The id of an event to get the lineage for. Must also specify the eventDirection and not the uuid.
+     * @param lineageRequest Either 'PARENTS', 'CHILDREN', or 'FLOWFILE'. PARENTS will return the lineage for the flowfiles that are parents of the specified event. CHILDREN will return the lineage of
+     * for the flowfiles that are children of the specified event. FLOWFILE will return the lineage for the specified flowfile.
+     * @param uuid The uuid of the flowfile to get the lineage for. Must not specify the eventId or eventDirection.
+     * @param clusterNodeId The id of node in the cluster that the event/flowfile originated from. This is only required when clustered.
      * @return A lineageEntity
      */
     @POST
@@ -829,15 +789,12 @@ public class ProvenanceResource extends ApplicationResource {
     /**
      * Submits a lineage request based on an event or a flowfile uuid.
      *
-     * When querying for the lineage of an event you must specify the eventId
-     * and the eventDirection. The eventDirection must be 'parents' or
-     * 'children' and specifies whether we are going up or down the flowfile
-     * ancestry. The uuid cannot be specified in these cases.
+     * When querying for the lineage of an event you must specify the eventId and the eventDirection. The eventDirection must be 'parents' or 'children' and specifies whether we are going up or down
+     * the flowfile ancestry. The uuid cannot be specified in these cases.
      *
-     * When querying for the lineage of a flowfile you must specify the uuid.
-     * The eventId and eventDirection cannot be specified in this case.
+     * When querying for the lineage of a flowfile you must specify the uuid. The eventId and eventDirection cannot be specified in this case.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param lineageEntity A lineageEntity
      * @return A lineageEntity
      */
@@ -935,11 +892,8 @@ public class ProvenanceResource extends ApplicationResource {
     /**
      * Gets the lineage with the specified id.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param clusterNodeId The id of node in the cluster that the
-     * event/flowfile originated from. This is only required when clustered.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param clusterNodeId The id of node in the cluster that the event/flowfile originated from. This is only required when clustered.
      * @param id The id of the lineage
      * @return A lineageEntity
      */
@@ -993,12 +947,9 @@ public class ProvenanceResource extends ApplicationResource {
     /**
      * Deletes the lineage with the specified id.
      *
-     * @param httpServletRequest
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param clusterNodeId The id of node in the cluster that the
-     * event/flowfile originated from. This is only required when clustered.
+     * @param httpServletRequest request
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param clusterNodeId The id of node in the cluster that the event/flowfile originated from. This is only required when clustered.
      * @param id The id of the lineage
      * @return A lineageEntity
      */

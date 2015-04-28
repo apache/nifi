@@ -81,9 +81,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * <p>
- * Provides a ProcessSession that ensures all accesses, changes and transfers
- * occur in an atomic manner for all FlowFiles including their contents and
- * attributes</p>
+ * Provides a ProcessSession that ensures all accesses, changes and transfers occur in an atomic manner for all FlowFiles including their contents and attributes</p>
  * <p>
  * NOT THREAD SAFE</p>
  * <p/>
@@ -770,10 +768,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     /**
-     * Checks if the given event is a spurious FORK, meaning that the FORK has a
-     * single child and that child was removed in this session. This happens
-     * when a Processor calls #create(FlowFile) and then removes the created
-     * FlowFile.
+     * Checks if the given event is a spurious FORK, meaning that the FORK has a single child and that child was removed in this session. This happens when a Processor calls #create(FlowFile) and then
+     * removes the created FlowFile.
      *
      * @param event event
      * @return true if spurious fork
@@ -790,10 +786,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     /**
-     * Checks if the given event is a spurious ROUTE, meaning that the ROUTE
-     * indicates that a FlowFile was routed to a relationship with only 1
-     * connection and that Connection is the Connection from which the FlowFile
-     * was pulled. I.e., the FlowFile was really routed nowhere.
+     * Checks if the given event is a spurious ROUTE, meaning that the ROUTE indicates that a FlowFile was routed to a relationship with only 1 connection and that Connection is the Connection from
+     * which the FlowFile was pulled. I.e., the FlowFile was really routed nowhere.
      *
      * @param event event
      * @param records records
@@ -2085,13 +2079,10 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     /**
-     * Checks if the ContentClaim associated with this record should be removed,
-     * since the record is about to be updated to point to a new content claim.
-     * If so, removes the working claim.
+     * Checks if the ContentClaim associated with this record should be removed, since the record is about to be updated to point to a new content claim. If so, removes the working claim.
      *
-     * This happens if & only if the content of this FlowFile has been modified
-     * since it was last committed to the FlowFile repository, because this
-     * indicates that the content is no longer needed and should be cleaned up.
+     * This happens if & only if the content of this FlowFile has been modified since it was last committed to the FlowFile repository, because this indicates that the content is no longer needed and
+     * should be cleaned up.
      *
      * @param record record
      */
@@ -2155,8 +2146,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     /**
-     * @return Indicates whether or not multiple FlowFiles should be merged into
-     * a single ContentClaim
+     * @return Indicates whether or not multiple FlowFiles should be merged into a single ContentClaim
      */
     private boolean isMergeContent() {
         if (writeRecursionLevel > 0) {
@@ -2573,8 +2563,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     /**
-     * Returns the attributes that are common to every FlowFile given. The key
-     * and value must match exactly.
+     * Returns the attributes that are common to every FlowFile given. The key and value must match exactly.
      *
      * @param flowFileList a list of FlowFiles
      *
@@ -2629,8 +2618,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     /**
-     * Callback interface used to poll a FlowFileQueue, in order to perform
-     * functional programming-type of polling a queue
+     * Callback interface used to poll a FlowFileQueue, in order to perform functional programming-type of polling a queue
      */
     private static interface QueuePoller {
 

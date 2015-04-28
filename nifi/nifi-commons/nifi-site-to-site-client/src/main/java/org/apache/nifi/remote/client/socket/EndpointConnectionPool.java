@@ -258,7 +258,7 @@ public class EndpointConnectionPool {
         }
 
         final PeerDescription peerDescription = peerStatus.getPeerDescription();
-        BlockingQueue<EndpointConnection> connectionQueue = connectionQueueMap.get(peerStatus);
+        BlockingQueue<EndpointConnection> connectionQueue = connectionQueueMap.get(peerDescription);
         if (connectionQueue == null) {
             connectionQueue = new LinkedBlockingQueue<>();
             BlockingQueue<EndpointConnection> existing = connectionQueueMap.putIfAbsent(peerDescription, connectionQueue);

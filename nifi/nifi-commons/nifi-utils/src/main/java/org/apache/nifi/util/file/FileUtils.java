@@ -39,8 +39,7 @@ import java.util.Random;
 import org.slf4j.Logger;
 
 /**
- * A utility class containing a few useful static methods to do typical IO
- * operations.
+ * A utility class containing a few useful static methods to do typical IO operations.
  *
  * @author unattributed
  */
@@ -94,12 +93,10 @@ public class FileUtils {
     }
 
     /**
-     * Deletes the given file. If the given file exists but could not be deleted
-     * this will be printed as a warning to the given logger
+     * Deletes the given file. If the given file exists but could not be deleted this will be printed as a warning to the given logger
      *
      * @param file the file to delete
-     * @param logger the logger to provide logging information to about the
-     * operation
+     * @param logger the logger to provide logging information to about the operation
      * @return true if given file no longer exists
      */
     public static boolean deleteFile(final File file, final Logger logger) {
@@ -107,13 +104,11 @@ public class FileUtils {
     }
 
     /**
-     * Deletes the given file. If the given file exists but could not be deleted
-     * this will be printed as a warning to the given logger
+     * Deletes the given file. If the given file exists but could not be deleted this will be printed as a warning to the given logger
      *
      * @param file the file to delete
      * @param logger the logger to write to
-     * @param attempts indicates how many times an attempt to delete should be
-     * made
+     * @param attempts indicates how many times an attempt to delete should be made
      * @return true if given file no longer exists
      */
     public static boolean deleteFile(final File file, final Logger logger, final int attempts) {
@@ -143,8 +138,7 @@ public class FileUtils {
     }
 
     /**
-     * Deletes all of the given files. If any exist and cannot be deleted that
-     * will be printed at warn to the given logger.
+     * Deletes all of the given files. If any exist and cannot be deleted that will be printed at warn to the given logger.
      *
      * @param files can be null
      * @param logger can be null
@@ -154,13 +148,11 @@ public class FileUtils {
     }
 
     /**
-     * Deletes all of the given files. If any exist and cannot be deleted that
-     * will be printed at warn to the given logger.
+     * Deletes all of the given files. If any exist and cannot be deleted that will be printed at warn to the given logger.
      *
      * @param files can be null
      * @param logger can be null
-     * @param attempts indicates how many times an attempt should be made to
-     * delete each file
+     * @param attempts indicates how many times an attempt should be made to delete each file
      */
     public static void deleteFile(final List<File> files, final Logger logger, final int attempts) {
         if (null == files || files.isEmpty()) {
@@ -188,9 +180,8 @@ public class FileUtils {
     }
 
     /**
-     * Deletes all files (not directories..) in the given directory (non
-     * recursive) that match the given filename filter. If any file cannot be
-     * deleted then this is printed at warn to the given logger.
+     * Deletes all files (not directories..) in the given directory (non recursive) that match the given filename filter. If any file cannot be deleted then this is printed at warn to the given
+     * logger.
      *
      * @param directory the directory to scan for files to delete
      * @param filter if null then no filter is used
@@ -201,9 +192,7 @@ public class FileUtils {
     }
 
     /**
-     * Deletes all files (not directories) in the given directory (recursive)
-     * that match the given filename filter. If any file cannot be deleted then
-     * this is printed at warn to the given logger.
+     * Deletes all files (not directories) in the given directory (recursive) that match the given filename filter. If any file cannot be deleted then this is printed at warn to the given logger.
      *
      * @param directory the directory to scan
      * @param filter if null then no filter is used
@@ -215,16 +204,13 @@ public class FileUtils {
     }
 
     /**
-     * Deletes all files (not directories) in the given directory (recursive)
-     * that match the given filename filter. If any file cannot be deleted then
-     * this is printed at warn to the given logger.
+     * Deletes all files (not directories) in the given directory (recursive) that match the given filename filter. If any file cannot be deleted then this is printed at warn to the given logger.
      *
      * @param directory the directory to scan
      * @param filter if null then no filter is used
      * @param logger the logger
      * @param recurse whether to recurse subdirectories or not
-     * @param deleteEmptyDirectories default is false; if true will delete
-     * directories found that are empty
+     * @param deleteEmptyDirectories default is false; if true will delete directories found that are empty
      */
     public static void deleteFilesInDir(final File directory, final FilenameFilter filter, final Logger logger, final boolean recurse, final boolean deleteEmptyDirectories) {
         // ensure the specified directory is actually a directory and that it exists
@@ -269,11 +255,9 @@ public class FileUtils {
     }
 
     /**
-     * Randomly generates a sequence of bytes and overwrites the contents of the
-     * file a number of times. The file is then deleted.
+     * Randomly generates a sequence of bytes and overwrites the contents of the file a number of times. The file is then deleted.
      *
-     * @param file File to be overwritten a number of times and, ultimately,
-     * deleted
+     * @param file File to be overwritten a number of times and, ultimately, deleted
      * @param passes Number of times file should be overwritten
      * @throws IOException if something makes shredding or deleting a problem
      */
@@ -349,29 +333,19 @@ public class FileUtils {
     }
 
     /**
-     * Copies the given source file to the given destination file. The given
-     * destination will be overwritten if it already exists.
+     * Copies the given source file to the given destination file. The given destination will be overwritten if it already exists.
      *
      * @param source the file to copy
      * @param destination the file to copy to
-     * @param lockInputFile if true will lock input file during copy; if false
-     * will not
-     * @param lockOutputFile if true will lock output file during copy; if false
-     * will not
-     * @param move if true will perform what is effectively a move operation
-     * rather than a pure copy. This allows for potentially highly efficient
-     * movement of the file but if not possible this will revert to a copy then
-     * delete behavior. If false, then the file is copied and the source file is
-     * retained. If a true rename/move occurs then no lock is held during that
-     * time.
-     * @param logger if failures occur, they will be logged to this logger if
-     * possible. If this logger is null, an IOException will instead be thrown,
-     * indicating the problem.
+     * @param lockInputFile if true will lock input file during copy; if false will not
+     * @param lockOutputFile if true will lock output file during copy; if false will not
+     * @param move if true will perform what is effectively a move operation rather than a pure copy. This allows for potentially highly efficient movement of the file but if not possible this will
+     * revert to a copy then delete behavior. If false, then the file is copied and the source file is retained. If a true rename/move occurs then no lock is held during that time.
+     * @param logger if failures occur, they will be logged to this logger if possible. If this logger is null, an IOException will instead be thrown, indicating the problem.
      * @return long number of bytes copied
      * @throws FileNotFoundException if the source file could not be found
      * @throws IOException if unable to read or write the underlying streams
-     * @throws SecurityException if a security manager denies the needed file
-     * operations
+     * @throws SecurityException if a security manager denies the needed file operations
      */
     public static long copyFile(final File source, final File destination, final boolean lockInputFile, final boolean lockOutputFile, final boolean move, final Logger logger)
             throws FileNotFoundException, IOException {
@@ -434,21 +408,17 @@ public class FileUtils {
     }
 
     /**
-     * Copies the given source file to the given destination file. The given
-     * destination will be overwritten if it already exists.
+     * Copies the given source file to the given destination file. The given destination will be overwritten if it already exists.
      *
      * @param source the file to copy from
      * @param destination the file to copy to
-     * @param lockInputFile if true will lock input file during copy; if false
-     * will not
-     * @param lockOutputFile if true will lock output file during copy; if false
-     * will not
+     * @param lockInputFile if true will lock input file during copy; if false will not
+     * @param lockOutputFile if true will lock output file during copy; if false will not
      * @param logger the logger to use
      * @return long number of bytes copied
      * @throws FileNotFoundException if the source file could not be found
      * @throws IOException if unable to read or write to file
-     * @throws SecurityException if a security manager denies the needed file
-     * operations
+     * @throws SecurityException if a security manager denies the needed file operations
      */
     public static long copyFile(final File source, final File destination, final boolean lockInputFile, final boolean lockOutputFile, final Logger logger) throws FileNotFoundException, IOException {
         return FileUtils.copyFile(source, destination, lockInputFile, lockOutputFile, false, logger);
@@ -497,10 +467,8 @@ public class FileUtils {
     }
 
     /**
-     * Renames the given file from the source path to the destination path. This
-     * handles multiple attempts. This should only be used to rename within a
-     * given directory. Renaming across directories might not work well. See the
-     * <code>File.renameTo</code> for more information.
+     * Renames the given file from the source path to the destination path. This handles multiple attempts. This should only be used to rename within a given directory. Renaming across directories
+     * might not work well. See the <code>File.renameTo</code> for more information.
      *
      * @param source the file to rename
      * @param destination the file path to rename to
@@ -512,19 +480,14 @@ public class FileUtils {
     }
 
     /**
-     * Renames the given file from the source path to the destination path. This
-     * handles multiple attempts. This should only be used to rename within a
-     * given directory. Renaming across directories might not work well. See the
-     * <code>File.renameTo</code> for more information.
+     * Renames the given file from the source path to the destination path. This handles multiple attempts. This should only be used to rename within a given directory. Renaming across directories
+     * might not work well. See the <code>File.renameTo</code> for more information.
      *
      * @param source the file to rename
      * @param destination the file path to rename to
      * @param maxAttempts the max number of attempts to attempt the rename
-     * @param replace if true and a rename attempt fails will check if a file is
-     * already at the destination path. If so it will delete that file and
-     * attempt the rename according the remaining maxAttempts. If false, any
-     * conflicting files will be left as they were and the rename attempts will
-     * fail if conflicting.
+     * @param replace if true and a rename attempt fails will check if a file is already at the destination path. If so it will delete that file and attempt the rename according the remaining
+     * maxAttempts. If false, any conflicting files will be left as they were and the rename attempts will fail if conflicting.
      * @throws IOException if rename isn't successful
      */
     public static void renameFile(final File source, final File destination, final int maxAttempts, final boolean replace) throws IOException {
@@ -553,20 +516,15 @@ public class FileUtils {
     }
 
     /**
-     * Syncs a primary copy of a file with the copy in the restore directory. If
-     * the restore directory does not have a file and the primary has a file,
-     * the the primary's file is copied to the restore directory. Else if the
-     * restore directory has a file, but the primary does not, then the
-     * restore's file is copied to the primary directory. Else if the primary
-     * file is different than the restore file, then an IllegalStateException is
-     * thrown. Otherwise, if neither file exists, then no syncing is performed.
+     * Syncs a primary copy of a file with the copy in the restore directory. If the restore directory does not have a file and the primary has a file, the the primary's file is copied to the restore
+     * directory. Else if the restore directory has a file, but the primary does not, then the restore's file is copied to the primary directory. Else if the primary file is different than the restore
+     * file, then an IllegalStateException is thrown. Otherwise, if neither file exists, then no syncing is performed.
      *
      * @param primaryFile the primary file
      * @param restoreFile the restore file
      * @param logger a logger
      * @throws IOException if an I/O problem was encountered during syncing
-     * @throws IllegalStateException if the primary and restore copies exist but
-     * are different
+     * @throws IllegalStateException if the primary and restore copies exist but are different
      */
     public static void syncWithRestore(final File primaryFile, final File restoreFile, final Logger logger)
             throws IOException {

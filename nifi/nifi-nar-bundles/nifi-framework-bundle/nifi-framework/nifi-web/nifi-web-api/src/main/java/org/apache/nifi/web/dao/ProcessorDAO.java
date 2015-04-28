@@ -64,8 +64,7 @@ public interface ProcessorDAO {
     void verifyUpdate(String groupId, ProcessorDTO processorDTO);
 
     /**
-     * Updates the configuration for the processor using the specified
-     * processorDTO.
+     * Updates the configuration for the processor using the specified processorDTO.
      *
      * @param groupId group id
      * @param processorDTO processor

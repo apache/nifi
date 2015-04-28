@@ -65,8 +65,10 @@ import org.apache.nifi.util.StopWatch;
 @Tags({"hadoop", "HDFS", "get", "fetch", "ingest", "source", "filesystem"})
 @CapabilityDescription("Fetch files from Hadoop Distributed File System (HDFS) into FlowFiles")
 @WritesAttributes({
-        @WritesAttribute(attribute = "filename", description = "The name of the file that was read from HDFS."),
-        @WritesAttribute(attribute = "path", description = "The path is set to the relative path of the file's directory on HDFS. For example, if the Directory property is set to /tmp, then files picked up from /tmp will have the path attribute set to \"./\". If the Recurse Subdirectories property is set to true and a file is picked up from /tmp/abc/1/2/3, then the path attribute will be set to \"abc/1/2/3\".") })
+    @WritesAttribute(attribute = "filename", description = "The name of the file that was read from HDFS."),
+    @WritesAttribute(attribute = "path", description = "The path is set to the relative path of the file's directory on HDFS. For example, if "
+            + "the Directory property is set to /tmp, then files picked up from /tmp will have the path attribute set to \"./\". If the Recurse "
+            + "Subdirectories property is set to true and a file is picked up from /tmp/abc/1/2/3, then the path attribute will be set to \"abc/1/2/3\".")})
 @SeeAlso(PutHDFS.class)
 public class GetHDFS extends AbstractHadoopProcessor {
 
@@ -112,16 +114,16 @@ public class GetHDFS extends AbstractHadoopProcessor {
 
     public static final PropertyDescriptor FILE_FILTER_REGEX = new PropertyDescriptor.Builder()
             .name("File Filter Regex")
-            .description(
-                    "A Java Regular Expression for filtering Filenames; if a filter is supplied then only files whose names match that Regular Expression will be fetched, otherwise all files will be fetched")
+            .description("A Java Regular Expression for filtering Filenames; if a filter is supplied then only files whose names match that Regular "
+                    + "Expression will be fetched, otherwise all files will be fetched")
             .required(false)
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor FILTER_MATCH_NAME_ONLY = new PropertyDescriptor.Builder()
             .name("Filter Match Name Only")
-            .description(
-                    "If true then File Filter Regex will match on just the filename, otherwise subdirectory names will be included with filename in the regex comparison")
+            .description("If true then File Filter Regex will match on just the filename, otherwise subdirectory names will be included with filename "
+                    + "in the regex comparison")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("true")
@@ -137,21 +139,17 @@ public class GetHDFS extends AbstractHadoopProcessor {
 
     public static final PropertyDescriptor MIN_AGE = new PropertyDescriptor.Builder()
             .name("Minimum File Age")
-            .description(
-                    "The minimum age that a file must be in order to be pulled; any file younger than this amount of time (based on last modification date) will be ignored")
+            .description("The minimum age that a file must be in order to be pulled; any file younger than this amount of time (based on last modification date) will be ignored")
             .required(true)
-            .addValidator(
-                    StandardValidators.createTimePeriodValidator(0, TimeUnit.MILLISECONDS, Long.MAX_VALUE, TimeUnit.NANOSECONDS))
+            .addValidator(StandardValidators.createTimePeriodValidator(0, TimeUnit.MILLISECONDS, Long.MAX_VALUE, TimeUnit.NANOSECONDS))
             .defaultValue("0 sec")
             .build();
 
     public static final PropertyDescriptor MAX_AGE = new PropertyDescriptor.Builder()
             .name("Maximum File Age")
-            .description(
-                    "The maximum age that a file must be in order to be pulled; any file older than this amount of time (based on last modification date) will be ignored")
+            .description("The maximum age that a file must be in order to be pulled; any file older than this amount of time (based on last modification date) will be ignored")
             .required(false)
-            .addValidator(
-                    StandardValidators.createTimePeriodValidator(100, TimeUnit.MILLISECONDS, Long.MAX_VALUE, TimeUnit.NANOSECONDS))
+            .addValidator(StandardValidators.createTimePeriodValidator(100, TimeUnit.MILLISECONDS, Long.MAX_VALUE, TimeUnit.NANOSECONDS))
             .build();
 
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
@@ -389,11 +387,11 @@ public class GetHDFS extends AbstractHadoopProcessor {
     /**
      * Do a listing of HDFS if the POLLING_INTERVAL has lapsed.
      *
-     * Will return null if POLLING_INTERVAL has not lapsed. Will return an empty
-     * set if no files were found on HDFS that matched the configured filters.
-     * @param context
-     * @return 
-     * @throws java.io.IOException
+     * Will return null if POLLING_INTERVAL has not lapsed. Will return an empty set if no files were found on HDFS that matched the configured filters.
+     *
+     * @param context context
+     * @return null if POLLING_INTERVAL has not lapsed. Will return an empty set if no files were found on HDFS that matched the configured filters
+     * @throws java.io.IOException ex
      */
     protected Set<Path> performListing(final ProcessContext context) throws IOException {
 
@@ -417,11 +415,12 @@ public class GetHDFS extends AbstractHadoopProcessor {
 
     /**
      * Poll HDFS for files to process that match the configured file filters.
-     * @param hdfs
-     * @param dir
-     * @param filesVisited
-     * @return 
-     * @throws java.io.IOException 
+     *
+     * @param hdfs hdfs
+     * @param dir dir
+     * @param filesVisited filesVisited
+     * @return files to process
+     * @throws java.io.IOException ex
      */
     protected Set<Path> selectFiles(final FileSystem hdfs, final Path dir, Set<Path> filesVisited) throws IOException {
         if (null == filesVisited) {
@@ -465,11 +464,11 @@ public class GetHDFS extends AbstractHadoopProcessor {
     }
 
     /**
-     * Returns the relative path of the child that does not include the filename
-     * or the root path.
-     * @param root
-     * @param child
-     * @return 
+     * Returns the relative path of the child that does not include the filename or the root path.
+     *
+     * @param root root
+     * @param child child
+     * @return the relative path of the child that does not include the filename or the root path
      */
     public static String getPathDifference(final Path root, final Path child) {
         final int depthDiff = child.depth() - root.depth();
@@ -492,8 +491,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
     }
 
     /**
-     * Holder for a snapshot in time of some processor properties that are
-     * passed around.
+     * Holder for a snapshot in time of some processor properties that are passed around.
      */
     protected static class ProcessorConfiguration {
 

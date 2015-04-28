@@ -49,11 +49,8 @@ public class BulletinBoardResource extends ApplicationResource {
     /**
      * Retrieves all the of templates in this NiFi.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param after Supporting querying for bulletins after a particular
-     * bulletin id.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param after Supporting querying for bulletins after a particular bulletin id.
      * @param limit The max number of bulletins to return.
      * @param sourceName Source name filter. Supports a regular expression.
      * @param message Message filter. Supports a regular expression.

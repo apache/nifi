@@ -21,9 +21,7 @@ import java.io.OutputStream;
 
 /**
  * <p>
- * This class extends the {@link java.util.zip.GZIPOutputStream} by allowing the
- * constructor to provide a compression level, and uses a default value of 1,
- * rather than 5.
+ * This class extends the {@link java.util.zip.GZIPOutputStream} by allowing the constructor to provide a compression level, and uses a default value of 1, rather than 5.
  * </p>
  */
 public class GZIPOutputStream extends java.util.zip.GZIPOutputStream {

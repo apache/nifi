@@ -45,12 +45,12 @@ import java.util.Objects;
  * Provides common functionality used for processors interacting and manipulating JSON data via JsonPath.
  *
  * @see <a href="http://json.org">http://json.org</a>
- * @see <a href="https://github.com/jayway/JsonPath">https://github.com/jayway/JsonPath</a>
+ * @see
+ * <a href="https://github.com/jayway/JsonPath">https://github.com/jayway/JsonPath</a>
  */
 public abstract class AbstractJsonPathProcessor extends AbstractProcessor {
 
-    private static final Configuration STRICT_PROVIDER_CONFIGURATION =
-            Configuration.builder().jsonProvider(new JsonSmartJsonProvider(JSONParser.MODE_RFC4627)).build();
+    private static final Configuration STRICT_PROVIDER_CONFIGURATION = Configuration.builder().jsonProvider(new JsonSmartJsonProvider(JSONParser.MODE_RFC4627)).build();
 
     private static final JsonProvider JSON_PROVIDER = STRICT_PROVIDER_CONFIGURATION.jsonProvider();
 
@@ -89,8 +89,8 @@ public abstract class AbstractJsonPathProcessor extends AbstractProcessor {
     }
 
     /**
-     * Determines the context by which JsonSmartJsonProvider would treat the value.  {@link java.util.Map} and
-     * {@link java.util.List} objects can be rendered as JSON elements, everything else is treated as a scalar.
+     * Determines the context by which JsonSmartJsonProvider would treat the value. {@link java.util.Map} and {@link java.util.List} objects can be rendered as JSON elements, everything else is
+     * treated as a scalar.
      *
      * @param obj item to be inspected if it is a scalar or a JSON element
      * @return false, if the object is a supported type; true otherwise
@@ -126,12 +126,10 @@ public abstract class AbstractJsonPathProcessor extends AbstractProcessor {
         /**
          * An optional hook to act on the compute value
          */
-
         abstract void cacheComputedValue(String subject, String input, JsonPath computedJsonPath);
 
         /**
-         * A hook for implementing classes to determine if a cached value is stale for a compiled JsonPath represented
-         * by either a validation
+         * A hook for implementing classes to determine if a cached value is stale for a compiled JsonPath represented by either a validation
          */
         abstract boolean isStale(String subject, String input);
     }

@@ -20,8 +20,7 @@ import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
 
 /**
- * Class for parsing handling client ids. If the client id is not specified, one
- * will be generated.
+ * Class for parsing handling client ids. If the client id is not specified, one will be generated.
  */
 public class ClientIdParameter {
 

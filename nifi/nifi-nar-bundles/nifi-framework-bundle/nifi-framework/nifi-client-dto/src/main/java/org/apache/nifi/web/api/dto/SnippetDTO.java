@@ -88,10 +88,8 @@ public class SnippetDTO {
     }
 
     /**
-     * @return the ids of the connections in this snippet. These ids will be populated
-     * within each response. They can be specified when creating a snippet.
-     * However, once a snippet has been created its contents cannot be modified
-     * (these ids are ignored during update requests)
+     * @return the ids of the connections in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet has been created its
+     * contents cannot be modified (these ids are ignored during update requests)
      */
     public Set<String> getConnections() {
         return connections;
@@ -102,10 +100,8 @@ public class SnippetDTO {
     }
 
     /**
-     * @return the ids of the funnels in this snippet. These ids will be populated
-     * within each response. They can be specified when creating a snippet.
-     * However, once a snippet has been created its contents cannot be modified
-     * (these ids are ignored during update requests)
+     * @return the ids of the funnels in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet has been created its
+     * contents cannot be modified (these ids are ignored during update requests)
      */
     public Set<String> getFunnels() {
         return funnels;
@@ -116,10 +112,8 @@ public class SnippetDTO {
     }
 
     /**
-     * @return the ids of the input port in this snippet. These ids will be populated
-     * within each response. They can be specified when creating a snippet.
-     * However, once a snippet has been created its contents cannot be modified
-     * (these ids are ignored during update requests)
+     * @return the ids of the input port in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet has been created its
+     * contents cannot be modified (these ids are ignored during update requests)
      */
     public Set<String> getInputPorts() {
         return inputPorts;
@@ -130,10 +124,8 @@ public class SnippetDTO {
     }
 
     /**
-     * @return the ids of the labels in this snippet. These ids will be populated within
-     * each response. They can be specified when creating a snippet. However,
-     * once a snippet has been created its contents cannot be modified (these
-     * ids are ignored during update requests)
+     * @return the ids of the labels in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet has been created its
+     * contents cannot be modified (these ids are ignored during update requests)
      */
     public Set<String> getLabels() {
         return labels;
@@ -144,10 +136,8 @@ public class SnippetDTO {
     }
 
     /**
-     * @return the ids of the output ports in this snippet. These ids will be populated
-     * within each response. They can be specified when creating a snippet.
-     * However, once a snippet has been created its contents cannot be modified
-     * (these ids are ignored during update requests)
+     * @return the ids of the output ports in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet has been created
+     * its contents cannot be modified (these ids are ignored during update requests)
      */
     public Set<String> getOutputPorts() {
         return outputPorts;
@@ -158,10 +148,8 @@ public class SnippetDTO {
     }
 
     /**
-     * @return The ids of the process groups in this snippet. These ids will be
-     * populated within each response. They can be specified when creating a
-     * snippet. However, once a snippet has been created its contents cannot be
-     * modified (these ids are ignored during update requests)
+     * @return The ids of the process groups in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet has been created
+     * its contents cannot be modified (these ids are ignored during update requests)
      */
     public Set<String> getProcessGroups() {
         return processGroups;
@@ -172,10 +160,8 @@ public class SnippetDTO {
     }
 
     /**
-     * @return The ids of the processors in this snippet. These ids will be populated
-     * within each response. They can be specified when creating a snippet.
-     * However, once a snippet has been created its contents cannot be modified
-     * (these ids are ignored during update requests)
+     * @return The ids of the processors in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet has been created its
+     * contents cannot be modified (these ids are ignored during update requests)
      */
     public Set<String> getProcessors() {
         return processors;
@@ -186,10 +172,8 @@ public class SnippetDTO {
     }
 
     /**
-     * @return the ids of the remote process groups in this snippet. These ids will be
-     * populated within each response. They can be specified when creating a
-     * snippet. However, once a snippet has been created its contents cannot be
-     * modified (these ids are ignored during update requests)
+     * @return the ids of the remote process groups in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet has been
+     * created its contents cannot be modified (these ids are ignored during update requests)
      */
     public Set<String> getRemoteProcessGroups() {
         return remoteProcessGroups;

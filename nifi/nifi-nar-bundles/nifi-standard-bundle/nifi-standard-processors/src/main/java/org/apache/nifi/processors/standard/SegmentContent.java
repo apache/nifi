@@ -51,14 +51,26 @@ import org.apache.nifi.processor.util.StandardValidators;
 @CapabilityDescription("Segments a FlowFile into multiple smaller segments on byte boundaries. Each segment is given the following attributes: "
         + "fragment.identifier, fragment.index, fragment.count, segment.original.filename; these attributes can then be used by the "
         + "MergeContent processor in order to reconstitute the original FlowFile")
-@WritesAttributes({ @WritesAttribute(attribute = "segment.identifier", description = "All segments produced from the same parent FlowFile will have the same randomly generated UUID added for this attribute. This attribute is added to maintain backward compatibility, but the fragment.identifier is preferred, as it is designed to work in conjunction with the MergeContent Processor"),
-        @WritesAttribute(attribute = "segment.index", description = "A one-up number that indicates the ordering of the segments that were created from a single parent FlowFile. This attribute is added to maintain backward compatibility, but the fragment.index is preferred, as it is designed to work in conjunction with the MergeContent Processor"),
-        @WritesAttribute(attribute = "segment.count", description = "The number of segments generated from the parent FlowFile. This attribute is added to maintain backward compatibility, but the fragment.count is preferred, as it is designed to work in conjunction with the MergeContent Processor"),
-        @WritesAttribute(attribute = "fragment.identifier", description = "All segments produced from the same parent FlowFile will have the same randomly generated UUID added for this attribute"),
-        @WritesAttribute(attribute = "fragment.index", description = "A one-up number that indicates the ordering of the segments that were created from a single parent FlowFile"),
-        @WritesAttribute(attribute = "fragment.count", description = "The number of segments generated from the parent FlowFile"),
-        @WritesAttribute(attribute = "segment.original.filename ", description = "The filename of the parent FlowFile"),
-        @WritesAttribute(attribute = "segment.original.filename ", description = "The filename will be updated to include the parent's filename, the segment index, and the segment count") })
+@WritesAttributes({
+    @WritesAttribute(attribute = "segment.identifier",
+            description = "All segments produced from the same parent FlowFile will have the same randomly generated UUID added for this "
+            + "attribute. This attribute is added to maintain backward compatibility, but the fragment.identifier is preferred, as "
+            + "it is designed to work in conjunction with the MergeContent Processor"),
+    @WritesAttribute(attribute = "segment.index",
+            description = "A one-up number that indicates the ordering of the segments that were created from a single parent FlowFile. "
+            + "This attribute is added to maintain backward compatibility, but the fragment.index is preferred, as it is designed "
+            + "to work in conjunction with the MergeContent Processor"),
+    @WritesAttribute(attribute = "segment.count",
+            description = "The number of segments generated from the parent FlowFile. This attribute is added to maintain backward compatibility, "
+            + "but the fragment.count is preferred, as it is designed to work in conjunction with the MergeContent Processor"),
+    @WritesAttribute(attribute = "fragment.identifier",
+            description = "All segments produced from the same parent FlowFile will have the same randomly generated UUID added for this attribute"),
+    @WritesAttribute(attribute = "fragment.index",
+            description = "A one-up number that indicates the ordering of the segments that were created from a single parent FlowFile"),
+    @WritesAttribute(attribute = "fragment.count", description = "The number of segments generated from the parent FlowFile"),
+    @WritesAttribute(attribute = "segment.original.filename ", description = "The filename of the parent FlowFile"),
+    @WritesAttribute(attribute = "segment.original.filename ",
+            description = "The filename will be updated to include the parent's filename, the segment index, and the segment count")})
 @SeeAlso(MergeContent.class)
 public class SegmentContent extends AbstractProcessor {
 
@@ -78,8 +90,15 @@ public class SegmentContent extends AbstractProcessor {
             .required(true)
             .build();
 
-    public static final Relationship REL_SEGMENTS = new Relationship.Builder().name("segments").description("All segments will be sent to this relationship. If the file was small enough that it was not segmented, a copy of the original is sent to this relationship as well as original").build();
-    public static final Relationship REL_ORIGINAL = new Relationship.Builder().name("original").description("The original FlowFile will be sent to this relationship").build();
+    public static final Relationship REL_SEGMENTS = new Relationship.Builder()
+            .name("segments")
+            .description("All segments will be sent to this relationship. If the file was small enough that it was not segmented, "
+                    + "a copy of the original is sent to this relationship as well as original")
+            .build();
+    public static final Relationship REL_ORIGINAL = new Relationship.Builder()
+            .name("original")
+            .description("The original FlowFile will be sent to this relationship")
+            .build();
 
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> propertyDescriptors;

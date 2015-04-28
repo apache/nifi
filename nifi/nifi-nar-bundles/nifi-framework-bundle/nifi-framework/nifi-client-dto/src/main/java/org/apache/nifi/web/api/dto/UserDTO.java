@@ -86,8 +86,7 @@ public class UserDTO {
     }
 
     /**
-     * @return users name. If the name could not be extracted from the DN, this
-     * value will be the entire DN
+     * @return users name. If the name could not be extracted from the DN, this value will be the entire DN
      */
     public String getUserName() {
         return userName;

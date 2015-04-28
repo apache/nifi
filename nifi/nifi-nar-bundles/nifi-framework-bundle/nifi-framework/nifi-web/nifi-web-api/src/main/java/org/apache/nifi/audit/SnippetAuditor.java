@@ -88,9 +88,9 @@ public class SnippetAuditor extends NiFiAuditor {
     /**
      * Audits copy/paste.
      *
-     * @param proceedingJoinPoint
-     * @return
-     * @throws Throwable
+     * @param proceedingJoinPoint join point
+     * @return dto
+     * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.SnippetDAO+) && "
             + "execution(org.apache.nifi.web.api.dto.FlowSnippetDTO copySnippet(java.lang.String, java.lang.String, java.lang.Double, java.lang.Double))")
@@ -104,9 +104,9 @@ public class SnippetAuditor extends NiFiAuditor {
     /**
      * Audits the instantiation of a template.
      *
-     * @param proceedingJoinPoint
-     * @return
-     * @throws Throwable
+     * @param proceedingJoinPoint join point
+     * @return dto
+     * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.TemplateDAO+) && "
             + "execution(org.apache.nifi.web.api.dto.FlowSnippetDTO instantiateTemplate(java.lang.String, java.lang.Double, java.lang.Double, java.lang.String))")
@@ -119,8 +119,6 @@ public class SnippetAuditor extends NiFiAuditor {
 
     /**
      * Audits the specified snippet.
-     *
-     * @param snippet
      */
     private void auditSnippet(final FlowSnippetDTO snippet) {
         final Collection<Action> actions = new ArrayList<>();
@@ -199,9 +197,6 @@ public class SnippetAuditor extends NiFiAuditor {
 
     /**
      * Determines the type of component the specified connectable is.
-     *
-     * @param connectable
-     * @return
      */
     private Component determineConnectableType(ConnectableDTO connectable) {
         Component component = Component.Controller;
@@ -224,11 +219,6 @@ public class SnippetAuditor extends NiFiAuditor {
 
     /**
      * Generates an audit record for the creation of the specified funnel.
-     *
-     * @param id
-     * @param name
-     * @param type
-     * @param operation
      */
     private Action generateAuditRecord(String id, String name, Component type, Operation operation, Date timestamp) {
         Action action = null;
@@ -255,11 +245,11 @@ public class SnippetAuditor extends NiFiAuditor {
     /**
      * Audits a bulk move.
      *
-     * @param proceedingJoinPoint
-     * @param snippetDTO
-     * @param snippetDAO
-     * @return
-     * @throws Throwable
+     * @param proceedingJoinPoint join point
+     * @param snippetDTO dto
+     * @param snippetDAO dao
+     * @return snippet
+     * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.SnippetDAO+) && "
             + "execution(org.apache.nifi.controller.Snippet updateSnippet(org.apache.nifi.web.api.dto.SnippetDTO)) && "
@@ -349,10 +339,10 @@ public class SnippetAuditor extends NiFiAuditor {
     /**
      * Audits bulk delete.
      *
-     * @param proceedingJoinPoint
-     * @param snippetId
-     * @param snippetDAO
-     * @throws Throwable
+     * @param proceedingJoinPoint join point
+     * @param snippetId snippet id
+     * @param snippetDAO dao
+     * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.SnippetDAO+) && "
             + "execution(void deleteSnippet(java.lang.String)) && "

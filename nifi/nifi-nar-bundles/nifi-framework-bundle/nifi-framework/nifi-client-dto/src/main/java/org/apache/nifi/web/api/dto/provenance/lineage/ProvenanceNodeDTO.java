@@ -25,8 +25,7 @@ import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import org.apache.nifi.web.api.dto.util.TimestampAdapter;
 
 /**
- * A node within a provenance lineage. May represent either an event or a
- * flowfile.
+ * A node within a provenance lineage. May represent either an event or a flowfile.
  */
 @XmlType(name = "provenanceNode")
 public class ProvenanceNodeDTO {

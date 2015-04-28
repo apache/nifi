@@ -88,8 +88,8 @@ public class ControllerServiceResource extends ApplicationResource {
     /**
      * Populates the uri for the specified controller service.
      *
-     * @param controllerServices
-     * @return
+     * @param controllerServices services
+     * @return dtos
      */
     private Set<ControllerServiceDTO> populateRemainingControllerServicesContent(final String availability, final Set<ControllerServiceDTO> controllerServices) {
         for (ControllerServiceDTO controllerService : controllerServices) {
@@ -121,11 +121,10 @@ public class ControllerServiceResource extends ApplicationResource {
     }
 
     /**
-     * Parses the availability and ensure that the specified availability makes
-     * sense for the given NiFi instance.
+     * Parses the availability and ensure that the specified availability makes sense for the given NiFi instance.
      *
-     * @param availability
-     * @return
+     * @param availability avail
+     * @return avail
      */
     private Availability parseAvailability(final String availability) {
         final Availability avail;
@@ -146,12 +145,9 @@ public class ControllerServiceResource extends ApplicationResource {
     /**
      * Retrieves all the of controller services in this NiFi.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param availability Whether the controller service is available on the
-     * NCM only (ncm) or on the nodes only (node). If this instance is not
-     * clustered all services should use the node availability.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param availability Whether the controller service is available on the NCM only (ncm) or on the nodes only (node). If this instance is not clustered all services should use the node
+     * availability.
      * @return A controllerServicesEntity.
      */
     @GET
@@ -186,15 +182,11 @@ public class ControllerServiceResource extends ApplicationResource {
     /**
      * Creates a new controller service.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param availability Whether the controller service is available on the
-     * NCM only (ncm) or on the nodes only (node). If this instance is not
-     * clustered all services should use the node availability.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param availability Whether the controller service is available on the NCM only (ncm) or on the nodes only (node). If this instance is not clustered all services should use the node
+     * availability.
      * @param type The type of controller service to create.
      * @return A controllerServiceEntity.
      */
@@ -233,10 +225,9 @@ public class ControllerServiceResource extends ApplicationResource {
     /**
      * Creates a new Controller Service.
      *
-     * @param httpServletRequest
-     * @param availability Whether the controller service is available on the
-     * NCM only (ncm) or on the nodes only (node). If this instance is not
-     * clustered all services should use the node availability.
+     * @param httpServletRequest request
+     * @param availability Whether the controller service is available on the NCM only (ncm) or on the nodes only (node). If this instance is not clustered all services should use the node
+     * availability.
      * @param controllerServiceEntity A controllerServiceEntity.
      * @return A controllerServiceEntity.
      */
@@ -324,12 +315,9 @@ public class ControllerServiceResource extends ApplicationResource {
     /**
      * Retrieves the specified controller service.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param availability Whether the controller service is available on the
-     * NCM only (ncm) or on the nodes only (node). If this instance is not
-     * clustered all services should use the node availability.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param availability Whether the controller service is available on the NCM only (ncm) or on the nodes only (node). If this instance is not clustered all services should use the node
+     * availability.
      * @param id The id of the controller service to retrieve
      * @return A controllerServiceEntity.
      */
@@ -366,10 +354,8 @@ public class ControllerServiceResource extends ApplicationResource {
     /**
      * Returns the descriptor for the specified property.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param availability
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param availability avail
      * @param id The id of the controller service.
      * @param propertyName The property
      * @return a propertyDescriptorEntity
@@ -415,12 +401,9 @@ public class ControllerServiceResource extends ApplicationResource {
     /**
      * Retrieves the references of the specified controller service.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param availability Whether the controller service is available on the
-     * NCM only (ncm) or on the nodes only (node). If this instance is not
-     * clustered all services should use the node availability.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param availability Whether the controller service is available on the NCM only (ncm) or on the nodes only (node). If this instance is not clustered all services should use the node
+     * availability.
      * @param id The id of the controller service to retrieve
      * @return A controllerServiceEntity.
      */
@@ -458,20 +441,14 @@ public class ControllerServiceResource extends ApplicationResource {
     /**
      * Updates the references of the specified controller service.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param availability Whether the controller service is available on the
-     * NCM only (ncm) or on the nodes only (node). If this instance is not
-     * clustered all services should use the node availability.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param availability Whether the controller service is available on the NCM only (ncm) or on the nodes only (node). If this instance is not clustered all services should use the node
+     * availability.
      * @param id The id of the controller service to retrieve
-     * @param state Sets the state of referencing components. A value of RUNNING
-     * or STOPPED will update referencing schedulable components (Processors and
-     * Reporting Tasks). A value of ENABLED or DISABLED will update referencing
-     * controller services.
+     * @param state Sets the state of referencing components. A value of RUNNING or STOPPED will update referencing schedulable components (Processors and Reporting Tasks). A value of ENABLED or
+     * DISABLED will update referencing controller services.
      * @return A controllerServiceEntity.
      */
     @PUT
@@ -558,27 +535,19 @@ public class ControllerServiceResource extends ApplicationResource {
     /**
      * Updates the specified controller service.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param availability Whether the controller service is available on the
-     * NCM only (ncm) or on the nodes only (node). If this instance is not
-     * clustered all services should use the node availability.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param availability Whether the controller service is available on the NCM only (ncm) or on the nodes only (node). If this instance is not clustered all services should use the node
+     * availability.
      * @param id The id of the controller service to update.
      * @param name The name of the controller service
      * @param annotationData The annotation data for the controller service
      * @param comments The comments for the controller service
-     * @param state The state of this controller service. Should be ENABLED or
-     * DISABLED.
-     * @param markedForDeletion Array of property names whose value should be
-     * removed.
-     * @param formParams Additionally, the processor properties and styles are
-     * specified in the form parameters. Because the property names and styles
-     * differ from processor to processor they are specified in a map-like
-     * fashion:
+     * @param state The state of this controller service. Should be ENABLED or DISABLED.
+     * @param markedForDeletion Array of property names whose value should be removed.
+     * @param formParams Additionally, the processor properties and styles are specified in the form parameters. Because the property names and styles differ from processor to processor they are
+     * specified in a map-like fashion:
      * <br>
      * <ul>
      * <li>properties[required.file.path]=/path/to/file</li>
@@ -662,10 +631,9 @@ public class ControllerServiceResource extends ApplicationResource {
     /**
      * Updates the specified a new Controller Service.
      *
-     * @param httpServletRequest
-     * @param availability Whether the controller service is available on the
-     * NCM only (ncm) or on the nodes only (node). If this instance is not
-     * clustered all services should use the node availability.
+     * @param httpServletRequest request
+     * @param availability Whether the controller service is available on the NCM only (ncm) or on the nodes only (node). If this instance is not clustered all services should use the node
+     * availability.
      * @param id The id of the controller service to update.
      * @param controllerServiceEntity A controllerServiceEntity.
      * @return A controllerServiceEntity.
@@ -740,15 +708,11 @@ public class ControllerServiceResource extends ApplicationResource {
     /**
      * Removes the specified controller service.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param availability Whether the controller service is available on the
-     * NCM only (ncm) or on the nodes only (node). If this instance is not
-     * clustered all services should use the node availability.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param availability Whether the controller service is available on the NCM only (ncm) or on the nodes only (node). If this instance is not clustered all services should use the node
+     * availability.
      * @param id The id of the controller service to remove.
      * @return A entity containing the client id and an updated revision.
      */

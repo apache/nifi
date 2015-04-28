@@ -118,9 +118,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
 
-/**
- *
- */
 public class ControllerFacade {
 
     private static final Logger logger = LoggerFactory.getLogger(ControllerFacade.class);
@@ -144,8 +141,8 @@ public class ControllerFacade {
     /**
      * Returns the group id that contains the specified processor.
      *
-     * @param processorId
-     * @return
+     * @param processorId processor id
+     * @return group id
      */
     public String findProcessGroupIdForProcessor(String processorId) {
         final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
@@ -160,7 +157,7 @@ public class ControllerFacade {
     /**
      * Sets the name of this controller.
      *
-     * @param name
+     * @param name name
      */
     public void setName(String name) {
         flowController.setName(name);
@@ -169,7 +166,7 @@ public class ControllerFacade {
     /**
      * Sets the comments of this controller.
      *
-     * @param comments
+     * @param comments comments
      */
     public void setComments(String comments) {
         flowController.setComments(comments);
@@ -178,7 +175,7 @@ public class ControllerFacade {
     /**
      * Sets the max timer driven thread count of this controller.
      *
-     * @param maxTimerDrivenThreadCount
+     * @param maxTimerDrivenThreadCount count
      */
     public void setMaxTimerDrivenThreadCount(int maxTimerDrivenThreadCount) {
         flowController.setMaxTimerDrivenThreadCount(maxTimerDrivenThreadCount);
@@ -187,7 +184,7 @@ public class ControllerFacade {
     /**
      * Sets the max event driven thread count of this controller.
      *
-     * @param maxEventDrivenThreadCount
+     * @param maxEventDrivenThreadCount count
      */
     public void setMaxEventDrivenThreadCount(int maxEventDrivenThreadCount) {
         flowController.setMaxEventDrivenThreadCount(maxEventDrivenThreadCount);
@@ -196,7 +193,7 @@ public class ControllerFacade {
     /**
      * Gets the root group id.
      *
-     * @return
+     * @return group id
      */
     public String getRootGroupId() {
         return flowController.getRootGroupId();
@@ -205,7 +202,7 @@ public class ControllerFacade {
     /**
      * Gets the input ports on the root group.
      *
-     * @return
+     * @return input ports
      */
     public Set<RootGroupPort> getInputPorts() {
         final Set<RootGroupPort> inputPorts = new HashSet<>();
@@ -221,7 +218,7 @@ public class ControllerFacade {
     /**
      * Gets the output ports on the root group.
      *
-     * @return
+     * @return output ports
      */
     public Set<RootGroupPort> getOutputPorts() {
         final Set<RootGroupPort> outputPorts = new HashSet<>();
@@ -237,9 +234,9 @@ public class ControllerFacade {
     /**
      * Returns the status history for the specified processor.
      *
-     * @param groupId
-     * @param processorId
-     * @return
+     * @param groupId group id
+     * @param processorId processor id
+     * @return status history
      */
     public StatusHistoryDTO getProcessorStatusHistory(final String groupId, final String processorId) {
         return flowController.getProcessorStatusHistory(processorId);
@@ -248,9 +245,9 @@ public class ControllerFacade {
     /**
      * Returns the status history for the specified connection.
      *
-     * @param groupId
-     * @param connectionId
-     * @return
+     * @param groupId group id
+     * @param connectionId connection id
+     * @return status history
      */
     public StatusHistoryDTO getConnectionStatusHistory(final String groupId, final String connectionId) {
         return flowController.getConnectionStatusHistory(connectionId);
@@ -259,8 +256,8 @@ public class ControllerFacade {
     /**
      * Returns the status history for the specified process group.
      *
-     * @param groupId
-     * @return
+     * @param groupId group id
+     * @return status history
      */
     public StatusHistoryDTO getProcessGroupStatusHistory(final String groupId) {
         return flowController.getProcessGroupStatusHistory(groupId);
@@ -269,9 +266,9 @@ public class ControllerFacade {
     /**
      * Returns the status history for the specified remote process group.
      *
-     * @param groupId
-     * @param remoteProcessGroupId
-     * @return
+     * @param groupId group id
+     * @param remoteProcessGroupId remote process group id
+     * @return status history
      */
     public StatusHistoryDTO getRemoteProcessGroupStatusHistory(final String groupId, final String remoteProcessGroupId) {
         return flowController.getRemoteProcessGroupStatusHistory(remoteProcessGroupId);
@@ -280,12 +277,15 @@ public class ControllerFacade {
     /**
      * Get the node id of this controller.
      *
-     * @return
+     * @return node identifier
      */
     public NodeIdentifier getNodeId() {
         return flowController.getNodeId();
     }
 
+    /**
+     * @return true if is clustered
+     */
     public boolean isClustered() {
         return flowController.isClustered();
     }
@@ -293,7 +293,7 @@ public class ControllerFacade {
     /**
      * Gets the name of this controller.
      *
-     * @return
+     * @return name
      */
     public String getName() {
         return flowController.getName();
@@ -306,7 +306,7 @@ public class ControllerFacade {
     /**
      * Gets the comments of this controller.
      *
-     * @return
+     * @return comments
      */
     public String getComments() {
         return flowController.getComments();
@@ -315,7 +315,7 @@ public class ControllerFacade {
     /**
      * Gets the max timer driven thread count of this controller.
      *
-     * @return
+     * @return count
      */
     public int getMaxTimerDrivenThreadCount() {
         return flowController.getMaxTimerDrivenThreadCount();
@@ -324,7 +324,7 @@ public class ControllerFacade {
     /**
      * Gets the max event driven thread count of this controller.
      *
-     * @return
+     * @return count
      */
     public int getMaxEventDrivenThreadCount() {
         return flowController.getMaxEventDrivenThreadCount();
@@ -333,7 +333,7 @@ public class ControllerFacade {
     /**
      * Gets the FlowFileProcessor types that this controller supports.
      *
-     * @return
+     * @return types
      */
     public Set<DocumentedTypeDTO> getFlowFileProcessorTypes() {
         return dtoFactory.fromDocumentedTypes(ExtensionManager.getExtensions(Processor.class));
@@ -342,7 +342,7 @@ public class ControllerFacade {
     /**
      * Gets the FlowFileComparator types that this controller supports.
      *
-     * @return
+     * @return the FlowFileComparator types that this controller supports
      */
     public Set<DocumentedTypeDTO> getFlowFileComparatorTypes() {
         return dtoFactory.fromDocumentedTypes(ExtensionManager.getExtensions(FlowFilePrioritizer.class));
@@ -351,9 +351,9 @@ public class ControllerFacade {
     /**
      * Returns whether the specified type implements the specified serviceType.
      *
-     * @param baseType
-     * @param type
-     * @return
+     * @param serviceType type
+     * @param type type
+     * @return whether the specified type implements the specified serviceType
      */
     private boolean implementsServiceType(final String serviceType, final Class type) {
         final List<Class<?>> interfaces = ClassUtils.getAllInterfaces(type);
@@ -369,8 +369,8 @@ public class ControllerFacade {
     /**
      * Gets the ControllerService types that this controller supports.
      *
-     * @param serviceType
-     * @return
+     * @param serviceType type
+     * @return the ControllerService types that this controller supports
      */
     public Set<DocumentedTypeDTO> getControllerServiceTypes(final String serviceType) {
         final Set<Class> serviceImplementations = ExtensionManager.getExtensions(ControllerService.class);
@@ -396,7 +396,7 @@ public class ControllerFacade {
     /**
      * Gets the ReportingTask types that this controller supports.
      *
-     * @return
+     * @return the ReportingTask types that this controller supports
      */
     public Set<DocumentedTypeDTO> getReportingTaskTypes() {
         return dtoFactory.fromDocumentedTypes(ExtensionManager.getExtensions(ReportingTask.class));
@@ -405,7 +405,7 @@ public class ControllerFacade {
     /**
      * Gets the counters for this controller.
      *
-     * @return
+     * @return the counters for this controller
      */
     public List<Counter> getCounters() {
         return flowController.getCounters();
@@ -414,8 +414,8 @@ public class ControllerFacade {
     /**
      * Resets the counter with the specified id.
      *
-     * @param id
-     * @return
+     * @param id id
+     * @return the counter with the specified id
      */
     public Counter resetCounter(final String id) {
         final Counter counter = flowController.resetCounter(id);
@@ -430,7 +430,7 @@ public class ControllerFacade {
     /**
      * Gets the status of this controller.
      *
-     * @return
+     * @return the status of this controller
      */
     public ControllerStatusDTO getControllerStatus() {
         final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
@@ -462,8 +462,8 @@ public class ControllerFacade {
     /**
      * Gets the status for the specified process group.
      *
-     * @param groupId
-     * @return
+     * @param groupId group id
+     * @return the status for the specified process group
      */
     public ProcessGroupStatusDTO getProcessGroupStatus(final String groupId) {
         final ProcessGroupStatus processGroupStatus = flowController.getGroupStatus(groupId);
@@ -476,7 +476,7 @@ public class ControllerFacade {
     /**
      * Gets the BulletinRepository.
      *
-     * @return
+     * @return the BulletinRepository
      */
     public BulletinRepository getBulletinRepository() {
         return flowController.getBulletinRepository();
@@ -485,7 +485,7 @@ public class ControllerFacade {
     /**
      * Saves the state of the flow controller.
      *
-     * @throws NiFiCoreException
+     * @throws NiFiCoreException ex
      */
     public void save() throws NiFiCoreException {
         // save the flow controller
@@ -494,40 +494,36 @@ public class ControllerFacade {
     }
 
     /**
-     * Returns the socket port that the Cluster Manager is listening on for
-     * Site-to-Site communications
+     * Returns the socket port that the Cluster Manager is listening on for Site-to-Site communications
      *
-     * @return
+     * @return the socket port that the Cluster Manager is listening on for Site-to-Site communications
      */
     public Integer getClusterManagerRemoteSiteListeningPort() {
         return flowController.getClusterManagerRemoteSiteListeningPort();
     }
 
     /**
-     * Indicates whether or not Site-to-Site communications with the Cluster
-     * Manager are secure
+     * Indicates whether or not Site-to-Site communications with the Cluster Manager are secure
      *
-     * @return
+     * @return whether or not Site-to-Site communications with the Cluster Manager are secure
      */
     public Boolean isClusterManagerRemoteSiteCommsSecure() {
         return flowController.isClusterManagerRemoteSiteCommsSecure();
     }
 
     /**
-     * Returns the socket port that the local instance is listening on for
-     * Site-to-Site communications
+     * Returns the socket port that the local instance is listening on for Site-to-Site communications
      *
-     * @return
+     * @return the socket port that the local instance is listening on for Site-to-Site communications
      */
     public Integer getRemoteSiteListeningPort() {
         return flowController.getRemoteSiteListeningPort();
     }
 
     /**
-     * Indicates whether or not Site-to-Site communications with the local
-     * instance are secure
+     * Indicates whether or not Site-to-Site communications with the local instance are secure
      *
-     * @return
+     * @return whether or not Site-to-Site communications with the local instance are secure
      */
     public Boolean isRemoteSiteCommsSecure() {
         return flowController.isRemoteSiteCommsSecure();
@@ -536,7 +532,7 @@ public class ControllerFacade {
     /**
      * Returns a SystemDiagnostics that describes the current state of the node
      *
-     * @return
+     * @return a SystemDiagnostics that describes the current state of the node
      */
     public SystemDiagnostics getSystemDiagnostics() {
         return flowController.getSystemDiagnostics();
@@ -545,7 +541,7 @@ public class ControllerFacade {
     /**
      * Gets the available options for searching provenance.
      *
-     * @return
+     * @return the available options for searching provenance
      */
     public ProvenanceOptionsDTO getProvenanceSearchOptions() {
         final ProvenanceEventRepository provenanceRepository = flowController.getProvenanceRepository();
@@ -578,8 +574,8 @@ public class ControllerFacade {
     /**
      * Submits a provenance query.
      *
-     * @param provenanceDto
-     * @return
+     * @param provenanceDto dto
+     * @return provenance info
      */
     public ProvenanceDTO submitProvenance(ProvenanceDTO provenanceDto) {
         final ProvenanceRequestDTO requestDto = provenanceDto.getRequest();
@@ -632,8 +628,8 @@ public class ControllerFacade {
     /**
      * Retrieves the results of a provenance query.
      *
-     * @param provenanceId
-     * @return
+     * @param provenanceId id
+     * @return the results of a provenance query
      */
     public ProvenanceDTO getProvenanceQuery(String provenanceId) {
         try {
@@ -717,8 +713,8 @@ public class ControllerFacade {
     /**
      * Submits the specified lineage request.
      *
-     * @param lineageDto
-     * @return
+     * @param lineageDto dto
+     * @return updated lineage
      */
     public LineageDTO submitLineage(LineageDTO lineageDto) {
         final LineageRequestDTO requestDto = lineageDto.getRequest();
@@ -746,8 +742,8 @@ public class ControllerFacade {
     /**
      * Gets the lineage with the specified id.
      *
-     * @param lineageId
-     * @return
+     * @param lineageId id
+     * @return the lineage with the specified id
      */
     public LineageDTO getLineage(final String lineageId) {
         // get the query to the provenance repository
@@ -765,7 +761,7 @@ public class ControllerFacade {
     /**
      * Deletes the query with the specified id.
      *
-     * @param provenanceId
+     * @param provenanceId id
      */
     public void deleteProvenanceQuery(final String provenanceId) {
         // get the query to the provenance repository
@@ -779,7 +775,7 @@ public class ControllerFacade {
     /**
      * Deletes the lineage with the specified id.
      *
-     * @param lineageId
+     * @param lineageId id
      */
     public void deleteLineage(final String lineageId) {
         // get the query to the provenance repository
@@ -793,10 +789,10 @@ public class ControllerFacade {
     /**
      * Gets the content for the specified claim.
      *
-     * @param eventId
-     * @param uri
-     * @param contentDirection
-     * @return
+     * @param eventId event id
+     * @param uri uri
+     * @param contentDirection direction
+     * @return the content for the specified claim
      */
     public DownloadableContent getContent(final Long eventId, final String uri, final ContentDirection contentDirection) {
         try {
@@ -856,8 +852,8 @@ public class ControllerFacade {
     /**
      * Submits a replay request for the specified event id.
      *
-     * @param eventId
-     * @return
+     * @param eventId event id
+     * @return provenance event
      */
     public ProvenanceEventDTO submitReplay(final Long eventId) {
         try {
@@ -885,8 +881,8 @@ public class ControllerFacade {
     /**
      * Get the provenance event with the specified event id.
      *
-     * @param eventId
-     * @return
+     * @param eventId event id
+     * @return the provenance event with the specified event id
      */
     public ProvenanceEventDTO getProvenanceEvent(final Long eventId) {
         try {
@@ -905,8 +901,8 @@ public class ControllerFacade {
     /**
      * Creates a ProvenanceEventDTO for the specified ProvenanceEventRecord.
      *
-     * @param event
-     * @return
+     * @param event event
+     * @return event
      */
     private ProvenanceEventDTO createProvenanceEventDto(final ProvenanceEventRecord event) {
         // convert the attributes
@@ -1018,12 +1014,6 @@ public class ControllerFacade {
         return dto;
     }
 
-    /**
-     * Gets the name for the component with the specified id.
-     *
-     * @param dto
-     * @return
-     */
     private void setComponentDetails(final ProvenanceEventDTO dto) {
         final ProcessGroup root = flowController.getGroup(flowController.getRootGroupId());
 
@@ -1037,8 +1027,8 @@ public class ControllerFacade {
     /**
      * Searches this controller for the specified term.
      *
-     * @param search
-     * @return
+     * @param search search
+     * @return result
      */
     public SearchResultsDTO search(final String search) {
         final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());

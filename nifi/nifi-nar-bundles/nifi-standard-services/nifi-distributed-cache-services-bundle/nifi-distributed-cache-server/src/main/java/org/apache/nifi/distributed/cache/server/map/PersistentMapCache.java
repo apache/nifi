@@ -38,9 +38,9 @@ public class PersistentMapCache implements MapCache {
 
     private final MapCache wrapped;
     private final WriteAheadRepository<MapWaliRecord> wali;
-    
+
     private final AtomicLong modifications = new AtomicLong(0L);
-    
+
     public PersistentMapCache(final String serviceIdentifier, final File persistencePath, final MapCache cacheToWrap) throws IOException {
         wali = new MinimalLockingWriteAheadLog<>(persistencePath.toPath(), 1, new Serde(), null);
         wrapped = cacheToWrap;
@@ -48,8 +48,8 @@ public class PersistentMapCache implements MapCache {
 
     synchronized void restore() throws IOException {
         final Collection<MapWaliRecord> recovered = wali.recoverRecords();
-        for ( final MapWaliRecord record : recovered ) {
-            if ( record.getUpdateType() == UpdateType.CREATE ) {
+        for (final MapWaliRecord record : recovered) {
+            if (record.getUpdateType() == UpdateType.CREATE) {
                 wrapped.putIfAbsent(record.getKey(), record.getValue());
             }
         }
@@ -58,24 +58,24 @@ public class PersistentMapCache implements MapCache {
     @Override
     public MapPutResult putIfAbsent(final ByteBuffer key, final ByteBuffer value) throws IOException {
         final MapPutResult putResult = wrapped.putIfAbsent(key, value);
-        if ( putResult.isSuccessful() ) {
+        if (putResult.isSuccessful()) {
             // The put was successful.
             final MapWaliRecord record = new MapWaliRecord(UpdateType.CREATE, key, value);
             final List<MapWaliRecord> records = new ArrayList<>();
             records.add(record);
 
-            if ( putResult.getEvictedKey() != null ) {
+            if (putResult.getEvictedKey() != null) {
                 records.add(new MapWaliRecord(UpdateType.DELETE, putResult.getEvictedKey(), putResult.getEvictedValue()));
             }
-            
+
             wali.update(Collections.singletonList(record), false);
-            
+
             final long modCount = modifications.getAndIncrement();
-            if ( modCount > 0 && modCount % 100000 == 0 ) {
+            if (modCount > 0 && modCount % 100000 == 0) {
                 wali.checkpoint();
             }
         }
-        
+
         return putResult;
     }
 
@@ -92,65 +92,64 @@ public class PersistentMapCache implements MapCache {
     @Override
     public ByteBuffer remove(ByteBuffer key) throws IOException {
         final ByteBuffer removeResult = wrapped.remove(key);
-        if ( removeResult != null ) {
+        if (removeResult != null) {
             final MapWaliRecord record = new MapWaliRecord(UpdateType.DELETE, key, removeResult);
             final List<MapWaliRecord> records = new ArrayList<>(1);
             records.add(record);
             wali.update(records, false);
-            
+
             final long modCount = modifications.getAndIncrement();
-            if ( modCount > 0 && modCount % 1000 == 0 ) {
+            if (modCount > 0 && modCount % 1000 == 0) {
                 wali.checkpoint();
             }
         }
         return removeResult;
     }
 
-
     @Override
     public void shutdown() throws IOException {
         wali.shutdown();
     }
 
-
     private static class MapWaliRecord {
+
         private final UpdateType updateType;
         private final ByteBuffer key;
         private final ByteBuffer value;
-        
+
         public MapWaliRecord(final UpdateType updateType, final ByteBuffer key, final ByteBuffer value) {
             this.updateType = updateType;
             this.key = key;
             this.value = value;
         }
-        
+
         public UpdateType getUpdateType() {
             return updateType;
         }
-        
+
         public ByteBuffer getKey() {
             return key;
         }
-        
+
         public ByteBuffer getValue() {
             return value;
         }
     }
-    
+
     private static class Serde implements SerDe<MapWaliRecord> {
 
         @Override
         public void serializeEdit(MapWaliRecord previousRecordState, MapWaliRecord newRecordState, java.io.DataOutputStream out) throws IOException {
             final UpdateType updateType = newRecordState.getUpdateType();
-            if ( updateType == UpdateType.DELETE ) {
+            if (updateType == UpdateType.DELETE) {
                 out.write(0);
             } else {
                 out.write(1);
             }
-            
+
             final byte[] key = newRecordState.getKey().array();
             final byte[] value = newRecordState.getValue().array();
-            
+
             out.writeInt(key.length);
             out.write(key);
             out.writeInt(value.length);
@@ -165,12 +164,12 @@ public class PersistentMapCache implements MapCache {
         @Override
         public MapWaliRecord deserializeEdit(final DataInputStream in, final Map<Object, MapWaliRecord> currentRecordStates, final int version) throws IOException {
             final int updateTypeValue = in.read();
-            if ( updateTypeValue < 0 ) {
+            if (updateTypeValue < 0) {
                 throw new EOFException();
             }
 
             final UpdateType updateType = (updateTypeValue == 0 ? UpdateType.DELETE : UpdateType.CREATE);
-            
+
             final int keySize = in.readInt();
             final byte[] key = new byte[keySize];
             in.readFully(key);

@@ -24,8 +24,7 @@ import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import org.apache.nifi.web.api.dto.util.TimestampAdapter;
 
 /**
- * A provenance submission. Incorporates the request, its current status, and
- * the results.
+ * A provenance submission. Incorporates the request, its current status, and the results.
  */
 @XmlType(name = "provenance")
 public class ProvenanceDTO {

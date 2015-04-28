@@ -26,13 +26,10 @@ public interface VersionNegotiator {
     int getVersion();
 
     /**
-     * Sets the version of this resource to the specified version. Only the
-     * lower byte of the version is relevant.
+     * Sets the version of this resource to the specified version. Only the lower byte of the version is relevant.
      *
      * @param version the version to set
-     * @throws IllegalArgumentException if the given Version is not supported by
-     * this resource, as is indicated by the {@link #isVersionSupported(int)}
-     * method
+     * @throws IllegalArgumentException if the given Version is not supported by this resource, as is indicated by the {@link #isVersionSupported(int)} method
      */
     void setVersion(int version) throws IllegalArgumentException;
 
@@ -43,9 +40,8 @@ public interface VersionNegotiator {
     int getPreferredVersion();
 
     /**
-     * Gets the preferred version of this resource that is no greater than the
-     * given maxVersion. If no acceptable version exists that is less than
-     * <code>maxVersion</code>, then <code>null</code> is returned
+     * Gets the preferred version of this resource that is no greater than the given maxVersion. If no acceptable version exists that is less than <code>maxVersion</code>, then <code>null</code> is
+     * returned
      *
      * @param maxVersion the maximum version desired
      * @return the preferred version if found; null otherwise
@@ -53,8 +49,7 @@ public interface VersionNegotiator {
     Integer getPreferredVersion(int maxVersion);
 
     /**
-     * Indicates whether or not the specified version is supported by this
-     * resource
+     * Indicates whether or not the specified version is supported by this resource
      *
      * @param version the version to test
      * @return true if supported; false otherwise

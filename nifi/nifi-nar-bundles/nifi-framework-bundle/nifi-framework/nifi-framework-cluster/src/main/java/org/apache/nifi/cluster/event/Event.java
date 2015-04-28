@@ -20,8 +20,7 @@ import java.util.Date;
 import org.apache.commons.lang3.StringUtils;
 
 /**
- * Events describe the occurrence of something noteworthy. They record the
- * event's source, a timestamp, a description, and a category.
+ * Events describe the occurrence of something noteworthy. They record the event's source, a timestamp, a description, and a category.
  *
  * @author unattributed
  *
@@ -45,8 +44,7 @@ public class Event {
     private final String message;
 
     /**
-     * Creates an event with the current time as the timestamp and a category of
-     * "INFO".
+     * Creates an event with the current time as the timestamp and a category of "INFO".
      *
      * @param source the source
      * @param message the description

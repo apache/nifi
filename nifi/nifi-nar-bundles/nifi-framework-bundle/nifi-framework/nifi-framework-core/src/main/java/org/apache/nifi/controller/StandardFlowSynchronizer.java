@@ -1030,15 +1030,13 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
     }
 
     /**
-     * Returns true if the given controller can inherit the proposed flow
-     * without orphaning flow files.
+     * Returns true if the given controller can inherit the proposed flow without orphaning flow files.
      *
      * @param existingFlow flow
      * @param controller the running controller
      * @param proposedFlow the flow to inherit
      *
-     * @return null if the controller can inherit the specified flow, an
-     * explanation of why it cannot be inherited otherwise
+     * @return null if the controller can inherit the specified flow, an explanation of why it cannot be inherited otherwise
      *
      * @throws FingerprintException if flow fingerprints could not be generated
      */
@@ -1080,14 +1078,12 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
     }
 
     /**
-     * Returns true if the given controller can inherit the proposed flow
-     * without orphaning flow files.
+     * Returns true if the given controller can inherit the proposed flow without orphaning flow files.
      *
      * @param existingFlow flow
      * @param proposedFlow the flow to inherit
      *
-     * @return null if the controller can inherit the specified flow, an
-     * explanation of why it cannot be inherited otherwise
+     * @return null if the controller can inherit the specified flow, an explanation of why it cannot be inherited otherwise
      *
      * @throws FingerprintException if flow fingerprints could not be generated
      */

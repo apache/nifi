@@ -65,7 +65,7 @@ public class EncodeContent extends AbstractProcessor {
     // List of support encodings.
     public static final String BASE64_ENCODING = "base64";
     public static final String BASE32_ENCODING = "base32";
-    public static final String HEX_ENCODING    = "hex";
+    public static final String HEX_ENCODING = "hex";
 
     public static final PropertyDescriptor MODE = new PropertyDescriptor.Builder()
             .name("Mode")
@@ -83,8 +83,14 @@ public class EncodeContent extends AbstractProcessor {
             .defaultValue(BASE64_ENCODING)
             .build();
 
-    public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("Any FlowFile that is successfully encoded or decoded will be routed to success").build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure").description("Any FlowFile that cannot be encoded or decoded will be routed to failure").build();
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("Any FlowFile that is successfully encoded or decoded will be routed to success")
+            .build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("Any FlowFile that cannot be encoded or decoded will be routed to failure")
+            .build();
 
     private List<PropertyDescriptor> properties;
     private Set<Relationship> relationships;
@@ -163,6 +169,7 @@ public class EncodeContent extends AbstractProcessor {
     }
 
     private class EncodeBase64 implements StreamCallback {
+
         @Override
         public void process(InputStream in, OutputStream out) throws IOException {
             try (Base64OutputStream bos = new Base64OutputStream(out)) {
@@ -172,6 +179,7 @@ public class EncodeContent extends AbstractProcessor {
     }
 
     private class DecodeBase64 implements StreamCallback {
+
         @Override
         public void process(InputStream in, OutputStream out) throws IOException {
             try (Base64InputStream bis = new Base64InputStream(new ValidatingBase64InputStream(in))) {
@@ -181,6 +189,7 @@ public class EncodeContent extends AbstractProcessor {
     }
 
     private class EncodeBase32 implements StreamCallback {
+
         @Override
         public void process(InputStream in, OutputStream out) throws IOException {
             try (Base32OutputStream bos = new Base32OutputStream(out)) {
@@ -190,6 +199,7 @@ public class EncodeContent extends AbstractProcessor {
     }
 
     private class DecodeBase32 implements StreamCallback {
+
         @Override
         public void process(InputStream in, OutputStream out) throws IOException {
             try (Base32InputStream bis = new Base32InputStream(new ValidatingBase32InputStream(in))) {
@@ -198,10 +208,10 @@ public class EncodeContent extends AbstractProcessor {
         }
     }
 
-    private static final byte[] HEX_CHARS = {'0', '1', '2', '3', '4', '5', '6', '7',
-            '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+    private static final byte[] HEX_CHARS = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
 
     private class EncodeHex implements StreamCallback {
+
         @Override
         public void process(InputStream in, OutputStream out) throws IOException {
             int len;
@@ -209,16 +219,17 @@ public class EncodeContent extends AbstractProcessor {
             byte[] outBuf = new byte[inBuf.length * 2];
             while ((len = in.read(inBuf)) > 0) {
                 for (int i = 0; i < len; i++) {
-                    outBuf[i*2] = HEX_CHARS[(inBuf[i] & 0xF0) >>> 4];
-                    outBuf[i*2 +1] = HEX_CHARS[inBuf[i] & 0x0F];
+                    outBuf[i * 2] = HEX_CHARS[(inBuf[i] & 0xF0) >>> 4];
+                    outBuf[i * 2 + 1] = HEX_CHARS[inBuf[i] & 0x0F];
                 }
-                out.write(outBuf, 0, len*2);
+                out.write(outBuf, 0, len * 2);
             }
             out.flush();
         }
     }
 
     private class DecodeHex implements StreamCallback {
+
         @Override
         public void process(InputStream in, OutputStream out) throws IOException {
             int len;

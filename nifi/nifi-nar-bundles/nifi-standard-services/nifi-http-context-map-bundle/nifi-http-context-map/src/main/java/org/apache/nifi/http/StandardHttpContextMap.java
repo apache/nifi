@@ -42,34 +42,35 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processor.util.StandardValidators;
 
 @Tags({"http", "request", "response"})
-@SeeAlso(classNames={
-        "org.apache.nifi.processors.standard.HandleHttpRequest", 
-        "org.apache.nifi.processors.standard.HandleHttpResponse"})
+@SeeAlso(classNames = {
+    "org.apache.nifi.processors.standard.HandleHttpRequest",
+    "org.apache.nifi.processors.standard.HandleHttpResponse"})
 @CapabilityDescription("Provides the ability to store and retrieve HTTP requests and responses external to a Processor, so that "
         + "multiple Processors can interact with the same HTTP request.")
 public class StandardHttpContextMap extends AbstractControllerService implements HttpContextMap {
+
     public static final PropertyDescriptor MAX_OUTSTANDING_REQUESTS = new PropertyDescriptor.Builder()
-        .name("Maximum Outstanding Requests")
-        .description("The maximum number of HTTP requests that can be outstanding at any one time. Any attempt to register an additional HTTP Request will cause an error")
-        .required(true)
-        .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-        .defaultValue("5000")
-        .build();
+            .name("Maximum Outstanding Requests")
+            .description("The maximum number of HTTP requests that can be outstanding at any one time. Any attempt to register an additional HTTP Request will cause an error")
+            .required(true)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .defaultValue("5000")
+            .build();
     public static final PropertyDescriptor REQUEST_EXPIRATION = new PropertyDescriptor.Builder()
-        .name("Request Expiration")
-        .description("Specifies how long an HTTP Request should be left unanswered before being evicted from the cache and being responded to with a Service Unavailable status code")
-        .required(true)
-        .expressionLanguageSupported(false)
-        .defaultValue("1 min")
-        .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-        .build();
-    
+            .name("Request Expiration")
+            .description("Specifies how long an HTTP Request should be left unanswered before being evicted from the cache and being responded to with a Service Unavailable status code")
+            .required(true)
+            .expressionLanguageSupported(false)
+            .defaultValue("1 min")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .build();
+
     private final ConcurrentMap<String, Wrapper> wrapperMap = new ConcurrentHashMap<>();
-    
+
     private volatile int maxSize = 5000;
     private volatile long maxRequestNanos;
     private volatile ScheduledExecutorService executor;
-    
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(2);
@@ -77,67 +78,68 @@ public class StandardHttpContextMap extends AbstractControllerService implements
         properties.add(REQUEST_EXPIRATION);
         return properties;
     }
-    
+
     @OnEnabled
     public void onConfigured(final ConfigurationContext context) {
         maxSize = context.getProperty(MAX_OUTSTANDING_REQUESTS).asInteger();
         executor = Executors.newSingleThreadScheduledExecutor();
-        
+
         maxRequestNanos = context.getProperty(REQUEST_EXPIRATION).asTimePeriod(TimeUnit.NANOSECONDS);
         final long scheduleNanos = maxRequestNanos / 2;
         executor.scheduleWithFixedDelay(new CleanupExpiredRequests(), scheduleNanos, scheduleNanos, TimeUnit.NANOSECONDS);
     }
-    
+
     @OnDisabled
     public void cleanup() {
-        if ( executor != null ) {
+        if (executor != null) {
             executor.shutdown();
         }
     }
-    
+
     @Override
     public boolean register(final String identifier, final HttpServletRequest request, final HttpServletResponse response, final AsyncContext context) {
         // fail if there are too many already. Maybe add a configuration property for how many
         // outstanding, with a default of say 5000
-        if ( wrapperMap.size() >= maxSize ) {
-			return false;
+        if (wrapperMap.size() >= maxSize) {
+            return false;
         }
         final Wrapper wrapper = new Wrapper(request, response, context);
         final Wrapper existing = wrapperMap.putIfAbsent(identifier, wrapper);
-        if ( existing != null ) {
+        if (existing != null) {
             throw new IllegalStateException("HTTP Request already registered with identifier " + identifier);
         }
-		
-		return true;
+
+        return true;
     }
 
     @Override
     public HttpServletResponse getResponse(final String identifier) {
         final Wrapper wrapper = wrapperMap.get(identifier);
-        if ( wrapper == null ) {
+        if (wrapper == null) {
             return null;
         }
-        
+
         return wrapper.getResponse();
     }
 
     @Override
     public void complete(final String identifier) {
         final Wrapper wrapper = wrapperMap.remove(identifier);
-        if ( wrapper == null ) {
+        if (wrapper == null) {
             throw new IllegalStateException("No HTTP Request registered with identifier " + identifier);
         }
-        
+
         wrapper.getAsync().complete();
     }
 
     private static class Wrapper {
+
         @SuppressWarnings("unused")
         private final HttpServletRequest request;
         private final HttpServletResponse response;
         private final AsyncContext async;
         private final long nanoTimeAdded = System.nanoTime();
-        
+
         public Wrapper(final HttpServletRequest request, final HttpServletResponse response, final AsyncContext async) {
             this.request = request;
             this.response = response;
@@ -151,24 +153,25 @@ public class StandardHttpContextMap extends AbstractControllerService implements
         public AsyncContext getAsync() {
             return async;
         }
-        
+
         public long getNanoTimeAdded() {
             return nanoTimeAdded;
         }
     }
-    
+
     private class CleanupExpiredRequests implements Runnable {
+
         @Override
         public void run() {
             final long now = System.nanoTime();
             final long threshold = now - maxRequestNanos;
-            
+
             final Iterator<Map.Entry<String, Wrapper>> itr = wrapperMap.entrySet().iterator();
-            while ( itr.hasNext() ) {
+            while (itr.hasNext()) {
                 final Map.Entry<String, Wrapper> entry = itr.next();
-                if ( entry.getValue().getNanoTimeAdded() < threshold ) {
+                if (entry.getValue().getNanoTimeAdded() < threshold) {
                     itr.remove();
-                
+
                     // send SERVICE_UNAVAILABLE
                     try {
                         final AsyncContext async = entry.getValue().getAsync();

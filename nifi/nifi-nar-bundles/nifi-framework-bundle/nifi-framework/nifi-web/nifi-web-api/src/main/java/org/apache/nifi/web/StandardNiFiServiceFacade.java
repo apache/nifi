@@ -545,7 +545,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public ConfigurationSnapshot<RemoteProcessGroupPortDTO> updateRemoteProcessGroupInputPort(final Revision revision, final String groupId, final String remoteProcessGroupId, final RemoteProcessGroupPortDTO remoteProcessGroupPortDTO) {
+    public ConfigurationSnapshot<RemoteProcessGroupPortDTO> updateRemoteProcessGroupInputPort(
+            final Revision revision, final String groupId, final String remoteProcessGroupId, final RemoteProcessGroupPortDTO remoteProcessGroupPortDTO) {
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<RemoteProcessGroupPortDTO>() {
             @Override
             public RemoteProcessGroupPortDTO execute() {
@@ -561,7 +562,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public ConfigurationSnapshot<RemoteProcessGroupPortDTO> updateRemoteProcessGroupOutputPort(final Revision revision, final String groupId, final String remoteProcessGroupId, final RemoteProcessGroupPortDTO remoteProcessGroupPortDTO) {
+    public ConfigurationSnapshot<RemoteProcessGroupPortDTO> updateRemoteProcessGroupOutputPort(
+            final Revision revision, final String groupId, final String remoteProcessGroupId, final RemoteProcessGroupPortDTO remoteProcessGroupPortDTO) {
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<RemoteProcessGroupPortDTO>() {
             @Override
             public RemoteProcessGroupPortDTO execute() {
@@ -1237,7 +1239,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
-    public ConfigurationSnapshot<Set<ControllerServiceReferencingComponentDTO>> updateControllerServiceReferencingComponents(final Revision revision, final String controllerServiceId, final org.apache.nifi.controller.ScheduledState scheduledState, final org.apache.nifi.controller.service.ControllerServiceState controllerServiceState) {
+    public ConfigurationSnapshot<Set<ControllerServiceReferencingComponentDTO>> updateControllerServiceReferencingComponents(
+            final Revision revision,
+            final String controllerServiceId,
+            final org.apache.nifi.controller.ScheduledState scheduledState,
+            final org.apache.nifi.controller.service.ControllerServiceState controllerServiceState) {
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<Set<ControllerServiceReferencingComponentDTO>>() {
             @Override
             public Set<ControllerServiceReferencingComponentDTO> execute() {
@@ -1368,7 +1374,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         try {
             userService.invalidateUserAccount(userId);
         } catch (final AccountNotFoundException anfe) {
-            // ignore 
+            // ignore
         }
     }
 
@@ -1774,7 +1780,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final List<Bulletin> results = bulletinRepository.findBulletins(queryBuilder.build());
 
         // perform the query and generate the results - iterating in reverse order since we are
-        // getting the most recent results by ordering by timestamp desc above. this gets the 
+        // getting the most recent results by ordering by timestamp desc above. this gets the
         // exact results we want but in reverse order
         final List<BulletinDTO> bulletins = new ArrayList<>();
         for (final ListIterator<Bulletin> bulletinIter = results.listIterator(results.size()); bulletinIter.hasPrevious();) {
@@ -1806,10 +1812,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     /**
      * Ensures the specified user has permission to access the specified port.
-     *
-     * @param user
-     * @param port
-     * @return
      */
     private boolean isUserAuthorized(final NiFiUser user, final RootGroupPort port) {
         final boolean isSiteToSiteSecure = Boolean.TRUE.equals(properties.isSiteToSiteSecure());
@@ -1840,7 +1842,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             throw new WebApplicationException(new Throwable("Unable to access details for current user."));
         }
 
-        // at this point we know that the user must have ROLE_NIFI because it's required 
+        // at this point we know that the user must have ROLE_NIFI because it's required
         // get to the endpoint that calls this method but we'll check again anyways
         final Set<Authority> authorities = user.getAuthorities();
         if (!authorities.contains(Authority.ROLE_NIFI)) {
@@ -2976,10 +2978,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     /**
      * Utility method to get the oldest of the two specified dates.
-     *
-     * @param date1
-     * @param date2
-     * @return
      */
     private Date getOldestDate(final Date date1, final Date date2) {
         if (date1 == null && date2 == null) {
@@ -3001,10 +2999,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     /**
      * Utility method to get the newest of the two specified dates.
-     *
-     * @param date1
-     * @param date2
-     * @return
      */
     private Date getNewestDate(final Date date1, final Date date2) {
         if (date1 == null && date2 == null) {
@@ -3025,11 +3019,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     /**
-     * Utility method for extracting component counts from the specified group
-     * status.
-     *
-     * @param groupStatus
-     * @return
+     * Utility method for extracting component counts from the specified group status.
      */
     private ProcessGroupCounts extractProcessGroupCounts(ProcessGroupStatus groupStatus) {
         int running = 0;

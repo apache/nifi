@@ -65,8 +65,14 @@ public class ValidateXml extends AbstractProcessor {
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
             .build();
 
-    public static final Relationship REL_VALID = new Relationship.Builder().name("valid").description("FlowFiles that are successfully validated against the schema are routed to this relationship").build();
-    public static final Relationship REL_INVALID = new Relationship.Builder().name("invalid").description("FlowFiles that are not valid according to the specified schema are routed to this relationship").build();
+    public static final Relationship REL_VALID = new Relationship.Builder()
+            .name("valid")
+            .description("FlowFiles that are successfully validated against the schema are routed to this relationship")
+            .build();
+    public static final Relationship REL_INVALID = new Relationship.Builder()
+            .name("invalid")
+            .description("FlowFiles that are not valid according to the specified schema are routed to this relationship")
+            .build();
 
     private static final String SCHEMA_LANGUAGE = "http://www.w3.org/2001/XMLSchema";
 
