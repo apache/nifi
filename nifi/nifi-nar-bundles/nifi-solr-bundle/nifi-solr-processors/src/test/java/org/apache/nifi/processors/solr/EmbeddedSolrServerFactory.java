@@ -40,8 +40,8 @@ public class EmbeddedSolrServerFactory {
     /**
      * Use the defaults to create the core.
      *
-     * @param coreName
-     * @return
+     * @param coreName the name of the core
+     * @return an EmbeddedSolrServer for the given core
      */
     public static SolrClient create(String coreName) throws IOException {
         return create(DEFAULT_SOLR_HOME, DEFAULT_CORE_HOME,

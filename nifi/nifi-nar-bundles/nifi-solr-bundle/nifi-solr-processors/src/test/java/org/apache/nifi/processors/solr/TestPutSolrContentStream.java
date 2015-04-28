@@ -38,7 +38,11 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Test for PutSolr processor.
@@ -101,7 +105,10 @@ public class TestPutSolrContentStream {
 
             verifySolrDocuments(proc.getSolrClient(), Arrays.asList(expectedDoc1, expectedDoc2));
         } finally {
-            try { proc.getSolrClient().close(); } catch (Exception e) { }
+            try {
+                proc.getSolrClient().close();
+            } catch (Exception e) {
+            }
         }
     }
 
@@ -130,7 +137,10 @@ public class TestPutSolrContentStream {
 
             verifySolrDocuments(proc.getSolrClient(), Arrays.asList(expectedDoc1, expectedDoc2));
         } finally {
-            try { proc.getSolrClient().close(); } catch (Exception e) { }
+            try {
+                proc.getSolrClient().close();
+            } catch (Exception e) {
+            }
         }
     }
 
@@ -153,7 +163,10 @@ public class TestPutSolrContentStream {
 
             verifySolrDocuments(proc.getSolrClient(), Arrays.asList(expectedDoc1, expectedDoc2));
         } finally {
-            try { proc.getSolrClient().close(); } catch (Exception e) { }
+            try {
+                proc.getSolrClient().close();
+            } catch (Exception e) {
+            }
         }
     }
 
@@ -176,7 +189,10 @@ public class TestPutSolrContentStream {
 
             verifySolrDocuments(proc.getSolrClient(), Arrays.asList(expectedDoc1, expectedDoc2));
         } finally {
-            try { proc.getSolrClient().close(); } catch (Exception e) { }
+            try {
+                proc.getSolrClient().close();
+            } catch (Exception e) {
+            }
         }
     }
 
