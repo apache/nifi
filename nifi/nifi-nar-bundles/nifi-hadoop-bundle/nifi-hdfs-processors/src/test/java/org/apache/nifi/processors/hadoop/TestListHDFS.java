@@ -246,7 +246,8 @@ public class TestListHDFS {
         }
 
         @Override
-        public FSDataOutputStream create(final Path f, final FsPermission permission, final boolean overwrite, final int bufferSize, final short replication, final long blockSize, final Progressable progress) throws IOException {
+        public FSDataOutputStream create(final Path f, final FsPermission permission, final boolean overwrite, final int bufferSize, final short replication,
+                final long blockSize, final Progressable progress) throws IOException {
             return null;
         }
 
@@ -317,7 +318,8 @@ public class TestListHDFS {
 
         @Override
         @SuppressWarnings("unchecked")
-        public <K, V> V getAndPutIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer, final Deserializer<V> valueDeserializer) throws IOException {
+        public <K, V> V getAndPutIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer,
+                final Deserializer<V> valueDeserializer) throws IOException {
             verifyNotFail();
             return (V) values.putIfAbsent(key, value);
         }
