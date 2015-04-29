@@ -59,4 +59,13 @@ public interface TocReader extends Closeable {
      * @return the index of the block that contains the given offset
      */
     int getBlockIndex(long blockOffset);
+
+    /**
+     * Returns the block index where the given event ID should be found
+     *
+     * @param eventId the ID of the provenance event of interest
+     * @return the block index where the given event ID should be found, or <code>null</code> if
+     * the block index is not known
+     */
+    Integer getBlockIndexForEventId(long eventId);
 }

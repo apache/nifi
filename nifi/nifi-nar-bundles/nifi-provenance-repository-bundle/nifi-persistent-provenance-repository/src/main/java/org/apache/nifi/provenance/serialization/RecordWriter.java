@@ -28,9 +28,10 @@ public interface RecordWriter extends Closeable {
     /**
      * Writes header information to the underlying stream
      *
+     * @param firstEventId the ID of the first provenance event that will be written to the stream
      * @throws IOException if unable to write header information to the underlying stream
      */
-    void writeHeader() throws IOException;
+    void writeHeader(long firstEventId) throws IOException;
 
     /**
      * Writes the given record out to the underlying stream
