@@ -20,14 +20,14 @@ package org.apache.nifi.annotation.notification;
  * Represents a state change that occurred for the Primary Node of a NiFi cluster.
  */
 public enum PrimaryNodeState {
-	/**
-	 * The node receiving this state has been elected the Primary Node of the NiFi cluster.
-	 */
-	ELECTED_PRIMARY_NODE,
-	
-	/**
-	 * The node receiving this state was the Primary Node but has now had its Primary Node
-	 * role revoked.
-	 */
-	PRIMARY_NODE_REVOKED;
+    /**
+     * The node receiving this state has been elected the Primary Node of the NiFi cluster.
+     */
+    ELECTED_PRIMARY_NODE,
+
+    /**
+     * The node receiving this state was the Primary Node but has now had its Primary Node
+     * role revoked.
+     */
+    PRIMARY_NODE_REVOKED;
 }

@@ -25,10 +25,10 @@ import java.lang.annotation.Target;
 
 /**
  * <p>
- * Marker annotation that a component can use to indicate that a method should be 
+ * Marker annotation that a component can use to indicate that a method should be
  * called whenever the state of the Primary Node in a cluster has changed.
  * </p>
- * 
+ *
  * <p>
  * Methods with this annotation should take either no arguments or one argument of type
  * {@link PrimaryNodeState}. The {@link PrimaryNodeState} provides context about what changed

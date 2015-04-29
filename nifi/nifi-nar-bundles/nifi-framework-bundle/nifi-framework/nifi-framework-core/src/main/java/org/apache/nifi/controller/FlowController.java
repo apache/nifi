@@ -296,7 +296,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      */
     private final AtomicReference<HeartbeatMessageGeneratorTask> heartbeatMessageGeneratorTaskRef = new AtomicReference<>(null);
 
-    private AtomicReference<NodeBulletinProcessingStrategy> nodeBulletinSubscriber;
+    private final AtomicReference<NodeBulletinProcessingStrategy> nodeBulletinSubscriber;
 
     // guarded by rwLock
     /**
@@ -449,7 +449,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         this.protocolSender = protocolSender;
         try {
             this.templateManager = new TemplateManager(properties.getTemplateDirectory());
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new RuntimeException(e);
         }
 
@@ -794,7 +794,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
      * @throws NullPointerException if either arg is null
      * @throws ProcessorInstantiationException if the processor cannot be instantiated for any reason
      */
-    public ProcessorNode createProcessor(final String type, String id) throws ProcessorInstantiationException {
+    public ProcessorNode createProcessor(final String type, final String id) throws ProcessorInstantiationException {
         return createProcessor(type, id, true);
     }
 
@@ -1508,7 +1508,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
                 }
 
                 if (config.getProperties() != null) {
-                    for (Map.Entry<String, String> entry : config.getProperties().entrySet()) {
+                    for (final Map.Entry<String, String> entry : config.getProperties().entrySet()) {
                         if (entry.getValue() != null) {
                             procNode.setProperty(entry.getKey(), entry.getValue());
                         }
@@ -1661,7 +1661,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         Set<RemoteProcessGroupPortDescriptor> remotePorts = null;
         if (ports != null) {
             remotePorts = new LinkedHashSet<>(ports.size());
-            for (RemoteProcessGroupPortDTO port : ports) {
+            for (final RemoteProcessGroupPortDTO port : ports) {
                 final StandardRemoteProcessGroupPortDescriptor descriptor = new StandardRemoteProcessGroupPortDescriptor();
                 descriptor.setId(port.getId());
                 descriptor.setName(port.getName());
@@ -3024,15 +3024,15 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             final PrimaryNodeState nodeState = primary ? PrimaryNodeState.ELECTED_PRIMARY_NODE : PrimaryNodeState.PRIMARY_NODE_REVOKED;
             final ProcessGroup rootGroup = getGroup(getRootGroupId());
             for (final ProcessorNode procNode : rootGroup.findAllProcessors()) {
-            	ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, procNode.getProcessor(), nodeState);
+                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, procNode.getProcessor(), nodeState);
             }
             for (final ControllerServiceNode serviceNode : getAllControllerServices()) {
-            	ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, serviceNode.getControllerServiceImplementation(), nodeState);
+                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, serviceNode.getControllerServiceImplementation(), nodeState);
             }
             for (final ReportingTaskNode reportingTaskNode : getAllReportingTasks()) {
-            	ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, reportingTaskNode.getReportingTask(), nodeState);
+                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnPrimaryNodeStateChange.class, reportingTaskNode.getReportingTask(), nodeState);
             }
-            
+
             // update primary
             this.primary = primary;
             eventDrivenWorkerQueue.setPrimary(primary);
@@ -3092,7 +3092,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             public boolean isInputAvailable() {
                 try {
                     return contentRepository.isAccessible(createClaim(event.getPreviousContentClaimContainer(), event.getPreviousContentClaimSection(), event.getPreviousContentClaimIdentifier()));
-                } catch (IOException e) {
+                } catch (final IOException e) {
                     return false;
                 }
             }
@@ -3101,7 +3101,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             public boolean isOutputAvailable() {
                 try {
                     return contentRepository.isAccessible(createClaim(event.getContentClaimContainer(), event.getContentClaimSection(), event.getContentClaimIdentifier()));
-                } catch (IOException e) {
+                } catch (final IOException e) {
                     return false;
                 }
             }
@@ -3401,7 +3401,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         private final NodeProtocolSender protocolSender;
         private final DateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss,SSS", Locale.US);
 
-        public BulletinsTask(NodeProtocolSender protocolSender) {
+        public BulletinsTask(final NodeProtocolSender protocolSender) {
             if (protocolSender == null) {
                 throw new IllegalArgumentException("NodeProtocolSender may not be null.");
             }
@@ -3557,7 +3557,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
     private class HeartbeatMessageGeneratorTask implements Runnable {
 
-        private AtomicReference<HeartbeatMessage> heartbeatMessageRef = new AtomicReference<>();
+        private final AtomicReference<HeartbeatMessage> heartbeatMessageRef = new AtomicReference<>();
 
         @Override
         public void run() {
@@ -3624,7 +3624,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     }
 
     @Override
-    public List<ProvenanceEventRecord> getProvenanceEvents(long firstEventId, int maxRecords) throws IOException {
+    public List<ProvenanceEventRecord> getProvenanceEvents(final long firstEventId, final int maxRecords) throws IOException {
         return new ArrayList<ProvenanceEventRecord>(provenanceEventRepository.getEvents(firstEventId, maxRecords));
     }
 

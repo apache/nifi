@@ -46,39 +46,39 @@ import org.slf4j.LoggerFactory;
 @Tags({"distributed", "cache", "state", "map", "cluster"})
 @SeeAlso(classNames = {"org.apache.nifi.distributed.cache.server.map.DistributedMapCacheServer", "org.apache.nifi.ssl.StandardSSLContextService"})
 @CapabilityDescription("Provides the ability to communicate with a DistributedMapCacheServer. This can be used in order to share a Map "
-        + "between nodes in a NiFi cluster")
+    + "between nodes in a NiFi cluster")
 public class DistributedMapCacheClientService extends AbstractControllerService implements DistributedMapCacheClient {
 
     private static final Logger logger = LoggerFactory.getLogger(DistributedMapCacheClientService.class);
 
     public static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
-            .name("Server Hostname")
-            .description("The name of the server that is running the DistributedMapCacheServer service")
-            .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
+        .name("Server Hostname")
+        .description("The name of the server that is running the DistributedMapCacheServer service")
+        .required(true)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .build();
     public static final PropertyDescriptor PORT = new PropertyDescriptor.Builder()
-            .name("Server Port")
-            .description("The port on the remote server that is to be used when communicating with the DistributedMapCacheServer service")
-            .required(true)
-            .addValidator(StandardValidators.PORT_VALIDATOR)
-            .defaultValue("4557")
-            .build();
+        .name("Server Port")
+        .description("The port on the remote server that is to be used when communicating with the DistributedMapCacheServer service")
+        .required(true)
+        .addValidator(StandardValidators.PORT_VALIDATOR)
+        .defaultValue("4557")
+        .build();
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
-            .name("SSL Context Service")
-            .description("If specified, indicates the SSL Context Service that is used to communicate with the "
-                    + "remote server. If not specified, communications will not be encrypted")
-            .required(false)
-            .identifiesControllerService(SSLContextService.class)
-            .build();
+        .name("SSL Context Service")
+        .description("If specified, indicates the SSL Context Service that is used to communicate with the "
+                + "remote server. If not specified, communications will not be encrypted")
+        .required(false)
+        .identifiesControllerService(SSLContextService.class)
+        .build();
     public static final PropertyDescriptor COMMUNICATIONS_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("Communications Timeout")
-            .description("Specifies how long to wait when communicating with the remote server before determining that "
-                    + "there is a communications failure if data cannot be sent or received")
-            .required(true)
-            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .defaultValue("30 secs")
-            .build();
+        .name("Communications Timeout")
+        .description("Specifies how long to wait when communicating with the remote server before determining that "
+                + "there is a communications failure if data cannot be sent or received")
+        .required(true)
+        .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+        .defaultValue("30 secs")
+        .build();
 
     private final BlockingQueue<CommsSession> queue = new LinkedBlockingQueue<>();
     private volatile ConfigurationContext configContext;
@@ -118,28 +118,29 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
         });
     }
 
+    @Override
     public <K, V> void put(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
-    	withCommsSession(new CommsAction<Object>() {
-			@Override
-			public Object execute(final CommsSession session) throws IOException {
-				final DataOutputStream dos = new DataOutputStream(session.getOutputStream());
-				dos.writeUTF("put");
-				
-				serialize(key, keySerializer, dos);
-				serialize(value, valueSerializer, dos);
-				
-				dos.flush();
-				final DataInputStream dis = new DataInputStream(session.getInputStream());
-				final boolean success = dis.readBoolean();
-				if ( !success ) {
-					throw new IOException("Expected to receive confirmation of 'put' request but received unexpected response");
-				}
-				
-				return null;
-			}
-    	});
+        withCommsSession(new CommsAction<Object>() {
+            @Override
+            public Object execute(final CommsSession session) throws IOException {
+                final DataOutputStream dos = new DataOutputStream(session.getOutputStream());
+                dos.writeUTF("put");
+
+                serialize(key, keySerializer, dos);
+                serialize(value, valueSerializer, dos);
+
+                dos.flush();
+                final DataInputStream dis = new DataInputStream(session.getInputStream());
+                final boolean success = dis.readBoolean();
+                if ( !success ) {
+                    throw new IOException("Expected to receive confirmation of 'put' request but received unexpected response");
+                }
+
+                return null;
+            }
+        });
     }
-    
+
     @Override
     public <K> boolean containsKey(final K key, final Serializer<K> keySerializer) throws IOException {
         return withCommsSession(new CommsAction<Boolean>() {

@@ -185,7 +185,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
     static final String LAST_MODIFIED = "LastModified";
 
     static {
-        SimpleDateFormat sdf = new SimpleDateFormat(LAST_MODIFIED_DATE_PATTERN_RFC1123, Locale.US);
+        final SimpleDateFormat sdf = new SimpleDateFormat(LAST_MODIFIED_DATE_PATTERN_RFC1123, Locale.US);
         sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
         UNINITIALIZED_LAST_MODIFIED_VALUE = sdf.format(new Date(1L));
     }
@@ -221,13 +221,13 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
         this.properties = Collections.unmodifiableList(properties);
 
         // load etag and lastModified from file
-        File httpCache = new File(HTTP_CACHE_FILE_PREFIX + getIdentifier());
+        final File httpCache = new File(HTTP_CACHE_FILE_PREFIX + getIdentifier());
         try (FileInputStream fis = new FileInputStream(httpCache)) {
-            Properties props = new Properties();
+            final Properties props = new Properties();
             props.load(fis);
             entityTagRef.set(props.getProperty(ETAG));
             lastModifiedRef.set(props.getProperty(LAST_MODIFIED));
-        } catch (IOException swallow) {
+        } catch (final IOException swallow) {
         }
     }
 
@@ -242,20 +242,20 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
     }
 
     @Override
-    public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
+    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
         entityTagRef.set("");
         lastModifiedRef.set(UNINITIALIZED_LAST_MODIFIED_VALUE);
     }
 
     @OnShutdown
     public void onShutdown() {
-        File httpCache = new File(HTTP_CACHE_FILE_PREFIX + getIdentifier());
+        final File httpCache = new File(HTTP_CACHE_FILE_PREFIX + getIdentifier());
         try (FileOutputStream fos = new FileOutputStream(httpCache)) {
-            Properties props = new Properties();
+            final Properties props = new Properties();
             props.setProperty(ETAG, entityTagRef.get());
             props.setProperty(LAST_MODIFIED, lastModifiedRef.get());
             props.store(fos, "GetHTTP file modification values");
-        } catch (IOException swallow) {
+        } catch (final IOException swallow) {
         }
 
     }
@@ -287,7 +287,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
             keystore.load(in, service.getKeyStorePassword().toCharArray());
         }
 
-        SSLContext sslContext = SSLContexts.custom().loadTrustMaterial(truststore, new TrustSelfSignedStrategy()).loadKeyMaterial(keystore, service.getKeyStorePassword().toCharArray()).build();
+        final SSLContext sslContext = SSLContexts.custom().loadTrustMaterial(truststore, new TrustSelfSignedStrategy()).loadKeyMaterial(keystore, service.getKeyStorePassword().toCharArray()).build();
 
         return sslContext;
     }
@@ -310,7 +310,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
         try {
             uri = new URI(url);
             source = uri.getHost();
-        } catch (URISyntaxException swallow) {
+        } catch (final URISyntaxException swallow) {
             // this won't happen as the url has already been validated
         }
 
@@ -435,20 +435,19 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
                             readLock.unlock();
                             writeLock.lock();
                             try {
-                            	if (timeToPersist < System.currentTimeMillis()) {
+                                if (timeToPersist < System.currentTimeMillis()) {
                                     timeToPersist = System.currentTimeMillis() + PERSISTENCE_INTERVAL_MSEC;
-                                    File httpCache = new File(HTTP_CACHE_FILE_PREFIX + getIdentifier());
+                                    final File httpCache = new File(HTTP_CACHE_FILE_PREFIX + getIdentifier());
                                     try (FileOutputStream fos = new FileOutputStream(httpCache)) {
-                                        Properties props = new Properties();
+                                        final Properties props = new Properties();
                                         props.setProperty(ETAG, entityTagRef.get());
                                         props.setProperty(LAST_MODIFIED, lastModifiedRef.get());
                                         props.store(fos, "GetHTTP file modification values");
-                                    } catch (IOException e) {
+                                    } catch (final IOException e) {
                                         getLogger().error("Failed to persist ETag and LastMod due to " + e, e);
                                     }
                                 }
-                            }
-                            finally {
+                            } finally {
                                 readLock.lock();
                                 writeLock.unlock();
                             }
