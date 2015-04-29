@@ -121,13 +121,13 @@ public class IndexConfiguration {
         }
     }
 
-    public File getWritableIndexDirectory(final File provenanceLogFile) {
+    public File getWritableIndexDirectory(final File provenanceLogFile, final long newIndexTimestamp) {
         lock.lock();
         try {
             final File storageDirectory = provenanceLogFile.getParentFile();
             List<File> indexDirectories = this.indexDirectoryMap.get(storageDirectory);
             if (indexDirectories == null) {
-                final File newDir = addNewIndex(storageDirectory, provenanceLogFile);
+                final File newDir = addNewIndex(storageDirectory, provenanceLogFile, newIndexTimestamp);
                 indexDirectories = new ArrayList<>();
                 indexDirectories.add(newDir);
                 indexDirectoryMap.put(storageDirectory, indexDirectories);
@@ -135,7 +135,7 @@ public class IndexConfiguration {
             }
 
             if (indexDirectories.isEmpty()) {
-                final File newDir = addNewIndex(storageDirectory, provenanceLogFile);
+                final File newDir = addNewIndex(storageDirectory, provenanceLogFile, newIndexTimestamp);
                 indexDirectories.add(newDir);
                 return newDir;
             }
@@ -143,7 +143,7 @@ public class IndexConfiguration {
             final File lastDir = indexDirectories.get(indexDirectories.size() - 1);
             final long size = getSize(lastDir);
             if (size > repoConfig.getDesiredIndexSize()) {
-                final File newDir = addNewIndex(storageDirectory, provenanceLogFile);
+                final File newDir = addNewIndex(storageDirectory, provenanceLogFile, newIndexTimestamp);
                 indexDirectories.add(newDir);
                 return newDir;
             } else {
@@ -154,14 +154,14 @@ public class IndexConfiguration {
         }
     }
 
-    private File addNewIndex(final File storageDirectory, final File provenanceLogFile) {
+    private File addNewIndex(final File storageDirectory, final File provenanceLogFile, final long newIndexTimestamp) {
         // Build the event time of the first record into the index's filename so that we can determine
         // which index files to look at when we perform a search. We use the timestamp of the first record
         // in the Provenance Log file, rather than the current time, because we may perform the Indexing
         // retroactively.
         Long firstEntryTime = getFirstEntryTime(provenanceLogFile);
         if (firstEntryTime == null) {
-            firstEntryTime = System.currentTimeMillis();
+            firstEntryTime = newIndexTimestamp;
         }
         return new File(storageDirectory, "index-" + firstEntryTime);
     }
@@ -222,7 +222,7 @@ public class IndexConfiguration {
                 }
             });
 
-            for (File indexDir : sortedIndexDirectories) {
+            for (final File indexDir : sortedIndexDirectories) {
                 // If the index was last modified before the start time, we know that it doesn't
                 // contain any data for us to query.
                 if (startTime != null && indexDir.lastModified() < startTime) {
@@ -282,7 +282,7 @@ public class IndexConfiguration {
             }
 
             boolean foundIndexCreatedLater = false;
-            for (File indexDir : sortedIndexDirectories) {
+            for (final File indexDir : sortedIndexDirectories) {
                 // If the index was last modified before the log file was created, we know the index doesn't include
                 // any data for the provenance log.
                 if (indexDir.lastModified() < firstEntryTime) {

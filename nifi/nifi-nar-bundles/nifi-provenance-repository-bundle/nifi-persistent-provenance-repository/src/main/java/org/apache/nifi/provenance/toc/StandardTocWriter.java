@@ -40,7 +40,7 @@ import org.slf4j.LoggerFactory;
 public class StandardTocWriter implements TocWriter {
     private static final Logger logger = LoggerFactory.getLogger(StandardTocWriter.class);
 
-    public static final byte VERSION = 1;
+    public static final byte VERSION = 2;
 
     private final File file;
     private final FileOutputStream fos;
@@ -75,10 +75,11 @@ public class StandardTocWriter implements TocWriter {
     }
 
     @Override
-    public void addBlockOffset(final long offset) throws IOException {
+    public void addBlockOffset(final long offset, final long firstEventId) throws IOException {
         final BufferedOutputStream bos = new BufferedOutputStream(fos);
         final DataOutputStream dos = new DataOutputStream(bos);
         dos.writeLong(offset);
+        dos.writeLong(firstEventId);
         dos.flush();
         index++;
         logger.debug("Adding block {} at offset {}", index, offset);
