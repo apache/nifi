@@ -25,7 +25,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URI;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -48,6 +49,7 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -95,13 +97,19 @@ public class TestListHDFS {
 
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 2);
 
-        final MockFlowFile mff1 = runner.getFlowFilesForRelationship(ListHDFS.REL_SUCCESS).get(0);
-        mff1.assertAttributeEquals("path", "/test");
-        mff1.assertAttributeEquals("filename", "testFile.txt");
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ListHDFS.REL_SUCCESS);
+        for (int i=0; i < 2; i++) {
+            final MockFlowFile ff = flowFiles.get(i);
+            final String filename = ff.getAttribute("filename");
 
-        final MockFlowFile mff2 = runner.getFlowFilesForRelationship(ListHDFS.REL_SUCCESS).get(1);
-        mff2.assertAttributeEquals("path", "/test/testDir");
-        mff2.assertAttributeEquals("filename", "1.txt");
+            if (filename.equals("testFile.txt")) {
+                ff.assertAttributeEquals("path", "/test");
+            } else if ( filename.equals("1.txt")) {
+                ff.assertAttributeEquals("path", "/test/testDir");
+            } else {
+                Assert.fail("filename was " + filename);
+            }
+        }
     }
 
     @Test
@@ -209,7 +217,7 @@ public class TestListHDFS {
         public void addFileStatus(final Path parent, final FileStatus child) {
             Set<FileStatus> children = fileStatuses.get(parent);
             if ( children == null ) {
-                children = new LinkedHashSet<>();
+                children = new HashSet<>();
                 fileStatuses.put(parent, children);
             }
 
