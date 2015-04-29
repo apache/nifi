@@ -42,8 +42,8 @@ import org.junit.Test;
 
 public class TestHandleHttpRequest {
 
-    @Test
-    public void testRequestAddedToService() throws InitializationException, MalformedURLException, IOException {
+    @Test(timeout=10000)
+    public void testRequestAddedToService() throws InitializationException, MalformedURLException, IOException, InterruptedException {
         final TestRunner runner = TestRunners.newTestRunner(HandleHttpRequest.class);
         runner.setProperty(HandleHttpRequest.PORT, "0");
 
@@ -79,14 +79,10 @@ public class TestHandleHttpRequest {
             });
             httpThread.start();
 
-            // give processor a bit to handle the http request
-            try {
-                Thread.sleep(1000L);
-            } catch (final InterruptedException ie) {
+            while ( runner.getFlowFilesForRelationship(HandleHttpRequest.REL_SUCCESS).isEmpty() ) {
+                // process the request.
+                runner.run(1, false);
             }
-
-            // process the request.
-            runner.run(1, false);
 
             runner.assertAllFlowFilesTransferred(HandleHttpRequest.REL_SUCCESS, 1);
             assertEquals(1, contextMap.size());
@@ -110,18 +106,18 @@ public class TestHandleHttpRequest {
         private final ConcurrentMap<String, HttpServletResponse> responseMap = new ConcurrentHashMap<>();
 
         @Override
-        public boolean register(String identifier, HttpServletRequest request, HttpServletResponse response, AsyncContext context) {
+        public boolean register(final String identifier, final HttpServletRequest request, final HttpServletResponse response, final AsyncContext context) {
             responseMap.put(identifier, response);
             return true;
         }
 
         @Override
-        public HttpServletResponse getResponse(String identifier) {
+        public HttpServletResponse getResponse(final String identifier) {
             return responseMap.get(identifier);
         }
 
         @Override
-        public void complete(String identifier) {
+        public void complete(final String identifier) {
             responseMap.remove(identifier);
         }
 
