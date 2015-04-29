@@ -61,4 +61,25 @@ public class TestEncryptContent {
         }
     }
 
+    @Test
+    public void testDecryptNonEncryptedFile() throws IOException {
+        final TestRunner testRunner = TestRunners.newTestRunner(new EncryptContent());
+        testRunner.setProperty(EncryptContent.PASSWORD, "Hello, World!");
+
+        for (final EncryptionMethod method : EncryptionMethod.values()) {
+            if (method.isUnlimitedStrength()) {
+                continue;   // cannot test unlimited strength in unit tests because it's not enabled by the JVM by default.
+            }
+
+            testRunner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, method.name());
+            testRunner.setProperty(EncryptContent.MODE, EncryptContent.DECRYPT_MODE);
+
+            testRunner.enqueue(Paths.get("src/test/resources/hello.txt"));
+            testRunner.clearTransferState();
+            testRunner.run();
+
+            testRunner.assertAllFlowFilesTransferred(EncryptContent.REL_FAILURE, 1);
+        }
+    }
+
 }
