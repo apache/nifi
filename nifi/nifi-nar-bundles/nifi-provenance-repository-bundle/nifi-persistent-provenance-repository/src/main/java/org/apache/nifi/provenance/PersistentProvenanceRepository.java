@@ -699,7 +699,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                 if (bytesWrittenSinceRollover.get() >= configuration.getMaxEventFileCapacity()) {
                     try {
                         rollover(false);
-                    } catch (IOException e) {
+                    } catch (final IOException e) {
                         logger.error("Failed to Rollover Provenance Event Repository file due to {}", e.toString());
                         logger.error("", e);
                         eventReporter.reportEvent(Severity.ERROR, EVENT_CATEGORY, "Failed to Rollover Provenance Event Repository file due to " + e.toString());
@@ -1001,7 +1001,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                         if (fileRolledOver == null) {
                             return;
                         }
-                        File file = fileRolledOver;
+                        final File file = fileRolledOver;
 
                         // update our map of id to Path
                         // need lock to update the map, even though it's an AtomicReference, AtomicReference allows those doing a
@@ -1010,7 +1010,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                         writeLock.lock();
                         try {
                             final Long fileFirstEventId = Long.valueOf(LuceneUtil.substringBefore(fileRolledOver.getName(), "."));
-                            SortedMap<Long, Path> newIdToPathMap = new TreeMap<>(new PathMapComparator());
+                            final SortedMap<Long, Path> newIdToPathMap = new TreeMap<>(new PathMapComparator());
                             newIdToPathMap.putAll(idToPathMap.get());
                             newIdToPathMap.put(fileFirstEventId, file.toPath());
                             idToPathMap.set(newIdToPathMap);
@@ -1452,11 +1452,11 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                     try (final DirectoryReader directoryReader = DirectoryReader.open(FSDirectory.open(indexDirectory))) {
                         final IndexSearcher searcher = new IndexSearcher(directoryReader);
 
-                        TopDocs topDocs = searcher.search(luceneQuery, 10000000);
+                        final TopDocs topDocs = searcher.search(luceneQuery, 10000000);
                         logger.info("For {}, Top Docs has {} hits; reading Lucene results", indexDirectory, topDocs.scoreDocs.length);
 
                         if (topDocs.totalHits > 0) {
-                            for (ScoreDoc scoreDoc : topDocs.scoreDocs) {
+                            for (final ScoreDoc scoreDoc : topDocs.scoreDocs) {
                                 final int docId = scoreDoc.doc;
                                 final Document d = directoryReader.document(docId);
                                 localScoreDocs.add(d);
@@ -1649,16 +1649,16 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
             }
 
             switch (event.getEventType()) {
-            case CLONE:
-            case FORK:
-            case JOIN:
-            case REPLAY:
-                return submitLineageComputation(event.getChildUuids(), LineageComputationType.EXPAND_CHILDREN, eventId, event.getEventTime(), Long.MAX_VALUE);
-            default:
-                final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_CHILDREN, eventId, Collections.<String>emptyList(), 1);
-                lineageSubmissionMap.put(submission.getLineageIdentifier(), submission);
-                submission.getResult().setError("Event ID " + eventId + " indicates an event of type " + event.getEventType() + " so its children cannot be expanded");
-                return submission;
+                case CLONE:
+                case FORK:
+                case JOIN:
+                case REPLAY:
+                    return submitLineageComputation(event.getChildUuids(), LineageComputationType.EXPAND_CHILDREN, eventId, event.getEventTime(), Long.MAX_VALUE);
+                default:
+                    final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_CHILDREN, eventId, Collections.<String>emptyList(), 1);
+                    lineageSubmissionMap.put(submission.getLineageIdentifier(), submission);
+                    submission.getResult().setError("Event ID " + eventId + " indicates an event of type " + event.getEventType() + " so its children cannot be expanded");
+                    return submission;
             }
         } catch (final IOException ioe) {
             final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_CHILDREN, eventId, Collections.<String>emptyList(), 1);
@@ -1686,17 +1686,17 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
             }
 
             switch (event.getEventType()) {
-            case JOIN:
-            case FORK:
-            case CLONE:
-            case REPLAY:
-                return submitLineageComputation(event.getParentUuids(), LineageComputationType.EXPAND_PARENTS, eventId, 0L, event.getEventTime());
-            default: {
-                final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_PARENTS, eventId, Collections.<String>emptyList(), 1);
-                lineageSubmissionMap.put(submission.getLineageIdentifier(), submission);
-                submission.getResult().setError("Event ID " + eventId + " indicates an event of type " + event.getEventType() + " so its parents cannot be expanded");
-                return submission;
-            }
+                case JOIN:
+                case FORK:
+                case CLONE:
+                case REPLAY:
+                    return submitLineageComputation(event.getParentUuids(), LineageComputationType.EXPAND_PARENTS, eventId, 0L, event.getEventTime());
+                default: {
+                    final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_PARENTS, eventId, Collections.<String>emptyList(), 1);
+                    lineageSubmissionMap.put(submission.getLineageIdentifier(), submission);
+                    submission.getResult().setError("Event ID " + eventId + " indicates an event of type " + event.getEventType() + " so its parents cannot be expanded");
+                    return submission;
+                }
             }
         } catch (final IOException ioe) {
             final AsyncLineageSubmission submission = new AsyncLineageSubmission(LineageComputationType.EXPAND_PARENTS, eventId, Collections.<String>emptyList(), 1);
@@ -1880,7 +1880,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
             }
 
             try {
-                final Set<ProvenanceEventRecord> matchingRecords = LineageQuery.computeLineageForFlowFiles(PersistentProvenanceRepository.this, indexDir, null, flowFileUuids);
+                final Set<ProvenanceEventRecord> matchingRecords = LineageQuery.computeLineageForFlowFiles(PersistentProvenanceRepository.this, indexManager, indexDir, null, flowFileUuids);
                 final StandardLineageResult result = submission.getResult();
                 result.update(matchingRecords);
 
