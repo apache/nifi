@@ -96,8 +96,8 @@ public class LineageQuery {
                 final DocsReader docsReader = new DocsReader(repo.getConfiguration().getStorageDirectories());
                 final Set<ProvenanceEventRecord> recs = docsReader.read(uuidQueryTopDocs, searcher.getIndexReader(), repo.getAllLogFiles(), new AtomicInteger(0), Integer.MAX_VALUE);
                 final long readDocsEnd = System.nanoTime();
-                logger.debug("Finished Lineage Query; Lucene search took {} millis, reading records took {} millis",
-                        TimeUnit.NANOSECONDS.toMillis(searchEnd - searchStart), TimeUnit.NANOSECONDS.toMillis(readDocsEnd - searchEnd));
+                logger.debug("Finished Lineage Query against {}; Lucene search took {} millis, reading records took {} millis",
+                        indexDirectory, TimeUnit.NANOSECONDS.toMillis(searchEnd - searchStart), TimeUnit.NANOSECONDS.toMillis(readDocsEnd - searchEnd));
 
                 return recs;
             } finally {

@@ -1231,6 +1231,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                 }
             });
 
+            long earliestTimestamp = System.currentTimeMillis();
             for (final RecordReader reader : readers) {
                 StandardProvenanceEventRecord record = null;
 
@@ -1252,6 +1253,9 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                     continue;
                 }
 
+                if ( record.getEventTime() < earliestTimestamp ) {
+                    earliestTimestamp = record.getEventTime();
+                }
                 recordToReaderMap.put(record, reader);
             }
 
@@ -1262,7 +1266,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
 
                 final IndexingAction indexingAction = new IndexingAction(this);
 
-                final File indexingDirectory = indexConfig.getWritableIndexDirectory(writerFile);
+                final File indexingDirectory = indexConfig.getWritableIndexDirectory(writerFile, earliestTimestamp);
                 final IndexWriter indexWriter = indexManager.borrowIndexWriter(indexingDirectory);
                 try {
                     long maxId = 0L;
