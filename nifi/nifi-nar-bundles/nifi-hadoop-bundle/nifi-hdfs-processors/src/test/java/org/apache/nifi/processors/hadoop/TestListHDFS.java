@@ -25,7 +25,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URI;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -191,12 +191,12 @@ public class TestListHDFS {
         }
 
         @Override
-        protected FileSystem getFileSystem(Configuration config) throws IOException {
+        protected FileSystem getFileSystem(final Configuration config) throws IOException {
             return fileSystem;
         }
 
         @Override
-        protected void persistLocalState(String directory, String serializedState) throws IOException {
+        protected void persistLocalState(final String directory, final String serializedState) throws IOException {
             super.persistLocalState(directory, serializedState);
             localStateSaved = true;
         }
@@ -209,7 +209,7 @@ public class TestListHDFS {
         public void addFileStatus(final Path parent, final FileStatus child) {
             Set<FileStatus> children = fileStatuses.get(parent);
             if ( children == null ) {
-                children = new HashSet<>();
+                children = new LinkedHashSet<>();
                 fileStatuses.put(parent, children);
             }
 
@@ -233,32 +233,32 @@ public class TestListHDFS {
         }
 
         @Override
-        public FSDataInputStream open(Path f, int bufferSize) throws IOException {
+        public FSDataInputStream open(final Path f, final int bufferSize) throws IOException {
             return null;
         }
 
         @Override
-        public FSDataOutputStream create(Path f, FsPermission permission, boolean overwrite, int bufferSize, short replication, long blockSize, Progressable progress) throws IOException {
+        public FSDataOutputStream create(final Path f, final FsPermission permission, final boolean overwrite, final int bufferSize, final short replication, final long blockSize, final Progressable progress) throws IOException {
             return null;
         }
 
         @Override
-        public FSDataOutputStream append(Path f, int bufferSize, Progressable progress) throws IOException {
+        public FSDataOutputStream append(final Path f, final int bufferSize, final Progressable progress) throws IOException {
             return null;
         }
 
         @Override
-        public boolean rename(Path src, Path dst) throws IOException {
+        public boolean rename(final Path src, final Path dst) throws IOException {
             return false;
         }
 
         @Override
-        public boolean delete(Path f, boolean recursive) throws IOException {
+        public boolean delete(final Path f, final boolean recursive) throws IOException {
             return false;
         }
 
         @Override
-        public FileStatus[] listStatus(Path f) throws FileNotFoundException, IOException {
+        public FileStatus[] listStatus(final Path f) throws FileNotFoundException, IOException {
             final Set<FileStatus> statuses = fileStatuses.get(f);
             if ( statuses == null ) {
                 return new FileStatus[0];
@@ -268,7 +268,7 @@ public class TestListHDFS {
         }
 
         @Override
-        public void setWorkingDirectory(Path new_dir) {
+        public void setWorkingDirectory(final Path new_dir) {
 
         }
 
@@ -278,12 +278,12 @@ public class TestListHDFS {
         }
 
         @Override
-        public boolean mkdirs(Path f, FsPermission permission) throws IOException {
+        public boolean mkdirs(final Path f, final FsPermission permission) throws IOException {
             return false;
         }
 
         @Override
-        public FileStatus getFileStatus(Path f) throws IOException {
+        public FileStatus getFileStatus(final Path f) throws IOException {
             return null;
         }
 
@@ -291,7 +291,7 @@ public class TestListHDFS {
 
 
     private class MockCacheClient extends AbstractControllerService implements DistributedMapCacheClient {
-        private ConcurrentMap<Object, Object> values = new ConcurrentHashMap<>();
+        private final ConcurrentMap<Object, Object> values = new ConcurrentHashMap<>();
         private boolean failOnCalls = false;
 
         private void verifyNotFail() throws IOException {
@@ -301,7 +301,7 @@ public class TestListHDFS {
         }
 
         @Override
-        public <K, V> boolean putIfAbsent(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException {
+        public <K, V> boolean putIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
             verifyNotFail();
             final Object retValue = values.putIfAbsent(key, value);
             return (retValue == null);
@@ -309,26 +309,26 @@ public class TestListHDFS {
 
         @Override
         @SuppressWarnings("unchecked")
-        public <K, V> V getAndPutIfAbsent(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer, Deserializer<V> valueDeserializer) throws IOException {
+        public <K, V> V getAndPutIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer, final Deserializer<V> valueDeserializer) throws IOException {
             verifyNotFail();
             return (V) values.putIfAbsent(key, value);
         }
 
         @Override
-        public <K> boolean containsKey(K key, Serializer<K> keySerializer) throws IOException {
+        public <K> boolean containsKey(final K key, final Serializer<K> keySerializer) throws IOException {
             verifyNotFail();
             return values.containsKey(key);
         }
 
         @Override
-        public <K, V> void put(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException {
+        public <K, V> void put(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
             verifyNotFail();
             values.put(key, value);
         }
 
         @Override
         @SuppressWarnings("unchecked")
-        public <K, V> V get(K key, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException {
+        public <K, V> V get(final K key, final Serializer<K> keySerializer, final Deserializer<V> valueDeserializer) throws IOException {
             verifyNotFail();
             return (V) values.get(key);
         }
@@ -338,7 +338,7 @@ public class TestListHDFS {
         }
 
         @Override
-        public <K> boolean remove(K key, Serializer<K> serializer) throws IOException {
+        public <K> boolean remove(final K key, final Serializer<K> serializer) throws IOException {
             verifyNotFail();
             values.remove(key);
             return true;
