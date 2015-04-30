@@ -79,9 +79,10 @@ public class SFTPTransfer implements FileTransfer {
     public static final PropertyDescriptor PORT = new PropertyDescriptor.Builder()
             .name("Port")
             .description("The port that the remote system is listening on for file transfers")
-            .addValidator(StandardValidators.PORT_VALIDATOR)
             .required(true)
             .defaultValue("22")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
             .build();
     public static final PropertyDescriptor USE_KEEPALIVE_ON_TIMEOUT = new PropertyDescriptor.Builder()
             .name("Send Keep Alive On Timeout")
