@@ -101,7 +101,7 @@ public class FileBasedClusterNodeFirewall implements ClusterNodeFirewall {
             try {
                 ip = InetAddress.getByName(hostOrIp).getHostAddress();
             } catch (final UnknownHostException uhe) {
-                logger.warn("Blocking unknown host: " + hostOrIp, uhe);
+                logger.warn("Blocking unknown host '{}'", hostOrIp, uhe);
                 return false;
             }
 
@@ -168,30 +168,30 @@ public class FileBasedClusterNodeFirewall implements ClusterNodeFirewall {
                 if (ipOrHostLine.contains("/")) {
                     ipCidr = ipOrHostLine;
                 } else if (ipOrHostLine.contains("\\")) {
-                    logger.warn("CIDR IP notation uses forward slashes '/'.  Replacing backslash '\\' with forward slash'/' for '" + ipOrHostLine + "'");
+                    logger.warn("CIDR IP notation uses forward slashes '/'.  Replacing backslash '\\' with forward slash'/' for '{}'", ipOrHostLine);
                     ipCidr = ipOrHostLine.replace("\\", "/");
                 } else {
                     try {
                         ipCidr = InetAddress.getByName(ipOrHostLine).getHostAddress();
                         if (!ipOrHostLine.equals(ipCidr)) {
-                            logger.debug(String.format("Resolved host '%s' to ip '%s'", ipOrHostLine, ipCidr));
+                            logger.debug("Resolved host '{}' to ip '{}'", ipOrHostLine, ipCidr);
                         }
                         ipCidr += "/32";
-                        logger.debug("Adding CIDR to exact IP: " + ipCidr);
+                        logger.debug("Adding CIDR to exact IP: '{}'", ipCidr);
                     } catch (final UnknownHostException uhe) {
-                        logger.warn("Firewall is skipping unknown host address: " + ipOrHostLine);
+                        logger.warn("Firewall is skipping unknown host address: '{}'", ipOrHostLine);
                         continue;
                     }
                 }
 
                 try {
-                    logger.debug("Adding CIDR IP to firewall: " + ipCidr);
+                    logger.debug("Adding CIDR IP to firewall: '{}'", ipCidr);
                     final SubnetUtils subnetUtils = new SubnetUtils(ipCidr);
                     subnetUtils.setInclusiveHostCount(true);
                     subnetInfos.add(subnetUtils.getInfo());
                     totalIpsAdded++;
                 } catch (final IllegalArgumentException iae) {
-                    logger.warn("Firewall is skipping invalid CIDR address: " + ipOrHostLine);
+                    logger.warn("Firewall is skipping invalid CIDR address: '{}'", ipOrHostLine);
                 }
 
             }
@@ -199,7 +199,7 @@ public class FileBasedClusterNodeFirewall implements ClusterNodeFirewall {
             if (totalIpsAdded == 0) {
                 logger.info("No IPs added to firewall.  Firewall will accept all requests.");
             } else {
-                logger.info(String.format("Added %d IP(s) to firewall.  Only requests originating from the configured IPs will be accepted.", totalIpsAdded));
+                logger.info("Added {} IP(s) to firewall.  Only requests originating from the configured IPs will be accepted.", totalIpsAdded);
             }
 
         }
