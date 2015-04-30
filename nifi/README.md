@@ -19,9 +19,9 @@ Apache NiFi is an easy to use, powerful, and reliable system to process and dist
 ## Table of Contents
 
 - [Features](#features)
+- [Requirements](#requirements)
 - [Getting Started](#getting-started)
 - [Getting Help](#getting-help)
-- [Requirements](#requirements)
 - [License](#license)
 - [Disclaimer](#disclaimer)
 - [Export Control] (#export-control)
@@ -47,26 +47,70 @@ Apache NiFi was made for dataflow. It supports highly configurable directed grap
   - SSL, SSH, HTTPS, encrypted content, etc...
   - Pluggable role-based authentication/authorization
 
+## Requirements
+* JDK 1.7 or higher
+* Apache Maven 3.0.5 or higher
+
 ## Getting Started
 
 To build:
-- Execute 'mvn clean install' or for parallel build execute 'mvn -T 2.0C clean install'
-- Change directory to 'nifi-assembly'. In the target directory, there should be a build of nifi.
-- Unpack the build wherever you like or use the already unpacked build.
+- Execute `mvn clean install` or for parallel build execute `mvn -T 2.0C clean install`. On a
+  modest development laptop that is a couple of years old, the latter build takes a bit under ten
+  minutes. After a large amount of output you should eventually see a success message.
 
-To start NiFi:
-- Change directory to the location where you installed NiFi
-- '<install_location>/bin/nifi.sh start'
-- Direct your browser to http://localhost:8080/nifi/
+        laptop:nifi fhampton$ mvn -T 2.0C clean install
+        [INFO] Scanning for projects...
+        [INFO] Inspecting build with total of 115 modules...
+            ...tens of thousands of lines elided...
+        [INFO] ------------------------------------------------------------------------
+        [INFO] BUILD SUCCESS
+        [INFO] ------------------------------------------------------------------------
+        [INFO] Total time: 09:24 min (Wall Clock)
+        [INFO] Finished at: 2015-04-30T00:30:36-05:00
+        [INFO] Final Memory: 173M/1359M
+        [INFO] ------------------------------------------------------------------------
+
+To deploy:
+- Change directory to 'nifi-assembly'. In the target directory, there should be a build of nifi.
+
+        laptop:nifi fhampton$ cd nifi-assembly
+        laptop:nifi-assembly fhampton$ ls -lhd target/nifi*
+        drwxr-xr-x  3 fhampton  staff   102B Apr 30 00:29 target/nifi-0.1.0-incubating-SNAPSHOT-bin
+        -rw-r--r--  1 fhampton  staff   144M Apr 30 00:30 target/nifi-0.1.0-incubating-SNAPSHOT-bin.tar.gz
+        -rw-r--r--  1 fhampton  staff   144M Apr 30 00:30 target/nifi-0.1.0-incubating-SNAPSHOT-bin.zip
+
+- For testing ongoing development you could use the already unpacked build present in the directory
+  named "nifi-*version*-bin", where *version* is the current project version. To deploy in another
+  location make use of either the tarball or zipfile and unpack them wherever you like. The
+  distribution will be within a common parent directory named for the version.
+
+        laptop:nifi-assembly fhampton$ mkdir ~/example-nifi-deploy
+        laptop:nifi-assembly fhampton$ tar xzf target/nifi-*-bin.tar.gz -C ~/example-nifi-deploy
+        laptop:nifi-assembly fhampton$ ls -lh ~/example-nifi-deploy/
+        total 0
+        drwxr-xr-x  10 fhampton  staff   340B Apr 30 01:06 nifi-0.1.0-incubating-SNAPSHOT
+
+To run NiFi:
+- Change directory to the location where you installed NiFi and run it.
+
+        laptop:~ fhampton$ cd ~/example-nifi-deploy/nifi-*
+        laptop:nifi-0.1.0-incubating-SNAPSHOT fhampton$ ./bin/nifi.sh start
+
+- Direct your browser to http://localhost:8080/nifi/ and you should see an screen like this screenshot:
+  ![image of a NiFi dataflow canvas](nifi-docs/src/main/asciidoc/images/nifi_first_launch_screenshot.png?raw=true)
+
+- For help building your first data flow see the [NiFi User Guide](http://nifi.incubator.apache.org/docs/nifi-docs/user-guide.html)
+
+- If you are testing ongoing development, you will likely want to stop your instance.
+
+        laptop:~ fhampton$ cd ~/example-nifi-deploy/nifi-*
+        laptop:nifi-0.1.0-incubating-SNAPSHOT fhampton$ ./bin/nifi.sh stop
 
 ## Getting Help
 If you have questions, you can reach out to our mailing list: dev@nifi.incubator.apache.org
 ([archive](http://mail-archives.apache.org/mod_mbox/incubator-nifi-dev)).
 We're also often available in IRC: #nifi on
 [irc.freenode.net](http://webchat.freenode.net/?channels=#nifi).
-
-## Requirements
-* JDK 1.7 or higher
 
 ## License
 

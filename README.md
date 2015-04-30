@@ -24,9 +24,42 @@ Apache NiFi is an easy to use, powerful, and reliable system to process and dist
 
 ## Getting Started
 
-- Build the nifi-nar-maven-plugin.  Change directory to 'nifi-nar-maven-plugin' and 
-follow the directions found there.
-- Build nifi.  Change directory to 'nifi' and follow the directions found there.
+- Read through the [quickstart guide for development](http://nifi.incubator.apache.org/development/quickstart.html).
+  It will include information on getting a local copy of the source, give pointers on issue
+  tracking, and provide some warnings about common problems with development environments.
+- Optional: Build supporting modules. This should only be needed if the current 'nifi' module is in
+  the process of updating to a new version of either the 'nifi-parent' or 'nifi-nar-maven-plugin'
+  artifacts.
+
+    If in doubt, just skip to building the main nifi project. If the build fails, come back here and
+    figure out which optional step you are missing; each entry below will give an example of the
+    errors you'll receive if that step needs to be followed. The version numbers may change but the
+    error text should still look very familiar.
+    - Install the nifi-parent pom. Change directory to 'nifi-parent' and follow the directions found
+      there in [README.md](nifi-parent/README.md).
+
+    If you don't build the nifi-parent pom and the main nifi code relies on an unreleased version
+    you'll see an erorr like the following:
+
+        [ERROR]     Non-resolvable parent POM: Could not find artifact
+            org.apache.nifi:nifi-parent:pom:1.0.0-incubating-SNAPSHOT in example.snapshots.repo
+            (https://repository.example.com/content/repositories/snapshots) and
+            'parent.relativePath' points at no local POM @ line 18, column 13 -> [Help 2]
+    - Build the nifi-nar-maven-plugin.  Change directory to 'nifi-nar-maven-plugin' and
+      follow the directions found there in [README.md](nifi-nar-maven-plugin/README.md).
+
+    If you don't build the nifi-nar-maven-plugin and the main nifi code relies on an unreleased
+    version you'll see an error like the following:
+
+        [ERROR]     Unresolveable build extension: Plugin
+            org.apache.nifi:nifi-nar-maven-plugin:1.0.1-incubating-SNAPSHOT or one of its
+            dependencies could not be resolved: Could not find artifact
+            org.apache.nifi:nifi-nar-maven-plugin:jar:1.0.1-incubating-SNAPSHOT -> [Help 2]
+- Build nifi.  Change directory to 'nifi' and follow the directions found there in
+  [README.md](nifi/README.md).
+- Run NiFi. The directions found in the [README.md](nifi/README.md) file within the 'nifi' module
+  will also include how to run an instance of NiFi. For help on how to build your first data flow,
+  see the [NiFi User Guide](http://nifi.incubator.apache.org/docs/nifi-docs/user-guide.html).
 
 ## Documentation
 
