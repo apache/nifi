@@ -18,16 +18,24 @@ Apache NiFi Parent provides a nice aggregation of shared concerns for all NiFi P
 
 ## Table of Contents
 
+- [Requirements](#requirements)
 - [Getting Started](#getting-started)
 - [License](#license)
 - [Disclaimer](#disclaimer)
 
+## Requirements
+* JDK 1.7 or higher
+* Apache Maven 3.0.5 or higher
+
 ## Getting Started
 
-- Build the nifi-parent module.  Then you can go to the 'nifi-nar-maven-plugin' 
-directory and follow its instructions and finally the 'nifi' directory.  Building
-the nifi-parent and nifi-nar-maven-plugin should be rarely necessary as these 
-will be released infrequently by comparison to the 'nifi' tree.
+Building the nifi-parent module should be rare since it will be released infrequently compared to
+the main 'nifi' code tree.
+
+- Build the nifi-parent module using `mvn clean install`.
+- Presuming you need to make use of changes to the nifi-parent module, you should next
+  go to the [nifi-nar-maven-plugin](../nifi-nar-maven-plugin) directory and follow its instructions
+  and finally the [nifi](../nifi) directory. 
 
 ## Documentation
 

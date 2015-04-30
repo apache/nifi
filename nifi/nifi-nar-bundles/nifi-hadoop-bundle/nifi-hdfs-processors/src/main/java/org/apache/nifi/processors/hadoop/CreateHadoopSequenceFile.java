@@ -156,7 +156,7 @@ public class CreateHadoopSequenceFile extends AbstractHadoopProcessor {
         final String fileName = flowFile.getAttribute(CoreAttributes.FILENAME.key()) + ".sf";
         flowFile = session.putAttribute(flowFile, CoreAttributes.FILENAME.key(), fileName);
         try {
-            flowFile = sequenceFileWriter.writeSequenceFile(flowFile, session, hdfsResources.get().getKey(), compressionType);
+            flowFile = sequenceFileWriter.writeSequenceFile(flowFile, session, getConfiguration(), compressionType);
             session.transfer(flowFile, RELATIONSHIP_SUCCESS);
             getLogger().info("Transferred flowfile {} to {}", new Object[]{flowFile, RELATIONSHIP_SUCCESS});
         } catch (ProcessException e) {

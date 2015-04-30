@@ -64,15 +64,42 @@ public class TestStandardTocReader {
 
 
     @Test
-    public void testGetBlockIndex() throws IOException {
+    public void testGetBlockIndexV1() throws IOException {
         final File file = new File("target/" + UUID.randomUUID().toString());
         try (final OutputStream out = new FileOutputStream(file);
                 final DataOutputStream dos = new DataOutputStream(out)) {
-            out.write(0);
+            out.write(1);
             out.write(0);
 
             for (int i=0; i < 1024; i++) {
                 dos.writeLong(i * 1024L);
+            }
+        }
+
+        try {
+            try(final StandardTocReader reader = new StandardTocReader(file)) {
+                assertFalse(reader.isCompressed());
+
+                for (int i=0; i < 1024; i++) {
+                    assertEquals(i * 1024, reader.getBlockOffset(i));
+                }
+            }
+        } finally {
+            file.delete();
+        }
+    }
+
+    @Test
+    public void testGetBlockIndexV2() throws IOException {
+        final File file = new File("target/" + UUID.randomUUID().toString());
+        try (final OutputStream out = new FileOutputStream(file);
+                final DataOutputStream dos = new DataOutputStream(out)) {
+            out.write(2);
+            out.write(0);
+
+            for (int i=0; i < 1024; i++) {
+                dos.writeLong(i * 1024L);
+                dos.writeLong(0L);
             }
         }
 

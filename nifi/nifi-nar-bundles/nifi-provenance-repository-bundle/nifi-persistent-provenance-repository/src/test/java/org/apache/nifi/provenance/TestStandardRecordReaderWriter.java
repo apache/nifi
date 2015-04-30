@@ -67,7 +67,7 @@ public class TestStandardRecordReaderWriter {
         final TocWriter tocWriter = new StandardTocWriter(tocFile, false, false);
         final StandardRecordWriter writer = new StandardRecordWriter(journalFile, tocWriter, false, 1024 * 1024);
 
-        writer.writeHeader();
+        writer.writeHeader(1L);
         writer.writeRecord(createEvent(), 1L);
         writer.close();
 
@@ -77,7 +77,7 @@ public class TestStandardRecordReaderWriter {
                 final StandardRecordReader reader = new StandardRecordReader(fis, journalFile.getName(), tocReader)) {
             assertEquals(0, reader.getBlockIndex());
             reader.skipToBlock(0);
-            StandardProvenanceEventRecord recovered = reader.nextRecord();
+            final StandardProvenanceEventRecord recovered = reader.nextRecord();
             assertNotNull(recovered);
 
             assertEquals("nifi://unit-test", recovered.getTransitUri());
@@ -95,7 +95,7 @@ public class TestStandardRecordReaderWriter {
         final TocWriter tocWriter = new StandardTocWriter(tocFile, false, false);
         final StandardRecordWriter writer = new StandardRecordWriter(journalFile, tocWriter, true, 100);
 
-        writer.writeHeader();
+        writer.writeHeader(1L);
         writer.writeRecord(createEvent(), 1L);
         writer.close();
 
@@ -105,7 +105,7 @@ public class TestStandardRecordReaderWriter {
                 final StandardRecordReader reader = new StandardRecordReader(fis, journalFile.getName(), tocReader)) {
             assertEquals(0, reader.getBlockIndex());
             reader.skipToBlock(0);
-            StandardProvenanceEventRecord recovered = reader.nextRecord();
+            final StandardProvenanceEventRecord recovered = reader.nextRecord();
             assertNotNull(recovered);
 
             assertEquals("nifi://unit-test", recovered.getTransitUri());
@@ -124,7 +124,7 @@ public class TestStandardRecordReaderWriter {
         // new record each 1 MB of uncompressed data
         final StandardRecordWriter writer = new StandardRecordWriter(journalFile, tocWriter, true, 1024 * 1024);
 
-        writer.writeHeader();
+        writer.writeHeader(1L);
         for (int i=0; i < 10; i++) {
             writer.writeRecord(createEvent(), i);
         }
@@ -143,7 +143,7 @@ public class TestStandardRecordReaderWriter {
                     reader.skipToBlock(0);
                 }
 
-                StandardProvenanceEventRecord recovered = reader.nextRecord();
+                final StandardProvenanceEventRecord recovered = reader.nextRecord();
                 assertNotNull(recovered);
                 assertEquals("nifi://unit-test", recovered.getTransitUri());
             }
@@ -163,7 +163,7 @@ public class TestStandardRecordReaderWriter {
         // new block each 10 bytes
         final StandardRecordWriter writer = new StandardRecordWriter(journalFile, tocWriter, true, 100);
 
-        writer.writeHeader();
+        writer.writeHeader(1L);
         for (int i=0; i < 10; i++) {
             writer.writeRecord(createEvent(), i);
         }
@@ -174,7 +174,7 @@ public class TestStandardRecordReaderWriter {
         try (final FileInputStream fis = new FileInputStream(journalFile);
                 final StandardRecordReader reader = new StandardRecordReader(fis, journalFile.getName(), tocReader)) {
             for (int i=0; i < 10; i++) {
-                StandardProvenanceEventRecord recovered = reader.nextRecord();
+                final StandardProvenanceEventRecord recovered = reader.nextRecord();
                 System.out.println(recovered);
                 assertNotNull(recovered);
                 assertEquals((long) i, recovered.getEventId());

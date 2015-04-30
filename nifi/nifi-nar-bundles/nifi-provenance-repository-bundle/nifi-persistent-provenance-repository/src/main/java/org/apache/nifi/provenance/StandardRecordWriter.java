@@ -86,16 +86,22 @@ public class StandardRecordWriter implements RecordWriter {
     }
 
     @Override
-    public synchronized void writeHeader() throws IOException {
+    public synchronized void writeHeader(final long firstEventId) throws IOException {
         lastBlockOffset = rawOutStream.getBytesWritten();
-        resetWriteStream();
+        resetWriteStream(firstEventId);
 
         out.writeUTF(PersistentProvenanceRepository.class.getName());
         out.writeInt(PersistentProvenanceRepository.SERIALIZATION_VERSION);
         out.flush();
     }
 
-    private void resetWriteStream() throws IOException {
+
+    /**
+     * Resets the streams to prepare for a new block
+     * @param eventId the first id that will be written to the new block
+     * @throws IOException if unable to flush/close the current streams properly
+     */
+    private void resetWriteStream(final long eventId) throws IOException {
         if ( out != null ) {
             out.flush();
         }
@@ -112,13 +118,13 @@ public class StandardRecordWriter implements RecordWriter {
             }
 
             if ( tocWriter != null ) {
-                tocWriter.addBlockOffset(rawOutStream.getBytesWritten());
+                tocWriter.addBlockOffset(rawOutStream.getBytesWritten(), eventId);
             }
 
             writableStream = new BufferedOutputStream(new GZIPOutputStream(new NonCloseableOutputStream(rawOutStream), 1), 65536);
         } else {
             if ( tocWriter != null ) {
-                tocWriter.addBlockOffset(rawOutStream.getBytesWritten());
+                tocWriter.addBlockOffset(rawOutStream.getBytesWritten(), eventId);
             }
 
             writableStream = new BufferedOutputStream(rawOutStream, 65536);
@@ -130,7 +136,7 @@ public class StandardRecordWriter implements RecordWriter {
 
 
     @Override
-    public synchronized long writeRecord(final ProvenanceEventRecord record, long recordIdentifier) throws IOException {
+    public synchronized long writeRecord(final ProvenanceEventRecord record, final long recordIdentifier) throws IOException {
         final ProvenanceEventType recordType = record.getEventType();
         final long startBytes = byteCountingOut.getBytesWritten();
 
@@ -142,7 +148,7 @@ public class StandardRecordWriter implements RecordWriter {
                 // because of the way that GZIPOutputStream works, we need to call close() on it in order for it
                 // to write its trailing bytes. But we don't want to close the underlying OutputStream, so we wrap
                 // the underlying OutputStream in a NonCloseableOutputStream
-                resetWriteStream();
+                resetWriteStream(recordIdentifier);
             }
         }
 

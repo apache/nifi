@@ -21,16 +21,19 @@ import java.io.File;
 import java.io.IOException;
 
 /**
- * Writes a .toc file
+ * Writes a Table-of-Contents (.toc) file
  */
 public interface TocWriter extends Closeable {
 
     /**
      * Adds the given block offset as the next Block Offset in the Table of Contents
+     *
      * @param offset the byte offset at which the block begins
+     * @param firstEventId the ID of the first Provenance Event that will be in the block
+     *
      * @throws IOException if unable to persist the block index
      */
-    void addBlockOffset(long offset) throws IOException;
+    void addBlockOffset(long offset, long firstEventId) throws IOException;
 
     /**
      * @return the index of the current Block
