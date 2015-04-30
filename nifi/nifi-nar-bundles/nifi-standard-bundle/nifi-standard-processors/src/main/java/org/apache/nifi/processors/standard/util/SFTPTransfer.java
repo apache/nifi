@@ -358,7 +358,7 @@ public class SFTPTransfer implements FileTransfer {
 
         final JSch jsch = new JSch();
         try {
-            final Session session = jsch.getSession(ctx.getProperty(USERNAME).getValue(),
+            final Session session = jsch.getSession(ctx.getProperty(USERNAME).evaluateAttributeExpressions(flowFile).getValue(),
                     ctx.getProperty(HOSTNAME).evaluateAttributeExpressions(flowFile).getValue(),
                     ctx.getProperty(PORT).evaluateAttributeExpressions(flowFile).asInteger().intValue());
 
