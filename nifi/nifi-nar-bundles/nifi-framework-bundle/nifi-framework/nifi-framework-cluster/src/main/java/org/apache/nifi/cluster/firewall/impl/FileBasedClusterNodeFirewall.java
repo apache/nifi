@@ -113,9 +113,11 @@ public class FileBasedClusterNodeFirewall implements ClusterNodeFirewall {
             }
 
             // no match
+            logger.debug("Blocking host '{}' because it does not match our allowed list.", hostOrIp);
             return false;
 
         } catch (final IllegalArgumentException iae) {
+            logger.debug("Blocking requested host, '{}', because it is malformed.", hostOrIp, iae);
             return false;
         }
     }

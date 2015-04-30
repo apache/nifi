@@ -18,12 +18,16 @@ package org.apache.nifi.cluster.firewall.impl;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import org.apache.nifi.util.file.FileUtils;
 import org.junit.After;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeTrue;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class FileBasedClusterNodeFirewallTest {
@@ -37,6 +41,23 @@ public class FileBasedClusterNodeFirewallTest {
     private File emptyConfig;
 
     private File restoreDirectory;
+
+    private static boolean badHostsDoNotResolve = false;
+
+    /**
+     * We have tests that rely on known bad host/ip parameters; make sure DNS doesn't resolve them.
+     * This can be a problem i.e. on residential ISPs in the USA because the provider will often
+     * wildcard match all possible DNS names in an attempt to serve advertising.
+     */
+    @BeforeClass
+    public static void ensureBadHostsDoNotWork() {
+        final InetAddress ip;
+        try {
+            ip = InetAddress.getByName("I typed a search term and my browser expected a host.");
+        } catch (final UnknownHostException uhe) {
+            badHostsDoNotResolve = true;
+        }
+    }
 
     @Before
     public void setup() throws Exception {
@@ -53,6 +74,22 @@ public class FileBasedClusterNodeFirewallTest {
     @After
     public void teardown() throws IOException {
         deleteFile(restoreDirectory);
+    }
+
+    /**
+     * We have two garbage lines in our test config file, ensure they didn't get turned into hosts.
+     */
+    @Test
+    public void ensureBadDataWasIgnored() {
+        assumeTrue(badHostsDoNotResolve);
+        assertFalse("firewall treated our malformed data as a host. If " +
+            "`host \"bad data should be skipped\"` works locally, this test should have been " +
+            "skipped.",
+            ipsFirewall.isPermissible("bad data should be skipped"));
+        assertFalse("firewall treated our malformed data as a host. If " +
+            "`host \"more bad data\"` works locally, this test should have been " +
+            "skipped.",
+            ipsFirewall.isPermissible("more bad data"));
     }
 
     @Test
@@ -77,7 +114,10 @@ public class FileBasedClusterNodeFirewallTest {
 
     @Test
     public void testIsPermissibleWithMalformedData() {
-        assertFalse(ipsFirewall.isPermissible("abc"));
+        assumeTrue(badHostsDoNotResolve);
+        assertFalse("firewall allowed host 'abc' rather than rejecting as malformed. If `host abc` "
+            + "works locally, this test should have been skipped.",
+            ipsFirewall.isPermissible("abc"));
     }
 
     @Test
@@ -87,7 +127,10 @@ public class FileBasedClusterNodeFirewallTest {
 
     @Test
     public void testIsPermissibleWithEmptyConfigWithMalformedData() {
-        assertTrue(acceptAllFirewall.isPermissible("abc"));
+        assumeTrue(badHostsDoNotResolve);
+        assertTrue("firewall did not allow malformed host 'abc' under permissive configs. If " +
+            "`host abc` works locally, this test should have been skipped.",
+            acceptAllFirewall.isPermissible("abc"));
     }
 
     private boolean deleteFile(final File file) {
