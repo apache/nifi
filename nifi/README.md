@@ -96,7 +96,7 @@ To run NiFi:
         laptop:~ fhampton$ cd ~/example-nifi-deploy/nifi-*
         laptop:nifi-0.1.0-incubating-SNAPSHOT fhampton$ ./bin/nifi.sh start
 
-- Direct your browser to http://localhost:8080/nifi/ and you should see an screen like this screenshot:
+- Direct your browser to http://localhost:8080/nifi/ and you should see a screen like this screenshot:
   ![image of a NiFi dataflow canvas](nifi-docs/src/main/asciidoc/images/nifi_first_launch_screenshot.png?raw=true)
 
 - For help building your first data flow see the [NiFi User Guide](http://nifi.incubator.apache.org/docs/nifi-docs/user-guide.html)
