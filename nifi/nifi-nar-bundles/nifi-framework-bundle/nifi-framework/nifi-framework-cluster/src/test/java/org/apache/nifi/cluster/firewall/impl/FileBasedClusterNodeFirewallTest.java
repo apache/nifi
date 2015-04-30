@@ -17,18 +17,17 @@
 package org.apache.nifi.cluster.firewall.impl;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import org.apache.nifi.util.file.FileUtils;
-import org.junit.After;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 public class FileBasedClusterNodeFirewallTest {
 
@@ -41,6 +40,9 @@ public class FileBasedClusterNodeFirewallTest {
     private File emptyConfig;
 
     private File restoreDirectory;
+
+    @Rule
+    public final TemporaryFolder temp = new TemporaryFolder();
 
     private static boolean badHostsDoNotResolve = false;
 
@@ -62,18 +64,13 @@ public class FileBasedClusterNodeFirewallTest {
     @Before
     public void setup() throws Exception {
 
-        ipsConfig = new File("src/test/resources/org/apache/nifi/cluster/firewall/impl/ips.txt");
-        emptyConfig = new File("src/test/resources/org/apache/nifi/cluster/firewall/impl/empty.txt");
+        ipsConfig = new File(getClass().getResource("/org/apache/nifi/cluster/firewall/impl/ips.txt").toURI());
+        emptyConfig = new File(getClass().getResource("/org/apache/nifi/cluster/firewall/impl/empty.txt").toURI());
 
-        restoreDirectory = new File(System.getProperty("java.io.tmpdir") + "/firewall_restore");
+        restoreDirectory = temp.newFolder("firewall_restore");
 
         ipsFirewall = new FileBasedClusterNodeFirewall(ipsConfig, restoreDirectory);
         acceptAllFirewall = new FileBasedClusterNodeFirewall(emptyConfig);
-    }
-
-    @After
-    public void teardown() throws IOException {
-        deleteFile(restoreDirectory);
     }
 
     /**
@@ -131,13 +128,6 @@ public class FileBasedClusterNodeFirewallTest {
         assertTrue("firewall did not allow malformed host 'abc' under permissive configs. If " +
             "`host abc` works locally, this test should have been skipped.",
             acceptAllFirewall.isPermissible("abc"));
-    }
-
-    private boolean deleteFile(final File file) {
-        if (file.isDirectory()) {
-            FileUtils.deleteFilesInDir(file, null, null, true, true);
-        }
-        return FileUtils.deleteFile(file, null, 10);
     }
 
 }
