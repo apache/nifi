@@ -95,11 +95,10 @@ public class ClusterManagerProtocolSenderImplTest {
 
     @Test
     public void testRequestFlow() throws Exception {
-
         when(mockHandler.canHandle(any(ProtocolMessage.class))).thenReturn(Boolean.TRUE);
         when(mockHandler.handle(any(ProtocolMessage.class))).thenReturn(new FlowResponseMessage());
         final FlowRequestMessage request = new FlowRequestMessage();
-        request.setNodeId(new NodeIdentifier("id", "api-address", 1, address.getHostAddress(), port));
+        request.setNodeId(new NodeIdentifier("id", "api-address", 1, "localhost", port));
         final FlowResponseMessage response = sender.requestFlow(request);
         assertNotNull(response);
     }
@@ -110,7 +109,7 @@ public class ClusterManagerProtocolSenderImplTest {
         when(mockHandler.canHandle(any(ProtocolMessage.class))).thenReturn(Boolean.TRUE);
         when(mockHandler.handle(any(ProtocolMessage.class))).thenReturn(new PingMessage());
         final FlowRequestMessage request = new FlowRequestMessage();
-        request.setNodeId(new NodeIdentifier("id", "api-address", 1, address.getHostAddress(), port));
+        request.setNodeId(new NodeIdentifier("id", "api-address", 1, "localhost", port));
         try {
             sender.requestFlow(request);
             fail("failed to throw exception");
@@ -134,7 +133,7 @@ public class ClusterManagerProtocolSenderImplTest {
             }
         });
         final FlowRequestMessage request = new FlowRequestMessage();
-        request.setNodeId(new NodeIdentifier("id", "api-address", 1, address.getHostAddress(), port));
+        request.setNodeId(new NodeIdentifier("id", "api-address", 1, "localhost", port));
         try {
             sender.requestFlow(request);
             fail("failed to throw exception");
