@@ -28,7 +28,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 @CapabilityDescription("A documented controller service that can help you do things")
 @Tags({"one", "two", "three"})
-public class FullyDocumentedControllerService extends AbstractControllerService {
+public class FullyDocumentedControllerService extends AbstractControllerService implements SampleService{
 
     public static final PropertyDescriptor KEYSTORE = new PropertyDescriptor.Builder().name("Keystore Filename")
             .description("The fully-qualified filename of the Keystore").defaultValue(null)
@@ -55,4 +55,8 @@ public class FullyDocumentedControllerService extends AbstractControllerService 
         return properties;
     }
 
+    @Override
+    public void doSomething() {
+        // TODO Auto-generated method stub
+    }
 }
