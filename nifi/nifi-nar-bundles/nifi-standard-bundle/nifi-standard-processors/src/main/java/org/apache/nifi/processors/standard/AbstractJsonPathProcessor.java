@@ -16,11 +16,15 @@
  */
 package org.apache.nifi.processors.standard;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.spi.json.GsonJsonProvider;
+import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
 import com.jayway.jsonpath.spi.json.JsonProvider;
 import com.jayway.jsonpath.spi.json.JsonSmartJsonProvider;
+import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
 import net.minidev.json.parser.JSONParser;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -45,92 +49,102 @@ import java.util.Objects;
  * Provides common functionality used for processors interacting and manipulating JSON data via JsonPath.
  *
  * @see <a href="http://json.org">http://json.org</a>
- * @see
- * <a href="https://github.com/jayway/JsonPath">https://github.com/jayway/JsonPath</a>
+ * @see <a href="https://github.com/jayway/JsonPath">https://github.com/jayway/JsonPath</a>
  */
 public abstract class AbstractJsonPathProcessor extends AbstractProcessor {
 
-    private static final Configuration STRICT_PROVIDER_CONFIGURATION = Configuration.builder().jsonProvider(new JsonSmartJsonProvider(JSONParser.MODE_RFC4627)).build();
+	// JsonSmart (default)
+//	private static final Configuration STRICT_PROVIDER_CONFIGURATION = Configuration.builder().jsonProvider(new JsonSmartJsonProvider(JSONParser.MODE_RFC4627)).build();
 
-    private static final JsonProvider JSON_PROVIDER = STRICT_PROVIDER_CONFIGURATION.jsonProvider();
+	// Faster XML Jackson
+	private static final ObjectMapper jsonObjectMapper = new ObjectMapper();
+	private static final Configuration STRICT_PROVIDER_CONFIGURATION = Configuration.builder().jsonProvider(new JacksonJsonProvider(jsonObjectMapper)).build();
 
-    static final Map<String, String> NULL_REPRESENTATION_MAP = new HashMap<>();
+	// Faster XML Jackson with Mapping Provider
+//	private static final Configuration STRICT_PROVIDER_CONFIGURATION = Configuration.builder().jsonProvider(new JacksonJsonProvider()).mappingProvider(new JacksonMappingProvider()).build();
 
-    static final String EMPTY_STRING_OPTION = "empty string";
-    static final String NULL_STRING_OPTION = "the string 'null'";
+	//	 GSON
+//	private static final Configuration STRICT_PROVIDER_CONFIGURATION = Configuration.builder().jsonProvider(new GsonJsonProvider()).build();
 
-    static {
-        NULL_REPRESENTATION_MAP.put(EMPTY_STRING_OPTION, "");
-        NULL_REPRESENTATION_MAP.put(NULL_STRING_OPTION, "null");
-    }
+	private static final JsonProvider JSON_PROVIDER = STRICT_PROVIDER_CONFIGURATION.jsonProvider();
 
-    public static final PropertyDescriptor NULL_VALUE_DEFAULT_REPRESENTATION = new PropertyDescriptor.Builder()
-            .name("Null Value Representation")
-            .description("Indicates the desired representation of JSON Path expressions resulting in a null value.")
-            .required(true)
-            .allowableValues(NULL_REPRESENTATION_MAP.keySet())
-            .defaultValue(EMPTY_STRING_OPTION)
-            .build();
+	static final Map<String, String> NULL_REPRESENTATION_MAP = new HashMap<>();
 
-    static DocumentContext validateAndEstablishJsonContext(ProcessSession processSession, FlowFile flowFile) {
-        // Parse the document once into an associated context to support multiple path evaluations if specified
-        final ObjectHolder<DocumentContext> contextHolder = new ObjectHolder<>(null);
-        processSession.read(flowFile, new InputStreamCallback() {
-            @Override
-            public void process(InputStream in) throws IOException {
-                try (BufferedInputStream bufferedInputStream = new BufferedInputStream(in)) {
-                    DocumentContext ctx = JsonPath.using(STRICT_PROVIDER_CONFIGURATION).parse(bufferedInputStream);
-                    contextHolder.set(ctx);
-                }
-            }
-        });
+	static final String EMPTY_STRING_OPTION = "empty string";
+	static final String NULL_STRING_OPTION = "the string 'null'";
 
-        return contextHolder.get();
-    }
+	static {
+		NULL_REPRESENTATION_MAP.put(EMPTY_STRING_OPTION, "");
+		NULL_REPRESENTATION_MAP.put(NULL_STRING_OPTION, "null");
+	}
 
-    /**
-     * Determines the context by which JsonSmartJsonProvider would treat the value. {@link java.util.Map} and {@link java.util.List} objects can be rendered as JSON elements, everything else is
-     * treated as a scalar.
-     *
-     * @param obj item to be inspected if it is a scalar or a JSON element
-     * @return false, if the object is a supported type; true otherwise
-     */
-    static boolean isJsonScalar(Object obj) {
-        // For the default provider, JsonSmartJsonProvider, a Map or List is able to be handled as a JSON entity
-        return !(obj instanceof Map || obj instanceof List);
-    }
+	public static final PropertyDescriptor NULL_VALUE_DEFAULT_REPRESENTATION = new PropertyDescriptor.Builder()
+			.name("Null Value Representation")
+			.description("Indicates the desired representation of JSON Path expressions resulting in a null value.")
+			.required(true)
+			.allowableValues(NULL_REPRESENTATION_MAP.keySet())
+			.defaultValue(EMPTY_STRING_OPTION)
+			.build();
 
-    static String getResultRepresentation(Object jsonPathResult, String defaultValue) {
-        if (isJsonScalar(jsonPathResult)) {
-            return Objects.toString(jsonPathResult, defaultValue);
-        }
-        return JSON_PROVIDER.toJson(jsonPathResult);
-    }
+	static DocumentContext validateAndEstablishJsonContext(ProcessSession processSession, FlowFile flowFile) {
+		// Parse the document once into an associated context to support multiple path evaluations if specified
+		final ObjectHolder<DocumentContext> contextHolder = new ObjectHolder<>(null);
+		processSession.read(flowFile, new InputStreamCallback() {
+			@Override
+			public void process(InputStream in) throws IOException {
+				try (BufferedInputStream bufferedInputStream = new BufferedInputStream(in)) {
+					DocumentContext ctx = JsonPath.using(STRICT_PROVIDER_CONFIGURATION).parse(bufferedInputStream);
+					contextHolder.set(ctx);
+				}
+			}
+		});
 
-    abstract static class JsonPathValidator implements Validator {
+		return contextHolder.get();
+	}
 
-        @Override
-        public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
-            String error = null;
-            if (isStale(subject, input)) {
-                if (JsonPathExpressionValidator.isValidExpression(input)) {
-                    JsonPath compiledJsonPath = JsonPath.compile(input);
-                    cacheComputedValue(subject, input, compiledJsonPath);
-                } else {
-                    error = "specified expression was not valid: " + input;
-                }
-            }
-            return new ValidationResult.Builder().subject(subject).valid(error == null).explanation(error).build();
-        }
+	/**
+	 * Determines the context by which JsonSmartJsonProvider would treat the value. {@link java.util.Map} and {@link java.util.List} objects can be rendered as JSON elements, everything else is
+	 * treated as a scalar.
+	 *
+	 * @param obj item to be inspected if it is a scalar or a JSON element
+	 * @return false, if the object is a supported type; true otherwise
+	 */
+	static boolean isJsonScalar(Object obj) {
+		// For the default provider, JsonSmartJsonProvider, a Map or List is able to be handled as a JSON entity
+		return !(obj instanceof Map || obj instanceof List);
+	}
 
-        /**
-         * An optional hook to act on the compute value
-         */
-        abstract void cacheComputedValue(String subject, String input, JsonPath computedJsonPath);
+	static String getResultRepresentation(Object jsonPathResult, String defaultValue) {
+		if (isJsonScalar(jsonPathResult)) {
+			return Objects.toString(jsonPathResult, defaultValue);
+		}
+		return JSON_PROVIDER.toJson(jsonPathResult);
+	}
 
-        /**
-         * A hook for implementing classes to determine if a cached value is stale for a compiled JsonPath represented by either a validation
-         */
-        abstract boolean isStale(String subject, String input);
-    }
+	abstract static class JsonPathValidator implements Validator {
+
+		@Override
+		public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+			String error = null;
+			if (isStale(subject, input)) {
+				if (JsonPathExpressionValidator.isValidExpression(input)) {
+					JsonPath compiledJsonPath = JsonPath.compile(input);
+					cacheComputedValue(subject, input, compiledJsonPath);
+				} else {
+					error = "specified expression was not valid: " + input;
+				}
+			}
+			return new ValidationResult.Builder().subject(subject).valid(error == null).explanation(error).build();
+		}
+
+		/**
+		 * An optional hook to act on the compute value
+		 */
+		abstract void cacheComputedValue(String subject, String input, JsonPath computedJsonPath);
+
+		/**
+		 * A hook for implementing classes to determine if a cached value is stale for a compiled JsonPath represented by either a validation
+		 */
+		abstract boolean isStale(String subject, String input);
+	}
 }

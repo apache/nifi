@@ -518,7 +518,7 @@ public class FTPTransfer implements FileTransfer {
         client.setDataTimeout(ctx.getProperty(DATA_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
         client.setSoTimeout(ctx.getProperty(CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
 
-        final String username = ctx.getProperty(USERNAME).getValue();
+        final String username = ctx.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
         final String password = ctx.getProperty(PASSWORD).getValue();
         final boolean loggedIn = client.login(username, password);
         if (!loggedIn) {
