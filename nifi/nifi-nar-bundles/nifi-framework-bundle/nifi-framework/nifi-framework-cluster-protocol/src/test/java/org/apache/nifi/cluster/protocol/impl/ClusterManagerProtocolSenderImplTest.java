@@ -41,9 +41,6 @@ import static org.mockito.Mockito.when;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-/**
- * @author unattributed
- */
 public class ClusterManagerProtocolSenderImplTest {
 
     private InetAddress address;
@@ -90,7 +87,7 @@ public class ClusterManagerProtocolSenderImplTest {
         when(mockHandler.canHandle(any(ProtocolMessage.class))).thenReturn(Boolean.TRUE);
         when(mockHandler.handle(any(ProtocolMessage.class))).thenReturn(new FlowResponseMessage());
         FlowRequestMessage request = new FlowRequestMessage();
-        request.setNodeId(new NodeIdentifier("id", "api-address", 1, address.getHostAddress(), port));
+        request.setNodeId(new NodeIdentifier("id", "api-address", 1, "localhost", port));
         FlowResponseMessage response = sender.requestFlow(request);
         assertNotNull(response);
     }
@@ -101,7 +98,7 @@ public class ClusterManagerProtocolSenderImplTest {
         when(mockHandler.canHandle(any(ProtocolMessage.class))).thenReturn(Boolean.TRUE);
         when(mockHandler.handle(any(ProtocolMessage.class))).thenReturn(new PingMessage());
         FlowRequestMessage request = new FlowRequestMessage();
-        request.setNodeId(new NodeIdentifier("id", "api-address", 1, address.getHostAddress(), port));
+        request.setNodeId(new NodeIdentifier("id", "api-address", 1, "localhost", port));
         try {
             sender.requestFlow(request);
             fail("failed to throw exception");
@@ -125,7 +122,7 @@ public class ClusterManagerProtocolSenderImplTest {
             }
         });
         FlowRequestMessage request = new FlowRequestMessage();
-        request.setNodeId(new NodeIdentifier("id", "api-address", 1, address.getHostAddress(), port));
+        request.setNodeId(new NodeIdentifier("id", "api-address", 1, "localhost", port));
         try {
             sender.requestFlow(request);
             fail("failed to throw exception");
