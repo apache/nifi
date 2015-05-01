@@ -69,6 +69,9 @@ The following binary components are provided under the Apache Software License v
       Apache HttpCore
       Copyright 2005-2014 The Apache Software Foundation
 
+      Apache HttpMime
+      Copyright 1999-2013 The Apache Software Foundation
+
       This project contains annotations derived from JCIP-ANNOTATIONS
       Copyright (c) 2005 Brian Goetz and Tim Peierls. See http://www.jcip.net
 
@@ -521,7 +524,15 @@ The following binary components are provided under the Apache Software License v
     The following NOTICE information applies:
       GeoIP2 Java API
       This software is Copyright (c) 2013 by MaxMind, Inc.
-      
+
+  (ASLv2) Woodstox Core ASL
+    The following NOTICE information applies:
+      This product currently only contains code developed by authors
+      of specific components, as identified by the source code files.
+
+      Since product implements StAX API, it has dependencies to StAX API
+      classes.
+
   (ASLv2) Amazon Web Services SDK
     The following NOTICE information applies:
       Copyright 2010-2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
