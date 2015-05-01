@@ -157,9 +157,7 @@ by setting the `nifi.web.https.host` and `nifi.web.https.port` properties. The `
 should run on. This allows admins to configure the application to run only on specific network interfaces. If it is desired that the HTTPS interface
 be accessible from all network interfaces, a value of `0.0.0.0` should be used.
 
-It is important when enabling HTTPS that the `nifi.web.http.port` property be unset. If both properties are configured, users will be able to
-connect over either HTTPS or HTTP. This can be useful in order to connect over HTTP when accessing the system over a local network and require
-HTTPS for all other network interfaces. However, it is usually desirable to secure all network interfaces, so this property is most often unset.
+NOTE: It is important when enabling HTTPS that the `nifi.web.http.port` property be unset.
 
 Now that the User Interface has been secured, we can easily secure Site-to-Site connections and inner-cluster communications, as well. This is
 accomplished by setting the `nifi.remote.input.secure` and `nifi.cluster.protocol.is.secure` properties, respectively, to `true`.
@@ -233,7 +231,8 @@ The following roles are available in NiFi:
 [options="header,footer"]
 |========================================================================================================
 | Role Name | Description
-| Administrator | Administrator is able to configure thread pool sizes and user accounts
+| Administrator | Administrator is able to configure thread pool sizes and user accounts as well as
+                  purge the dataflow change history.
 | Data Flow Manager | Data Flow Manager is given the ability to manipulate the dataflow. S/he is able to
                       add, remove, and manipulate components on the graph; add, remove, and manipulate
                       Controller Services and Reporting Tasks; create and manage templates;
