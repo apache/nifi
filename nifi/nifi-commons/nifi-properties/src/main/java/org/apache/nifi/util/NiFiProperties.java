@@ -16,9 +16,6 @@
  */
 package org.apache.nifi.util;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -27,9 +24,14 @@ import java.net.InetSocketAddress;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class NiFiProperties extends Properties {
 
@@ -50,6 +52,7 @@ public class NiFiProperties extends Properties {
     public static final String AUTO_RESUME_STATE = "nifi.flowcontroller.autoResumeState";
     public static final String FLOW_CONTROLLER_GRACEFUL_SHUTDOWN_PERIOD = "nifi.flowcontroller.graceful.shutdown.period";
     public static final String NAR_LIBRARY_DIRECTORY = "nifi.nar.library.directory";
+    public static final String NAR_LIBRARY_DIRECTORY_PREFIX = "nifi.nar.library.directory.";
     public static final String NAR_WORKING_DIRECTORY = "nifi.nar.working.directory";
     public static final String COMPONENT_DOCS_DIRECTORY = "nifi.documentation.working.directory";
     public static final String SENSITIVE_PROPS_KEY = "nifi.sensitive.props.key";
@@ -525,9 +528,29 @@ public class NiFiProperties extends Properties {
         return new File(getNarWorkingDirectory(), "extensions");
     }
 
-    public File getNarLibraryDirectory() {
-        return new File(getProperty(NAR_LIBRARY_DIRECTORY, DEFAULT_NAR_LIBRARY_DIR));
-    }
+	public List<Path> getNarLibraryDirectories() {
+
+		List<Path> narLibraryPaths = new ArrayList<>();
+
+		// go through each property
+		for (String propertyName : stringPropertyNames()) {
+			// determine if the property is a nar library path
+			if (StringUtils.startsWith(propertyName, NAR_LIBRARY_DIRECTORY_PREFIX) || NAR_LIBRARY_DIRECTORY.equals(propertyName)) {
+				// attempt to resolve the path specified
+				String narLib = getProperty(propertyName);
+				if (!StringUtils.isBlank(narLib)){
+					narLibraryPaths.add(Paths.get(narLib));
+				}
+			}
+		}
+		
+		if (narLibraryPaths.isEmpty()){
+			narLibraryPaths.add(Paths.get(DEFAULT_NAR_LIBRARY_DIR));
+		}
+		
+		
+		return narLibraryPaths;
+	}
 
     // getters for ui properties //
     /**

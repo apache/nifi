@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -41,7 +42,6 @@ import java.util.jar.Manifest;
 import org.apache.nifi.util.FileUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.StringUtils;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,22 +61,35 @@ public final class NarUnpacker {
     };
 
     public static ExtensionMapping unpackNars(final NiFiProperties props) {
-        final File narLibraryDir = props.getNarLibraryDirectory();
+        final List<Path> narLibraryDirs = props.getNarLibraryDirectories();
         final File frameworkWorkingDir = props.getFrameworkWorkingDirectory();
         final File extensionsWorkingDir = props.getExtensionsWorkingDirectory();
         final File docsWorkingDir = props.getComponentDocumentationWorkingDirectory();
 
         try {
-            // make sure the nar directories are there and accessible
-            FileUtils.ensureDirectoryExistAndCanAccess(narLibraryDir);
+            File unpackedFramework = null;
+            final Set<File> unpackedExtensions = new HashSet<>();
+            final List<File> narFiles = new ArrayList<>();
+
+            // make sure the nar directories are there and accessible   
             FileUtils.ensureDirectoryExistAndCanAccess(frameworkWorkingDir);
             FileUtils.ensureDirectoryExistAndCanAccess(extensionsWorkingDir);
             FileUtils.ensureDirectoryExistAndCanAccess(docsWorkingDir);
 
-            File unpackedFramework = null;
-            final Set<File> unpackedExtensions = new HashSet<>();
-            final File[] narFiles = narLibraryDir.listFiles(NAR_FILTER);
-            if (narFiles != null) {
+			for (Path narLibraryDir : narLibraryDirs) {
+				
+				File narDir = narLibraryDir.toFile();
+				FileUtils.ensureDirectoryExistAndCanAccess(narDir);
+				
+				File[] dirFiles = narDir.listFiles(NAR_FILTER);
+				if (dirFiles != null){
+					List<File> fileList = Arrays.asList(dirFiles);
+					narFiles.addAll(fileList);
+				}
+			}          
+            
+            
+            if (!narFiles.isEmpty()) {
                 for (File narFile : narFiles) {
                     logger.debug("Expanding NAR file: " + narFile.getAbsolutePath());
 
