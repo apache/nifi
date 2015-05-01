@@ -531,10 +531,10 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
         xmlStreamWriter.writeCharacters(text);
         xmlStreamWriter.writeEndElement();
     }
-    
+
     /**
      * Writes a link to another configurable component
-     * 
+     *
      * @param xmlStreamWriter the xml stream writer
      * @param clazz the configurable component to link to
      * @throws XMLStreamException thrown if there is a problem writing the XML
@@ -542,11 +542,11 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
     protected void writeLinkForComponent(final XMLStreamWriter xmlStreamWriter, final Class<?> clazz) throws XMLStreamException {
         writeLink(xmlStreamWriter, clazz.getSimpleName(), "../" + clazz.getCanonicalName() + "/index.html");
     }
-    
+
     /**
-     * Uses the {@link ExtensionManager} to discover any {@link ControllerService} implementations that implement a specific 
+     * Uses the {@link ExtensionManager} to discover any {@link ControllerService} implementations that implement a specific
      * ControllerService API.
-     * 
+     *
      * @param parent the controller service API
      * @return a list of controller services that implement the controller service API
      */
@@ -554,10 +554,10 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
             final Class<? extends ControllerService> parent) {
 
         final List<Class<? extends ControllerService>> implementations = new ArrayList<>();
-        
+
         // first get all ControllerService implementations
         final Set<Class> controllerServices = ExtensionManager.getExtensions(ControllerService.class);
-        
+
         // then iterate over all controller services looking for any that is a child of the parent
         // ControllerService API that was passed in as a parameter
         for (final Class<? extends ControllerService> controllerServiceClass : controllerServices) {

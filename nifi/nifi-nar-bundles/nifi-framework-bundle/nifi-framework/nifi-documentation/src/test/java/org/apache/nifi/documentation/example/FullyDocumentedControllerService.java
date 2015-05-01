@@ -55,10 +55,8 @@ public class FullyDocumentedControllerService extends AbstractControllerService 
         return properties;
     }
 
-	@Override
-	public void doSomething() {
-		// TODO Auto-generated method stub
-		
-	}
-
+    @Override
+    public void doSomething() {
+        // TODO Auto-generated method stub
+    }
 }
