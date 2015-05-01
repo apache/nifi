@@ -233,21 +233,27 @@ public class NiFiProperties extends Properties {
      * obtained.
      *
      * @return the NiFiProperties object to use
-     * @throws RuntimeException if unable to load properties file
+     * @throws RuntimeException
+     *             if unable to load properties file
      */
     public static synchronized NiFiProperties getInstance() {
         if (null == instance) {
             final NiFiProperties suspectInstance = new NiFiProperties();
-            final String nfPropertiesFilePath = System.getProperty(NiFiProperties.PROPERTIES_FILE_PATH);
+            final String nfPropertiesFilePath = System
+                    .getProperty(NiFiProperties.PROPERTIES_FILE_PATH);
             if (null == nfPropertiesFilePath || nfPropertiesFilePath.trim().length() == 0) {
-                throw new RuntimeException("Requires a system property called \'" + NiFiProperties.PROPERTIES_FILE_PATH + "\' and this is not set or has no value");
+                throw new RuntimeException("Requires a system property called \'"
+                        + NiFiProperties.PROPERTIES_FILE_PATH
+                        + "\' and this is not set or has no value");
             }
             final File propertiesFile = new File(nfPropertiesFilePath);
             if (!propertiesFile.exists()) {
-                throw new RuntimeException("Properties file doesn't exist \'" + propertiesFile.getAbsolutePath() + "\'");
+                throw new RuntimeException("Properties file doesn't exist \'"
+                        + propertiesFile.getAbsolutePath() + "\'");
             }
             if (!propertiesFile.canRead()) {
-                throw new RuntimeException("Properties file exists but cannot be read \'" + propertiesFile.getAbsolutePath() + "\'");
+                throw new RuntimeException("Properties file exists but cannot be read \'"
+                        + propertiesFile.getAbsolutePath() + "\'");
             }
             InputStream inStream = null;
             try {
@@ -255,7 +261,8 @@ public class NiFiProperties extends Properties {
                 suspectInstance.load(inStream);
             } catch (final Exception ex) {
                 LOG.error("Cannot load properties file due to " + ex.getLocalizedMessage());
-                throw new RuntimeException("Cannot load properties file due to " + ex.getLocalizedMessage(), ex);
+                throw new RuntimeException("Cannot load properties file due to "
+                        + ex.getLocalizedMessage(), ex);
             } finally {
                 if (null != inStream) {
                     try {
@@ -377,7 +384,7 @@ public class NiFiProperties extends Properties {
 
         if ("false".equalsIgnoreCase(secureVal)) {
             return false;
-        }else{
+        } else {
             return true;
         }
 
@@ -409,7 +416,8 @@ public class NiFiProperties extends Properties {
      * @return Whether to auto start the processors or not
      */
     public boolean getAutoResumeState() {
-        final String rawAutoResumeState = getProperty(AUTO_RESUME_STATE, DEFAULT_AUTO_RESUME_STATE.toString());
+        final String rawAutoResumeState = getProperty(AUTO_RESUME_STATE,
+                DEFAULT_AUTO_RESUME_STATE.toString());
         return Boolean.parseBoolean(rawAutoResumeState);
     }
 
@@ -420,7 +428,8 @@ public class NiFiProperties extends Properties {
      * @return the number of partitions
      */
     public int getFlowFileRepositoryPartitions() {
-        final String rawProperty = getProperty(FLOWFILE_REPOSITORY_PARTITIONS, DEFAULT_FLOWFILE_REPO_PARTITIONS);
+        final String rawProperty = getProperty(FLOWFILE_REPOSITORY_PARTITIONS,
+                DEFAULT_FLOWFILE_REPO_PARTITIONS);
         return Integer.parseInt(rawProperty);
     }
 
@@ -431,7 +440,8 @@ public class NiFiProperties extends Properties {
      * @return the number of milliseconds between checkpoint events
      */
     public String getFlowFileRepositoryCheckpointInterval() {
-        return getProperty(FLOWFILE_REPOSITORY_CHECKPOINT_INTERVAL, DEFAULT_FLOWFILE_CHECKPOINT_INTERVAL);
+        return getProperty(FLOWFILE_REPOSITORY_CHECKPOINT_INTERVAL,
+                DEFAULT_FLOWFILE_CHECKPOINT_INTERVAL);
     }
 
     /**
@@ -473,7 +483,8 @@ public class NiFiProperties extends Properties {
     }
 
     public String getUserCredentialCacheDuration() {
-        return getProperty(SECURITY_USER_CREDENTIAL_CACHE_DURATION, DEFAULT_USER_CREDENTIAL_CACHE_DURATION);
+        return getProperty(SECURITY_USER_CREDENTIAL_CACHE_DURATION,
+                DEFAULT_USER_CREDENTIAL_CACHE_DURATION);
     }
 
     public boolean getSupportNewAccountRequests() {
@@ -528,29 +539,29 @@ public class NiFiProperties extends Properties {
         return new File(getNarWorkingDirectory(), "extensions");
     }
 
-	public List<Path> getNarLibraryDirectories() {
+    public List<Path> getNarLibraryDirectories() {
 
-		List<Path> narLibraryPaths = new ArrayList<>();
+        List<Path> narLibraryPaths = new ArrayList<>();
 
-		// go through each property
-		for (String propertyName : stringPropertyNames()) {
-			// determine if the property is a nar library path
-			if (StringUtils.startsWith(propertyName, NAR_LIBRARY_DIRECTORY_PREFIX) || NAR_LIBRARY_DIRECTORY.equals(propertyName)) {
-				// attempt to resolve the path specified
-				String narLib = getProperty(propertyName);
-				if (!StringUtils.isBlank(narLib)){
-					narLibraryPaths.add(Paths.get(narLib));
-				}
-			}
-		}
-		
-		if (narLibraryPaths.isEmpty()){
-			narLibraryPaths.add(Paths.get(DEFAULT_NAR_LIBRARY_DIR));
-		}
-		
-		
-		return narLibraryPaths;
-	}
+        // go through each property
+        for (String propertyName : stringPropertyNames()) {
+            // determine if the property is a nar library path
+            if (StringUtils.startsWith(propertyName, NAR_LIBRARY_DIRECTORY_PREFIX)
+                    || NAR_LIBRARY_DIRECTORY.equals(propertyName)) {
+                // attempt to resolve the path specified
+                String narLib = getProperty(propertyName);
+                if (!StringUtils.isBlank(narLib)) {
+                    narLibraryPaths.add(Paths.get(narLib));
+                }
+            }
+        }
+
+        if (narLibraryPaths.isEmpty()) {
+            narLibraryPaths.add(Paths.get(DEFAULT_NAR_LIBRARY_DIR));
+        }
+
+        return narLibraryPaths;
+    }
 
     // getters for ui properties //
     /**
@@ -582,7 +593,8 @@ public class NiFiProperties extends Properties {
 
     // getters for cluster protocol properties //
     public String getClusterProtocolHeartbeatInterval() {
-        return getProperty(CLUSTER_PROTOCOL_HEARTBEAT_INTERVAL, DEFAULT_CLUSTER_PROTOCOL_HEARTBEAT_INTERVAL);
+        return getProperty(CLUSTER_PROTOCOL_HEARTBEAT_INTERVAL,
+                DEFAULT_CLUSTER_PROTOCOL_HEARTBEAT_INTERVAL);
     }
 
     public String getNodeHeartbeatInterval() {
@@ -594,7 +606,8 @@ public class NiFiProperties extends Properties {
     }
 
     public String getClusterProtocolConnectionHandshakeTimeout() {
-        return getProperty(CLUSTER_PROTOCOL_CONNECTION_HANDSHAKE_TIMEOUT, DEFAULT_CLUSTER_PROTOCOL_CONNECTION_HANDSHAKE_TIMEOUT);
+        return getProperty(CLUSTER_PROTOCOL_CONNECTION_HANDSHAKE_TIMEOUT,
+                DEFAULT_CLUSTER_PROTOCOL_CONNECTION_HANDSHAKE_TIMEOUT);
     }
 
     public boolean getClusterProtocolUseMulticast() {
@@ -616,7 +629,8 @@ public class NiFiProperties extends Properties {
     }
 
     public File getPersistentStateDirectory() {
-        final String dirName = getProperty(PERSISTENT_STATE_DIRECTORY, DEFAULT_PERSISTENT_STATE_DIRECTORY);
+        final String dirName = getProperty(PERSISTENT_STATE_DIRECTORY,
+                DEFAULT_PERSISTENT_STATE_DIRECTORY);
         final File file = new File(dirName);
         if (!file.exists()) {
             file.mkdirs();
@@ -626,14 +640,16 @@ public class NiFiProperties extends Properties {
 
     public int getClusterProtocolMulticastServiceLocatorAttempts() {
         try {
-            return Integer.parseInt(getProperty(CLUSTER_PROTOCOL_MULTICAST_SERVICE_LOCATOR_ATTEMPTS));
+            return Integer
+                    .parseInt(getProperty(CLUSTER_PROTOCOL_MULTICAST_SERVICE_LOCATOR_ATTEMPTS));
         } catch (NumberFormatException nfe) {
             return DEFAULT_CLUSTER_PROTOCOL_MULTICAST_SERVICE_LOCATOR_ATTEMPTS;
         }
     }
 
     public String getClusterProtocolMulticastServiceLocatorAttemptsDelay() {
-        return getProperty(CLUSTER_PROTOCOL_MULTICAST_SERVICE_LOCATOR_ATTEMPTS_DELAY, DEFAULT_CLUSTER_PROTOCOL_MULTICAST_SERVICE_LOCATOR_ATTEMPTS_DELAY);
+        return getProperty(CLUSTER_PROTOCOL_MULTICAST_SERVICE_LOCATOR_ATTEMPTS_DELAY,
+                DEFAULT_CLUSTER_PROTOCOL_MULTICAST_SERVICE_LOCATOR_ATTEMPTS_DELAY);
     }
 
     // getters for cluster node properties //
@@ -676,7 +692,8 @@ public class NiFiProperties extends Properties {
             if (StringUtils.isBlank(socketAddress)) {
                 socketAddress = "localhost";
             }
-            int socketPort = Integer.parseInt(getProperty(CLUSTER_NODE_UNICAST_MANAGER_PROTOCOL_PORT));
+            int socketPort = Integer
+                    .parseInt(getProperty(CLUSTER_NODE_UNICAST_MANAGER_PROTOCOL_PORT));
             return InetSocketAddress.createUnresolved(socketAddress, socketPort);
         } catch (Exception ex) {
             throw new RuntimeException("Invalid unicast manager address/port due to: " + ex, ex);
@@ -727,11 +744,13 @@ public class NiFiProperties extends Properties {
     }
 
     public String getClusterManagerNodeApiConnectionTimeout() {
-        return getProperty(CLUSTER_MANAGER_NODE_API_CONNECTION_TIMEOUT, DEFAULT_CLUSTER_MANAGER_NODE_API_CONNECTION_TIMEOUT);
+        return getProperty(CLUSTER_MANAGER_NODE_API_CONNECTION_TIMEOUT,
+                DEFAULT_CLUSTER_MANAGER_NODE_API_CONNECTION_TIMEOUT);
     }
 
     public String getClusterManagerNodeApiReadTimeout() {
-        return getProperty(CLUSTER_MANAGER_NODE_API_READ_TIMEOUT, DEFAULT_CLUSTER_MANAGER_NODE_API_READ_TIMEOUT);
+        return getProperty(CLUSTER_MANAGER_NODE_API_READ_TIMEOUT,
+                DEFAULT_CLUSTER_MANAGER_NODE_API_READ_TIMEOUT);
     }
 
     public int getClusterManagerNodeApiRequestThreads() {
@@ -743,7 +762,8 @@ public class NiFiProperties extends Properties {
     }
 
     public String getClusterManagerFlowRetrievalDelay() {
-        return getProperty(CLUSTER_MANAGER_FLOW_RETRIEVAL_DELAY, DEFAULT_CLUSTER_MANAGER_FLOW_RETRIEVAL_DELAY);
+        return getProperty(CLUSTER_MANAGER_FLOW_RETRIEVAL_DELAY,
+                DEFAULT_CLUSTER_MANAGER_FLOW_RETRIEVAL_DELAY);
     }
 
     public int getClusterManagerProtocolThreads() {
@@ -755,7 +775,8 @@ public class NiFiProperties extends Properties {
     }
 
     public String getClusterManagerSafeModeDuration() {
-        return getProperty(CLUSTER_MANAGER_SAFEMODE_DURATION, DEFAULT_CLUSTER_MANAGER_SAFEMODE_DURATION);
+        return getProperty(CLUSTER_MANAGER_SAFEMODE_DURATION,
+                DEFAULT_CLUSTER_MANAGER_SAFEMODE_DURATION);
     }
 
     public String getClusterProtocolManagerToNodeApiScheme() {
@@ -803,7 +824,8 @@ public class NiFiProperties extends Properties {
      * configured. No directories will be created as a result of this operation.
      *
      * @return database repository path
-     * @throws InvalidPathException If the configured path is invalid
+     * @throws InvalidPathException
+     *             If the configured path is invalid
      */
     public Path getDatabaseRepositoryPath() {
         return Paths.get(getProperty(REPOSITORY_DATABASE_DIRECTORY));
@@ -814,7 +836,8 @@ public class NiFiProperties extends Properties {
      * configured. No directories will be created as a result of this operation.
      *
      * @return database repository path
-     * @throws InvalidPathException If the configured path is invalid
+     * @throws InvalidPathException
+     *             If the configured path is invalid
      */
     public Path getFlowFileRepositoryPath() {
         return Paths.get(getProperty(FLOWFILE_REPOSITORY_DIRECTORY));
@@ -827,7 +850,8 @@ public class NiFiProperties extends Properties {
      * operation.
      *
      * @return file repositories paths
-     * @throws InvalidPathException If any of the configured paths are invalid
+     * @throws InvalidPathException
+     *             If any of the configured paths are invalid
      */
     public Map<String, Path> getContentRepositoryPaths() {
         final Map<String, Path> contentRepositoryPaths = new HashMap<>();
@@ -837,7 +861,8 @@ public class NiFiProperties extends Properties {
             // determine if the property is a file repository path
             if (StringUtils.startsWith(propertyName, REPOSITORY_CONTENT_PREFIX)) {
                 // get the repository key
-                final String key = StringUtils.substringAfter(propertyName, REPOSITORY_CONTENT_PREFIX);
+                final String key = StringUtils.substringAfter(propertyName,
+                        REPOSITORY_CONTENT_PREFIX);
 
                 // attempt to resolve the path specified
                 contentRepositoryPaths.put(key, Paths.get(getProperty(propertyName)));
@@ -862,7 +887,8 @@ public class NiFiProperties extends Properties {
             // determine if the property is a file repository path
             if (StringUtils.startsWith(propertyName, PROVENANCE_REPO_DIRECTORY_PREFIX)) {
                 // get the repository key
-                final String key = StringUtils.substringAfter(propertyName, PROVENANCE_REPO_DIRECTORY_PREFIX);
+                final String key = StringUtils.substringAfter(propertyName,
+                        PROVENANCE_REPO_DIRECTORY_PREFIX);
 
                 // attempt to resolve the path specified
                 provenanceRepositoryPaths.put(key, Paths.get(getProperty(propertyName)));

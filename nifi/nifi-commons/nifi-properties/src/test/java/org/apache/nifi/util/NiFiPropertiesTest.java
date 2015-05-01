@@ -13,78 +13,83 @@ import org.junit.Test;
 
 public class NiFiPropertiesTest {
 
-	@Test
-	public void testProperties() {
+    @Test
+    public void testProperties() {
 
-		NiFiProperties properties = loadSpecifiedProperties("/NiFiProperties/conf/nifi.properties");
+        NiFiProperties properties = loadSpecifiedProperties("/NiFiProperties/conf/nifi.properties");
 
-		assertEquals("UI Banner Text", properties.getBannerText());
+        assertEquals("UI Banner Text", properties.getBannerText());
 
-		List<Path> directories = properties.getNarLibraryDirectories();
+        List<Path> directories = properties.getNarLibraryDirectories();
 
-		assertEquals(new File("./target/resources/NiFiProperties/lib/").getPath(), directories.get(0).toString());
-		assertEquals(new File("./target/resources/NiFiProperties/lib2/").getPath(), directories.get(1).toString());
+        assertEquals(new File("./target/resources/NiFiProperties/lib/").getPath(),
+                directories.get(0).toString());
+        assertEquals(new File("./target/resources/NiFiProperties/lib2/").getPath(), directories
+                .get(1).toString());
 
-	}
+    }
 
-	@Test
-	public void testMissingProperties() {
+    @Test
+    public void testMissingProperties() {
 
-		NiFiProperties properties = loadSpecifiedProperties("/NiFiProperties/conf/nifi.missing.properties");
+        NiFiProperties properties = loadSpecifiedProperties("/NiFiProperties/conf/nifi.missing.properties");
 
-		List<Path> directories = properties.getNarLibraryDirectories();
+        List<Path> directories = properties.getNarLibraryDirectories();
 
-		assertEquals(1, directories.size());
+        assertEquals(1, directories.size());
 
-		assertEquals(new File(NiFiProperties.DEFAULT_NAR_LIBRARY_DIR).getPath(), directories.get(0).toString());
+        assertEquals(new File(NiFiProperties.DEFAULT_NAR_LIBRARY_DIR).getPath(), directories.get(0)
+                .toString());
 
-	}
+    }
 
-	@Test
-	public void testBlankProperties() {
+    @Test
+    public void testBlankProperties() {
 
-		NiFiProperties properties = loadSpecifiedProperties("/NiFiProperties/conf/nifi.blank.properties");
+        NiFiProperties properties = loadSpecifiedProperties("/NiFiProperties/conf/nifi.blank.properties");
 
-		List<Path> directories = properties.getNarLibraryDirectories();
+        List<Path> directories = properties.getNarLibraryDirectories();
 
-		assertEquals(1, directories.size());
+        assertEquals(1, directories.size());
 
-		assertEquals(new File(NiFiProperties.DEFAULT_NAR_LIBRARY_DIR).getPath(), directories.get(0).toString());
+        assertEquals(new File(NiFiProperties.DEFAULT_NAR_LIBRARY_DIR).getPath(), directories.get(0)
+                .toString());
 
-	}
+    }
 
-	private NiFiProperties loadSpecifiedProperties(String propertiesFile) {
+    private NiFiProperties loadSpecifiedProperties(String propertiesFile) {
 
-		String file = NiFiPropertiesTest.class.getResource(propertiesFile).getFile();
+        String file = NiFiPropertiesTest.class.getResource(propertiesFile).getFile();
 
-		System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, file);
+        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, file);
 
-		NiFiProperties properties = NiFiProperties.getInstance();
+        NiFiProperties properties = NiFiProperties.getInstance();
 
-		// clear out existing properties
-		for (String prop : properties.stringPropertyNames()) {
-			properties.remove(prop);
-		}
+        // clear out existing properties
+        for (String prop : properties.stringPropertyNames()) {
+            properties.remove(prop);
+        }
 
-		InputStream inStream = null;
-		try {
-			inStream = new BufferedInputStream(new FileInputStream(file));
-			properties.load(inStream);
-		} catch (final Exception ex) {
-			throw new RuntimeException("Cannot load properties file due to " + ex.getLocalizedMessage(), ex);
-		} finally {
-			if (null != inStream) {
-				try {
-					inStream.close();
-				} catch (final Exception ex) {
-					/**
-					 * do nothing *
-					 */
-				}
-			}
-		}
+        InputStream inStream = null;
+        try {
+            inStream = new BufferedInputStream(new FileInputStream(file));
+            properties.load(inStream);
+        } catch (final Exception ex) {
+            throw new RuntimeException("Cannot load properties file due to "
+                    + ex.getLocalizedMessage(), ex);
+        } finally {
+            if (null != inStream) {
+                try {
+                    inStream.close();
+                } catch (final Exception ex) {
+                    /**
+                     * do nothing *
+                     */
+                }
+            }
+        }
 
-		return properties;
-	}
+        return properties;
+    }
 
 }
