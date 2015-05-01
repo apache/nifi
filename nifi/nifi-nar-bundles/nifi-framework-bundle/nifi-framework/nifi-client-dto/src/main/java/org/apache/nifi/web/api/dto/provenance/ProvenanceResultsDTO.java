@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.provenance;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
@@ -43,6 +44,9 @@ public class ProvenanceResultsDTO {
     /**
      * @return error messages
      */
+    @ApiModelProperty(
+            value = "Any errors that occurred while performing the provenance request."
+    )
     public Set<String> getErrors() {
         return errors;
     }
@@ -54,6 +58,9 @@ public class ProvenanceResultsDTO {
     /**
      * @return provenance events that matched the search criteria
      */
+    @ApiModelProperty(
+            value = "The provenance events that matched the search criteria."
+    )
     public List<ProvenanceEventDTO> getProvenanceEvents() {
         return provenanceEvents;
     }
@@ -65,6 +72,9 @@ public class ProvenanceResultsDTO {
     /**
      * @return total number of results formatted
      */
+    @ApiModelProperty(
+            value = "The total number of results formatted."
+    )
     public String getTotal() {
         return total;
     }
@@ -76,6 +86,9 @@ public class ProvenanceResultsDTO {
     /**
      * @return total number of results
      */
+    @ApiModelProperty(
+            value = "The total number of results."
+    )
     public Long getTotalCount() {
         return totalCount;
     }
@@ -88,6 +101,9 @@ public class ProvenanceResultsDTO {
      * @return when the search was performed
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
+    @ApiModelProperty(
+            value = "Then the search was performed."
+    )
     public Date getGenerated() {
         return generated;
     }
@@ -100,6 +116,9 @@ public class ProvenanceResultsDTO {
      * @return oldest event available in the provenance repository
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
+    @ApiModelProperty(
+            value = "The oldest event available in the provenance repository."
+    )
     public Date getOldestEvent() {
         return oldestEvent;
     }
@@ -111,6 +130,9 @@ public class ProvenanceResultsDTO {
     /**
      * @return time offset on the server thats used for event time
      */
+    @ApiModelProperty(
+            value = "The time offset of the server that's used for event time."
+    )
     public Integer getTimeOffset() {
         return timeOffset;
     }

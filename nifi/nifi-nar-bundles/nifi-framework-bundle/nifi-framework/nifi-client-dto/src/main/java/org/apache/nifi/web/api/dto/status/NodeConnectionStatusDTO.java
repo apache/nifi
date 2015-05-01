@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import javax.xml.bind.annotation.XmlType;
 import org.apache.nifi.web.api.dto.NodeDTO;
 
@@ -31,6 +32,9 @@ public class NodeConnectionStatusDTO {
     /**
      * @return the node
      */
+    @ApiModelProperty(
+            value = "The node."
+    )
     public NodeDTO getNode() {
         return node;
     }
@@ -42,6 +46,9 @@ public class NodeConnectionStatusDTO {
     /**
      * @return connection's status
      */
+    @ApiModelProperty(
+            value = "The connection status from the node."
+    )
     public ConnectionStatusDTO getConnectionStatus() {
         return connectionStatus;
     }

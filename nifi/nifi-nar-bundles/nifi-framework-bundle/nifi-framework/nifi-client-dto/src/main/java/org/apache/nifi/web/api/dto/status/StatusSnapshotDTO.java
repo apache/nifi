@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Date;
 import java.util.Map;
 import javax.xml.bind.annotation.XmlType;
@@ -32,6 +33,9 @@ public class StatusSnapshotDTO {
     /**
      * @return timestamp of this snapshot
      */
+    @ApiModelProperty(
+            value = "The timestamp of the snapshot."
+    )
     public Date getTimestamp() {
         return timestamp;
     }
@@ -43,6 +47,9 @@ public class StatusSnapshotDTO {
     /**
      * @return status metrics
      */
+    @ApiModelProperty(
+            value = "The status metrics."
+    )
     public Map<String, Long> getStatusMetrics() {
         return statusMetrics;
     }

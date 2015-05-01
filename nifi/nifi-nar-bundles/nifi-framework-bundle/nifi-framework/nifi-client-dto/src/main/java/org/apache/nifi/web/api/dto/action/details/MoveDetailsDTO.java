@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.action.details;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import javax.xml.bind.annotation.XmlType;
 
 /**
@@ -32,6 +33,9 @@ public class MoveDetailsDTO extends ActionDetailsDTO {
     /**
      * @return id of the group the components previously belonged to
      */
+    @ApiModelProperty(
+            value = "The id of the group the components previously belonged to."
+    )
     public String getPreviousGroupId() {
         return previousGroupId;
     }
@@ -43,6 +47,9 @@ public class MoveDetailsDTO extends ActionDetailsDTO {
     /**
      * @return name of the group of the components previously belonged to
      */
+    @ApiModelProperty(
+            value = "The name of the group the components previously belonged to."
+    )
     public String getPreviousGroup() {
         return previousGroup;
     }
@@ -54,6 +61,9 @@ public class MoveDetailsDTO extends ActionDetailsDTO {
     /**
      * @return id of the group the components belong to
      */
+    @ApiModelProperty(
+            value = "The id of the group that components belong to."
+    )
     public String getGroupId() {
         return groupId;
     }
@@ -65,6 +75,9 @@ public class MoveDetailsDTO extends ActionDetailsDTO {
     /**
      * @return name of the group the components belong to
      */
+    @ApiModelProperty(
+            value = "The name of the group the components belong to."
+    )
     public String getGroup() {
         return group;
     }

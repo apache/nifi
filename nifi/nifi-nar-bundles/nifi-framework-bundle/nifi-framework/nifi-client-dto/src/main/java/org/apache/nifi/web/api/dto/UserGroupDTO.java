@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Set;
 import javax.xml.bind.annotation.XmlType;
 
@@ -33,6 +34,9 @@ public class UserGroupDTO {
     /**
      * @return user group
      */
+    @ApiModelProperty(
+            value = "The user group."
+    )
     public String getGroup() {
         return group;
     }
@@ -44,6 +48,9 @@ public class UserGroupDTO {
     /**
      * @return users in this group
      */
+    @ApiModelProperty(
+            value = "The users that belong to the group."
+    )
     public Set<String> getUserIds() {
         return userIds;
     }
@@ -55,6 +62,9 @@ public class UserGroupDTO {
     /**
      * @return status of the users account
      */
+    @ApiModelProperty(
+            value = "The status of the users accounts."
+    )
     public String getStatus() {
         return status;
     }
@@ -66,6 +76,9 @@ public class UserGroupDTO {
     /**
      * @return users authorities
      */
+    @ApiModelProperty(
+            value = "The authorities of the users."
+    )
     public Set<String> getAuthorities() {
         return authorities;
     }

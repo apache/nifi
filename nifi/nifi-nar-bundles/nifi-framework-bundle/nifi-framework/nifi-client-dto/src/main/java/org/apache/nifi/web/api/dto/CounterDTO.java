@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import javax.xml.bind.annotation.XmlType;
 
 /**
@@ -33,6 +34,9 @@ public class CounterDTO {
     /**
      * @return context of the counter
      */
+    @ApiModelProperty(
+            value = "The context of the counter."
+    )
     public String getContext() {
         return context;
     }
@@ -44,6 +48,9 @@ public class CounterDTO {
     /**
      * @return id of the counter
      */
+    @ApiModelProperty(
+            value = "The id of the counter."
+    )
     public String getId() {
         return id;
     }
@@ -55,6 +62,9 @@ public class CounterDTO {
     /**
      * @return name of the counter
      */
+    @ApiModelProperty(
+            value = "The name of the counter."
+    )
     public String getName() {
         return name;
     }
@@ -66,6 +76,9 @@ public class CounterDTO {
     /**
      * @return value for the counter
      */
+    @ApiModelProperty(
+            value = "The value of the counter."
+    )
     public String getValue() {
         return value;
     }
@@ -74,6 +87,9 @@ public class CounterDTO {
         this.value = value;
     }
 
+    @ApiModelProperty(
+            value = "The value count."
+    )
     public Long getValueCount() {
         return valueCount;
     }

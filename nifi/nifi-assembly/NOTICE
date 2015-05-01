@@ -467,13 +467,10 @@ The following binary components are provided under the Apache Software License v
       Apache Geronimo 
       Copyright 2003-2008 The Apache Software Foundation
 
-  (ASLv2) Enunciate Core Annotations (org.codehaus.enunciate:enunciate-core-annotations:jar:1.28 - http://dist.codehaus.org/enunciate/enunciate-1.28.zip)
+  (ASLv2) Swagger Core
     The following NOTICE information applies:
-      This product includes software developed by the Spring Framework
-      Project (http://www.springframework.org).
-
-      This product includes software developed by the
-      Visigoth Software Society (http://www.visigoths.org/).
+      Swagger Core 1.5.3-M1
+      Copyright 2015 Reverb Technologies, Inc.
 
   (ASLv2) JSON-SMART
     The following NOTICE information applies:
@@ -584,7 +581,6 @@ The following binary components are provided under the Common Development and Di
     (CDDL 1.0) (GPL3) Streaming API For XML (javax.xml.stream:stax-api:jar:1.0-2 - no url provided)
     (CDDL 1.0) JavaBeans Activation Framework (JAF) (javax.activation:activation:jar:1.1 - http://java.sun.com/products/javabeans/jaf/index.jsp)
     (CDDL 1.0) JavaServer Pages(TM) API (javax.servlet.jsp:jsp-api:jar:2.1 - http://jsp.java.net)
-    (CDDL 1.0) SR 250 Common Annotations For The JavaTM Platform (javax.annotation:jsr250-api:jar:1.0 - http://jcp.org/aboutJava/communityprocess/final/jsr250/index.html)
 
 ************************
 Creative Commons Attribution-ShareAlike 3.0

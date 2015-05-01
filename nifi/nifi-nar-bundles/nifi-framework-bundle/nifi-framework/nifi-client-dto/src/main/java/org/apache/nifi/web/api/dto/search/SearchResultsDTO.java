@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.search;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.ArrayList;
 import java.util.List;
 import javax.xml.bind.annotation.XmlType;
@@ -37,6 +38,9 @@ public class SearchResultsDTO {
     /**
      * @return The processors that matched the search
      */
+    @ApiModelProperty(
+            value = "The processors that matched the search."
+    )
     public List<ComponentSearchResultDTO> getProcessorResults() {
         return processorResults;
     }
@@ -48,6 +52,9 @@ public class SearchResultsDTO {
     /**
      * @return connections that matched the search
      */
+    @ApiModelProperty(
+            value = "The connections that matched the search."
+    )
     public List<ComponentSearchResultDTO> getConnectionResults() {
         return connectionResults;
     }
@@ -59,6 +66,9 @@ public class SearchResultsDTO {
     /**
      * @return process group that matched the search
      */
+    @ApiModelProperty(
+            value = "The process groups that matched the search."
+    )
     public List<ComponentSearchResultDTO> getProcessGroupResults() {
         return processGroupResults;
     }
@@ -70,6 +80,9 @@ public class SearchResultsDTO {
     /**
      * @return input ports that matched the search
      */
+    @ApiModelProperty(
+            value = "The input ports that matched the search."
+    )
     public List<ComponentSearchResultDTO> getInputPortResults() {
         return inputPortResults;
     }
@@ -77,6 +90,9 @@ public class SearchResultsDTO {
     /**
      * @return output ports that matched the search
      */
+    @ApiModelProperty(
+            value = "The output ports that matched the search."
+    )
     public List<ComponentSearchResultDTO> getOutputPortResults() {
         return outputPortResults;
     }
@@ -92,6 +108,9 @@ public class SearchResultsDTO {
     /**
      * @return remote process groups that matched the search
      */
+    @ApiModelProperty(
+            value = "The remote process groups that matched the search."
+    )
     public List<ComponentSearchResultDTO> getRemoteProcessGroupResults() {
         return remoteProcessGroupResults;
     }
@@ -103,6 +122,9 @@ public class SearchResultsDTO {
     /**
      * @return funnels that matched the search
      */
+    @ApiModelProperty(
+            value = "The funnels that matched the search."
+    )
     public List<ComponentSearchResultDTO> getFunnelResults() {
         return funnelResults;
     }

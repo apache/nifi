@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import javax.xml.bind.annotation.XmlType;
 
 /**
@@ -33,6 +34,9 @@ public class RemotePortStatusDTO {
     /**
      * @return id of the connection this remote port is connected to
      */
+    @ApiModelProperty(
+            value = "The id of the conneciton the remote is connected to."
+    )
     public String getConnectionId() {
         return connectionId;
     }
@@ -44,6 +48,9 @@ public class RemotePortStatusDTO {
     /**
      * @return id of the remote port
      */
+    @ApiModelProperty(
+            value = "The id of the remote port."
+    )
     public String getId() {
         return id;
     }
@@ -55,6 +62,9 @@ public class RemotePortStatusDTO {
     /**
      * @return name of the remote port
      */
+    @ApiModelProperty(
+            value = "The name of the remote port."
+    )
     public String getName() {
         return name;
     }
@@ -66,6 +76,9 @@ public class RemotePortStatusDTO {
     /**
      * @return whether or not the remote port exists
      */
+    @ApiModelProperty(
+            value = "Whether or not the remote port exists."
+    )
     public Boolean getExists() {
         return exists;
     }
@@ -77,6 +90,9 @@ public class RemotePortStatusDTO {
     /**
      * @return whether or not the remote port is running
      */
+    @ApiModelProperty(
+            value = "Whether or not the remote port is running."
+    )
     public Boolean getRunning() {
         return running;
     }

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import javax.xml.bind.annotation.XmlType;
 import org.apache.nifi.web.api.dto.NodeDTO;
 
@@ -31,6 +32,9 @@ public class NodeRemoteProcessGroupStatusDTO {
     /**
      * @return the node
      */
+    @ApiModelProperty(
+            value = "The node."
+    )
     public NodeDTO getNode() {
         return node;
     }
@@ -42,6 +46,9 @@ public class NodeRemoteProcessGroupStatusDTO {
     /**
      * @return remote process group's status
      */
+    @ApiModelProperty(
+            value = "The remote process group status from the node."
+    )
     public RemoteProcessGroupStatusDTO getRemoteProcessGroupStatus() {
         return remoteProcessGroupStatus;
     }

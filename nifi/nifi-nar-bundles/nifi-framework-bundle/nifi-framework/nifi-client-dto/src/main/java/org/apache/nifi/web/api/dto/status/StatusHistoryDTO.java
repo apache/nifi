@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -40,6 +41,9 @@ public class StatusHistoryDTO {
      * @return when this status history was generated
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
+    @ApiModelProperty(
+            value = "The timestamp when the status history was generated."
+    )
     public Date getGenerated() {
         return generated;
     }
@@ -51,6 +55,9 @@ public class StatusHistoryDTO {
     /**
      * @return The component details for this status history
      */
+    @ApiModelProperty(
+            value = "The component details for the status history."
+    )
     public LinkedHashMap<String, String> getDetails() {
         return details;
     }
@@ -62,6 +69,9 @@ public class StatusHistoryDTO {
     /**
      * @return Descriptors for each supported status field
      */
+    @ApiModelProperty(
+            value = "The descriptor for each support status field."
+    )
     public List<StatusDescriptorDTO> getFieldDescriptors() {
         return fieldDescriptors;
     }
@@ -73,6 +83,9 @@ public class StatusHistoryDTO {
     /**
      * @return The status snapshots
      */
+    @ApiModelProperty(
+            value = "The status snapshots."
+    )
     public List<StatusSnapshotDTO> getStatusSnapshots() {
         return statusSnapshots;
     }

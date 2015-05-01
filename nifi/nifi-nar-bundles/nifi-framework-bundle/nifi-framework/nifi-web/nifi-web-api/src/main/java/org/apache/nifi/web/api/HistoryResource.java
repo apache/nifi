@@ -16,6 +16,13 @@
  */
 package org.apache.nifi.web.api;
 
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+import com.wordnik.swagger.annotations.Authorization;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
@@ -38,12 +45,12 @@ import org.apache.nifi.web.api.dto.action.ActionDTO;
 import org.apache.nifi.web.api.dto.action.HistoryDTO;
 import org.apache.nifi.web.api.dto.action.HistoryQueryDTO;
 import org.apache.nifi.web.api.entity.ComponentHistoryEntity;
-import org.codehaus.enunciate.jaxrs.TypeHint;
 import org.springframework.security.access.prepost.PreAuthorize;
 
 /**
  * RESTful endpoint for querying the history of this Controller.
  */
+@Api(hidden = true)
 public class HistoryResource extends ApplicationResource {
 
     private NiFiServiceFacade serviceFacade;
@@ -51,28 +58,99 @@ public class HistoryResource extends ApplicationResource {
     /**
      * Queries the history of this Controller.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
-     * @param offset The offset into the data. This parameter is required and is used in conjunction with count.
-     * @param count The number of rows that should be returned. This parameter is required and is used in conjunction with page.
-     * @param sortColumn The column to sort on. This parameter is optional. If not specified the results will be returned with the most recent first.
+     * @param clientId Optional client id. If the client id is not specified, a
+     * new one will be generated. This value (whether specified or generated) is
+     * included in the response.
+     * @param offset The offset into the data. This parameter is required and is
+     * used in conjunction with count.
+     * @param count The number of rows that should be returned. This parameter
+     * is required and is used in conjunction with page.
+     * @param sortColumn The column to sort on. This parameter is optional. If
+     * not specified the results will be returned with the most recent first.
      * @param sortOrder The sort order.
-     * @param startDate The start date/time for the query. The start date/time must be formatted as 'MM/dd/yyyy HH:mm:ss'. This parameter is optional and must be specified in the timezone of the
-     * server. The server's timezone can be determined by inspecting the result of a status or history request.
-     * @param endDate The end date/time for the query. The end date/time must be formatted as 'MM/dd/yyyy HH:mm:ss'. This parameter is optional and must be specified in the timezone of the server. The
-     * server's timezone can be determined by inspecting the result of a status or history request.
-     * @param userName The user name of the user who's actions are being queried. This parameter is optional.
-     * @param sourceId The id of the source being queried (usually a processor id). This parameter is optional.
+     * @param startDate The start date/time for the query. The start date/time
+     * must be formatted as 'MM/dd/yyyy HH:mm:ss'. This parameter is optional
+     * and must be specified in the timezone of the server. The server's
+     * timezone can be determined by inspecting the result of a status or
+     * history request.
+     * @param endDate The end date/time for the query. The end date/time must be
+     * formatted as 'MM/dd/yyyy HH:mm:ss'. This parameter is optional and must
+     * be specified in the timezone of the server. The server's timezone can be
+     * determined by inspecting the result of a status or history request.
+     * @param userName The user name of the user who's actions are being
+     * queried. This parameter is optional.
+     * @param sourceId The id of the source being queried (usually a processor
+     * id). This parameter is optional.
      * @return A historyEntity.
      */
     @GET
+    @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Path("") // necessary due to bug in swagger
     @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
-    @TypeHint(HistoryEntity.class)
-    public Response queryHistory(@QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @QueryParam("offset") IntegerParameter offset, @QueryParam("count") IntegerParameter count,
-            @QueryParam("sortColumn") String sortColumn, @QueryParam("sortOrder") String sortOrder,
-            @QueryParam("startDate") DateTimeParameter startDate, @QueryParam("endDate") DateTimeParameter endDate,
-            @QueryParam("userName") String userName, @QueryParam("sourceId") String sourceId) {
+    @ApiOperation(
+            value = "Gets configuration history",
+            response = HistoryEntity.class,
+            authorizations = {
+                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response queryHistory(
+            @ApiParam(
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+                    required = false
+            )
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @ApiParam(
+                    value = "The offset into the result set.",
+                    required = true
+            )
+            @QueryParam("offset") IntegerParameter offset,
+            @ApiParam(
+                    value = "The number of actions to return.",
+                    required = true
+            )
+            @QueryParam("count") IntegerParameter count,
+            @ApiParam(
+                    value = "The field to sort on.",
+                    required = false
+            )
+            @QueryParam("sortColumn") String sortColumn,
+            @ApiParam(
+                    value = "The direction to sort.",
+                    required = false
+            )
+            @QueryParam("sortOrder") String sortOrder,
+            @ApiParam(
+                    value = "Include actions after this date.",
+                    required = false
+            )
+            @QueryParam("startDate") DateTimeParameter startDate,
+            @ApiParam(
+                    value = "Include actions before this date.",
+                    required = false
+            )
+            @QueryParam("endDate") DateTimeParameter endDate,
+            @ApiParam(
+                    value = "Include actions performed by this user.",
+                    required = false
+            )
+            @QueryParam("userName") String userName,
+            @ApiParam(
+                    value = "Include actions on this component.",
+                    required = false
+            )
+            @QueryParam("sourceId") String sourceId) {
 
         // ensure the page is specified
         if (offset == null) {
@@ -148,16 +226,45 @@ public class HistoryResource extends ApplicationResource {
     /**
      * Gets the action for the corresponding id.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a
+     * new one will be generated. This value (whether specified or generated) is
+     * included in the response.
      * @param id The id of the action to get.
      * @return An actionEntity.
      */
     @GET
+    @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @Path("{id}")
-    @TypeHint(ActionEntity.class)
-    public Response getAction(@QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+    @ApiOperation(
+            value = "Gets an action",
+            response = ActionEntity.class,
+            authorizations = {
+                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getAction(
+            @ApiParam(
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+                    required = false
+            )
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @ApiParam(
+                    value = "The action id.",
+                    required = true
+            )
             @PathParam("id") IntegerParameter id) {
 
         // ensure the id was specified
@@ -184,16 +291,42 @@ public class HistoryResource extends ApplicationResource {
     /**
      * Deletes flow history from the specified end date.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a
+     * new one will be generated. This value (whether specified or generated) is
+     * included in the response.
      * @param endDate The end date for the purge action.
      * @return A historyEntity
      */
     @DELETE
+    @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Path("") // necessary due to bug in swagger
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    @TypeHint(HistoryEntity.class)
+    @ApiOperation(
+            value = "Purges history",
+            response = HistoryEntity.class,
+            authorizations = {
+                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response deleteHistory(
+            @ApiParam(
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+                    required = false
+            )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @ApiParam(
+                    value = "Purge actions before this date/time.",
+                    required = true
+            )
             @QueryParam("endDate") DateTimeParameter endDate) {
 
         // ensure the end date is specified
@@ -219,17 +352,45 @@ public class HistoryResource extends ApplicationResource {
     /**
      * Gets the actions for the specified processor.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a
+     * new one will be generated. This value (whether specified or generated) is
+     * included in the response.
      * @param processorId The id of the processor.
      * @return An processorHistoryEntity.
      */
     @GET
+    @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @Path("/processors/{processorId}")
-    @TypeHint(ComponentHistoryEntity.class)
+    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    @ApiOperation(
+            value = "Gets configuration history for a processor",
+            response = ComponentHistoryEntity.class,
+            authorizations = {
+                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response getProcessorHistory(
+            @ApiParam(
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+                    required = false
+            )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @ApiParam(
+                    value = "The processor id.",
+                    required = true
+            )
             @PathParam("processorId") final String processorId) {
 
         // create the revision
@@ -248,17 +409,45 @@ public class HistoryResource extends ApplicationResource {
     /**
      * Gets the actions for the specified controller service.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a
+     * new one will be generated. This value (whether specified or generated) is
+     * included in the response.
      * @param controllerServiceId The id of the controller service.
      * @return An componentHistoryEntity.
      */
     @GET
+    @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @Path("/controller-services/{controllerServiceId}")
-    @TypeHint(ComponentHistoryEntity.class)
+    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    @ApiOperation(
+            value = "Gets configuration history for a controller service",
+            response = ComponentHistoryEntity.class,
+            authorizations = {
+                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response getControllerServiceHistory(
+            @ApiParam(
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+                    required = false
+            )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @ApiParam(
+                    value = "The controller service id.",
+                    required = true
+            )
             @PathParam("controllerServiceId") final String controllerServiceId) {
 
         // create the revision
@@ -277,17 +466,45 @@ public class HistoryResource extends ApplicationResource {
     /**
      * Gets the actions for the specified reporting task.
      *
-     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a
+     * new one will be generated. This value (whether specified or generated) is
+     * included in the response.
      * @param reportingTaskId The id of the reporting task.
      * @return An componentHistoryEntity.
      */
     @GET
+    @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
-    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @Path("/reporting-tasks/{reportingTaskId}")
-    @TypeHint(ComponentHistoryEntity.class)
+    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    @ApiOperation(
+            value = "Gets configuration history for a reporting task",
+            response = ComponentHistoryEntity.class,
+            authorizations = {
+                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response getReportingTaskHistory(
+            @ApiParam(
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+                    required = false
+            )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @ApiParam(
+                    value = "The reporting task id.",
+                    required = true
+            )
             @PathParam("reportingTaskId") final String reportingTaskId) {
 
         // create the revision

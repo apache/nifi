@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.search;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.List;
 import javax.xml.bind.annotation.XmlType;
 
@@ -33,6 +34,9 @@ public class ComponentSearchResultDTO {
     /**
      * @return id of the component that matched
      */
+    @ApiModelProperty(
+            value = "The id of the component that matched the search."
+    )
     public String getId() {
         return id;
     }
@@ -44,6 +48,9 @@ public class ComponentSearchResultDTO {
     /**
      * @return group id of the component that matched
      */
+    @ApiModelProperty(
+            value = "The group id of the component that matched the search."
+    )
     public String getGroupId() {
         return groupId;
     }
@@ -55,6 +62,9 @@ public class ComponentSearchResultDTO {
     /**
      * @return name of the component that matched
      */
+    @ApiModelProperty(
+            value = "The name of the component that matched the search."
+    )
     public String getName() {
         return name;
     }
@@ -66,6 +76,9 @@ public class ComponentSearchResultDTO {
     /**
      * @return What matched the search string for this component
      */
+    @ApiModelProperty(
+            value = "What matched the search from the component."
+    )
     public List<String> getMatches() {
         return matches;
     }

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Map;
 import javax.xml.bind.annotation.XmlType;
 
@@ -31,6 +32,9 @@ public class ComponentHistoryDTO {
     /**
      * @return component id
      */
+    @ApiModelProperty(
+            value = "The component id."
+    )
     public String getComponentId() {
         return componentId;
     }
@@ -42,6 +46,9 @@ public class ComponentHistoryDTO {
     /**
      * @return history for this components properties
      */
+    @ApiModelProperty(
+            value = "The history for the properties of the component."
+    )
     public Map<String, PropertyHistoryDTO> getPropertyHistory() {
         return propertyHistory;
     }

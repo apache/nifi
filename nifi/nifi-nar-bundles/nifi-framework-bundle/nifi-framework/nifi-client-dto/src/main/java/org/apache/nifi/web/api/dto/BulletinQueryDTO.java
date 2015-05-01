@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import javax.xml.bind.annotation.XmlType;
 
 /**
@@ -34,6 +35,10 @@ public class BulletinQueryDTO {
     /**
      * @return Include bulletins after this id
      */
+    @ApiModelProperty(
+            value = "Will include bulletins that occurred after this id. The ids are a one-up number that are used to ensure bulletins that "
+                    + "occur at the same time will not be missed."
+    )
     public Long getAfter() {
         return after;
     }
@@ -45,6 +50,9 @@ public class BulletinQueryDTO {
     /**
      * @return Include bulletin within this group. Supports a regular expression
      */
+    @ApiModelProperty(
+            value = "Will include bulletins that occurred within this group. Supports a regular expression."
+    )
     public String getGroupId() {
         return groupId;
     }
@@ -56,6 +64,9 @@ public class BulletinQueryDTO {
     /**
      * @return Include bulletins that match this message. Supports a regular expression
      */
+    @ApiModelProperty(
+            value = "Will include bulletins that match this message. Supports a regular expression."
+    )
     public String getMessage() {
         return message;
     }
@@ -67,6 +78,9 @@ public class BulletinQueryDTO {
     /**
      * @return Include bulletins that match this name. Supports a regular expression
      */
+    @ApiModelProperty(
+            value = "Will include bulletins that match this name. Supports a regular expression."
+    )
     public String getName() {
         return name;
     }
@@ -78,6 +92,9 @@ public class BulletinQueryDTO {
     /**
      * @return Include bulletins that match this id. Supports a source id
      */
+    @ApiModelProperty(
+            value = "Will include bulletins from components that match this id. Supports a regular expression."
+    )
     public String getSourceId() {
         return sourceId;
     }
@@ -89,6 +106,9 @@ public class BulletinQueryDTO {
     /**
      * @return The maximum number of bulletins to return
      */
+    @ApiModelProperty(
+            value = "The maximum number of bulletins to return."
+    )
     public Integer getLimit() {
         return limit;
     }

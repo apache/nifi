@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import javax.xml.bind.annotation.XmlType;
 import org.apache.nifi.web.api.dto.NodeDTO;
 
@@ -33,6 +34,9 @@ public class NodeProcessGroupStatusDTO {
      *
      * @return The node DTO
      */
+    @ApiModelProperty(
+            value = "The node."
+    )
     public NodeDTO getNode() {
         return node;
     }
@@ -46,6 +50,9 @@ public class NodeProcessGroupStatusDTO {
      *
      * @return The process group status
      */
+    @ApiModelProperty(
+            value = "The process group status from the node."
+    )
     public ProcessGroupStatusDTO getProcessGroupStatus() {
         return processGroupStatus;
     }

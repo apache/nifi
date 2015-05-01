@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Set;
 import javax.xml.bind.annotation.XmlType;
 
@@ -31,6 +32,9 @@ public class RemoteProcessGroupContentsDTO {
     /**
      * @return Controller Input Ports to which data can be sent
      */
+    @ApiModelProperty(
+            value = "The input ports to which data can be sent."
+    )
     public Set<RemoteProcessGroupPortDTO> getInputPorts() {
         return inputPorts;
     }
@@ -42,6 +46,9 @@ public class RemoteProcessGroupContentsDTO {
     /**
      * @return Controller Output Ports from which data can be retrieved
      */
+    @ApiModelProperty(
+            value = "The output ports from which data can be retrieved."
+    )
     public Set<RemoteProcessGroupPortDTO> getOutputPorts() {
         return outputPorts;
     }

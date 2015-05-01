@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import javax.xml.bind.annotation.XmlType;
 
 /**
@@ -36,6 +37,9 @@ public class PortStatusDTO extends StatusDTO {
     /**
      * @return whether this port has incoming or outgoing connections to a remote NiFi
      */
+    @ApiModelProperty(
+            value = "Whether the port has incoming or outgoing connections to a remote NiFi."
+    )
     public Boolean isTransmitting() {
         return transmitting;
     }
@@ -47,6 +51,9 @@ public class PortStatusDTO extends StatusDTO {
     /**
      * @return the active thread count for this port
      */
+    @ApiModelProperty(
+            value = "The active thread count for the port."
+    )
     public Integer getActiveThreadCount() {
         return activeThreadCount;
     }
@@ -58,6 +65,9 @@ public class PortStatusDTO extends StatusDTO {
     /**
      * @return id of this port
      */
+    @ApiModelProperty(
+            value = "The id of the port."
+    )
     public String getId() {
         return id;
     }
@@ -69,6 +79,9 @@ public class PortStatusDTO extends StatusDTO {
     /**
      * @return id of the group this port resides in
      */
+    @ApiModelProperty(
+            value = "The id of the parent process group of the port."
+    )
     public String getGroupId() {
         return groupId;
     }
@@ -80,6 +93,9 @@ public class PortStatusDTO extends StatusDTO {
     /**
      * @return name of this port
      */
+    @ApiModelProperty(
+            value = "The name of the port."
+    )
     public String getName() {
         return name;
     }
@@ -91,6 +107,9 @@ public class PortStatusDTO extends StatusDTO {
     /**
      * @return run status of this port
      */
+    @ApiModelProperty(
+            value = "The run status of the port."
+    )
     public String getRunStatus() {
         return runStatus;
     }
@@ -102,6 +121,9 @@ public class PortStatusDTO extends StatusDTO {
     /**
      * @return The total count and size of flow files that have been accepted in the last five minutes
      */
+    @ApiModelProperty(
+            value = "The count/size of flowfiles that have been accepted in the last 5 minutes."
+    )
     public String getInput() {
         return input;
     }
@@ -113,6 +135,9 @@ public class PortStatusDTO extends StatusDTO {
     /**
      * @return The total count and size of flow files that have been processed in the last five minutes
      */
+    @ApiModelProperty(
+            value = "The count/size of flowfiles that have been processed in the last 5 minutes."
+    )
     public String getOutput() {
         return output;
     }

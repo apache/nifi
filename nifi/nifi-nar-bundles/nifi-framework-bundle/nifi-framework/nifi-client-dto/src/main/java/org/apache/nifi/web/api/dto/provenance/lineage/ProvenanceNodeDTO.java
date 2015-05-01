@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.provenance.lineage;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Date;
 import java.util.List;
 
@@ -43,6 +44,9 @@ public class ProvenanceNodeDTO {
     /**
      * @return id of the node
      */
+    @ApiModelProperty(
+            value = "The id of the node."
+    )
     public String getId() {
         return id;
     }
@@ -54,6 +58,9 @@ public class ProvenanceNodeDTO {
     /**
      * @return flowfile uuid for this provenance event
      */
+    @ApiModelProperty(
+            value = "The uuid of the flowfile associated with the provenance event."
+    )
     public String getFlowFileUuid() {
         return flowFileUuid;
     }
@@ -65,6 +72,9 @@ public class ProvenanceNodeDTO {
     /**
      * @return parent flowfile uuids for this provenance event
      */
+    @ApiModelProperty(
+            value = "The uuid of the parent flowfiles of the provenance event."
+    )
     public List<String> getParentUuids() {
         return parentUuids;
     }
@@ -76,6 +86,9 @@ public class ProvenanceNodeDTO {
     /**
      * @return child flowfile uuids for this provenance event
      */
+    @ApiModelProperty(
+            value = "The uuid of the childrent flowfiles of the provenance event."
+    )
     public List<String> getChildUuids() {
         return childUuids;
     }
@@ -87,6 +100,9 @@ public class ProvenanceNodeDTO {
     /**
      * @return node identifier that this event/flowfile originated from
      */
+    @ApiModelProperty(
+            value = "The identifier of the node that this event/flowfile originated from."
+    )
     public String getClusterNodeIdentifier() {
         return clusterNodeIdentifier;
     }
@@ -98,6 +114,10 @@ public class ProvenanceNodeDTO {
     /**
      * @return type of node
      */
+    @ApiModelProperty(
+            value = "The type of the node.",
+            allowableValues = "FLOWFILE, EVENT"
+    )
     public String getType() {
         return type;
     }
@@ -109,6 +129,9 @@ public class ProvenanceNodeDTO {
     /**
      * @return this is an event node, this is the type of event
      */
+    @ApiModelProperty(
+            value = "If the type is EVENT, this is the type of event."
+    )
     public String getEventType() {
         return eventType;
     }
@@ -121,6 +144,9 @@ public class ProvenanceNodeDTO {
      * @return timestamp of this node
      */
     @XmlJavaTypeAdapter(TimestampAdapter.class)
+    @ApiModelProperty(
+            value = "The timestamp of the node formatted."
+    )
     public Date getTimestamp() {
         return timestamp;
     }
@@ -132,6 +158,9 @@ public class ProvenanceNodeDTO {
     /**
      * @return number of millis since epoch
      */
+    @ApiModelProperty(
+            value = "The timestamp of the node in milliseconds."
+    )
     public Long getMillis() {
         return millis;
     }

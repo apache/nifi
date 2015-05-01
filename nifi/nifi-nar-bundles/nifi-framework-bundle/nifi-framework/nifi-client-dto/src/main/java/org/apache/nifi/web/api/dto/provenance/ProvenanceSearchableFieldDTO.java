@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.provenance;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import javax.xml.bind.annotation.XmlType;
 
 /**
@@ -32,6 +33,9 @@ public class ProvenanceSearchableFieldDTO {
     /**
      * @return id of this searchable field
      */
+    @ApiModelProperty(
+            value = "The id of the searchable field."
+    )
     public String getId() {
         return id;
     }
@@ -43,6 +47,9 @@ public class ProvenanceSearchableFieldDTO {
     /**
      * @return the field
      */
+    @ApiModelProperty(
+            value = "The searchable field."
+    )
     public String getField() {
         return field;
     }
@@ -54,6 +61,9 @@ public class ProvenanceSearchableFieldDTO {
     /**
      * @return label for this field
      */
+    @ApiModelProperty(
+            value = "The label for the searchable field."
+    )
     public String getLabel() {
         return label;
     }
@@ -65,6 +75,9 @@ public class ProvenanceSearchableFieldDTO {
     /**
      * @return type of this field
      */
+    @ApiModelProperty(
+            value = "The type of the searchable field."
+    )
     public String getType() {
         return type;
     }
