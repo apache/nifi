@@ -276,6 +276,8 @@ public class RunNiFi {
             final BufferedReader reader = new BufferedReader(new InputStreamReader(in));
             final String response = reader.readLine();
             logger.log(Level.FINE, "PING response: {0}", response);
+            out.close();
+            reader.close();
 
             return PING_CMD.equals(response);
         } catch (final IOException ioe) {
@@ -425,6 +427,7 @@ public class RunNiFi {
         final Integer port = getCurrentPort();
         if (port == null) {
             System.out.println("Apache NiFi is not currently running");
+            return;
         }
 
         final Properties nifiProps = loadProperties();
@@ -442,6 +445,7 @@ public class RunNiFi {
             final OutputStream out = socket.getOutputStream();
             out.write((DUMP_CMD + " " + secretKey + "\n").getBytes(StandardCharsets.UTF_8));
             out.flush();
+            out.close();
 
             final InputStream in = socket.getInputStream();
             final BufferedReader reader = new BufferedReader(new InputStreamReader(in));
@@ -449,6 +453,7 @@ public class RunNiFi {
             while ((line = reader.readLine()) != null) {
                 sb.append(line).append("\n");
             }
+            reader.close();
         }
 
         final String dump = sb.toString();
@@ -483,10 +488,12 @@ public class RunNiFi {
             final OutputStream out = socket.getOutputStream();
             out.write((SHUTDOWN_CMD + " " + secretKey + "\n").getBytes(StandardCharsets.UTF_8));
             out.flush();
+            out.close();
 
             final InputStream in = socket.getInputStream();
             final BufferedReader reader = new BufferedReader(new InputStreamReader(in));
             final String response = reader.readLine();
+            reader.close();
 
             logger.log(Level.FINE, "Received response to SHUTDOWN command: {0}", response);
 
