@@ -44,7 +44,12 @@ nf.ProvenanceLineage = (function () {
             handler: {
                 close: function () {
                     // reset the progress bar
-                    $('#lineage-percent-complete').progressbar('value', 0);
+                    var lineageProgressBar = $('#lineage-percent-complete');
+                    lineageProgressBar.find('div.progress-label').remove();
+
+                    // update the progress bar
+                    var label = $('<div class="progress-label"></div>').text('0%');
+                    lineageProgressBar.progressbar('value', 0).append(label);
                 }
             }
         });
