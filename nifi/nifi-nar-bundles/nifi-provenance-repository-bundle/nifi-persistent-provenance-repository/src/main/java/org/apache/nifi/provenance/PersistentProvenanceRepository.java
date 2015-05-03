@@ -1438,9 +1438,10 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                     trimmed = latestList;
                 }
 
-                final Long maxEventId = getMaxEventId();
+                Long maxEventId = getMaxEventId();
                 if (maxEventId == null) {
                     result.getResult().update(Collections.<ProvenanceEventRecord>emptyList(), 0L);
+                    maxEventId = 0L;
                 }
                 Long minIndexedId = indexConfig.getMinIdIndexed();
                 if (minIndexedId == null) {
