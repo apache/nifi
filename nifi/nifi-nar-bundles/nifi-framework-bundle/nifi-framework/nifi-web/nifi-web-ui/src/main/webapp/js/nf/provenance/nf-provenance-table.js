@@ -418,7 +418,12 @@ nf.ProvenanceTable = (function () {
             handler: {
                 close: function () {
                     // reset the progress bar
-                    $('#provenance-percent-complete').progressbar('value', 0);
+                    var provenanceProgressBar = $('#provenance-percent-complete');
+                    provenanceProgressBar.find('div.progress-label').remove();
+
+                    // update the progress bar
+                    var label = $('<div class="progress-label"></div>').text('0%');
+                    provenanceProgressBar.progressbar('value', 0).append(label);
                 }
             }
         });
@@ -535,7 +540,7 @@ nf.ProvenanceTable = (function () {
             }
 
             // reset the stored query
-            query = {};
+            cachedQuery = {};
 
             // reload the table
             nf.ProvenanceTable.loadProvenanceTable();
@@ -975,6 +980,9 @@ nf.ProvenanceTable = (function () {
 
             // update the progress bar
             var label = $('<div class="progress-label"></div>').text(value + '%');
+            if (value > 0) {
+                label.css('margin-top', '-19px');
+            }
             progressBar.progressbar('value', value).append(label);
         },
         

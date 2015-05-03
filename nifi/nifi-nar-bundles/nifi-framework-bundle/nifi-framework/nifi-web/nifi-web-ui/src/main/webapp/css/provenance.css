@@ -238,6 +238,7 @@ input.searchable-field-input {
 #provenance-search-location {
     height: 18px;
     line-height: 18px;
+    width: 424px;
 }
 
 /* event details dialog */
@@ -465,8 +466,8 @@ div.progress-label {
     display: block;
     font-weight: bold;
     text-align: center;
-    margin-top: -19px;
     width: 378px;
+    margin-top: 4px;
 }
 
 /* provenance table */
