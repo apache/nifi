@@ -55,6 +55,7 @@ public class SFTPTransfer implements FileTransfer {
             .description("The fully qualified path to the Private Key file")
             .required(false)
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+            .expressionLanguageSupported(true)
             .build();
     public static final PropertyDescriptor PRIVATE_KEY_PASSPHRASE = new PropertyDescriptor.Builder()
             .name("Private Key Passphrase")
@@ -79,9 +80,10 @@ public class SFTPTransfer implements FileTransfer {
     public static final PropertyDescriptor PORT = new PropertyDescriptor.Builder()
             .name("Port")
             .description("The port that the remote system is listening on for file transfers")
-            .addValidator(StandardValidators.PORT_VALIDATOR)
             .required(true)
             .defaultValue("22")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
             .build();
     public static final PropertyDescriptor USE_KEEPALIVE_ON_TIMEOUT = new PropertyDescriptor.Builder()
             .name("Send Keep Alive On Timeout")
@@ -358,7 +360,7 @@ public class SFTPTransfer implements FileTransfer {
 
         final JSch jsch = new JSch();
         try {
-            final Session session = jsch.getSession(ctx.getProperty(USERNAME).getValue(),
+            final Session session = jsch.getSession(ctx.getProperty(USERNAME).evaluateAttributeExpressions(flowFile).getValue(),
                     ctx.getProperty(HOSTNAME).evaluateAttributeExpressions(flowFile).getValue(),
                     ctx.getProperty(PORT).evaluateAttributeExpressions(flowFile).asInteger().intValue());
 
@@ -381,7 +383,7 @@ public class SFTPTransfer implements FileTransfer {
 
             session.setConfig(properties);
 
-            final String privateKeyFile = ctx.getProperty(PRIVATE_KEY_PATH).getValue();
+            final String privateKeyFile = ctx.getProperty(PRIVATE_KEY_PATH).evaluateAttributeExpressions(flowFile).getValue();
             if (privateKeyFile != null) {
                 jsch.addIdentity(privateKeyFile, ctx.getProperty(PRIVATE_KEY_PASSPHRASE).getValue());
             }
