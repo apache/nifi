@@ -114,6 +114,8 @@ NOT_NULL : 'notNull';
 TO_NUMBER : 'toNumber';
 URL_ENCODE : 'urlEncode';
 URL_DECODE : 'urlDecode';
+HTML_ENCODE : 'htmlEncode';
+HTML_DECODE : 'htmlDecode';
 NOT : 'not';
 COUNT : 'count';
 
