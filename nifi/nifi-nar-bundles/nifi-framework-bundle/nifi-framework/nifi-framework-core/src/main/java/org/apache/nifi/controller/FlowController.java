@@ -822,7 +822,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         if (firstTimeAdded) {
             try (final NarCloseable x = NarCloseable.withNarLoader()) {
-                ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, org.apache.nifi.processor.annotation.OnAdded.class, processor);
+                ReflectionUtils.invokeMethodsWithAnnotations(OnAdded.class, org.apache.nifi.processor.annotation.OnAdded.class, processor);
             } catch (final Exception e) {
                 logRepository.removeObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID);
                 throw new ComponentLifeCycleException("Failed to invoke @OnAdded methods of " + procNode.getProcessor(), e);
