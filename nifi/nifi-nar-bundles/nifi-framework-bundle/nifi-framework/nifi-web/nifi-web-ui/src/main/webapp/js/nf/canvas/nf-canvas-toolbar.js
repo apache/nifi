@@ -48,24 +48,24 @@ nf.CanvasToolbar = (function () {
             actions['template'] = new nf.ToolbarAction(globalControls, 'template', 'action-template', 'template', 'template-hover', 'template-disable', 'Create Template');
             border.clone().appendTo(globalControls);
             separator.clone().appendTo(globalControls);
-            border.clone().appendTo(globalControls);
-            actions['copy'] = new nf.ToolbarAction(globalControls, 'copy', 'action-copy', 'copy', 'copy-hover', 'copy-disable', 'Copy');
-            border.clone().appendTo(globalControls);
-            actions['paste'] = new nf.ToolbarAction(globalControls, 'paste', 'action-paste', 'paste', 'paste-hover', 'paste-disable', 'Paste');
-            border.clone().appendTo(globalControls);
-            separator.clone().appendTo(globalControls);
-            border.clone().appendTo(globalControls);
-            actions['group'] = new nf.ToolbarAction(globalControls, 'group', 'action-group', 'group', 'group-hover', 'group-disable', 'Group');
-            border.appendTo(globalControls);
-            separator.clone().appendTo(globalControls);
-            border.clone().appendTo(globalControls);
-            actions['fill'] = new nf.ToolbarAction(globalControls, 'fillColor', 'action-fill', 'fill', 'fill-hover', 'fill-disable', 'Change Color');
-            border.clone().appendTo(globalControls);
-            separator.clone().appendTo(globalControls);
-            border.clone().appendTo(globalControls);
-            actions['delete'] = new nf.ToolbarAction(globalControls, 'delete', 'action-delete', 'delete', 'delete-hover', 'delete-disable', 'Delete');
-            border.appendTo(globalControls);
-            separator.appendTo(globalControls);
+            border.clone().addClass('secondary').appendTo(globalControls);
+            actions['copy'] = new nf.ToolbarAction(globalControls, 'copy', 'action-copy', 'copy', 'copy-hover', 'copy-disable', 'Copy', true);
+            border.clone().addClass('secondary').appendTo(globalControls);
+            actions['paste'] = new nf.ToolbarAction(globalControls, 'paste', 'action-paste', 'paste', 'paste-hover', 'paste-disable', 'Paste', true);
+            border.clone().addClass('secondary').appendTo(globalControls);
+            separator.clone().addClass('secondary').appendTo(globalControls);
+            border.clone().addClass('secondary').appendTo(globalControls);
+            actions['group'] = new nf.ToolbarAction(globalControls, 'group', 'action-group', 'group', 'group-hover', 'group-disable', 'Group', true);
+            border.clone().addClass('secondary').appendTo(globalControls);
+            separator.clone().addClass('secondary').appendTo(globalControls);
+            border.clone().addClass('secondary').appendTo(globalControls);
+            actions['fill'] = new nf.ToolbarAction(globalControls, 'fillColor', 'action-fill', 'fill', 'fill-hover', 'fill-disable', 'Change Color', true);
+            border.clone().addClass('secondary').appendTo(globalControls);
+            separator.clone().addClass('secondary').appendTo(globalControls);
+            border.clone().addClass('secondary').appendTo(globalControls);
+            actions['delete'] = new nf.ToolbarAction(globalControls, 'delete', 'action-delete', 'delete', 'delete-hover', 'delete-disable', 'Delete', true);
+            border.addClass('secondary').appendTo(globalControls);
+            separator.addClass('secondary').appendTo(globalControls);
 
             // set up initial states for selection-less items
             if (nf.Common.isDFM()) {
