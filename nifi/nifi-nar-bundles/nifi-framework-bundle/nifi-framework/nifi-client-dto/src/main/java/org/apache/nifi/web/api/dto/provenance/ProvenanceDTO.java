@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.provenance;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Date;
 
 import javax.xml.bind.annotation.XmlType;
@@ -45,6 +46,9 @@ public class ProvenanceDTO {
     /**
      * @return id of this provenance query
      */
+    @ApiModelProperty(
+            value = "The id of the provenance query."
+    )
     public String getId() {
         return id;
     }
@@ -56,6 +60,9 @@ public class ProvenanceDTO {
     /**
      * @return URI for this query. Used for obtaining the requests at a later time
      */
+    @ApiModelProperty(
+            value = "The URI for this query. Used for obtaining/deleting the request at a later time"
+    )
     public String getUri() {
         return uri;
     }
@@ -67,6 +74,9 @@ public class ProvenanceDTO {
     /**
      * @return id of the node in the cluster where this provenance originated
      */
+    @ApiModelProperty(
+            value = "The id of the node in the cluster where this provenance originated."
+    )
     public String getClusterNodeId() {
         return clusterNodeId;
     }
@@ -79,6 +89,9 @@ public class ProvenanceDTO {
      * @return time the query was submitted
      */
     @XmlJavaTypeAdapter(TimestampAdapter.class)
+    @ApiModelProperty(
+            value = "The timestamp when the query was submitted."
+    )
     public Date getSubmissionTime() {
         return submissionTime;
     }
@@ -91,6 +104,9 @@ public class ProvenanceDTO {
      * @return expiration time of the query results
      */
     @XmlJavaTypeAdapter(TimestampAdapter.class)
+    @ApiModelProperty(
+            value = "The timestamp when the query will expire."
+    )
     public Date getExpiration() {
         return expiration;
     }
@@ -102,6 +118,9 @@ public class ProvenanceDTO {
     /**
      * @return percent completed
      */
+    @ApiModelProperty(
+            value = "The current percent complete."
+    )
     public Integer getPercentCompleted() {
         return percentCompleted;
     }
@@ -113,6 +132,9 @@ public class ProvenanceDTO {
     /**
      * @return whether the query has finished
      */
+    @ApiModelProperty(
+            value = "Whether the query has finished."
+    )
     public Boolean isFinished() {
         return finished;
     }
@@ -124,6 +146,9 @@ public class ProvenanceDTO {
     /**
      * @return provenance request
      */
+    @ApiModelProperty(
+            value = "The provenance request."
+    )
     public ProvenanceRequestDTO getRequest() {
         return request;
     }
@@ -135,6 +160,9 @@ public class ProvenanceDTO {
     /**
      * @return results of this query
      */
+    @ApiModelProperty(
+            value = "The provenance results."
+    )
     public ProvenanceResultsDTO getResults() {
         return results;
     }

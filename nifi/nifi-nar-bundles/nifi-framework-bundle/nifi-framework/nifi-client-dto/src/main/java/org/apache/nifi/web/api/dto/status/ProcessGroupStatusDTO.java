@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Collection;
 import java.util.Date;
 import javax.xml.bind.annotation.XmlType;
@@ -55,6 +56,9 @@ public class ProcessGroupStatusDTO extends StatusDTO {
      *
      * @return The id for the process group
      */
+    @ApiModelProperty(
+            value = "The id of the process group."
+    )
     public String getId() {
         return id;
     }
@@ -66,6 +70,9 @@ public class ProcessGroupStatusDTO extends StatusDTO {
     /**
      * @return name of this process group
      */
+    @ApiModelProperty(
+            value = "The name of this process group."
+    )
     public String getName() {
         return name;
     }
@@ -77,6 +84,9 @@ public class ProcessGroupStatusDTO extends StatusDTO {
     /**
      * @return active thread count for this process group
      */
+    @ApiModelProperty(
+            value = "The active thread count for this process group."
+    )
     public Integer getActiveThreadCount() {
         return activeThreadCount;
     }
@@ -90,6 +100,9 @@ public class ProcessGroupStatusDTO extends StatusDTO {
      *
      * @return The status of all connections
      */
+    @ApiModelProperty(
+            value = "The status of all conenctions in the process group."
+    )
     public Collection<ConnectionStatusDTO> getConnectionStatus() {
         return connectionStatus;
     }
@@ -103,6 +116,9 @@ public class ProcessGroupStatusDTO extends StatusDTO {
      *
      * @return The status of all process groups
      */
+    @ApiModelProperty(
+            value = "The status of all process groups in the process group."
+    )
     public Collection<ProcessGroupStatusDTO> getProcessGroupStatus() {
         return processGroupStatus;
     }
@@ -116,6 +132,9 @@ public class ProcessGroupStatusDTO extends StatusDTO {
      *
      * @return The status of all remote process groups
      */
+    @ApiModelProperty(
+            value = "The status of all remote process groups in the process group.."
+    )
     public Collection<RemoteProcessGroupStatusDTO> getRemoteProcessGroupStatus() {
         return remoteProcessGroupStatus;
     }
@@ -129,6 +148,9 @@ public class ProcessGroupStatusDTO extends StatusDTO {
      *
      * @return The status of all processors
      */
+    @ApiModelProperty(
+            value = "The status of all processors in the process group."
+    )
     public Collection<ProcessorStatusDTO> getProcessorStatus() {
         return processorStatus;
     }
@@ -142,6 +164,9 @@ public class ProcessGroupStatusDTO extends StatusDTO {
      *
      * @return The status of all input ports
      */
+    @ApiModelProperty(
+            value = "The status of all input ports in the process group."
+    )
     public Collection<PortStatusDTO> getInputPortStatus() {
         return inputPortStatus;
     }
@@ -155,6 +180,9 @@ public class ProcessGroupStatusDTO extends StatusDTO {
      *
      * @return The status of all output ports
      */
+    @ApiModelProperty(
+            value = "The status of all output ports in the process group."
+    )
     public Collection<PortStatusDTO> getOutputPortStatus() {
         return outputPortStatus;
     }
@@ -168,6 +196,9 @@ public class ProcessGroupStatusDTO extends StatusDTO {
      *
      * @return The output stats
      */
+    @ApiModelProperty(
+            value = "The output count/size for the process group in the last 5 minutes."
+    )
     public String getOutput() {
         return output;
     }
@@ -181,6 +212,9 @@ public class ProcessGroupStatusDTO extends StatusDTO {
      *
      * @return The transferred status for this process group
      */
+    @ApiModelProperty(
+            value = "The count/size transferred to/frome queues in the process group in the last 5 minutes."
+    )
     public String getTransferred() {
         return transferred;
     }
@@ -194,6 +228,9 @@ public class ProcessGroupStatusDTO extends StatusDTO {
      *
      * @return The received stats for this process group
      */
+    @ApiModelProperty(
+            value = "The count/size sent to the process group in the last 5 minutes."
+    )
     public String getReceived() {
         return received;
     }
@@ -207,6 +244,9 @@ public class ProcessGroupStatusDTO extends StatusDTO {
      *
      * @return The sent stats for this process group
      */
+    @ApiModelProperty(
+            value = "The count/size sent from this process group in the last 5 minutes."
+    )
     public String getSent() {
         return sent;
     }
@@ -220,6 +260,9 @@ public class ProcessGroupStatusDTO extends StatusDTO {
      *
      * @return The queued count for this process group
      */
+    @ApiModelProperty(
+            value = "The count that is queued for the process group."
+    )
     public String getQueuedCount() {
         return queuedCount;
     }
@@ -233,6 +276,9 @@ public class ProcessGroupStatusDTO extends StatusDTO {
      *
      * @return The queued size for this process group
      */
+    @ApiModelProperty(
+            value = "The size that is queued for the process group."
+    )
     public String getQueuedSize() {
         return queuedSize;
     }
@@ -246,6 +292,9 @@ public class ProcessGroupStatusDTO extends StatusDTO {
      *
      * @return The queued stats
      */
+    @ApiModelProperty(
+            value = "The count/size that is queued in the the process group."
+    )
     public String getQueued() {
         return queued;
     }
@@ -259,6 +308,9 @@ public class ProcessGroupStatusDTO extends StatusDTO {
      *
      * @return The read stats
      */
+    @ApiModelProperty(
+            value = "The number of bytes read in the last 5 minutes."
+    )
     public String getRead() {
         return read;
     }
@@ -272,6 +324,9 @@ public class ProcessGroupStatusDTO extends StatusDTO {
      *
      * @return The written stats
      */
+    @ApiModelProperty(
+            value = "The number of bytes written in the last 5 minutes."
+    )
     public String getWritten() {
         return written;
     }
@@ -285,6 +340,9 @@ public class ProcessGroupStatusDTO extends StatusDTO {
      *
      * @return The input stats
      */
+    @ApiModelProperty(
+            value = "The input count/size for the process group in the last 5 minutes."
+    )
     public String getInput() {
         return input;
     }
@@ -299,6 +357,9 @@ public class ProcessGroupStatusDTO extends StatusDTO {
      * @return The the status was calculated
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
+    @ApiModelProperty(
+            value = "The time the status for the process group was last refreshed."
+    )
     public Date getStatsLastRefreshed() {
         return statsLastRefreshed;
     }

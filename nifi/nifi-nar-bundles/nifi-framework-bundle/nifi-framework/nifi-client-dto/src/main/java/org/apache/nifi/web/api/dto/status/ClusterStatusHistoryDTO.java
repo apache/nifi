@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Collection;
 import java.util.Date;
 import javax.xml.bind.annotation.XmlType;
@@ -36,6 +37,9 @@ public class ClusterStatusHistoryDTO {
      * @return when this status history was generated
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
+    @ApiModelProperty(
+            value = "When the status history was generated."
+    )
     public Date getGenerated() {
         return generated;
     }
@@ -47,6 +51,9 @@ public class ClusterStatusHistoryDTO {
     /**
      * @return status history from each node in the cluster
      */
+    @ApiModelProperty(
+            value = "The status history from each node."
+    )
     public Collection<NodeStatusHistoryDTO> getNodeStatusHistory() {
         return nodeStatusHistory;
     }
@@ -58,6 +65,9 @@ public class ClusterStatusHistoryDTO {
     /**
      * @return status history for this component across the entire cluster
      */
+    @ApiModelProperty(
+            value = "The status history for the entire cluster."
+    )
     public StatusHistoryDTO getClusterStatusHistory() {
         return clusterStatusHistory;
     }

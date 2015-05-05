@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Collection;
 import java.util.Date;
 import javax.xml.bind.annotation.XmlType;
@@ -39,6 +40,9 @@ public class ClusterProcessGroupStatusDTO {
      * @return The time the status were last refreshed
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
+    @ApiModelProperty(
+            value = "The time when the stats was last refreshed."
+    )
     public Date getStatsLastRefreshed() {
         return statsLastRefreshed;
     }
@@ -52,6 +56,9 @@ public class ClusterProcessGroupStatusDTO {
      *
      * @return The process group id
      */
+    @ApiModelProperty(
+            value = "The id of the process group."
+    )
     public String getProcessGroupId() {
         return processGroupId;
     }
@@ -65,6 +72,9 @@ public class ClusterProcessGroupStatusDTO {
      *
      * @return The process group name
      */
+    @ApiModelProperty(
+            value = "The name of the process group."
+    )
     public String getProcessGroupName() {
         return processGroupName;
     }
@@ -78,6 +88,9 @@ public class ClusterProcessGroupStatusDTO {
      *
      * @return The collection of node process group status DTO
      */
+    @ApiModelProperty(
+            value = "The process groups status for each node."
+    )
     public Collection<NodeProcessGroupStatusDTO> getNodeProcessGroupStatus() {
         return nodeProcessGroupStatus;
     }

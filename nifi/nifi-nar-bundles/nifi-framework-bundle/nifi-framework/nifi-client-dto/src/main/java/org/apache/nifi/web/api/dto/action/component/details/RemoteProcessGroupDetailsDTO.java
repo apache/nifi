@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.action.component.details;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import javax.xml.bind.annotation.XmlType;
 
 /**
@@ -29,6 +30,9 @@ public class RemoteProcessGroupDetailsDTO extends ComponentDetailsDTO {
     /**
      * @return URI of the remote process group
      */
+    @ApiModelProperty(
+            value = "The uri of the target of the remote process group."
+    )
     public String getUri() {
         return uri;
     }

@@ -128,26 +128,74 @@ For the partitions handling the various NiFi repos turn off things like 'atime'.
 Doing so can cause a surprising bump in throughput.  Edit the '/etc/fstab' file
 and for the partition(s) of interest add the 'noatime' option.
 
+
 Security Configuration
 ----------------------
-NOTE: This section is incomplete.
+
+NiFi provides several different configuration options for security purposes. The most important properties are those under the
+"security properties" heading in the _nifi.properties_ file. In order to run securely, the following properties must be set:
+
+[options="header,footer"]
+|==================================================================================================================================================
+| Property Name | Description
+|`nifi.security.keystore` | Filename of the Keystore that contains the server's private key.
+|`nifi.security.keystoreType` | The type of Keystore. Must be either `PKCS12` or `JKS`.
+|`nifi.security.keystorePasswd` | The password for the Keystore.
+|`nifi.security.keyPasswd` | The password for the certificate in the Keystore. If not set, the value of `nifi.security.keystorePasswd` will be used.
+|`nifi.security.truststore` | Filename of the Truststore that will be used to authorize those connecting to NiFi. If not set, all who 
+                            attempt to connect will be provided access as the 'Anonymous' user.
+|`nifi.security.truststoreType` | The type of the Truststore. Must be either `PKCS12` or `JKS`.
+|`nifi.security.truststorePasswd` | The password for the Truststore.
+|`nifi.security.needClientAuth` | Specifies whether or not connecting clients must authenticate themselves. If the Truststore properties are not set, 
+                                this must be `false`. Otherwise, a value of `true` indicates that users will be authenticated and must have 
+                                certificates that are trusted by the Truststore loaded into their web browsers. A value of `false` indicates
+                                that all users should be given access as the 'Anonymous' user.  
+|==================================================================================================================================================
+
+Once the above properties have been configured, we can enable the User Interface to be accessed over HTTPS instead of HTTP. This is accomplished
+by setting the `nifi.web.https.host` and `nifi.web.https.port` properties. The `nifi.web.https.host` property indicates which hostname the server
+should run on. This allows admins to configure the application to run only on specific network interfaces. If it is desired that the HTTPS interface
+be accessible from all network interfaces, a value of `0.0.0.0` should be used.
+
+NOTE: It is important when enabling HTTPS that the `nifi.web.http.port` property be unset.
+
+Now that the User Interface has been secured, we can easily secure Site-to-Site connections and inner-cluster communications, as well. This is
+accomplished by setting the `nifi.remote.input.secure` and `nifi.cluster.protocol.is.secure` properties, respectively, to `true`.
 
 
 Controlling Levels of Access
 ----------------------------
 
 Once NiFi is configured to run securely as discussed in the previous section, it is necessary
-to manually designate an ADMIN user in the _authorized-users.xml_ file, which is located in the
-root installation's conf directory. After this ADMIN user has been added, s/he may grant access
+to configure who will have access to the system and what types of access those people will have.
+NiFi controls this through the user of an 'Authority Provider.' The Authority Provider is a pluggable
+mechanism for providing authorizations to different users. Which Authority Provider to use is configured
+using two properties in the _nifi.properties_ file. 
+
+The `nifi.authority.provider.configuration.file` property specifies the configuration file for Authority Providers. 
+The `nifi.security.user.authority.provider` property indicates which of the configured Authority Providers should be
+used.
+
+By default, the `file-provider` Authority Provider is selected and is configured to use the permissions granted in 
+the _authorized-users.xml_ file. This is typically sufficient for instances of NiFi that are run in "standalone" mode.
+If the NiFi instance is configured to run in a cluster, the node will typically use the `cluster-node-provider`
+Provider and the Cluster Manager will typically use the `cluster-ncm-provider` Provider. Both of these Providers
+have a default configuration in the _authority-providers.xml_ file but are commented out.
+
+When using the `cluster-node-provider` Provider, all of the authorization is provided by the Cluster Manager. In this
+way, the configuration only has to be maintained in one place and will be consistent across the entire cluster.
+ 
+When configuring the Cluster Manager or a standalone node, it is necessary to manually designate an ADMIN user 
+in the _authorized-users.xml_ file, which is located in the root installation's conf directory.
+After this ADMIN user has been added, s/he may grant access
 to other users, systems, and other instances of NiFi, through the User Interface (UI) without having to manually edit the _authorized-users.xml_
 file. If you are the administrator, you would add yourself as the ADMIN user in this file.
 
 Open the _authorized-users.xml_ file in a text editor. You will notice that it includes a template
 to guide you, with example entries that are commented out.
 
-It is only necessary to manually add one user, the ADMIN user,
-to this file.
-So, at a minimum, the following example entry should be included and contain the user Distinguished Name (dn)
+It is only necessary to manually add one user, the ADMIN user, to this file.
+So, at a minimum, the following example entry should be included and contain the user Distinguished Name (DN)
 in place of "user dn - read only and admin":
 
 ----
@@ -170,7 +218,7 @@ Here is an example entry using the name John Smith:
 
 After the _authorized-users.xml_ file has been edited and saved, restart NiFi.
 Once the application starts, the ADMIN user is
-able to access the UI at the https URL that is configured in the _nifi.properties_ file.
+able to access the UI at the HTTPS URL that is configured in the _nifi.properties_ file.
 
 From the UI, click on the Users icon ( image:iconUsers.png["Users", width=32] ) in the
 Management Toolbar (upper-right corner of the UI), and the User Management Page opens.
@@ -178,7 +226,40 @@ Management Toolbar (upper-right corner of the UI), and the User Management Page 
 The ADMIN user should be listed. Click on the pencil icon to see this user's role(s). You may edit the
 roles by selecting the appropriate checkboxes.
 
-When other users want access to the NiFi UI, they navigate to the configured URL and are
+The following roles are available in NiFi:
+
+[options="header,footer"]
+|========================================================================================================
+| Role Name | Description
+| Administrator | Administrator is able to configure thread pool sizes and user accounts as well as
+                  purge the dataflow change history.
+| Data Flow Manager | Data Flow Manager is given the ability to manipulate the dataflow. S/he is able to
+                      add, remove, and manipulate components on the graph; add, remove, and manipulate
+                      Controller Services and Reporting Tasks; create and manage templates;
+                      view statistics; and view the bulletin board.
+| Read Only | Users with Read Only access are able to view the dataflow but are unable to change anything.
+| Provenance | Users with Provenance access are able to query the Data Provenance repository and view
+               the lineage of data. Additionally, this role provides the ability to view or download
+               the content of a FlowFile from a Provenance event (assuming that the content is still
+               available in the Content Repository and that the Authority Provider also grants access).
+               This access is not provided to users with Read Only 
+               (unless the user has both Read Only and Provenance roles) because the information provided 
+               to users with this role can potentially be very sensitive in nature, as all FlowFile attributes 
+               and data are exposed. In order to Replay a Provenance event, a user is required to have both
+               the Provenance role as well as the Data Flow Manager role.
+| NiFi | The NiFi Role is intended to be assigned to machines that will interact with an instance of NiFi
+         via Site-to-Site. This role provides the ability to send data to or retrieve data from Root
+         Group Ports (but only those that they are given permissions to interact with - see the User Guide
+         for more information on providing access to specific Ports) as well as obtain information about
+         which Ports exist. Note that this role allows the client to know only about the Ports that it
+         has permissions to interact with.
+| Proxy | The Proxy Role is assigned to a system in order to grant that system permission to make requests
+          on behalf of a user. For instance, if an HTTP proxy service is used to gain access to the system,
+          the certificate being used by that service can be given the Proxy Role.
+|========================================================================================================
+
+
+When users want access to the NiFi UI, they navigate to the configured URL and are
 prompted to request access. When someone has requested access, the ADMIN user sees a star
 on the Users icon in the Management Toolbar, alerting the ADMIN to the fact that a request is
 pending. Upon opening the User Management Page, the pending request is visible, and the ADMIN
@@ -200,7 +281,11 @@ Clustering Configuration
 
 This section provides a quick overview of NiFi Clustering and instructions on how to set up a basic cluster. In the future, we hope to provide supplemental documentation that covers the NiFi Cluster Architecture in depth. 
 
-The design of NiFi clustering is a simple master/slave model where there is a master and one or more slaves. While the model is that of master and slave, if the master dies, the slaves are all instructed to continue operating as they were to ensure the dataflow remains live. The absence of the master simply means new slaves cannot join the cluster and cluster flow changes cannot occur until the master is restored. In NiFi clustering, we call the master the NiFi Cluster Manager (NCM), and the slaves are called Nodes. See a full description of each in the Terminology section below.
+The design of NiFi clustering is a simple master/slave model where there is a master and one or more slaves. 
+While the model is that of master and slave, if the master dies, the slaves are all instructed to continue operating 
+as they were to ensure the dataflow remains live. The absence of the master simply means new slaves cannot join the 
+cluster and cluster flow changes cannot occur until the master is restored. In NiFi clustering, we call the master 
+the NiFi Cluster Manager (NCM), and the slaves are called Nodes. See a full description of each in the Terminology section below.
 
 *Why Cluster?* +
 
@@ -217,7 +302,7 @@ NiFi Clustering is unique and has its own terminology. It's important to underst
 
 *Primary Node*: Every cluster has one Primary Node. On this node, it is possible to run "Isolated Processors" (see below). By default, the NCM will elect the first node that connects to the cluster as the Primary Node; however, the DFM may select a new node as the Primary Node in the Cluster Management page of the User Interface if desired. If the cluster restarts, the NCM will "remember" which node was the Primary Node and wait for that node to re-connect before allowing the DFM to make any changes to the dataflow. The ADMIN may adjust how long the NCM waits for the Primary Node to reconnect by adjusting the property _nifi.cluster.manager.safemode.duration_ in the _nifi.properties_ file, which is discussed in the <<system_properties>> section of this document. 
 
-*Isolated Processors*: In a NiFi cluster, the same dataflow runs on all the nodes. As a result, every component in the flow runs on every node. However, there may be cases when the DFM would not want every processor to run on every node. The most common case is when using a processor that communicates with an external service using a protocol that does not scale well. For example, the GetSFTP processor pulls from a remote directory, and if the GetSFTP on every node in the cluster tries simultaneously to pull from the same remote directory, there could be race conditions. Therefore, the DFM could configure the GetSFTP on the Primary Node to run in isolation, meaning that it only runs on that node. It could pull in data and -with the proper dataflow configuration- load-balance it across the rest of the nodes in the cluster. Note that while this feature exists, it is also very common to simply use a standalone NiFi instance to pull data and feed it to the cluster. It just depends on the resources available and how the Administrator decides to configure the cluster. 
+*Isolated Processors*: In a NiFi cluster, the same dataflow runs on all the nodes. As a result, every component in the flow runs on every node. However, there may be cases when the DFM would not want every processor to run on every node. The most common case is when using a processor that communicates with an external service using a protocol that does not scale well. For example, the GetSFTP processor pulls from a remote directory, and if the GetSFTP on every node in the cluster tries simultaneously to pull from the same remote directory, there could be race conditions. Therefore, the DFM could configure the GetSFTP on the Primary Node to run in isolation, meaning that it only runs on that node. It could pull in data and -with the proper dataflow configuration- load-balance it across the rest of the nodes in the cluster. Note that while this feature exists, it is also very common to simply use a standalone NiFi instance to pull data and feed it to the cluster. It just depends on the resources available and how the Administrator decides to configure the cluster.
 
 *Heartbeats*: The nodes communicate their health and status to the NCM via "heartbeats", which let the NCM know they are still connected to the cluster and working properly. By default, the nodes emit heartbeats to the NCM every 5 seconds, and if the NCM does not receive a heartbeat from a node within 45 seconds, it disconnects the node due to "lack of heartbeat". (The 5-second and 45-second settings are configurable in the _nifi.properties_ file. See the <<system_properties>> section of this document for more information.) The reason that the NCM disconnects the node is because the NCM needs to ensure that every node in the cluster is in sync, and if a node is not heard from regularly, the NCM cannot be sure it is still in sync with the rest of the cluster. If, after 45 seconds, the node does send a new heartbeat, the NCM will automatically reconnect the node to the cluster. Both the disconnection due to lack of heartbeat and the reconnection once a heartbeat is received are reported to the DFM in the NCM's User Interface. 
 

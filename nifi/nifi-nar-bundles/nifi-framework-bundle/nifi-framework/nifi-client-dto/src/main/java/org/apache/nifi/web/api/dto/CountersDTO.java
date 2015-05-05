@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Collection;
 import java.util.Date;
 
@@ -35,6 +36,9 @@ public class CountersDTO {
     /**
      * @return the collection of counters
      */
+    @ApiModelProperty(
+            value = "All counters in the NiFi."
+    )
     public Collection<CounterDTO> getCounters() {
         return counters;
     }
@@ -47,6 +51,9 @@ public class CountersDTO {
      * @return the date/time that this report was generated
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
+    @ApiModelProperty(
+            value = "The timestamp when the report was generated."
+    )
     public Date getGenerated() {
         return generated;
     }

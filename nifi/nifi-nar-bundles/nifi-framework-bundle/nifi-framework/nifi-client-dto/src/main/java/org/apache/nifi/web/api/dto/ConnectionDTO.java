@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.List;
 import java.util.Set;
 import javax.xml.bind.annotation.XmlType;
@@ -41,10 +42,13 @@ public class ConnectionDTO extends NiFiComponentDTO {
     private List<PositionDTO> bends;
 
     /**
-     * The id of the source processor.
+     * The source of this connection.
      *
-     * @return The id of the source processor
+     * @return The source of this connection
      */
+    @ApiModelProperty(
+            value = "The source of the connection."
+    )
     public ConnectableDTO getSource() {
         return source;
     }
@@ -54,10 +58,13 @@ public class ConnectionDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The id of the target processor.
+     * The destination of this connection.
      *
-     * @return The id of the target processor
+     * @return The destination of this connection
      */
+    @ApiModelProperty(
+            value = "The destination of the connection."
+    )
     public ConnectableDTO getDestination() {
         return destination;
     }
@@ -69,6 +76,9 @@ public class ConnectionDTO extends NiFiComponentDTO {
     /**
      * @return name of the connection
      */
+    @ApiModelProperty(
+            value = "The name of the connection."
+    )
     public String getName() {
         return name;
     }
@@ -80,6 +90,9 @@ public class ConnectionDTO extends NiFiComponentDTO {
     /**
      * @return position of the bend points on this connection
      */
+    @ApiModelProperty(
+            value = "The bend points on the connection."
+    )
     public List<PositionDTO> getBends() {
         return bends;
     }
@@ -91,6 +104,9 @@ public class ConnectionDTO extends NiFiComponentDTO {
     /**
      * @return The index of control point that the connection label should be placed over
      */
+    @ApiModelProperty(
+            value = "The index of the bend point where to place the connection label."
+    )
     public Integer getLabelIndex() {
         return labelIndex;
     }
@@ -102,6 +118,9 @@ public class ConnectionDTO extends NiFiComponentDTO {
     /**
      * @return z index for this connection
      */
+    @ApiModelProperty(
+            value = "The z index of the connection."
+    )
     public Long getzIndex() {
         return zIndex;
     }
@@ -115,6 +134,9 @@ public class ConnectionDTO extends NiFiComponentDTO {
      *
      * @return The relationships
      */
+    @ApiModelProperty(
+            value = "The selected relationship that comprise the connection."
+    )
     public Set<String> getSelectedRelationships() {
         return selectedRelationships;
     }
@@ -126,6 +148,10 @@ public class ConnectionDTO extends NiFiComponentDTO {
     /**
      * @return relationships that the source of the connection currently supports. This property is read only
      */
+    @ApiModelProperty(
+            value = "The relationships that the source of the connection currently supports. This property is read only.",
+            readOnly = true
+    )
     public Set<String> getAvailableRelationships() {
         return availableRelationships;
     }
@@ -140,6 +166,10 @@ public class ConnectionDTO extends NiFiComponentDTO {
      *
      * @return The back pressure object threshold
      */
+    @ApiModelProperty(
+            value = "The object count threshold for determining when back pressure is applied. Updating this value is a passive change in the sense that it won't impact whether existing files "
+                    + "over the limit are affected but it does help feeder processors to stop pushing too much into this work queue."
+    )
     public Long getBackPressureObjectThreshold() {
         return backPressureObjectThreshold;
     }
@@ -154,6 +184,10 @@ public class ConnectionDTO extends NiFiComponentDTO {
      *
      * @return The back pressure data size threshold
      */
+    @ApiModelProperty(
+            value = "The object data size threshold for determining when back pressure is applied. Updating this value is a passive change in the sense that it won't impact whether existing "
+                    + "files over the limit are affected but it does help feeder processors to stop pushing too much into this work queue."
+    )
     public String getBackPressureDataSizeThreshold() {
         return backPressureDataSizeThreshold;
     }
@@ -168,6 +202,10 @@ public class ConnectionDTO extends NiFiComponentDTO {
      *
      * @return The flow file expiration in minutes
      */
+    @ApiModelProperty(
+            value = "The amount of time a flow file may be in the flow before it will be automatically aged out of the flow. Once a flow file reaches this age it will be terminated from "
+                    + "the flow the next time a processor attempts to start work on it."
+    )
     public String getFlowFileExpiration() {
         return flowFileExpiration;
     }
@@ -177,10 +215,13 @@ public class ConnectionDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The prioritizers this processor is using.
+     * The prioritizers this connection is using.
      *
      * @return The prioritizer list
      */
+    @ApiModelProperty(
+            value = "The comparators used to prioritize the queue."
+    )
     public List<String> getPrioritizers() {
         return prioritizers;
     }

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Date;
 import java.util.Set;
 import javax.xml.bind.annotation.XmlType;
@@ -43,6 +44,9 @@ public class UserDTO {
     /**
      * @return user id
      */
+    @ApiModelProperty(
+            value = "The id of the user."
+    )
     public String getId() {
         return id;
     }
@@ -54,6 +58,9 @@ public class UserDTO {
     /**
      * @return users authorities
      */
+    @ApiModelProperty(
+            value = "The users authorities."
+    )
     public Set<String> getAuthorities() {
         return authorities;
     }
@@ -66,6 +73,9 @@ public class UserDTO {
      * @return creation time for this users account
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
+    @ApiModelProperty(
+            value = "The timestamp when the user was created."
+    )
     public Date getCreation() {
         return creation;
     }
@@ -77,6 +87,9 @@ public class UserDTO {
     /**
      * @return users DN
      */
+    @ApiModelProperty(
+            value = "The dn of the user."
+    )
     public String getDn() {
         return dn;
     }
@@ -88,6 +101,9 @@ public class UserDTO {
     /**
      * @return users name. If the name could not be extracted from the DN, this value will be the entire DN
      */
+    @ApiModelProperty(
+            value = "The username. If it could not be extracted from the DN, this value will be the entire DN."
+    )
     public String getUserName() {
         return userName;
     }
@@ -99,6 +115,9 @@ public class UserDTO {
     /**
      * @return user group
      */
+    @ApiModelProperty(
+            value = "The group this user belongs to."
+    )
     public String getUserGroup() {
         return userGroup;
     }
@@ -110,6 +129,9 @@ public class UserDTO {
     /**
      * @return users account justification
      */
+    @ApiModelProperty(
+            value = "The justification for the user account."
+    )
     public String getJustification() {
         return justification;
     }
@@ -122,6 +144,9 @@ public class UserDTO {
      * @return time that the user last accessed the system
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
+    @ApiModelProperty(
+            value = "The timestamp the user last accessed the system."
+    )
     public Date getLastAccessed() {
         return lastAccessed;
     }
@@ -134,6 +159,9 @@ public class UserDTO {
      * @return time that the users credentials were last verified
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
+    @ApiModelProperty(
+            value = "The timestamp the user authorities were verified."
+    )
     public Date getLastVerified() {
         return lastVerified;
     }
@@ -145,6 +173,9 @@ public class UserDTO {
     /**
      * @return status of the users account
      */
+    @ApiModelProperty(
+            value = "The user status."
+    )
     public String getStatus() {
         return status;
     }

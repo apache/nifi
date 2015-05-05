@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Collection;
 import java.util.Set;
 import javax.xml.bind.annotation.XmlType;
@@ -40,6 +41,9 @@ public class PortDTO extends NiFiComponentDTO {
     /**
      * @return name of this port
      */
+    @ApiModelProperty(
+            value = "The name of the port."
+    )
     public String getName() {
         return name;
     }
@@ -51,6 +55,10 @@ public class PortDTO extends NiFiComponentDTO {
     /**
      * @return The state of this port. Possible states are 'RUNNING', 'STOPPED', and 'DISABLED'
      */
+    @ApiModelProperty(
+            value = "The state of the port.",
+            allowableValues = "RUNNING, STOPPED, DISABLED"
+    )
     public String getState() {
         return state;
     }
@@ -64,6 +72,10 @@ public class PortDTO extends NiFiComponentDTO {
      *
      * @return The type of port
      */
+    @ApiModelProperty(
+            value = "The type of port.",
+            allowableValues = "INPUT_PORT, OUTPUT_PORT"
+    )
     public String getType() {
         return type;
     }
@@ -75,6 +87,9 @@ public class PortDTO extends NiFiComponentDTO {
     /**
      * @return number of tasks that should be concurrently scheduled for this port
      */
+    @ApiModelProperty(
+            value = "The number of tasks that should be concurrently scheduled for the port."
+    )
     public Integer getConcurrentlySchedulableTaskCount() {
         return concurrentlySchedulableTaskCount;
     }
@@ -86,6 +101,9 @@ public class PortDTO extends NiFiComponentDTO {
     /**
      * @return comments for this port
      */
+    @ApiModelProperty(
+            value = "The comments for the port."
+    )
     public String getComments() {
         return comments;
     }
@@ -97,6 +115,9 @@ public class PortDTO extends NiFiComponentDTO {
     /**
      * @return whether this port has incoming or outgoing connections to a remote NiFi. This is only applicable when the port is running on the root group
      */
+    @ApiModelProperty(
+            value = "Whether the port has incoming or output connections to a remote NiFi. This is only applicable when the port is running in the root group."
+    )
     public Boolean isTransmitting() {
         return transmitting;
     }
@@ -108,6 +129,9 @@ public class PortDTO extends NiFiComponentDTO {
     /**
      * @return groups that are allowed to access this port
      */
+    @ApiModelProperty(
+            value = "The user groups that are allowed to access the port."
+    )
     public Set<String> getGroupAccessControl() {
         return groupAccessControl;
     }
@@ -119,6 +143,9 @@ public class PortDTO extends NiFiComponentDTO {
     /**
      * @return users that are allowed to access this port
      */
+    @ApiModelProperty(
+            value = "The users that are allowed to access the port."
+    )
     public Set<String> getUserAccessControl() {
         return userAccessControl;
     }
@@ -132,6 +159,9 @@ public class PortDTO extends NiFiComponentDTO {
      *
      * @return The validation errors
      */
+    @ApiModelProperty(
+            value = "Gets the validation errors from this port. These validation errors represent the problems with the port that must be resolved before it can be started."
+    )
     public Collection<String> getValidationErrors() {
         return validationErrors;
     }

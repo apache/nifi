@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Map;
 
 import javax.xml.bind.annotation.XmlType;
@@ -32,7 +33,7 @@ public class LabelDTO extends NiFiComponentDTO {
     private Double height;
 
     // font-size = 12px
-    // color = #eee
+    // background-color = #eee
     private Map<String, String> style;
 
     public LabelDTO() {
@@ -43,6 +44,9 @@ public class LabelDTO extends NiFiComponentDTO {
      *
      * @return The label text
      */
+    @ApiModelProperty(
+            value = "The text that appears in the label."
+    )
     public String getLabel() {
         return label;
     }
@@ -54,6 +58,9 @@ public class LabelDTO extends NiFiComponentDTO {
     /**
      * @return style for this label
      */
+    @ApiModelProperty(
+            value = "The styles for this label (font-size => 12px, background-color => #eee, etc)."
+    )
     public Map<String, String> getStyle() {
         return style;
     }
@@ -65,6 +72,9 @@ public class LabelDTO extends NiFiComponentDTO {
     /**
      * @return height of the label in pixels when at a 1:1 scale
      */
+    @ApiModelProperty(
+            value = "The height of the label in pixels when at a 1:1 scale."
+    )
     public Double getHeight() {
         return height;
     }
@@ -76,6 +86,9 @@ public class LabelDTO extends NiFiComponentDTO {
     /**
      * @return width of the label in pixels when at a 1:1 scale
      */
+    @ApiModelProperty(
+            value = "The width of the label in pixels when at a 1:1 scale."
+    )
     public Double getWidth() {
         return width;
     }

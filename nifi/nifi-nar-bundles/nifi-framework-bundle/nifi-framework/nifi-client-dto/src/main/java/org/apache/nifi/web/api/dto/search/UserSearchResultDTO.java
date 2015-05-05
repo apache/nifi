@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.search;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import javax.xml.bind.annotation.XmlType;
 
 /**
@@ -30,6 +31,9 @@ public class UserSearchResultDTO {
     /**
      * @return dn of the user that matched
      */
+    @ApiModelProperty(
+            value = "The dn of the user that matched the search."
+    )
     public String getUserDn() {
         return userDn;
     }
@@ -41,6 +45,9 @@ public class UserSearchResultDTO {
     /**
      * @return username of user that matched
      */
+    @ApiModelProperty(
+            value = "The name of the user that matched the search."
+    )
     public String getUserName() {
         return userName;
     }

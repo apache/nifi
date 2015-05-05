@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.action.details;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import javax.xml.bind.annotation.XmlType;
 
 /**
@@ -31,6 +32,9 @@ public class ConfigureDetailsDTO extends ActionDetailsDTO {
     /**
      * @return name of the property that was modified
      */
+    @ApiModelProperty(
+            value = "The name of the property that was modified."
+    )
     public String getName() {
         return name;
     }
@@ -42,6 +46,9 @@ public class ConfigureDetailsDTO extends ActionDetailsDTO {
     /**
      * @return previous value
      */
+    @ApiModelProperty(
+            value = "The previous value."
+    )
     public String getPreviousValue() {
         return previousValue;
     }
@@ -53,6 +60,9 @@ public class ConfigureDetailsDTO extends ActionDetailsDTO {
     /**
      * @return new value
      */
+    @ApiModelProperty(
+            value = "The new value."
+    )
     public String getValue() {
         return value;
     }

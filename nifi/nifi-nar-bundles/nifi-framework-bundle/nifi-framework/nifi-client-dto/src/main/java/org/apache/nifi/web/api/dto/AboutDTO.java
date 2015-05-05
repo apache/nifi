@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import javax.xml.bind.annotation.XmlType;
 
 /**
@@ -33,6 +34,9 @@ public class AboutDTO {
      *
      * @return The title
      */
+    @ApiModelProperty(
+            value = "The title to be used on the page and in the about dialog."
+    )
     public String getTitle() {
         return title;
     }
@@ -46,6 +50,9 @@ public class AboutDTO {
      *
      * @return The version.
      */
+    @ApiModelProperty(
+            value = "The version of this NiFi."
+    )
     public String getVersion() {
         return version;
     }

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Date;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
@@ -39,6 +40,9 @@ public class TemplateDTO {
     /**
      * @return id for this template
      */
+    @ApiModelProperty(
+            value = "The id of the template."
+    )
     public String getId() {
         return id;
     }
@@ -50,6 +54,9 @@ public class TemplateDTO {
     /**
      * @return uri for this template
      */
+    @ApiModelProperty(
+            value = "The URI for the template."
+    )
     public String getUri() {
         return uri;
     }
@@ -61,6 +68,9 @@ public class TemplateDTO {
     /**
      * @return name of this template
      */
+    @ApiModelProperty(
+            value = "The name of the template."
+    )
     public String getName() {
         return name;
     }
@@ -72,6 +82,9 @@ public class TemplateDTO {
     /**
      * @return description of this template
      */
+    @ApiModelProperty(
+            value = "The description of the template."
+    )
     public String getDescription() {
         return description;
     }
@@ -84,6 +97,9 @@ public class TemplateDTO {
      * @return timestamp when this template was created
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
+    @ApiModelProperty(
+            value = "The timestamp when this template was created."
+    )
     public Date getTimestamp() {
         return timestamp;
     }
@@ -95,6 +111,9 @@ public class TemplateDTO {
     /**
      * @return snippet in this template
      */
+    @ApiModelProperty(
+            value = "The contents of the template."
+    )
     public FlowSnippetDTO getSnippet() {
         return snippet;
     }

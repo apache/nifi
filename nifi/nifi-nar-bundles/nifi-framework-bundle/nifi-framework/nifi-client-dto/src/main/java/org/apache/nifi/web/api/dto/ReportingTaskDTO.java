@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Collection;
 import java.util.Map;
 
@@ -49,6 +50,9 @@ public class ReportingTaskDTO extends NiFiComponentDTO {
     /**
      * @return user-defined name of the reporting task
      */
+    @ApiModelProperty(
+            value = "The name of the reporting task."
+    )
     public String getName() {
         return name;
     }
@@ -60,6 +64,9 @@ public class ReportingTaskDTO extends NiFiComponentDTO {
     /**
      * @return user-defined comments for the reporting task
      */
+    @ApiModelProperty(
+            value = "The comments of the reporting task."
+    )
     public String getComments() {
         return comments;
     }
@@ -71,6 +78,9 @@ public class ReportingTaskDTO extends NiFiComponentDTO {
     /**
      * @return type of reporting task
      */
+    @ApiModelProperty(
+            value = "The fully qualified type of the reporting task."
+    )
     public String getType() {
         return type;
     }
@@ -84,6 +94,9 @@ public class ReportingTaskDTO extends NiFiComponentDTO {
      *
      * @return The scheduling period
      */
+    @ApiModelProperty(
+            value = "The frequency with which to schedule the reporting task. The format of the value willd epend on the valud of the schedulingStrategy."
+    )
     public String getSchedulingPeriod() {
         return schedulingPeriod;
     }
@@ -95,6 +108,10 @@ public class ReportingTaskDTO extends NiFiComponentDTO {
     /**
      * @return current scheduling state of the reporting task
      */
+    @ApiModelProperty(
+            value = "The state of the reporting task.",
+            allowableValues = "RUNNING, STOPPED, DISABLED"
+    )
     public String getState() {
         return state;
     }
@@ -106,6 +123,9 @@ public class ReportingTaskDTO extends NiFiComponentDTO {
     /**
      * @return The scheduling strategy that determines how the {@link #getSchedulingPeriod()} value should be interpreted
      */
+    @ApiModelProperty(
+            value = "The scheduling strategy that determines how the schedulingPeriod value should be interpreted."
+    )
     public String getSchedulingStrategy() {
         return schedulingStrategy;
     }
@@ -115,8 +135,12 @@ public class ReportingTaskDTO extends NiFiComponentDTO {
     }
 
     /**
-     * @return Where this service is available. Possible values are CLUSTER_MANAGER_ONLY, NODE_ONLY, BOTH
+     * @return Where this service is available. Possible values are NCM, NODE
      */
+    @ApiModelProperty(
+            value = "Where the reporting task is available.",
+            allowableValues = "NCM, NODE"
+    )
     public String getAvailability() {
         return availability;
     }
@@ -128,6 +152,9 @@ public class ReportingTaskDTO extends NiFiComponentDTO {
     /**
      * @return reporting task's properties
      */
+    @ApiModelProperty(
+            value = "The properties of the reporting task."
+    )
     public Map<String, String> getProperties() {
         return properties;
     }
@@ -139,6 +166,9 @@ public class ReportingTaskDTO extends NiFiComponentDTO {
     /**
      * @return Map of property name to descriptor
      */
+    @ApiModelProperty(
+            value = "The descriptors for the reporting tasks properties."
+    )
     public Map<String, PropertyDescriptorDTO> getDescriptors() {
         return descriptors;
     }
@@ -150,6 +180,9 @@ public class ReportingTaskDTO extends NiFiComponentDTO {
     /**
      * @return the URL for this reporting task custom configuration UI if applicable. Null otherwise
      */
+    @ApiModelProperty(
+            value = "The URL for the custom configuration UI for the reporting task."
+    )
     public String getCustomUiUrl() {
         return customUiUrl;
     }
@@ -161,6 +194,9 @@ public class ReportingTaskDTO extends NiFiComponentDTO {
     /**
      * @return currently configured annotation data for the reporting task
      */
+    @ApiModelProperty(
+            value = "The anntation data for the repoting task. This is how the custom UI relays configuration to the reporting task."
+    )
     public String getAnnotationData() {
         return annotationData;
     }
@@ -174,6 +210,10 @@ public class ReportingTaskDTO extends NiFiComponentDTO {
      *
      * @return The validation errors
      */
+    @ApiModelProperty(
+            value = "Gets the validation errors from the reporting task. These validation errors represent the problems with the reporting task that must be resolved before "
+                    + "it can be scheduled to run."
+    )
     public Collection<String> getValidationErrors() {
         return validationErrors;
     }
@@ -185,6 +225,9 @@ public class ReportingTaskDTO extends NiFiComponentDTO {
     /**
      * @return default scheduling period for the different scheduling strategies
      */
+    @ApiModelProperty(
+            value = "The default scheduling period for the different scheduling strategies."
+    )
     public Map<String, String> getDefaultSchedulingPeriod() {
         return defaultSchedulingPeriod;
     }
@@ -196,6 +239,9 @@ public class ReportingTaskDTO extends NiFiComponentDTO {
     /**
      * @return number of active threads for this reporting task
      */
+    @ApiModelProperty(
+            value = "The number of active threads for the reporting task."
+    )
     public Integer getActiveThreadCount() {
         return activeThreadCount;
     }
