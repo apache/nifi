@@ -54,9 +54,7 @@ public class NodeResource extends ApplicationResource {
     /**
      * Gets the contents of the specified node in this NiFi cluster.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The node id.
      * @return A nodeEntity.
      */
@@ -92,9 +90,7 @@ public class NodeResource extends ApplicationResource {
     /**
      * Gets the status for the specified node.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the node.
      * @return A processGroupStatusEntity
      */
@@ -128,9 +124,7 @@ public class NodeResource extends ApplicationResource {
     /**
      * Gets the system diagnositics for the specified node.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the node.
      * @return A systemDiagnosticsEntity
      */
@@ -164,9 +158,7 @@ public class NodeResource extends ApplicationResource {
     /**
      * Updates the contents of the specified node in this NiFi cluster.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the node.
      * @param status The status of the node.
      * @param primary Whether the node should be make primary.
@@ -256,9 +248,7 @@ public class NodeResource extends ApplicationResource {
     /**
      * Removes the specified from this NiFi cluster.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the node
      * @return A nodeEntity
      */

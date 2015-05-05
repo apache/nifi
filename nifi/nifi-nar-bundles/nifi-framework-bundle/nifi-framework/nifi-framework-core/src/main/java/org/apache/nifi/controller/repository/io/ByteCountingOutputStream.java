@@ -40,9 +40,7 @@ public class ByteCountingOutputStream extends OutputStream {
         write(b, 0, b.length);
     }
 
-    ;
-	
-	@Override
+    @Override
     public void write(byte[] b, int off, int len) throws IOException {
         out.write(b, off, len);
         bytesWrittenHolder.increment(len);

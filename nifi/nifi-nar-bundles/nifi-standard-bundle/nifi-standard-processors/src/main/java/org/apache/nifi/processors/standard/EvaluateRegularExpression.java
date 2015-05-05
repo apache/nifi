@@ -40,29 +40,25 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 
 @EventDriven
 @SideEffectFree
 @SupportsBatching
-@Tags({"evaluate", "Text", "Regular Expression", "regex", "experimental"})
-@CapabilityDescription(
-        "Evaluates one or more Regular Expressions against the content of a FlowFile.  "
-        + "The results of those Regular Expressions are assigned to FlowFile Attributes.  "
-        + "Regular Expressions are entered by adding user-defined properties; "
-        + "the name of the property maps to the Attribute Name into which the result will be placed.  "
-        + "The value of the property must be a valid Regular Expressions with exactly one capturing group.  "
-        + "If the Regular Expression matches more than once, only the first match will be used.  "
-        + "If any provided Regular Expression matches, the FlowFile(s) will be routed to 'matched'. "
-        + "If no provided Regular Expression matches, the FlowFile will be routed to 'unmatched' and no attributes will be applied to the FlowFile.")
-
+@Tags({"deprecated"})
+@CapabilityDescription("WARNING: This has been deprecated and will be removed in 0.2.0.  \n\n Use ExtractText instead.")
+@SeeAlso(ExtractText.class)
+@Deprecated
+@DynamicProperty(name = "A FlowFile attribute", value = "A regular expression with exactly one capturing group",
+        description = "Will update the specified FlowFile attribute with the group captured by the regular expression")
 public class EvaluateRegularExpression extends AbstractProcessor {
 
     public static final PropertyDescriptor CHARACTER_SET = new PropertyDescriptor.Builder()
@@ -123,7 +119,8 @@ public class EvaluateRegularExpression extends AbstractProcessor {
 
     public static final PropertyDescriptor MULTILINE = new PropertyDescriptor.Builder()
             .name("Enable Multiline Mode")
-            .description("Indicates that '^' and '$' should match just after and just before a line terminator or end of sequence, instead of only the begining or end of the entire input.  Can also be specified via the embeded flag (?m).")
+            .description("Indicates that '^' and '$' should match just after and just before a line terminator or end of sequence, instead "
+                    + "of only the begining or end of the entire input.  Can also be specified via the embeded flag (?m).")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
@@ -131,7 +128,8 @@ public class EvaluateRegularExpression extends AbstractProcessor {
 
     public static final PropertyDescriptor UNICODE_CASE = new PropertyDescriptor.Builder()
             .name("Enable Unicode-aware Case Folding")
-            .description("When used with 'Enable Case-insensitive Matching', matches in a manner consistent with the Unicode Standard.  Can also be specified via the embeded flag (?u).")
+            .description("When used with 'Enable Case-insensitive Matching', matches in a manner consistent with the Unicode Standard.  "
+                    + "Can also be specified via the embeded flag (?u).")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
@@ -139,7 +137,8 @@ public class EvaluateRegularExpression extends AbstractProcessor {
 
     public static final PropertyDescriptor UNICODE_CHARACTER_CLASS = new PropertyDescriptor.Builder()
             .name("Enable Unicode Predefined Character Classes")
-            .description("Specifies conformance with the Unicode Technical Standard #18: Unicode Regular Expression Annex C: Compatibility Properties.  Can also be specified via the embeded flag (?U).")
+            .description("Specifies conformance with the Unicode Technical Standard #18: Unicode Regular Expression Annex C: Compatibility "
+                    + "Properties.  Can also be specified via the embeded flag (?U).")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
@@ -155,15 +154,12 @@ public class EvaluateRegularExpression extends AbstractProcessor {
 
     public static final Relationship REL_MATCH = new Relationship.Builder()
             .name("matched")
-            .description(
-                    "FlowFiles are routed to this relationship when the Regular Expression is successfully evaluated and the FlowFile "
-                    + "is modified as a result")
+            .description("FlowFiles are routed to this relationship when the Regular Expression is successfully evaluated and the FlowFile is modified as a result")
             .build();
 
     public static final Relationship REL_NO_MATCH = new Relationship.Builder()
             .name("unmatched")
-            .description(
-                    "FlowFiles are routed to this relationship when no provided Regular Expression matches the content of the FlowFile")
+            .description("FlowFiles are routed to this relationship when no provided Regular Expression matches the content of the FlowFile")
             .build();
 
     private Set<Relationship> relationships;
@@ -204,12 +200,8 @@ public class EvaluateRegularExpression extends AbstractProcessor {
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
-                .name(propertyDescriptorName)
-                .expressionLanguageSupported(false)
-                .addValidator(StandardValidators.createRegexValidator(1, 1, true))
-                .required(false)
-                .dynamic(true)
-                .build();
+                .name(propertyDescriptorName).expressionLanguageSupported(false)
+                .addValidator(StandardValidators.createRegexValidator(1, 1, true)).required(false).dynamic(true).build();
     }
 
     @Override

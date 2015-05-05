@@ -35,12 +35,11 @@ import org.apache.nifi.web.api.dto.PositionDTO;
 public final class SnippetUtils {
 
     /**
-     * Moves the content of the specified template around the specified
-     * location.
+     * Moves the content of the specified template around the specified location.
      *
-     * @param snippet
-     * @param x
-     * @param y
+     * @param snippet snippet
+     * @param x x location
+     * @param y y location
      */
     public static void moveSnippet(FlowSnippetDTO snippet, Double x, Double y) {
         // ensure the point is specified
@@ -85,8 +84,8 @@ public final class SnippetUtils {
     /**
      * Gets all connections that are part of the specified template.
      *
-     * @param contents
-     * @return
+     * @param contents snippet content
+     * @return connection dtos
      */
     private static Collection<ConnectionDTO> getConnections(FlowSnippetDTO contents) {
         final Collection<ConnectionDTO> connections = new HashSet<>();
@@ -97,11 +96,10 @@ public final class SnippetUtils {
     }
 
     /**
-     * Gets all components, but not connections, that are part of the specified
-     * template.
+     * Gets all components, but not connections, that are part of the specified template.
      *
-     * @param contents
-     * @return
+     * @param contents snippet
+     * @return component dtos
      */
     private static Collection<NiFiComponentDTO> getComponents(FlowSnippetDTO contents) {
         final Collection<NiFiComponentDTO> components = new HashSet<>();
@@ -135,8 +133,8 @@ public final class SnippetUtils {
     /**
      * Builds a mapping of components to PositionDTO's.
      *
-     * @param components
-     * @return
+     * @param components components
+     * @return component and position map
      */
     private static Map<NiFiComponentDTO, PositionDTO> getPositionLookup(Collection<NiFiComponentDTO> components) {
         final Map<NiFiComponentDTO, PositionDTO> positionLookup = new HashMap<>();
@@ -152,8 +150,8 @@ public final class SnippetUtils {
     /**
      * Builds a mapping of components to PositionDTO's.
      *
-     * @param connections
-     * @return
+     * @param connections connections
+     * @return position of connections map
      */
     private static Map<ConnectionDTO, List<PositionDTO>> getConnectionPositionLookup(final Collection<ConnectionDTO> connections) {
         final Map<ConnectionDTO, List<PositionDTO>> positionLookup = new HashMap<>();
@@ -178,9 +176,9 @@ public final class SnippetUtils {
     /**
      * Gets the origin of the bounding box of all specified component positions
      *
-     * @param componentPositions
-     * @param connectionPositions
-     * @return
+     * @param componentPositions position list for components
+     * @param connectionPositions position list for connections
+     * @return position
      */
     private static PositionDTO getOrigin(Collection<PositionDTO> componentPositions, Collection<List<PositionDTO>> connectionPositions) {
         Double x = null;
@@ -222,8 +220,8 @@ public final class SnippetUtils {
     /**
      * Applies the updated positions to the corresponding components.
      *
-     * @param componentPositionLookup
-     * @param connectionPositionLookup
+     * @param componentPositionLookup lookup
+     * @param connectionPositionLookup lookup
      */
     private static void applyUpdatedPositions(final Map<NiFiComponentDTO, PositionDTO> componentPositionLookup, final Map<ConnectionDTO, List<PositionDTO>> connectionPositionLookup) {
         for (final Map.Entry<NiFiComponentDTO, PositionDTO> entry : componentPositionLookup.entrySet()) {

@@ -32,9 +32,7 @@ public class NodeEventDTO {
     private String message;
 
     /**
-     * The category of the node event.
-     *
-     * @return
+     * @return category of the node event
      */
     public String getCategory() {
         return category;
@@ -45,9 +43,7 @@ public class NodeEventDTO {
     }
 
     /**
-     * The message of the node event.
-     *
-     * @return
+     * @return message of the node event
      */
     public String getMessage() {
         return message;
@@ -58,9 +54,7 @@ public class NodeEventDTO {
     }
 
     /**
-     * The timestamp of the node event.
-     *
-     * @return
+     * @return timestamp of the node event
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
     public Date getTimestamp() {

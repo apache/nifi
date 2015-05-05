@@ -28,20 +28,18 @@ public interface ContentClaimManager {
      * Creates a new Content Claim with the given id, container, section, and
      * loss tolerance.
      *
-     * @param id
-     * @param container
-     * @param section
-     * @param lossTolerant
-     * @return
+     * @param id of claim
+     * @param container of claim
+     * @param section of claim
+     * @param lossTolerant of claim
+     * @return new claim
      */
     ContentClaim newContentClaim(String container, String section, String id, boolean lossTolerant);
 
     /**
-     * Returns the number of FlowFiles that hold a claim to a particular piece
+     * @param claim to obtain reference count for
+     * @return the number of FlowFiles that hold a claim to a particular piece
      * of FlowFile content
-     *
-     * @param claim
-     * @return
      */
     int getClaimantCount(ContentClaim claim);
 
@@ -49,8 +47,8 @@ public interface ContentClaimManager {
      * Decreases by 1 the count of how many FlowFiles hold a claim to a
      * particular piece of FlowFile content and returns the new count
      *
-     * @param claim
-     * @return
+     * @param claim to decrement claimants on
+     * @return new claimaint count
      */
     int decrementClaimantCount(ContentClaim claim);
 
@@ -58,8 +56,8 @@ public interface ContentClaimManager {
      * Increases by 1 the count of how many FlowFiles hold a claim to a
      * particular piece of FlowFile content and returns the new count
      *
-     * @param claim
-     * @return
+     * @param claim to increment claims on
+     * @return new claimant count
      */
     int incrementClaimantCount(ContentClaim claim);
 
@@ -73,9 +71,10 @@ public interface ContentClaimManager {
      * optimize its tasks, knowing that the Content Claim cannot be referenced
      * by any other component
      *
-     * @param claim
-     * @param newClaim
-     * @return
+     * @param claim to increment
+     * @param newClaim provides a hint that no other process can have access to this
+     * claim right now
+     * @return new claim count
      */
     int incrementClaimantCount(ContentClaim claim, boolean newClaim);
 
@@ -105,7 +104,7 @@ public interface ContentClaimManager {
      * unneeded claim. As such, it is now safe to destroy the contents.
      * </p>
      *
-     * @param claim
+     * @param claim to mark as now destructable
      */
     void markDestructable(ContentClaim claim);
 
@@ -114,8 +113,8 @@ public interface ContentClaimManager {
      * of destructable content claims to the given {@code destination} so that
      * they can be destroyed.
      *
-     * @param destination
-     * @param maxElements
+     * @param destination to drain to
+     * @param maxElements max items to drain
      */
     void drainDestructableClaims(Collection<ContentClaim> destination, int maxElements);
 
@@ -128,10 +127,10 @@ public interface ContentClaimManager {
      * ready to be destroyed, the method will return without having added
      * anything to the given {@code destination}.
      *
-     * @param destination
-     * @param maxElements
-     * @param timeout
-     * @param unit
+     * @param destination to drain to
+     * @param maxElements max items to drain
+     * @param timeout maximum time to wait
+     * @param unit unit of time to wait
      */
     void drainDestructableClaims(Collection<ContentClaim> destination, int maxElements, long timeout, TimeUnit unit);
 

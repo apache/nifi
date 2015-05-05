@@ -58,6 +58,7 @@ public class LogAttribute extends AbstractProcessor {
             .description("The Log Level to use when logging the Attributes")
             .allowableValues(DebugLevels.values())
             .defaultValue("info")
+            .expressionLanguageSupported(true)
             .build();
     public static final PropertyDescriptor ATTRIBUTES_TO_LOG_CSV = new PropertyDescriptor.Builder()
             .name("Attributes to Log")
@@ -90,7 +91,10 @@ public class LogAttribute extends AbstractProcessor {
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> supportedDescriptors;
 
-    public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("All FlowFiles are routed to this relationship").build();
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("All FlowFiles are routed to this relationship")
+            .build();
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -202,7 +206,7 @@ public class LogAttribute extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
-        final String logLevelValue = context.getProperty(LOG_LEVEL).getValue().toLowerCase();
+        final String logLevelValue = context.getProperty(LOG_LEVEL).evaluateAttributeExpressions().getValue().toLowerCase();
 
         final DebugLevels logLevel;
         try {

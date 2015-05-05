@@ -81,8 +81,6 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
     private final FlowController controller;
     private final Path flowXml;
-    private final Path taskConfigXml;
-    private final Path serviceConfigXml;
     private final FlowConfigurationDAO dao;
     private final int gracefulShutdownSeconds;
     private final boolean autoResumeState;
@@ -154,14 +152,12 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         this.controller = controller;
         this.encryptor = encryptor;
         flowXml = Paths.get(properties.getProperty(NiFiProperties.FLOW_CONFIGURATION_FILE));
-        taskConfigXml = Paths.get(properties.getProperty(NiFiProperties.TASK_CONFIGURATION_FILE));
-        serviceConfigXml = Paths.get(properties.getProperty(NiFiProperties.SERVICE_CONFIGURATION_FILE));
 
         gracefulShutdownSeconds = (int) FormatUtils.getTimeDuration(properties.getProperty(NiFiProperties.FLOW_CONTROLLER_GRACEFUL_SHUTDOWN_PERIOD), TimeUnit.SECONDS);
         autoResumeState = properties.getAutoResumeState();
         connectionRetryMillis = (int) FormatUtils.getTimeDuration(properties.getClusterManagerFlowRetrievalDelay(), TimeUnit.MILLISECONDS);
 
-        dao = new StandardXMLFlowConfigurationDAO(flowXml, taskConfigXml, serviceConfigXml, encryptor);
+        dao = new StandardXMLFlowConfigurationDAO(flowXml, encryptor);
 
         if (configuredForClustering) {
 
@@ -342,7 +338,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                 case RECONNECTION_REQUEST:
                     // Suspend heartbeats until we've reconnected. Otherwise,
                     // we may send a heartbeat while we are still in the process of
-                    // connecting, which will cause the Cluster Manager to mark us 
+                    // connecting, which will cause the Cluster Manager to mark us
                     // as "Connected," which becomes problematic as the FlowController's lock
                     // may still be held, causing this node to take a long time to respond to requests.
                     controller.suspendHeartbeats();
@@ -393,7 +389,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                 /*
                  * Attempt to connect to the cluster.  If the manager is able to
                  * provide a data flow, then the manager will send a connection
-                 * response.  If the manager was unable to be located, then 
+                 * response.  If the manager was unable to be located, then
                  * the response will be null and we should load the local dataflow
                  * and heartbeat until a manager is located.
                  */
@@ -415,26 +411,23 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                     controller.setConnected(false);
 
                     /*
-                     * Start heartbeating.  Heartbeats will fail because we can't reach 
-                     * the manager, but when we locate the manager, the node will 
-                     * reconnect and establish a connection to the cluster.  The 
-                     * heartbeat is the trigger that will cause the manager to 
+                     * Start heartbeating.  Heartbeats will fail because we can't reach
+                     * the manager, but when we locate the manager, the node will
+                     * reconnect and establish a connection to the cluster.  The
+                     * heartbeat is the trigger that will cause the manager to
                      * issue a reconnect request.
                      */
                     controller.startHeartbeating();
 
-                    // if configured, start all components
-                    if (autoResumeState) {
-                        try {
-                            controller.startDelayed();
-                        } catch (final Exception ex) {
-                            logger.warn("Unable to start all processors due to invalid flow configuration.");
-                            if (logger.isDebugEnabled()) {
-                                logger.warn(StringUtils.EMPTY, ex);
-                            }
+                    // notify controller that flow is initialized
+                    try {
+                        controller.onFlowInitialized(autoResumeState);
+                    } catch (final Exception ex) {
+                        logger.warn("Unable to start all processors due to invalid flow configuration.");
+                        if (logger.isDebugEnabled()) {
+                            logger.warn(StringUtils.EMPTY, ex);
                         }
                     }
-
                 } else {
                     try {
                         loadFromConnectionResponse(response);
@@ -522,7 +515,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
             logger.info("Node reconnected.");
         } catch (final Exception ex) {
-            // disconnect controller 
+            // disconnect controller
             if (controller.isClustered()) {
                 disconnect();
             }
@@ -608,7 +601,6 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         if (firstControllerInitialization) {
             // load the controller services
             logger.debug("Loading controller services");
-            dao.loadControllerServices(controller);
         }
 
         // load the flow
@@ -625,8 +617,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             logger.debug("First controller initialization. Loading reporting tasks and initializing controller.");
 
             // load the controller tasks
-            dao.loadReportingTasks(controller);
-
+//            dao.loadReportingTasks(controller);
             // initialize the flow
             controller.initializeFlow();
 
@@ -646,11 +637,11 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
             // send connection request to cluster manager
             /*
-             * Try to get a current copy of the cluster's dataflow from the manager 
-             * for ten times, sleeping between attempts.  Ten times should be 
+             * Try to get a current copy of the cluster's dataflow from the manager
+             * for ten times, sleeping between attempts.  Ten times should be
              * enough because the manager will register the node as connecting
              * and therefore, no other changes to the cluster flow can occur.
-             * 
+             *
              * However, the manager needs to obtain a current data flow within
              * maxAttempts * tryLaterSeconds or else the node will fail to startup.
              */
@@ -732,9 +723,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             controller.setPrimary(response.isPrimary());
 
             // start the processors as indicated by the dataflow
-            if (dataFlow.isAutoStartProcessors()) {
-                controller.startDelayed();
-            }
+            controller.onFlowInitialized(dataFlow.isAutoStartProcessors());
 
             loadTemplates(dataFlow.getTemplates());
             loadSnippets(dataFlow.getSnippets());
@@ -823,7 +812,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                     writeLock.lock();
                     try {
                         dao.save(controller, holder.shouldArchive);
-                        // Nulling it out if it is still set to our current SaveHolder.  Otherwise leave it alone because it means 
+                        // Nulling it out if it is still set to our current SaveHolder.  Otherwise leave it alone because it means
                         // another save is already pending.
                         final boolean noSavePending = StandardFlowService.this.saveHolder.compareAndSet(holder, null);
                         logger.info("Saved flow controller {} // Another save pending = {}", controller, !noSavePending);

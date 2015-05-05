@@ -14,6 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/* global Slick */
+
 $(document).ready(function () {
     ua.editable = $('#attribute-updater-editable').text() === 'true';
     ua.init();
@@ -43,10 +46,12 @@ var ua = {
         var actionsGrid = ua.initActionsGrid();
 
         // enable grid resizing
-        $(window).resize(function () {
-            conditionsGrid.resizeCanvas();
-            actionsGrid.resizeCanvas();
-            ua.resizeSelectedRuleNameField();
+        $(window).resize(function (e) {
+            if (e.target === window) {
+                conditionsGrid.resizeCanvas();
+                actionsGrid.resizeCanvas();
+                ua.resizeSelectedRuleNameField();
+            }
         });
 
         // initialize the rule list
@@ -289,8 +294,6 @@ var ua = {
                                     type: 'GET',
                                     data: {
                                         processorId: ua.getProcessorId(),
-                                        revision: ua.getRevision(),
-                                        clientId: ua.getClientId(),
                                         q: copyFromRuleName
                                     },
                                     dataType: 'json',
@@ -420,8 +423,6 @@ var ua = {
                     type: 'GET',
                     data: {
                         processorId: ua.getProcessorId(),
-                        revision: ua.getRevision(),
-                        clientId: ua.getClientId(),
                         q: request.term
                     },
                     dataType: 'json',
@@ -1024,8 +1025,6 @@ var ua = {
             type: 'GET',
             url: 'api/criteria/rules?' + $.param({
                 processorId: ua.getProcessorId(),
-                revision: ua.getRevision(),
-                clientId: ua.getClientId(),
                 verbose: true
             })
         }).done(function (response) {
@@ -1051,9 +1050,7 @@ var ua = {
         var evaluationContext = $.ajax({
             type: 'GET',
             url: 'api/criteria/evaluation-context?' + $.param({
-                processorId: ua.getProcessorId(),
-                revision: ua.getRevision(),
-                clientId: ua.getClientId()
+                processorId: ua.getProcessorId()
             })
         }).done(function (evaluationContext) {
             // record the currently selected value
@@ -1100,8 +1097,6 @@ var ua = {
                     type: 'GET',
                     url: 'api/criteria/rules/' + encodeURIComponent(ruleId) + '?' + $.param({
                         processorId: ua.getProcessorId(),
-                        revision: ua.getRevision(),
-                        clientId: ua.getClientId(),
                         verbose: true
                     })
                 }).then(function (response) {

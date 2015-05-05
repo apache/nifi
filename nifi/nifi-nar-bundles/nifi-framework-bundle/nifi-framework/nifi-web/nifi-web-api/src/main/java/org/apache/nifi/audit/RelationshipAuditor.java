@@ -69,23 +69,16 @@ public class RelationshipAuditor extends NiFiAuditor {
     /**
      * Audits the creation of relationships via createConnection().
      *
-     * This method only needs to be run 'after returning'. However, in Java 7
-     * the order in which these methods are returned from
-     * Class.getDeclaredMethods (even though there is no order guaranteed) seems
-     * to differ from Java 6. SpringAOP depends on this ordering to determine
-     * advice precedence. By normalizing all advice into Around advice we can
-     * alleviate this issue.
+     * This method only needs to be run 'after returning'. However, in Java 7 the order in which these methods are returned from Class.getDeclaredMethods (even though there is no order guaranteed)
+     * seems to differ from Java 6. SpringAOP depends on this ordering to determine advice precedence. By normalizing all advice into Around advice we can alleviate this issue.
      *
-     * @param connection
+     * @param proceedingJoinPoint join point
+     * @return connection
+     * @throws java.lang.Throwable ex
      */
-//    @AfterReturning(
-//        pointcut="within(org.apache.nifi.view.dao.ConnectionDAO+) && "
-//            + "execution(org.apache.nifi.view.model.Connection createConnection(org.apache.nifi.api.dto.ConnectionDTO))",
-//        returning="connection"
-//    )
     @Around("within(org.apache.nifi.web.dao.ConnectionDAO+) && "
             + "execution(org.apache.nifi.connectable.Connection createConnection(java.lang.String, org.apache.nifi.web.api.dto.ConnectionDTO))")
-    public Object createConnectionAdvice(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+    public Connection createConnectionAdvice(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         // perform the underlying operation
         Connection connection = (Connection) proceedingJoinPoint.proceed();
 
@@ -104,17 +97,18 @@ public class RelationshipAuditor extends NiFiAuditor {
     /**
      * Audits the creation and removal of relationships via updateConnection().
      *
-     * @param proceedingJoinPoint
-     * @param connectionDTO
-     * @param connectionDAO
-     * @return
-     * @throws Throwable
+     * @param proceedingJoinPoint join point
+     * @param groupId group id
+     * @param connectionDTO dto
+     * @param connectionDAO dao
+     * @return connection
+     * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.ConnectionDAO+) && "
             + "execution(org.apache.nifi.connectable.Connection updateConnection(java.lang.String, org.apache.nifi.web.api.dto.ConnectionDTO)) && "
             + "args(groupId, connectionDTO) && "
             + "target(connectionDAO)")
-    public Object updateConnectionAdvice(ProceedingJoinPoint proceedingJoinPoint, String groupId, ConnectionDTO connectionDTO, ConnectionDAO connectionDAO) throws Throwable {
+    public Connection updateConnectionAdvice(ProceedingJoinPoint proceedingJoinPoint, String groupId, ConnectionDTO connectionDTO, ConnectionDAO connectionDAO) throws Throwable {
         // get the previous configuration
         Connection connection = connectionDAO.getConnection(groupId, connectionDTO.getId());
         Connectable previousDestination = connection.getDestination();
@@ -217,10 +211,11 @@ public class RelationshipAuditor extends NiFiAuditor {
     /**
      * Audits the removal of relationships via deleteConnection().
      *
-     * @param proceedingJoinPoint
-     * @param id
-     * @param connectionDAO
-     * @throws Throwable
+     * @param proceedingJoinPoint join point
+     * @param groupId group id
+     * @param id id
+     * @param connectionDAO dao
+     * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.ConnectionDAO+) && "
             + "execution(void deleteConnection(java.lang.String, java.lang.String)) && "
@@ -250,9 +245,11 @@ public class RelationshipAuditor extends NiFiAuditor {
     /**
      * Creates action details for connect/disconnect actions.
      *
-     * @param connection
-     * @param relationships
-     * @return
+     * @param connection connection
+     * @param source source
+     * @param relationships relationships
+     * @param destination destinations
+     * @return details
      */
     public ConnectDetails createConnectDetails(final Connection connection, final Connectable source, final Collection<Relationship> relationships, final Connectable destination) {
         final Component sourceType = determineConnectableType(source);
@@ -278,12 +275,11 @@ public class RelationshipAuditor extends NiFiAuditor {
     }
 
     /**
-     * Extracts configured settings from the specified connection only if they
-     * have also been specified in the connectionDTO.
+     * Extracts configured settings from the specified connection only if they have also been specified in the connectionDTO.
      *
-     * @param connection
-     * @param connectionDTO
-     * @return
+     * @param connection connection
+     * @param connectionDTO dto
+     * @return properties
      */
     private Map<String, String> extractConfiguredPropertyValues(Connection connection, ConnectionDTO connectionDTO) {
         Map<String, String> values = new HashMap<>();
@@ -314,9 +310,9 @@ public class RelationshipAuditor extends NiFiAuditor {
     /**
      * Generates the audit records for the specified connection.
      *
-     * @param connection
-     * @param operation
-     * @return
+     * @param connection connection
+     * @param operation operation
+     * @return action
      */
     public Action generateAuditRecordForConnection(Connection connection, Operation operation) {
         return generateAuditRecordForConnection(connection, operation, null);
@@ -325,9 +321,10 @@ public class RelationshipAuditor extends NiFiAuditor {
     /**
      * Generates the audit records for the specified connection.
      *
-     * @param connection
-     * @param operation
-     * @return
+     * @param connection connection
+     * @param operation operation
+     * @param actionDetails details
+     * @return action
      */
     public Action generateAuditRecordForConnection(Connection connection, Operation operation, ActionDetails actionDetails) {
         Action action = null;
@@ -372,9 +369,6 @@ public class RelationshipAuditor extends NiFiAuditor {
 
     /**
      * Determines the type of component the specified connectable is.
-     *
-     * @param connectable
-     * @return
      */
     private Component determineConnectableType(Connectable connectable) {
         String sourceId = connectable.getIdentifier();

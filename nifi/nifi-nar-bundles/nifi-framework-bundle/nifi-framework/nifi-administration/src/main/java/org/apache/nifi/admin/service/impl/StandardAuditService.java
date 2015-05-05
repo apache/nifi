@@ -81,7 +81,7 @@ public class StandardAuditService implements AuditService {
     }
 
     @Override
-    public Map<String, List<PreviousValue>> getPreviousValues(String processorId) {
+    public Map<String, List<PreviousValue>> getPreviousValues(String componentId) {
         Transaction transaction = null;
         Map<String, List<PreviousValue>> previousValues = null;
 
@@ -91,7 +91,7 @@ public class StandardAuditService implements AuditService {
             transaction = transactionBuilder.start();
 
             // seed the accounts
-            GetPreviousValues getActions = new GetPreviousValues(processorId);
+            GetPreviousValues getActions = new GetPreviousValues(componentId);
             previousValues = transaction.execute(getActions);
 
             // commit the transaction
@@ -197,22 +197,12 @@ public class StandardAuditService implements AuditService {
         }
     }
 
-    /**
-     * Rolls back the specified transaction.
-     *
-     * @param transaction
-     */
     private void rollback(Transaction transaction) {
         if (transaction != null) {
             transaction.rollback();
         }
     }
 
-    /**
-     * Closes the specified transaction.
-     *
-     * @param transaction
-     */
     private void closeQuietly(final Transaction transaction) {
         if (transaction != null) {
             try {
@@ -222,7 +212,6 @@ public class StandardAuditService implements AuditService {
         }
     }
 
-    /* setters */
     public void setTransactionBuilder(TransactionBuilder transactionBuilder) {
         this.transactionBuilder = transactionBuilder;
     }

@@ -22,9 +22,7 @@ import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
 /**
- * A bulletin that represents a notification about a passing event including,
- * the source component (if applicable), the timestamp, the message, and where
- * the bulletin originated (if applicable).
+ * A bulletin that represents a notification about a passing event including, the source component (if applicable), the timestamp, the message, and where the bulletin originated (if applicable).
  */
 @XmlType(name = "bulletin")
 public class BulletinDTO {
@@ -40,9 +38,7 @@ public class BulletinDTO {
     private Date timestamp;
 
     /**
-     * The id of this message.
-     *
-     * @return
+     * @return id of this message
      */
     public Long getId() {
         return id;
@@ -53,10 +49,7 @@ public class BulletinDTO {
     }
 
     /**
-     * When clustered, the address of the node from which this bulletin
-     * originated.
-     *
-     * @return
+     * @return When clustered, the address of the node from which this bulletin originated
      */
     public String getNodeAddress() {
         return nodeAddress;
@@ -67,9 +60,7 @@ public class BulletinDTO {
     }
 
     /**
-     * The group id of the source component.
-     *
-     * @return
+     * @return group id of the source component
      */
     public String getGroupId() {
         return groupId;
@@ -80,9 +71,7 @@ public class BulletinDTO {
     }
 
     /**
-     * The category of this message.
-     *
-     * @return
+     * @return category of this message
      */
     public String getCategory() {
         return category;
@@ -93,9 +82,7 @@ public class BulletinDTO {
     }
 
     /**
-     * The actual message.
-     *
-     * @return
+     * @return actual message
      */
     public String getMessage() {
         return message;
@@ -106,9 +93,7 @@ public class BulletinDTO {
     }
 
     /**
-     * The id of the source of this message.
-     *
-     * @return
+     * @return id of the source of this message
      */
     public String getSourceId() {
         return sourceId;
@@ -119,9 +104,7 @@ public class BulletinDTO {
     }
 
     /**
-     * The name of the source of this message.
-     *
-     * @return
+     * @return name of the source of this message
      */
     public String getSourceName() {
         return sourceName;
@@ -132,9 +115,7 @@ public class BulletinDTO {
     }
 
     /**
-     * The level of this bulletin.
-     *
-     * @return
+     * @return level of this bulletin
      */
     public String getLevel() {
         return level;
@@ -145,9 +126,7 @@ public class BulletinDTO {
     }
 
     /**
-     * When this bulletin was generated as a formatted string.
-     *
-     * @return
+     * @return When this bulletin was generated as a formatted string
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
     public Date getTimestamp() {

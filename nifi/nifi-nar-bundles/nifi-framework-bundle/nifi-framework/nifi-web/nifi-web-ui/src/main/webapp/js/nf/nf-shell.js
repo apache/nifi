@@ -14,6 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+/* global nf */
+
 $(document).ready(function () {
     // configure the dialog
     $('#shell-dialog').modal({

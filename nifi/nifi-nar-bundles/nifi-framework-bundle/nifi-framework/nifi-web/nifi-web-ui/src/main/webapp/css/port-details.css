@@ -23,7 +23,6 @@
     display: none;
     width: 400px;
     height: 300px;
-    border: 1px solid #eee;
 }
 
 /*
@@ -35,7 +34,6 @@
     display: none;
     height: 425px;
     width: 400px;
-    border: 1px solid #eee;
 }
 
 #secure-port-details-tabs {

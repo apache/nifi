@@ -20,8 +20,7 @@ import java.util.Set;
 import javax.xml.bind.annotation.XmlType;
 
 /**
- * Class used for providing documentation of a specified type that may be
- * instantiated.
+ * Class used for providing documentation of a specified type.
  */
 @XmlType(name = "documentedType")
 public class DocumentedTypeDTO {
@@ -31,9 +30,7 @@ public class DocumentedTypeDTO {
     private Set<String> tags;
 
     /**
-     * An optional description of the corresponding type.
-     *
-     * @return
+     * @return An optional description of the corresponding type
      */
     public String getDescription() {
         return description;
@@ -44,9 +41,7 @@ public class DocumentedTypeDTO {
     }
 
     /**
-     * The type is the fully-qualified name of a Java class.
-     *
-     * @return
+     * @return The type is the fully-qualified name of a Java class
      */
     public String getType() {
         return type;
@@ -57,9 +52,7 @@ public class DocumentedTypeDTO {
     }
 
     /**
-     * The tags associated with this type
-     *
-     * @return
+     * @return The tags associated with this type
      */
     public Set<String> getTags() {
         return tags;
@@ -68,4 +61,5 @@ public class DocumentedTypeDTO {
     public void setTags(final Set<String> tags) {
         this.tags = tags;
     }
+
 }

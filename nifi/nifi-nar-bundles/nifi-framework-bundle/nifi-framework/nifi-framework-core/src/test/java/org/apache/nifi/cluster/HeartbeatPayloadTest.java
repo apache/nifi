@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.cluster;
 
-import org.apache.nifi.cluster.HeartbeatPayload;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
@@ -25,7 +24,8 @@ import org.apache.nifi.controller.Counter;
 import org.apache.nifi.controller.StandardCounter;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
 import org.apache.nifi.util.NiFiProperties;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;

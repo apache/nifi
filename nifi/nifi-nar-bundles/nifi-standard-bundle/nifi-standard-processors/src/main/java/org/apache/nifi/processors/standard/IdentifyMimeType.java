@@ -23,6 +23,12 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.apache.nifi.annotation.behavior.EventDriven;
+import org.apache.nifi.annotation.behavior.SideEffectFree;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ProcessorLog;
@@ -31,11 +37,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.behavior.EventDriven;
-import org.apache.nifi.annotation.behavior.SideEffectFree;
-import org.apache.nifi.annotation.behavior.SupportsBatching;
-import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.util.ObjectHolder;
 import org.apache.tika.config.TikaConfig;
@@ -48,14 +49,12 @@ import org.apache.tika.mime.MimeTypeException;
 
 /**
  * <p>
- * Attempts to detect the MIME Type of a FlowFile by examining its contents. If
- * the MIME Type is determined, it is added to an attribute with the name
- * mime.type. In addition, mime.extension is set if a common file extension is known.
+ * Attempts to detect the MIME Type of a FlowFile by examining its contents. If the MIME Type is determined, it is added to an attribute with the name mime.type. In addition, mime.extension is set if
+ * a common file extension is known.
  * </p>
  *
  * <p>
- * MIME Type detection is performed by Apache Tika; more information about
- * detection is available at http://tika.apache.org.
+ * MIME Type detection is performed by Apache Tika; more information about detection is available at http://tika.apache.org.
  *
  * <ul>
  * <li>application/flowfile-v3</li>
@@ -71,9 +70,14 @@ import org.apache.tika.mime.MimeTypeException;
         + "an attribute with the name 'mime.type' is added with the value being the MIME Type. If the MIME Type cannot be determined, "
         + "the value will be set to 'application/octet-stream'. In addition, the attribute mime.extension will be set if a common file "
         + "extension for the MIME Type is known.")
+@WritesAttribute(attribute = "mime.type", description = "This Processor sets the FlowFile's mime.type attribute to the detected MIME Type. "
+        + "If unable to detect the MIME Type, the attribute's value will be set to application/octet-stream")
 public class IdentifyMimeType extends AbstractProcessor {
 
-    public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("All FlowFiles are routed to success").build();
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("All FlowFiles are routed to success")
+            .build();
 
     public static final MediaType FLOWFILE_V1 = new MediaType("application", "flowfile-v1");
     public static final MediaType FLOWFILE_V3 = new MediaType("application", "flowfile-v3");

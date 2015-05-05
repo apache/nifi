@@ -62,21 +62,12 @@ import org.wali.WriteAheadRepository;
  * </p>
  *
  * <p>
- * We expose a property named <code>nifi.flowfile.repository.always.sync</code>
- * that is a boolean value indicating whether or not to force WALI to sync with
- * disk on each update. By default, the value is <code>false</code>. This is
- * needed only in situations in which power loss is expected and not mitigated
- * by Uninterruptable Power Sources (UPS) or when running in an unstable Virtual
- * Machine for instance. Otherwise, we will flush the data that is written to
- * the Operating System and the Operating System will be responsible to flush
- * its buffers when appropriate. The Operating System can be configured to hold
- * only a certain buffer size or not to buffer at all, as well. When using a
- * UPS, this is generally not an issue, as the machine is typically notified
- * before dying, in which case the Operating System will flush the data to disk.
- * Additionally, most disks on enterprise servers also have battery backups that
- * can power the disks long enough to flush their buffers. For this reason, we
- * choose instead to not sync to disk for every write but instead sync only when
- * we checkpoint.
+ * We expose a property named <code>nifi.flowfile.repository.always.sync</code> that is a boolean value indicating whether or not to force WALI to sync with disk on each update. By default, the value
+ * is <code>false</code>. This is needed only in situations in which power loss is expected and not mitigated by Uninterruptable Power Sources (UPS) or when running in an unstable Virtual Machine for
+ * instance. Otherwise, we will flush the data that is written to the Operating System and the Operating System will be responsible to flush its buffers when appropriate. The Operating System can be
+ * configured to hold only a certain buffer size or not to buffer at all, as well. When using a UPS, this is generally not an issue, as the machine is typically notified before dying, in which case
+ * the Operating System will flush the data to disk. Additionally, most disks on enterprise servers also have battery backups that can power the disks long enough to flush their buffers. For this
+ * reason, we choose instead to not sync to disk for every write but instead sync only when we checkpoint.
  * </p>
  */
 public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncListener {
@@ -102,7 +93,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     // synced with disk.
     //
     // This is required due to the following scenario, which could exist if we did not do this:
-    // 
+    //
     // A Processor modifies a FlowFile (whose content is in ContentClaim A), writing the new content to ContentClaim B.
     // The processor removes ContentClaim A, which deletes the backing file.
     // The FlowFile Repository writes out this change but has not yet synced the update to disk.
@@ -112,12 +103,12 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     // ContentClaim A does not exist anymore because the Session Commit destroyed the data.
     // This results in Data Loss!
     // However, the comment in the class's JavaDocs regarding sync'ing should also be considered.
-    // 
+    //
     // In order to avoid this, instead of destroying ContentClaim A, the ProcessSession puts the claim on the Claim Destruction Queue.
     // We periodically force a sync of the FlowFile Repository to the backing storage mechanism.
     // We can then destroy the data. If we end up syncing the FlowFile Repository to the backing storage mechanism and then restart
     // before the data is destroyed, it's okay because the data will be unknown to the Content Repository, so it will be destroyed
-    // on restart. 
+    // on restart.
     private final ConcurrentMap<Integer, BlockingQueue<ContentClaim>> claimsAwaitingDestruction = new ConcurrentHashMap<>();
 
     public WriteAheadFlowFileRepository() {
@@ -129,7 +120,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         flowFileRepositoryPath = properties.getFlowFileRepositoryPath();
         numPartitions = properties.getFlowFileRepositoryPartitions();
         checkpointDelayMillis = FormatUtils.getTimeDuration(properties.getFlowFileRepositoryCheckpointInterval(), TimeUnit.MILLISECONDS);
-        
+
         checkpointExecutor = Executors.newSingleThreadScheduledExecutor();
     }
 
@@ -263,13 +254,11 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     }
 
     /**
-     * Swaps the FlowFiles that live on the given Connection out to disk, using
-     * the specified Swap File and returns the number of FlowFiles that were
-     * persisted.
+     * Swaps the FlowFiles that live on the given Connection out to disk, using the specified Swap File and returns the number of FlowFiles that were persisted.
      *
-     * @param queue
-     * @param swapLocation
-     * @throws IOException
+     * @param queue queue to swap out
+     * @param swapLocation location to swap to
+     * @throws IOException ioe
      */
     @Override
     public void swapFlowFilesOut(final List<FlowFileRecord> swappedOut, final FlowFileQueue queue, final String swapLocation) throws IOException {
@@ -289,14 +278,6 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         logger.info("Successfully swapped out {} FlowFiles from {} to Swap File {}", new Object[]{swappedOut.size(), queue, swapLocation});
     }
 
-    /**
-     * Swaps FlowFiles into memory space from the given Swap File
-     *
-     * @param swapLocation
-     * @param swapRecords
-     * @param queue
-     * @throws IOException
-     */
     @Override
     public void swapFlowFilesIn(final String swapLocation, final List<FlowFileRecord> swapRecords, final FlowFileQueue queue) throws IOException {
         final List<RepositoryRecord> repoRecords = new ArrayList<>();

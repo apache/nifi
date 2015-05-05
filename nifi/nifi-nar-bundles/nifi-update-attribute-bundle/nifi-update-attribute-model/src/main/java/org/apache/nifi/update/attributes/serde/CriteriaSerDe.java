@@ -73,8 +73,8 @@ public class CriteriaSerDe {
     /**
      * Serializes the specified criteria.
      *
-     * @param criteria
-     * @return
+     * @param criteria to serialize
+     * @return the string representation of the given criteria
      */
     public static String serialize(final Criteria criteria) {
         final StringWriter writer = new StringWriter();
@@ -101,8 +101,8 @@ public class CriteriaSerDe {
     /**
      * Deserializes the specified criteria.
      *
-     * @param string
-     * @return
+     * @param string the string representation of the criteria
+     * @return the criteria object
      */
     public static Criteria deserialize(final String string) {
         Criteria criteria = null;

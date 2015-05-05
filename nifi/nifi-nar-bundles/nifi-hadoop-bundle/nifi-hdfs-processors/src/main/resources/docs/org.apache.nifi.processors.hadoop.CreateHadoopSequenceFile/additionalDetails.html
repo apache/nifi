@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8" />
+        <title>CreateHadoopSequenceFile</title>
+
+        <link rel="stylesheet" href="../../css/component-usage.css" type="text/css" />
+    </head>
+
+    <body>
+        <!-- Processor Documentation ================================================== -->
+        <h2>Description:</h2>
+        <p>This processor is used to create a Hadoop Sequence File, which essentially is a file of key/value pairs. The key 
+            will be a file name and the value will be the flow file content. The processor will take either a merged (a.k.a. packaged) flow 
+            file or a singular flow file. Historically, this processor handled the merging by type and size or time prior to creating a 
+            SequenceFile output; it no longer does this. If creating a SequenceFile that contains multiple files of the same type is desired,
+            precede this processor with a <code>RouteOnAttribute</code> processor to segregate files of the same type and follow that with a
+            <code>MergeContent</code> processor to bundle up files. If the type of files is not important, just use the 
+            <code>MergeContent</code> processor. When using the <code>MergeContent</code> processor, the following Merge Formats are 
+            supported by this processor:
+        <ul>
+            <li>TAR</li>
+            <li>ZIP</li>
+            <li>FlowFileStream v3</li>
+        </ul>
+        The created SequenceFile is named the same as the incoming FlowFile with the suffix '.sf'. For incoming FlowFiles that are 
+        bundled, the keys in the SequenceFile are the individual file names, the values are the contents of each file.
+    </p>
+    NOTE: The value portion of a key/value pair is loaded into memory. While there is a max size limit of 2GB, this could cause memory
+    issues if there are too many concurrent tasks and the flow file sizes are large.
+</body>
+</html>

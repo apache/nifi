@@ -20,8 +20,7 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 /**
- * Parameter class that auto [ap|pre]pends '.*' to the specified pattern to make
- * user input more user friendly.
+ * Parameter class that auto [ap|pre]pends '.*' to the specified pattern to make user input more user friendly.
  */
 public class BulletinBoardPatternParameter {
 

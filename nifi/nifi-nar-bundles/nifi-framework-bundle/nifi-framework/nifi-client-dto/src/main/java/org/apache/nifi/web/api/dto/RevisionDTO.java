@@ -26,14 +26,12 @@ public class RevisionDTO {
 
     private String clientId;
     private Long version;
+    private String lastModifier;
 
     /* getters / setters */
     /**
-     * A client identifier used to make a request. By including a client
-     * identifier, the API can allow multiple requests without needing the
-     * current revision. Due to the asynchronous nature of requests/responses
-     * this was implemented to allow the client to make numerous requests
-     * without having to wait for the previous response to come back.
+     * A client identifier used to make a request. By including a client identifier, the API can allow multiple requests without needing the current revision. Due to the asynchronous nature of
+     * requests/responses this was implemented to allow the client to make numerous requests without having to wait for the previous response to come back.
      *
      * @return The client id
      */
@@ -46,9 +44,7 @@ public class RevisionDTO {
     }
 
     /**
-     * NiFi employs an optimistic locking strategy where the client must include
-     * a revision in their request when performing an update. In a response,
-     * this field represents the updated base version.
+     * NiFi employs an optimistic locking strategy where the client must include a revision in their request when performing an update. In a response, this field represents the updated base version.
      *
      * @return The revision
      */
@@ -58,6 +54,17 @@ public class RevisionDTO {
 
     public void setVersion(Long version) {
         this.version = version;
+    }
+
+    /**
+     * @return The user that last modified the flow
+     */
+    public String getLastModifier() {
+        return lastModifier;
+    }
+
+    public void setLastModifier(String lastModifier) {
+        this.lastModifier = lastModifier;
     }
 
 }

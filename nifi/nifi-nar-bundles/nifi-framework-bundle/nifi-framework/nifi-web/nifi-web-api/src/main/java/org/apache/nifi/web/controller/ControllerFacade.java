@@ -52,8 +52,6 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.repository.ContentNotFoundException;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
-import org.apache.nifi.controller.service.ControllerServiceNode;
-import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
@@ -79,11 +77,11 @@ import org.apache.nifi.provenance.search.SearchableField;
 import org.apache.nifi.remote.RootGroupPort;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinRepository;
+import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.search.SearchContext;
 import org.apache.nifi.search.SearchResult;
 import org.apache.nifi.search.Searchable;
-import org.apache.nifi.web.security.user.NiFiUserUtils;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.user.NiFiUser;
 import org.apache.nifi.util.FormatUtils;
@@ -108,20 +106,19 @@ import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
 import org.apache.nifi.web.api.dto.status.ControllerStatusDTO;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
-import org.apache.nifi.web.util.DownloadableContent;
+import org.apache.nifi.web.DownloadableContent;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.admin.service.UserService;
 import org.apache.nifi.authorization.DownloadAuthorization;
 import org.apache.nifi.processor.DataUnit;
+import org.apache.nifi.web.security.user.NiFiUserUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
 
-/**
- *
- */
-public class ControllerFacade implements ControllerServiceProvider {
+public class ControllerFacade {
 
     private static final Logger logger = LoggerFactory.getLogger(ControllerFacade.class);
 
@@ -144,8 +141,8 @@ public class ControllerFacade implements ControllerServiceProvider {
     /**
      * Returns the group id that contains the specified processor.
      *
-     * @param processorId
-     * @return
+     * @param processorId processor id
+     * @return group id
      */
     public String findProcessGroupIdForProcessor(String processorId) {
         final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
@@ -160,7 +157,7 @@ public class ControllerFacade implements ControllerServiceProvider {
     /**
      * Sets the name of this controller.
      *
-     * @param name
+     * @param name name
      */
     public void setName(String name) {
         flowController.setName(name);
@@ -169,7 +166,7 @@ public class ControllerFacade implements ControllerServiceProvider {
     /**
      * Sets the comments of this controller.
      *
-     * @param comments
+     * @param comments comments
      */
     public void setComments(String comments) {
         flowController.setComments(comments);
@@ -178,7 +175,7 @@ public class ControllerFacade implements ControllerServiceProvider {
     /**
      * Sets the max timer driven thread count of this controller.
      *
-     * @param maxTimerDrivenThreadCount
+     * @param maxTimerDrivenThreadCount count
      */
     public void setMaxTimerDrivenThreadCount(int maxTimerDrivenThreadCount) {
         flowController.setMaxTimerDrivenThreadCount(maxTimerDrivenThreadCount);
@@ -187,7 +184,7 @@ public class ControllerFacade implements ControllerServiceProvider {
     /**
      * Sets the max event driven thread count of this controller.
      *
-     * @param maxEventDrivenThreadCount
+     * @param maxEventDrivenThreadCount count
      */
     public void setMaxEventDrivenThreadCount(int maxEventDrivenThreadCount) {
         flowController.setMaxEventDrivenThreadCount(maxEventDrivenThreadCount);
@@ -196,7 +193,7 @@ public class ControllerFacade implements ControllerServiceProvider {
     /**
      * Gets the root group id.
      *
-     * @return
+     * @return group id
      */
     public String getRootGroupId() {
         return flowController.getRootGroupId();
@@ -205,7 +202,7 @@ public class ControllerFacade implements ControllerServiceProvider {
     /**
      * Gets the input ports on the root group.
      *
-     * @return
+     * @return input ports
      */
     public Set<RootGroupPort> getInputPorts() {
         final Set<RootGroupPort> inputPorts = new HashSet<>();
@@ -221,7 +218,7 @@ public class ControllerFacade implements ControllerServiceProvider {
     /**
      * Gets the output ports on the root group.
      *
-     * @return
+     * @return output ports
      */
     public Set<RootGroupPort> getOutputPorts() {
         final Set<RootGroupPort> outputPorts = new HashSet<>();
@@ -237,9 +234,9 @@ public class ControllerFacade implements ControllerServiceProvider {
     /**
      * Returns the status history for the specified processor.
      *
-     * @param groupId
-     * @param processorId
-     * @return
+     * @param groupId group id
+     * @param processorId processor id
+     * @return status history
      */
     public StatusHistoryDTO getProcessorStatusHistory(final String groupId, final String processorId) {
         return flowController.getProcessorStatusHistory(processorId);
@@ -248,9 +245,9 @@ public class ControllerFacade implements ControllerServiceProvider {
     /**
      * Returns the status history for the specified connection.
      *
-     * @param groupId
-     * @param connectionId
-     * @return
+     * @param groupId group id
+     * @param connectionId connection id
+     * @return status history
      */
     public StatusHistoryDTO getConnectionStatusHistory(final String groupId, final String connectionId) {
         return flowController.getConnectionStatusHistory(connectionId);
@@ -259,8 +256,8 @@ public class ControllerFacade implements ControllerServiceProvider {
     /**
      * Returns the status history for the specified process group.
      *
-     * @param groupId
-     * @return
+     * @param groupId group id
+     * @return status history
      */
     public StatusHistoryDTO getProcessGroupStatusHistory(final String groupId) {
         return flowController.getProcessGroupStatusHistory(groupId);
@@ -269,9 +266,9 @@ public class ControllerFacade implements ControllerServiceProvider {
     /**
      * Returns the status history for the specified remote process group.
      *
-     * @param groupId
-     * @param remoteProcessGroupId
-     * @return
+     * @param groupId group id
+     * @param remoteProcessGroupId remote process group id
+     * @return status history
      */
     public StatusHistoryDTO getRemoteProcessGroupStatusHistory(final String groupId, final String remoteProcessGroupId) {
         return flowController.getRemoteProcessGroupStatusHistory(remoteProcessGroupId);
@@ -280,12 +277,15 @@ public class ControllerFacade implements ControllerServiceProvider {
     /**
      * Get the node id of this controller.
      *
-     * @return
+     * @return node identifier
      */
     public NodeIdentifier getNodeId() {
         return flowController.getNodeId();
     }
 
+    /**
+     * @return true if is clustered
+     */
     public boolean isClustered() {
         return flowController.isClustered();
     }
@@ -293,7 +293,7 @@ public class ControllerFacade implements ControllerServiceProvider {
     /**
      * Gets the name of this controller.
      *
-     * @return
+     * @return name
      */
     public String getName() {
         return flowController.getName();
@@ -306,7 +306,7 @@ public class ControllerFacade implements ControllerServiceProvider {
     /**
      * Gets the comments of this controller.
      *
-     * @return
+     * @return comments
      */
     public String getComments() {
         return flowController.getComments();
@@ -315,7 +315,7 @@ public class ControllerFacade implements ControllerServiceProvider {
     /**
      * Gets the max timer driven thread count of this controller.
      *
-     * @return
+     * @return count
      */
     public int getMaxTimerDrivenThreadCount() {
         return flowController.getMaxTimerDrivenThreadCount();
@@ -324,7 +324,7 @@ public class ControllerFacade implements ControllerServiceProvider {
     /**
      * Gets the max event driven thread count of this controller.
      *
-     * @return
+     * @return count
      */
     public int getMaxEventDrivenThreadCount() {
         return flowController.getMaxEventDrivenThreadCount();
@@ -333,7 +333,7 @@ public class ControllerFacade implements ControllerServiceProvider {
     /**
      * Gets the FlowFileProcessor types that this controller supports.
      *
-     * @return
+     * @return types
      */
     public Set<DocumentedTypeDTO> getFlowFileProcessorTypes() {
         return dtoFactory.fromDocumentedTypes(ExtensionManager.getExtensions(Processor.class));
@@ -342,16 +342,70 @@ public class ControllerFacade implements ControllerServiceProvider {
     /**
      * Gets the FlowFileComparator types that this controller supports.
      *
-     * @return
+     * @return the FlowFileComparator types that this controller supports
      */
     public Set<DocumentedTypeDTO> getFlowFileComparatorTypes() {
         return dtoFactory.fromDocumentedTypes(ExtensionManager.getExtensions(FlowFilePrioritizer.class));
     }
 
     /**
+     * Returns whether the specified type implements the specified serviceType.
+     *
+     * @param serviceType type
+     * @param type type
+     * @return whether the specified type implements the specified serviceType
+     */
+    private boolean implementsServiceType(final String serviceType, final Class type) {
+        final List<Class<?>> interfaces = ClassUtils.getAllInterfaces(type);
+        for (final Class i : interfaces) {
+            if (ControllerService.class.isAssignableFrom(i) && i.getName().equals(serviceType)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Gets the ControllerService types that this controller supports.
+     *
+     * @param serviceType type
+     * @return the ControllerService types that this controller supports
+     */
+    public Set<DocumentedTypeDTO> getControllerServiceTypes(final String serviceType) {
+        final Set<Class> serviceImplementations = ExtensionManager.getExtensions(ControllerService.class);
+
+        // identify the controller services that implement the specified serviceType if applicable
+        final Set<Class> matchingServiceImplementions;
+        if (serviceType != null) {
+            matchingServiceImplementions = new HashSet<>();
+
+            // check each type and remove those that aren't in the specified ancestry
+            for (final Class type : serviceImplementations) {
+                if (implementsServiceType(serviceType, type)) {
+                    matchingServiceImplementions.add(type);
+                }
+            }
+        } else {
+            matchingServiceImplementions = serviceImplementations;
+        }
+
+        return dtoFactory.fromDocumentedTypes(matchingServiceImplementions);
+    }
+
+    /**
+     * Gets the ReportingTask types that this controller supports.
+     *
+     * @return the ReportingTask types that this controller supports
+     */
+    public Set<DocumentedTypeDTO> getReportingTaskTypes() {
+        return dtoFactory.fromDocumentedTypes(ExtensionManager.getExtensions(ReportingTask.class));
+    }
+
+    /**
      * Gets the counters for this controller.
      *
-     * @return
+     * @return the counters for this controller
      */
     public List<Counter> getCounters() {
         return flowController.getCounters();
@@ -359,8 +413,9 @@ public class ControllerFacade implements ControllerServiceProvider {
 
     /**
      * Resets the counter with the specified id.
-     * @param id
-     * @return 
+     *
+     * @param id id
+     * @return the counter with the specified id
      */
     public Counter resetCounter(final String id) {
         final Counter counter = flowController.resetCounter(id);
@@ -373,59 +428,9 @@ public class ControllerFacade implements ControllerServiceProvider {
     }
 
     /**
-     * Return the controller service for the specified identifier.
-     *
-     * @param serviceIdentifier
-     * @return
-     */
-    @Override
-    public ControllerService getControllerService(String serviceIdentifier) {
-        return flowController.getControllerService(serviceIdentifier);
-    }
-
-    @Override
-    public ControllerServiceNode createControllerService(String type, String id, boolean firstTimeAdded) {
-        return flowController.createControllerService(type, id, firstTimeAdded);
-    }
-    
-    public void removeControllerService(ControllerServiceNode serviceNode) {
-        flowController.removeControllerService(serviceNode);
-    }
-
-    @Override
-    public Set<String> getControllerServiceIdentifiers(Class<? extends ControllerService> serviceType) {
-        return flowController.getControllerServiceIdentifiers(serviceType);
-    }
-
-    @Override
-    public ControllerServiceNode getControllerServiceNode(final String id) {
-        return flowController.getControllerServiceNode(id);
-    }
-
-    @Override
-    public boolean isControllerServiceEnabled(final ControllerService service) {
-        return flowController.isControllerServiceEnabled(service);
-    }
-
-    @Override
-    public boolean isControllerServiceEnabled(final String serviceIdentifier) {
-        return flowController.isControllerServiceEnabled(serviceIdentifier);
-    }
-
-    @Override
-    public void enableControllerService(final ControllerServiceNode serviceNode) {
-        flowController.enableControllerService(serviceNode);
-    }
-    
-    @Override
-    public void disableControllerService(ControllerServiceNode serviceNode) {
-        flowController.disableControllerService(serviceNode);
-    }
-    
-    /**
      * Gets the status of this controller.
      *
-     * @return
+     * @return the status of this controller
      */
     public ControllerStatusDTO getControllerStatus() {
         final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
@@ -457,8 +462,8 @@ public class ControllerFacade implements ControllerServiceProvider {
     /**
      * Gets the status for the specified process group.
      *
-     * @param groupId
-     * @return
+     * @param groupId group id
+     * @return the status for the specified process group
      */
     public ProcessGroupStatusDTO getProcessGroupStatus(final String groupId) {
         final ProcessGroupStatus processGroupStatus = flowController.getGroupStatus(groupId);
@@ -471,7 +476,7 @@ public class ControllerFacade implements ControllerServiceProvider {
     /**
      * Gets the BulletinRepository.
      *
-     * @return
+     * @return the BulletinRepository
      */
     public BulletinRepository getBulletinRepository() {
         return flowController.getBulletinRepository();
@@ -480,7 +485,7 @@ public class ControllerFacade implements ControllerServiceProvider {
     /**
      * Saves the state of the flow controller.
      *
-     * @throws NiFiCoreException
+     * @throws NiFiCoreException ex
      */
     public void save() throws NiFiCoreException {
         // save the flow controller
@@ -489,40 +494,36 @@ public class ControllerFacade implements ControllerServiceProvider {
     }
 
     /**
-     * Returns the socket port that the Cluster Manager is listening on for
-     * Site-to-Site communications
+     * Returns the socket port that the Cluster Manager is listening on for Site-to-Site communications
      *
-     * @return
+     * @return the socket port that the Cluster Manager is listening on for Site-to-Site communications
      */
     public Integer getClusterManagerRemoteSiteListeningPort() {
         return flowController.getClusterManagerRemoteSiteListeningPort();
     }
 
     /**
-     * Indicates whether or not Site-to-Site communications with the Cluster
-     * Manager are secure
+     * Indicates whether or not Site-to-Site communications with the Cluster Manager are secure
      *
-     * @return
+     * @return whether or not Site-to-Site communications with the Cluster Manager are secure
      */
     public Boolean isClusterManagerRemoteSiteCommsSecure() {
         return flowController.isClusterManagerRemoteSiteCommsSecure();
     }
 
     /**
-     * Returns the socket port that the local instance is listening on for
-     * Site-to-Site communications
+     * Returns the socket port that the local instance is listening on for Site-to-Site communications
      *
-     * @return
+     * @return the socket port that the local instance is listening on for Site-to-Site communications
      */
     public Integer getRemoteSiteListeningPort() {
         return flowController.getRemoteSiteListeningPort();
     }
 
     /**
-     * Indicates whether or not Site-to-Site communications with the local
-     * instance are secure
+     * Indicates whether or not Site-to-Site communications with the local instance are secure
      *
-     * @return
+     * @return whether or not Site-to-Site communications with the local instance are secure
      */
     public Boolean isRemoteSiteCommsSecure() {
         return flowController.isRemoteSiteCommsSecure();
@@ -531,7 +532,7 @@ public class ControllerFacade implements ControllerServiceProvider {
     /**
      * Returns a SystemDiagnostics that describes the current state of the node
      *
-     * @return
+     * @return a SystemDiagnostics that describes the current state of the node
      */
     public SystemDiagnostics getSystemDiagnostics() {
         return flowController.getSystemDiagnostics();
@@ -540,7 +541,7 @@ public class ControllerFacade implements ControllerServiceProvider {
     /**
      * Gets the available options for searching provenance.
      *
-     * @return
+     * @return the available options for searching provenance
      */
     public ProvenanceOptionsDTO getProvenanceSearchOptions() {
         final ProvenanceEventRepository provenanceRepository = flowController.getProvenanceRepository();
@@ -573,8 +574,8 @@ public class ControllerFacade implements ControllerServiceProvider {
     /**
      * Submits a provenance query.
      *
-     * @param provenanceDto
-     * @return
+     * @param provenanceDto dto
+     * @return provenance info
      */
     public ProvenanceDTO submitProvenance(ProvenanceDTO provenanceDto) {
         final ProvenanceRequestDTO requestDto = provenanceDto.getRequest();
@@ -627,8 +628,8 @@ public class ControllerFacade implements ControllerServiceProvider {
     /**
      * Retrieves the results of a provenance query.
      *
-     * @param provenanceId
-     * @return
+     * @param provenanceId id
+     * @return the results of a provenance query
      */
     public ProvenanceDTO getProvenanceQuery(String provenanceId) {
         try {
@@ -712,8 +713,8 @@ public class ControllerFacade implements ControllerServiceProvider {
     /**
      * Submits the specified lineage request.
      *
-     * @param lineageDto
-     * @return
+     * @param lineageDto dto
+     * @return updated lineage
      */
     public LineageDTO submitLineage(LineageDTO lineageDto) {
         final LineageRequestDTO requestDto = lineageDto.getRequest();
@@ -741,8 +742,8 @@ public class ControllerFacade implements ControllerServiceProvider {
     /**
      * Gets the lineage with the specified id.
      *
-     * @param lineageId
-     * @return
+     * @param lineageId id
+     * @return the lineage with the specified id
      */
     public LineageDTO getLineage(final String lineageId) {
         // get the query to the provenance repository
@@ -760,7 +761,7 @@ public class ControllerFacade implements ControllerServiceProvider {
     /**
      * Deletes the query with the specified id.
      *
-     * @param provenanceId
+     * @param provenanceId id
      */
     public void deleteProvenanceQuery(final String provenanceId) {
         // get the query to the provenance repository
@@ -774,7 +775,7 @@ public class ControllerFacade implements ControllerServiceProvider {
     /**
      * Deletes the lineage with the specified id.
      *
-     * @param lineageId
+     * @param lineageId id
      */
     public void deleteLineage(final String lineageId) {
         // get the query to the provenance repository
@@ -788,10 +789,10 @@ public class ControllerFacade implements ControllerServiceProvider {
     /**
      * Gets the content for the specified claim.
      *
-     * @param eventId
-     * @param uri
-     * @param contentDirection
-     * @return
+     * @param eventId event id
+     * @param uri uri
+     * @param contentDirection direction
+     * @return the content for the specified claim
      */
     public DownloadableContent getContent(final Long eventId, final String uri, final ContentDirection contentDirection) {
         try {
@@ -827,7 +828,7 @@ public class ControllerFacade implements ControllerServiceProvider {
             if (!downloadAuthorization.isApproved()) {
                 throw new AccessDeniedException(downloadAuthorization.getExplanation());
             }
-            
+
             // get the filename and fall back to the idnetifier (should never happen)
             String filename = event.getAttributes().get(CoreAttributes.FILENAME.key());
             if (filename == null) {
@@ -851,8 +852,8 @@ public class ControllerFacade implements ControllerServiceProvider {
     /**
      * Submits a replay request for the specified event id.
      *
-     * @param eventId
-     * @return
+     * @param eventId event id
+     * @return provenance event
      */
     public ProvenanceEventDTO submitReplay(final Long eventId) {
         try {
@@ -880,8 +881,8 @@ public class ControllerFacade implements ControllerServiceProvider {
     /**
      * Get the provenance event with the specified event id.
      *
-     * @param eventId
-     * @return
+     * @param eventId event id
+     * @return the provenance event with the specified event id
      */
     public ProvenanceEventDTO getProvenanceEvent(final Long eventId) {
         try {
@@ -900,8 +901,8 @@ public class ControllerFacade implements ControllerServiceProvider {
     /**
      * Creates a ProvenanceEventDTO for the specified ProvenanceEventRecord.
      *
-     * @param event
-     * @return
+     * @param event event
+     * @return event
      */
     private ProvenanceEventDTO createProvenanceEventDto(final ProvenanceEventRecord event) {
         // convert the attributes
@@ -1013,12 +1014,6 @@ public class ControllerFacade implements ControllerServiceProvider {
         return dto;
     }
 
-    /**
-     * Gets the name for the component with the specified id.
-     *
-     * @param dto
-     * @return
-     */
     private void setComponentDetails(final ProvenanceEventDTO dto) {
         final ProcessGroup root = flowController.getGroup(flowController.getRootGroupId());
 
@@ -1032,8 +1027,8 @@ public class ControllerFacade implements ControllerServiceProvider {
     /**
      * Searches this controller for the specified term.
      *
-     * @param search
-     * @return
+     * @param search search
+     * @return result
      */
     public SearchResultsDTO search(final String search) {
         final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
@@ -1189,22 +1184,22 @@ public class ControllerFacade implements ControllerServiceProvider {
 
         for (final Map.Entry<PropertyDescriptor, String> entry : procNode.getProperties().entrySet()) {
             final PropertyDescriptor descriptor = entry.getKey();
-            
+
             addIfAppropriate(searchStr, descriptor.getName(), "Property name", matches);
             addIfAppropriate(searchStr, descriptor.getDescription(), "Property description", matches);
-            
+
             // never include sensitive properties values in search results
             if (descriptor.isSensitive()) {
                 continue;
             }
-            
+
             String value = entry.getValue();
-            
+
             // if unset consider default value
             if (value == null) {
                 value = descriptor.getDefaultValue();
             }
-            
+
             // evaluate if the value matches the search criteria
             if (StringUtils.containsIgnoreCase(value, searchStr)) {
                 matches.add("Property value: " + descriptor.getName() + " - " + value);
@@ -1282,7 +1277,7 @@ public class ControllerFacade implements ControllerServiceProvider {
         for (final FlowFilePrioritizer comparator : queue.getPriorities()) {
             addIfAppropriate(searchStr, comparator.getClass().getName(), "Prioritizer", matches);
         }
-        
+
         // search expiration
         if (StringUtils.containsIgnoreCase("expires", searchStr) || StringUtils.containsIgnoreCase("expiration", searchStr)) {
             final int expirationMillis = connection.getFlowFileQueue().getFlowFileExpiration(TimeUnit.MILLISECONDS);
@@ -1290,7 +1285,7 @@ public class ControllerFacade implements ControllerServiceProvider {
                 matches.add("FlowFile expiration: " + connection.getFlowFileQueue().getFlowFileExpiration());
             }
         }
-        
+
         // search back pressure
         if (StringUtils.containsIgnoreCase("back pressure", searchStr) || StringUtils.containsIgnoreCase("pressure", searchStr)) {
             final String backPressureDataSize = connection.getFlowFileQueue().getBackPressureDataSizeThreshold();

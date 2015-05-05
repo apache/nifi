@@ -23,8 +23,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * Allows the user to configure a {@link java.nio.file.Path Path} to watch for
- * modifications and periodically poll to check if the file has been modified
+ * Allows the user to configure a {@link java.nio.file.Path Path} to watch for modifications and periodically poll to check if the file has been modified
  */
 public class SynchronousFileWatcher {
 
@@ -58,11 +57,10 @@ public class SynchronousFileWatcher {
     }
 
     /**
-     * Checks if the file has been updated according to the configured
-     * {@link UpdateMonitor} and resets the state
+     * Checks if the file has been updated according to the configured {@link UpdateMonitor} and resets the state
      *
-     * @return
-     * @throws IOException
+     * @return true if updated; false otherwise
+     * @throws IOException if failure occurs checking for changes
      */
     public boolean checkAndReset() throws IOException {
         if (checkUpdateMillis <= 0) { // if checkUpdateMillis <= 0, always check

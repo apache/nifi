@@ -19,11 +19,12 @@ package org.apache.nifi.distributed.cache.server.map;
 import java.nio.ByteBuffer;
 
 public class MapPutResult {
+
     private final boolean successful;
     private final ByteBuffer key, value;
     private final ByteBuffer existingValue;
     private final ByteBuffer evictedKey, evictedValue;
-    
+
     public MapPutResult(final boolean successful, final ByteBuffer key, final ByteBuffer value, final ByteBuffer existingValue, final ByteBuffer evictedKey, final ByteBuffer evictedValue) {
         this.successful = successful;
         this.key = key;
@@ -44,7 +45,7 @@ public class MapPutResult {
     public ByteBuffer getValue() {
         return value;
     }
-    
+
     public ByteBuffer getExistingValue() {
         return existingValue;
     }

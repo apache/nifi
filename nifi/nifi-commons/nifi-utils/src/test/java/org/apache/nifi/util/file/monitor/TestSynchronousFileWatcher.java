@@ -30,7 +30,6 @@ import java.nio.file.StandardCopyOption;
 
 import org.junit.Test;
 
-
 public class TestSynchronousFileWatcher {
 
     @Test

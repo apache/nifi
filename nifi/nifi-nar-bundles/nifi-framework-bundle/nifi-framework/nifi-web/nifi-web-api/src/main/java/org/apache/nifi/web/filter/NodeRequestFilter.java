@@ -40,18 +40,13 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 
 /**
- * A filter that prevents direct access to nodes (i.e., flow controllers
- * connected to a cluster). Direct access to nodes by clients external to the
- * cluster is prevented because the dataflow must be identical across the
- * cluster.
+ * A filter that prevents direct access to nodes (i.e., flow controllers connected to a cluster). Direct access to nodes by clients external to the cluster is prevented because the dataflow must be
+ * identical across the cluster.
  *
- * Direct access to a node is determined by the presence of a custom request
- * header. The header key is "X-CLUSTER_MANAGER" and the value can be
- * anything/empty. The presence of this header is a simple way to flag that the
- * request was issued by the cluster manager and may proceed to the next filter.
+ * Direct access to a node is determined by the presence of a custom request header. The header key is "X-CLUSTER_MANAGER" and the value can be anything/empty. The presence of this header is a simple
+ * way to flag that the request was issued by the cluster manager and may proceed to the next filter.
  *
- * Since this header may be faked, we only make decisions about the header if
- * the application instance is a node and connected to the cluster.
+ * Since this header may be faked, we only make decisions about the header if the application instance is a node and connected to the cluster.
  *
  * @author unattributed
  */
@@ -72,8 +67,8 @@ public class NodeRequestFilter implements Filter {
         HttpServletResponse httpResp = (HttpServletResponse) resp;
 
         /*
-         * If we're the cluster manager or we're sent head requests, continue.  
-         * Head requests are included because there exists a AJAX/XHR race 
+         * If we're the cluster manager or we're sent head requests, continue.
+         * Head requests are included because there exists a AJAX/XHR race
          * condition between the following requests:
          *      HEAD /nifi-api/cluster
          *      GET  /nifi-api/controller/config
@@ -105,7 +100,7 @@ public class NodeRequestFilter implements Filter {
                     }
                 }
 
-                // if don't have a cluster context or the context indicates 
+                // if don't have a cluster context or the context indicates
                 if (clusterContext == null || !clusterContext.isRequestSentByClusterManager()) {
                     // node is connected and request is not from cluster manager, so respond with error
                     httpResp.setContentType("text/plain");

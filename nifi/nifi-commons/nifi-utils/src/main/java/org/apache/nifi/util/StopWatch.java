@@ -55,11 +55,10 @@ public final class StopWatch {
     /**
      * Returns the amount of time that the StopWatch was running.
      *
-     * @param timeUnit
-     * @return
+     * @param timeUnit the unit for which the duration should be reported
+     * @return the duration of the stopwatch in the specified unit
      *
-     * @throws IllegalStateException if the StopWatch has not been stopped via
-     * {@link #stop()}
+     * @throws IllegalStateException if the StopWatch has not been stopped via {@link #stop()}
      */
     public long getDuration(final TimeUnit timeUnit) {
         if (duration < 0) {
@@ -71,8 +70,8 @@ public final class StopWatch {
     /**
      * Returns the amount of time that has elapsed since the timer was started.
      *
-     * @param timeUnit
-     * @return
+     * @param timeUnit the unit for which the elapsed time should be computed
+     * @return the elapsed time in the specified unit
      */
     public long getElapsed(final TimeUnit timeUnit) {
         return timeUnit.convert(System.nanoTime() - startNanos, TimeUnit.NANOSECONDS);

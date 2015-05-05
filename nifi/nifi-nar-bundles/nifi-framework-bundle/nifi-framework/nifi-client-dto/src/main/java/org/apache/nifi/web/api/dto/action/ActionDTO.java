@@ -43,9 +43,7 @@ public class ActionDTO {
     private ActionDetailsDTO actionDetails;
 
     /**
-     * The action id.
-     *
-     * @return
+     * @return action id
      */
     public Integer getId() {
         return id;
@@ -56,9 +54,7 @@ public class ActionDTO {
     }
 
     /**
-     * The user dn who perform this action.
-     *
-     * @return
+     * @return user dn who perform this action
      */
     public String getUserDn() {
         return userDn;
@@ -69,9 +65,7 @@ public class ActionDTO {
     }
 
     /**
-     * The user name who perform this action.
-     *
-     * @return
+     * @return user name who perform this action
      */
     public String getUserName() {
         return userName;
@@ -82,9 +76,7 @@ public class ActionDTO {
     }
 
     /**
-     * This action's timestamp.
-     *
-     * @return
+     * @return action's timestamp
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
     public Date getTimestamp() {
@@ -96,9 +88,7 @@ public class ActionDTO {
     }
 
     /**
-     * The id of the source component of this action.
-     *
-     * @return
+     * @return id of the source component of this action
      */
     public String getSourceId() {
         return sourceId;
@@ -109,9 +99,7 @@ public class ActionDTO {
     }
 
     /**
-     * The name of the source component of this action.
-     *
-     * @return
+     * @return name of the source component of this action
      */
     public String getSourceName() {
         return sourceName;
@@ -122,9 +110,7 @@ public class ActionDTO {
     }
 
     /**
-     * The type of the source component of this action.
-     *
-     * @return
+     * @return type of the source component of this action
      */
     public String getSourceType() {
         return sourceType;
@@ -135,9 +121,7 @@ public class ActionDTO {
     }
 
     /**
-     * The component details (if any) for this action.
-     *
-     * @return
+     * @return component details (if any) for this action
      */
     public ComponentDetailsDTO getComponentDetails() {
         return componentDetails;
@@ -148,9 +132,7 @@ public class ActionDTO {
     }
 
     /**
-     * The operation being performed in this action.
-     *
-     * @return
+     * @return operation being performed in this action
      */
     public String getOperation() {
         return operation;
@@ -161,9 +143,7 @@ public class ActionDTO {
     }
 
     /**
-     * The action details (if any) for this action.
-     *
-     * @return
+     * @return action details (if any) for this action
      */
     public ActionDetailsDTO getActionDetails() {
         return actionDetails;

@@ -40,10 +40,8 @@ public interface FlowFileQueue {
     List<FlowFilePrioritizer> getPriorities();
 
     /**
-     * Returns the minimum number of FlowFiles that must be present in order for
+     * @return the minimum number of FlowFiles that must be present in order for
      * FlowFiles to begin being swapped out of the queue
-     *
-     * @return
      */
     int getSwapThreshold();
 
@@ -71,9 +69,7 @@ public interface FlowFileQueue {
     long getBackPressureObjectThreshold();
 
     /**
-     * Establishes this queue's preferred maximum data size.
-     *
-     * @param maxDataSize
+     * @param maxDataSize Establishes this queue's preferred maximum data size.
      */
     void setBackPressureDataSizeThreshold(String maxDataSize);
 
@@ -117,21 +113,21 @@ public interface FlowFileQueue {
     /**
      * places the given file into the queue
      *
-     * @param file
+     * @param file to place into queue
      */
     void put(FlowFileRecord file);
 
     /**
      * places the given files into the queue
      *
-     * @param files
+     * @param files to place into queue
      */
     void putAll(Collection<FlowFileRecord> files);
 
     /**
      * Removes all records from the internal swap queue and returns them.
      *
-     * @return
+     * @return all removed records from internal swap queue
      */
     List<FlowFileRecord> pollSwappableRecords();
 
@@ -139,7 +135,7 @@ public interface FlowFileQueue {
      * Restores the records from swap space into this queue, adding the records
      * that have expired to the given set instead of enqueuing them.
      *
-     * @param records
+     * @param records that were swapped in
      */
     void putSwappedRecords(Collection<FlowFileRecord> records);
 
@@ -147,15 +143,13 @@ public interface FlowFileQueue {
      * Updates the internal counters of how much data is queued, based on
      * swapped data that is being restored.
      *
-     * @param numRecords
-     * @param contentSize
+     * @param numRecords count of records swapped in
+     * @param contentSize total size of records being swapped in
      */
     void incrementSwapCount(int numRecords, long contentSize);
 
     /**
-     * Returns the number of FlowFiles that are enqueued and not swapped
-     *
-     * @return
+     * @return the number of FlowFiles that are enqueued and not swapped
      */
     int unswappedSize();
 
@@ -164,14 +158,14 @@ public interface FlowFileQueue {
     int getSwapQueueSize();
 
     /**
-     * @param expiredRecords
+     * @param expiredRecords expired records
      * @return the next flow file on the queue; null if empty
      */
     FlowFileRecord poll(Set<FlowFileRecord> expiredRecords);
 
     /**
-     * @param maxResults
-     * @param expiredRecords
+     * @param maxResults limits how many results can be polled
+     * @param expiredRecords for expired records
      * @return the next flow files on the queue up to the max results; null if
      * empty
      */
@@ -181,10 +175,10 @@ public interface FlowFileQueue {
      * Drains flow files from the given source queue into the given destination
      * list.
      *
-     * @param sourceQueue
-     * @param destination
+     * @param sourceQueue queue to drain from
+     * @param destination Collection to drain to
      * @param maxResults max number to drain
-     * @param expiredRecords
+     * @param expiredRecords for expired records
      * @return size (bytes) of flow files drained from queue
      */
     long drainQueue(Queue<FlowFileRecord> sourceQueue, List<FlowFileRecord> destination, int maxResults, Set<FlowFileRecord> expiredRecords);

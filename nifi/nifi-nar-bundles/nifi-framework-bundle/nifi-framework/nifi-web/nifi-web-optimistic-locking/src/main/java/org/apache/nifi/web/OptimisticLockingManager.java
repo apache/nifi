@@ -26,70 +26,29 @@ package org.apache.nifi.web;
 public interface OptimisticLockingManager {
 
     /**
-     * Checks the specified revision against the current revision. If the check
-     * succeeds, then the current revision's version is incremented and the
-     * current revision's client ID is set to the given revision's client ID.
+     * Attempts to execute the specified configuration request using the
+     * specified revision within a lock.
      *
-     * If the given revision's version is null, then the revision's client ID
-     * must match for the current revision's client ID for the check to succeed.
-     *
-     * If the versions and the clientIds do not match, then an
-     * InvalidRevisionException.
-     *
-     * @param revision the revision to check
-     *
-     * @return the current revision
-     *
-     * @throws InvalidRevisionException if the given revision does not match the
-     * current revision
+     * @param <T> type of snapshot
+     * @param revision revision
+     * @param configurationRequest request
+     * @return snapshot
      */
-    Revision checkRevision(Revision revision) throws InvalidRevisionException;
+    <T> ConfigurationSnapshot<T> configureFlow(Revision revision, ConfigurationRequest<T> configurationRequest);
 
     /**
-     * Returns true if the given revision matches the current revision.
+     * Updates the revision using the specified revision within a lock.
      *
-     * @param revision a revision
-     * @return true if given revision is current; false otherwise.
+     * @param updateRevision new revision
      */
-    boolean isCurrent(Revision revision);
+    void setRevision(UpdateRevision updateRevision);
 
     /**
-     * @return the current revision
-     */
-    Revision getRevision();
-
-    /**
-     * Sets the current revision.
+     * Returns the last flow modification. This is a combination of the revision
+     * and the user who performed the modification.
      *
-     * @param revision a revision
+     * @return the last modification
      */
-    void setRevision(Revision revision);
+    FlowModification getLastModification();
 
-    /**
-     * Increments the current revision's version.
-     *
-     * @return the current revision
-     */
-    Revision incrementRevision();
-
-    /**
-     * Increments the current revision's version and sets the current revision's
-     * client ID to the given client ID.
-     *
-     * @param clientId a client ID
-     * @return the current revision
-     */
-    Revision incrementRevision(String clientId);
-
-    /**
-     * @return the last modifier.
-     */
-    String getLastModifier();
-
-    /**
-     * Sets the last modifier.
-     *
-     * @param lastModifier the last modifier
-     */
-    void setLastModifier(String lastModifier);
 }

@@ -21,9 +21,6 @@ import java.util.regex.Pattern;
 
 public enum DataUnit {
 
-    // 1024 * 1024 = 
-    // 1024 * 1024 * 1024
-    // 1024 * 1024 * 1024 * 1024 
     /**
      * Bytes
      */

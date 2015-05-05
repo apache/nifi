@@ -42,24 +42,25 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.persistence.TemplateDeserializer;
+import org.apache.nifi.persistence.TemplateSerializer;
 import org.apache.nifi.stream.io.ByteArrayInputStream;
 import org.apache.nifi.stream.io.ByteArrayOutputStream;
 import org.apache.nifi.stream.io.DataOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
-import org.apache.nifi.persistence.TemplateDeserializer;
-import org.apache.nifi.persistence.TemplateSerializer;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
+import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
-import org.apache.nifi.web.api.dto.ProcessorConfigDTO.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
+import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupContentsDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.apache.nifi.web.api.dto.TemplateDTO;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -97,18 +98,14 @@ public class TemplateManager {
     }
 
     /**
-     * Adds a template to this manager. The contents of this template must be
-     * part of the current flow. This is going create a template based on a
-     * snippet of this flow. Any sensitive properties in the TemplateDTO will be
-     * removed.
+     * Adds a template to this manager. The contents of this template must be part of the current flow. This is going create a template based on a snippet of this flow. Any sensitive properties in the
+     * TemplateDTO will be removed.
      *
-     * @param dto
+     * @param dto dto
      * @return a copy of the given DTO
      * @throws IOException if an I/O error occurs when persisting the Template
      * @throws NullPointerException if the DTO is null
-     * @throws IllegalArgumentException if does not contain all required
-     * information, such as the template name or a processor's configuration
-     * element
+     * @throws IllegalArgumentException if does not contain all required information, such as the template name or a processor's configuration element
      */
     public Template addTemplate(final TemplateDTO dto) throws IOException {
         scrubTemplate(dto.getSnippet());
@@ -143,6 +140,8 @@ public class TemplateManager {
 
     /**
      * Clears all Templates from the TemplateManager
+     *
+     * @throws java.io.IOException ioe
      */
     public void clear() throws IOException {
         writeLock.lock();
@@ -174,10 +173,8 @@ public class TemplateManager {
     }
 
     /**
-     * Returns the template with the given id, if it exists; else, returns null
-     *
-     * @param id
-     * @return
+     * @param id template id
+     * @return the template with the given id, if it exists; else, returns null
      */
     public Template getTemplate(final String id) {
         readLock.lock();
@@ -191,7 +188,7 @@ public class TemplateManager {
     /**
      * Loads the templates from disk
      *
-     * @throws IOException
+     * @throws IOException ioe
      */
     public void loadTemplates() throws IOException {
         writeLock.lock();
@@ -236,8 +233,8 @@ public class TemplateManager {
     /**
      * Persists the given template to disk
      *
-     * @param dto
-     * @throws IOException
+     * @param template template
+     * @throws IOException ioe
      */
     private void persistTemplate(final Template template) throws IOException {
         final Path path = directory.resolve(template.getDetails().getId() + ".template");
@@ -245,10 +242,9 @@ public class TemplateManager {
     }
 
     /**
-     * Scrubs the template prior to persisting in order to remove fields that
-     * shouldn't be included or are unnecessary.
+     * Scrubs the template prior to persisting in order to remove fields that shouldn't be included or are unnecessary.
      *
-     * @param snippet
+     * @param snippet snippet
      */
     private void scrubTemplate(final FlowSnippetDTO snippet) {
         // ensure that contents have been specified
@@ -272,13 +268,18 @@ public class TemplateManager {
             if (snippet.getProcessGroups() != null) {
                 scrubProcessGroups(snippet.getProcessGroups());
             }
+
+            // go through each controller service if specified
+            if (snippet.getControllerServices() != null) {
+                scrubControllerServices(snippet.getControllerServices());
+            }
         }
     }
 
     /**
      * Scrubs process groups prior to saving.
      *
-     * @param processGroups
+     * @param processGroups groups
      */
     private void scrubProcessGroups(final Set<ProcessGroupDTO> processGroups) {
         // go through each process group
@@ -288,10 +289,9 @@ public class TemplateManager {
     }
 
     /**
-     * Scrubs processors prior to saving. This includes removing sensitive
-     * properties, validation errors, property descriptors, etc.
+     * Scrubs processors prior to saving. This includes removing sensitive properties, validation errors, property descriptors, etc.
      *
-     * @param snippet
+     * @param processors procs
      */
     private void scrubProcessors(final Set<ProcessorDTO> processors) {
         // go through each processor
@@ -315,7 +315,6 @@ public class TemplateManager {
                     }
                 }
 
-                processorConfig.setDescriptors(null);
                 processorConfig.setCustomUiUrl(null);
             }
 
@@ -324,11 +323,28 @@ public class TemplateManager {
         }
     }
 
+    private void scrubControllerServices(final Set<ControllerServiceDTO> controllerServices) {
+        for (final ControllerServiceDTO serviceDTO : controllerServices) {
+            final Map<String, String> properties = serviceDTO.getProperties();
+            final Map<String, PropertyDescriptorDTO> descriptors = serviceDTO.getDescriptors();
+
+            if (properties != null && descriptors != null) {
+                for (final PropertyDescriptorDTO descriptor : descriptors.values()) {
+                    if (descriptor.isSensitive()) {
+                        properties.put(descriptor.getName(), null);
+                    }
+                }
+            }
+
+            serviceDTO.setCustomUiUrl(null);
+            serviceDTO.setValidationErrors(null);
+        }
+    }
+
     /**
-     * Scrubs connections prior to saving. This includes removing available
-     * relationships.
+     * Scrubs connections prior to saving. This includes removing available relationships.
      *
-     * @param snippet
+     * @param connections conns
      */
     private void scrubConnections(final Set<ConnectionDTO> connections) {
         // go through each connection
@@ -343,7 +359,7 @@ public class TemplateManager {
     /**
      * Remove unnecessary fields in connectables prior to saving.
      *
-     * @param connectable
+     * @param connectable connectable
      */
     private void scrubConnectable(final ConnectableDTO connectable) {
         if (connectable != null) {
@@ -358,7 +374,7 @@ public class TemplateManager {
     /**
      * Remove unnecessary fields in remote groups prior to saving.
      *
-     * @param remoteGroups
+     * @param remoteGroups groups
      */
     private void scrubRemoteProcessGroups(final Set<RemoteProcessGroupDTO> remoteGroups) {
         // go through each remote process group
@@ -388,7 +404,7 @@ public class TemplateManager {
     /**
      * Remove unnecessary fields in remote ports prior to saving.
      *
-     * @param remotePorts
+     * @param remotePorts ports
      */
     private void scrubRemotePorts(final Set<RemoteProcessGroupPortDTO> remotePorts) {
         for (final Iterator<RemoteProcessGroupPortDTO> remotePortIter = remotePorts.iterator(); remotePortIter.hasNext();) {
@@ -432,7 +448,7 @@ public class TemplateManager {
                 } catch (final IOException e) {
                     logger.error(String.format("Unable to remove template file for template %s.", id));
 
-                    // since the template file existed and we were unable to remove it, rollback 
+                    // since the template file existed and we were unable to remove it, rollback
                     // by returning it to the template map
                     templateMap.put(id, removed);
 

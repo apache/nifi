@@ -36,10 +36,11 @@ public final class CertificateUtils {
     /**
      * Returns true if the given keystore can be loaded using the given keystore
      * type and password. Returns false otherwise.
-     * @param keystore
-     * @param keystoreType
-     * @param password
-     * @return 
+     *
+     * @param keystore the keystore to validate
+     * @param keystoreType the type of the keystore
+     * @param password the password to access the keystore
+     * @return true if valid; false otherwise
      */
     public static boolean isStoreValid(final URL keystore, final KeystoreType keystoreType, final char[] password) {
 
@@ -81,8 +82,8 @@ public final class CertificateUtils {
      * returned. If the CN cannot be extracted because the DN is in an
      * unrecognized format, the entire DN is returned.
      *
-     * @param dn
-     * @return
+     * @param dn the dn to extract the username from
+     * @return the exatracted username
      */
     public static String extractUsername(String dn) {
         String username = dn;
@@ -135,11 +136,11 @@ public final class CertificateUtils {
 
         final List<String> result = new ArrayList<>();
         for (final List<?> generalName : altNames) {
-            /* 
-             * generalName has the name type as the first element a String or 
-             * byte array for the second element.  We return any general names 
+            /**
+             * generalName has the name type as the first element a String or
+             * byte array for the second element.  We return any general names
              * that are String types.
-             * 
+             *
              * We don't inspect the numeric name type because some certificates
              * incorrectly put IPs and DNS names under the wrong name types.
              */

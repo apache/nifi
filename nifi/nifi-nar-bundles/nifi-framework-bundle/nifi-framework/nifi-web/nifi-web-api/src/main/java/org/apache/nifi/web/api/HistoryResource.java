@@ -37,7 +37,7 @@ import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.action.ActionDTO;
 import org.apache.nifi.web.api.dto.action.HistoryDTO;
 import org.apache.nifi.web.api.dto.action.HistoryQueryDTO;
-import org.apache.nifi.web.api.entity.ProcessorHistoryEntity;
+import org.apache.nifi.web.api.entity.ComponentHistoryEntity;
 import org.codehaus.enunciate.jaxrs.TypeHint;
 import org.springframework.security.access.prepost.PreAuthorize;
 
@@ -51,29 +51,17 @@ public class HistoryResource extends ApplicationResource {
     /**
      * Queries the history of this Controller.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param offset The offset into the data. This parameter is required and is
-     * used in conjunction with count.
-     * @param count The number of rows that should be returned. This parameter
-     * is required and is used in conjunction with page.
-     * @param sortColumn The column to sort on. This parameter is optional. If
-     * not specified the results will be returned with the most recent first.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param offset The offset into the data. This parameter is required and is used in conjunction with count.
+     * @param count The number of rows that should be returned. This parameter is required and is used in conjunction with page.
+     * @param sortColumn The column to sort on. This parameter is optional. If not specified the results will be returned with the most recent first.
      * @param sortOrder The sort order.
-     * @param startDate The start date/time for the query. The start date/time
-     * must be formatted as 'MM/dd/yyyy HH:mm:ss'. This parameter is optional
-     * and must be specified in the timezone of the server. The server's
-     * timezone can be determined by inspecting the result of a status or
-     * history request.
-     * @param endDate The end date/time for the query. The end date/time must be
-     * formatted as 'MM/dd/yyyy HH:mm:ss'. This parameter is optional and must
-     * be specified in the timezone of the server. The server's timezone can be
-     * determined by inspecting the result of a status or history request.
-     * @param userName The user name of the user who's actions are being
-     * queried. This parameter is optional.
-     * @param sourceId The id of the source being queried (usually a processor
-     * id). This parameter is optional.
+     * @param startDate The start date/time for the query. The start date/time must be formatted as 'MM/dd/yyyy HH:mm:ss'. This parameter is optional and must be specified in the timezone of the
+     * server. The server's timezone can be determined by inspecting the result of a status or history request.
+     * @param endDate The end date/time for the query. The end date/time must be formatted as 'MM/dd/yyyy HH:mm:ss'. This parameter is optional and must be specified in the timezone of the server. The
+     * server's timezone can be determined by inspecting the result of a status or history request.
+     * @param userName The user name of the user who's actions are being queried. This parameter is optional.
+     * @param sourceId The id of the source being queried (usually a processor id). This parameter is optional.
      * @return A historyEntity.
      */
     @GET
@@ -160,9 +148,7 @@ public class HistoryResource extends ApplicationResource {
     /**
      * Gets the action for the corresponding id.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the action to get.
      * @return An actionEntity.
      */
@@ -198,9 +184,7 @@ public class HistoryResource extends ApplicationResource {
     /**
      * Deletes flow history from the specified end date.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param endDate The end date for the purge action.
      * @return A historyEntity
      */
@@ -235,9 +219,7 @@ public class HistoryResource extends ApplicationResource {
     /**
      * Gets the actions for the specified processor.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param processorId The id of the processor.
      * @return An processorHistoryEntity.
      */
@@ -245,7 +227,7 @@ public class HistoryResource extends ApplicationResource {
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
     @Path("/processors/{processorId}")
-    @TypeHint(ProcessorHistoryEntity.class)
+    @TypeHint(ComponentHistoryEntity.class)
     public Response getProcessorHistory(
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
             @PathParam("processorId") final String processorId) {
@@ -255,9 +237,67 @@ public class HistoryResource extends ApplicationResource {
         revision.setClientId(clientId.getClientId());
 
         // create the response entity
-        final ProcessorHistoryEntity entity = new ProcessorHistoryEntity();
+        final ComponentHistoryEntity entity = new ComponentHistoryEntity();
         entity.setRevision(revision);
-        entity.setProcessorHistory(serviceFacade.getProcessorHistory(processorId));
+        entity.setComponentHistory(serviceFacade.getComponentHistory(processorId));
+
+        // generate the response
+        return generateOkResponse(entity).build();
+    }
+
+    /**
+     * Gets the actions for the specified controller service.
+     *
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param controllerServiceId The id of the controller service.
+     * @return An componentHistoryEntity.
+     */
+    @GET
+    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    @Path("/controller-services/{controllerServiceId}")
+    @TypeHint(ComponentHistoryEntity.class)
+    public Response getControllerServiceHistory(
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @PathParam("controllerServiceId") final String controllerServiceId) {
+
+        // create the revision
+        final RevisionDTO revision = new RevisionDTO();
+        revision.setClientId(clientId.getClientId());
+
+        // create the response entity
+        final ComponentHistoryEntity entity = new ComponentHistoryEntity();
+        entity.setRevision(revision);
+        entity.setComponentHistory(serviceFacade.getComponentHistory(controllerServiceId));
+
+        // generate the response
+        return generateOkResponse(entity).build();
+    }
+
+    /**
+     * Gets the actions for the specified reporting task.
+     *
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param reportingTaskId The id of the reporting task.
+     * @return An componentHistoryEntity.
+     */
+    @GET
+    @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
+    @Path("/reporting-tasks/{reportingTaskId}")
+    @TypeHint(ComponentHistoryEntity.class)
+    public Response getReportingTaskHistory(
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @PathParam("reportingTaskId") final String reportingTaskId) {
+
+        // create the revision
+        final RevisionDTO revision = new RevisionDTO();
+        revision.setClientId(clientId.getClientId());
+
+        // create the response entity
+        final ComponentHistoryEntity entity = new ComponentHistoryEntity();
+        entity.setRevision(revision);
+        entity.setComponentHistory(serviceFacade.getComponentHistory(reportingTaskId));
 
         // generate the response
         return generateOkResponse(entity).build();

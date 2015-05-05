@@ -17,28 +17,26 @@
 package org.apache.nifi.util;
 
 import org.apache.nifi.logging.ProcessorLog;
-import org.apache.nifi.processor.Processor;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class MockProcessorLog implements ProcessorLog {
 
     private final Logger logger;
-    private final Processor processor;
+    private final Object component;
 
-    public MockProcessorLog(final String processorId, final Processor processor) {
-        this.logger = LoggerFactory.getLogger(processor.getClass());
-        this.processor = processor;
+    public MockProcessorLog(final String componentId, final Object component) {
+        this.logger = LoggerFactory.getLogger(component.getClass());
+        this.component = component;
     }
 
     private Object[] addProcessor(final Object[] originalArgs) {
-        return prependToArgs(originalArgs, processor);
+        return prependToArgs(originalArgs, component);
     }
 
     private Object[] addProcessorAndThrowable(final Object[] os, final Throwable t) {
         final Object[] modifiedArgs = new Object[os.length + 2];
-        modifiedArgs[0] = processor.toString();
+        modifiedArgs[0] = component.toString();
         for (int i = 0; i < os.length; i++) {
             modifiedArgs[i + 1] = os[i];
         }
@@ -68,21 +66,11 @@ public class MockProcessorLog implements ProcessorLog {
         return (os != null && os.length > 0 && (os[os.length - 1] instanceof Throwable));
     }
 
-    /**
-     *
-     * @param msg
-     * @param t
-     */
     @Override
     public void warn(final String msg, final Throwable t) {
-        warn("{} " + msg, new Object[]{processor}, t);
+        warn("{} " + msg, new Object[]{component}, t);
     }
 
-    /**
-     *
-     * @param msg
-     * @param os
-     */
     @Override
     public void warn(String msg, Object[] os) {
         if (lastArgIsException(os)) {
@@ -94,12 +82,6 @@ public class MockProcessorLog implements ProcessorLog {
         }
     }
 
-    /**
-     *
-     * @param msg
-     * @param os
-     * @param t
-     */
     @Override
     public void warn(String msg, Object[] os, final Throwable t) {
         os = addProcessorAndThrowable(os, t);
@@ -111,33 +93,19 @@ public class MockProcessorLog implements ProcessorLog {
         }
     }
 
-    /**
-     *
-     * @param msg
-     */
     @Override
     public void warn(String msg) {
         msg = "{} " + msg;
-        logger.warn(msg, processor);
+        logger.warn(msg, component);
     }
 
-    /**
-     *
-     * @param msg
-     * @param t
-     */
     @Override
     public void trace(String msg, Throwable t) {
         msg = "{} " + msg;
-        final Object[] os = {processor};
+        final Object[] os = {component};
         logger.trace(msg, os, t);
     }
 
-    /**
-     *
-     * @param msg
-     * @param os
-     */
     @Override
     public void trace(String msg, Object[] os) {
         msg = "{} " + msg;
@@ -145,23 +113,13 @@ public class MockProcessorLog implements ProcessorLog {
         logger.trace(msg, os);
     }
 
-    /**
-     *
-     * @param msg
-     */
     @Override
     public void trace(String msg) {
         msg = "{} " + msg;
-        final Object[] os = {processor};
+        final Object[] os = {component};
         logger.trace(msg, os);
     }
 
-    /**
-     *
-     * @param msg
-     * @param os
-     * @param t
-     */
     @Override
     public void trace(String msg, Object[] os, Throwable t) {
         os = addProcessorAndThrowable(os, t);
@@ -171,60 +129,35 @@ public class MockProcessorLog implements ProcessorLog {
         logger.trace("", t);
     }
 
-    /**
-     *
-     * @return
-     */
     @Override
     public boolean isWarnEnabled() {
         return logger.isWarnEnabled();
     }
 
-    /**
-     *
-     * @return
-     */
     @Override
     public boolean isTraceEnabled() {
         return logger.isTraceEnabled();
     }
 
-    /**
-     *
-     * @return
-     */
     @Override
     public boolean isInfoEnabled() {
         return logger.isInfoEnabled();
     }
 
-    /**
-     *
-     * @return
-     */
     @Override
     public boolean isErrorEnabled() {
         return logger.isErrorEnabled();
     }
 
-    /**
-     *
-     * @return
-     */
     @Override
     public boolean isDebugEnabled() {
         return logger.isDebugEnabled();
     }
 
-    /**
-     *
-     * @param msg
-     * @param t
-     */
     @Override
     public void info(String msg, Throwable t) {
         msg = "{} " + msg;
-        final Object[] os = {processor};
+        final Object[] os = {component};
 
         logger.info(msg, os);
         if (logger.isDebugEnabled()) {
@@ -232,11 +165,6 @@ public class MockProcessorLog implements ProcessorLog {
         }
     }
 
-    /**
-     *
-     * @param msg
-     * @param os
-     */
     @Override
     public void info(String msg, Object[] os) {
         msg = "{} " + msg;
@@ -245,24 +173,14 @@ public class MockProcessorLog implements ProcessorLog {
         logger.info(msg, os);
     }
 
-    /**
-     *
-     * @param msg
-     */
     @Override
     public void info(String msg) {
         msg = "{} " + msg;
-        final Object[] os = {processor};
+        final Object[] os = {component};
 
         logger.info(msg, os);
     }
 
-    /**
-     *
-     * @param msg
-     * @param os
-     * @param t
-     */
     @Override
     public void info(String msg, Object[] os, Throwable t) {
         os = addProcessorAndThrowable(os, t);
@@ -274,24 +192,15 @@ public class MockProcessorLog implements ProcessorLog {
         }
     }
 
-    /**
-     *
-     * @return
-     */
     @Override
     public String getName() {
         return logger.getName();
     }
 
-    /**
-     *
-     * @param msg
-     * @param t
-     */
     @Override
     public void error(String msg, Throwable t) {
         msg = "{} " + msg;
-        final Object[] os = {processor};
+        final Object[] os = {component};
 
         logger.error(msg, os, t);
         if (logger.isDebugEnabled()) {
@@ -299,11 +208,6 @@ public class MockProcessorLog implements ProcessorLog {
         }
     }
 
-    /**
-     *
-     * @param msg
-     * @param os
-     */
     @Override
     public void error(String msg, Object[] os) {
         if (lastArgIsException(os)) {
@@ -315,24 +219,14 @@ public class MockProcessorLog implements ProcessorLog {
         }
     }
 
-    /**
-     *
-     * @param msg
-     */
     @Override
     public void error(String msg) {
         msg = "{} " + msg;
-        final Object[] os = {processor};
+        final Object[] os = {component};
 
         logger.error(msg, os);
     }
 
-    /**
-     *
-     * @param msg
-     * @param os
-     * @param t
-     */
     @Override
     public void error(String msg, Object[] os, Throwable t) {
         os = addProcessorAndThrowable(os, t);
@@ -344,24 +238,14 @@ public class MockProcessorLog implements ProcessorLog {
         }
     }
 
-    /**
-     *
-     * @param msg
-     * @param t
-     */
     @Override
     public void debug(String msg, Throwable t) {
         msg = "{} " + msg;
-        final Object[] os = {processor};
+        final Object[] os = {component};
 
         logger.debug(msg, os, t);
     }
 
-    /**
-     *
-     * @param msg
-     * @param os
-     */
     @Override
     public void debug(String msg, Object[] os) {
         os = addProcessor(os);
@@ -370,12 +254,6 @@ public class MockProcessorLog implements ProcessorLog {
         logger.debug(msg, os);
     }
 
-    /**
-     *
-     * @param msg
-     * @param os
-     * @param t
-     */
     @Override
     public void debug(String msg, Object[] os, Throwable t) {
         os = addProcessorAndThrowable(os, t);
@@ -387,14 +265,10 @@ public class MockProcessorLog implements ProcessorLog {
         }
     }
 
-    /**
-     *
-     * @param msg
-     */
     @Override
     public void debug(String msg) {
         msg = "{} " + msg;
-        final Object[] os = {processor};
+        final Object[] os = {component};
 
         logger.debug(msg, os);
     }

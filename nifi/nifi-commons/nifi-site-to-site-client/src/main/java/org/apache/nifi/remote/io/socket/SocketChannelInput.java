@@ -26,18 +26,19 @@ import org.apache.nifi.remote.io.InterruptableInputStream;
 import org.apache.nifi.remote.protocol.CommunicationsInput;
 
 public class SocketChannelInput implements CommunicationsInput {
+
     private final SocketChannelInputStream socketIn;
     private final ByteCountingInputStream countingIn;
     private final InputStream bufferedIn;
     private final InterruptableInputStream interruptableIn;
-    
+
     public SocketChannelInput(final SocketChannel socketChannel) throws IOException {
         this.socketIn = new SocketChannelInputStream(socketChannel);
         countingIn = new ByteCountingInputStream(socketIn);
         bufferedIn = new BufferedInputStream(countingIn);
         interruptableIn = new InterruptableInputStream(bufferedIn);
     }
-    
+
     @Override
     public InputStream getInputStream() throws IOException {
         return interruptableIn;
@@ -46,7 +47,7 @@ public class SocketChannelInput implements CommunicationsInput {
     public void setTimeout(final int millis) {
         socketIn.setTimeout(millis);
     }
-    
+
     public boolean isDataAvailable() {
         try {
             return interruptableIn.available() > 0;
@@ -54,12 +55,12 @@ public class SocketChannelInput implements CommunicationsInput {
             return false;
         }
     }
-    
+
     @Override
     public long getBytesRead() {
         return countingIn.getBytesRead();
     }
-    
+
     public void interrupt() {
         interruptableIn.interrupt();
     }

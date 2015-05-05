@@ -21,6 +21,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.connectable.Connectable;
+import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.controller.repository.StandardProcessSessionFactory;
 import org.apache.nifi.controller.scheduling.ProcessContextFactory;
 import org.apache.nifi.controller.scheduling.ScheduleState;
@@ -34,8 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Continually runs a Connectable as long as the processor has work to do. {@link #call()} will return
- * <code>true</code> if the Connectable should be yielded, <code>false</code> otherwise.
+ * Continually runs a Connectable as long as the processor has work to do. {@link #call()} will return <code>true</code> if the Connectable should be yielded, <code>false</code> otherwise.
  */
 public class ContinuallyRunConnectableTask implements Callable<Boolean> {
 
@@ -59,17 +59,19 @@ public class ContinuallyRunConnectableTask implements Callable<Boolean> {
         if (!scheduleState.isScheduled()) {
             return false;
         }
-        
+
         // Connectable should run if the following conditions are met:
-        // 1. It's an Input Port or or is a Remote Input Port or has incoming FlowFiles queued
-        // 2. Any relationship is available (since there's only 1
-        // relationship for a Connectable, we can say "any" or "all" and
-        // it means the same thing)
-        // 3. It is not yielded.
+        // 1. It is not yielded.
+        // 2. It has incoming connections with FlowFiles queued or doesn't expect incoming connections
+        // 3. If it is a funnel, it has an outgoing connection (this is needed because funnels are "always on"; other
+        //    connectable components cannot even be started if they need an outbound connection and don't have one)
+        // 4. There is a connection for each relationship.
         final boolean triggerWhenEmpty = connectable.isTriggerWhenEmpty();
         boolean flowFilesQueued = true;
         final boolean shouldRun = (connectable.getYieldExpiration() < System.currentTimeMillis())
-                && (triggerWhenEmpty || (flowFilesQueued = Connectables.flowFilesQueued(connectable))) && (connectable.getRelationships().isEmpty() || Connectables.anyRelationshipAvailable(connectable));
+                && (triggerWhenEmpty || (flowFilesQueued = Connectables.flowFilesQueued(connectable)))
+                && (connectable.getConnectableType() != ConnectableType.FUNNEL || !connectable.getConnections().isEmpty())
+                && (connectable.getRelationships().isEmpty() || Connectables.anyRelationshipAvailable(connectable));
 
         if (shouldRun) {
             scheduleState.incrementActiveThreadCount();
@@ -103,7 +105,7 @@ public class ContinuallyRunConnectableTask implements Callable<Boolean> {
             // yield for just a bit.
             return true;
         }
-        
-        return true;
+
+        return false; // do not yield
     }
 }

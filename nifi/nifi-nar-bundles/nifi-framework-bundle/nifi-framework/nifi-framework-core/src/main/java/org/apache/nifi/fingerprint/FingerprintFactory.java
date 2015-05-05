@@ -41,12 +41,14 @@ import javax.xml.validation.SchemaFactory;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.FlowFromDOMFactory;
 import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.util.DomUtils;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
+import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
@@ -58,6 +60,7 @@ import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupContentsDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
+import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -69,24 +72,18 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 /**
- * Creates a fingerprint of a flow.xml. The order of elements or attributes in
- * the flow.xml does not influence the fingerprint generation.
+ * Creates a fingerprint of a flow.xml. The order of elements or attributes in the flow.xml does not influence the fingerprint generation.
  *
- * Only items in the flow.xml that influence the processing of data are
- * incorporated into the fingerprint. Examples of items involved in the
- * fingerprint are: processor IDs, processor relationships, and processor
- * properties. Examples of items not involved in the fingerprint are: items in
- * the processor "settings" or "comments" tabs, position information, flow
- * controller settings, and counters.
+ * Only items in the flow.xml that influence the processing of data are incorporated into the fingerprint. Examples of items involved in the fingerprint are: processor IDs, processor relationships,
+ * and processor properties. Examples of items not involved in the fingerprint are: items in the processor "settings" or "comments" tabs, position information, flow controller settings, and counters.
  *
- * @author unattributed
  */
 public final class FingerprintFactory {
 
     /*
      * Developer Note: This class should be changed with care and coordinated
-     * with all classes that use fingerprinting.  Improper coordination may 
-     * lead to orphaning flow files, especially when flows are reloaded in a 
+     * with all classes that use fingerprinting.  Improper coordination may
+     * lead to orphaning flow files, especially when flows are reloaded in a
      * clustered environment.
      */
     // no fingerprint value
@@ -123,11 +120,10 @@ public final class FingerprintFactory {
     }
 
     /**
-     * Creates a fingerprint of a flow. The order of elements or attributes in
-     * the flow does not influence the fingerprint generation.
+     * Creates a fingerprint of a flow. The order of elements or attributes in the flow does not influence the fingerprint generation.
      *
      * @param flowBytes the flow represented as bytes
-     * @param controller
+     * @param controller the controller
      *
      * @return a generated fingerprint
      *
@@ -158,8 +154,8 @@ public final class FingerprintFactory {
      *
      * @return the fingerprint
      *
-     * @throws NoSuchAlgorithmException
-     * @throws UnsupportedEncodingException
+     * @throws NoSuchAlgorithmException ex
+     * @throws UnsupportedEncodingException ex
      */
     private String createFingerprint(final Document flowDoc, final FlowController controller) throws NoSuchAlgorithmException {
         if (flowDoc == null) {
@@ -181,11 +177,10 @@ public final class FingerprintFactory {
     }
 
     /**
-     * Creates a fingerprint of a Collection of Templates The order of the
-     * templates does not influence the fingerprint generation.
+     * Creates a fingerprint of a Collection of Templates The order of the templates does not influence the fingerprint generation.
      *
      *
-     * @param templates
+     * @param templates collection of templates
      * @return a generated fingerprint
      *
      * @throws FingerprintException if the fingerprint failed to be generated
@@ -250,6 +245,21 @@ public final class FingerprintFactory {
         // root group
         final Element rootGroupElem = (Element) DomUtils.getChildNodesByTagName(flowControllerElem, "rootGroup").item(0);
         addProcessGroupFingerprint(builder, rootGroupElem, controller);
+
+        final Element controllerServicesElem = DomUtils.getChild(flowControllerElem, "controllerServices");
+        if (controllerServicesElem != null) {
+            for (final Element serviceElem : DomUtils.getChildElementsByTagName(controllerServicesElem, "controllerService")) {
+                addControllerServiceFingerprint(builder, serviceElem);
+            }
+        }
+
+        final Element reportingTasksElem = DomUtils.getChild(flowControllerElem, "reportingTasks");
+        if (reportingTasksElem != null) {
+            for (final Element taskElem : DomUtils.getChildElementsByTagName(reportingTasksElem, "reportingTask")) {
+                addReportingTaskFingerprint(builder, taskElem);
+            }
+        }
+
         return builder;
     }
 
@@ -831,6 +841,66 @@ public final class FingerprintFactory {
     private StringBuilder addFunnelFingerprint(final StringBuilder builder, final FunnelDTO funnel) {
         builder.append(funnel.getId());
         return builder;
+    }
+
+    private void addControllerServiceFingerprint(final StringBuilder builder, final Element controllerServiceElem) {
+        final ControllerServiceDTO dto = FlowFromDOMFactory.getControllerService(controllerServiceElem, encryptor);
+        addControllerServiceFingerprint(builder, dto);
+    }
+
+    private void addControllerServiceFingerprint(final StringBuilder builder, final ControllerServiceDTO dto) {
+        builder.append(dto.getId());
+        builder.append(dto.getType());
+        builder.append(dto.getName());
+        builder.append(dto.getComments());
+        builder.append(dto.getAnnotationData());
+
+        final Map<String, String> properties = dto.getProperties();
+        if (properties == null) {
+            builder.append("NO_PROPERTIES");
+        } else {
+            final SortedMap<String, String> sortedProps = new TreeMap<>(properties);
+            for (final Map.Entry<String, String> entry : sortedProps.entrySet()) {
+                final String propName = entry.getKey();
+                final String propValue = entry.getValue();
+                if (propValue == null) {
+                    continue;
+                }
+
+                builder.append(propName).append("=").append(propValue);
+            }
+        }
+    }
+
+    private void addReportingTaskFingerprint(final StringBuilder builder, final Element element) {
+        final ReportingTaskDTO dto = FlowFromDOMFactory.getReportingTask(element, encryptor);
+        addReportingTaskFingerprint(builder, dto);
+    }
+
+    private void addReportingTaskFingerprint(final StringBuilder builder, final ReportingTaskDTO dto) {
+        builder.append(dto.getId());
+        builder.append(dto.getType());
+        builder.append(dto.getName());
+        builder.append(dto.getComments());
+        builder.append(dto.getSchedulingPeriod());
+        builder.append(dto.getSchedulingStrategy());
+        builder.append(dto.getAnnotationData());
+
+        final Map<String, String> properties = dto.getProperties();
+        if (properties == null) {
+            builder.append("NO_PROPERTIES");
+        } else {
+            final SortedMap<String, String> sortedProps = new TreeMap<>(properties);
+            for (final Map.Entry<String, String> entry : sortedProps.entrySet()) {
+                final String propName = entry.getKey();
+                final String propValue = entry.getValue();
+                if (propValue == null) {
+                    continue;
+                }
+
+                builder.append(propName).append("=").append(propValue);
+            }
+        }
     }
 
     private Comparator<Element> getIdsComparator() {

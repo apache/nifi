@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.attribute.expression.language;
 
-import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.*;
-
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -116,6 +114,73 @@ import org.antlr.runtime.ANTLRStringStream;
 import org.antlr.runtime.CharStream;
 import org.antlr.runtime.CommonTokenStream;
 import org.antlr.runtime.tree.Tree;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ALL_ATTRIBUTES;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ALL_DELINEATED_VALUES;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ALL_MATCHING_ATTRIBUTES;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.AND;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ANY_ATTRIBUTE;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ANY_DELINEATED_VALUE;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ANY_MATCHING_ATTRIBUTE;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.APPEND;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ATTRIBUTE_REFERENCE;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ATTR_NAME;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.CONTAINS;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.COUNT;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.DIVIDE;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ENDS_WITH;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.EQUALS;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.EQUALS_IGNORE_CASE;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.EXPRESSION;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.FALSE;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.FIND;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.FORMAT;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.GREATER_THAN;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.GREATER_THAN_OR_EQUAL;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.HOSTNAME;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.INDEX_OF;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.IP;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.IS_EMPTY;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.IS_NULL;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.JOIN;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.LAST_INDEX_OF;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.LENGTH;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.LESS_THAN;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.LESS_THAN_OR_EQUAL;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.MATCHES;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.MINUS;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.MOD;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.MULTIPLY;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.MULTI_ATTRIBUTE_REFERENCE;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.NEXT_INT;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.NOT;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.NOT_NULL;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.NOW;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.NUMBER;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.OR;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.PLUS;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.PREPEND;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.REPLACE;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.REPLACE_ALL;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.REPLACE_EMPTY;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.REPLACE_NULL;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.STARTS_WITH;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.STRING_LITERAL;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.SUBSTRING;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.SUBSTRING_AFTER;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.SUBSTRING_AFTER_LAST;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.SUBSTRING_BEFORE;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.SUBSTRING_BEFORE_LAST;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TO_DATE;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TO_LOWER;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TO_NUMBER;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TO_RADIX;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TO_STRING;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TO_UPPER;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TRIM;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TRUE;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.URL_DECODE;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.URL_ENCODE;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.UUID;
 import org.apache.nifi.attribute.expression.language.evaluation.selection.MappingEvaluator;
 
 /**
@@ -229,11 +294,9 @@ public class Query {
     }
 
     /**
-     *
-     *
-     * @param value
-     * @param allowSurroundingCharacters
-     * @throws AttributeExpressionLanguageParsingException
+     * @param value expression to validate
+     * @param allowSurroundingCharacters whether to allow surrounding chars
+     * @throws AttributeExpressionLanguageParsingException if problems parsing given expression
      */
     public static void validateExpression(final String value, final boolean allowSurroundingCharacters) throws AttributeExpressionLanguageParsingException {
         if (!allowSurroundingCharacters) {
@@ -333,8 +396,8 @@ public class Query {
     /**
      * Un-escapes ${...} patterns that were escaped
      *
-     * @param value
-     * @return
+     * @param value to un-escape
+     * @return un-escaped value
      */
     public static String unescape(final String value) {
         return value.replaceAll("\\$\\$(?=\\$*\\{.*?\\})", "\\$");

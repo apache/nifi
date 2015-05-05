@@ -28,9 +28,7 @@ import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
 
 /**
- * ComponentStatusReport is a util class that can be used to "flatten" a
- * ProcessGroupStatus into a collection of Map's so that retrieval of a Status
- * for a particular component is very efficient
+ * ComponentStatusReport is a util class that can be used to "flatten" a ProcessGroupStatus into a collection of Map's so that retrieval of a Status for a particular component is very efficient
  */
 public class ComponentStatusReport {
 

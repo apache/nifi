@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+    <!--
+      Licensed to the Apache Software Foundation (ASF) under one or more
+      contributor license agreements.  See the NOTICE file distributed with
+      this work for additional information regarding copyright ownership.
+      The ASF licenses this file to You under the Apache License, Version 2.0
+      (the "License"); you may not use this file except in compliance with
+      the License.  You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+      Unless required by applicable law or agreed to in writing, software
+      distributed under the License is distributed on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+      See the License for the specific language governing permissions and
+      limitations under the License.
+    -->
+    <head>
+        <meta charset="utf-8" />
+        <title>PutKafka</title>
+        <link rel="stylesheet" href="../../css/component-usage.css" type="text/css" />
+    </head>
+
+    <body>
+        <!-- Processor Documentation ================================================== -->
+        <h2>Description:</h2>
+        <p>
+            This Processors puts the contents of a FlowFile to a Topic in 
+            <a href="http://kafka.apache.org/">Apache Kafka</a>. The full contents of
+            a FlowFile becomes the contents of a single message in Kafka.
+            This message is optionally assigned a key by using the
+            &lt;Kafka Key&gt; Property.
+        </p>
+
+        <p>
+            The Processor allows the user to configure an optional Message Delimiter that
+            can be used to send many messages per FlowFile. For example, a \n could be used
+            to indicate that the contents of the FlowFile should be used to send one message
+            per line of text. If the property is not set, the entire contents of the FlowFile
+            will be sent as a single message. When using the delimiter, if some messages are
+            successfully sent but other messages fail to send, the FlowFile will be FORKed into
+            two child FlowFiles, with the successfully sent messages being routed to 'success'
+            and the messages that could not be sent going to 'failure'.
+        </p>
+    </body>
+</html>

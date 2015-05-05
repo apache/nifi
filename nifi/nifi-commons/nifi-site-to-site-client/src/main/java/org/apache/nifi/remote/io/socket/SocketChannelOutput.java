@@ -26,32 +26,33 @@ import org.apache.nifi.remote.io.InterruptableOutputStream;
 import org.apache.nifi.remote.protocol.CommunicationsOutput;
 
 public class SocketChannelOutput implements CommunicationsOutput {
+
     private final SocketChannelOutputStream socketOutStream;
     private final ByteCountingOutputStream countingOut;
     private final OutputStream bufferedOut;
     private final InterruptableOutputStream interruptableOut;
-    
+
     public SocketChannelOutput(final SocketChannel socketChannel) throws IOException {
         socketOutStream = new SocketChannelOutputStream(socketChannel);
         countingOut = new ByteCountingOutputStream(socketOutStream);
         bufferedOut = new BufferedOutputStream(countingOut);
         interruptableOut = new InterruptableOutputStream(bufferedOut);
     }
-    
+
     @Override
     public OutputStream getOutputStream() throws IOException {
         return interruptableOut;
     }
-    
+
     public void setTimeout(final int timeout) {
         socketOutStream.setTimeout(timeout);
     }
-    
+
     @Override
     public long getBytesWritten() {
         return countingOut.getBytesWritten();
     }
-    
+
     public void interrupt() {
         interruptableOut.interrupt();
     }

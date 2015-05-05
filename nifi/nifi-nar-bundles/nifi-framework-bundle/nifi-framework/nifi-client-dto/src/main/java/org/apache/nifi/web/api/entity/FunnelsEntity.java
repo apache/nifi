@@ -22,9 +22,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.web.api.dto.FunnelDTO;
 
 /**
- * A serialized representation of this class can be placed in the entity body of
- * a response to the API. This particular entity holds a reference to a list of
- * FunnelDTOs.
+ * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to a list of FunnelDTOs.
  */
 @XmlRootElement(name = "funnelsEntity")
 public class FunnelsEntity extends Entity {
@@ -32,9 +30,7 @@ public class FunnelsEntity extends Entity {
     private Set<FunnelDTO> funnels;
 
     /**
-     * The collection of FunnelDTOs that are being serialized.
-     *
-     * @return
+     * @return collection of FunnelDTOs that are being serialized
      */
     public Set<FunnelDTO> getFunnels() {
         return funnels;

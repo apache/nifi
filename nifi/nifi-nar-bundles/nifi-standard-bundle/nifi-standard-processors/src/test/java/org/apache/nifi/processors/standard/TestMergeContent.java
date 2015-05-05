@@ -49,7 +49,7 @@ public class TestMergeContent {
     public static void setup() {
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.processors.standard", "DEBUG");
     }
-    
+
     @Test
     public void testSimpleBinaryConcat() throws IOException, InterruptedException {
         final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
@@ -158,8 +158,7 @@ public class TestMergeContent {
         runner.assertTransferCount(MergeContent.REL_ORIGINAL, 3);
 
         final MockFlowFile bundle = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
-        try (final InputStream rawIn = new ByteArrayInputStream(runner.getContentAsByteArray(bundle));
-                final ZipInputStream in = new ZipInputStream(rawIn)) {
+        try (final InputStream rawIn = new ByteArrayInputStream(runner.getContentAsByteArray(bundle)); final ZipInputStream in = new ZipInputStream(rawIn)) {
             Assert.assertNotNull(in.getNextEntry());
             final byte[] part1 = IOUtils.toByteArray(in);
             Assert.assertTrue(Arrays.equals("Hello".getBytes("UTF-8"), part1));
@@ -188,9 +187,7 @@ public class TestMergeContent {
         runner.enqueue("Hello".getBytes("UTF-8"), attributes);
         attributes.put(CoreAttributes.FILENAME.key(), "ALongerrrFileName");
         runner.enqueue(", ".getBytes("UTF-8"), attributes);
-        attributes
-                .put(CoreAttributes.FILENAME.key(),
-                        "AReallyLongggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggFileName");
+        attributes.put(CoreAttributes.FILENAME.key(), "AReallyLongggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggFileName");
         runner.enqueue("World!".getBytes("UTF-8"), attributes);
         runner.run();
 
@@ -200,8 +197,7 @@ public class TestMergeContent {
         runner.assertTransferCount(MergeContent.REL_ORIGINAL, 3);
 
         final MockFlowFile bundle = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
-        try (final InputStream rawIn = new ByteArrayInputStream(runner.getContentAsByteArray(bundle));
-                final TarArchiveInputStream in = new TarArchiveInputStream(rawIn)) {
+        try (final InputStream rawIn = new ByteArrayInputStream(runner.getContentAsByteArray(bundle)); final TarArchiveInputStream in = new TarArchiveInputStream(rawIn)) {
             ArchiveEntry entry = in.getNextEntry();
             Assert.assertNotNull(entry);
             assertEquals("AShortFileName", entry.getName());
@@ -268,7 +264,7 @@ public class TestMergeContent {
         final MockFlowFile assembled = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
         assembled.assertContentEquals("A Man A Plan A Canal Panama".getBytes("UTF-8"));
     }
-    
+
     @Test
     public void testDefragmentWithTooFewFragments() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
@@ -294,13 +290,13 @@ public class TestMergeContent {
             try {
                 Thread.sleep(3000L);
                 break;
-            } catch (final InterruptedException ie) {}
+            } catch (final InterruptedException ie) {
+            }
         }
         runner.run(1);
-        
+
         runner.assertTransferCount(MergeContent.REL_FAILURE, 4);
     }
-    
 
     @Test
     public void testDefragmentOutOfOrder() throws IOException {

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.provenance;
 
+import static org.apache.nifi.provenance.TestUtil.createFlowFile;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -25,14 +26,14 @@ import java.io.FileFilter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.core.SimpleAnalyzer;
@@ -45,7 +46,6 @@ import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.provenance.lineage.EventNode;
 import org.apache.nifi.provenance.lineage.Lineage;
 import org.apache.nifi.provenance.lineage.LineageEdge;
@@ -59,8 +59,10 @@ import org.apache.nifi.provenance.search.SearchableField;
 import org.apache.nifi.provenance.serialization.RecordReader;
 import org.apache.nifi.provenance.serialization.RecordReaders;
 import org.apache.nifi.reporting.Severity;
+import org.apache.nifi.util.file.FileUtils;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -72,13 +74,22 @@ public class TestPersistentProvenanceRepository {
     public TestName name = new TestName();
 
     private PersistentProvenanceRepository repo;
+    private RepositoryConfiguration config;
+
+    public static final int DEFAULT_ROLLOVER_MILLIS = 2000;
 
     private RepositoryConfiguration createConfiguration() {
-        final RepositoryConfiguration config = new RepositoryConfiguration();
+        config = new RepositoryConfiguration();
         config.addStorageDirectory(new File("target/storage/" + UUID.randomUUID().toString()));
-        config.setCompressOnRollover(false);
+        config.setCompressOnRollover(true);
         config.setMaxEventFileLife(2000L, TimeUnit.SECONDS);
+        config.setCompressionBlockBytes(100);
         return config;
+    }
+
+    @BeforeClass
+    public static void setLogLevel() {
+        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.provenance", "DEBUG");
     }
 
     @Before
@@ -87,70 +98,40 @@ public class TestPersistentProvenanceRepository {
     }
 
     @After
-    public void closeRepo() {
+    public void closeRepo() throws IOException {
         if (repo != null) {
             try {
                 repo.close();
             } catch (final IOException ioe) {
             }
         }
+
+        // Delete all of the storage files. We do this in order to clean up the tons of files that
+        // we create but also to ensure that we have closed all of the file handles. If we leave any
+        // streams open, for instance, this will throw an IOException, causing our unit test to fail.
+        for ( final File storageDir : config.getStorageDirectories() ) {
+            int i;
+            for (i=0; i < 3; i++) {
+                try {
+                    FileUtils.deleteFile(storageDir, true);
+                    break;
+                } catch (final IOException ioe) {
+                    // if there is a virus scanner, etc. running in the background we may not be able to
+                    // delete the file. Wait a sec and try again.
+                    if ( i == 2 ) {
+                        throw ioe;
+                    } else {
+                        try {
+                            Thread.sleep(1000L);
+                        } catch (final InterruptedException ie) {
+                        }
+                    }
+                }
+            }
+        }
     }
 
-    private FlowFile createFlowFile(final long id, final long fileSize, final Map<String, String> attributes) {
-        final Map<String, String> attrCopy = new HashMap<>(attributes);
 
-        return new FlowFile() {
-            @Override
-            public long getId() {
-                return id;
-            }
-
-            @Override
-            public long getEntryDate() {
-                return System.currentTimeMillis();
-            }
-
-            @Override
-            public Set<String> getLineageIdentifiers() {
-                return new HashSet<String>();
-            }
-
-            @Override
-            public long getLineageStartDate() {
-                return System.currentTimeMillis();
-            }
-
-            @Override
-            public Long getLastQueueDate() {
-                return System.currentTimeMillis();
-            }
-
-            @Override
-            public boolean isPenalized() {
-                return false;
-            }
-
-            @Override
-            public String getAttribute(final String s) {
-                return attrCopy.get(s);
-            }
-
-            @Override
-            public long getSize() {
-                return fileSize;
-            }
-
-            @Override
-            public Map<String, String> getAttributes() {
-                return attrCopy;
-            }
-
-            @Override
-            public int compareTo(final FlowFile o) {
-                return 0;
-            }
-        };
-    }
 
     private EventReporter getEventReporter() {
         return new EventReporter() {
@@ -170,7 +151,7 @@ public class TestPersistentProvenanceRepository {
         config.setCompressOnRollover(false);
         config.setJournalCount(10);
         config.setQueryThreadPoolSize(10);
-        repo = new PersistentProvenanceRepository(config);
+        repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
         repo.initialize(getEventReporter());
 
         final Map<String, String> attributes = new HashMap<>();
@@ -218,7 +199,7 @@ public class TestPersistentProvenanceRepository {
 
         System.out.println("Closing and re-initializing");
         repo.close();
-        repo = new PersistentProvenanceRepository(config);
+        repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
         repo.initialize(getEventReporter());
         System.out.println("Re-initialized");
 
@@ -238,7 +219,7 @@ public class TestPersistentProvenanceRepository {
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxEventFileCapacity(1L);
         config.setMaxEventFileLife(1, TimeUnit.SECONDS);
-        repo = new PersistentProvenanceRepository(config);
+        repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
         repo.initialize(getEventReporter());
 
         final Map<String, String> attributes = new HashMap<>();
@@ -259,10 +240,12 @@ public class TestPersistentProvenanceRepository {
             repo.registerEvent(record);
         }
 
+        Thread.sleep(1000L);
+
         repo.close();
         Thread.sleep(500L); // Give the repo time to shutdown (i.e., close all file handles, etc.)
 
-        repo = new PersistentProvenanceRepository(config);
+        repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
         repo.initialize(getEventReporter());
         final List<ProvenanceEventRecord> recoveredRecords = repo.getEvents(0L, 12);
 
@@ -285,7 +268,7 @@ public class TestPersistentProvenanceRepository {
         config.setMaxEventFileCapacity(1024L * 1024L);
         config.setMaxEventFileLife(2, TimeUnit.SECONDS);
         config.setSearchableFields(searchableFields);
-        repo = new PersistentProvenanceRepository(config);
+        repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
         repo.initialize(getEventReporter());
 
         final Map<String, String> attributes = new HashMap<>();
@@ -339,7 +322,7 @@ public class TestPersistentProvenanceRepository {
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxEventFileLife(500, TimeUnit.MILLISECONDS);
         config.setSearchableFields(new ArrayList<>(SearchableFields.getStandardFields()));
-        repo = new PersistentProvenanceRepository(config);
+        repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
         repo.initialize(getEventReporter());
 
         final String uuid = "00000000-0000-0000-0000-000000000000";
@@ -383,7 +366,7 @@ public class TestPersistentProvenanceRepository {
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxEventFileLife(500, TimeUnit.MILLISECONDS);
         config.setCompressOnRollover(true);
-        repo = new PersistentProvenanceRepository(config);
+        repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
         repo.initialize(getEventReporter());
 
         final String uuid = "00000000-0000-0000-0000-000000000000";
@@ -415,13 +398,13 @@ public class TestPersistentProvenanceRepository {
     @Test
     public void testIndexAndCompressOnRolloverAndSubsequentSearch() throws IOException, InterruptedException, ParseException {
         final RepositoryConfiguration config = createConfiguration();
-        config.setMaxRecordLife(3, TimeUnit.SECONDS);
-        config.setMaxStorageCapacity(1024L * 1024L);
+        config.setMaxRecordLife(30, TimeUnit.SECONDS);
+        config.setMaxStorageCapacity(1024L * 1024L * 10);
         config.setMaxEventFileLife(500, TimeUnit.MILLISECONDS);
-        config.setMaxEventFileCapacity(1024L * 1024L);
+        config.setMaxEventFileCapacity(1024L * 1024L * 10);
         config.setSearchableFields(new ArrayList<>(SearchableFields.getStandardFields()));
 
-        repo = new PersistentProvenanceRepository(config);
+        repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
         repo.initialize(getEventReporter());
 
         final String uuid = "10000000-0000-0000-0000-000000000000";
@@ -448,7 +431,7 @@ public class TestPersistentProvenanceRepository {
         repo.waitForRollover();
 
         final Query query = new Query(UUID.randomUUID().toString());
-//        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.FlowFileUUID, "00000000-0000-0000-0000*"));
+        //        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.FlowFileUUID, "00000000-0000-0000-0000*"));
         query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.Filename, "file-*"));
         query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.ComponentID, "12?4"));
         query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.TransitURI, "nifi://*"));
@@ -480,7 +463,7 @@ public class TestPersistentProvenanceRepository {
         config.setMaxEventFileCapacity(1024L * 1024L);
         config.setSearchableFields(new ArrayList<>(SearchableFields.getStandardFields()));
 
-        repo = new PersistentProvenanceRepository(config);
+        repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
         repo.initialize(getEventReporter());
 
         final String uuid = "00000000-0000-0000-0000-000000000000";
@@ -543,7 +526,7 @@ public class TestPersistentProvenanceRepository {
         config.setMaxEventFileCapacity(1024L * 1024L);
         config.setSearchableFields(new ArrayList<>(SearchableFields.getStandardFields()));
 
-        repo = new PersistentProvenanceRepository(config);
+        repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
         repo.initialize(getEventReporter());
 
         final String uuid = "00000000-0000-0000-0000-000000000000";
@@ -625,7 +608,7 @@ public class TestPersistentProvenanceRepository {
         config.setMaxEventFileCapacity(1024L * 1024L);
         config.setSearchableFields(new ArrayList<>(SearchableFields.getStandardFields()));
 
-        repo = new PersistentProvenanceRepository(config);
+        repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
         repo.initialize(getEventReporter());
 
         final String uuid = "00000000-0000-0000-0000-000000000000";
@@ -681,7 +664,7 @@ public class TestPersistentProvenanceRepository {
         config.setMaxEventFileCapacity(1024L * 1024L);
         config.setSearchableFields(new ArrayList<>(SearchableFields.getStandardFields()));
 
-        repo = new PersistentProvenanceRepository(config);
+        repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
         repo.initialize(getEventReporter());
 
         final String uuid = "00000000-0000-0000-0000-000000000001";
@@ -736,7 +719,7 @@ public class TestPersistentProvenanceRepository {
         config.setMaxEventFileCapacity(1024L * 1024L);
         config.setSearchableFields(new ArrayList<>(SearchableFields.getStandardFields()));
 
-        repo = new PersistentProvenanceRepository(config);
+        repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
         repo.initialize(getEventReporter());
 
         final String uuid = "00000000-0000-0000-0000-000000000001";
@@ -795,7 +778,7 @@ public class TestPersistentProvenanceRepository {
         config.setMaxEventFileCapacity(1024L * 1024L);
         config.setSearchableFields(new ArrayList<>(SearchableFields.getStandardFields()));
 
-        repo = new PersistentProvenanceRepository(config);
+        repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
         repo.initialize(getEventReporter());
 
         final String childId = "00000000-0000-0000-0000-000000000000";
@@ -845,7 +828,7 @@ public class TestPersistentProvenanceRepository {
         config.setMaxEventFileCapacity(1024L * 1024L);
         config.setSearchableFields(new ArrayList<>(SearchableFields.getStandardFields()));
 
-        repo = new PersistentProvenanceRepository(config);
+        repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
         repo.initialize(getEventReporter());
 
         final String childId = "00000000-0000-0000-0000-000000000000";
@@ -892,7 +875,7 @@ public class TestPersistentProvenanceRepository {
     public void testCorrectProvenanceEventIdOnRestore() throws IOException {
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxEventFileLife(1, TimeUnit.SECONDS);
-        repo = new PersistentProvenanceRepository(config);
+        repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
         repo.initialize(getEventReporter());
 
         final String uuid = "00000000-0000-0000-0000-000000000000";
@@ -918,15 +901,19 @@ public class TestPersistentProvenanceRepository {
 
         repo.close();
 
-        final PersistentProvenanceRepository secondRepo = new PersistentProvenanceRepository(config);
+        final PersistentProvenanceRepository secondRepo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
         secondRepo.initialize(getEventReporter());
 
-        final ProvenanceEventRecord event11 = builder.build();
-        secondRepo.registerEvent(event11);
-        secondRepo.waitForRollover();
-        final ProvenanceEventRecord event11Retrieved = secondRepo.getEvent(10L);
-        assertNotNull(event11Retrieved);
-        assertEquals(10, event11Retrieved.getEventId());
+        try {
+            final ProvenanceEventRecord event11 = builder.build();
+            secondRepo.registerEvent(event11);
+            secondRepo.waitForRollover();
+            final ProvenanceEventRecord event11Retrieved = secondRepo.getEvent(10L);
+            assertNotNull(event11Retrieved);
+            assertEquals(10, event11Retrieved.getEventId());
+        } finally {
+            secondRepo.close();
+        }
     }
 
     @Test
@@ -938,7 +925,7 @@ public class TestPersistentProvenanceRepository {
         config.setMaxEventFileCapacity(1024L * 1024L);
         config.setSearchableFields(new ArrayList<>(SearchableFields.getStandardFields()));
 
-        repo = new PersistentProvenanceRepository(config);
+        repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
         repo.initialize(getEventReporter());
 
         final String uuid = "00000000-0000-0000-0000-000000000000";
@@ -997,12 +984,79 @@ public class TestPersistentProvenanceRepository {
         assertEquals(0, storageDirFiles.length);
     }
 
+
+    @Test
+    public void testBackPressure() throws IOException, InterruptedException {
+        final RepositoryConfiguration config = createConfiguration();
+        config.setMaxEventFileCapacity(1L);  // force rollover on each record.
+        config.setJournalCount(1);
+
+        final AtomicInteger journalCountRef = new AtomicInteger(0);
+
+        repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS) {
+            @Override
+            protected int getJournalCount() {
+                return journalCountRef.get();
+            }
+        };
+        repo.initialize(getEventReporter());
+
+        final Map<String, String> attributes = new HashMap<>();
+        final ProvenanceEventBuilder builder = new StandardProvenanceEventRecord.Builder();
+        builder.setEventTime(System.currentTimeMillis());
+        builder.setEventType(ProvenanceEventType.RECEIVE);
+        builder.setTransitUri("nifi://unit-test");
+        attributes.put("uuid", UUID.randomUUID().toString());
+        builder.fromFlowFile(createFlowFile(3L, 3000L, attributes));
+        builder.setComponentId("1234");
+        builder.setComponentType("dummy processor");
+
+        // ensure that we can register the events.
+        for (int i = 0; i < 10; i++) {
+            builder.fromFlowFile(createFlowFile(i, 3000L, attributes));
+            attributes.put("uuid", "00000000-0000-0000-0000-00000000000" + i);
+            repo.registerEvent(builder.build());
+        }
+
+        // set number of journals to 6 so that we will block.
+        journalCountRef.set(6);
+
+        final AtomicLong threadNanos = new AtomicLong(0L);
+        final Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                final long start = System.nanoTime();
+                builder.fromFlowFile(createFlowFile(13, 3000L, attributes));
+                attributes.put("uuid", "00000000-0000-0000-0000-00000000000" + 13);
+                repo.registerEvent(builder.build());
+                threadNanos.set(System.nanoTime() - start);
+            }
+        });
+        t.start();
+
+        Thread.sleep(1500L);
+
+        journalCountRef.set(1);
+        t.join();
+
+        final int threadMillis = (int) TimeUnit.NANOSECONDS.toMillis(threadNanos.get());
+        assertTrue(threadMillis > 1200); // use 1200 to account for the fact that the timing is not exact
+
+        builder.fromFlowFile(createFlowFile(15, 3000L, attributes));
+        attributes.put("uuid", "00000000-0000-0000-0000-00000000000" + 15);
+        repo.registerEvent(builder.build());
+    }
+
+
+    // TODO: test EOF on merge
+    // TODO: Test journal with no records
+
     @Test
     public void testTextualQuery() throws InterruptedException, IOException, ParseException {
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxEventFileLife(500, TimeUnit.MILLISECONDS);
         config.setSearchableFields(new ArrayList<>(SearchableFields.getStandardFields()));
-        repo = new PersistentProvenanceRepository(config);
+        repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
         repo.initialize(getEventReporter());
 
         final String uuid = "00000000-0000-0000-0000-000000000000";
@@ -1070,7 +1124,7 @@ public class TestPersistentProvenanceRepository {
     public void testMergeJournals() throws IOException, InterruptedException {
         final RepositoryConfiguration config = createConfiguration();
         config.setMaxEventFileLife(3, TimeUnit.SECONDS);
-        repo = new PersistentProvenanceRepository(config);
+        repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
         repo.initialize(getEventReporter());
 
         final Map<String, String> attributes = new HashMap<>();

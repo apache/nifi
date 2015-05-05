@@ -25,24 +25,18 @@ import java.util.Map;
 public interface StatusSnapshot {
 
     /**
-     * Rreturns the point in time for which the status values were obtained
-     *
-     * @return
+     * @return the point in time for which the status values were obtained
      */
     Date getTimestamp();
 
     /**
-     * Returns a Map of MetricDescriptor to value
-     *
-     * @return
+     * @return a Map of MetricDescriptor to value
      */
     Map<MetricDescriptor<?>, Long> getStatusMetrics();
 
     /**
-     * Returns a {@link ValueReducer} that is capable of merging multiple
+     * @return a {@link ValueReducer} that is capable of merging multiple
      * StatusSnapshot objects into a single one
-     *
-     * @return
      */
     ValueReducer<StatusSnapshot, StatusSnapshot> getValueReducer();
 }

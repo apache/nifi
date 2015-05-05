@@ -89,24 +89,20 @@ public interface PropertyValue {
     public Double asDataSize(DataUnit dataUnit);
 
     /**
-     * Returns the ControllerService whose identifier is the raw value of
+     * @return the ControllerService whose identifier is the raw value of
      * <code>this</code>, or <code>null</code> if either the value is not set or
      * the value does not identify a ControllerService
-     *
-     * @return
      */
     public ControllerService asControllerService();
 
     /**
-     * Returns the ControllerService whose identifier is the raw value of the
+     * @param <T> the generic type of the controller service
+     * @param serviceType the class of the Controller Service
+     * @return the ControllerService whose identifier is the raw value of the
      * <code>this</code>, or <code>null</code> if either the value is not set or
      * the value does not identify a ControllerService. The object returned by
      * this method is explicitly cast to type specified, if the type specified
      * is valid. Otherwise, throws an IllegalArgumentException
-     *
-     * @param <T>
-     * @param serviceType
-     * @return
      *
      * @throws IllegalArgumentException if the value of <code>this</code> points
      * to a ControllerService but that service is not of type
@@ -116,11 +112,9 @@ public interface PropertyValue {
     public <T extends ControllerService> T asControllerService(Class<T> serviceType) throws IllegalArgumentException;
 
     /**
-     * Returns <code>true</code> if the user has configured a value, or if the
+     * @return <code>true</code> if the user has configured a value, or if the
      * {@link PropertyDescriptor} for the associated property has a default
-     * value, <code>false</code> otherwise.
-     *
-     * @return
+     * value, <code>false</code> otherwise
      */
     public boolean isSet();
 
@@ -131,7 +125,8 @@ public interface PropertyValue {
      * call chaining.
      * </p>
      *
-     * @return
+     * @return a PropertyValue with the new value is returned, supporting call
+     * chaining
      *
      * @throws ProcessException if the Query cannot be compiled or evaluating
      * the query against the given attributes causes an Exception to be thrown
@@ -145,8 +140,9 @@ public interface PropertyValue {
      * call chaining.
      * </p>
      *
-     * @param flowFile
-     * @return
+     * @param flowFile to evaluate attributes of
+     * @return a PropertyValue with the new value is returned, supporting call
+     * chaining
      *
      * @throws ProcessException if the Query cannot be compiled or evaluating
      * the query against the given attributes causes an Exception to be thrown
@@ -161,8 +157,10 @@ public interface PropertyValue {
      * supporting call chaining.
      * </p>
      *
-     * @param decorator
-     * @return
+     * @param decorator The supplied decorator is then given a chance to
+     * decorate the value
+     * @return a PropertyValue with the new value is then returned, supporting
+     * call chaining
      *
      * @throws ProcessException if the Query cannot be compiled or evaluating
      * the query against the given attributes causes an Exception to be thrown
@@ -177,10 +175,12 @@ public interface PropertyValue {
      * supporting call chaining.
      * </p>
      *
-     * @param flowFile
-     * @param decorator
+     * @param flowFile to evaluate expressions against
+     * @param decorator The supplied decorator is then given a chance to
+     * decorate the value
      *
-     * @return
+     * @return a PropertyValue with the new value is then returned, supporting
+     * call chaining
      *
      * @throws ProcessException if the Query cannot be compiled or evaluating
      * the query against the given attributes causes an Exception to be thrown

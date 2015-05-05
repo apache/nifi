@@ -83,9 +83,7 @@ public class ProvenanceEventDTO {
     private String sourceConnectionIdentifier;
 
     /**
-     * The event uuid.
-     *
-     * @return
+     * @return event uuid
      */
     public String getId() {
         return id;
@@ -96,9 +94,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * The event id.
-     *
-     * @return
+     * @return event id
      */
     public Long getEventId() {
         return eventId;
@@ -109,9 +105,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * The time the event occurred.
-     *
-     * @return
+     * @return time the event occurred
      */
     @XmlJavaTypeAdapter(TimestampAdapter.class)
     public Date getEventTime() {
@@ -123,9 +117,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * The UUID of the FlowFile for this event.
-     *
-     * @return
+     * @return UUID of the FlowFile for this event
      */
     public String getFlowFileUuid() {
         return flowFileUuid;
@@ -136,9 +128,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * The size of the FlowFile for this event.
-     *
-     * @return
+     * @return size of the FlowFile for this event
      */
     public String getFileSize() {
         return fileSize;
@@ -149,9 +139,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * The size of the FlowFile in bytes for this event.
-     *
-     * @return
+     * @return size of the FlowFile in bytes for this event
      */
     public Long getFileSizeBytes() {
         return fileSizeBytes;
@@ -162,9 +150,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * The type of this event.
-     *
-     * @return
+     * @return type of this event
      */
     public String getEventType() {
         return eventType;
@@ -175,9 +161,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * The attributes for the FlowFile for this event.
-     *
-     * @return
+     * @return attributes for the FlowFile for this event
      */
     public Collection<AttributeDTO> getAttributes() {
         return attributes;
@@ -188,10 +172,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * The id of the group that this component resides in. If the component is
-     * no longer in the flow, the group id will not be set.
-     *
-     * @return
+     * @return id of the group that this component resides in. If the component is no longer in the flow, the group id will not be set
      */
     public String getGroupId() {
         return groupId;
@@ -202,9 +183,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * The id of the component that generated this event.
-     *
-     * @return
+     * @return id of the component that generated this event
      */
     public String getComponentId() {
         return componentId;
@@ -215,9 +194,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * The name of the component that generated this event.
-     *
-     * @return
+     * @return name of the component that generated this event
      */
     public String getComponentName() {
         return componentName;
@@ -228,9 +205,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * The type of the component that generated this event.
-     *
-     * @return
+     * @return type of the component that generated this event
      */
     public String getComponentType() {
         return componentType;
@@ -241,9 +216,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * The source/destination system URI if the event was a RECEIVE/SEND.
-     *
-     * @return
+     * @return source/destination system URI if the event was a RECEIVE/SEND
      */
     public String getTransitUri() {
         return transitUri;
@@ -254,9 +227,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * The alternate identifier URI for the FlowFile for this event.
-     *
-     * @return
+     * @return alternate identifier URI for the FlowFile for this event
      */
     public String getAlternateIdentifierUri() {
         return alternateIdentifierUri;
@@ -267,9 +238,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * The identifier of the node where this event originated.
-     *
-     * @return
+     * @return identifier of the node where this event originated
      */
     public String getClusterNodeId() {
         return clusterNodeId;
@@ -280,9 +249,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * The label to use to show which node this event originated from.
-     *
-     * @return
+     * @return label to use to show which node this event originated from
      */
     public String getClusterNodeAddress() {
         return clusterNodeAddress;
@@ -293,9 +260,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * The parent uuids for this event.
-     *
-     * @return
+     * @return parent uuids for this event
      */
     public List<String> getParentUuids() {
         return parentUuids;
@@ -306,9 +271,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * The child uuids for this event.
-     *
-     * @return
+     * @return child uuids for this event
      */
     public List<String> getChildUuids() {
         return childUuids;
@@ -319,9 +282,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * The duration of the event, in milliseconds.
-     *
-     * @return
+     * @return duration of the event, in milliseconds
      */
     public Long getEventDuration() {
         return eventDuration;
@@ -332,9 +293,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * The duration since the lineage began, in milliseconds.
-     *
-     * @return
+     * @return duration since the lineage began, in milliseconds
      */
     public Long getLineageDuration() {
         return lineageDuration;
@@ -345,9 +304,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * The source system FlowFile id.
-     *
-     * @return
+     * @return source system FlowFile id
      */
     public String getSourceSystemFlowFileId() {
         return sourceSystemFlowFileId;
@@ -358,10 +315,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * If this represents a route event, this is the relationship to which the
-     * flowfile was routed.
-     *
-     * @return
+     * @return If this represents a route event, this is the relationship to which the flowfile was routed
      */
     public String getRelationship() {
         return relationship;
@@ -372,9 +326,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * The event details.
-     *
-     * @return
+     * @return event details
      */
     public String getDetails() {
         return details;
@@ -385,9 +337,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * Whether or not the input and output content claim is the same.
-     *
-     * @return
+     * @return whether or not the input and output content claim is the same
      */
     public Boolean getContentEqual() {
         return contentEqual;
@@ -398,9 +348,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * Returns whether or not the output content is still available.
-     *
-     * @return
+     * @return whether or not the output content is still available
      */
     public Boolean getOutputContentAvailable() {
         return outputContentAvailable;
@@ -411,10 +359,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * Returns the Section in which the output Content Claim lives, or
-     * <code>null</code> if no Content Claim exists.
-     *
-     * @return
+     * @return the Section in which the output Content Claim lives, or <code>null</code> if no Content Claim exists
      */
     public String getOutputContentClaimSection() {
         return outputContentClaimSection;
@@ -425,10 +370,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * Returns the Container in which the output Content Claim lives, or
-     * <code>null</code> if no Content Claim exists.
-     *
-     * @return
+     * @return the Container in which the output Content Claim lives, or <code>null</code> if no Content Claim exists
      */
     public String getOutputContentClaimContainer() {
         return outputContentClaimContainer;
@@ -439,10 +381,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * Returns the Identifier of the output Content Claim, or <code>null</code>
-     * if no Content Claim exists.
-     *
-     * @return
+     * @return the Identifier of the output Content Claim, or <code>null</code> if no Content Claim exists
      */
     public String getOutputContentClaimIdentifier() {
         return outputContentClaimIdentifier;
@@ -453,10 +392,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * Returns the offset into the the output Content Claim where the FlowFile's
-     * content begins, or <code>null</code> if no Content Claim exists.
-     *
-     * @return
+     * @return the offset into the the output Content Claim where the FlowFile's content begins, or <code>null</code> if no Content Claim exists
      */
     public Long getOutputContentClaimOffset() {
         return outputContentClaimOffset;
@@ -467,9 +403,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * Returns the formatted file size of the input content claim.
-     *
-     * @return
+     * @return the formatted file size of the input content claim
      */
     public String getOutputContentClaimFileSize() {
         return outputContentClaimFileSize;
@@ -480,9 +414,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * Returns the number of bytes of the input content claim.
-     *
-     * @return
+     * @return the number of bytes of the input content claim
      */
     public Long getOutputContentClaimFileSizeBytes() {
         return outputContentClaimFileSizeBytes;
@@ -493,9 +425,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * Returns whether or not the input content is still available.
-     *
-     * @return
+     * @return whether or not the input content is still available
      */
     public Boolean getInputContentAvailable() {
         return inputContentAvailable;
@@ -506,10 +436,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * Returns the Section in which the input Content Claim lives, or
-     * <code>null</code> if no Content Claim exists.
-     *
-     * @return
+     * @return the Section in which the input Content Claim lives, or <code>null</code> if no Content Claim exists
      */
     public String getInputContentClaimSection() {
         return inputContentClaimSection;
@@ -520,10 +447,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * Returns the Container in which the input Content Claim lives, or
-     * <code>null</code> if no Content Claim exists.
-     *
-     * @return
+     * @return the Container in which the input Content Claim lives, or <code>null</code> if no Content Claim exists
      */
     public String getInputContentClaimContainer() {
         return inputContentClaimContainer;
@@ -534,10 +458,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * Returns the Identifier of the input Content Claim, or <code>null</code>
-     * if no Content Claim exists.
-     *
-     * @return
+     * @return the Identifier of the input Content Claim, or <code>null</code> if no Content Claim exists
      */
     public String getInputContentClaimIdentifier() {
         return inputContentClaimIdentifier;
@@ -548,10 +469,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * Returns the offset into the the input Content Claim where the FlowFile's
-     * content begins, or <code>null</code> if no Content Claim exists.
-     *
-     * @return
+     * @return the offset into the the input Content Claim where the FlowFile's content begins, or <code>null</code> if no Content Claim exists
      */
     public Long getInputContentClaimOffset() {
         return inputContentClaimOffset;
@@ -562,9 +480,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * Returns the formatted file size of the input content claim.
-     *
-     * @return
+     * @return the formatted file size of the input content claim
      */
     public String getInputContentClaimFileSize() {
         return inputContentClaimFileSize;
@@ -575,9 +491,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * Returns the number of bytes of the input content claim.
-     *
-     * @return
+     * @return the number of bytes of the input content claim
      */
     public Long getInputContentClaimFileSizeBytes() {
         return inputContentClaimFileSizeBytes;
@@ -588,9 +502,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * Returns whether or not replay is available.
-     *
-     * @return
+     * @return whether or not replay is available
      */
     public Boolean getReplayAvailable() {
         return replayAvailable;
@@ -601,9 +513,7 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * Returns the explanation as to why replay is unavailable.
-     *
-     * @return
+     * @return the explanation as to why replay is unavailable
      */
     public String getReplayExplanation() {
         return replayExplanation;
@@ -614,11 +524,8 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * Returns identifier of the FlowFile Queue / Connection from which the
-     * FlowFile was pulled to generate this event, or <code>null</code> if
-     * either the queue is unknown or the FlowFile was created by this event.
-     *
-     * @return
+     * @return identifier of the FlowFile Queue / Connection from which the FlowFile was pulled to generate this event, or <code>null</code> if either the queue is unknown or the FlowFile was created
+     * by this event
      */
     public String getSourceConnectionIdentifier() {
         return sourceConnectionIdentifier;

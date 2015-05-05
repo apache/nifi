@@ -30,7 +30,7 @@ import java.util.Set;
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
 import org.apache.nifi.action.Operation;
-import org.apache.nifi.action.component.details.ProcessorDetails;
+import org.apache.nifi.action.component.details.ExtensionDetails;
 import org.apache.nifi.action.details.ActionDetails;
 import org.apache.nifi.action.details.ConfigureDetails;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -71,20 +71,13 @@ public class ProcessorAuditor extends NiFiAuditor {
     /**
      * Audits the creation of processors via createProcessor().
      *
-     * This method only needs to be run 'after returning'. However, in Java 7
-     * the order in which these methods are returned from
-     * Class.getDeclaredMethods (even though there is no order guaranteed) seems
-     * to differ from Java 6. SpringAOP depends on this ordering to determine
-     * advice precedence. By normalizing all advice into Around advice we can
-     * alleviate this issue.
+     * This method only needs to be run 'after returning'. However, in Java 7 the order in which these methods are returned from Class.getDeclaredMethods (even though there is no order guaranteed)
+     * seems to differ from Java 6. SpringAOP depends on this ordering to determine advice precedence. By normalizing all advice into Around advice we can alleviate this issue.
      *
-     * @param processor
+     * @param proceedingJoinPoint join point
+     * @return node
+     * @throws java.lang.Throwable ex
      */
-//    @AfterReturning(
-//        pointcut="within(org.apache.nifi.web.dao.ProcessorDAO+) && "
-//            + "execution(org.apache.nifi.web.api.dto.ProcessorDTO createProcessor(org.apache.nifi.web.api.dto.ProcessorDTO))",
-//        returning="processor"
-//    )
     @Around("within(org.apache.nifi.web.dao.ProcessorDAO+) && "
             + "execution(org.apache.nifi.controller.ProcessorNode createProcessor(java.lang.String, org.apache.nifi.web.api.dto.ProcessorDTO))")
     public ProcessorNode createProcessorAdvice(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
@@ -105,17 +98,18 @@ public class ProcessorAuditor extends NiFiAuditor {
     /**
      * Audits the configuration of a single processor.
      *
-     * @param proceedingJoinPoint
-     * @param processorDTO
-     * @param processorDAO
-     * @return
-     * @throws Throwable
+     * @param proceedingJoinPoint join point
+     * @param groupId group id
+     * @param processorDTO dto
+     * @param processorDAO dao
+     * @return node
+     * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.ProcessorDAO+) && "
             + "execution(org.apache.nifi.controller.ProcessorNode updateProcessor(java.lang.String, org.apache.nifi.web.api.dto.ProcessorDTO)) && "
             + "args(groupId, processorDTO) && "
             + "target(processorDAO)")
-    public Object updateProcessorAdvice(ProceedingJoinPoint proceedingJoinPoint, String groupId, ProcessorDTO processorDTO, ProcessorDAO processorDAO) throws Throwable {
+    public ProcessorNode updateProcessorAdvice(ProceedingJoinPoint proceedingJoinPoint, String groupId, ProcessorDTO processorDTO, ProcessorDAO processorDAO) throws Throwable {
         // determine the initial values for each property/setting thats changing
         ProcessorNode processor = processorDAO.getProcessor(groupId, processorDTO.getId());
         final Map<String, String> values = extractConfiguredPropertyValues(processor, processorDTO);
@@ -137,7 +131,7 @@ public class ProcessorAuditor extends NiFiAuditor {
             Map<String, String> updatedValues = extractConfiguredPropertyValues(processor, processorDTO);
 
             // create the processor details
-            ProcessorDetails processorDetails = new ProcessorDetails();
+            ExtensionDetails processorDetails = new ExtensionDetails();
             processorDetails.setType(processor.getProcessor().getClass().getSimpleName());
 
             // create a processor action
@@ -239,10 +233,11 @@ public class ProcessorAuditor extends NiFiAuditor {
     /**
      * Audits the removal of a processor via deleteProcessor().
      *
-     * @param proceedingJoinPoint
-     * @param processorId
-     * @param processorDAO
-     * @throws Throwable
+     * @param proceedingJoinPoint join point
+     * @param groupId group id
+     * @param processorId processor id
+     * @param processorDAO dao
+     * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.ProcessorDAO+) && "
             + "execution(void deleteProcessor(java.lang.String, java.lang.String)) && "
@@ -268,9 +263,9 @@ public class ProcessorAuditor extends NiFiAuditor {
     /**
      * Generates an audit record for the creation of a processor.
      *
-     * @param processor
-     * @param operation
-     * @return
+     * @param processor processor
+     * @param operation operation
+     * @return action
      */
     public Action generateAuditRecord(ProcessorNode processor, Operation operation) {
         return generateAuditRecord(processor, operation, null);
@@ -279,9 +274,10 @@ public class ProcessorAuditor extends NiFiAuditor {
     /**
      * Generates an audit record for the creation of a processor.
      *
-     * @param processor
-     * @param operation
-     * @return
+     * @param processor processor
+     * @param operation operation
+     * @param actionDetails details
+     * @return action
      */
     public Action generateAuditRecord(ProcessorNode processor, Operation operation, ActionDetails actionDetails) {
         Action action = null;
@@ -292,7 +288,7 @@ public class ProcessorAuditor extends NiFiAuditor {
         // ensure the user was found
         if (user != null) {
             // create the processor details
-            ProcessorDetails processorDetails = new ProcessorDetails();
+            ExtensionDetails processorDetails = new ExtensionDetails();
             processorDetails.setType(processor.getProcessor().getClass().getSimpleName());
 
             // create the processor action for adding this processor
@@ -315,12 +311,7 @@ public class ProcessorAuditor extends NiFiAuditor {
     }
 
     /**
-     * Extracts the values for the configured properties from the specified
-     * Processor.
-     *
-     * @param processor
-     * @param processorDTO
-     * @return
+     * Extracts the values for the configured properties from the specified Processor.
      */
     private Map<String, String> extractConfiguredPropertyValues(ProcessorNode processor, ProcessorDTO processorDTO) {
         Map<String, String> values = new HashMap<>();
@@ -389,12 +380,11 @@ public class ProcessorAuditor extends NiFiAuditor {
     }
 
     /**
-     * Locates the actual property descriptor for the given spec property
-     * descriptor.
+     * Locates the actual property descriptor for the given spec property descriptor.
      *
-     * @param propertyDescriptors
-     * @param specDescriptor
-     * @return
+     * @param propertyDescriptors properties
+     * @param specDescriptor example property
+     * @return property
      */
     private PropertyDescriptor locatePropertyDescriptor(Set<PropertyDescriptor> propertyDescriptors, PropertyDescriptor specDescriptor) {
         for (PropertyDescriptor propertyDescriptor : propertyDescriptors) {

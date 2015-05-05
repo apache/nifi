@@ -43,9 +43,6 @@ import org.aspectj.lang.annotation.Aspect;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- *
- */
 @Aspect
 public class PortAuditor extends NiFiAuditor {
 
@@ -54,13 +51,13 @@ public class PortAuditor extends NiFiAuditor {
     /**
      * Audits the creation of a port.
      *
-     * @param proceedingJoinPoint
-     * @return
-     * @throws Throwable
+     * @param proceedingJoinPoint join point
+     * @return port
+     * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.PortDAO+) && "
             + "execution(org.apache.nifi.connectable.Port createPort(java.lang.String, org.apache.nifi.web.api.dto.PortDTO))")
-    public Object createPortAdvice(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+    public Port createPortAdvice(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         // perform the underlying operation
         Port port = (Port) proceedingJoinPoint.proceed();
 
@@ -78,15 +75,18 @@ public class PortAuditor extends NiFiAuditor {
     /**
      * Audits the update of a port.
      *
-     * @param proceedingJoinPoint
-     * @return
-     * @throws Throwable
+     * @param proceedingJoinPoint join point
+     * @param groupId group id
+     * @param portDTO port dto
+     * @param portDAO port dao
+     * @return port
+     * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.PortDAO+) && "
             + "execution(org.apache.nifi.connectable.Port updatePort(java.lang.String, org.apache.nifi.web.api.dto.PortDTO)) && "
             + "args(groupId, portDTO) && "
             + "target(portDAO)")
-    public Object updatePortAdvice(ProceedingJoinPoint proceedingJoinPoint, String groupId, PortDTO portDTO, PortDAO portDAO) throws Throwable {
+    public Port updatePortAdvice(ProceedingJoinPoint proceedingJoinPoint, String groupId, PortDTO portDTO, PortDAO portDAO) throws Throwable {
         final Port port = portDAO.getPort(groupId, portDTO.getId());
         final ScheduledState scheduledState = port.getScheduledState();
         final String name = port.getName();
@@ -260,10 +260,11 @@ public class PortAuditor extends NiFiAuditor {
     /**
      * Audits the removal of a processor via deleteProcessor().
      *
-     * @param proceedingJoinPoint
-     * @param processorId
-     * @param processorDAO
-     * @throws Throwable
+     * @param proceedingJoinPoint join point
+     * @param groupId group id
+     * @param portId port id
+     * @param portDAO port dao
+     * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.PortDAO+) && "
             + "execution(void deletePort(java.lang.String, java.lang.String)) && "
@@ -289,7 +290,9 @@ public class PortAuditor extends NiFiAuditor {
     /**
      * Generates an audit record for the creation of the specified port.
      *
-     * @param port
+     * @param port port
+     * @param operation operation
+     * @return action
      */
     public Action generateAuditRecord(Port port, Operation operation) {
         return generateAuditRecord(port, operation, null);
@@ -298,7 +301,10 @@ public class PortAuditor extends NiFiAuditor {
     /**
      * Generates an audit record for the creation of the specified port.
      *
-     * @param port
+     * @param port port
+     * @param operation operation
+     * @param actionDetails details
+     * @return action
      */
     public Action generateAuditRecord(Port port, Operation operation, ActionDetails actionDetails) {
         Action action = null;

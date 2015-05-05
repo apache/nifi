@@ -28,8 +28,8 @@ public interface ProvenanceEventBuilder {
     /**
      * Sets the type of {@link ProvenanceEventRecord}
      *
-     * @param eventType
-     * @return
+     * @param eventType of the event
+     * @return the builder
      */
     ProvenanceEventBuilder setEventType(ProvenanceEventType eventType);
 
@@ -38,15 +38,15 @@ public interface ProvenanceEventBuilder {
      * given event
      *
      * @param event the event from which to populate the Builders values
-     * @return
+     * @return the builder
      */
     ProvenanceEventBuilder fromEvent(ProvenanceEventRecord event);
 
     /**
      * Sets the date and time at which the FlowFile entered the flow
      *
-     * @param entryDate
-     * @return
+     * @param entryDate of the flow file
+     * @return the builder
      */
     ProvenanceEventBuilder setFlowFileEntryDate(long entryDate);
 
@@ -54,8 +54,8 @@ public interface ProvenanceEventBuilder {
      * Sets the Lineage Identifiers. This is a set of all FlowFile UUID's that
      * were involved in making this event occur.
      *
-     * @param lineageIdentifiers
-     * @return
+     * @param lineageIdentifiers of the flowfiles in this event
+     * @return the builder
      */
     ProvenanceEventBuilder setLineageIdentifiers(Set<String> lineageIdentifiers);
 
@@ -63,12 +63,12 @@ public interface ProvenanceEventBuilder {
      * Sets the Content Claim that the FlowFile was previously associated with
      * before this event occurred.
      *
-     * @param container
-     * @param section
-     * @param identifier
-     * @param offset
-     * @param size
-     * @return
+     * @param container for previous content
+     * @param section for previous content
+     * @param identifier for previous content
+     * @param offset for previous content
+     * @param size for previous content
+     * @return the builder
      */
     ProvenanceEventBuilder setPreviousContentClaim(String container, String section, String identifier, Long offset, long size);
 
@@ -76,12 +76,12 @@ public interface ProvenanceEventBuilder {
      * Sets the Content Claim that the FlowFile is associated with as a result
      * of this event
      *
-     * @param container
-     * @param section
-     * @param identifier
-     * @param offset
-     * @param size
-     * @return
+     * @param container for resulting content
+     * @param section for resulting content
+     * @param identifier for resulting content
+     * @param offset for resulting content
+     * @param size for resulting content
+     * @return the builder
      */
     ProvenanceEventBuilder setCurrentContentClaim(String container, String section, String identifier, Long offset, long size);
 
@@ -89,8 +89,8 @@ public interface ProvenanceEventBuilder {
      * Sets the identifier of the FlowFile Queue from which the FlowFile was
      * pulled
      *
-     * @param identifier
-     * @return
+     * @param identifier of the source queue
+     * @return the builder
      */
     ProvenanceEventBuilder setSourceQueueIdentifier(String identifier);
 
@@ -99,28 +99,28 @@ public interface ProvenanceEventBuilder {
      * occurred and any attributes that were added or updated as a result of
      * this event.
      *
-     * @param previousAttributes
+     * @param previousAttributes Map of all attributes before the event occurred
      * @param updatedAttributes Map containing all attributes that were added or
      * updated. If any entry has a value of <code>null</code>, that attribute is
      * considered removed
      *
-     * @return
+     * @return the builder
      */
     ProvenanceEventBuilder setAttributes(Map<String, String> previousAttributes, Map<String, String> updatedAttributes);
 
     /**
      * Sets the UUID to associate with the FlowFile
      *
-     * @param uuid
-     * @return
+     * @param uuid of the flowfile
+     * @return the builder
      */
     ProvenanceEventBuilder setFlowFileUUID(String uuid);
 
     /**
      * Sets the time at which the Provenance Event took place
      *
-     * @param eventTime
-     * @return
+     * @param eventTime time of the event
+     * @return the builder
      */
     ProvenanceEventBuilder setEventTime(long eventTime);
 
@@ -128,16 +128,16 @@ public interface ProvenanceEventBuilder {
      * Sets the amount of time that was required in order to perform the
      * function referred to by this event
      *
-     * @param millis
-     * @return
+     * @param millis of the event
+     * @return the builder
      */
     ProvenanceEventBuilder setEventDuration(long millis);
 
     /**
      * Sets the time at which the FlowFile's lineage began
      *
-     * @param startDate
-     * @return
+     * @param startDate start date of the event
+     * @return the builder
      */
     ProvenanceEventBuilder setLineageStartDate(long startDate);
 
@@ -145,8 +145,8 @@ public interface ProvenanceEventBuilder {
      * Sets the unique identifier of the NiFi Component (such as a
      * {@link Processor}) that is generating the Event
      *
-     * @param componentId
-     * @return
+     * @param componentId that produced the event
+     * @return the builder
      */
     ProvenanceEventBuilder setComponentId(String componentId);
 
@@ -154,8 +154,8 @@ public interface ProvenanceEventBuilder {
      * Sets the type of the Component that is generating the Event. For
      * {@link Processor}s, this is the Simple Class Name of the Processor.
      *
-     * @param componentType
-     * @return
+     * @param componentType of the component that made the event
+     * @return the builder
      */
     ProvenanceEventBuilder setComponentType(String componentType);
 
@@ -167,8 +167,8 @@ public interface ProvenanceEventBuilder {
      * and {@link ProvenanceEventType#SEND} and will be ignored for any other
      * event types.
      *
-     * @param sourceSystemFlowFileIdentifier
-     * @return
+     * @param sourceSystemFlowFileIdentifier identifier the remote system used
+     * @return the builder
      */
     ProvenanceEventBuilder setSourceSystemFlowFileIdentifier(String sourceSystemFlowFileIdentifier);
 
@@ -184,8 +184,8 @@ public interface ProvenanceEventBuilder {
      * and {@link ProvenanceEventType#SEND} and will be ignored for any other
      * event types.
      *
-     * @param transitUri
-     * @return
+     * @param transitUri of the event
+     * @return the builder
      */
     ProvenanceEventBuilder setTransitUri(String transitUri);
 
@@ -194,13 +194,13 @@ public interface ProvenanceEventBuilder {
      * {@link ProvenanceEventType#FORK}, {@link ProvenanceEventType#JOIN}, and
      * {@link ProvenanceEventType#CLONE}
      *
-     * This is valid only for null null null null null     {@link ProvenanceEventType#SPAWN}, 
+     * This is valid only for {@link ProvenanceEventType#SPAWN},
      * {@link ProvenanceEventType#FORK}, {@link ProvenanceEventType#JOIN}, and
      * {@link ProvenanceEventType#CLONE} events and will be ignored for any
      * other event types.
      *
-     * @param parent
-     * @return
+     * @param parent flowfile that this event is derived from
+     * @return the builder
      */
     ProvenanceEventBuilder addParentFlowFile(FlowFile parent);
 
@@ -209,13 +209,13 @@ public interface ProvenanceEventBuilder {
      * {@link ProvenanceEventType#FORK}, {@link ProvenanceEventType#JOIN}, and
      * {@link ProvenanceEventType#CLONE}
      *
-     * This is valid only for null null null null null     {@link ProvenanceEventType#SPAWN}, 
+     * This is valid only for {@link ProvenanceEventType#SPAWN},
      * {@link ProvenanceEventType#FORK}, {@link ProvenanceEventType#JOIN}, and
      * {@link ProvenanceEventType#CLONE} events and will be ignored for any
      * other event types.
      *
-     * @param parent
-     * @return
+     * @param parent previous parent of this event
+     * @return the builder
      */
     ProvenanceEventBuilder removeParentFlowFile(FlowFile parent);
 
@@ -224,13 +224,13 @@ public interface ProvenanceEventBuilder {
      * {@link ProvenanceEventType#FORK}, {@link ProvenanceEventType#JOIN}, and
      * {@link ProvenanceEventType#CLONE}
      *
-     * This is valid only for null null null null null     {@link ProvenanceEventType#SPAWN}, 
+     * This is valid only for {@link ProvenanceEventType#SPAWN},
      * {@link ProvenanceEventType#FORK}, {@link ProvenanceEventType#JOIN}, and
      * {@link ProvenanceEventType#CLONE} events and will be ignored for any
      * other event types.
      *
-     * @param child
-     * @return
+     * @param child the child to add
+     * @return the builder
      */
     ProvenanceEventBuilder addChildFlowFile(FlowFile child);
 
@@ -239,13 +239,13 @@ public interface ProvenanceEventBuilder {
      * {@link ProvenanceEventType#FORK}, {@link ProvenanceEventType#JOIN}, and
      * {@link ProvenanceEventType#CLONE}
      *
-     * This is valid only for null null null null null     {@link ProvenanceEventType#SPAWN}, 
+     * This is valid only for {@link ProvenanceEventType#SPAWN},
      * {@link ProvenanceEventType#FORK}, {@link ProvenanceEventType#JOIN}, and
      * {@link ProvenanceEventType#CLONE} events and will be ignored for any
      * other event types.
      *
-     * @param child
-     * @return
+     * @param child to remove
+     * @return the builder
      */
     ProvenanceEventBuilder removeChildFlowFile(FlowFile child);
 
@@ -259,8 +259,8 @@ public interface ProvenanceEventBuilder {
      * This is valid only for {@link ProvenanceEventType#ADDINFO} events and
      * will be ignored for any other event types.
      *
-     * @param alternateIdentifierUri
-     * @return
+     * @param alternateIdentifierUri another identifier of the flowfile this event is for
+     * @return the builder
      */
     ProvenanceEventBuilder setAlternateIdentifierUri(String alternateIdentifierUri);
 
@@ -268,8 +268,8 @@ public interface ProvenanceEventBuilder {
      * Sets the details for this event. This is a free-form String that can
      * contain any information that is relevant to this event.
      *
-     * @param details
-     * @return
+     * @param details a description of the event
+     * @return the builder
      */
     ProvenanceEventBuilder setDetails(String details);
 
@@ -279,8 +279,8 @@ public interface ProvenanceEventBuilder {
      * {@link ProvenanceEventType#ROUTE} events and will be ignored for any
      * other event types.
      *
-     * @param relationship
-     * @return
+     * @param relationship to which flowfiles in this event were routed
+     * @return the builder
      */
     ProvenanceEventBuilder setRelationship(Relationship relationship);
 
@@ -288,8 +288,8 @@ public interface ProvenanceEventBuilder {
      * Populates the builder with as much information as it can from the given
      * FlowFile
      *
-     * @param flowFile
-     * @return
+     * @param flowFile to source attributes for this event from
+     * @return the builder
      */
     ProvenanceEventBuilder fromFlowFile(FlowFile flowFile);
 
@@ -301,7 +301,7 @@ public interface ProvenanceEventBuilder {
      * depend on the {@link ProvevenanceEventRepository} to generate the unique
      * identifier.
      *
-     * @return
+     * @return the event
      */
     ProvenanceEventRecord build();
 

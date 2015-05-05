@@ -41,8 +41,8 @@ public abstract class NiFiAuditor {
     /**
      * Records the specified action.
      *
-     * @param action
-     * @param logger
+     * @param action action
+     * @param logger logger
      */
     protected void saveAction(Action action, Logger logger) {
         final Collection<Action> actions = new ArrayList<>();
@@ -53,15 +53,14 @@ public abstract class NiFiAuditor {
     /**
      * Records the actions.
      *
-     * @param actions
+     * @param actions actions
+     * @param logger logger
      */
     protected void saveActions(Collection<Action> actions, Logger logger) {
-        /*
-         * if we're a clustered node, then set actions on threadlocal
-         */
-        if (serviceFacade.isClustered()) {
-            // if we're a connected node, then put audit actions on threadlocal to propagate back to manager
-            ClusterContext ctx = ClusterContextThreadLocal.getContext();
+        ClusterContext ctx = ClusterContextThreadLocal.getContext();
+
+        // if we're a connected node, then put audit actions on threadlocal to propagate back to manager
+        if (ctx != null) {
             ctx.getActions().addAll(actions);
         } else {
             // if we're the cluster manager, or a disconnected node, or running standalone, then audit actions

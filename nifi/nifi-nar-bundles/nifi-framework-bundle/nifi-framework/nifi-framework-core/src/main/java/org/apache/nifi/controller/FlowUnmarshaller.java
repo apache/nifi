@@ -38,17 +38,15 @@ import org.xml.sax.SAXException;
 public class FlowUnmarshaller {
 
     /**
-     * Interprets the given byte array as an XML document that conforms to the
-     * Flow Configuration schema and returns a FlowSnippetDTO representing the
-     * flow
+     * Interprets the given byte array as an XML document that conforms to the Flow Configuration schema and returns a FlowSnippetDTO representing the flow
      *
-     * @param flowContents
-     * @param encryptor
-     * @return
+     * @param flowContents contents
+     * @param encryptor encryptor
+     * @return snippet dto
      * @throws NullPointerException if <code>flowContents</code> is null
-     * @throws IOException
-     * @throws SAXException
-     * @throws ParserConfigurationException
+     * @throws IOException ioe
+     * @throws SAXException sax
+     * @throws ParserConfigurationException pe
      */
     public static FlowSnippetDTO unmarshal(final byte[] flowContents, final StringEncryptor encryptor) throws IOException, SAXException, ParserConfigurationException {
         if (Objects.requireNonNull(flowContents).length == 0) {

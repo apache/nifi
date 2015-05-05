@@ -45,13 +45,11 @@ public interface RemoteProcessGroup {
     void setComments(String comments);
 
     void shutdown();
-    
+
     /**
-     * Returns the name of this RemoteProcessGroup. The value returned will
+     * @return the name of this RemoteProcessGroup. The value returned will
      * never be null. If unable to communicate with the remote instance, the URI
      * of that instance may be returned instead
-     *
-     * @return
      */
     String getName();
 
@@ -78,36 +76,30 @@ public interface RemoteProcessGroup {
     void setYieldDuration(final String yieldDuration);
 
     String getYieldDuration();
-    
+
     /**
      * Sets the timeout using the TimePeriod format (e.g., "30 secs", "1 min")
      *
-     * @param timePeriod
-     * @throws IllegalArgumentException
+     * @param timePeriod new period
+     * @throws IllegalArgumentException iae
      */
     void setCommunicationsTimeout(String timePeriod) throws IllegalArgumentException;
 
     /**
-     * Returns the communications timeout in terms of the given TimeUnit
-     *
-     * @param timeUnit
-     * @return
+     * @param timeUnit unit of time to report timeout
+     * @return the communications timeout in terms of the given TimeUnit
      */
     int getCommunicationsTimeout(TimeUnit timeUnit);
 
     /**
-     * Returns the user-configured String representation of the communications
+     * @return the user-configured String representation of the communications
      * timeout
-     *
-     * @return
      */
     String getCommunicationsTimeout();
 
     /**
-     * Indicates whether or not the RemoteProcessGroup is currently scheduled to
+     * @return Indicates whether or not the RemoteProcessGroup is currently scheduled to
      * transmit data
-     *
-     * @return
      */
     boolean isTransmitting();
 
@@ -126,7 +118,7 @@ public interface RemoteProcessGroup {
      * Initiates communications between this instance and the remote instance
      * only for the port specified.
      *
-     * @param port
+     * @param port port to start
      */
     void startTransmitting(RemoteGroupPort port);
 
@@ -134,47 +126,38 @@ public interface RemoteProcessGroup {
      * Immediately terminates communications between this instance and the
      * remote instance only for the port specified.
      *
-     * @param port
+     * @param port to stop
      */
     void stopTransmitting(RemoteGroupPort port);
 
     /**
-     * Indicates whether or not communications with this RemoteProcessGroup will
+     * @return Indicates whether or not communications with this RemoteProcessGroup will
      * be secure (2-way authentication)
-     *
-     * @return
+     * @throws org.apache.nifi.controller.exception.CommunicationsException ce
      */
     boolean isSecure() throws CommunicationsException;
 
     /**
-     * Indicates whether or not communications with this RemoteProcessGroup will
+     * @return Indicates whether or not communications with this RemoteProcessGroup will
      * be secure (2-way authentication). Returns null if unknown.
-     *
-     * @return
      */
     Boolean getSecureFlag();
 
     /**
-     * Returns true if the target system has site to site enabled. Returns false
-     * otherwise (they don't or they have not yet responded).
-     *
-     * @return
+     * @return true if the target system has site to site enabled. Returns false
+     * otherwise (they don't or they have not yet responded)
      */
     boolean isSiteToSiteEnabled();
 
     /**
-     * Returns a String indicating why we are not authorized to communicate with
+     * @return a String indicating why we are not authorized to communicate with
      * the remote instance, or <code>null</code> if we are authorized
-     *
-     * @return
      */
     String getAuthorizationIssue();
 
     /**
-     * Returns the {@link EventReporter} that can be used to report any notable
+     * @return the {@link EventReporter} that can be used to report any notable
      * events
-     *
-     * @return
      */
     EventReporter getEventReporter();
 
@@ -195,10 +178,9 @@ public interface RemoteProcessGroup {
      * Removes a port that no longer exists on the remote instance from this
      * RemoteProcessGroup
      *
-     * @param port
+     * @param port to remove
      */
     void removeNonExistentPort(final RemoteGroupPort port);
-
 
     /**
      * Called whenever RemoteProcessGroup is removed from the flow, so that any

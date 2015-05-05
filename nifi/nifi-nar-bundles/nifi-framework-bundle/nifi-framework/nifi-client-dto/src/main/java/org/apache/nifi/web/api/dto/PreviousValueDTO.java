@@ -32,9 +32,7 @@ public class PreviousValueDTO {
     private String userName;
 
     /**
-     * The previous value.
-     *
-     * @return
+     * @return previous value
      */
     public String getPreviousValue() {
         return previousValue;
@@ -45,9 +43,7 @@ public class PreviousValueDTO {
     }
 
     /**
-     * When it was modified.
-     *
-     * @return
+     * @return when it was modified
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
     public Date getTimestamp() {
@@ -59,9 +55,7 @@ public class PreviousValueDTO {
     }
 
     /**
-     * The user who changed the previous value.
-     *
-     * @return
+     * @return user who changed the previous value
      */
     public String getUserName() {
         return userName;

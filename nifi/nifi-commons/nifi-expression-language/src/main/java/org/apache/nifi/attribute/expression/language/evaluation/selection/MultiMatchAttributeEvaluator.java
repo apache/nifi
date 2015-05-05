@@ -44,7 +44,7 @@ public class MultiMatchAttributeEvaluator extends MultiAttributeEvaluator {
     /**
      * Can be called only after the first call to evaluate
      *
-     * @return
+     * @return number of remaining evaluations
      */
     @Override
     public int getEvaluationsRemaining() {

@@ -71,10 +71,7 @@ public class ProcessorDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The state of this processor. Possible states are 'RUNNING', 'STOPPED',
-     * and 'DISABLED'.
-     *
-     * @return
+     * @return The state of this processor. Possible states are 'RUNNING', 'STOPPED', and 'DISABLED'
      */
     public String getState() {
         return state;
@@ -85,9 +82,7 @@ public class ProcessorDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The styles for this processor. (Currently only supports color).
-     *
-     * @return
+     * @return The styles for this processor. (Currently only supports color)
      */
     public Map<String, String> getStyle() {
         return style;
@@ -98,9 +93,7 @@ public class ProcessorDTO extends NiFiComponentDTO {
     }
 
     /**
-     * Whether this processor supports parallel processing.
-     *
-     * @return
+     * @return whether this processor supports parallel processing
      */
     public Boolean getSupportsParallelProcessing() {
         return supportsParallelProcessing;
@@ -111,9 +104,7 @@ public class ProcessorDTO extends NiFiComponentDTO {
     }
 
     /**
-     * Whether this processor supports event driven scheduling.
-     *
-     * @return
+     * @return whether this processor supports event driven scheduling
      */
     public Boolean getSupportsEventDriven() {
         return supportsEventDriven;
@@ -137,8 +128,7 @@ public class ProcessorDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The configuration details for this processor. These details will be
-     * included in a response if the verbose flag is set to true.
+     * The configuration details for this processor. These details will be included in a response if the verbose flag is set to true.
      *
      * @return The processor configuration details
      */
@@ -151,9 +141,7 @@ public class ProcessorDTO extends NiFiComponentDTO {
     }
 
     /**
-     * Gets the validation errors from this processor. These validation errors
-     * represent the problems with the processor that must be resolved before it
-     * can be started.
+     * Gets the validation errors from this processor. These validation errors represent the problems with the processor that must be resolved before it can be started.
      *
      * @return The validation errors
      */
@@ -166,9 +154,7 @@ public class ProcessorDTO extends NiFiComponentDTO {
     }
 
     /**
-     * Gets the description for this processor.
-     *
-     * @return
+     * @return the description for this processor
      */
     public String getDescription() {
         return description;

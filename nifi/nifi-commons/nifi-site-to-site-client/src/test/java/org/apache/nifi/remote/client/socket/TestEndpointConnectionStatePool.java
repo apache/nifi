@@ -39,12 +39,12 @@ public class TestEndpointConnectionStatePool {
         collection.add(new NodeInformation("ShouldGetMedium", 5, 5555, true, 4096));
 
         clusterNodeInfo.setNodeInformation(collection);
-        final List<PeerStatus> destinations = EndpointConnectionPool.formulateDestinationList(clusterNodeInfo, TransferDirection.SEND);
-        for ( final PeerStatus peerStatus : destinations ) {
+        final List<PeerStatus> destinations = EndpointConnectionPool.formulateDestinationList(clusterNodeInfo, TransferDirection.RECEIVE);
+        for (final PeerStatus peerStatus : destinations) {
             System.out.println(peerStatus.getPeerDescription());
         }
     }
-    
+
     @Test
     public void testFormulateDestinationListForOutputHugeDifference() throws IOException {
         final ClusterNodeInformation clusterNodeInfo = new ClusterNodeInformation();
@@ -53,15 +53,12 @@ public class TestEndpointConnectionStatePool {
         collection.add(new NodeInformation("ShouldGetLots", 2, 2222, true, 50000));
 
         clusterNodeInfo.setNodeInformation(collection);
-        final List<PeerStatus> destinations = EndpointConnectionPool.formulateDestinationList(clusterNodeInfo, TransferDirection.SEND);
-        for ( final PeerStatus peerStatus : destinations ) {
+        final List<PeerStatus> destinations = EndpointConnectionPool.formulateDestinationList(clusterNodeInfo, TransferDirection.RECEIVE);
+        for (final PeerStatus peerStatus : destinations) {
             System.out.println(peerStatus.getPeerDescription());
         }
     }
-    
-    
-    
-    
+
     @Test
     public void testFormulateDestinationListForInputPorts() throws IOException {
         final ClusterNodeInformation clusterNodeInfo = new ClusterNodeInformation();
@@ -74,11 +71,11 @@ public class TestEndpointConnectionStatePool {
 
         clusterNodeInfo.setNodeInformation(collection);
         final List<PeerStatus> destinations = EndpointConnectionPool.formulateDestinationList(clusterNodeInfo, TransferDirection.SEND);
-        for ( final PeerStatus peerStatus : destinations ) {
+        for (final PeerStatus peerStatus : destinations) {
             System.out.println(peerStatus.getPeerDescription());
         }
     }
-    
+
     @Test
     public void testFormulateDestinationListForInputPortsHugeDifference() throws IOException {
         final ClusterNodeInformation clusterNodeInfo = new ClusterNodeInformation();
@@ -88,7 +85,7 @@ public class TestEndpointConnectionStatePool {
 
         clusterNodeInfo.setNodeInformation(collection);
         final List<PeerStatus> destinations = EndpointConnectionPool.formulateDestinationList(clusterNodeInfo, TransferDirection.SEND);
-        for ( final PeerStatus peerStatus : destinations ) {
+        for (final PeerStatus peerStatus : destinations) {
             System.out.println(peerStatus.getPeerDescription());
         }
     }

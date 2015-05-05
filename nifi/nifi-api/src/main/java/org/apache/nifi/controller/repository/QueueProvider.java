@@ -27,9 +27,7 @@ import org.apache.nifi.controller.FlowFileQueue;
 public interface QueueProvider {
 
     /**
-     * Returns all <code>FlowFileQueue</code>s that currently exist in the flow
-     *
-     * @return
+     * @return all <code>FlowFileQueue</code>s that currently exist in the flow
      */
     Collection<FlowFileQueue> getAllQueues();
 }

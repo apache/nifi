@@ -47,9 +47,7 @@ public class StatusDescriptorDTO {
     }
 
     /**
-     * The name of this status field.
-     *
-     * @return
+     * @return name of this status field
      */
     public String getField() {
         return field;
@@ -60,9 +58,7 @@ public class StatusDescriptorDTO {
     }
 
     /**
-     * The label of this status field.
-     *
-     * @return
+     * @return label of this status field
      */
     public String getLabel() {
         return label;
@@ -73,9 +69,7 @@ public class StatusDescriptorDTO {
     }
 
     /**
-     * The description of this status field.
-     *
-     * @return
+     * @return description of this status field
      */
     public String getDescription() {
         return description;
@@ -86,9 +80,7 @@ public class StatusDescriptorDTO {
     }
 
     /**
-     * The formatter for this descriptor.
-     *
-     * @return
+     * @return formatter for this descriptor
      */
     public String getFormatter() {
         return formatter;

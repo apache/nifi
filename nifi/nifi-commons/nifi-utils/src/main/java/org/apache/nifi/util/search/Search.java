@@ -23,34 +23,26 @@ import java.util.Set;
 import org.apache.nifi.util.search.ahocorasick.SearchState;
 
 /**
- * Defines an interface to search for content given a set of search terms. Any
- * implementation of search must be thread safe.
+ * Defines an interface to search for content given a set of search terms. Any implementation of search must be thread safe.
  *
- * @author
- * @param <T>
  */
 public interface Search<T> {
 
     /**
-     * Establishes the dictionary of terms which will be searched in subsequent
-     * search calls. This can be called only once
+     * Establishes the dictionary of terms which will be searched in subsequent search calls. This can be called only once
      *
-     * @param terms
+     * @param terms the terms to create a dictionary of
      */
     void initializeDictionary(Set<SearchTerm<T>> terms);
 
     /**
-     * Searches the given input stream for matches between the already specified
-     * dictionary and the contents scanned.
+     * Searches the given input stream for matches between the already specified dictionary and the contents scanned.
      *
-     * @param haystack
-     * @param findAll if true will find all matches if false will find only the
-     * first match
-     * @return SearchState containing results Map might be empty which indicates
-     * no matches found but will not be null
+     * @param haystack the source data to scan for hits
+     * @param findAll if true will find all matches if false will find only the first match
+     * @return SearchState containing results Map might be empty which indicates no matches found but will not be null
      * @throws IOException Thrown for any exceptions occurring while searching.
-     * @throws IllegalStateException if the dictionary has not yet been
-     * initialized
+     * @throws IllegalStateException if the dictionary has not yet been initialized
      */
     SearchState<T> search(InputStream haystack, boolean findAll) throws IOException;
 

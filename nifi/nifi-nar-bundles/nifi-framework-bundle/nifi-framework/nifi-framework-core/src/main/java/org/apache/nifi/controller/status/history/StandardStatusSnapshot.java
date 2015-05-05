@@ -51,12 +51,20 @@ public class StandardStatusSnapshot implements StatusSnapshot {
         return new ValueReducer<StatusSnapshot, StatusSnapshot>() {
             @Override
             public StatusSnapshot reduce(final List<StatusSnapshot> values) {
+                Date reducedTimestamp = null;
                 final Set<MetricDescriptor<?>> allDescriptors = new LinkedHashSet<>(metricValues.keySet());
+
                 for (final StatusSnapshot statusSnapshot : values) {
+                    if (reducedTimestamp == null) {
+                        reducedTimestamp = statusSnapshot.getTimestamp();
+                    }
                     allDescriptors.addAll(statusSnapshot.getStatusMetrics().keySet());
                 }
 
                 final StandardStatusSnapshot reduced = new StandardStatusSnapshot();
+                if (reducedTimestamp != null) {
+                    reduced.setTimestamp(reducedTimestamp);
+                }
 
                 for (final MetricDescriptor<?> descriptor : allDescriptors) {
                     final Long descriptorValue = descriptor.getValueReducer().reduce(values);

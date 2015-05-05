@@ -21,9 +21,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.web.api.dto.DocumentedTypeDTO;
 
 /**
- * A serialized representation of this class can be placed in the entity body of
- * a response to the API. This particular entity holds a reference to a list of
- * processor types.
+ * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to a list of processor types.
  */
 @XmlRootElement(name = "processorTypesEntity")
 public class ProcessorTypesEntity extends Entity {
@@ -31,9 +29,7 @@ public class ProcessorTypesEntity extends Entity {
     private Set<DocumentedTypeDTO> processorTypes;
 
     /**
-     * The list of processor types that are being serialized.
-     *
-     * @return
+     * @return list of processor types that are being serialized
      */
     public Set<DocumentedTypeDTO> getProcessorTypes() {
         return processorTypes;

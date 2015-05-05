@@ -46,7 +46,8 @@ import java.lang.annotation.Target;
  * </p>
  *
  * @author none
- * @deprecated This Annotation has been replaced by the {@link org.apache.nifi.annotation.lifecycle.OnStopped} annotation.
+ * @deprecated This Annotation has been replaced by the
+ * {@link org.apache.nifi.annotation.lifecycle.OnStopped} annotation.
  */
 @Documented
 @Target({ElementType.METHOD})

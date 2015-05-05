@@ -71,7 +71,7 @@ public class NiFiTestAuthorizationProvider implements AuthorityProvider {
     /**
      * Determines if the specified dn is known to this authority provider.
      *
-     * @param dn
+     * @param dn dn
      * @return True if he dn is known, false otherwise
      */
     @Override
@@ -87,10 +87,10 @@ public class NiFiTestAuthorizationProvider implements AuthorityProvider {
     /**
      * Loads the authorities for the specified user.
      *
-     * @param dn
-     * @return
-     * @throws UnknownIdentityException
-     * @throws AuthorityAccessException
+     * @param dn dn
+     * @return authorities
+     * @throws UnknownIdentityException ex
+     * @throws AuthorityAccessException ex
      */
     @Override
     public Set<Authority> getAuthorities(String dn) throws UnknownIdentityException, AuthorityAccessException {
@@ -101,9 +101,9 @@ public class NiFiTestAuthorizationProvider implements AuthorityProvider {
     /**
      * Sets the specified authorities to the specified user.
      *
-     * @param dn
-     * @param authorities
-     * @throws AuthorityAccessException
+     * @param dn dn
+     * @param authorities authorities
+     * @throws AuthorityAccessException ex
      */
     @Override
     public void setAuthorities(String dn, Set<Authority> authorities) throws UnknownIdentityException, AuthorityAccessException {
@@ -112,10 +112,10 @@ public class NiFiTestAuthorizationProvider implements AuthorityProvider {
     /**
      * Adds the specified user.
      *
-     * @param dn
-     * @param authorities
-     * @throws UnknownIdentityException
-     * @throws AuthorityAccessException
+     * @param dn dn
+     * @param group group
+     * @throws UnknownIdentityException ex
+     * @throws AuthorityAccessException ex
      */
     @Override
     public void addUser(String dn, String group) throws AuthorityAccessException {
@@ -124,9 +124,9 @@ public class NiFiTestAuthorizationProvider implements AuthorityProvider {
     /**
      * Gets the users for the specified authority.
      *
-     * @param authority
-     * @return
-     * @throws AuthorityAccessException
+     * @param authority authority
+     * @return users
+     * @throws AuthorityAccessException ex
      */
     @Override
     public Set<String> getUsers(Authority authority) throws AuthorityAccessException {
@@ -142,9 +142,9 @@ public class NiFiTestAuthorizationProvider implements AuthorityProvider {
     /**
      * Removes the specified user.
      *
-     * @param dn
-     * @throws UnknownIdentityException
-     * @throws AuthorityAccessException
+     * @param dn dn
+     * @throws UnknownIdentityException ex
+     * @throws AuthorityAccessException ex
      */
     @Override
     public void revokeUser(String dn) throws UnknownIdentityException, AuthorityAccessException {

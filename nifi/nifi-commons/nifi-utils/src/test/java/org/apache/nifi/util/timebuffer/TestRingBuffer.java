@@ -36,13 +36,13 @@ public class TestRingBuffer {
     @Test
     public void testGetNewestElement() {
         final RingBuffer<Integer> ringBuffer = new RingBuffer<>(10);
-        
-        for (int i=0; i < 11; i++) {
+
+        for (int i = 0; i < 11; i++) {
             ringBuffer.add(i);
             assertEquals(i, ringBuffer.getNewestElement().intValue());
         }
     }
-    
+
     @Test
     public void testAsList() {
         final RingBuffer<Integer> ringBuffer = new RingBuffer<>(10);

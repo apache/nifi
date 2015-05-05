@@ -20,14 +20,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * <p>
- * A ContentClaim is a reference to a given flow file's content. Multiple flow
- * files may reference the same content by both having the same content
- * claim.</p>
+ * A ContentClaim is a reference to a given flow file's content. Multiple flow files may reference the same content by both having the same content claim.</p>
  *
  * <p>
  * Must be thread safe</p>
  *
- * @author none
  */
 public final class StandardContentClaim implements ContentClaim, Comparable<ContentClaim> {
 
@@ -38,14 +35,6 @@ public final class StandardContentClaim implements ContentClaim, Comparable<Cont
     private final AtomicInteger claimantCount = new AtomicInteger(0);
     private final int hashCode;
 
-    /**
-     * Constructs a content claim
-     *
-     * @param container
-     * @param section
-     * @param id
-     * @param lossTolerant
-     */
     StandardContentClaim(final String container, final String section, final String id, final boolean lossTolerant) {
         this.container = container.intern();
         this.section = section.intern();
@@ -97,10 +86,9 @@ public final class StandardContentClaim implements ContentClaim, Comparable<Cont
     }
 
     /**
-     * Provides the natural ordering for ContentClaim objects. By default they
-     * are sorted by their id, then container, then section
+     * Provides the natural ordering for ContentClaim objects. By default they are sorted by their id, then container, then section
      *
-     * @param other
+     * @param other other claim
      * @return x such that x <=1 if this is less than other;
      * x=0 if this.equals(other);
      * x >= 1 if this is greater than other

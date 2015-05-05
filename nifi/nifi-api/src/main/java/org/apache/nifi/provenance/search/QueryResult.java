@@ -24,54 +24,40 @@ import org.apache.nifi.provenance.ProvenanceEventRecord;
 public interface QueryResult {
 
     /**
-     * Returns the Provenance events that match the query (up to the limit
+     * @return the Provenance events that match the query (up to the limit
      * specified in the query)
-     *
-     * @return
      */
     List<ProvenanceEventRecord> getMatchingEvents();
 
     /**
-     * Returns the total number of Provenance Events that hit
-     *
-     * @return
+     * @return the total number of Provenance Events that hit
      */
     long getTotalHitCount();
 
     /**
-     * Returns the number of milliseconds the query took to run
-     *
-     * @return
+     * @return the number of milliseconds the query took to run
      */
     long getQueryTime();
 
     /**
-     * Returns the date at which this QueryResult will expire
-     *
-     * @return
+     * @return the date at which this QueryResult will expire
      */
     Date getExpiration();
 
     /**
-     * If an error occurred while computing the lineage, this will return the
-     * serialized error; otherwise, returns <code>null</code>.
-     *
-     * @return
+     * @return If an error occurred while computing the lineage, this will return the
+     * serialized error; otherwise, returns <code>null</code>
      */
     String getError();
 
     /**
-     * returns an integer between 0 and 100 (inclusive) that indicates what
+     * @return an integer between 0 and 100 (inclusive) that indicates what
      * percentage of completion the query has reached
-     *
-     * @return
      */
     int getPercentComplete();
 
     /**
-     * Indicates whether or not the query has finished running
-     *
-     * @return
+     * @return Indicates whether or not the query has finished running
      */
     boolean isFinished();
 }

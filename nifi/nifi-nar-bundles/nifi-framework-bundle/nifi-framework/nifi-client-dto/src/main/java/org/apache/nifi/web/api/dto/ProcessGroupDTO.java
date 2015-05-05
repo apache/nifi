@@ -73,9 +73,7 @@ public class ProcessGroupDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The comments for this process group.
-     *
-     * @return
+     * @return comments for this process group
      */
     public String getComments() {
         return comments;
@@ -86,10 +84,7 @@ public class ProcessGroupDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The contents of this process group. This field will be populated if the
-     * request is marked verbose.
-     *
-     * @return
+     * @return contents of this process group. This field will be populated if the request is marked verbose
      */
     public FlowSnippetDTO getContents() {
         return contents;
@@ -100,9 +95,7 @@ public class ProcessGroupDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The number of input ports contained in this process group.
-     *
-     * @return
+     * @return number of input ports contained in this process group
      */
     public Integer getInputPortCount() {
         return inputPortCount;
@@ -113,9 +106,7 @@ public class ProcessGroupDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The number of invalid components in this process group.
-     *
-     * @return
+     * @return number of invalid components in this process group
      */
     public Integer getInvalidCount() {
         return invalidCount;
@@ -126,9 +117,7 @@ public class ProcessGroupDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The number of output ports in this process group.
-     *
-     * @return
+     * @return number of output ports in this process group
      */
     public Integer getOutputPortCount() {
         return outputPortCount;
@@ -139,9 +128,7 @@ public class ProcessGroupDTO extends NiFiComponentDTO {
     }
 
     /**
-     * Used in requests, indicates whether this process group should be running.
-     *
-     * @return
+     * @return Used in requests, indicates whether this process group should be running
      */
     public Boolean isRunning() {
         return running;
@@ -152,9 +139,7 @@ public class ProcessGroupDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The number of running component in this process group.
-     *
-     * @return
+     * @return number of running component in this process group
      */
     public Integer getRunningCount() {
         return runningCount;
@@ -165,9 +150,7 @@ public class ProcessGroupDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The number of stopped components in this process group.
-     *
-     * @return
+     * @return number of stopped components in this process group
      */
     public Integer getStoppedCount() {
         return stoppedCount;
@@ -178,9 +161,7 @@ public class ProcessGroupDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The number of disabled components in this process group.
-     *
-     * @return
+     * @return number of disabled components in this process group
      */
     public Integer getDisabledCount() {
         return disabledCount;
@@ -191,9 +172,7 @@ public class ProcessGroupDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The number of active remote ports in this process group.
-     *
-     * @return
+     * @return number of active remote ports in this process group
      */
     public Integer getActiveRemotePortCount() {
         return activeRemotePortCount;
@@ -204,9 +183,7 @@ public class ProcessGroupDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The number of inactive remote ports in this process group.
-     *
-     * @return
+     * @return number of inactive remote ports in this process group
      */
     public Integer getInactiveRemotePortCount() {
         return inactiveRemotePortCount;

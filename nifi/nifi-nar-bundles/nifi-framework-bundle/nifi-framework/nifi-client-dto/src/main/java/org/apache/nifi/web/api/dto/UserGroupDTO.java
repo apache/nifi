@@ -31,9 +31,7 @@ public class UserGroupDTO {
     private String status;
 
     /**
-     * The user group.
-     *
-     * @return
+     * @return user group
      */
     public String getGroup() {
         return group;
@@ -44,9 +42,7 @@ public class UserGroupDTO {
     }
 
     /**
-     * The users in this group.
-     *
-     * @return
+     * @return users in this group
      */
     public Set<String> getUserIds() {
         return userIds;
@@ -57,9 +53,7 @@ public class UserGroupDTO {
     }
 
     /**
-     * The status of the users account.
-     *
-     * @return
+     * @return status of the users account
      */
     public String getStatus() {
         return status;
@@ -70,9 +64,7 @@ public class UserGroupDTO {
     }
 
     /**
-     * The users authorities.
-     *
-     * @return
+     * @return users authorities
      */
     public Set<String> getAuthorities() {
         return authorities;

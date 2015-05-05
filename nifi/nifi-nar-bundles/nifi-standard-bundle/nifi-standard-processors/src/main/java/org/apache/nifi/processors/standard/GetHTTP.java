@@ -67,6 +67,10 @@ import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.conn.BasicHttpClientConnectionManager;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -79,9 +83,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.lifecycle.OnShutdown;
-import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
@@ -90,6 +91,7 @@ import org.apache.nifi.util.StopWatch;
 
 @Tags({"get", "fetch", "poll", "http", "https", "ingest", "source", "input"})
 @CapabilityDescription("Fetches a file via HTTP")
+@WritesAttribute(attribute = "filename", description = "the filename is set to the name of the file on the remote server")
 public class GetHTTP extends AbstractSessionFactoryProcessor {
 
     static final int PERSISTENCE_INTERVAL_MSEC = 10000;
@@ -110,8 +112,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
             .build();
     public static final PropertyDescriptor FOLLOW_REDIRECTS = new PropertyDescriptor.Builder()
             .name("Follow Redirects")
-            .description(
-                    "If we receive a 3xx HTTP Status Code from the server, indicates whether or not we should follow the redirect that the server specifies")
+            .description("If we receive a 3xx HTTP Status Code from the server, indicates whether or not we should follow the redirect that the server specifies")
             .defaultValue("false")
             .allowableValues("true", "false")
             .build();
@@ -130,8 +131,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
             .build();
     public static final PropertyDescriptor DATA_TIMEOUT = new PropertyDescriptor.Builder()
             .name("Data Timeout")
-            .description(
-                    "How long to wait between receiving segments of data from the remote server before giving up and discarding the partial file")
+            .description("How long to wait between receiving segments of data from the remote server before giving up and discarding the partial file")
             .required(true)
             .defaultValue("30 sec")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
@@ -168,8 +168,10 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
             .identifiesControllerService(SSLContextService.class)
             .build();
 
-    public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
-            .description("All files are transferred to the success relationship").build();
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("All files are transferred to the success relationship")
+            .build();
 
     public static final String LAST_MODIFIED_DATE_PATTERN_RFC1123 = "EEE, dd MMM yyyy HH:mm:ss zzz";
 
@@ -183,7 +185,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
     static final String LAST_MODIFIED = "LastModified";
 
     static {
-        SimpleDateFormat sdf = new SimpleDateFormat(LAST_MODIFIED_DATE_PATTERN_RFC1123, Locale.US);
+        final SimpleDateFormat sdf = new SimpleDateFormat(LAST_MODIFIED_DATE_PATTERN_RFC1123, Locale.US);
         sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
         UNINITIALIZED_LAST_MODIFIED_VALUE = sdf.format(new Date(1L));
     }
@@ -219,13 +221,13 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
         this.properties = Collections.unmodifiableList(properties);
 
         // load etag and lastModified from file
-        File httpCache = new File(HTTP_CACHE_FILE_PREFIX + getIdentifier());
+        final File httpCache = new File(HTTP_CACHE_FILE_PREFIX + getIdentifier());
         try (FileInputStream fis = new FileInputStream(httpCache)) {
-            Properties props = new Properties();
+            final Properties props = new Properties();
             props.load(fis);
             entityTagRef.set(props.getProperty(ETAG));
             lastModifiedRef.set(props.getProperty(LAST_MODIFIED));
-        } catch (IOException swallow) {
+        } catch (final IOException swallow) {
         }
     }
 
@@ -240,20 +242,20 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
     }
 
     @Override
-    public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
+    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
         entityTagRef.set("");
         lastModifiedRef.set(UNINITIALIZED_LAST_MODIFIED_VALUE);
     }
 
     @OnShutdown
     public void onShutdown() {
-        File httpCache = new File(HTTP_CACHE_FILE_PREFIX + getIdentifier());
+        final File httpCache = new File(HTTP_CACHE_FILE_PREFIX + getIdentifier());
         try (FileOutputStream fos = new FileOutputStream(httpCache)) {
-            Properties props = new Properties();
+            final Properties props = new Properties();
             props.setProperty(ETAG, entityTagRef.get());
             props.setProperty(LAST_MODIFIED, lastModifiedRef.get());
             props.store(fos, "GetHTTP file modification values");
-        } catch (IOException swallow) {
+        } catch (final IOException swallow) {
         }
 
     }
@@ -273,28 +275,23 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
         return results;
     }
 
-    
-    private SSLContext createSSLContext(final SSLContextService service) throws KeyStoreException, IOException, NoSuchAlgorithmException, 
-        CertificateException, KeyManagementException, UnrecoverableKeyException 
-    {
-        final KeyStore truststore  = KeyStore.getInstance(service.getTrustStoreType());
+    private SSLContext createSSLContext(final SSLContextService service)
+            throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException, KeyManagementException, UnrecoverableKeyException {
+        final KeyStore truststore = KeyStore.getInstance(service.getTrustStoreType());
         try (final InputStream in = new FileInputStream(new File(service.getTrustStoreFile()))) {
             truststore.load(in, service.getTrustStorePassword().toCharArray());
         }
-        
-        final KeyStore keystore  = KeyStore.getInstance(service.getKeyStoreType());
+
+        final KeyStore keystore = KeyStore.getInstance(service.getKeyStoreType());
         try (final InputStream in = new FileInputStream(new File(service.getKeyStoreFile()))) {
             keystore.load(in, service.getKeyStorePassword().toCharArray());
         }
-        
-        SSLContext sslContext = SSLContexts.custom()
-                .loadTrustMaterial(truststore, new TrustSelfSignedStrategy())
-                .loadKeyMaterial(keystore, service.getKeyStorePassword().toCharArray())
-                .build();
-        
+
+        final SSLContext sslContext = SSLContexts.custom().loadTrustMaterial(truststore, new TrustSelfSignedStrategy()).loadKeyMaterial(keystore, service.getKeyStorePassword().toCharArray()).build();
+
         return sslContext;
     }
-    
+
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
         final ProcessorLog logger = getLogger();
@@ -313,16 +310,16 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
         try {
             uri = new URI(url);
             source = uri.getHost();
-        } catch (URISyntaxException swallow) {
+        } catch (final URISyntaxException swallow) {
             // this won't happen as the url has already been validated
         }
-        
+
         // get the ssl context service
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        
+
         // create the connection manager
         final HttpClientConnectionManager conMan;
-        if ( sslContextService == null ) {
+        if (sslContextService == null) {
             conMan = new BasicHttpClientConnectionManager();
         } else {
             final SSLContext sslContext;
@@ -331,16 +328,14 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
             } catch (final Exception e) {
                 throw new ProcessException(e);
             }
-            
-            final SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext, new String[] { "TLSv1" }, null,
-                    SSLConnectionSocketFactory.BROWSER_COMPATIBLE_HOSTNAME_VERIFIER);
-    
-            final Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory>create()
-                    .register("https", sslsf).build();
-    
+
+            final SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext, new String[]{"TLSv1"}, null, SSLConnectionSocketFactory.BROWSER_COMPATIBLE_HOSTNAME_VERIFIER);
+
+            final Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory>create().register("https", sslsf).build();
+
             conMan = new BasicHttpClientConnectionManager(socketFactoryRegistry);
         }
-        
+
         try {
             // build the request configuration
             final RequestConfig.Builder requestConfigBuilder = RequestConfig.custom();
@@ -349,25 +344,25 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
             requestConfigBuilder.setRedirectsEnabled(false);
             requestConfigBuilder.setSocketTimeout(context.getProperty(DATA_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
             requestConfigBuilder.setRedirectsEnabled(context.getProperty(FOLLOW_REDIRECTS).asBoolean());
-            
+
             // build the http client
             final HttpClientBuilder clientBuilder = HttpClientBuilder.create();
             clientBuilder.setConnectionManager(conMan);
-            
+
             // include the user agent
             final String userAgent = context.getProperty(USER_AGENT).getValue();
             if (userAgent != null) {
                 clientBuilder.setUserAgent(userAgent);
             }
-            
+
             // set the ssl context if necessary
             if (sslContextService != null) {
                 clientBuilder.setSslcontext(sslContextService.createSSLContext(ClientAuth.REQUIRED));
             }
-            
+
             final String username = context.getProperty(USERNAME).getValue();
             final String password = context.getProperty(PASSWORD).getValue();
-            
+
             // set the credentials if appropriate
             if (username != null) {
                 final CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
@@ -381,7 +376,7 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
 
             // create the http client
             final HttpClient client = clientBuilder.build();
-            
+
             // create request
             final HttpGet get = new HttpGet(url);
             get.setConfig(requestConfigBuilder.build());
@@ -439,22 +434,22 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
                         if (timeToPersist < System.currentTimeMillis()) {
                             readLock.unlock();
                             writeLock.lock();
-                            if (timeToPersist < System.currentTimeMillis()) {
-                                try {
+                            try {
+                                if (timeToPersist < System.currentTimeMillis()) {
                                     timeToPersist = System.currentTimeMillis() + PERSISTENCE_INTERVAL_MSEC;
-                                    File httpCache = new File(HTTP_CACHE_FILE_PREFIX + getIdentifier());
+                                    final File httpCache = new File(HTTP_CACHE_FILE_PREFIX + getIdentifier());
                                     try (FileOutputStream fos = new FileOutputStream(httpCache)) {
-                                        Properties props = new Properties();
+                                        final Properties props = new Properties();
                                         props.setProperty(ETAG, entityTagRef.get());
                                         props.setProperty(LAST_MODIFIED, lastModifiedRef.get());
                                         props.store(fos, "GetHTTP file modification values");
-                                    } catch (IOException e) {
+                                    } catch (final IOException e) {
                                         getLogger().error("Failed to persist ETag and LastMod due to " + e, e);
                                     }
-                                } finally {
-                                    readLock.lock();
-                                    writeLock.unlock();
                                 }
+                            } finally {
+                                readLock.lock();
+                                writeLock.unlock();
                             }
                         }
                     } finally {

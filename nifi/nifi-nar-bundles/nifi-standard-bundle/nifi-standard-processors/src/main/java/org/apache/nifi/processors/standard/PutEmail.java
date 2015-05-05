@@ -18,23 +18,26 @@ package org.apache.nifi.processors.standard;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 
 import javax.activation.DataHandler;
+import javax.mail.Authenticator;
 import javax.mail.Message;
 import javax.mail.Message.RecipientType;
 import javax.mail.MessagingException;
+import javax.mail.PasswordAuthentication;
 import javax.mail.Session;
-import javax.mail.URLName;
+import javax.mail.Transport;
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
@@ -43,6 +46,10 @@ import javax.mail.internet.MimeMultipart;
 import javax.mail.internet.PreencodedMimeBodyPart;
 import javax.mail.util.ByteArrayDataSource;
 
+import org.apache.commons.codec.binary.Base64;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -54,15 +61,9 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.behavior.SupportsBatching;
-import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.commons.codec.binary.Base64;
-
-import com.sun.mail.smtp.SMTPTransport;
 
 @SupportsBatching
 @Tags({"email", "put", "notify", "smtp"})
@@ -73,6 +74,7 @@ public class PutEmail extends AbstractProcessor {
             .name("SMTP Hostname")
             .description("The hostname of the SMTP host")
             .required(true)
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor SMTP_PORT = new PropertyDescriptor.Builder()
@@ -80,7 +82,63 @@ public class PutEmail extends AbstractProcessor {
             .description("The Port used for SMTP communications")
             .required(true)
             .defaultValue("25")
+            .expressionLanguageSupported(true)
             .addValidator(StandardValidators.PORT_VALIDATOR)
+            .build();
+    public static final PropertyDescriptor SMTP_USERNAME = new PropertyDescriptor.Builder()
+            .name("SMTP Username")
+            .description("Username for the SMTP account")
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .required(false)
+            .build();
+    public static final PropertyDescriptor SMTP_PASSWORD = new PropertyDescriptor.Builder()
+            .name("SMTP Password")
+            .description("Password for the SMTP account")
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .required(false)
+            .sensitive(true)
+            .build();
+    public static final PropertyDescriptor SMTP_AUTH = new PropertyDescriptor.Builder()
+            .name("SMTP Auth")
+            .description("Flag indicating whether authentication should be used")
+            .required(true)
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .defaultValue("true")
+            .build();
+    public static final PropertyDescriptor SMTP_TLS = new PropertyDescriptor.Builder()
+            .name("SMTP TLS")
+            .description("Flag indicating whether TLS should be enabled")
+            .required(true)
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .defaultValue("false")
+            .build();
+    public static final PropertyDescriptor SMTP_SOCKET_FACTORY = new PropertyDescriptor.Builder()
+            .name("SMTP Socket Factory")
+            .description("Socket Factory to use for SMTP Connection")
+            .required(true)
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .defaultValue("javax.net.ssl.SSLSocketFactory")
+            .build();
+    public static final PropertyDescriptor HEADER_XMAILER = new PropertyDescriptor.Builder()
+            .name("SMTP X-Mailer Header")
+            .description("X-Mailer used in the header of the outgoing email")
+            .required(true)
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .defaultValue("NiFi")
+            .build();
+    public static final PropertyDescriptor CONTENT_TYPE = new PropertyDescriptor.Builder()
+            .name("Content Type")
+            .description("Mime Type used to interpret the contents of the email, such as text/plain or text/html")
+            .required(true)
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .defaultValue("text/plain")
             .build();
     public static final PropertyDescriptor FROM = new PropertyDescriptor.Builder()
             .name("From")
@@ -141,17 +199,46 @@ public class PutEmail extends AbstractProcessor {
             .defaultValue("false")
             .build();
 
-    public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("FlowFiles that are successfully sent will be routed to this relationship").build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure").description("FlowFiles that fail to send will be routed to this relationship").build();
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("FlowFiles that are successfully sent will be routed to this relationship")
+            .build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("FlowFiles that fail to send will be routed to this relationship")
+            .build();
 
     private List<PropertyDescriptor> properties;
     private Set<Relationship> relationships;
+
+    /**
+     * Mapping of the mail properties to the NiFi PropertyDescriptors that will be evaluated at runtime
+     */
+    private static final Map<String, PropertyDescriptor> propertyToContext = new HashMap<>();
+
+    static {
+        propertyToContext.put("mail.smtp.host", SMTP_HOSTNAME);
+        propertyToContext.put("mail.smtp.port", SMTP_PORT);
+        propertyToContext.put("mail.smtp.socketFactory.port", SMTP_PORT);
+        propertyToContext.put("mail.smtp.socketFactory.class", SMTP_SOCKET_FACTORY);
+        propertyToContext.put("mail.smtp.auth", SMTP_AUTH);
+        propertyToContext.put("mail.smtp.starttls.enable", SMTP_TLS);
+        propertyToContext.put("mail.smtp.user", SMTP_USERNAME);
+        propertyToContext.put("mail.smtp.password", SMTP_PASSWORD);
+    }
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(SMTP_HOSTNAME);
         properties.add(SMTP_PORT);
+        properties.add(SMTP_USERNAME);
+        properties.add(SMTP_PASSWORD);
+        properties.add(SMTP_AUTH);
+        properties.add(SMTP_TLS);
+        properties.add(SMTP_SOCKET_FACTORY);
+        properties.add(HEADER_XMAILER);
+        properties.add(CONTENT_TYPE);
         properties.add(FROM);
         properties.add(TO);
         properties.add(CC);
@@ -200,9 +287,10 @@ public class PutEmail extends AbstractProcessor {
             return;
         }
 
-        final Properties properties = new Properties();
-        properties.setProperty("smtp.mail.host", context.getProperty(SMTP_HOSTNAME).getValue());
-        final Session mailSession = Session.getInstance(properties);
+        final Properties properties = this.getMailPropertiesFromFlowFile(context, flowFile);
+
+        final Session mailSession = this.createMailSession(properties);
+
         final Message message = new MimeMessage(mailSession);
         final ProcessorLog logger = getLogger();
 
@@ -218,7 +306,7 @@ public class PutEmail extends AbstractProcessor {
             final InternetAddress[] bccAddresses = toInetAddresses(context.getProperty(BCC).evaluateAttributeExpressions(flowFile).getValue());
             message.setRecipients(RecipientType.BCC, bccAddresses);
 
-            message.setHeader("X-Mailer", "NiFi");
+            message.setHeader("X-Mailer", context.getProperty(HEADER_XMAILER).evaluateAttributeExpressions(flowFile).getValue());
             message.setSubject(context.getProperty(SUBJECT).evaluateAttributeExpressions(flowFile).getValue());
             String messageText = context.getProperty(MESSAGE).evaluateAttributeExpressions(flowFile).getValue();
 
@@ -226,12 +314,14 @@ public class PutEmail extends AbstractProcessor {
                 messageText = formatAttributes(flowFile, messageText);
             }
 
-            message.setText(messageText);
+            String contentType = context.getProperty(CONTENT_TYPE).evaluateAttributeExpressions(flowFile).getValue();
+            message.setContent(messageText, contentType);
             message.setSentDate(new Date());
 
             if (context.getProperty(ATTACH_FILE).asBoolean()) {
                 final MimeBodyPart mimeText = new PreencodedMimeBodyPart("base64");
-                mimeText.setDataHandler(new DataHandler(new ByteArrayDataSource(Base64.encodeBase64(messageText.getBytes("UTF-8")), "text/plain; charset=\"utf-8\"")));
+                mimeText.setDataHandler(new DataHandler(new ByteArrayDataSource(
+                        Base64.encodeBase64(messageText.getBytes("UTF-8")), "text/plain; charset=\"utf-8\"")));
                 final MimeBodyPart mimeFile = new MimeBodyPart();
                 session.read(flowFile, new InputStreamCallback() {
                     @Override
@@ -251,15 +341,7 @@ public class PutEmail extends AbstractProcessor {
                 message.setContent(multipart);
             }
 
-            final String smtpHost = context.getProperty(SMTP_HOSTNAME).getValue();
-            final SMTPTransport transport = new SMTPTransport(mailSession, new URLName(smtpHost));
-            try {
-                final int smtpPort = context.getProperty(SMTP_PORT).asInteger();
-                transport.connect(new Socket(smtpHost, smtpPort));
-                transport.sendMessage(message, message.getAllRecipients());
-            } finally {
-                transport.close();
-            }
+            Transport.send(message);
 
             session.getProvenanceReporter().send(flowFile, "mailto:" + message.getAllRecipients()[0].toString());
             session.transfer(flowFile, REL_SUCCESS);
@@ -269,6 +351,62 @@ public class PutEmail extends AbstractProcessor {
             logger.error("Failed to send email for {}: {}; routing to failure", new Object[]{flowFile, e});
             session.transfer(flowFile, REL_FAILURE);
         }
+    }
+
+    /**
+     * Based on the input properties, determine whether an authenticate or unauthenticated session should be used. If authenticated, creates a Password Authenticator for use in sending the email.
+     *
+     * @param properties mail properties
+     * @return session
+     */
+    private Session createMailSession(final Properties properties) {
+        String authValue = properties.getProperty("mail.smtp.auth");
+        Boolean auth = Boolean.valueOf(authValue);
+
+        /*
+         * Conditionally create a password authenticator if the 'auth' parameter is set.
+         */
+        final Session mailSession = auth ? Session.getInstance(properties, new Authenticator() {
+            @Override
+            public PasswordAuthentication getPasswordAuthentication() {
+                String username = properties.getProperty("mail.smtp.user"), password = properties.getProperty("mail.smtp.password");
+                return new PasswordAuthentication(username, password);
+            }
+        }) : Session.getInstance(properties); // without auth
+        return mailSession;
+    }
+
+    /**
+     * Uses the mapping of javax.mail properties to NiFi PropertyDescriptors to build the required Properties object to be used for sending this email
+     *
+     * @param context context
+     * @param flowFile flowFile
+     * @return mail properties
+     */
+    private Properties getMailPropertiesFromFlowFile(final ProcessContext context, final FlowFile flowFile) {
+
+        final Properties properties = new Properties();
+
+        final ProcessorLog logger = this.getLogger();
+
+        for (Entry<String, PropertyDescriptor> entry : propertyToContext.entrySet()) {
+
+            // Evaluate the property descriptor against the flow file
+            String flowFileValue = context.getProperty(entry.getValue()).evaluateAttributeExpressions(flowFile).getValue();
+
+            String property = entry.getKey();
+
+            logger.debug("Evaluated Mail Property: {} with Value: {}", new Object[]{property, flowFileValue});
+
+            // Nullable values are not allowed, so filter out
+            if (null != flowFileValue) {
+                properties.setProperty(property, flowFileValue);
+            }
+
+        }
+
+        return properties;
+
     }
 
     public static final String BODY_SEPARATOR = "\n\n--------------------------------------------------\n";

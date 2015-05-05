@@ -24,11 +24,13 @@
     background-color: #eee;
 }
 
-.dialog-border {
-    background-color: #294c58;
-    z-index: 1300;
-    opacity: 0.65;
-    filter: alpha(opacity=65);
+.show-border {
+    border: 3px solid #365C6A;
+    box-shadow: 4px 4px 6px rgba(0, 0, 0, 0.9);
+}
+
+.overlay {
+    border: 1px solid #eee;
 }
 
 .dialog-header {

@@ -48,24 +48,22 @@ public interface FlowFile extends Comparable<FlowFile> {
     long getLineageStartDate();
 
     /**
-     * Returns the time at which the FlowFile was most recently added to a
+     * @return the time at which the FlowFile was most recently added to a
      * FlowFile queue, or {@code null} if the FlowFile has never been enqueued.
      * This value will always be populated before it is passed to a
-     * {@link FlowFilePrioritizer}.
-     *
-     * @return
+     * {@link FlowFilePrioritizer}
      */
     Long getLastQueueDate();
 
     /**
-     * @return a set of identifiers that are unique to this FlowFile's lineage.
-     * If FlowFile X is derived from FlowFile Y, both FlowFiles will have the
-     * same value for the Lineage Claim ID.
-     *
      * <p>
      * If a FlowFile is derived from multiple "parent" FlowFiles, all of the
      * parents' Lineage Identifiers will be in the set.
      * </p>
+     *
+     * @return a set of identifiers that are unique to this FlowFile's lineage.
+     * If FlowFile X is derived from FlowFile Y, both FlowFiles will have the
+     * same value for the Lineage Claim ID.
      */
     Set<String> getLineageIdentifiers();
 
@@ -77,7 +75,7 @@ public interface FlowFile extends Comparable<FlowFile> {
     /**
      * Obtains the attribute value for the given key
      *
-     * @param key
+     * @param key of the attribute
      * @return value if found; null otherwise
      */
     String getAttribute(String key);

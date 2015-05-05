@@ -67,9 +67,7 @@ public class ConnectionDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The name of the connection.
-     *
-     * @return
+     * @return name of the connection
      */
     public String getName() {
         return name;
@@ -80,9 +78,7 @@ public class ConnectionDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The position of the bend points on this connection.
-     *
-     * @return
+     * @return position of the bend points on this connection
      */
     public List<PositionDTO> getBends() {
         return bends;
@@ -93,10 +89,7 @@ public class ConnectionDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The index of control point that the connection label should be placed
-     * over.
-     *
-     * @return
+     * @return The index of control point that the connection label should be placed over
      */
     public Integer getLabelIndex() {
         return labelIndex;
@@ -107,9 +100,7 @@ public class ConnectionDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The z index for this connection.
-     *
-     * @return
+     * @return z index for this connection
      */
     public Long getzIndex() {
         return zIndex;
@@ -133,10 +124,7 @@ public class ConnectionDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The relationships that the source of the connection currently supports.
-     * This property is read only.
-     *
-     * @return
+     * @return relationships that the source of the connection currently supports. This property is read only
      */
     public Set<String> getAvailableRelationships() {
         return availableRelationships;
@@ -147,10 +135,8 @@ public class ConnectionDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The object count threshold for determining when back pressure is applied.
-     * Updating this value is a passive change in the sense that it won't impact
-     * whether existing files over the limit are affected but it does help
-     * feeder processors to stop pushing too much into this work queue.
+     * The object count threshold for determining when back pressure is applied. Updating this value is a passive change in the sense that it won't impact whether existing files over the limit are
+     * affected but it does help feeder processors to stop pushing too much into this work queue.
      *
      * @return The back pressure object threshold
      */
@@ -163,11 +149,8 @@ public class ConnectionDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The object data size threshold for determining when back pressure is
-     * applied. Updating this value is a passive change in the sense that it
-     * won't impact whether existing files over the limit are affected but it
-     * does help feeder processors to stop pushing too much into this work
-     * queue.
+     * The object data size threshold for determining when back pressure is applied. Updating this value is a passive change in the sense that it won't impact whether existing files over the limit are
+     * affected but it does help feeder processors to stop pushing too much into this work queue.
      *
      * @return The back pressure data size threshold
      */
@@ -180,10 +163,8 @@ public class ConnectionDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The amount of time a flow file may be in the flow before it will be
-     * automatically aged out of the flow. Once a flow file reaches this age it
-     * will be terminated from the flow the next time a processor attempts to
-     * start work on it.
+     * The amount of time a flow file may be in the flow before it will be automatically aged out of the flow. Once a flow file reaches this age it will be terminated from the flow the next time a
+     * processor attempts to start work on it.
      *
      * @return The flow file expiration in minutes
      */

@@ -16,13 +16,20 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.io.OutputStreamCallback;
+import org.apache.nifi.stream.io.BufferedOutputStream;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -122,5 +129,86 @@ public class TestSplitJson {
 
         testRunner.assertTransferCount(SplitJson.REL_FAILURE, 1);
         testRunner.getFlowFilesForRelationship(SplitJson.REL_FAILURE).get(0).assertContentEquals(JSON_SNIPPET);
+    }
+
+    @Test
+    public void testSplit_pathToNullValue() throws Exception {
+        final TestRunner testRunner = TestRunners.newTestRunner(new SplitJson());
+        testRunner.setProperty(SplitJson.ARRAY_JSON_PATH_EXPRESSION, "$.nullField");
+
+        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
+        FlowFile ff = session.create();
+
+        ff = session.write(ff, new OutputStreamCallback() {
+            @Override
+            public void process(OutputStream out) throws IOException {
+                try (OutputStream outputStream = new BufferedOutputStream(out)) {
+                    outputStream.write("{\"stringField\": \"String Value\", \"nullField\": null}".getBytes(StandardCharsets.UTF_8));
+                }
+            }
+        });
+
+        testRunner.enqueue(ff);
+        testRunner.run();
+
+        testRunner.assertTransferCount(SplitJson.REL_FAILURE, 1);
+    }
+
+    @Test
+    public void testSplit_pathToArrayWithNulls_emptyStringRepresentation() throws Exception {
+        final TestRunner testRunner = TestRunners.newTestRunner(new SplitJson());
+        testRunner.setProperty(SplitJson.ARRAY_JSON_PATH_EXPRESSION, "$.arrayOfNulls");
+
+        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
+        FlowFile ff = session.create();
+
+        ff = session.write(ff, new OutputStreamCallback() {
+            @Override
+            public void process(OutputStream out) throws IOException {
+                try (OutputStream outputStream = new BufferedOutputStream(out)) {
+                    outputStream.write("{\"stringField\": \"String Value\", \"arrayOfNulls\": [null, null, null]}".getBytes(StandardCharsets.UTF_8));
+                }
+            }
+        });
+
+        testRunner.enqueue(ff);
+        testRunner.run();
+
+        /* assert that three files were transferred to split and each is empty */
+        int expectedFiles = 3;
+        testRunner.assertTransferCount(SplitJson.REL_SPLIT, expectedFiles);
+        for (int i = 0; i < expectedFiles; i++) {
+            testRunner.getFlowFilesForRelationship(SplitJson.REL_SPLIT).get(i).assertContentEquals("");
+        }
+    }
+
+    @Test
+    public void testSplit_pathToArrayWithNulls_nullStringRepresentation() throws Exception {
+        final TestRunner testRunner = TestRunners.newTestRunner(new SplitJson());
+        testRunner.setProperty(SplitJson.ARRAY_JSON_PATH_EXPRESSION, "$.arrayOfNulls");
+        testRunner.setProperty(SplitJson.NULL_VALUE_DEFAULT_REPRESENTATION,
+                AbstractJsonPathProcessor.NULL_STRING_OPTION);
+
+        ProcessSession session = testRunner.getProcessSessionFactory().createSession();
+        FlowFile ff = session.create();
+
+        ff = session.write(ff, new OutputStreamCallback() {
+            @Override
+            public void process(OutputStream out) throws IOException {
+                try (OutputStream outputStream = new BufferedOutputStream(out)) {
+                    outputStream.write("{\"stringField\": \"String Value\", \"arrayOfNulls\": [null, null, null]}".getBytes(StandardCharsets.UTF_8));
+                }
+            }
+        });
+
+        testRunner.enqueue(ff);
+        testRunner.run();
+
+        /* assert that three files were transferred to split and each has the word null in it */
+        int expectedFiles = 3;
+        testRunner.assertTransferCount(SplitJson.REL_SPLIT, expectedFiles);
+        for (int i = 0; i < expectedFiles; i++) {
+            testRunner.getFlowFilesForRelationship(SplitJson.REL_SPLIT).get(i).assertContentEquals("null");
+        }
     }
 }

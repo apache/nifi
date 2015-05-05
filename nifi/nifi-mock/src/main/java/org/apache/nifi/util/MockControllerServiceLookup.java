@@ -40,17 +40,17 @@ public abstract class MockControllerServiceLookup implements ControllerServiceLo
 
     public void removeControllerService(ControllerService service) {
         final ControllerService canonical = getControllerService(service.getIdentifier());
-        if ( canonical == null || canonical != service ) {
+        if (canonical == null || canonical != service) {
             throw new IllegalArgumentException("Controller Service " + service + " is not known");
         }
-        
+
         controllerServiceMap.remove(service.getIdentifier());
     }
 
     protected void addControllerServices(final MockControllerServiceLookup other) {
         this.controllerServiceMap.putAll(other.controllerServiceMap);
     }
-    
+
     protected ControllerServiceConfiguration getConfiguration(final String identifier) {
         return controllerServiceMap.get(identifier);
     }
@@ -77,6 +77,11 @@ public abstract class MockControllerServiceLookup implements ControllerServiceLo
     }
 
     @Override
+    public boolean isControllerServiceEnabling(final String serviceIdentifier) {
+        return false;
+    }
+
+    @Override
     public Set<String> getControllerServiceIdentifiers(final Class<? extends ControllerService> serviceType) {
         final Set<String> ids = new HashSet<>();
         for (final Map.Entry<String, ControllerServiceConfiguration> entry : controllerServiceMap.entrySet()) {
@@ -85,5 +90,11 @@ public abstract class MockControllerServiceLookup implements ControllerServiceLo
             }
         }
         return ids;
+    }
+
+    @Override
+    public String getControllerServiceName(String serviceIdentifier) {
+        final ControllerServiceConfiguration status = controllerServiceMap.get(serviceIdentifier);
+        return status == null ? null : serviceIdentifier;
     }
 }

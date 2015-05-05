@@ -23,15 +23,17 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.processor.ProcessContext;
+
 /**
  * <p>
  * Marker annotation a {@link org.apache.nifi.processor.Processor Processor} or
- * {@link org.apache.nifi.reporting.ReportingTask ReportingTask} 
- * implementation can use to indicate that a method
- * should be called whenever the component is no longer scheduled to run.
- * Methods marked with this annotation will be invoked each time the component
- * is stopped and will be invoked only after the last thread has returned from
- * the <code>onTrigger</code> method.
+ * {@link org.apache.nifi.reporting.ReportingTask ReportingTask} implementation
+ * can use to indicate that a method should be called whenever the component is
+ * no longer scheduled to run. Methods marked with this annotation will be
+ * invoked each time the component is stopped and will be invoked only after the
+ * last thread has returned from the <code>onTrigger</code> method.
  * </p>
  *
  * <p>
@@ -44,8 +46,15 @@ import java.lang.annotation.Target;
  *
  * <p>
  * To indicate that a method should be called immediately when a component is no
- * longer scheduled to run (as opposed to after all threads have returned from the
- * <code>onTrigger</code> method), see the {@link OnUnscheduled} annotation.
+ * longer scheduled to run (as opposed to after all threads have returned from
+ * the <code>onTrigger</code> method), see the {@link OnUnscheduled} annotation.
+ * </p>
+ *
+ * <p>
+ * Methods with this annotation are permitted to take either 0 or 1 argument. If
+ * an argument is used, it must be of type {@link ConfigurationContext} if the
+ * component is a ReportingTask or of type {@link ProcessContext} if the
+ * component is a Processor.
  * </p>
  *
  * @author none

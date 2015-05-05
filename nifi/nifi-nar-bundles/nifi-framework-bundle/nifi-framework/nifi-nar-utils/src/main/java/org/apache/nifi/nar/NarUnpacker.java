@@ -169,10 +169,10 @@ public final class NarUnpacker {
     /**
      * Unpacks the specified nar into the specified base working directory.
      *
-     * @param nar
-     * @param baseWorkingDirectory
-     * @return
-     * @throws IOException
+     * @param nar the nar to unpack
+     * @param baseWorkingDirectory the directory to unpack to
+     * @return the directory to the unpacked NAR
+     * @throws IOException if unable to explode nar
      */
     private static File unpackNar(final File nar, final File baseWorkingDirectory) throws IOException {
         final File narWorkingDirectory = new File(baseWorkingDirectory, nar.getName() + "-unpacked");
@@ -324,9 +324,9 @@ public final class NarUnpacker {
     /**
      * Calculates an md5 sum of the specified file.
      *
-     * @param file
-     * @return
-     * @throws IOException
+     * @param file to calculate the md5sum of
+     * @return the md5sum bytes
+     * @throws IOException if cannot read file
      */
     private static byte[] calculateMd5sum(final File file) throws IOException {
         try (final FileInputStream inputStream = new FileInputStream(file)) {

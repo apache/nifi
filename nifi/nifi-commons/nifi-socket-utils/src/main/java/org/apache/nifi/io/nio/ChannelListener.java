@@ -62,7 +62,6 @@ import org.slf4j.LoggerFactory;
  * All ChannelReaders will get throttled by the unavailability of buffers in the
  * provided BufferPool. This is designed to create back pressure.
  *
- * @author none
  */
 public final class ChannelListener {
 
@@ -99,7 +98,7 @@ public final class ChannelListener {
      * @param port - port to bind to
      * @param receiveBufferSize - size of OS receive buffer to request. If less
      * than 0 then will not be set and OS default will win.
-     * @throws IOException
+     * @throws IOException if unable to add socket
      */
     public void addServerSocket(final InetAddress nicIPAddress, final int port, final int receiveBufferSize)
             throws IOException {
@@ -129,7 +128,7 @@ public final class ChannelListener {
      * @param port - the port to listen on
      * @param receiveBufferSize - the number of bytes to request for a receive
      * buffer from OS
-     * @throws IOException
+     * @throws IOException if unable to add channel
      */
     public void addDatagramChannel(final InetAddress nicIPAddress, final int port, final int receiveBufferSize)
             throws IOException {
@@ -156,7 +155,7 @@ public final class ChannelListener {
      * any network interface on the local host.
      * @param sendingPort - the port used by the sender of datagrams. Only
      * datagrams from this port will be received.
-     * @throws IOException
+     * @throws IOException if unable to add channel
      */
     public void addDatagramChannel(final InetAddress nicIPAddress, final int port, final int receiveBufferSize, final String sendingHost,
             final Integer sendingPort) throws IOException {

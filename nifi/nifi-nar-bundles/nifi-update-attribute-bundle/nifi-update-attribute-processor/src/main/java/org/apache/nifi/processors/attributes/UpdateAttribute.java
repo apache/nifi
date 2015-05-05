@@ -30,6 +30,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -59,6 +60,7 @@ import org.apache.nifi.update.attributes.Rule;
 import org.apache.nifi.update.attributes.FlowFilePolicy;
 import org.apache.nifi.update.attributes.serde.CriteriaSerDe;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
 
 /**
  * This processor supports updating flowfile attributes and can do so
@@ -112,6 +114,9 @@ import org.apache.commons.lang3.StringUtils;
 @SideEffectFree
 @Tags({"attributes", "modification", "update", "Attribute Expression Language"})
 @CapabilityDescription("Updates the Attributes for a FlowFile by using the Attribute Expression Language")
+@DynamicProperty(name = "A FlowFile attribute to update", value = "The value to set it to", supportsExpressionLanguage = true,
+        description = "Updates a FlowFile attribute specified by the Dynamic Property's key with the value specified by the Dynamic Property's value")
+@WritesAttribute(attribute = "See additional details", description = "This processor may write zero or more attributes as described in additional details")
 public class UpdateAttribute extends AbstractProcessor implements Searchable {
 
     private final AtomicReference<Criteria> criteriaCache = new AtomicReference<>(null);
@@ -185,7 +190,8 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
                                 reasons.add(new ValidationResult.Builder().valid(false).explanation(String.format("No expression for a condition in rule '%s' was found.", rule.getName())).build());
                             } else {
                                 final String expression = condition.getExpression().trim();
-                                reasons.add(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.BOOLEAN, false).validate(String.format("Condition for rule '%s'.", rule.getName()), expression, context));
+                                reasons.add(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.BOOLEAN, false)
+                                        .validate(String.format("Condition for rule '%s'.", rule.getName()), expression, context));
                             }
                         }
                     }
@@ -199,9 +205,11 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
                             if (action.getAttribute() == null) {
                                 reasons.add(new ValidationResult.Builder().valid(false).explanation(String.format("An action in rule '%s' is missing the attribute name.", rule.getName())).build());
                             } else if (action.getValue() == null) {
-                                reasons.add(new ValidationResult.Builder().valid(false).explanation(String.format("No value for attribute '%s' in rule '%s' was found.", action.getAttribute(), rule.getName())).build());
+                                reasons.add(new ValidationResult.Builder().valid(false)
+                                        .explanation(String.format("No value for attribute '%s' in rule '%s' was found.", action.getAttribute(), rule.getName())).build());
                             } else {
-                                reasons.add(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true).validate(String.format("Action for rule '%s'.", rule.getName()), action.getValue(), context));
+                                reasons.add(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true)
+                                        .validate(String.format("Action for rule '%s'.", rule.getName()), action.getValue(), context));
                             }
                         }
                     }
@@ -323,15 +331,8 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         }
     }
 
-    /**
-     * Evaluates the specified Criteria on the specified flowfile. Clones the
-     * specified flow file for each rule that is applied. Returns a mapping of
-     * rules to flow files.
-     *
-     * @param criteria
-     * @param original
-     * @return
-     */
+    //Evaluates the specified Criteria on the specified flowfile. Clones the
+    // specified flow file for each rule that is applied.
     private boolean evaluateCriteria(final ProcessSession session, final ProcessContext context, final Criteria criteria, final FlowFile flowfile, final Map<FlowFile, List<Rule>> matchedRules) {
         final ProcessorLog logger = getLogger();
         final List<Rule> rules = criteria.getRules();
@@ -368,13 +369,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         return !matchedRules.isEmpty();
     }
 
-    /**
-     * Evaluates the specified rule on the specified flowfile.
-     *
-     * @param rule
-     * @param flowfile
-     * @return
-     */
+    //Evaluates the specified rule on the specified flowfile.
     private boolean evaluateRule(final ProcessContext context, final Rule rule, FlowFile flowfile) {
         // go through each condition
         for (final Condition condition : rule.getConditions()) {
@@ -401,13 +396,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         return currentValue;
     }
 
-    /**
-     * Evaluates the specified condition on the specified flowfile.
-     *
-     * @param condition
-     * @param flowfile
-     * @return
-     */
+    //Evaluates the specified condition on the specified flowfile.
     private boolean evaluateCondition(final ProcessContext context, final Condition condition, final FlowFile flowfile) {
         try {
             // evaluate the expression for the given flow file
@@ -417,12 +406,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         }
     }
 
-    /**
-     * Executes the specified action on the specified flowfile.
-     *
-     * @param action
-     * @param flowfile
-     */
+    // Executes the specified action on the specified flowfile.
     private FlowFile executeActions(final ProcessSession session, final ProcessContext context, final List<Rule> rules, final Map<String, Action> defaultActions, final FlowFile flowfile) {
         final ProcessorLog logger = getLogger();
         final Map<String, Action> actions = new HashMap<>(defaultActions);
@@ -440,9 +424,9 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
             }
 
             // add an action for the matched rule - when matching multiple rules against
-            // the original flowfile (use original) this will leave the last matching 
-            // rule's name as the value of this attribute. this decision was made since 
-            // this would be the behavior if they user chained multiple UpdateAttributes 
+            // the original flowfile (use original) this will leave the last matching
+            // rule's name as the value of this attribute. this decision was made since
+            // this would be the behavior if they user chained multiple UpdateAttributes
             // together with 'use clone' specified
             final Action matchedRuleAction = new Action();
             matchedRuleAction.setAttribute(getClass().getSimpleName() + ".matchedRule");
@@ -487,11 +471,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         return session.putAllAttributes(flowfile, attributes);
     }
 
-    /**
-     * Gets the default actions.
-     *
-     * @return
-     */
+    // Gets the default actions.
     private Map<String, Action> getDefaultActions(final Map<PropertyDescriptor, String> properties) {
         final Map<String, Action> defaultActions = new HashMap<>();
 

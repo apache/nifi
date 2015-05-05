@@ -18,16 +18,25 @@ Apache NiFi NAR Maven Plugin helps to build NiFi Archive bundles to support the 
 
 ## Table of Contents
 
+- [Requirements](#requirements)
 - [Getting Started](#getting-started)
 - [Getting Help](#getting-help)
-- [Requirements](#requirements)
 - [License](#license)
 - [Disclaimer](#disclaimer)
 
+## Requirements
+* JDK 1.7 or higher
+* Apache Maven 3.0.5 or higher
+
 ## Getting Started
 
-To Build:
-- Executed 'mvn clean install'
+Building the nifi-nar-maven-plugin module should be rare since it will be released infrequently compared to
+the main 'nifi' code tree.
+
+- Build with `mvn clean install`
+- Presuming you need to make use of changes to the nifi-nar-maven-plugin module, you should next
+  go to the [nifi](../nifi) directory and follow its instructions. 
+
 
 ## Getting Help
 If you have questions, you can reach out to our mailing list: dev@nifi.incubator.apache.org
@@ -35,9 +44,6 @@ If you have questions, you can reach out to our mailing list: dev@nifi.incubator
 We're also often available in IRC: #nifi on
 [irc.freenode.net](http://webchat.freenode.net/?channels=#nifi).
 
-
-## Requirements
-* JDK 1.7 or higher
 
 ## License
 

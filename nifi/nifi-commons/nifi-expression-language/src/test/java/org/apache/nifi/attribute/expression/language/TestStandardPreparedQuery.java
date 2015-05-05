@@ -31,34 +31,34 @@ public class TestStandardPreparedQuery {
     public void testSimpleReference() {
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("xx", "world");
-        
+
         assertEquals("world", evaluate("${xx}", attrs));
         assertEquals("hello, world!", evaluate("hello, ${xx}!", attrs));
     }
-    
+
     @Test
     public void testEmbeddedReference() {
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("xx", "yy");
         attrs.put("yy", "world");
-        
+
         assertEquals("world", evaluate("${${xx}}", attrs));
     }
-    
+
     @Test
     public void test10MIterations() {
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("xx", "world");
-        
+
         final StandardPreparedQuery prepared = (StandardPreparedQuery) Query.prepare("${xx}");
         final long start = System.nanoTime();
-        for (int i=0; i < 10000000; i++) {
-            assertEquals( "world", prepared.evaluateExpressions(attrs, null) );
+        for (int i = 0; i < 10000000; i++) {
+            assertEquals("world", prepared.evaluateExpressions(attrs, null));
         }
         final long nanos = System.nanoTime() - start;
         System.out.println(TimeUnit.NANOSECONDS.toMillis(nanos));
     }
-    
+
     @Test
     @Ignore("Takes too long")
     public void test10MIterationsWithQuery() {
@@ -66,14 +66,14 @@ public class TestStandardPreparedQuery {
         attrs.put("xx", "world");
 
         final long start = System.nanoTime();
-        for (int i=0; i < 10000000; i++) {
-            assertEquals( "world", Query.evaluateExpressions("${xx}", attrs) );
+        for (int i = 0; i < 10000000; i++) {
+            assertEquals("world", Query.evaluateExpressions("${xx}", attrs));
         }
         final long nanos = System.nanoTime() - start;
         System.out.println(TimeUnit.NANOSECONDS.toMillis(nanos));
 
     }
-    
+
     @Test
     public void testSeveralSequentialExpressions() {
         final Map<String, String> attributes = new HashMap<>();
@@ -83,10 +83,10 @@ public class TestStandardPreparedQuery {
         assertEquals("Hello, World, how are you?!", evaluate("Hello, ${audience}${comma}${question}!", attributes));
 
     }
-    
+
     private String evaluate(final String query, final Map<String, String> attrs) {
         final String evaluated = ((StandardPreparedQuery) Query.prepare(query)).evaluateExpressions(attrs, null);
         return evaluated;
     }
-    
+
 }

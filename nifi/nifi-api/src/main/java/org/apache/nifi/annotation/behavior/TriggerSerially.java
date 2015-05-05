@@ -24,11 +24,10 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Marker annotation a {@link org.apache.nifi.processor.Processor Processor} 
- * implementation can use to indicate that the
- * Processor is not safe for concurrent execution of its onTrigger()
- * method. By default, Processors are assumed to be safe for concurrent
- * execution.
+ * Marker annotation a {@link org.apache.nifi.processor.Processor Processor}
+ * implementation can use to indicate that the Processor is not safe for
+ * concurrent execution of its onTrigger() method. By default, Processors are
+ * assumed to be safe for concurrent execution.
  *
  * @author none
  */

@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.nifi.processors.standard.RouteOnAttribute;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 

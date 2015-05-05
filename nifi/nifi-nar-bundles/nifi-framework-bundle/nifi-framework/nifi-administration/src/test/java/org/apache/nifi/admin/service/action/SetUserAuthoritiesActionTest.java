@@ -176,7 +176,7 @@ public class SetUserAuthoritiesActionTest {
      * Test activating an unknown user account. User accounts are unknown then
      * there is no pending account for the user.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test(expected = AccountNotFoundException.class)
     public void testUnknownUser() throws Exception {
@@ -188,7 +188,7 @@ public class SetUserAuthoritiesActionTest {
      * Testing case then an AuthorityAccessException occurs while setting a
      * users authorities.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test(expected = AdministrationException.class)
     public void testAuthorityAccessException() throws Exception {
@@ -199,7 +199,7 @@ public class SetUserAuthoritiesActionTest {
     /**
      * Tests general case of setting user authorities.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testSetAuthorities() throws Exception {

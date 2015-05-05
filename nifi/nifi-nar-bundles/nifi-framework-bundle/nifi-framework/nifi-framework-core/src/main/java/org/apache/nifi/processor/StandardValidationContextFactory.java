@@ -17,6 +17,7 @@
 package org.apache.nifi.processor;
 
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -36,4 +37,8 @@ public class StandardValidationContextFactory implements ValidationContextFactor
         return new StandardValidationContext(serviceProvider, properties, annotationData);
     }
 
+    @Override
+    public ValidationContext newValidationContext(final Set<String> serviceIdentifiersToNotValidate, final Map<PropertyDescriptor, String> properties, final String annotationData) {
+        return new StandardValidationContext(serviceProvider, serviceIdentifiersToNotValidate, properties, annotationData);
+    }
 }

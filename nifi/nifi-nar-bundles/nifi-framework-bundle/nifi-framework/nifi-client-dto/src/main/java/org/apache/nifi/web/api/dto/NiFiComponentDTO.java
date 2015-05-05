@@ -55,9 +55,7 @@ public class NiFiComponentDTO {
     }
 
     /**
-     * The id for the parent group of this component.
-     *
-     * @return
+     * @return id for the parent group of this component if applicable, null otherwise
      */
     public String getParentGroupId() {
         return parentGroupId;
@@ -85,7 +83,7 @@ public class NiFiComponentDTO {
     }
 
     /**
-     * The position of this component in the UI.
+     * The position of this component in the UI if applicable, null otherwise.
      *
      * @return The position
      */

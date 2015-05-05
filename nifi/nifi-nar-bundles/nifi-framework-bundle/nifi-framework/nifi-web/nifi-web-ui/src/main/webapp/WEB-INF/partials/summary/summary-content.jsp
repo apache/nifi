@@ -51,6 +51,9 @@
         <div id="connection-summary-tab-content" class="configuration-tab">
             <div id="connection-summary-table" class="summary-table"></div>
         </div>
+        <div id="process-group-summary-tab-content" class="configuration-tab">
+            <div id="process-group-summary-table" class="summary-table"></div>
+        </div>
         <div id="input-port-summary-tab-content" class="configuration-tab">
             <div id="input-port-summary-table" class="summary-table"></div>
         </div>

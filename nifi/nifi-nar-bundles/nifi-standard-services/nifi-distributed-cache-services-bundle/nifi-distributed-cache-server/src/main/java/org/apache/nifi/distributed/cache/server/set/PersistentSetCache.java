@@ -38,34 +38,34 @@ public class PersistentSetCache implements SetCache {
 
     private final SetCache wrapped;
     private final WriteAheadRepository<SetRecord> wali;
-    
+
     private final AtomicLong modifications = new AtomicLong(0L);
-    
+
     public PersistentSetCache(final String serviceIdentifier, final File persistencePath, final SetCache cacheToWrap) throws IOException {
         wali = new MinimalLockingWriteAheadLog<>(persistencePath.toPath(), 1, new Serde(), null);
         wrapped = cacheToWrap;
     }
-    
+
     public synchronized void restore() throws IOException {
         final Collection<SetRecord> recovered = wali.recoverRecords();
-        for ( final SetRecord record : recovered ) {
-            if ( record.getUpdateType() == UpdateType.CREATE ) {
+        for (final SetRecord record : recovered) {
+            if (record.getUpdateType() == UpdateType.CREATE) {
                 addIfAbsent(record.getBuffer());
             }
         }
     }
-    
+
     @Override
     public synchronized SetCacheResult remove(final ByteBuffer value) throws IOException {
         final SetCacheResult removeResult = wrapped.remove(value);
-        if ( removeResult.getResult() ) {
+        if (removeResult.getResult()) {
             final SetRecord record = new SetRecord(UpdateType.DELETE, value);
             final List<SetRecord> records = new ArrayList<>();
             records.add(record);
             wali.update(records, false);
-            
+
             final long modCount = modifications.getAndIncrement();
-            if ( modCount > 0 && modCount % 1000 == 0 ) {
+            if (modCount > 0 && modCount % 1000 == 0) {
                 wali.checkpoint();
             }
         }
@@ -76,24 +76,24 @@ public class PersistentSetCache implements SetCache {
     @Override
     public synchronized SetCacheResult addIfAbsent(final ByteBuffer value) throws IOException {
         final SetCacheResult addResult = wrapped.addIfAbsent(value);
-        if ( addResult.getResult() ) {
+        if (addResult.getResult()) {
             final SetRecord record = new SetRecord(UpdateType.CREATE, value);
             final List<SetRecord> records = new ArrayList<>();
             records.add(record);
-            
+
             final SetCacheRecord evictedRecord = addResult.getEvictedRecord();
-            if ( evictedRecord != null ) {
+            if (evictedRecord != null) {
                 records.add(new SetRecord(UpdateType.DELETE, evictedRecord.getValue()));
             }
-            
+
             wali.update(records, false);
-            
+
             final long modCount = modifications.getAndIncrement();
-            if ( modCount > 0 && modCount % 1000 == 0 ) {
+            if (modCount > 0 && modCount % 1000 == 0) {
                 wali.checkpoint();
             }
         }
-        
+
         return addResult;
     }
 
@@ -101,45 +101,46 @@ public class PersistentSetCache implements SetCache {
     public synchronized SetCacheResult contains(final ByteBuffer value) throws IOException {
         return wrapped.contains(value);
     }
-    
+
     @Override
     public void shutdown() throws IOException {
         wali.shutdown();
     }
-    
+
     private static class SetRecord {
+
         private final UpdateType updateType;
         private final ByteBuffer value;
-        
+
         public SetRecord(final UpdateType updateType, final ByteBuffer value) {
             this.updateType = updateType;
             this.value = value;
         }
-        
+
         public UpdateType getUpdateType() {
             return updateType;
         }
-        
+
         public ByteBuffer getBuffer() {
             return value;
         }
-        
+
         public byte[] getData() {
             return value.array();
         }
     }
-    
+
     private static class Serde implements SerDe<SetRecord> {
 
         @Override
         public void serializeEdit(final SetRecord previousRecordState, final SetRecord newRecordState, final DataOutputStream out) throws IOException {
             final UpdateType updateType = newRecordState.getUpdateType();
-            if ( updateType == UpdateType.DELETE ) {
+            if (updateType == UpdateType.DELETE) {
                 out.write(0);
             } else {
                 out.write(1);
             }
-            
+
             final byte[] data = newRecordState.getData();
             out.writeInt(data.length);
             out.write(newRecordState.getData());
@@ -153,16 +154,16 @@ public class PersistentSetCache implements SetCache {
         @Override
         public SetRecord deserializeEdit(final DataInputStream in, final Map<Object, SetRecord> currentRecordStates, final int version) throws IOException {
             final int value = in.read();
-            if ( value < 0 ) {
+            if (value < 0) {
                 throw new EOFException();
             }
 
             final UpdateType updateType = (value == 0 ? UpdateType.DELETE : UpdateType.CREATE);
-            
+
             final int size = in.readInt();
             final byte[] data = new byte[size];
             in.readFully(data);
-            
+
             return new SetRecord(updateType, ByteBuffer.wrap(data));
         }
 

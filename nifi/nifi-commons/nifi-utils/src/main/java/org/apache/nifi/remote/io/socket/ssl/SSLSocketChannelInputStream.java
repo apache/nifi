@@ -30,7 +30,7 @@ public class SSLSocketChannelInputStream extends InputStream {
     public void consume() throws IOException {
         channel.consume();
     }
-    
+
     @Override
     public int read() throws IOException {
         return channel.read();
@@ -47,8 +47,7 @@ public class SSLSocketChannelInputStream extends InputStream {
     }
 
     /**
-     * Closes the underlying SSLSocketChannel, which will also close the
-     * OutputStream and connection
+     * Closes the underlying SSLSocketChannel, which will also close the OutputStream and connection
      */
     @Override
     public void close() throws IOException {

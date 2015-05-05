@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.nifi.processors.standard.ListenUDP;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 

@@ -34,11 +34,9 @@ public enum Authority {
     ROLE_NIFI;
 
     /**
-     * Returns the matching role or null if the specified role does not match
-     * any roles.
-     *
-     * @param rawAuthority
-     * @return
+     * @param rawAuthority string form of authority
+     * @return the matching role or null if the specified role does not match
+     * any roles
      */
     public static Authority valueOfAuthority(String rawAuthority) {
         Authority desiredAuthority = null;
@@ -54,9 +52,7 @@ public enum Authority {
     }
 
     /**
-     * Gets the string value of each authority.
-     *
-     * @return
+     * @return the string value of each authority
      */
     public static Set<String> getRawAuthorities() {
         Set<String> authorities = new LinkedHashSet<>();

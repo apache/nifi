@@ -24,9 +24,7 @@ import org.apache.nifi.web.api.dto.UserDTO;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
 /**
- * A serialized representation of this class can be placed in the entity body of
- * a request or response to or from the API. This particular entity holds a
- * reference to a collection of UserDTO.
+ * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a collection of UserDTO.
  */
 @XmlRootElement(name = "usersEntity")
 public class UsersEntity extends Entity {
@@ -48,9 +46,7 @@ public class UsersEntity extends Entity {
     }
 
     /**
-     * When this content was generated.
-     *
-     * @return
+     * @return When this content was generated
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
     public Date getGenerated() {

@@ -28,16 +28,16 @@ import org.apache.nifi.history.PreviousValue;
  */
 public class GetPreviousValues implements AdministrationAction<Map<String, List<PreviousValue>>> {
 
-    private final String processorId;
+    private final String componentId;
 
-    public GetPreviousValues(String processorId) {
-        this.processorId = processorId;
+    public GetPreviousValues(String componentId) {
+        this.componentId = componentId;
     }
 
     @Override
     public Map<String, List<PreviousValue>> execute(DAOFactory daoFactory, AuthorityProvider authorityProvider) {
         ActionDAO actionDao = daoFactory.getActionDAO();
-        return actionDao.getPreviousValues(processorId);
+        return actionDao.getPreviousValues(componentId);
     }
 
 }

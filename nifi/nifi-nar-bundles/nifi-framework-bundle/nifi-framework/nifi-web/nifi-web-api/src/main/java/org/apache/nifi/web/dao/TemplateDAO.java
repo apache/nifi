@@ -21,9 +21,6 @@ import org.apache.nifi.controller.Template;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.TemplateDTO;
 
-/**
- *
- */
 public interface TemplateDAO {
 
     /**
@@ -37,19 +34,19 @@ public interface TemplateDAO {
     /**
      * Import the specified template.
      *
-     * @param templateDTO
-     * @return
+     * @param templateDTO dto
+     * @return template
      */
     Template importTemplate(TemplateDTO templateDTO);
 
     /**
      * Instantiate the corresponding template.
      *
-     * @param groupId
-     * @param originX
-     * @param originY
-     * @param templateId
-     * @return 
+     * @param groupId group id
+     * @param originX x
+     * @param originY y
+     * @param templateId template id
+     * @return flow snippet
      */
     FlowSnippetDTO instantiateTemplate(String groupId, Double originX, Double originY, String templateId);
 

@@ -32,43 +32,44 @@ import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
 
 public class NiFiRestApiUtil {
+
     public static final int RESPONSE_CODE_OK = 200;
-    
+
     private final SSLContext sslContext;
-    
+
     public NiFiRestApiUtil(final SSLContext sslContext) {
         this.sslContext = sslContext;
     }
-    
+
     private HttpURLConnection getConnection(final String connUrl, final int timeoutMillis) throws IOException {
         final URL url = new URL(connUrl);
         final HttpURLConnection connection = (HttpURLConnection) url.openConnection();
         connection.setConnectTimeout(timeoutMillis);
         connection.setReadTimeout(timeoutMillis);
-        
+
         // special handling for https
         if (sslContext != null && connection instanceof HttpsURLConnection) {
             HttpsURLConnection secureConnection = (HttpsURLConnection) connection;
             secureConnection.setSSLSocketFactory(sslContext.getSocketFactory());
 
             // check the trusted hostname property and override the HostnameVerifier
-            secureConnection.setHostnameVerifier(new OverrideHostnameVerifier(url.getHost(), 
+            secureConnection.setHostnameVerifier(new OverrideHostnameVerifier(url.getHost(),
                     secureConnection.getHostnameVerifier()));
         }
-        
+
         return connection;
     }
-    
+
     public ControllerDTO getController(final String url, final int timeoutMillis) throws IOException {
         final HttpURLConnection connection = getConnection(url, timeoutMillis);
         connection.setRequestMethod("GET");
         final int responseCode = connection.getResponseCode();
-        
+
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         StreamUtils.copy(connection.getInputStream(), baos);
         final String responseMessage = baos.toString();
-        
-        if ( responseCode == RESPONSE_CODE_OK ) {
+
+        if (responseCode == RESPONSE_CODE_OK) {
             final ObjectMapper mapper = new ObjectMapper();
             final JsonNode jsonNode = mapper.readTree(responseMessage);
             final JsonNode controllerNode = jsonNode.get("controller");
@@ -77,8 +78,9 @@ public class NiFiRestApiUtil {
             throw new IOException("Got HTTP response Code " + responseCode + ": " + connection.getResponseMessage() + " with explanation: " + responseMessage);
         }
     }
-    
+
     private static class OverrideHostnameVerifier implements HostnameVerifier {
+
         private final String trustedHostname;
         private final HostnameVerifier delegate;
 

@@ -33,9 +33,6 @@ import org.aspectj.lang.annotation.Aspect;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- *
- */
 @Aspect
 public class FunnelAuditor extends NiFiAuditor {
 
@@ -44,13 +41,13 @@ public class FunnelAuditor extends NiFiAuditor {
     /**
      * Audits the creation of a funnel.
      *
-     * @param proceedingJoinPoint
-     * @return
-     * @throws Throwable
+     * @param proceedingJoinPoint join point
+     * @return funnel
+     * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.FunnelDAO+) && "
             + "execution(org.apache.nifi.connectable.Funnel createFunnel(java.lang.String, org.apache.nifi.web.api.dto.FunnelDTO))")
-    public Object createFunnelAdvice(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+    public Funnel createFunnelAdvice(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         // perform the underlying operation
         Funnel funnel = (Funnel) proceedingJoinPoint.proceed();
 
@@ -68,10 +65,11 @@ public class FunnelAuditor extends NiFiAuditor {
     /**
      * Audits the removal of a funnel.
      *
-     * @param proceedingJoinPoint
-     * @param funnelId
-     * @param funnelDAO
-     * @throws Throwable
+     * @param proceedingJoinPoint join point
+     * @param groupId group id
+     * @param funnelId funnel id
+     * @param funnelDAO funnel dao
+     * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.FunnelDAO+) && "
             + "execution(void deleteFunnel(java.lang.String, java.lang.String)) && "
@@ -96,7 +94,9 @@ public class FunnelAuditor extends NiFiAuditor {
     /**
      * Generates an audit record for the creation of the specified funnel.
      *
-     * @param funnel
+     * @param funnel funnel
+     * @param operation operation
+     * @return action
      */
     public Action generateAuditRecord(Funnel funnel, Operation operation) {
         return generateAuditRecord(funnel, operation, null);
@@ -105,7 +105,10 @@ public class FunnelAuditor extends NiFiAuditor {
     /**
      * Generates an audit record for the creation of the specified funnel.
      *
-     * @param funnel
+     * @param funnel funnel
+     * @param operation operation
+     * @param actionDetails details
+     * @return action
      */
     public Action generateAuditRecord(Funnel funnel, Operation operation, ActionDetails actionDetails) {
         Action action = null;

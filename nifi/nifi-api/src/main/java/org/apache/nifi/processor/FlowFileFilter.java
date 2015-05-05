@@ -35,8 +35,10 @@ public interface FlowFileFilter {
      * whether or not the Processor is interested in filtering additional
      * FlowFiles
      *
-     * @param flowFile
-     * @return
+     * @param flowFile to apply the filter to
+     * @return true if the given FlowFile should be selected and
+     * if Processor is interested in filtering additional
+     * FlowFiles
      */
     FlowFileFilterResult filter(FlowFile flowFile);
 

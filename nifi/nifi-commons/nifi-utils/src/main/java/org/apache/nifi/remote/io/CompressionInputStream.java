@@ -73,7 +73,7 @@ public class CompressionInputStream extends InputStream {
         fillBuffer(fourByteBuffer);
         compressedBuffer = new byte[toInt(fourByteBuffer)];
 
-        bufferIndex = buffer.length;	// indicate that buffer is empty
+        bufferIndex = buffer.length;  // indicate that buffer is empty
     }
 
     private int toInt(final byte[] data) {
@@ -175,7 +175,8 @@ public class CompressionInputStream extends InputStream {
 
     /**
      * Does nothing. Does NOT close underlying InputStream
-     * @throws java.io.IOException
+     *
+     * @throws java.io.IOException for any issues closing underlying stream
      */
     @Override
     public void close() throws IOException {

@@ -17,8 +17,7 @@
 package org.apache.nifi.remote.exception;
 
 /**
- * Indicates that the user disabled transmission while communications were
- * taking place with a peer
+ * Indicates that the user disabled transmission while communications were taking place with a peer
  */
 public class TransmissionDisabledException extends RuntimeException {
 

@@ -22,9 +22,6 @@ import org.apache.nifi.admin.dao.UserDAO;
 import org.apache.nifi.authorization.AuthorityProvider;
 import org.apache.nifi.user.NiFiUser;
 
-/**
- *
- */
 public class FindUserByIdAction implements AdministrationAction<NiFiUser> {
 
     private final String id;
@@ -32,7 +29,7 @@ public class FindUserByIdAction implements AdministrationAction<NiFiUser> {
     /**
      * Creates a new transactions for getting a user with the specified id.
      *
-     * @param id
+     * @param id of user
      */
     public FindUserByIdAction(String id) {
         this.id = id;

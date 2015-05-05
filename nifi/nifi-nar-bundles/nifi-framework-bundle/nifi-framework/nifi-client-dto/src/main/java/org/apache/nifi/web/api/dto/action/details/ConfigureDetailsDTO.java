@@ -29,9 +29,7 @@ public class ConfigureDetailsDTO extends ActionDetailsDTO {
     private String value;
 
     /**
-     * The name of the property that was modified.
-     *
-     * @return
+     * @return name of the property that was modified
      */
     public String getName() {
         return name;
@@ -42,9 +40,7 @@ public class ConfigureDetailsDTO extends ActionDetailsDTO {
     }
 
     /**
-     * The previous value.
-     *
-     * @return
+     * @return previous value
      */
     public String getPreviousValue() {
         return previousValue;
@@ -55,9 +51,7 @@ public class ConfigureDetailsDTO extends ActionDetailsDTO {
     }
 
     /**
-     * The new value.
-     *
-     * @return
+     * @return new value
      */
     public String getValue() {
         return value;

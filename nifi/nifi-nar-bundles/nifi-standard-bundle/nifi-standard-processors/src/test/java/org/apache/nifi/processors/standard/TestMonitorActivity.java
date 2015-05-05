@@ -148,11 +148,10 @@ public class TestMonitorActivity {
         restoredFlowFile.assertAttributeNotEquals(CoreAttributes.FILENAME.key(), originalFlowFile.getAttribute(CoreAttributes.FILENAME.key()));
         Assert.assertTrue(
                 String.format("file sizes match when they shouldn't original=%1$s restored=%2$s",
-                        originalFlowFile.getSize(), restoredFlowFile.getSize()),
-                restoredFlowFile.getSize() != originalFlowFile.getSize());
-        Assert.assertTrue(String.format("lineage start dates match when they shouldn't original=%1$s restored=%2$s",
-                originalFlowFile.getLineageStartDate(), restoredFlowFile.getLineageStartDate()),
-                restoredFlowFile.getLineageStartDate() != originalFlowFile.getLineageStartDate());
+                        originalFlowFile.getSize(), restoredFlowFile.getSize()), restoredFlowFile.getSize() != originalFlowFile.getSize());
+        Assert.assertTrue(
+                String.format("lineage start dates match when they shouldn't original=%1$s restored=%2$s",
+                        originalFlowFile.getLineageStartDate(), restoredFlowFile.getLineageStartDate()), restoredFlowFile.getLineageStartDate() != originalFlowFile.getLineageStartDate());
 
         runner.clearTransferState();
         runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "true");
@@ -184,10 +183,9 @@ public class TestMonitorActivity {
         restoredFlowFile.assertAttributeNotEquals(CoreAttributes.FILENAME.key(), originalFlowFile.getAttribute(CoreAttributes.FILENAME.key()));
         Assert.assertTrue(
                 String.format("file sizes match when they shouldn't original=%1$s restored=%2$s",
-                        originalFlowFile.getSize(), restoredFlowFile.getSize()),
-                restoredFlowFile.getSize() != originalFlowFile.getSize());
-        Assert.assertTrue(String.format("lineage start dates match when they shouldn't original=%1$s restored=%2$s",
-                originalFlowFile.getLineageStartDate(), restoredFlowFile.getLineageStartDate()),
-                restoredFlowFile.getLineageStartDate() != originalFlowFile.getLineageStartDate());
+                        originalFlowFile.getSize(), restoredFlowFile.getSize()), restoredFlowFile.getSize() != originalFlowFile.getSize());
+        Assert.assertTrue(
+                String.format("lineage start dates match when they shouldn't original=%1$s restored=%2$s",
+                        originalFlowFile.getLineageStartDate(), restoredFlowFile.getLineageStartDate()), restoredFlowFile.getLineageStartDate() != originalFlowFile.getLineageStartDate());
     }
 }

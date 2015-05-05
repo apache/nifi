@@ -46,6 +46,7 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.io.ByteCountingInputStream;
 import org.apache.nifi.controller.repository.io.ByteCountingOutputStream;
+import org.apache.nifi.controller.repository.io.DisableOnCloseInputStream;
 import org.apache.nifi.controller.repository.io.DisableOnCloseOutputStream;
 import org.apache.nifi.controller.repository.io.FlowFileAccessInputStream;
 import org.apache.nifi.controller.repository.io.FlowFileAccessOutputStream;
@@ -80,9 +81,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * <p>
- * Provides a ProcessSession that ensures all accesses, changes and transfers
- * occur in an atomic manner for all FlowFiles including their contents and
- * attributes</p>
+ * Provides a ProcessSession that ensures all accesses, changes and transfers occur in an atomic manner for all FlowFiles including their contents and attributes</p>
  * <p>
  * NOT THREAD SAFE</p>
  * <p/>
@@ -306,7 +305,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
         // Figure out which content claims can be released.
         // At this point, we will decrement the Claimant Count for the claims via the Content Repository.
-        // We do not actually destroy the content because otherwise, we could remove the 
+        // We do not actually destroy the content because otherwise, we could remove the
         // Original Claim and crash/restart before the FlowFileRepository is updated. This will result in the FlowFile being restored such that
         // the content claim points to the Original Claim -- which has already been removed!
         for (final Map.Entry<FlowFileRecord, StandardRepositoryRecord> entry : checkpoint.records.entrySet()) {
@@ -489,14 +488,14 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
     private void addEventType(final Map<String, Set<ProvenanceEventType>> map, final String id, final ProvenanceEventType eventType) {
         Set<ProvenanceEventType> eventTypes = map.get(id);
-        if ( eventTypes == null ) {
+        if (eventTypes == null) {
             eventTypes = new HashSet<>();
             map.put(id, eventTypes);
         }
-        
+
         eventTypes.add(eventType);
     }
-    
+
     private void updateProvenanceRepo(final Checkpoint checkpoint) {
         // Update Provenance Repository
         final ProvenanceEventRepository provenanceRepo = context.getProvenanceRepository();
@@ -506,7 +505,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         // for this, so that we are able to ensure that the events are submitted in the proper order.
         final Set<ProvenanceEventRecord> recordsToSubmit = new LinkedHashSet<>();
         final Map<String, Set<ProvenanceEventType>> eventTypesPerFlowFileId = new HashMap<>();
-        
+
         final Set<ProvenanceEventRecord> processorGenerated = checkpoint.reportedEvents;
 
         // We first want to submit FORK events because if the Processor is going to create events against
@@ -523,11 +522,11 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
             if (!event.getChildUuids().isEmpty() && !isSpuriousForkEvent(event, checkpoint.removedFlowFiles) && !processorGenerated.contains(event)) {
                 recordsToSubmit.add(event);
-                
-                for ( final String childUuid : event.getChildUuids() ) {
+
+                for (final String childUuid : event.getChildUuids()) {
                     addEventType(eventTypesPerFlowFileId, childUuid, event.getEventType());
                 }
-                for ( final String parentUuid : event.getParentUuids() ) {
+                for (final String parentUuid : event.getParentUuids()) {
                     addEventType(eventTypesPerFlowFileId, parentUuid, event.getEventType());
                 }
             }
@@ -538,14 +537,14 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             if (isSpuriousForkEvent(event, checkpoint.removedFlowFiles)) {
                 continue;
             }
-            if ( isSpuriousRouteEvent(event, checkpoint.records) ) {
+            if (isSpuriousRouteEvent(event, checkpoint.records)) {
                 continue;
             }
-            
-            // Check if the event indicates that the FlowFile was routed to the same 
+
+            // Check if the event indicates that the FlowFile was routed to the same
             // connection from which it was pulled (and only this connection). If so, discard the event.
             isSpuriousRouteEvent(event, checkpoint.records);
-            
+
             recordsToSubmit.add(event);
             addEventType(eventTypesPerFlowFileId, event.getFlowFileUuid(), event.getEventType());
         }
@@ -561,62 +560,62 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 addEventType(eventTypesPerFlowFileId, event.getFlowFileUuid(), event.getEventType());
             }
         }
-        
+
         // Check if content or attributes changed. If so, register the appropriate events.
-        for (final StandardRepositoryRecord repoRecord : checkpoint.records.values() ) {
+        for (final StandardRepositoryRecord repoRecord : checkpoint.records.values()) {
             final ContentClaim original = repoRecord.getOriginalClaim();
             final ContentClaim current = repoRecord.getCurrentClaim();
-            
+
             boolean contentChanged = false;
-            if ( original == null && current != null ) {
+            if (original == null && current != null) {
                 contentChanged = true;
             }
-            if ( original != null && current == null ) {
+            if (original != null && current == null) {
                 contentChanged = true;
             }
-            if ( original != null && current != null && !original.equals(current) ) {
+            if (original != null && current != null && !original.equals(current)) {
                 contentChanged = true;
             }
-            
+
             final FlowFileRecord curFlowFile = repoRecord.getCurrent();
             final String flowFileId = curFlowFile.getAttribute(CoreAttributes.UUID.key());
             boolean eventAdded = false;
-            
+
             if (checkpoint.removedFlowFiles.contains(flowFileId)) {
                 continue;
             }
-            
+
             final boolean newFlowFile = repoRecord.getOriginal() == null;
-            if ( contentChanged && !newFlowFile ) {
+            if (contentChanged && !newFlowFile) {
                 recordsToSubmit.add(provenanceReporter.build(curFlowFile, ProvenanceEventType.CONTENT_MODIFIED).build());
                 addEventType(eventTypesPerFlowFileId, flowFileId, ProvenanceEventType.CONTENT_MODIFIED);
                 eventAdded = true;
             }
-            
-            if ( checkpoint.createdFlowFiles.contains(flowFileId) ) {
+
+            if (checkpoint.createdFlowFiles.contains(flowFileId)) {
                 final Set<ProvenanceEventType> registeredTypes = eventTypesPerFlowFileId.get(flowFileId);
                 boolean creationEventRegistered = false;
-                if ( registeredTypes != null ) {
-                    if ( registeredTypes.contains(ProvenanceEventType.CREATE) ||
-                            registeredTypes.contains(ProvenanceEventType.FORK) ||
-                            registeredTypes.contains(ProvenanceEventType.JOIN) ||
-                            registeredTypes.contains(ProvenanceEventType.RECEIVE) ) {
+                if (registeredTypes != null) {
+                    if (registeredTypes.contains(ProvenanceEventType.CREATE)
+                            || registeredTypes.contains(ProvenanceEventType.FORK)
+                            || registeredTypes.contains(ProvenanceEventType.JOIN)
+                            || registeredTypes.contains(ProvenanceEventType.RECEIVE)) {
                         creationEventRegistered = true;
                     }
                 }
-                
-                if ( !creationEventRegistered ) {
+
+                if (!creationEventRegistered) {
                     recordsToSubmit.add(provenanceReporter.build(curFlowFile, ProvenanceEventType.CREATE).build());
                     eventAdded = true;
                 }
             }
-            
-            if ( !eventAdded && !repoRecord.getUpdatedAttributes().isEmpty() ) {
+
+            if (!eventAdded && !repoRecord.getUpdatedAttributes().isEmpty()) {
                 // We generate an ATTRIBUTES_MODIFIED event only if no other event has been
                 // created for the FlowFile. We do this because all events contain both the
                 // newest and the original attributes, so generating an ATTRIBUTES_MODIFIED
                 // event is redundant if another already exists.
-                if ( !eventTypesPerFlowFileId.containsKey(flowFileId) ) {
+                if (!eventTypesPerFlowFileId.containsKey(flowFileId)) {
                     recordsToSubmit.add(provenanceReporter.build(curFlowFile, ProvenanceEventType.ATTRIBUTES_MODIFIED).build());
                     addEventType(eventTypesPerFlowFileId, flowFileId, ProvenanceEventType.ATTRIBUTES_MODIFIED);
                 }
@@ -688,8 +687,12 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         if (originalClaim == null) {
             builder.setCurrentContentClaim(null, null, null, null, 0L);
         } else {
-            builder.setCurrentContentClaim(originalClaim.getContainer(), originalClaim.getSection(), originalClaim.getId(), repoRecord.getOriginal().getContentClaimOffset(), repoRecord.getOriginal().getSize());
-            builder.setPreviousContentClaim(originalClaim.getContainer(), originalClaim.getSection(), originalClaim.getId(), repoRecord.getOriginal().getContentClaimOffset(), repoRecord.getOriginal().getSize());
+            builder.setCurrentContentClaim(
+                    originalClaim.getContainer(), originalClaim.getSection(), originalClaim.getId(), repoRecord.getOriginal().getContentClaimOffset(), repoRecord.getOriginal().getSize()
+            );
+            builder.setPreviousContentClaim(
+                    originalClaim.getContainer(), originalClaim.getSection(), originalClaim.getId(), repoRecord.getOriginal().getContentClaimOffset(), repoRecord.getOriginal().getSize()
+            );
         }
     }
 
@@ -724,7 +727,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         return recordBuilder.build();
     }
 
-    private StandardProvenanceEventRecord enrich(final ProvenanceEventRecord rawEvent, final Map<String, FlowFileRecord> flowFileRecordMap, final Map<FlowFileRecord, StandardRepositoryRecord> records, final boolean updateAttributes) {
+    private StandardProvenanceEventRecord enrich(
+            final ProvenanceEventRecord rawEvent, final Map<String, FlowFileRecord> flowFileRecordMap, final Map<FlowFileRecord, StandardRepositoryRecord> records, final boolean updateAttributes) {
         final StandardProvenanceEventRecord.Builder recordBuilder = new StandardProvenanceEventRecord.Builder().fromEvent(rawEvent);
         final FlowFileRecord eventFlowFile = flowFileRecordMap.get(rawEvent.getFlowFileUuid());
         if (eventFlowFile != null) {
@@ -764,13 +768,11 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     /**
-     * Checks if the given event is a spurious FORK, meaning that the FORK has a
-     * single child and that child was removed in this session. This happens
-     * when a Processor calls #create(FlowFile) and then removes the created
-     * FlowFile.
+     * Checks if the given event is a spurious FORK, meaning that the FORK has a single child and that child was removed in this session. This happens when a Processor calls #create(FlowFile) and then
+     * removes the created FlowFile.
      *
-     * @param event
-     * @return
+     * @param event event
+     * @return true if spurious fork
      */
     private boolean isSpuriousForkEvent(final ProvenanceEventRecord event, final Set<String> removedFlowFiles) {
         if (event.getEventType() == ProvenanceEventType.FORK) {
@@ -783,33 +785,31 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         return false;
     }
 
-    
     /**
-     * Checks if the given event is a spurious ROUTE, meaning that the ROUTE indicates that a FlowFile
-     * was routed to a relationship with only 1 connection and that Connection is the Connection from which
-     * the FlowFile was pulled. I.e., the FlowFile was really routed nowhere.
-     * 
-     * @param event
-     * @param records
-     * @return
+     * Checks if the given event is a spurious ROUTE, meaning that the ROUTE indicates that a FlowFile was routed to a relationship with only 1 connection and that Connection is the Connection from
+     * which the FlowFile was pulled. I.e., the FlowFile was really routed nowhere.
+     *
+     * @param event event
+     * @param records records
+     * @return true if spurious route
      */
     private boolean isSpuriousRouteEvent(final ProvenanceEventRecord event, final Map<FlowFileRecord, StandardRepositoryRecord> records) {
-        if ( event.getEventType() == ProvenanceEventType.ROUTE ) {
+        if (event.getEventType() == ProvenanceEventType.ROUTE) {
             final String relationshipName = event.getRelationship();
             final Relationship relationship = new Relationship.Builder().name(relationshipName).build();
             final Collection<Connection> connectionsForRelationship = this.context.getConnections(relationship);
-            
+
             // If the number of connections for this relationship is not 1, then we can't ignore this ROUTE event,
             // as it may be cloning the FlowFile and adding to multiple connections.
-            if ( connectionsForRelationship.size() == 1 ) {
-                for ( final Map.Entry<FlowFileRecord, StandardRepositoryRecord> entry : records.entrySet() ) {
+            if (connectionsForRelationship.size() == 1) {
+                for (final Map.Entry<FlowFileRecord, StandardRepositoryRecord> entry : records.entrySet()) {
                     final FlowFileRecord flowFileRecord = entry.getKey();
-                    if ( event.getFlowFileUuid().equals(flowFileRecord.getAttribute(CoreAttributes.UUID.key())) ) {
+                    if (event.getFlowFileUuid().equals(flowFileRecord.getAttribute(CoreAttributes.UUID.key()))) {
                         final StandardRepositoryRecord repoRecord = entry.getValue();
-                        if ( repoRecord.getOriginalQueue() == null ) {
+                        if (repoRecord.getOriginalQueue() == null) {
                             return false;
                         }
-                        
+
                         final String originalQueueId = repoRecord.getOriginalQueue().getIdentifier();
                         final Connection destinationConnection = connectionsForRelationship.iterator().next();
                         final String destinationQueueId = destinationConnection.getFlowFileQueue().getIdentifier();
@@ -818,10 +818,10 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 }
             }
         }
-        
+
         return false;
     }
-    
+
     @Override
     public void rollback() {
         rollback(false);
@@ -918,7 +918,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     /**
      * Destroys a ContentClaim that was being written to but is no longer needed
      *
-     * @param claim
+     * @param claim claim to destroy
      */
     private void destroyContent(final ContentClaim claim) {
         if (claim == null) {
@@ -996,7 +996,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         final int numCreated = checkpoint.createdFlowFiles.size();
 
         final StringBuilder sb = new StringBuilder(512);
-        if (!LOG.isDebugEnabled() && (largestTransferSetSize > VERBOSE_LOG_THRESHOLD || numModified > VERBOSE_LOG_THRESHOLD || numCreated > VERBOSE_LOG_THRESHOLD || numRemoved > VERBOSE_LOG_THRESHOLD)) {
+        if (!LOG.isDebugEnabled() && (largestTransferSetSize > VERBOSE_LOG_THRESHOLD
+                || numModified > VERBOSE_LOG_THRESHOLD || numCreated > VERBOSE_LOG_THRESHOLD || numRemoved > VERBOSE_LOG_THRESHOLD)) {
             if (numCreated > 0) {
                 sb.append("created ").append(numCreated).append(" FlowFiles, ");
             }
@@ -1735,7 +1736,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
         try (final InputStream rawIn = getInputStream(source, record.getCurrentClaim(), record.getCurrentClaimOffset());
                 final InputStream limitedIn = new LimitedInputStream(rawIn, source.getSize());
-                final ByteCountingInputStream countingStream = new ByteCountingInputStream(limitedIn, this.bytesRead)) {
+                final InputStream disableOnCloseIn = new DisableOnCloseInputStream(limitedIn);
+                final ByteCountingInputStream countingStream = new ByteCountingInputStream(disableOnCloseIn, this.bytesRead)) {
 
             // We want to differentiate between IOExceptions thrown by the repository and IOExceptions thrown from
             // Processor code. As a result, as have the FlowFileAccessInputStream that catches IOException from the repository
@@ -1964,7 +1966,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             throw ffae;
         } catch (final IOException ioe) {
             if (appendToClaim) {
-                resetWriteClaims();	// need to reset write claim before we can remove the claim
+                resetWriteClaims(); // need to reset write claim before we can remove the claim
             }
             destroyContent(newClaim);
             throw new ProcessException("IOException thrown from " + connectableDescription + ": " + ioe.toString(), ioe);
@@ -1990,7 +1992,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         final StandardRepositoryRecord record = records.get(source);
         long newSize = 0L;
 
-        // Get the current Content Claim from the record and see if we already have 
+        // Get the current Content Claim from the record and see if we already have
         // an OutputStream that we can append to.
         ContentClaim oldClaim = record.getCurrentClaim();
         ByteCountingOutputStream outStream = appendableStreams.get(oldClaim);
@@ -2077,25 +2079,21 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     /**
-     * Checks if the ContentClaim associated with this record should be removed,
-     * since the record is about to be updated to point to a new content claim.
-     * If so, removes the working claim.
+     * Checks if the ContentClaim associated with this record should be removed, since the record is about to be updated to point to a new content claim. If so, removes the working claim.
      *
-     * This happens if & only if the content of this FlowFile has been modified
-     * since it was last committed to the FlowFile repository, because this
-     * indicates that the content is no longer needed and should be cleaned up.
+     * This happens if & only if the content of this FlowFile has been modified since it was last committed to the FlowFile repository, because this indicates that the content is no longer needed and
+     * should be cleaned up.
      *
-     * @param record
+     * @param record record
      */
     private void removeTemporaryClaim(final StandardRepositoryRecord record) {
         final boolean contentModified = record.getWorkingClaim() != null && record.getWorkingClaim() != record.getOriginalClaim();
 
         // If the working claim is not the same as the original claim, we have modified the content of
-        // the FlowFile, and we need to remove the newly created file (the working claim). However, if 
-        // they are the same, we cannot just remove the claim because record.getWorkingClaim() will return 
-        // the original claim if the record is "working" but the content has not been modified 
+        // the FlowFile, and we need to remove the newly created file (the working claim). However, if
+        // they are the same, we cannot just remove the claim because record.getWorkingClaim() will return
+        // the original claim if the record is "working" but the content has not been modified
         // (e.g., in the case of attributes only were updated)
-        //
         // In other words:
         //  If we modify the attributes of a FlowFile, and then we call record.getWorkingClaim(), this will
         //  return the same claim as record.getOriginalClaim(). So we cannot just remove the working claim because
@@ -2148,10 +2146,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     /**
-     * Indicates whether or not multiple FlowFiles should be merged into a
-     * single ContentClaim
-     *
-     * @return
+     * @return Indicates whether or not multiple FlowFiles should be merged into a single ContentClaim
      */
     private boolean isMergeContent() {
         if (writeRecursionLevel > 0) {
@@ -2180,9 +2175,10 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
                 try (final InputStream rawIn = getInputStream(source, currClaim, record.getCurrentClaimOffset());
                         final InputStream limitedIn = new LimitedInputStream(rawIn, source.getSize());
-                        final InputStream countingIn = new ByteCountingInputStream(limitedIn, bytesRead);
-                        final OutputStream disableOnClose = new DisableOnCloseOutputStream(currentWriteClaimStream);
-                        final OutputStream countingOut = new ByteCountingOutputStream(disableOnClose, writtenHolder)) {
+                        final InputStream disableOnCloseIn = new DisableOnCloseInputStream(limitedIn);
+                        final InputStream countingIn = new ByteCountingInputStream(disableOnCloseIn, bytesRead);
+                        final OutputStream disableOnCloseOut = new DisableOnCloseOutputStream(currentWriteClaimStream);
+                        final OutputStream countingOut = new ByteCountingOutputStream(disableOnCloseOut, writtenHolder)) {
 
                     recursionSet.add(source);
 
@@ -2361,7 +2357,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 enforceCurrentWriteClaimState();
                 newClaim = currentWriteClaim;
                 claimOffset = currentWriteClaimSize;
-                
+
                 final long bytesCopied = StreamUtils.copy(source, currentWriteClaimStream);
                 bytesWritten.increment(bytesCopied);
                 currentWriteClaimSize += bytesCopied;
@@ -2370,7 +2366,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 try {
                     newClaim = context.getContentRepository().create(context.getConnectable().isLossTolerant());
                     claimLog.debug("Creating ContentClaim {} for 'importFrom' for {}", newClaim, destination);
-                    
+
                     newSize = context.getContentRepository().importFrom(source, newClaim, appendToClaim);
                     bytesWritten.increment(newSize);
                     currentWriteClaimSize += newSize;
@@ -2383,7 +2379,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 resetWriteClaims();
             }
 
-            if ( newClaim != null ) {
+            if (newClaim != null) {
                 destroyContent(newClaim);
             }
             throw new FlowFileAccessException("Failed to import data from " + source + " for " + destination + " due to " + t.toString(), t);
@@ -2567,8 +2563,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     /**
-     * Returns the attributes that are common to every FlowFile given. The key
-     * and value must match exactly.
+     * Returns the attributes that are common to every FlowFile given. The key and value must match exactly.
      *
      * @param flowFileList a list of FlowFiles
      *
@@ -2623,8 +2618,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     /**
-     * Callback interface used to poll a FlowFileQueue, in order to perform
-     * functional programming-type of polling a queue
+     * Callback interface used to poll a FlowFileQueue, in order to perform functional programming-type of polling a queue
      */
     private static interface QueuePoller {
 

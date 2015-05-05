@@ -54,10 +54,9 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * The amount of time that should elapse between task executions. This will
-     * not affect currently scheduled tasks.
+     * The frequency with which to schedule the processor. The format of the value will depend on the value of {@link #getSchedulingStrategy()}.
      *
-     * @return The scheduling period in seconds
+     * @return The scheduling period
      */
     public String getSchedulingPeriod() {
         return schedulingPeriod;
@@ -68,10 +67,9 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * Indicates whether the processor should be scheduled to run in
-     * event-driven mode or timer-driven mode
+     * Indicates whether the processor should be scheduled to run in event-driven mode or timer-driven mode
      *
-     * @return
+     * @return scheduling strategy
      */
     public String getSchedulingStrategy() {
         return schedulingStrategy;
@@ -82,10 +80,7 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * The amount of time that is used when this processor penalizes a flow
-     * file.
-     *
-     * @return
+     * @return the amount of time that is used when this processor penalizes a flow file
      */
     public String getPenaltyDuration() {
         return penaltyDuration;
@@ -96,10 +91,7 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * When yielding, this amount of time must elaspe before this processor is
-     * scheduled again.
-     *
-     * @return
+     * @return amount of time must elaspe before this processor is scheduled again when yielding
      */
     public String getYieldDuration() {
         return yieldDuration;
@@ -110,9 +102,7 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * The level at this this processor will report bulletins.
-     *
-     * @return
+     * @return the level at this this processor will report bulletins
      */
     public String getBulletinLevel() {
         return bulletinLevel;
@@ -123,11 +113,9 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * The number of tasks that should be concurrently scheduled for this
-     * processor. If this processor doesn't allow parallel processing then any
-     * positive input will be ignored.
+     * The number of tasks that should be concurrently scheduled for this processor. If this processor doesn't allow parallel processing then any positive input will be ignored.
      *
-     * @return The concurrently schedulable task count
+     * @return the concurrently schedulable task count
      */
     public Integer getConcurrentlySchedulableTaskCount() {
         return concurrentlySchedulableTaskCount;
@@ -138,9 +126,7 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * Whether or not this Processor is Loss Tolerant
-     *
-     * @return
+     * @return whether or not this Processor is Loss Tolerant
      */
     public Boolean isLossTolerant() {
         return lossTolerant;
@@ -151,9 +137,7 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * The comments for this processor.
-     *
-     * @return The comments
+     * @return the comments
      */
     public String getComments() {
         return comments;
@@ -164,11 +148,8 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * The properties for this processor. Properties whose value is not set will
-     * only contain the property name. These properties are (un)marshalled
-     * differently since we need/want to control the ordering of the properties.
-     * The descriptors and metadata are used as a lookup when processing these
-     * properties.
+     * The properties for this processor. Properties whose value is not set will only contain the property name. These properties are (un)marshalled differently since we need/want to control the
+     * ordering of the properties. The descriptors and metadata are used as a lookup when processing these properties.
      *
      * @return The optional properties
      */
@@ -181,9 +162,7 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * The descriptors for this processor's properties.
-     *
-     * @return
+     * @return descriptors for this processor's properties
      */
     public Map<String, PropertyDescriptorDTO> getDescriptors() {
         return descriptors;
@@ -207,9 +186,7 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * Whether of not this processor has a custom UI.
-     *
-     * @return
+     * @return the URL for this processors custom configuration UI if applicable. Null otherwise.
      */
     public String getCustomUiUrl() {
         return customUiUrl;
@@ -220,10 +197,7 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * The names of all processor relationships that cause a flow file to be
-     * terminated if the relationship is not connected to anything
-     *
-     * @return
+     * @return the names of all processor relationships that cause a flow file to be terminated if the relationship is not connected to anything
      */
     public Set<String> getAutoTerminatedRelationships() {
         return autoTerminatedRelationships;
@@ -234,10 +208,7 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * Maps default values for concurrent tasks for each applicable scheduling
-     * strategy.
-     *
-     * @return
+     * @return maps default values for concurrent tasks for each applicable scheduling strategy.
      */
     public Map<String, String> getDefaultConcurrentTasks() {
         return defaultConcurrentTasks;
@@ -248,9 +219,7 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * The run duration in milliseconds.
-     *
-     * @return
+     * @return run duration in milliseconds
      */
     public Long getRunDurationMillis() {
         return runDurationMillis;
@@ -261,10 +230,7 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * Maps default values for scheduling period for each applicable scheduling
-     * strategy.
-     *
-     * @return
+     * @return Maps default values for scheduling period for each applicable scheduling strategy
      */
     public Map<String, String> getDefaultSchedulingPeriod() {
         return defaultSchedulingPeriod;
@@ -272,215 +238,6 @@ public class ProcessorConfigDTO {
 
     public void setDefaultSchedulingPeriod(Map<String, String> defaultSchedulingPeriod) {
         this.defaultSchedulingPeriod = defaultSchedulingPeriod;
-    }
-
-    /**
-     * The allowable values for a property with a constrained set of options.
-     */
-    @XmlType(name = "allowableValue")
-    public static class AllowableValueDTO {
-
-        private String displayName;
-        private String value;
-        private String description;
-
-        /**
-         * Returns the human-readable value that is allowed for this
-         * PropertyDescriptor
-         *
-         * @return
-         */
-        public String getDisplayName() {
-            return displayName;
-        }
-
-        public void setDisplayName(String displayName) {
-            this.displayName = displayName;
-        }
-
-        /**
-         * Returns the value for this allowable value.
-         *
-         * @return
-         */
-        public String getValue() {
-            return value;
-        }
-
-        public void setValue(String value) {
-            this.value = value;
-        }
-
-        /**
-         * Returns a description of this Allowable Value, or <code>null</code>
-         * if no description is given
-         *
-         * @return
-         */
-        public String getDescription() {
-            return description;
-        }
-
-        public void setDescription(String description) {
-            this.description = description;
-        }
-
-        @Override
-        public boolean equals(final Object obj) {
-            if (obj == this) {
-                return true;
-            }
-
-            if (!(obj instanceof AllowableValueDTO)) {
-                return false;
-            }
-
-            final AllowableValueDTO other = (AllowableValueDTO) obj;
-            return (this.value.equals(other.getValue()));
-        }
-
-        @Override
-        public int hashCode() {
-            return 23984731 + 17 * value.hashCode();
-        }
-    }
-
-    /**
-     * A description of a processor property.
-     */
-    @XmlType(name = "propertyDescriptor")
-    public static class PropertyDescriptorDTO {
-
-        private String name;
-        private String displayName;
-        private String description;
-        private String defaultValue;
-        private Set<AllowableValueDTO> allowableValues;
-        private boolean required;
-        private boolean sensitive;
-        private boolean dynamic;
-        private boolean supportsEl;
-
-        /**
-         * The set of allowable values for this property. If empty then the
-         * allowable values are not constrained.
-         *
-         * @return
-         */
-        public Set<AllowableValueDTO> getAllowableValues() {
-            return allowableValues;
-        }
-
-        public void setAllowableValues(Set<AllowableValueDTO> allowableValues) {
-            this.allowableValues = allowableValues;
-        }
-
-        /**
-         * The default value for this property.
-         *
-         * @return
-         */
-        public String getDefaultValue() {
-            return defaultValue;
-        }
-
-        public void setDefaultValue(String defaultValue) {
-            this.defaultValue = defaultValue;
-        }
-
-        /**
-         * And explanation of the meaning of the given property. This
-         * description is meant to be displayed to a user or simply provide a
-         * mechanism of documenting intent.
-         *
-         * @return
-         */
-        public String getDescription() {
-            return description;
-        }
-
-        public void setDescription(String description) {
-            this.description = description;
-        }
-
-        /**
-         * The property name.
-         *
-         * @return
-         */
-        public String getName() {
-            return name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
-        }
-
-        /**
-         * The human-readable name to display to users.
-         *
-         * @return
-         */
-        public String getDisplayName() {
-            return displayName;
-        }
-
-        public void setDisplayName(String displayName) {
-            this.displayName = displayName;
-        }
-
-        /**
-         * Determines whether the property is required for this processor.
-         *
-         * @return
-         */
-        public boolean isRequired() {
-            return required;
-        }
-
-        public void setRequired(boolean required) {
-            this.required = required;
-        }
-
-        /**
-         * Indicates that the value for this property should be considered
-         * sensitive and protected whenever stored or represented.
-         *
-         * @return
-         */
-        public boolean isSensitive() {
-            return sensitive;
-        }
-
-        public void setSensitive(boolean sensitive) {
-            this.sensitive = sensitive;
-        }
-
-        /**
-         * Indicates whether this property is dynamic.
-         *
-         * @return
-         */
-        public boolean isDynamic() {
-            return dynamic;
-        }
-
-        public void setDynamic(boolean dynamic) {
-            this.dynamic = dynamic;
-        }
-
-        /**
-         * Specifies whether or not this property support expression language.
-         *
-         * @return
-         */
-        public boolean getSupportsEl() {
-            return supportsEl;
-        }
-
-        public void setSupportsEl(boolean supportsEl) {
-            this.supportsEl = supportsEl;
-        }
     }
 
 }

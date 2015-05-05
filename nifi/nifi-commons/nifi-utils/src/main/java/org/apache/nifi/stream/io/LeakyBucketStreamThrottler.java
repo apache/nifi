@@ -104,7 +104,7 @@ public class LeakyBucketStreamThrottler implements StreamThrottler {
 
             @Override
             public int read(final byte[] b) throws IOException {
-                if(b.length == 0){
+                if (b.length == 0) {
                     return 0;
                 }
                 return read(b, 0, b.length);
@@ -112,13 +112,13 @@ public class LeakyBucketStreamThrottler implements StreamThrottler {
 
             @Override
             public int read(byte[] b, int off, int len) throws IOException {
-                if ( len < 0 ) {
+                if (len < 0) {
                     throw new IllegalArgumentException();
                 }
-                if ( len == 0 ) {
+                if (len == 0) {
                     return 0;
                 }
-                
+
                 baos.reset();
                 final int copied = (int) LeakyBucketStreamThrottler.this.copy(toWrap, baos, len);
                 if (copied == 0) {
@@ -190,8 +190,7 @@ public class LeakyBucketStreamThrottler implements StreamThrottler {
     }
 
     /**
-     * This class is responsible for draining water from the leaky bucket. I.e.,
-     * it actually moves the data
+     * This class is responsible for draining water from the leaky bucket. I.e., it actually moves the data
      */
     private class Drain implements Runnable {
 

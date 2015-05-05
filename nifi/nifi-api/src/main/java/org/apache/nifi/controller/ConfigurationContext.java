@@ -28,18 +28,14 @@ import org.apache.nifi.components.PropertyValue;
 public interface ConfigurationContext {
 
     /**
-     * Returns the configured value for the property with the given name
-     *
-     * @param property
-     * @return
+     * @param property to retrieve by name
+     * @return the configured value for the property with the given name
      */
     PropertyValue getProperty(PropertyDescriptor property);
 
     /**
-     * Returns an unmodifiable map of all configured properties for this
+     * @return an unmodifiable map of all configured properties for this
      * {@link ControllerService}
-     *
-     * @return
      */
     Map<PropertyDescriptor, String> getProperties();
 

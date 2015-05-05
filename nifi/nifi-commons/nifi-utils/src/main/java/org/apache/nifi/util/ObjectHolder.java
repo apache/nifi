@@ -19,7 +19,6 @@ package org.apache.nifi.util;
 /**
  * A bean that holds a single value of type T.
  *
- * @param <T>
  */
 public class ObjectHolder<T> {
 

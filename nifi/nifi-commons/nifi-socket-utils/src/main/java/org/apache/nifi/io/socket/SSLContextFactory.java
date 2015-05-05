@@ -81,12 +81,12 @@ public class SSLContextFactory {
      *
      *
      * @return a SSLContext instance
-     * @throws java.security.KeyStoreException
-     * @throws java.io.IOException
-     * @throws java.security.NoSuchAlgorithmException
-     * @throws java.security.cert.CertificateException
-     * @throws java.security.UnrecoverableKeyException
-     * @throws java.security.KeyManagementException
+     * @throws java.security.KeyStoreException if problem with keystore
+     * @throws java.io.IOException if unable to create context
+     * @throws java.security.NoSuchAlgorithmException if algorithm isn't known
+     * @throws java.security.cert.CertificateException if certificate is invalid
+     * @throws java.security.UnrecoverableKeyException if the key cannot be recovered
+     * @throws java.security.KeyManagementException if the key is improper
      */
     public SSLContext createSslContext() throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException,
             UnrecoverableKeyException, KeyManagementException {

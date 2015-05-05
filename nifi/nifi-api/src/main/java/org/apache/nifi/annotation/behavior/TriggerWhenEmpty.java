@@ -24,13 +24,13 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Marker annotation a {@link org.apache.nifi.processor.Processor Processor} 
- * implementation can use to indicate that the
- * Processor should still be triggered even when it has no data in its work
- * queue. By default, Processors which have no non-self incoming edges will be
- * triggered even if there is no work in its queue. However, Processors that
- * have non-self incoming edges will only be triggered if they have work in
- * their queue or they present this annotation.
+ * Marker annotation a {@link org.apache.nifi.processor.Processor Processor}
+ * implementation can use to indicate that the Processor should still be
+ * triggered even when it has no data in its work queue. By default, Processors
+ * which have no non-self incoming edges will be triggered even if there is no
+ * work in its queue. However, Processors that have non-self incoming edges will
+ * only be triggered if they have work in their queue or they present this
+ * annotation.
  *
  * @author none
  */

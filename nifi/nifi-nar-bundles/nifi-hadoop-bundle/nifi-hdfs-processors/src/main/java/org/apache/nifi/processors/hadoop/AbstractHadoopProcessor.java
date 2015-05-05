@@ -45,16 +45,15 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.net.NetUtils;
 
 /**
- * This is a base class that is helpful when building processors interacting
- * with HDFS.
+ * This is a base class that is helpful when building processors interacting with HDFS.
  */
 public abstract class AbstractHadoopProcessor extends AbstractProcessor {
 
     // properties
     public static final PropertyDescriptor HADOOP_CONFIGURATION_RESOURCES = new PropertyDescriptor.Builder()
             .name("Hadoop Configuration Resources")
-            .description(
-                    "A file or comma separated list of files which contains the Hadoop file system configuration. Without this, Hadoop will search the classpath for a 'core-site.xml' and 'hdfs-site.xml' file or will revert to a default configuration.")
+            .description("A file or comma separated list of files which contains the Hadoop file system configuration. Without this, Hadoop "
+                    + "will search the classpath for a 'core-site.xml' and 'hdfs-site.xml' file or will revert to a default configuration.")
             .required(false)
             .addValidator(createMultipleFilesExistValidator())
             .build();
@@ -71,7 +70,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
 
     // variables shared by all threads of this processor
     // Hadoop Configuration and FileSystem
-    protected final AtomicReference<Tuple<Configuration, FileSystem>> hdfsResources = new AtomicReference<>();
+    private final AtomicReference<Tuple<Configuration, FileSystem>> hdfsResources = new AtomicReference<>();
 
     @Override
     protected void init(ProcessorInitializationContext context) {
@@ -154,7 +153,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             String disableCacheName = String.format("fs.%s.impl.disable.cache", FileSystem.getDefaultUri(config).getScheme());
             config.set(disableCacheName, "true");
 
-            final FileSystem fs = FileSystem.get(config);
+            final FileSystem fs = getFileSystem(config);
             getLogger().info(
                     "Initialized a new HDFS File System with working dir: {} default block size: {} default replication: {} config: {}",
                     new Object[]{fs.getWorkingDirectory(), fs.getDefaultBlockSize(new Path(dir)),
@@ -164,6 +163,18 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         } finally {
             Thread.currentThread().setContextClassLoader(savedClassLoader);
         }
+    }
+
+    /**
+     * This exists in order to allow unit tests to override it so that they don't take several minutes waiting
+     * for UDP packets to be received
+     *
+     * @param config the configuration to use
+     * @return the FileSystem that is created for the given Configuration
+     * @throws IOException if unable to create the FileSystem
+     */
+    protected FileSystem getFileSystem(final Configuration config) throws IOException {
+        return FileSystem.get(config);
     }
 
     /*
@@ -217,4 +228,39 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         };
     }
 
+
+    /**
+     * Returns the relative path of the child that does not include the filename
+     * or the root path.
+     * @param root the path to relativize from
+     * @param child the path to relativize
+     * @return the relative path
+     */
+    public static String getPathDifference(final Path root, final Path child) {
+        final int depthDiff = child.depth() - root.depth();
+        if (depthDiff <= 1) {
+            return "".intern();
+        }
+        String lastRoot = root.getName();
+        Path childsParent = child.getParent();
+        final StringBuilder builder = new StringBuilder();
+        builder.append(childsParent.getName());
+        for (int i = (depthDiff - 3); i >= 0; i--) {
+            childsParent = childsParent.getParent();
+            String name = childsParent.getName();
+            if (name.equals(lastRoot) && childsParent.toString().endsWith(root.toString())) {
+                break;
+            }
+            builder.insert(0, Path.SEPARATOR).insert(0, name);
+        }
+        return builder.toString();
+    }
+
+    protected Configuration getConfiguration() {
+        return hdfsResources.get().getKey();
+    }
+
+    protected FileSystem getFileSystem() {
+        return hdfsResources.get().getValue();
+    }
 }

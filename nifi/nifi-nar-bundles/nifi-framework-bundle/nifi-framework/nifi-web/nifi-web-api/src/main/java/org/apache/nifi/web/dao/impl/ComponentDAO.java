@@ -20,17 +20,14 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.web.ResourceNotFoundException;
 
-/**
- *
- */
 public abstract class ComponentDAO {
 
     /**
      * Returns whether the specified object is not null.
      *
-     * @param <T>
-     * @param object
-     * @return
+     * @param <T> type
+     * @param object object
+     * @return true if the specified object is not null
      */
     protected <T> boolean isNotNull(T object) {
         return object != null;
@@ -39,9 +36,9 @@ public abstract class ComponentDAO {
     /**
      * Returns whether any of the specified objects are not null.
      *
-     * @param <T>
-     * @param objects
-     * @return
+     * @param <T> type
+     * @param objects objects
+     * @return true if any of the specified objects are not null
      */
     protected <T> boolean isAnyNotNull(T... objects) {
         for (final T object : objects) {
@@ -56,9 +53,9 @@ public abstract class ComponentDAO {
     /**
      * Locates the specified ProcessGroup.
      *
-     * @param flowController
-     * @param groupId
-     * @return
+     * @param flowController controller
+     * @param groupId id
+     * @return group
      */
     protected ProcessGroup locateProcessGroup(FlowController flowController, String groupId) {
         ProcessGroup group = flowController.getGroup(groupId);

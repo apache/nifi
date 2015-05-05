@@ -25,15 +25,13 @@ import org.apache.hadoop.io.SequenceFile.CompressionType;
 public interface SequenceFileWriter {
 
     /**
-     * Creates a Sequence File by writing the given FlowFile as key/value pairs.
-     * The provided FlowFile may be a package of multiple FlowFiles, or just
-     * one. The keys for the Sequence File are the flow files' logical names.
-     * The values are the flow files' content.
+     * Creates a Sequence File by writing the given FlowFile as key/value pairs. The provided FlowFile may be a package of multiple FlowFiles, or just one. The keys for the Sequence File are the flow
+     * files' logical names. The values are the flow files' content.
      *
      * @param flowFile - the FlowFile to write to the Sequence File.
-     * @param session
-     * @param configuration
-     * @param compressionType
+     * @param session session
+     * @param configuration configuration
+     * @param compressionType compression type
      * @return the written to SequenceFile flow file
      */
     FlowFile writeSequenceFile(FlowFile flowFile, ProcessSession session, Configuration configuration, CompressionType compressionType);

@@ -38,10 +38,6 @@ import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
 import com.jcraft.jsch.SftpException;
 
-/**
- *
- * @author developer
- */
 public class SFTPUtils {
 
     public static final PropertyDescriptor SFTP_PRIVATEKEY_PATH = new PropertyDescriptor.Builder()
@@ -140,14 +136,6 @@ public class SFTPUtils {
         return propertyDescriptors;
     }
 
-    /**
-     *
-     * @param conf
-     * @return
-     * @throws JSchException
-     * @throws SftpException
-     * @throws IOException
-     */
     public static SFTPConnection connectSftp(final SFTPConfiguration conf) throws JSchException, SftpException, IOException {
         final JSch jsch = new JSch();
         final Session session = SFTPUtils.createSession(conf, jsch);

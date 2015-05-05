@@ -37,9 +37,7 @@ public class PositionDTO {
 
     /* getters / setters */
     /**
-     * The x coordinate.
-     *
-     * @return
+     * @return the x coordinate
      */
     public Double getX() {
         return x;
@@ -50,9 +48,7 @@ public class PositionDTO {
     }
 
     /**
-     * The y coordinate.
-     *
-     * @return
+     * @return the y coordinate
      */
     public Double getY() {
         return y;

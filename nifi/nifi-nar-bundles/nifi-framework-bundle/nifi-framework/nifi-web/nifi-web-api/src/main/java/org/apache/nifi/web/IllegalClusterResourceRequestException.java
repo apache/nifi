@@ -17,8 +17,7 @@
 package org.apache.nifi.web;
 
 /**
- * Exception indicating a clustering-related request was issued to a node when
- * it should have been issued to the cluster manager.
+ * Exception indicating a clustering-related request was issued to a node when it should have been issued to the cluster manager.
  */
 @SuppressWarnings("serial")
 public class IllegalClusterResourceRequestException extends RuntimeException {

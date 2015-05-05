@@ -30,24 +30,10 @@ public class StandardFunnelDAO extends ComponentDAO implements FunnelDAO {
 
     private FlowController flowController;
 
-    /**
-     * Locates the specified funnel.
-     *
-     * @param groupId
-     * @param funnelId
-     * @return
-     */
     private Funnel locateFunnel(String groupId, String funnelId) {
         return locateFunnel(locateProcessGroup(flowController, groupId), funnelId);
     }
 
-    /**
-     * Locates the specified funnel.
-     *
-     * @param group
-     * @param funnelId
-     * @return
-     */
     private Funnel locateFunnel(ProcessGroup group, String funnelId) {
         // get the funnel
         Funnel funnel = group.getFunnel(funnelId);
@@ -60,12 +46,6 @@ public class StandardFunnelDAO extends ComponentDAO implements FunnelDAO {
         return funnel;
     }
 
-    /**
-     * Creates a funnel.
-     *
-     * @param funnelDTO The funnel DTO
-     * @return The funnel
-     */
     @Override
     public Funnel createFunnel(String groupId, FunnelDTO funnelDTO) {
         if (funnelDTO.getParentGroupId() != null && !flowController.areGroupsSame(groupId, funnelDTO.getParentGroupId())) {
@@ -87,23 +67,11 @@ public class StandardFunnelDAO extends ComponentDAO implements FunnelDAO {
         return funnel;
     }
 
-    /**
-     * Gets the specified funnel.
-     *
-     * @param funnelId The funnel id
-     * @return The funnel
-     */
     @Override
     public Funnel getFunnel(String groupId, String funnelId) {
         return locateFunnel(groupId, funnelId);
     }
 
-    /**
-     * Determines if the specified funnel exists.
-     *
-     * @param funnelId
-     * @return
-     */
     @Override
     public boolean hasFunnel(String groupId, String funnelId) {
         ProcessGroup group;
@@ -116,23 +84,12 @@ public class StandardFunnelDAO extends ComponentDAO implements FunnelDAO {
         return group.getFunnel(funnelId) != null;
     }
 
-    /**
-     * Gets all of the funnels.
-     *
-     * @return The funnels
-     */
     @Override
     public Set<Funnel> getFunnels(String groupId) {
         ProcessGroup group = locateProcessGroup(flowController, groupId);
         return group.getFunnels();
     }
 
-    /**
-     * Updates the specified funnel.
-     *
-     * @param funnelDTO The funnel DTO
-     * @return The funnel
-     */
     @Override
     public Funnel updateFunnel(String groupId, FunnelDTO funnelDTO) {
         ProcessGroup group = locateProcessGroup(flowController, groupId);
@@ -157,11 +114,6 @@ public class StandardFunnelDAO extends ComponentDAO implements FunnelDAO {
         funnel.verifyCanDelete();
     }
 
-    /**
-     * Deletes the specified funnel.
-     *
-     * @param funnelId The funnel id
-     */
     @Override
     public void deleteFunnel(String groupId, String funnelId) {
         ProcessGroup group = locateProcessGroup(flowController, groupId);

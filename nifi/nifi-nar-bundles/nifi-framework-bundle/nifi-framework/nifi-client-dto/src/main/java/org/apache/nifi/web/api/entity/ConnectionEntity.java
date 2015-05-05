@@ -20,9 +20,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 
 /**
- * A serialized representation of this class can be placed in the entity body of
- * a response to the API. This particular entity holds a reference to a
- * ConnectionDTO.
+ * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to a ConnectionDTO.
  */
 @XmlRootElement(name = "connectionEntity")
 public class ConnectionEntity extends Entity {
@@ -30,9 +28,7 @@ public class ConnectionEntity extends Entity {
     private ConnectionDTO connection;
 
     /**
-     * The RelationshipDTO that is being serialized.
-     *
-     * @return
+     * @return RelationshipDTO that is being serialized
      */
     public ConnectionDTO getConnection() {
         return connection;

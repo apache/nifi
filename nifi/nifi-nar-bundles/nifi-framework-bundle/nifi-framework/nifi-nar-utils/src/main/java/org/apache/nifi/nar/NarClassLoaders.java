@@ -56,9 +56,9 @@ public final class NarClassLoaders {
      * Subsequent attempts will be ignored.
      *
      *
-     * @param properties
-     * @throws java.io.IOException
-     * @throws java.lang.ClassNotFoundException
+     * @param properties properties object to initialize with
+     * @throws java.io.IOException ioe
+     * @throws java.lang.ClassNotFoundException cfne
      * @throws IllegalStateException if the class loaders have already been
      * created
      */
@@ -175,11 +175,11 @@ public final class NarClassLoaders {
     /**
      * Creates a new NarClassLoader. The parentClassLoader may be null.
      *
-     * @param narDirectory
-     * @param parentClassLoader
-     * @return
-     * @throws IOException
-     * @throws ClassNotFoundException
+     * @param narDirectory root directory of nar
+     * @param parentClassLoader parent classloader of nar
+     * @return the nar classloader
+     * @throws IOException ioe
+     * @throws ClassNotFoundException cfne
      */
     private static ClassLoader createNarClassLoader(final File narDirectory, final ClassLoader parentClassLoader) throws IOException, ClassNotFoundException {
         logger.debug("Loading NAR file: " + narDirectory.getAbsolutePath());
@@ -192,9 +192,9 @@ public final class NarClassLoaders {
      * Loads the details for the specified NAR. The details will be extracted
      * from the manifest file.
      *
-     * @param narDirectory
-     * @return
-     * @throws IOException
+     * @param narDirectory the nar directory
+     * @return details about the NAR
+     * @throws IOException ioe
      */
     private static NarDetails getNarDetails(final File narDirectory) throws IOException {
         final NarDetails narDetails = new NarDetails();
@@ -214,9 +214,7 @@ public final class NarClassLoaders {
     }
 
     /**
-     * Gets the framework class loader.
-     *
-     * @return
+     * @return the framework class loader
      *
      * @throws IllegalStateException if the frame class loader has not been
      * loaded
@@ -230,12 +228,9 @@ public final class NarClassLoaders {
     }
 
     /**
-     * Gets the class loader for the specified working directory. Returns null
-     * when no class loader exists for the specified working directory.
-     *
-     * @param extensionWorkingDirectory
-     * @return
-     *
+     * @param extensionWorkingDirectory the directory
+     * @return the class loader for the specified working directory. Returns
+     * null when no class loader exists for the specified working directory
      * @throws IllegalStateException if the class loaders have not been loaded
      */
     public static ClassLoader getExtensionClassLoader(final File extensionWorkingDirectory) {
@@ -251,10 +246,7 @@ public final class NarClassLoaders {
     }
 
     /**
-     * Gets the extension class loaders.
-     *
-     * @return
-     *
+     * @return the extension class loaders
      * @throws IllegalStateException if the class loaders have not been loaded
      */
     public static Set<ClassLoader> getExtensionClassLoaders() {

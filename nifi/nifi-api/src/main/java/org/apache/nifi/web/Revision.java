@@ -51,34 +51,6 @@ public class Revision implements Serializable {
         return version;
     }
 
-    /**
-     * A factory method for creating a new Revision instance whose version is
-     * this instance's version plus 1.
-     *
-     * @return an updated revision
-     */
-    public Revision increment() {
-        final long incrementedVersion;
-        if (version == null) {
-            incrementedVersion = 0;
-        } else {
-            incrementedVersion = version + 1;
-        }
-        return new Revision(incrementedVersion, clientId);
-    }
-
-    /**
-     * A factory method for creating a new Revision instance whose version is
-     * this instance's version plus 1 and whose client ID is the given client
-     * ID.
-     *
-     * @param clientId the client ID
-     * @return an updated revision
-     */
-    public Revision increment(String clientId) {
-        return new Revision(increment().getVersion(), clientId);
-    }
-
     @Override
     public boolean equals(final Object obj) {
 

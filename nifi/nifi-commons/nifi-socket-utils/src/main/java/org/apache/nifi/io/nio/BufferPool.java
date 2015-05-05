@@ -25,10 +25,6 @@ import java.util.concurrent.LinkedBlockingDeque;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- *
- * @author none
- */
 public class BufferPool implements Runnable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BufferPool.class);
@@ -50,9 +46,9 @@ public class BufferPool implements Runnable {
     /**
      * Returns the given buffer to the pool - and clears it.
      *
-     * @param buffer
-     * @param bytesProcessed
-     * @return
+     * @param buffer buffer to return
+     * @param bytesProcessed bytes processed for this buffer being returned
+     * @return true if buffer returned to pool
      */
     public synchronized boolean returnBuffer(ByteBuffer buffer, final int bytesProcessed) {
         totalBytesExtracted += bytesProcessed;

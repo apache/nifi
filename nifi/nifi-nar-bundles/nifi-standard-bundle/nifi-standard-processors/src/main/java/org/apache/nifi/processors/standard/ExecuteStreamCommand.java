@@ -31,37 +31,37 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.EventDriven;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.stream.io.BufferedInputStream;
-import org.apache.nifi.stream.io.BufferedOutputStream;
-import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.logging.ProcessorLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.behavior.EventDriven;
-import org.apache.nifi.annotation.behavior.SupportsBatching;
-import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.stream.io.BufferedInputStream;
+import org.apache.nifi.stream.io.BufferedOutputStream;
+import org.apache.nifi.stream.io.StreamUtils;
 
 /**
  * <p>
- * This processor executes an external command on the contents of a flow file,
- * and creates a new flow file with the results of the command.
+ * This processor executes an external command on the contents of a flow file, and creates a new flow file with the results of the command.
  * </p>
  * <p>
  * <strong>Properties:</strong>
@@ -69,26 +69,22 @@ import org.apache.commons.lang3.StringUtils;
  * <ul>
  * <li><strong>Command Path</strong>
  * <ul>
- * <li>Specifies the command to be executed; if just the name of an executable
- * is provided, it must be in the user's environment PATH.</li>
+ * <li>Specifies the command to be executed; if just the name of an executable is provided, it must be in the user's environment PATH.</li>
  * <li>Default value: none</li>
  * <li>Supports expression language: true</li>
  * </ul>
  * </li>
  * <li>Command Arguments
  * <ul>
- * <li>The arguments to supply to the executable delimited by the ';' character.
- * Each argument may be an Expression Language statement.</li>
+ * <li>The arguments to supply to the executable delimited by the ';' character. Each argument may be an Expression Language statement.</li>
  * <li>Default value: none</li>
  * <li>Supports expression language: true</li>
  * </ul>
  * </li>
  * <li>Working Directory
  * <ul>
- * <li>The directory to use as the current working directory when executing the
- * command</li>
- * <li>Default value: none (which means whatever NiFi's current working
- * directory is...probably the root of the NiFi installation directory.)</li>
+ * <li>The directory to use as the current working directory when executing the command</li>
+ * <li>Default value: none (which means whatever NiFi's current working directory is...probably the root of the NiFi installation directory.)</li>
  * <li>Supports expression language: true</li>
  * </ul>
  * </li>
@@ -106,8 +102,7 @@ import org.apache.commons.lang3.StringUtils;
  * </li>
  * <li>output-stream
  * <ul>
- * <li>The destination path for the flow file created from the command's
- * output</li>
+ * <li>The destination path for the flow file created from the command's output</li>
  * </ul>
  * </li>
  * </ul>
@@ -119,6 +114,11 @@ import org.apache.commons.lang3.StringUtils;
 @SupportsBatching
 @Tags({"command execution", "command", "stream", "execute"})
 @CapabilityDescription("Executes an external command on the contents of a flow file, and creates a new flow file with the results of the command.")
+@WritesAttributes({
+    @WritesAttribute(attribute = "execution.command", description = "The name of the command executed to create the new FlowFile"),
+    @WritesAttribute(attribute = "execution.command.args", description = "The semi-colon delimited list of arguments"),
+    @WritesAttribute(attribute = "execution.status", description = "The exit status code returned from executing the command"),
+    @WritesAttribute(attribute = "execution.error", description = "Any error messages returned from executing the command")})
 public class ExecuteStreamCommand extends AbstractProcessor {
 
     public static final Relationship ORIGINAL_RELATIONSHIP = new Relationship.Builder()
@@ -138,12 +138,10 @@ public class ExecuteStreamCommand extends AbstractProcessor {
         RELATIONSHIPS = Collections.unmodifiableSet(rels);
     }
 
-    private static final Validator ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR = StandardValidators.createAttributeExpressionLanguageValidator(
-            ResultType.STRING, true);
+    private static final Validator ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR = StandardValidators.createAttributeExpressionLanguageValidator(ResultType.STRING, true);
     static final PropertyDescriptor EXECUTION_COMMAND = new PropertyDescriptor.Builder()
             .name("Command Path")
-            .description(
-                    "Specifies the command to be executed; if just the name of an executable is provided, it must be in the user's environment PATH.")
+            .description("Specifies the command to be executed; if just the name of an executable is provided, it must be in the user's environment PATH.")
             .expressionLanguageSupported(true)
             .addValidator(ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
             .required(true)
@@ -152,16 +150,12 @@ public class ExecuteStreamCommand extends AbstractProcessor {
     static final PropertyDescriptor EXECUTION_ARGUMENTS = new PropertyDescriptor.Builder()
             .name("Command Arguments")
             .description("The arguments to supply to the executable delimited by the ';' character.")
-            .expressionLanguageSupported(true)
-            .addValidator(new Validator() {
+            .expressionLanguageSupported(true).addValidator(new Validator() {
 
                 @Override
                 public ValidationResult validate(String subject, String input, ValidationContext context) {
                     ValidationResult result = new ValidationResult.Builder()
-                    .subject(subject)
-                    .valid(true)
-                    .input(input)
-                    .build();
+                    .subject(subject).valid(true).input(input).build();
                     String[] args = input.split(";");
                     for (String arg : args) {
                         ValidationResult valResult = ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR.validate(subject, arg, context);
@@ -172,8 +166,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
                     }
                     return result;
                 }
-            })
-            .build();
+            }).build();
 
     static final PropertyDescriptor WORKING_DIR = new PropertyDescriptor.Builder()
             .name("Working Directory")
@@ -235,8 +228,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
         if (!StringUtils.isBlank(workingDir)) {
             dir = new File(workingDir);
             if (!dir.exists() && !dir.mkdirs()) {
-                logger.warn("Failed to create working directory {}, using current working directory {}",
-                        new Object[]{workingDir, System.getProperty("user.dir")});
+                logger.warn("Failed to create working directory {}, using current working directory {}", new Object[]{workingDir, System.getProperty("user.dir")});
             }
         }
         builder.command(args);
@@ -312,8 +304,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
         FlowFile outputStreamFlowFile;
         int exitCode;
 
-        public StdInWriterCallback(OutputStream stdInWritable, InputStream stdOutReadable, ProcessorLog logger, ProcessSession session,
-                FlowFile outputStreamFlowFile, Process process) {
+        public StdInWriterCallback(OutputStream stdInWritable, InputStream stdOutReadable, ProcessorLog logger, ProcessSession session, FlowFile outputStreamFlowFile, Process process) {
             this.stdInWritable = stdInWritable;
             this.stdOutReadable = stdOutReadable;
             this.logger = logger;

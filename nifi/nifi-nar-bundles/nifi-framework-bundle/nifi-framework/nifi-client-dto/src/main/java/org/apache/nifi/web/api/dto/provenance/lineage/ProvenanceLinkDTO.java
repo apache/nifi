@@ -34,9 +34,7 @@ public class ProvenanceLinkDTO {
     private Long millis;
 
     /**
-     * The source node id.
-     *
-     * @return
+     * @return source node id
      */
     public String getSourceId() {
         return sourceId;
@@ -47,9 +45,7 @@ public class ProvenanceLinkDTO {
     }
 
     /**
-     * The target node id.
-     *
-     * @return
+     * @return target node id
      */
     public String getTargetId() {
         return targetId;
@@ -60,9 +56,7 @@ public class ProvenanceLinkDTO {
     }
 
     /**
-     * The flowfile uuid that traversed this link.
-     *
-     * @return
+     * @return flowfile uuid that traversed this link
      */
     public String getFlowFileUuid() {
         return flowFileUuid;
@@ -73,9 +67,7 @@ public class ProvenanceLinkDTO {
     }
 
     /**
-     * The timestamp of this link (based on the destination).
-     *
-     * @return
+     * @return timestamp of this link (based on the destination)
      */
     @XmlJavaTypeAdapter(TimestampAdapter.class)
     public Date getTimestamp() {
@@ -87,9 +79,7 @@ public class ProvenanceLinkDTO {
     }
 
     /**
-     * The number of millis since epoch.
-     *
-     * @return
+     * @return number of millis since epoch
      */
     public Long getMillis() {
         return millis;

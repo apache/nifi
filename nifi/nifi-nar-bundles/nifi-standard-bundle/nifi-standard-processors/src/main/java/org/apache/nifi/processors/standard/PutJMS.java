@@ -28,6 +28,7 @@ import static org.apache.nifi.processors.standard.util.JmsFactory.PROP_TYPE_OBJE
 import static org.apache.nifi.processors.standard.util.JmsFactory.PROP_TYPE_SHORT;
 import static org.apache.nifi.processors.standard.util.JmsFactory.PROP_TYPE_STRING;
 import static org.apache.nifi.processors.standard.util.JmsProperties.ATTRIBUTES_TO_JMS_PROPS;
+import static org.apache.nifi.processors.standard.util.JmsProperties.BATCH_SIZE;
 import static org.apache.nifi.processors.standard.util.JmsProperties.CLIENT_ID_PREFIX;
 import static org.apache.nifi.processors.standard.util.JmsProperties.DESTINATION_NAME;
 import static org.apache.nifi.processors.standard.util.JmsProperties.DESTINATION_TYPE;
@@ -44,7 +45,6 @@ import static org.apache.nifi.processors.standard.util.JmsProperties.MSG_TYPE_MA
 import static org.apache.nifi.processors.standard.util.JmsProperties.PASSWORD;
 import static org.apache.nifi.processors.standard.util.JmsProperties.REPLY_TO_QUEUE;
 import static org.apache.nifi.processors.standard.util.JmsProperties.TIMEOUT;
-import static org.apache.nifi.processors.standard.util.JmsProperties.BATCH_SIZE;
 import static org.apache.nifi.processors.standard.util.JmsProperties.URL;
 import static org.apache.nifi.processors.standard.util.JmsProperties.USERNAME;
 
@@ -71,11 +71,11 @@ import javax.jms.Session;
 import javax.jms.StreamMessage;
 
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.logging.ProcessorLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
@@ -86,18 +86,24 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processors.standard.util.JmsFactory;
 import org.apache.nifi.processors.standard.util.WrappedMessageProducer;
+import org.apache.nifi.stream.io.StreamUtils;
 
 @Tags({"jms", "send", "put"})
 @CapabilityDescription("Creates a JMS Message from the contents of a FlowFile and sends the message to a JMS Server")
+@SeeAlso({GetJMSQueue.class, GetJMSTopic.class})
 public class PutJMS extends AbstractProcessor {
 
     public static final Charset UTF8 = Charset.forName("UTF-8");
     public static final int DEFAULT_MESSAGE_PRIORITY = 4;
 
-    public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
-            .description("All FlowFiles that are sent to the JMS destination are routed to this relationship").build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure")
-            .description("All FlowFiles that cannot be routed to the JMS destination are routed to this relationship").build();
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("All FlowFiles that are sent to the JMS destination are routed to this relationship")
+            .build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("All FlowFiles that cannot be routed to the JMS destination are routed to this relationship")
+            .build();
 
     private final Queue<WrappedMessageProducer> producerQueue = new LinkedBlockingQueue<>();
     private final List<PropertyDescriptor> properties;
@@ -202,8 +208,8 @@ public class PutJMS extends AbstractProcessor {
                     final Integer priorityInt = context.getProperty(MESSAGE_PRIORITY).evaluateAttributeExpressions(flowFile).asInteger();
                     priority = priorityInt == null ? priority : priorityInt;
                 } catch (final NumberFormatException e) {
-                    logger.warn("Invalid value for JMS Message Priority: {}; defaulting to priority of {}", new Object[]{
-                        context.getProperty(MESSAGE_PRIORITY).evaluateAttributeExpressions(flowFile).getValue(), DEFAULT_MESSAGE_PRIORITY});
+                    logger.warn("Invalid value for JMS Message Priority: {}; defaulting to priority of {}",
+                            new Object[]{context.getProperty(MESSAGE_PRIORITY).evaluateAttributeExpressions(flowFile).getValue(), DEFAULT_MESSAGE_PRIORITY});
                 }
 
                 try {
@@ -300,37 +306,27 @@ public class PutJMS extends AbstractProcessor {
     }
 
     /**
-     * Iterates through all of the flow file's metadata and for any metadata key
-     * that starts with <code>jms.</code>, the value for the corresponding key
-     * is written to the JMS message as a property. The name of this property is
-     * equal to the key of the flow file's metadata minus the <code>jms.</code>.
-     * For example, if the flowFile has a metadata entry:
+     * Iterates through all of the flow file's metadata and for any metadata key that starts with <code>jms.</code>, the value for the corresponding key is written to the JMS message as a property.
+     * The name of this property is equal to the key of the flow file's metadata minus the <code>jms.</code>. For example, if the flowFile has a metadata entry:
      * <br /><br />
      * <code>jms.count</code> = <code>8</code>
      * <br /><br />
-     * then the JMS message will have a String property added to it with the
-     * property name <code>count</code> and value <code>8</code>.
+     * then the JMS message will have a String property added to it with the property name <code>count</code> and value <code>8</code>.
      *
-     * If the flow file also has a metadata key with the name
-     * <code>jms.count.type</code>, then the value of that metadata entry will
-     * determine the JMS property type to use for the value. For example, if the
-     * flow file has the following properties:
+     * If the flow file also has a metadata key with the name <code>jms.count.type</code>, then the value of that metadata entry will determine the JMS property type to use for the value. For example,
+     * if the flow file has the following properties:
      * <br /><br />
      * <code>jms.count</code> = <code>8</code><br />
      * <code>jms.count.type</code> = <code>integer</code>
      * <br /><br />
-     * Then <code>message</code> will have an INTEGER property added with the
-     * value 8.
+     * Then <code>message</code> will have an INTEGER property added with the value 8.
      * <br /><br/>
-     * If the type is not valid for the given value (e.g.,
-     * <code>jms.count.type</code> = <code>integer</code> and
-     * <code>jms.count</code> = <code>hello</code>, then this JMS property will
-     * not be added to <code>message</code>.
+     * If the type is not valid for the given value (e.g., <code>jms.count.type</code> = <code>integer</code> and <code>jms.count</code> = <code>hello</code>, then this JMS property will not be added
+     * to <code>message</code>.
      *
-     * @param flowFile The flow file whose metadata should be examined for JMS
-     * properties.
+     * @param flowFile The flow file whose metadata should be examined for JMS properties.
      * @param message The JMS message to which we want to add properties.
-     * @throws JMSException
+     * @throws JMSException ex
      */
     private void copyAttributesToJmsProps(final FlowFile flowFile, final Message message) throws JMSException {
         final ProcessorLog logger = getLogger();
@@ -340,8 +336,7 @@ public class PutJMS extends AbstractProcessor {
             final String key = entry.getKey();
             final String value = entry.getValue();
 
-            if (key.toLowerCase().startsWith(ATTRIBUTE_PREFIX.toLowerCase())
-                    && !key.toLowerCase().endsWith(ATTRIBUTE_TYPE_SUFFIX.toLowerCase())) {
+            if (key.toLowerCase().startsWith(ATTRIBUTE_PREFIX.toLowerCase()) && !key.toLowerCase().endsWith(ATTRIBUTE_TYPE_SUFFIX.toLowerCase())) {
 
                 final String jmsPropName = key.substring(ATTRIBUTE_PREFIX.length());
                 final String type = attributes.get(key + ATTRIBUTE_TYPE_SUFFIX);

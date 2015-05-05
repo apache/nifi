@@ -28,6 +28,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.nifi.stream.io.StreamUtils;
 
 public class HelloWorldServlet extends HttpServlet {
+
     private static final long serialVersionUID = -8821242726929583763L;
 
     @Override
@@ -37,5 +38,5 @@ public class HelloWorldServlet extends HttpServlet {
             StreamUtils.copy(fis, out);
         }
     }
-    
+
 }

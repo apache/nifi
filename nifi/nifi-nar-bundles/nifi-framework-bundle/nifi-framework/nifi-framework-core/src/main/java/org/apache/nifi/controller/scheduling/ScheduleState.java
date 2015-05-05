@@ -28,7 +28,7 @@ public class ScheduleState {
 
     private final AtomicInteger activeThreadCount = new AtomicInteger(0);
     private final AtomicBoolean scheduled = new AtomicBoolean(false);
-    private final Set<ScheduledFuture<?>> futures = new HashSet<ScheduledFuture<?>>();
+    private final Set<ScheduledFuture<?>> futures = new HashSet<>();
     private final AtomicBoolean mustCallOnStoppedMethods = new AtomicBoolean(false);
     private volatile long lastStopTime = -1;
 
@@ -62,12 +62,11 @@ public class ScheduleState {
     }
 
     /**
-     * Maintains an AtomicBoolean so that the first thread to call this method
-     * after a Processor is no longer scheduled to run will receive a
-     * <code>true</code> and MUST call the methods annotated with @OnStopped
+     * Maintains an AtomicBoolean so that the first thread to call this method after a Processor is no longer scheduled to run will receive a <code>true</code> and MUST call the methods annotated with
      *
-     * @return <code>true</code> if the caller is required to call Processor
-     * methods annotated with
+     * @OnStopped
+     *
+     * @return <code>true</code> if the caller is required to call Processor methods annotated with
      * @OnStopped, <code>false</code> otherwise
      */
     public boolean mustCallOnStoppedMethods() {
@@ -75,10 +74,9 @@ public class ScheduleState {
     }
 
     /**
-     * Establishes the list of relevant futures for this processor. Replaces any
-     * previously held futures.
+     * Establishes the list of relevant futures for this processor. Replaces any previously held futures.
      *
-     * @param newFutures
+     * @param newFutures futures
      */
     public synchronized void setFutures(final Collection<ScheduledFuture<?>> newFutures) {
         futures.clear();
@@ -89,7 +87,7 @@ public class ScheduleState {
         futures.remove(oldFuture);
         futures.add(newFuture);
     }
-    
+
     public synchronized Set<ScheduledFuture<?>> getFutures() {
         return Collections.unmodifiableSet(futures);
     }

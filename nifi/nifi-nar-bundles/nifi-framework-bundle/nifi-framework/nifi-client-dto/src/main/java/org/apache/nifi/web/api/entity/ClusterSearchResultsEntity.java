@@ -21,9 +21,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.web.api.dto.search.NodeSearchResultDTO;
 
 /**
- * A serialized representation of this class can be placed in the entity body of
- * a request or response to or from the API. This particular entity holds a
- * reference to NodeSearchResultDTOs.
+ * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to NodeSearchResultDTOs.
  */
 @XmlRootElement(name = "clusterSearchResultsEntity")
 public class ClusterSearchResultsEntity {
@@ -31,9 +29,7 @@ public class ClusterSearchResultsEntity {
     private List<NodeSearchResultDTO> nodeResults;
 
     /**
-     * The node search results.
-     *
-     * @return
+     * @return node search results
      */
     public List<NodeSearchResultDTO> getNodeResults() {
         return nodeResults;

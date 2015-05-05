@@ -27,7 +27,6 @@ import org.apache.nifi.controller.repository.claim.ContentClaimManager;
 /**
  * Implementations must be thread safe
  *
- * @author none
  */
 public interface FlowFileRepository extends Closeable {
 
@@ -36,28 +35,24 @@ public interface FlowFileRepository extends Closeable {
      * ContentClaimManager that is to be used for interacting with Content
      * Claims
      *
-     * @param claimManager
-     * @throws java.io.IOException
+     * @param claimManager for handling claims
+     * @throws java.io.IOException if unable to initialize repository
      */
     void initialize(ContentClaimManager claimManager) throws IOException;
 
     /**
-     * Returns the maximum number of bytes that can be stored in the underlying
+     * @return the maximum number of bytes that can be stored in the underlying
      * storage mechanism
      *
-     * @return
-     *
-     * @throws IOException
+     * @throws IOException if computing capacity fails
      */
     long getStorageCapacity() throws IOException;
 
     /**
-     * Returns the number of bytes currently available for use by the underlying
+     * @return the number of bytes currently available for use by the underlying
      * storage mechanism
      *
-     * @return
-     *
-     * @throws IOException
+     * @throws IOException if computing usable space fails
      */
     long getUsableStorageSpace() throws IOException;
 
@@ -65,7 +60,7 @@ public interface FlowFileRepository extends Closeable {
      * Updates the repository with the given RepositoryRecords.
      *
      * @param records the records to update the repository with
-     * @throws java.io.IOException
+     * @throws java.io.IOException if update fails
      */
     void updateRepository(Collection<RepositoryRecord> records) throws IOException;
 
@@ -79,7 +74,7 @@ public interface FlowFileRepository extends Closeable {
      * returned by a call to {@link #getNextFlowFileSequence()}
      *
      * @return index of highest flow file identifier
-     * @throws IOException
+     * @throws IOException if load fails
      */
     long loadFlowFiles(QueueProvider queueProvider, long minimumSequenceNumber) throws IOException;
 
@@ -97,7 +92,7 @@ public interface FlowFileRepository extends Closeable {
     /**
      * @return the max ID of all <code>FlowFile</code>s that currently exist in
      * the repository.
-     * @throws IOException
+     * @throws IOException if computing max identifier fails
      */
     long getMaxFlowFileIdentifier() throws IOException;
 
@@ -109,7 +104,7 @@ public interface FlowFileRepository extends Closeable {
      * @param flowFileQueue the queue that the FlowFiles belong to
      * @param swapLocation the location to which the FlowFiles were swapped
      *
-     * @throws IOException
+     * @throws IOException if swap fails
      */
     void swapFlowFilesOut(List<FlowFileRecord> swappedOut, FlowFileQueue flowFileQueue, String swapLocation) throws IOException;
 
@@ -122,7 +117,7 @@ public interface FlowFileRepository extends Closeable {
      * @param flowFileRecords the records that were swapped in
      * @param flowFileQueue the queue that the FlowFiles belong to
      *
-     * @throws IOException
+     * @throws IOException if swap fails
      */
     void swapFlowFilesIn(String swapLocation, List<FlowFileRecord> flowFileRecords, FlowFileQueue flowFileQueue) throws IOException;
 }

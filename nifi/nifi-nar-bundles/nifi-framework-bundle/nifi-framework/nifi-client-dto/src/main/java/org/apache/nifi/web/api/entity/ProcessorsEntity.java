@@ -22,9 +22,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 
 /**
- * A serialized representation of this class can be placed in the entity body of
- * a response to the API. This particular entity holds a reference to a list of
- * ProcessorDTOs.
+ * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to a list of ProcessorDTOs.
  */
 @XmlRootElement(name = "processorsEntity")
 public class ProcessorsEntity extends Entity {
@@ -32,9 +30,7 @@ public class ProcessorsEntity extends Entity {
     private Set<ProcessorDTO> processors;
 
     /**
-     * The collection of ProcessorDTOs that are being serialized.
-     *
-     * @return
+     * @return collection of ProcessorDTOs that are being serialized
      */
     public Set<ProcessorDTO> getProcessors() {
         return processors;

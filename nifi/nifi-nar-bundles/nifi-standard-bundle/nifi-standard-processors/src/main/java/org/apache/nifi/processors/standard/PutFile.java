@@ -34,6 +34,10 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
+import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
+import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -43,9 +47,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.behavior.SupportsBatching;
-import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StopWatch;
@@ -53,6 +54,7 @@ import org.apache.nifi.util.StopWatch;
 @SupportsBatching
 @Tags({"put", "local", "copy", "archive", "files", "filesystem"})
 @CapabilityDescription("Writes the contents of a FlowFile to the local file system")
+@SeeAlso(GetFile.class)
 public class PutFile extends AbstractProcessor {
 
     public static final String REPLACE_RESOLUTION = "replace";
@@ -84,28 +86,33 @@ public class PutFile extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor CHANGE_LAST_MODIFIED_TIME = new PropertyDescriptor.Builder()
             .name("Last Modified Time")
-            .description("Sets the lastModifiedTime on the output file to the value of this attribute.  Format must be yyyy-MM-dd'T'HH:mm:ssZ.  You may also use expression language such as ${file.lastModifiedTime}.")
+            .description("Sets the lastModifiedTime on the output file to the value of this attribute.  Format must be yyyy-MM-dd'T'HH:mm:ssZ.  "
+                    + "You may also use expression language such as ${file.lastModifiedTime}.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(true)
             .build();
     public static final PropertyDescriptor CHANGE_PERMISSIONS = new PropertyDescriptor.Builder()
             .name("Permissions")
-            .description("Sets the permissions on the output file to the value of this attribute.  Format must be either UNIX rwxrwxrwx with a - in place of denied permissions (e.g. rw-r--r--) or an octal number (e.g. 644).  You may also use expression language such as ${file.permissions}.")
+            .description("Sets the permissions on the output file to the value of this attribute.  Format must be either UNIX rwxrwxrwx with a - in "
+                    + "place of denied permissions (e.g. rw-r--r--) or an octal number (e.g. 644).  You may also use expression language such as "
+                    + "${file.permissions}.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(true)
             .build();
     public static final PropertyDescriptor CHANGE_OWNER = new PropertyDescriptor.Builder()
             .name("Owner")
-            .description("Sets the owner on the output file to the value of this attribute.  You may also use expression language such as ${file.owner}.")
+            .description("Sets the owner on the output file to the value of this attribute.  You may also use expression language such as "
+                    + "${file.owner}.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(true)
             .build();
     public static final PropertyDescriptor CHANGE_GROUP = new PropertyDescriptor.Builder()
             .name("Group")
-            .description("Sets the group on the output file to the value of this attribute.  You may also use expression language such as ${file.group}.")
+            .description("Sets the group on the output file to the value of this attribute.  You may also use expression language such "
+                    + "as ${file.group}.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(true)
@@ -119,8 +126,14 @@ public class PutFile extends AbstractProcessor {
             .build();
 
     public static final int MAX_FILE_LOCK_ATTEMPTS = 10;
-    public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("Files that have been successfully written to the output directory are transferred to this relationship").build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure").description("Files that could not be written to the output directory for some reason are transferred to this relationship").build();
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("Files that have been successfully written to the output directory are transferred to this relationship")
+            .build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("Files that could not be written to the output directory for some reason are transferred to this relationship")
+            .build();
 
     private List<PropertyDescriptor> properties;
     private Set<Relationship> relationships;
@@ -181,7 +194,8 @@ public class PutFile extends AbstractProcessor {
                 } else {
                     flowFile = session.penalize(flowFile);
                     session.transfer(flowFile, REL_FAILURE);
-                    logger.error("Penalizing {} and routing to 'failure' because the output directory {} does not exist and Processor is configured not to create missing directories", new Object[]{flowFile, rootDirPath});
+                    logger.error("Penalizing {} and routing to 'failure' because the output directory {} does not exist and Processor is "
+                            + "configured not to create missing directories", new Object[]{flowFile, rootDirPath});
                     return;
                 }
             }
@@ -196,7 +210,8 @@ public class PutFile extends AbstractProcessor {
 
                 if (numFiles >= maxDestinationFiles) {
                     flowFile = session.penalize(flowFile);
-                    logger.info("Penalizing {} and routing to 'failure' because the output directory {} has {} files, which exceeds the configured maximum number of files", new Object[]{flowFile, finalCopyFileDir, numFiles});
+                    logger.info("Penalizing {} and routing to 'failure' because the output directory {} has {} files, which exceeds the "
+                            + "configured maximum number of files", new Object[]{flowFile, finalCopyFileDir, numFiles});
                     session.transfer(flowFile, REL_FAILURE);
                     return;
                 }

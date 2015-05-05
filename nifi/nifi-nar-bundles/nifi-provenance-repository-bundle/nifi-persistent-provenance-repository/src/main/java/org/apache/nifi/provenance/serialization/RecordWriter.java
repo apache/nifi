@@ -21,37 +21,35 @@ import java.io.File;
 import java.io.IOException;
 
 import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.toc.TocWriter;
 
 public interface RecordWriter extends Closeable {
 
     /**
      * Writes header information to the underlying stream
      *
-     * @throws IOException
+     * @param firstEventId the ID of the first provenance event that will be written to the stream
+     * @throws IOException if unable to write header information to the underlying stream
      */
-    void writeHeader() throws IOException;
+    void writeHeader(long firstEventId) throws IOException;
 
     /**
      * Writes the given record out to the underlying stream
      *
-     * @param record
-     * @param recordIdentifier
+     * @param record the record to write
+     * @param recordIdentifier the new identifier of the record
      * @return the number of bytes written for the given records
-     * @throws IOException
+     * @throws IOException if unable to write the record to the stream
      */
     long writeRecord(ProvenanceEventRecord record, long recordIdentifier) throws IOException;
 
     /**
-     * Returns the number of Records that have been written to this RecordWriter
-     *
-     * @return
+     * @return the number of Records that have been written to this RecordWriter
      */
     int getRecordsWritten();
 
     /**
-     * Returns the file that this RecordWriter is writing to
-     *
-     * @return
+     * @return the file that this RecordWriter is writing to
      */
     File getFile();
 
@@ -72,14 +70,18 @@ public interface RecordWriter extends Closeable {
      * not immediately available, returns <code>false</code>; otherwise, obtains
      * the lock and returns <code>true</code>.
      *
-     * @return
+     * @return <code>true</code> if the lock was obtained, <code>false</code> otherwise.
      */
     boolean tryLock();
 
     /**
      * Syncs the content written to this writer to disk.
-     * @throws java.io.IOException
+     * @throws IOException if unable to sync content to disk
      */
     void sync() throws IOException;
 
+    /**
+     * @return the TOC Writer that is being used to write the Table of Contents for this journal
+     */
+    TocWriter getTocWriter();
 }
