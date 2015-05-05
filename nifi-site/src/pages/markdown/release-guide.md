@@ -50,20 +50,18 @@ There are two lists here: one of specific incubator requirements, and another of
     - Specifically look in the *-sources.zip artifact and ensure these items are present at the root of the archive.
   - Evaluate the sources and dependencies.  Does the overall LICENSE and NOTICE appear correct?  Do all licenses fit within the ASF approved licenses?
     - Here is an example path to a sources artifact:  
-      - `https://repository.apache.org/service/local/repositories/orgapachenifi-1011/content/org/apache/nifi/nifi-nar-maven-plugin/0.0.1-incubating/nifi-nar-maven-plugin-0.0.1-incubating-source-release.zip`
+      - `https://repository.apache.org/service/local/repositories/orgapachenifi-1011/content/org/apache/nifi/nifi/0.0.1-incubating/nifi-0.0.1-incubating-source-release.zip`
   - Is there a README available that explains how to build the application and to execute it?
     - Look in the *-sources.zip artifact root for the readme.
   - Are the signatures and hashes correct for the source release?
     - Validate the hashes of the sources artifact do in fact match:
-      - `https://repository.apache.org/service/local/repositories/orgapachenifi-1011/content/org/apache/nifi/nifi-nar-maven-plugin/0.0.1-incubating/nifi-nar-maven-plugin-0.0.1-incubating-source-release.zip.md5`
-      - `https://repository.apache.org/service/local/repositories/orgapachenifi-1011/content/org/apache/nifi/nifi-nar-maven-plugin/0.0.1-incubating/nifi-nar-maven-plugin-0.0.1-incubating-source-release.zip.sha1`
-    - Validate the signatures of the sources artifact and of each of the hashes.  Here are example paths:
-      - `https://repository.apache.org/service/local/repositories/orgapachenifi-1011/content/org/apache/nifi/nifi-nar-maven-plugin/0.0.1-incubating/nifi-nar-maven-plugin-0.0.1-incubating-source-release.zip.asc`
-      - `https://repository.apache.org/service/local/repositories/orgapachenifi-1011/content/org/apache/nifi/nifi-nar-maven-plugin/0.0.1-incubating/nifi-nar-maven-plugin-0.0.1-incubating-source-release.zip.asc.md5`
-      - `https://repository.apache.org/service/local/repositories/orgapachenifi-1011/content/org/apache/nifi/nifi-nar-maven-plugin/0.0.1-incubating/nifi-nar-maven-plugin-0.0.1-incubating-source-release.zip.asc.sha1`
+      - `https://repository.apache.org/service/local/repositories/orgapachenifi-1011/content/org/apache/nifi/nifi/0.0.1-incubating/nifi-0.0.1-incubating-source-release.zip.md5`
+      - `https://repository.apache.org/service/local/repositories/orgapachenifi-1011/content/org/apache/nifi/nifi/0.0.1-incubating/nifi-0.0.1-incubating-source-release.zip.sha1`
+    - Validate the signature of the source artifact.  Here is an example path:
+      - `https://repository.apache.org/service/local/repositories/orgapachenifi-1011/content/org/apache/nifi/nifi/0.0.1-incubating/nifi-0.0.1-incubating-source-release.zip.asc`
       - Need a quick reminder on how to [verify a signature](http://www.apache.org/dev/release-signing.html#verifying-signature)?
   - Do all sources have necessary headers?
-    - Unzip the sources file into a directory and execute `mvn install -Pcheck-licenses`
+    - Unzip the sources file into a directory and execute `mvn install -Pcontrib-check`
   - Are there no unexpected binary files in the release?
     - The only thing we'd expect would be potentially test resources files.
   - Does the app (if appropriate) execute and function as expected?
@@ -95,9 +93,9 @@ have in mind the release version you are planning for.  For example we'll consid
 Create the next version in JIRA if necessary so develop work can continue towards that release.
 
 Create new branch off develop named after the JIRA ticket or just use the develop branch itself.  Here we'll use a branch off of develop with
-`git checkout -b NIFI-270`
+`git checkout -b NIFI-270-RC1`
 
-Change directory into that of the project you wish to release.  For example either `cd nifi` or `cd nifi-nar-maven-plugin`
+Change directory into that of the project you wish to release.  For example `cd nifi`
 
 Verify that Maven has sufficient heap space to perform the build tasks.  Some plugins and parts of the build 
 consumes a surprisingly large amount of space.  These settings have been shown to 
@@ -128,34 +126,34 @@ Ensure your settings.xml has been updated as shown below.  There are other ways 
 
 Ensure the the full application build and tests all work by executing
 `mvn -T 2.5C clean install` for a parallel build.  Once that completes you can
-startup and test the application by `cd assembly/target` then run `bin/nifi.sh start` in the nifi build.
+startup and test the application by `cd nifi-assembly/target` then run `bin/nifi.sh start` in the nifi build.
 The application should be up and running in a few seconds at `http://localhost:8080/nifi`
 
 Evaluate and ensure the appropriate license headers are present on all source files.  Ensure LICENSE and NOTICE files are complete and accurate.  
 Developers should always be keeping these up to date as they go along adding source and modifying dependencies to keep this burden manageable.  
-This command `mvn install -Pcheck-licenses` should be run as well to help validate.  If that doesn't complete cleanly it must be addressed.
+This command `mvn install -Pcontrib-check` should be run as well to help validate.  If that doesn't complete cleanly it must be addressed.
 
-Now its time to have maven prepare the release so execute `mvn release:prepare -Psigned_release -DscmCommentPrefix="NIFI-270 " -Darguments="-DskipTests"`.
+Now its time to have maven prepare the release so execute `mvn release:prepare -Psigned_release -DscmCommentPrefix="NIFI-270-RC1 " -Darguments="-DskipTests"`.
 Maven will ask:
 
-`What is the release version for "Apache NiFi NAR Plugin"? (org.apache.nifi:nifi-nar-maven-plugin) 0.0.1-incubating: :`
+`What is the release version for "Apache NiFi"? (org.apache.nifi:nifi) 0.0.1-incubating: :`
 
 Just hit enter to accept the default.
 
 Maven will then ask:
 
-`What is SCM release tag or label for "Apache NiFi NAR Plugin"? (org.apache.nifi:nifi-nar-maven-plugin) nifi-nar-maven-plugin-0.0.1-incubating: : `
+`What is SCM release tag or label for "Apache NiFi"? (org.apache.nifi:nifi) nifi-0.0.1-incubating: : `
 
-Enter `nifi-nar-maven-plugin-0.0.1-incubating-RC1` or whatever the appropriate release candidate (RC) number is.
+Enter `nifi-0.0.1-incubating-RC1` or whatever the appropriate release candidate (RC) number is.
 Maven will then ask:
 
-`What is the new development version for "Apache NiFi NAR Plugin"? (org.apache.nifi:nifi-nifi-nar-maven-plugin) 0.0.2-incubating-SNAPSHOT: :`
+`What is the new development version for "Apache NiFi"? (org.apache.nifi:nifi) 0.0.2-incubating-SNAPSHOT: :`
 
 Just hit enter to accept the default.
 
 Now that preparation went perfectly it is time to perform the release and deploy artifacts to staging.  To do that execute
 
-`mvn release:perform -Psigned_release -DscmCommentPrefix="NIFI-270 " -Darguments="-DskipTests"`
+`mvn release:perform -Psigned_release -DscmCommentPrefix="NIFI-270-RC1 " -Darguments="-DskipTests"`
 
 That will complete successfully and this means the artifacts have been released to the Apache Nexus staging repository.  You will see something like
 
@@ -174,6 +172,11 @@ Validate that all the various aspects of the staged artifacts appear correct
   
 If all looks good then push the branch to origin `git push origin NIFI-270`
 
+If it is intended that convenience binaries will be provided for this release then the community has requested that
+a copy it be made available for reviewing of the release candidate.  The convenience binary, its hashes, and signature
+ should be placed here:
+  - https://dist.apache.org/repos/dist/dev/incubator/nifi
+
 If anything isn't correct about the staged artifacts you can drop the staged repo from repository.apache.org and delete the
 local tag in git.  If you also delete the local branch and clear your local maven repository under org/apache/nifi then it is
 as if the release never happened.  Before doing that though try to figure out what went wrong.  So as described here you see
@@ -181,21 +184,21 @@ that you can pretty easily test the release process until you get it right.  The
 commands can come in handy to help do this so you can set versions to something clearly release test related.
 
 Now it's time to initiate a vote within the PPMC.  Send the vote request to `dev@nifi.incubator.apache.org`
-with a subject of `[VOTE] Release Apache NiFi nifi-nar-maven-plugin-0.0.1-incubating`. The following template can be used:
+with a subject of `[VOTE] Release Apache NiFi 0.0.1-incubating`. The following template can be used:
  
 ```
 Hello
 I am pleased to be calling this vote for the source release of Apache NiFi
-nifi-nar-maven-plugin-0.0.1-incubating.
+nifi-0.0.1-incubating.
 
 The source zip, including signatures, digests, etc. can be found at:
 https://repository.apache.org/content/repositories/orgapachenifi-1011
 
-The Git tag is nifi-nar-maven-plugin-0.0.1-incubating-RC1
+The Git tag is nifi-0.0.1-incubating-RC1
 The Git commit ID is 72abf18c2e045e9ef404050e2bffc9cef67d2558
 https://git-wip-us.apache.org/repos/asf?p=incubator-nifi.git;a=commit;h=72abf18c2e045e9ef404050e2bffc9cef67d2558
 
-Checksums of nifi-nar-maven-plugin-0.0.1-incubating-source-release.zip:
+Checksums of nifi-0.0.1-incubating-source-release.zip:
 MD5: 5a580756a17b0573efa3070c70585698
 SHA1: a79ff8fd0d2f81523b675e4c69a7656160ff1214
 
@@ -211,19 +214,19 @@ https://issues.apache.org/jira/secure/ReleaseNote.jspa?projectId=12316020&versio
 The vote will be open for 72 hours. 
 Please download the release candidate and evaluate the necessary items including checking hashes, signatures, build from source, and test.  The please vote:
 
-[ ] +1 Release this package as nifi-nar-maven-plugin-0.0.1-incubating
+[ ] +1 Release this package as nifi-0.0.1-incubating
 [ ] +0 no opinion
 [ ] -1 Do not release this package because because...
 ```
 <br/>
-A release vote is majority rule.  So wait 72 hours and see if there are at least 3 binding +1 votes and no more negative votes than positive.
+A release vote is majority rule.  So wait 72 hours and see if there are at least 3 binding (in the PPMC sense of binding) +1 votes and no more negative votes than positive.
 If so forward the vote to the IPMC.  Send the vote request to `general@incubator.apache.org` with a subject of
-`[VOTE] Release Apache NiFi nifi-nar-maven-plugin-0.0.1-incubating`.  The following template can be used:
+`[VOTE] Release Apache NiFi 0.0.1-incubating`.  The following template can be used:
 
 ```
 Hello
 
-The Apache NiFi PPMC has voted to release Apache NiFi nar-maven-plugin-0.0.1-incubating.
+The Apache NiFi PPMC has voted to release Apache NiFi 0.0.1-incubating.
 The vote was based on the release candidate and thread described below.
 We now request the IPMC to vote on this release.
 
@@ -236,11 +239,11 @@ Here is the PPMC vote thread: [URL TO PPMC Vote Thread]
 The source zip, including signatures, digests, etc. can be found at:
 https://repository.apache.org/content/repositories/orgapachenifi-1011
 
-The Git tag is nar-maven-plugin-0.0.1-incubating-RC1
+The Git tag is nifi-0.0.1-incubating-RC1
 The Git commit ID is 72abf18c2e045e9ef404050e2bffc9cef67d2558
 https://git-wip-us.apache.org/repos/asf?p=incubator-nifi.git;a=commit;h=72abf18c2e045e9ef404050e2bffc9cef67d2558
 
-Checksums of nar-maven-plugin-0.0.1-incubating-source-release.zip:
+Checksums of nifi-0.0.1-incubating-source-release.zip:
 MD5: 5a580756a17b0573efa3070c70585698
 SHA1: a79ff8fd0d2f81523b675e4c69a7656160ff1214
 
@@ -256,13 +259,13 @@ https://issues.apache.org/jira/secure/ReleaseNote.jspa?projectId=12316020&versio
 The vote will be open for 72 hours. 
 Please download the release candidate and evaluate the necessary items including checking hashes, signatures, build from source, and test.  The please vote:
 
-[ ] +1 Release this package as nar-maven-plugin-0.0.1-incubating
+[ ] +1 Release this package as nifi-0.0.1-incubating
 [ ] +0 no opinion
 [ ] -1 Do not release this package because because...
 ```
 <br/>
 Wait 72 hours.  If the vote passes then send a vote result email.  Send the email to `general@incubator.apache.org, dev@nifi.incubator.apache.org`
-with a subject of `[RESULT][VOTE] Release Apache NiFi nar-maven-plugin-0.0.1-incubating`.  Use a template such as:
+with a subject of `[RESULT][VOTE] Release Apache NiFi 0.0.1-incubating`.  Use a template such as:
 
 ```
 Hello
@@ -277,12 +280,69 @@ Thanks to all who helped make this release possible.
 Here is the IPMC vote thread: [INSERT URL OF IPMC Vote Thread]
 ```
 <br/>
-Now all the voting is done and the release is good to go.  In repository.apache.org go to the staging repository
-and select `release`.  Then publish the source, hashes, and signatures to `https://dist.apache.org/repos/dist/release/incubator/nifi/`
-Then merge the release git tag to develop and to master.
+Now all the voting is done and the release is good to go.
+
+Here are the steps of the release once the release is approved:
+
+1. Upload source-release artifacts to dist.  If the release version is 0.0.1-incubating then upload them (zip, asc, md5, sha1) to
+`https://dist.apache.org/repos/dist/release/incubator/nifi/0.0.1-incubating`
+
+2. To produce binary convenience release build the application from the raw source in staging.  For each binary convenience artifact:  
+    - Generate ascii armored detached signature by running `gpg -a -b nifi-0.0.1-incubating-bin.tar.gz`
+    - Generate md5 hash summary by running `md5sum nifi-0.0.1-incubating-bin.tar.gz | awk '{ printf substr($0,0,32)}' >  nifi-0.0.1-incubating-bin.tar.gz.md5`
+    - Generate sha1 hash summary by running `sha1sum nifi-0.0.1-incubating-bin.tar.gz | awk '{ printf substr($0,0,40)}' >  nifi-0.0.1-incubating-bin.tar.gz.sha1`
+    - Upload the bin, asc, sha1, md5 for each binary convenience build to the same location as the source release
+
+3.  In repository.apache.org go to the staging repository and select `release` and follow instructions on the site.
+
+4.  Merge the release branch into master
+
+5.  Merge the release branch into develop
+
+6.  Update the NiFi website to point to the new download(s)
+
+7.  Update the NiFi incubator status page to indicate NEWS of the release
+
+8.  In Jira mark the release version as 'Released' and 'Archived' through 'version' management in the 'administration' console.
+
+9.  Wait 24 hours then send release announcement.
+    - See [here][release-announce] for an understanding of why you need to wait 24 hours
+    - Then create an announcement like the one shown below addressed to 'announce@apache.org, general@incubator.apache.org, dev@nifi.incubator.apache.org' with a reply-to of 'general@incubator.apache.org'.  
+    - The email has to be sent from an apache.org email address and should be by the release manager of the build.
+
+```
+SUBJECT:  [ANNOUNCE] Apache NiFi 0.0.2-incubating release
+BODY:
+Hello
+
+The Apache NiFi team would like to announce the release of Apache NiFi 0.0.2-incubating.
+
+Apache NiFi is an easy to use, powerful, and reliable system to process and distribute data.  Apache NiFi was made for dataflow.  It supports highly configurable directed graphs of data routing, transformation, and system mediation logic.
+
+More details on Apache NiFi can be found here:
+http://nifi.incubator.apache.org/
+
+The release artifacts can be downloaded from here:
+http://nifi.incubator.apache.org/downloads/
+    
+Maven artifacts have been made available here:
+https://repository.apache.org/content/repositories/releases/org/apache/nifi/
+     
+Release notes available here:
+https://issues.apache.org/jira/secure/ReleaseNote.jspa?projectId=12316020&version=12329373
+     
+Thank you
+The Apache NiFi team
+    
+----
+DISCLAIMER
+     
+Apache NiFi is an effort undergoing incubation at The Apache Software Foundation (ASF), sponsored by  Apache Incubator. Incubation is required of all newly accepted projects until a further review indicates that the infrastructure, communications, and decision making process have stabilized in a manner consistent with other successful ASF projects. While incubation status is not necessarily a reflection of the completeness or stability of the code, it does indicate that the project has yet to be fully endorsed by the ASF.
+```
 
 [quickstart-guide]: http://nifi.incubator.apache.org/development/quickstart.html
 [release-manager]: http://www.apache.org/dev/release-publishing.html#release_manager
+[release-announce]: http://www.apache.org/dev/release.html#release-announcements
 [apache-license]: http://apache.org/licenses/LICENSE-2.0
 [apache-license-apply]: http://www.apache.org/dev/apply-license.html
 [apache-legal-resolve]: http://www.apache.org/legal/resolved.html
