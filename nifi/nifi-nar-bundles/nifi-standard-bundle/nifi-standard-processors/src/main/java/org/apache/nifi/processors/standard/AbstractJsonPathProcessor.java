@@ -16,12 +16,13 @@
  */
 package org.apache.nifi.processors.standard;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
-import com.jayway.jsonpath.internal.spi.json.JsonSmartJsonProvider;
+import com.jayway.jsonpath.internal.spi.json.JacksonJsonProvider;
 import com.jayway.jsonpath.spi.json.JsonProvider;
-import net.minidev.json.parser.JSONParser;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
@@ -35,8 +36,10 @@ import org.apache.nifi.util.ObjectHolder;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Provides common functionality used for processors interacting and manipulating JSON data via JsonPath.
@@ -46,10 +49,35 @@ import java.util.Map;
  */
 public abstract class AbstractJsonPathProcessor extends AbstractProcessor {
 
-    private static final Configuration STRICT_PROVIDER_CONFIGURATION =
-            Configuration.builder().jsonProvider(new JsonSmartJsonProvider(JSONParser.MODE_RFC4627)).build();
+    // Faster XML Jackson
+    private static final ObjectMapper jsonObjectMapper = new ObjectMapper();
+    private static final Configuration STRICT_PROVIDER_CONFIGURATION = Configuration.builder().jsonProvider(new JacksonJsonProvider(jsonObjectMapper)).build();
+
+    // Faster XML Jackson with Mapping Provider
+    // private static final Configuration STRICT_PROVIDER_CONFIGURATION = Configuration.builder().jsonProvider(new JacksonJsonProvider()).mappingProvider(new JacksonMappingProvider()).build();
+
+    // GSON
+    // private static final Configuration STRICT_PROVIDER_CONFIGURATION = Configuration.builder().jsonProvider(new GsonJsonProvider()).build();
 
     private static final JsonProvider JSON_PROVIDER = STRICT_PROVIDER_CONFIGURATION.jsonProvider();
+
+    static final Map<String, String> NULL_REPRESENTATION_MAP = new HashMap<>();
+
+    static final String EMPTY_STRING_OPTION = "empty string";
+    static final String NULL_STRING_OPTION = "the string 'null'";
+
+    static {
+        NULL_REPRESENTATION_MAP.put(EMPTY_STRING_OPTION, "");
+        NULL_REPRESENTATION_MAP.put(NULL_STRING_OPTION, "null");
+    }
+
+    public static final PropertyDescriptor NULL_VALUE_DEFAULT_REPRESENTATION = new PropertyDescriptor.Builder()
+            .name("Null Value Representation")
+            .description("Indicates the desired representation of JSON Path expressions resulting in a null value.")
+            .required(true)
+            .allowableValues(NULL_REPRESENTATION_MAP.keySet())
+            .defaultValue(EMPTY_STRING_OPTION)
+            .build();
 
     static DocumentContext validateAndEstablishJsonContext(ProcessSession processSession, FlowFile flowFile) {
         // Parse the document once into an associated context to support multiple path evaluations if specified
@@ -68,8 +96,8 @@ public abstract class AbstractJsonPathProcessor extends AbstractProcessor {
     }
 
     /**
-     * Determines the context by which JsonSmartJsonProvider would treat the value.  {@link java.util.Map} and
-     * {@link java.util.List} objects can be rendered as JSON elements, everything else is treated as a scalar.
+     * Determines the context by which JsonSmartJsonProvider would treat the value. {@link java.util.Map} and {@link java.util.List} objects can be rendered as JSON elements, everything else is
+     * treated as a scalar.
      *
      * @param obj item to be inspected if it is a scalar or a JSON element
      * @return false, if the object is a supported type; true otherwise
@@ -79,9 +107,9 @@ public abstract class AbstractJsonPathProcessor extends AbstractProcessor {
         return !(obj instanceof Map || obj instanceof List);
     }
 
-    static String getResultRepresentation(Object jsonPathResult) {
+    static String getResultRepresentation(Object jsonPathResult, String defaultValue) {
         if (isJsonScalar(jsonPathResult)) {
-            return jsonPathResult.toString();
+            return Objects.toString(jsonPathResult, defaultValue);
         }
         return JSON_PROVIDER.toJson(jsonPathResult);
     }
@@ -105,12 +133,10 @@ public abstract class AbstractJsonPathProcessor extends AbstractProcessor {
         /**
          * An optional hook to act on the compute value
          */
-
         abstract void cacheComputedValue(String subject, String input, JsonPath computedJsonPath);
 
         /**
-         * A hook for implementing classes to determine if a cached value is stale for a compiled JsonPath represented
-         * by either a validation
+         * A hook for implementing classes to determine if a cached value is stale for a compiled JsonPath represented by either a validation
          */
         abstract boolean isStale(String subject, String input);
     }
