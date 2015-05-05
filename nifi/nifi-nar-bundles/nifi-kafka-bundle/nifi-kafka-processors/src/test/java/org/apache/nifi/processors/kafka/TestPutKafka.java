@@ -80,24 +80,24 @@ public class TestPutKafka {
         assertTrue(Arrays.equals("8".getBytes(StandardCharsets.UTF_8), messages.get(9)));
         assertTrue(Arrays.equals("9".getBytes(StandardCharsets.UTF_8), messages.get(10)));
     }
-    
+
     @Test
     public void testPutKafka() throws Exception {
-    	final TestableProcessor proc = new TestableProcessor();
-    	final TestRunner runner = TestRunners.newTestRunner(proc);
-    	runner.setProperty(PutKafka.SEED_BROKERS, "localhost:1234");
-    	runner.setProperty(PutKafka.TOPIC, "test.topic");
-    	runner.setProperty(PutKafka.PRODUCER_TYPE, "async");
-    	
-    	int size = 10;
-    	for(int i=0; i < size; i++) {
-    		runner.enqueue(UUID.randomUUID().toString().getBytes());
-    	}
-    	
-    	runner.run(size);
-    	
-    	runner.assertTransferCount(PutKafka.REL_SUCCESS, size);
-    	
+        final TestableProcessor proc = new TestableProcessor();
+        final TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(PutKafka.SEED_BROKERS, "localhost:1234");
+        runner.setProperty(PutKafka.TOPIC, "test.topic");
+        runner.setProperty(PutKafka.PRODUCER_TYPE, "async");
+
+        int size = 10;
+        for(int i=0; i < size; i++) {
+            runner.enqueue(UUID.randomUUID().toString().getBytes());
+        }
+
+        runner.run(size);
+
+        runner.assertTransferCount(PutKafka.REL_SUCCESS, size);
+
     }
 
     @Test
