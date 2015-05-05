@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import javax.xml.bind.annotation.XmlType;
@@ -39,6 +40,9 @@ public class FlowSnippetDTO {
     /**
      * @return connections in this flow snippet
      */
+    @ApiModelProperty(
+            value = "The connections in this flow snippet."
+    )
     public Set<ConnectionDTO> getConnections() {
         return connections;
     }
@@ -50,6 +54,9 @@ public class FlowSnippetDTO {
     /**
      * @return input ports in this flow snippet
      */
+    @ApiModelProperty(
+            value = "The input ports in this flow snippet."
+    )
     public Set<PortDTO> getInputPorts() {
         return inputPorts;
     }
@@ -61,6 +68,9 @@ public class FlowSnippetDTO {
     /**
      * @return labels in this flow snippet
      */
+    @ApiModelProperty(
+            value = "The labels in this flow snippet."
+    )
     public Set<LabelDTO> getLabels() {
         return labels;
     }
@@ -72,6 +82,9 @@ public class FlowSnippetDTO {
     /**
      * @return funnels in this flow snippet
      */
+    @ApiModelProperty(
+            value = "The funnels in this flow snippet."
+    )
     public Set<FunnelDTO> getFunnels() {
         return funnels;
     }
@@ -83,6 +96,9 @@ public class FlowSnippetDTO {
     /**
      * @return output ports in this flow snippet
      */
+    @ApiModelProperty(
+            value = "The output ports in this flow snippet."
+    )
     public Set<PortDTO> getOutputPorts() {
         return outputPorts;
     }
@@ -94,6 +110,9 @@ public class FlowSnippetDTO {
     /**
      * @return process groups in this flow snippet
      */
+    @ApiModelProperty(
+            value = "The process groups in this flow snippet."
+    )
     public Set<ProcessGroupDTO> getProcessGroups() {
         return processGroups;
     }
@@ -105,6 +124,9 @@ public class FlowSnippetDTO {
     /**
      * @return processors in this flow group
      */
+    @ApiModelProperty(
+            value = "The processors in this flow snippet."
+    )
     public Set<ProcessorDTO> getProcessors() {
         return processors;
     }
@@ -116,6 +138,9 @@ public class FlowSnippetDTO {
     /**
      * @return remote process groups in this flow snippet
      */
+    @ApiModelProperty(
+            value = "The remote process groups in this flow snippet."
+    )
     public Set<RemoteProcessGroupDTO> getRemoteProcessGroups() {
         return remoteProcessGroups;
     }
@@ -127,6 +152,9 @@ public class FlowSnippetDTO {
     /**
      * @return the Controller Services in this flow snippet
      */
+    @ApiModelProperty(
+            value = "The controller services in this flow snippet."
+    )
     public Set<ControllerServiceDTO> getControllerServices() {
         return controllerServices;
     }

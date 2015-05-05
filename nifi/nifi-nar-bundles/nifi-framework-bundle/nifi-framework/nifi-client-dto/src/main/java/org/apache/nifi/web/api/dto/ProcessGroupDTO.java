@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import javax.xml.bind.annotation.XmlType;
 
 /**
@@ -51,6 +52,9 @@ public class ProcessGroupDTO extends NiFiComponentDTO {
      *
      * @return The name of this Process Group
      */
+    @ApiModelProperty(
+            value = "The name of the process group."
+    )
     public String getName() {
         return name;
     }
@@ -64,6 +68,9 @@ public class ProcessGroupDTO extends NiFiComponentDTO {
      *
      * @return This Process Group's parent
      */
+    @ApiModelProperty(
+            value = "The part of the process group."
+    )
     public ProcessGroupDTO getParent() {
         return parent;
     }
@@ -75,6 +82,9 @@ public class ProcessGroupDTO extends NiFiComponentDTO {
     /**
      * @return comments for this process group
      */
+    @ApiModelProperty(
+            value = "The comments for the process group."
+    )
     public String getComments() {
         return comments;
     }
@@ -86,6 +96,9 @@ public class ProcessGroupDTO extends NiFiComponentDTO {
     /**
      * @return contents of this process group. This field will be populated if the request is marked verbose
      */
+    @ApiModelProperty(
+            value = "The contents of this process group. This field will be populated if the request is marked verbose."
+    )
     public FlowSnippetDTO getContents() {
         return contents;
     }
@@ -97,6 +110,9 @@ public class ProcessGroupDTO extends NiFiComponentDTO {
     /**
      * @return number of input ports contained in this process group
      */
+    @ApiModelProperty(
+            value = "The number of input ports in the process group."
+    )
     public Integer getInputPortCount() {
         return inputPortCount;
     }
@@ -108,6 +124,9 @@ public class ProcessGroupDTO extends NiFiComponentDTO {
     /**
      * @return number of invalid components in this process group
      */
+    @ApiModelProperty(
+            value = "The number of invalid components in the process group."
+    )
     public Integer getInvalidCount() {
         return invalidCount;
     }
@@ -119,6 +138,9 @@ public class ProcessGroupDTO extends NiFiComponentDTO {
     /**
      * @return number of output ports in this process group
      */
+    @ApiModelProperty(
+            value = "The number of output ports in the process group."
+    )
     public Integer getOutputPortCount() {
         return outputPortCount;
     }
@@ -130,6 +152,9 @@ public class ProcessGroupDTO extends NiFiComponentDTO {
     /**
      * @return Used in requests, indicates whether this process group should be running
      */
+    @ApiModelProperty(
+            value = "Used in requests, indicates whether the process group should be running."
+    )
     public Boolean isRunning() {
         return running;
     }
@@ -141,6 +166,9 @@ public class ProcessGroupDTO extends NiFiComponentDTO {
     /**
      * @return number of running component in this process group
      */
+    @ApiModelProperty(
+            value = "The number of running componetns in this process group."
+    )
     public Integer getRunningCount() {
         return runningCount;
     }
@@ -152,6 +180,9 @@ public class ProcessGroupDTO extends NiFiComponentDTO {
     /**
      * @return number of stopped components in this process group
      */
+    @ApiModelProperty(
+            value = "The number of stopped components in the process group."
+    )
     public Integer getStoppedCount() {
         return stoppedCount;
     }
@@ -163,6 +194,9 @@ public class ProcessGroupDTO extends NiFiComponentDTO {
     /**
      * @return number of disabled components in this process group
      */
+    @ApiModelProperty(
+            value = "The number of disabled components in the process group."
+    )
     public Integer getDisabledCount() {
         return disabledCount;
     }
@@ -174,6 +208,9 @@ public class ProcessGroupDTO extends NiFiComponentDTO {
     /**
      * @return number of active remote ports in this process group
      */
+    @ApiModelProperty(
+            value = "The number of active remote ports in the process group."
+    )
     public Integer getActiveRemotePortCount() {
         return activeRemotePortCount;
     }
@@ -185,6 +222,9 @@ public class ProcessGroupDTO extends NiFiComponentDTO {
     /**
      * @return number of inactive remote ports in this process group
      */
+    @ApiModelProperty(
+            value = "The number of inactive remote ports in the process group."
+    )
     public Integer getInactiveRemotePortCount() {
         return inactiveRemotePortCount;
     }

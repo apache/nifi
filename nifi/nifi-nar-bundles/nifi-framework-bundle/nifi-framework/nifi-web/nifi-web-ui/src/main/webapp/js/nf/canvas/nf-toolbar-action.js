@@ -27,8 +27,9 @@
  * @argument {string} hoverCls          The css class for the hover state of the element
  * @argument {string} disableCls        The css class for the disabled state of the element
  * @argument {string} title             The title (tooltip) of the element
+ * @argument {boolean} secondary        If secondary icon will be hidden as the screen gets smallers
  */
-nf.ToolbarAction = function (container, action, id, cls, hoverCls, disableCls, title) {
+nf.ToolbarAction = function (container, action, id, cls, hoverCls, disableCls, title, secondary) {
     this.container = container;
     this.action = action;
     this.id = id;
@@ -36,6 +37,7 @@ nf.ToolbarAction = function (container, action, id, cls, hoverCls, disableCls, t
     this.hoverCls = hoverCls;
     this.disableCls = disableCls;
     this.title = title;
+    this.secondary = secondary;
     this.initAction();
 };
 
@@ -46,6 +48,7 @@ nf.ToolbarAction.prototype.cls = null;
 nf.ToolbarAction.prototype.hoverCls = null;
 nf.ToolbarAction.prototype.disableCls = null;
 nf.ToolbarAction.prototype.title = null;
+nf.ToolbarAction.prototype.secondary = null;
 
 /**
  * Initializes the toolbar action by dynamically creating an element,
@@ -53,9 +56,13 @@ nf.ToolbarAction.prototype.title = null;
  */
 nf.ToolbarAction.prototype.initAction = function () {
     var self = this;
+    var cls = 'toolbar-icon';
+    if (this.secondary === true) {
+        cls += ' secondary';
+    }
 
     // create the default button
-    $('<div/>').addClass('toolbar-icon').attr('id', this.id).attr('title', this.title).mouseover(function () {
+    $('<div/>').addClass(cls).attr('id', this.id).attr('title', this.title).mouseover(function () {
         if (!$(this).hasClass(self.disableCls)) {
             $(this).removeClass(self.cls).addClass(self.hoverCls);
         }

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import javax.xml.bind.annotation.XmlType;
 
 /**
@@ -39,6 +40,9 @@ public class PositionDTO {
     /**
      * @return the x coordinate
      */
+    @ApiModelProperty(
+            value = "The x coordinate."
+    )
     public Double getX() {
         return x;
     }
@@ -50,6 +54,9 @@ public class PositionDTO {
     /**
      * @return the y coordinate
      */
+    @ApiModelProperty(
+            value = "The y coordinate."
+    )
     public Double getY() {
         return y;
     }

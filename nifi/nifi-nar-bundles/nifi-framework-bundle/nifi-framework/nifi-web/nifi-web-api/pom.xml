@@ -23,56 +23,6 @@
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-web-api</artifactId>
     <packaging>war</packaging>
-    <profiles>
-        <profile>
-            <id>docs</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <build>
-                <resources>
-                    <resource>
-                        <directory>src/main/enunciate/images</directory>
-                        <targetPath>${project.build.directory}/${project.artifactId}-${project.version}/docs/rest-api/img</targetPath>
-                    </resource>
-                </resources>
-                <plugins>
-                    <plugin>
-                        <groupId>org.codehaus.enunciate</groupId>
-                        <artifactId>maven-enunciate-plugin</artifactId>
-                        <version>1.28</version>
-                        <configuration>
-                            <configFile>src/main/enunciate/enunciate.xml</configFile>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>docs</goal>
-                                </goals>
-                                <configuration>
-                                    <docsDir>${project.build.directory}/${project.artifactId}-${project.version}/docs/rest-api</docsDir>
-                                </configuration>
-                            </execution>
-                        </executions>
-                        <!--
-                            Enunciate currently uses APT to process class annotations. APT 
-                            has been deprecated in Java 7. As a result, a direct dependency
-                            must be added to tools.jar where APT is located.
-                        -->
-                        <dependencies>
-                            <dependency>
-                                <groupId>com.sun</groupId>
-                                <artifactId>tools</artifactId>
-                                <version>1.7.0</version>
-                                <scope>system</scope>
-                                <systemPath>${java.home}/../lib/tools.jar</systemPath>
-                            </dependency>
-                        </dependencies>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
     <build>
         <resources>
             <resource>
@@ -88,6 +38,69 @@
                     <forkCount>1</forkCount>
                     <reuseForks>false</reuseForks>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>com.github.kongchen</groupId>
+                <artifactId>swagger-maven-plugin</artifactId>
+                <version>3.0-M1</version>
+                <executions>
+                    <execution>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <apiSources>
+                                <apiSource>
+                                    <locations>org.apache.nifi.web.api</locations>
+                                    <schemes>http,https</schemes>
+                                    <basePath>/nifi-api</basePath>
+                                    <info>
+                                        <title>NiFi Rest Api</title>
+                                        <version>${project.version}</version>
+                                        <description>
+                                            The Rest Api provides programmatic access to command and control a NiFi instance in real time. Start and 
+                                            stop processors, monitor queues, query provenance data, and more. Each endpoint below includes a description,
+                                            definitions of the expected input and output, potential response codes, and the authorities required
+                                            to invoke each service.
+                                        </description>
+                                        <contact>
+                                            <email>dev@nifi.incubator.apache.org</email>
+                                            <url>https://nifi.incubator.apache.org</url>
+                                        </contact>
+                                        <license>
+                                            <url>http://www.apache.org/licenses/LICENSE-2.0.html</url>
+                                            <name>Apache 2.0</name>
+                                        </license>
+                                    </info>
+                                    <templatePath>classpath:/templates/index.html.hbs</templatePath>
+                                    <outputPath>${project.build.directory}/${project.artifactId}-${project.version}/docs/rest-api/index.html</outputPath>
+                                    <swaggerDirectory>${project.build.directory}/swagger-ui</swaggerDirectory>
+                                </apiSource>
+                            </apiSources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-resources</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/${project.artifactId}-${project.version}/docs/rest-api/images</outputDirectory>
+                            <resources>          
+                                <resource>
+                                    <directory>src/main/resources/images</directory>
+                                </resource>
+                            </resources>              
+                        </configuration>            
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
@@ -113,21 +126,9 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.codehaus.enunciate</groupId>
-            <artifactId>enunciate-core-annotations</artifactId>
-            <version>1.28</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-client-dto</artifactId>
-            <classifier>sources</classifier>
-            <scope>provided</scope>
-            <optional>true</optional>
-            <version>0.1.0-incubating-SNAPSHOT</version>
-        </dependency>
-        <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-data-provenance-utils</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -198,6 +199,11 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
+            <groupId>com.wordnik</groupId>
+            <artifactId>swagger-annotations</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
             <groupId>org.quartz-scheduler</groupId>
             <artifactId>quartz</artifactId>
             <scope>provided</scope>
@@ -205,6 +211,11 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-collections4</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>

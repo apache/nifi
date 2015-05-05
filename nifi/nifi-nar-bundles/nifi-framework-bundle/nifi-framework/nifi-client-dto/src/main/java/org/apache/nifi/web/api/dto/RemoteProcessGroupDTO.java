@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Date;
 import java.util.List;
 import javax.xml.bind.annotation.XmlType;
@@ -69,6 +70,9 @@ public class RemoteProcessGroupDTO extends NiFiComponentDTO {
     /**
      * @return target uri of this remote process group
      */
+    @ApiModelProperty(
+            value = "The target URI of the remote process group."
+    )
     public String getTargetUri() {
         return this.targetUri;
     }
@@ -76,6 +80,9 @@ public class RemoteProcessGroupDTO extends NiFiComponentDTO {
     /**
      * @param name of this remote process group
      */
+    @ApiModelProperty(
+            value = "The name of the remote process group."
+    )
     public void setName(final String name) {
         this.name = name;
     }
@@ -87,6 +94,9 @@ public class RemoteProcessGroupDTO extends NiFiComponentDTO {
     /**
      * @return Comments for this remote process group
      */
+    @ApiModelProperty(
+            value = "The comments for the remote process group."
+    )
     public String getComments() {
         return comments;
     }
@@ -98,6 +108,9 @@ public class RemoteProcessGroupDTO extends NiFiComponentDTO {
     /**
      * @return any remote authorization issues for this remote process group
      */
+    @ApiModelProperty(
+            value = "Any remote authorization issues for the remote process group."
+    )
     public List<String> getAuthorizationIssues() {
         return authorizationIssues;
     }
@@ -109,6 +122,9 @@ public class RemoteProcessGroupDTO extends NiFiComponentDTO {
     /**
      * @return whether or not this remote process group is actively transmitting
      */
+    @ApiModelProperty(
+            value = "Whether the remote process group is actively transmitting."
+    )
     public Boolean isTransmitting() {
         return transmitting;
     }
@@ -120,6 +136,9 @@ public class RemoteProcessGroupDTO extends NiFiComponentDTO {
     /**
      * @return whether or not the target is running securely
      */
+    @ApiModelProperty(
+            value = "Whether the target is running securely."
+    )
     public Boolean isTargetSecure() {
         return targetSecure;
     }
@@ -131,6 +150,9 @@ public class RemoteProcessGroupDTO extends NiFiComponentDTO {
     /**
      * @return the time period used for the timeout when communicating with this RemoteProcessGroup
      */
+    @ApiModelProperty(
+            value = "The time period used for the timeout when commicating with the target."
+    )
     public String getCommunicationsTimeout() {
         return communicationsTimeout;
     }
@@ -140,8 +162,11 @@ public class RemoteProcessGroupDTO extends NiFiComponentDTO {
     }
 
     /**
-     * @return when yielding, this amount of time must elaspe before this remote process group is scheduled again
+     * @return when yielding, this amount of time must elapse before this remote process group is scheduled again
      */
+    @ApiModelProperty(
+            value = "When yielding, this amount of time must elapse before the remote process group is scheduled again."
+    )
     public String getYieldDuration() {
         return yieldDuration;
     }
@@ -153,6 +178,9 @@ public class RemoteProcessGroupDTO extends NiFiComponentDTO {
     /**
      * @return number of active remote input ports
      */
+    @ApiModelProperty(
+            value = "The number of active remote input ports."
+    )
     public Integer getActiveRemoteInputPortCount() {
         return activeRemoteInputPortCount;
     }
@@ -164,6 +192,9 @@ public class RemoteProcessGroupDTO extends NiFiComponentDTO {
     /**
      * @return number of inactive remote input ports
      */
+    @ApiModelProperty(
+            value = "The number of inactive remote input ports."
+    )
     public Integer getInactiveRemoteInputPortCount() {
         return inactiveRemoteInputPortCount;
     }
@@ -175,6 +206,9 @@ public class RemoteProcessGroupDTO extends NiFiComponentDTO {
     /**
      * @return number of active remote output ports
      */
+    @ApiModelProperty(
+            value = "The number of acitve remote output ports."
+    )
     public Integer getActiveRemoteOutputPortCount() {
         return activeRemoteOutputPortCount;
     }
@@ -186,6 +220,9 @@ public class RemoteProcessGroupDTO extends NiFiComponentDTO {
     /**
      * @return number of inactive remote output ports
      */
+    @ApiModelProperty(
+            value = "The number of inactive remote output ports."
+    )
     public Integer getInactiveRemoteOutputPortCount() {
         return inactiveRemoteOutputPortCount;
     }
@@ -197,6 +234,9 @@ public class RemoteProcessGroupDTO extends NiFiComponentDTO {
     /**
      * @return number of Remote Input Ports currently available in the remote NiFi instance
      */
+    @ApiModelProperty(
+            value = "The number of remote input ports currently available on the target."
+    )
     public Integer getInputPortCount() {
         return inputPortCount;
     }
@@ -208,6 +248,9 @@ public class RemoteProcessGroupDTO extends NiFiComponentDTO {
     /**
      * @return number of Remote Output Ports currently available in the remote NiFi instance
      */
+    @ApiModelProperty(
+            value = "The number of remote output ports currently available on the target."
+    )
     public Integer getOutputPortCount() {
         return outputPortCount;
     }
@@ -219,6 +262,9 @@ public class RemoteProcessGroupDTO extends NiFiComponentDTO {
     /**
      * @return contents of this remote process group. Will contain available input/output ports
      */
+    @ApiModelProperty(
+            value = "The contents of the remote process group. Will contain available input/output ports."
+    )
     public RemoteProcessGroupContentsDTO getContents() {
         return contents;
     }
@@ -231,6 +277,9 @@ public class RemoteProcessGroupDTO extends NiFiComponentDTO {
      * @return the flow for this remote group was last refreshed
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
+    @ApiModelProperty(
+            value = "The timestamp when this remote process group was last refreshed."
+    )
     public Date getFlowRefreshed() {
         return flowRefreshed;
     }

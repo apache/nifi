@@ -21,24 +21,10 @@
         <version>0.1.0-incubating-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-client-dto</artifactId>
-    <build>
-        <plugins>
-            <!--
-                Always attach sources so the enunciate documentation
-                is complete.
-            -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>attach-sources</id>
-                        <goals>
-                            <goal>jar-no-fork</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
+    <dependencies>
+        <dependency>
+            <groupId>com.wordnik</groupId>
+            <artifactId>swagger-annotations</artifactId>
+        </dependency>
+    </dependencies>
 </project>

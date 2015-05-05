@@ -44,7 +44,7 @@ public class ReflectionUtils {
      */
     public static void invokeMethodsWithAnnotation(
             final Class<? extends Annotation> annotation, final Object instance, final Object... args) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-        invokeMethodsWithAnnotation(annotation, null, instance, args);
+        invokeMethodsWithAnnotations(annotation, null, instance, args);
     }
 
     /**
@@ -60,7 +60,7 @@ public class ReflectionUtils {
      * @throws IllegalArgumentException ex
      * @throws IllegalAccessException ex
      */
-    public static void invokeMethodsWithAnnotation(
+    public static void invokeMethodsWithAnnotations(
             final Class<? extends Annotation> preferredAnnotation, final Class<? extends Annotation> alternateAnnotation, final Object instance, final Object... args)
             throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
         final List<Class<? extends Annotation>> annotationClasses = new ArrayList<>(alternateAnnotation == null ? 1 : 2);
@@ -137,7 +137,7 @@ public class ReflectionUtils {
      * invoked; if <code>false</code> is returned, an error will have been logged.
      */
     public static boolean quietlyInvokeMethodsWithAnnotation(final Class<? extends Annotation> annotation, final Object instance, final Object... args) {
-        return quietlyInvokeMethodsWithAnnotation(annotation, null, instance, null, args);
+        return quietlyInvokeMethodsWithAnnotations(annotation, null, instance, null, args);
     }
 
     /**
@@ -153,7 +153,24 @@ public class ReflectionUtils {
      * invoked; if <code>false</code> is returned, an error will have been logged.
      */
     public static boolean quietlyInvokeMethodsWithAnnotation(final Class<? extends Annotation> annotation, final Object instance, final ProcessorLog logger, final Object... args) {
-        return quietlyInvokeMethodsWithAnnotation(annotation, null, instance, logger, args);
+        return quietlyInvokeMethodsWithAnnotations(annotation, null, instance, logger, args);
+    }
+
+    /**
+     * Invokes all methods on the given instance that have been annotated with the given preferredAnnotation and if no such method exists will invoke all methods on the given instance that have been
+     * annotated with the given alternateAnnotation, if any exists. If the signature of the method that is defined in <code>instance</code> uses 1 or more parameters, those parameters must be
+     * specified by the <code>args</code> parameter. However, if more arguments are supplied by the <code>args</code> parameter than needed, the extra arguments will be ignored.
+     *
+     * @param preferredAnnotation preferred
+     * @param alternateAnnotation alternate
+     * @param instance instance
+     * @param args args
+     * @return <code>true</code> if all appropriate methods were invoked and returned without throwing an Exception, <code>false</code> if one of the methods threw an Exception or could not be
+     * invoked; if <code>false</code> is returned, an error will have been logged.
+     */
+    public static boolean quietlyInvokeMethodsWithAnnotations(
+            final Class<? extends Annotation> preferredAnnotation, final Class<? extends Annotation> alternateAnnotation, final Object instance, final Object... args) {
+        return quietlyInvokeMethodsWithAnnotations(preferredAnnotation, alternateAnnotation, instance, null, args);
     }
 
     /**
@@ -169,7 +186,7 @@ public class ReflectionUtils {
      * @return <code>true</code> if all appropriate methods were invoked and returned without throwing an Exception, <code>false</code> if one of the methods threw an Exception or could not be
      * invoked; if <code>false</code> is returned, an error will have been logged.
      */
-    public static boolean quietlyInvokeMethodsWithAnnotation(
+    public static boolean quietlyInvokeMethodsWithAnnotations(
             final Class<? extends Annotation> preferredAnnotation, final Class<? extends Annotation> alternateAnnotation, final Object instance, final ProcessorLog logger, final Object... args) {
         final List<Class<? extends Annotation>> annotationClasses = new ArrayList<>(alternateAnnotation == null ? 1 : 2);
         annotationClasses.add(preferredAnnotation);

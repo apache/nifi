@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.provenance.lineage;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Date;
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
@@ -36,6 +37,9 @@ public class ProvenanceLinkDTO {
     /**
      * @return source node id
      */
+    @ApiModelProperty(
+            value = "The source node id of the link."
+    )
     public String getSourceId() {
         return sourceId;
     }
@@ -47,6 +51,9 @@ public class ProvenanceLinkDTO {
     /**
      * @return target node id
      */
+    @ApiModelProperty(
+            value = "The target node id of the link."
+    )
     public String getTargetId() {
         return targetId;
     }
@@ -58,6 +65,9 @@ public class ProvenanceLinkDTO {
     /**
      * @return flowfile uuid that traversed this link
      */
+    @ApiModelProperty(
+            value = "The flowfile uuid that traversed the link."
+    )
     public String getFlowFileUuid() {
         return flowFileUuid;
     }
@@ -70,6 +80,9 @@ public class ProvenanceLinkDTO {
      * @return timestamp of this link (based on the destination)
      */
     @XmlJavaTypeAdapter(TimestampAdapter.class)
+    @ApiModelProperty(
+            value = "The timestamp of the link (based on the destination)."
+    )
     public Date getTimestamp() {
         return timestamp;
     }
@@ -81,6 +94,9 @@ public class ProvenanceLinkDTO {
     /**
      * @return number of millis since epoch
      */
+    @ApiModelProperty(
+            value = "The timestamp of this link in milliseconds."
+    )
     public Long getMillis() {
         return millis;
     }

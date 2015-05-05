@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Date;
 import java.util.List;
 import javax.xml.bind.annotation.XmlType;
@@ -44,6 +45,9 @@ public class NodeDTO {
      * @return node's last heartbeat timestamp
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
+    @ApiModelProperty(
+            value = "the time of the nodes's last heartbeat."
+    )
     public Date getHeartbeat() {
         return heartbeat;
     }
@@ -56,6 +60,9 @@ public class NodeDTO {
      * @return time of the node's last connection request
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
+    @ApiModelProperty(
+            value = "The time of the node's last connection request."
+    )
     public Date getConnectionRequested() {
         return connectionRequested;
     }
@@ -69,6 +76,9 @@ public class NodeDTO {
      *
      * @return The active thread count
      */
+    @ApiModelProperty(
+            value = "The active threads for the NiFi on the node."
+    )
     public Integer getActiveThreadCount() {
         return activeThreadCount;
     }
@@ -80,6 +90,9 @@ public class NodeDTO {
     /**
      * @return queue for the controller
      */
+    @ApiModelProperty(
+            value = "The queue the NiFi on the node."
+    )
     public String getQueued() {
         return queued;
     }
@@ -91,6 +104,9 @@ public class NodeDTO {
     /**
      * @return node's host/IP address
      */
+    @ApiModelProperty(
+            value = "The node's host/ip address."
+    )
     public String getAddress() {
         return address;
     }
@@ -102,6 +118,9 @@ public class NodeDTO {
     /**
      * @return node ID
      */
+    @ApiModelProperty(
+            value = "The id of the node."
+    )
     public String getNodeId() {
         return nodeId;
     }
@@ -113,6 +132,9 @@ public class NodeDTO {
     /**
      * @return port the node is listening for API requests
      */
+    @ApiModelProperty(
+            value = "The port the node is listening for API requests."
+    )
     public Integer getApiPort() {
         return apiPort;
     }
@@ -124,6 +146,9 @@ public class NodeDTO {
     /**
      * @return node's status
      */
+    @ApiModelProperty(
+            value = "The node's status."
+    )
     public String getStatus() {
         return status;
     }
@@ -135,6 +160,9 @@ public class NodeDTO {
     /**
      * @return node's events
      */
+    @ApiModelProperty(
+            value = "The node's events."
+    )
     public List<NodeEventDTO> getEvents() {
         return events;
     }
@@ -146,6 +174,9 @@ public class NodeDTO {
     /**
      * @return whether this node is the primary node within the cluster
      */
+    @ApiModelProperty(
+            value = "Whether the node is the primary node within the cluster."
+    )
     public Boolean isPrimary() {
         return primary;
     }
@@ -158,6 +189,9 @@ public class NodeDTO {
      * @return time at which this Node was last restarted
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
+    @ApiModelProperty(
+            value = "The time at which this Node was last refreshed."
+    )
     public Date getNodeStartTime() {
         return nodeStartTime;
     }

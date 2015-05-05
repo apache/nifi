@@ -180,7 +180,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
                     try {
                         try (final NarCloseable x = NarCloseable.withNarLoader()) {
-                            ReflectionUtils.invokeMethodsWithAnnotation(OnConfigured.class, OnScheduled.class, reportingTask, taskNode.getConfigurationContext());
+                            ReflectionUtils.invokeMethodsWithAnnotations(OnScheduled.class, OnConfigured.class, reportingTask, taskNode.getConfigurationContext());
                         }
 
                         break;
@@ -227,7 +227,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
                 try {
                     try (final NarCloseable x = NarCloseable.withNarLoader()) {
-                        ReflectionUtils.invokeMethodsWithAnnotation(OnUnscheduled.class, org.apache.nifi.processor.annotation.OnUnscheduled.class, reportingTask, configurationContext);
+                        ReflectionUtils.invokeMethodsWithAnnotations(OnUnscheduled.class, org.apache.nifi.processor.annotation.OnUnscheduled.class, reportingTask, configurationContext);
                     }
                 } catch (final Exception e) {
                     final Throwable cause = (e instanceof InvocationTargetException) ? e.getCause() : e;
@@ -247,7 +247,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                 agent.unschedule(taskNode, scheduleState);
 
                 if (scheduleState.getActiveThreadCount() == 0 && scheduleState.mustCallOnStoppedMethods()) {
-                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, org.apache.nifi.processor.annotation.OnStopped.class, reportingTask, configurationContext);
+                    ReflectionUtils.quietlyInvokeMethodsWithAnnotations(OnStopped.class, org.apache.nifi.processor.annotation.OnStopped.class, reportingTask, configurationContext);
                 }
             }
         };
@@ -322,7 +322,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                                 }
 
                                 final SchedulingContext schedulingContext = new StandardSchedulingContext(processContext, controllerServiceProvider, procNode);
-                                ReflectionUtils.invokeMethodsWithAnnotation(OnScheduled.class, org.apache.nifi.processor.annotation.OnScheduled.class, procNode.getProcessor(), schedulingContext);
+                                ReflectionUtils.invokeMethodsWithAnnotations(OnScheduled.class, org.apache.nifi.processor.annotation.OnScheduled.class, procNode.getProcessor(), schedulingContext);
 
                                 getSchedulingAgent(procNode).schedule(procNode, scheduleState);
 

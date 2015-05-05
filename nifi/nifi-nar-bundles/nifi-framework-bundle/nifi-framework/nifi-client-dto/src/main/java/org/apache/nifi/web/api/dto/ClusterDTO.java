@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Collection;
 import java.util.Date;
 
@@ -35,6 +36,9 @@ public class ClusterDTO {
     /**
      * @return collection of the node DTOs
      */
+    @ApiModelProperty(
+            value = "The collection of nodes that are part of the cluster."
+    )
     public Collection<NodeDTO> getNodes() {
         return nodes;
     }
@@ -47,6 +51,9 @@ public class ClusterDTO {
      * @return the date/time that this report was generated
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
+    @ApiModelProperty(
+            value = "The timestamp the report was generated."
+    )
     public Date getGenerated() {
         return generated;
     }

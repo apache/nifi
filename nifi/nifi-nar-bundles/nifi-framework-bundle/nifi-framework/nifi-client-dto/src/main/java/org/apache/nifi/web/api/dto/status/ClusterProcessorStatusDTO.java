@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Collection;
 import java.util.Date;
 import javax.xml.bind.annotation.XmlType;
@@ -39,6 +40,9 @@ public class ClusterProcessorStatusDTO {
      * @return time the status were last refreshed
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
+    @ApiModelProperty(
+            value = "The time when the status was last refreshed."
+    )
     public Date getStatsLastRefreshed() {
         return statsLastRefreshed;
     }
@@ -50,6 +54,9 @@ public class ClusterProcessorStatusDTO {
     /**
      * @return processor id
      */
+    @ApiModelProperty(
+            value = "The processor id."
+    )
     public String getProcessorId() {
         return processorId;
     }
@@ -61,6 +68,9 @@ public class ClusterProcessorStatusDTO {
     /**
      * @return processor name
      */
+    @ApiModelProperty(
+            value = "The processor name."
+    )
     public String getProcessorName() {
         return processorName;
     }
@@ -72,6 +82,9 @@ public class ClusterProcessorStatusDTO {
     /**
      * @return processor type
      */
+    @ApiModelProperty(
+            value = "The processor type."
+    )
     public String getProcessorType() {
         return processorType;
     }
@@ -83,6 +96,10 @@ public class ClusterProcessorStatusDTO {
     /**
      * @return processor run status
      */
+    @ApiModelProperty(
+            value = "The processor state.",
+            allowableValues = "RUNNING, STOPPED, DISABLED, INVALID"
+    )
     public String getProcessorRunStatus() {
         return processorRunStatus;
     }
@@ -96,6 +113,9 @@ public class ClusterProcessorStatusDTO {
      *
      * @return The collection of node processor status DTO
      */
+    @ApiModelProperty(
+            value = "The processor status for each node."
+    )
     public Collection<NodeProcessorStatusDTO> getNodeProcessorStatus() {
         return nodeProcessorStatus;
     }

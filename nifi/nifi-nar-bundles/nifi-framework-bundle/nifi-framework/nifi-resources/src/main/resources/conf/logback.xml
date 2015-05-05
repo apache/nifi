@@ -76,6 +76,9 @@
     <logger name="com.sun.jersey.spi.container.servlet.WebComponent" level="ERROR"/>
     <logger name="com.sun.jersey.spi.spring" level="ERROR"/>
     <logger name="org.springframework" level="ERROR"/>
+    
+    <!-- Suppress non-error messages due to known warning about redundant path annotation (NIFI-574) -->
+    <logger name="com.sun.jersey.spi.inject.Errors" level="ERROR"/>
 
     <!--
         Logger for capturing user events. We do not want to propagate these

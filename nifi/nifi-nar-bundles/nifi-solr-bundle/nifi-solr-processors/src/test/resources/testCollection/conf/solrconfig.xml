@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<config>
+    <luceneMatchVersion>5.0.0</luceneMatchVersion>
+
+    <dataDir>${solr.data.dir:}</dataDir>
+
+    <directoryFactory name="DirectoryFactory"
+                      class="${solr.directoryFactory:solr.RAMDirectoryFactory}"/>
+    <indexConfig>
+        <lockType>single</lockType>
+    </indexConfig>
+
+    <requestDispatcher handleSelect="false">
+        <httpCaching never304="true" />
+    </requestDispatcher>
+
+    <requestHandler name="/select" class="solr.SearchHandler" />
+    <requestHandler name="/update" class="solr.UpdateRequestHandler" />
+
+</config>

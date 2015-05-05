@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.entity;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 
@@ -30,6 +31,9 @@ public class Entity {
     /**
      * @return revision for this request/response
      */
+    @ApiModelProperty(
+            value = "The revision for this request/response. The revision is required for any mutable flow requests and is included in all responses."
+    )
     public RevisionDTO getRevision() {
         return revision;
     }

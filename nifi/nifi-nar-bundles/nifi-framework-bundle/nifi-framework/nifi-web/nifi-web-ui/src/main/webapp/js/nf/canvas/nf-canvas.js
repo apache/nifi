@@ -1090,9 +1090,9 @@ nf.Canvas = (function () {
                         initCanvas();
                         nf.Canvas.View.init();
                         nf.ContextMenu.init();
-                        nf.CanvasHeader.init();
-                        nf.CanvasToolbox.init();
                         nf.CanvasToolbar.init();
+                        nf.CanvasToolbox.init();
+                        nf.CanvasHeader.init();
                         nf.GraphControl.init();
                         nf.Search.init();
                         nf.Settings.init();

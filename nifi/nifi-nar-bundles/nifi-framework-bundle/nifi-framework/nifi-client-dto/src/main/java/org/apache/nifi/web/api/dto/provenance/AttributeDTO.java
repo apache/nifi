@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.provenance;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import javax.xml.bind.annotation.XmlType;
 
 /**
@@ -31,6 +32,9 @@ public class AttributeDTO {
     /**
      * @return attribute name
      */
+    @ApiModelProperty(
+            value = "The attribute name."
+    )
     public String getName() {
         return name;
     }
@@ -42,6 +46,9 @@ public class AttributeDTO {
     /**
      * @return attribute value
      */
+    @ApiModelProperty(
+            value = "The attribute value."
+    )
     public String getValue() {
         return value;
     }
@@ -53,6 +60,9 @@ public class AttributeDTO {
     /**
      * @return value of this attribute before the event took place
      */
+    @ApiModelProperty(
+            value = "The value of the attribute before the event took place."
+    )
     public String getPreviousValue() {
         return previousValue;
     }
