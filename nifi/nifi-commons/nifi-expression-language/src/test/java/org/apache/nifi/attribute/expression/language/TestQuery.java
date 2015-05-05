@@ -497,20 +497,6 @@ public class TestQuery {
     }
 
     @Test
-    public void testHtmlEncode() {
-        final Map<String, String> attributes = new HashMap<>();
-        attributes.put("attr", "here is a & <div></div>");
-        verifyEquals("${attr:htmlEncode()}", attributes, "here is a &amp; &lt;div&gt;&lt;/div&gt;");
-    }
-
-    @Test
-    public void testHtmlDecode() {
-        final Map<String, String> attributes = new HashMap<>();
-        attributes.put("attr", "here is a &amp; &lt;div&gt;&lt;/div&gt;");
-        verifyEquals("${attr:htmlDecode()}", attributes, "here is a & <div></div>");
-    }
-
-    @Test
     public void testEscapeQuotes() {
         final long timestamp = 1403620278642L;
         final Map<String, String> attributes = new HashMap<>();
