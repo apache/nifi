@@ -145,6 +145,22 @@ module.exports = function (grunt) {
                                 "</script>\n" +
                             "</head>"
                     }]
+            },
+            moveTearDrop: {
+                src: ['dist/docs/rest-api/index.html'],
+                overwrite: true,
+                replacements: [{
+                        from: /<img class="logo" src="images\/bgNifiLogo.png" alt="NiFi Logo"\/>/g,
+                        to: '<img class="logo" src="images/bgNifiLogo.png" alt="NiFi Logo" style="float: right;"/>'
+                }]
+            },
+            removeVersion: {
+                src: ['dist/docs/rest-api/index.html'],
+                overwrite: true,
+                replacements: [{
+                        from: /<div class="sub-title">.*<\/div>/g,
+                        to: '<div class="sub-title">NiFi Rest Api</div>'
+                }]
             }
         },
         watch: {
@@ -184,7 +200,7 @@ module.exports = function (grunt) {
     grunt.registerTask('img', ['newer:copy']);
     grunt.registerTask('css', ['clean:css', 'compass']);
     grunt.registerTask('js', ['clean:js', 'concat']);
-    grunt.registerTask('generate-docs', ['clean:generated', 'exec:generateDocs', 'exec:generateRestApiDocs', 'copy:generated', 'replace:addGoogleAnalytics']);
+    grunt.registerTask('generate-docs', ['clean:generated', 'exec:generateDocs', 'exec:generateRestApiDocs', 'copy:generated', 'replace:addGoogleAnalytics', 'replace:moveTearDrop', 'replace:removeVersion']);
     grunt.registerTask('default', ['clean', 'assemble', 'css', 'js', 'img', 'generate-docs', 'copy:dist']);
     grunt.registerTask('dev', ['default', 'watch']);
 };
