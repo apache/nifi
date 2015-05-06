@@ -259,14 +259,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>check-style</id>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>                
                 <configuration>
                     <checkstyleRules>
                         <module name="Checker">
@@ -377,9 +369,15 @@
     </build>
     <profiles>
         <profile>
-            <!-- Automatically check for licenses.  Too slow to always run.
-            Activate with -P check-licenses -->
-            <id>check-licenses</id>
+            <!-- 
+                Checks style and licensing requirements.  This is a good idea to 
+                run for contributions and for the release process.  While it 
+                would be nice to run always these plugins can considerably slow
+                the build and have proven to create unstable builds in our
+                multi-module project and when building using multiple threads.
+                The stability issues seen with Checkstyle in multi-module builds
+                include false-positives and false negatives.-->
+            <id>contrib-check</id>
             <build>
                 <plugins>
                     <plugin>
@@ -393,6 +391,18 @@
                                 <phase>verify</phase>
                             </execution>
                         </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-checkstyle-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>check-style</id>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                            </execution>
+                        </executions>                
                     </plugin>
                 </plugins>
             </build>
