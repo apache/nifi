@@ -20,7 +20,7 @@ import java.io.File;
 import java.io.IOException;
 
 import org.apache.nifi.provenance.lucene.DeleteIndexAction;
-
+import org.apache.nifi.provenance.toc.TocUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,16 +30,32 @@ public class FileRemovalAction implements ExpirationAction {
 
     @Override
     public File execute(final File expiredFile) throws IOException {
+        final boolean removed = remove(expiredFile);
+        if (removed) {
+            logger.info("Removed expired Provenance Event file {}", expiredFile);
+        } else {
+            logger.warn("Failed to remove old Provenance Event file {}; this file should be cleaned up manually", expiredFile);
+        }
+
+        final File tocFile = TocUtil.getTocFile(expiredFile);
+        if (remove(tocFile)) {
+            logger.info("Removed expired Provenance Table-of-Contents file {}", tocFile);
+        } else {
+            logger.warn("Failed to remove old Provenance Table-of-Contents file {}; this file should be cleaned up manually", expiredFile);
+        }
+
+        return removed ? null : expiredFile;
+    }
+
+    private boolean remove(final File file) {
         boolean removed = false;
         for (int i = 0; i < 10 && !removed; i++) {
-            if ((removed = expiredFile.delete())) {
-                logger.info("Removed expired Provenance Event file {}", expiredFile);
-                return null;
+            if (removed = file.delete()) {
+                return true;
             }
         }
 
-        logger.warn("Failed to remove old Provenance Event file {}", expiredFile);
-        return expiredFile;
+        return false;
     }
 
     @Override
