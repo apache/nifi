@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.nar;
 
-import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import org.apache.nifi.util.NiFiProperties;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -32,10 +32,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.HashSet;
+import java.util.Set;
 
-import org.apache.nifi.util.NiFiProperties;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class NarUnpackerTest {
 
@@ -92,13 +95,17 @@ public class NarUnpackerTest {
                 "org.apache.nifi.processors.dummy.one"));
         assertTrue(extensionMapping.getAllExtensionNames().contains(
                 "org.apache.nifi.processors.dummy.two"));
-
         final File extensionsWorkingDir = properties.getExtensionsWorkingDirectory();
         File[] extensionFiles = extensionsWorkingDir.listFiles();
 
-        assertEquals(2, extensionFiles.length);
-        assertEquals("dummy-one.nar-unpacked", extensionFiles[0].getName());
-        assertEquals("dummy-two.nar-unpacked", extensionFiles[1].getName());
+        Set<String> expectedNars = new HashSet<>();
+        expectedNars.add("dummy-one.nar-unpacked");
+        expectedNars.add("dummy-two.nar-unpacked");
+        assertEquals(expectedNars.size(), extensionFiles.length);
+
+        for (File extensionFile : extensionFiles) {
+            Assert.assertTrue(expectedNars.contains(extensionFile.getName()));
+        }
     }
 
     @Test
