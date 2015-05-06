@@ -20,7 +20,6 @@ import javax.xml.bind.annotation.adapters.XmlAdapter;
 import org.apache.nifi.cluster.protocol.ConnectionRequest;
 
 /**
- * @author unattributed
  */
 public class ConnectionRequestAdapter extends XmlAdapter<AdaptedConnectionRequest, ConnectionRequest> {
 

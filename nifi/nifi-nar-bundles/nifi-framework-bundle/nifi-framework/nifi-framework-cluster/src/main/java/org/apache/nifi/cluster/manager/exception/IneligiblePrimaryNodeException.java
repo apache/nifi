@@ -19,7 +19,6 @@ package org.apache.nifi.cluster.manager.exception;
 /**
  * Represents the exceptional case when the primary role cannot be assigned to a node because the node is ineligible for the role.
  *
- * @author unattributed
  */
 public class IneligiblePrimaryNodeException extends IllegalClusterStateException {
 

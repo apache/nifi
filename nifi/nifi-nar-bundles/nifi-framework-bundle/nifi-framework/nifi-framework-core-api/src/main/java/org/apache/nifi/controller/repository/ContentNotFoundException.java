@@ -20,7 +20,6 @@ import org.apache.nifi.controller.repository.claim.ContentClaim;
 
 /**
  *
- * @author none
  */
 public class ContentNotFoundException extends RuntimeException {
 

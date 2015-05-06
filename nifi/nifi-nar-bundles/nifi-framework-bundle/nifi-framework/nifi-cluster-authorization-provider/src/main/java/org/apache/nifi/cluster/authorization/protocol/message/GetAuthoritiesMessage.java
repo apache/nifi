@@ -22,7 +22,6 @@ import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.authorization.Authority;
 
 /**
- * @author unattributed
  */
 @XmlRootElement(name = "getAuthoritiesMessage")
 public class GetAuthoritiesMessage extends ProtocolMessage {

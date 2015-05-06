@@ -19,7 +19,6 @@ package org.apache.nifi.cluster.manager.exception;
 /**
  * The base exception class for cluster related exceptions.
  *
- * @author unattributed
  */
 public class ClusterException extends RuntimeException {
 

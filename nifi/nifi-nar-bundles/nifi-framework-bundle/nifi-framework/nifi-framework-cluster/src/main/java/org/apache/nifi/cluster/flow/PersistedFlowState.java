@@ -27,7 +27,6 @@ package org.apache.nifi.cluster.flow;
  * </li>
  * </ul>
  *
- * @author unattributed
  */
 public enum PersistedFlowState {
 

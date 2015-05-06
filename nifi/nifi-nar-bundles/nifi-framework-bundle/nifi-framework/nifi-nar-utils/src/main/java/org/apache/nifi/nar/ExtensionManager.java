@@ -42,7 +42,6 @@ import org.slf4j.LoggerFactory;
  * FlowFileComparators, and ReportingTasks using the service provider API and
  * running through all classloaders (root, NARs).
  *
- * @author none
  * @ThreadSafe - is immutable
  */
 @SuppressWarnings("rawtypes")

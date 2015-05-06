@@ -22,7 +22,6 @@ import java.util.Set;
  * Defines the interface for broadcasting a collection of services for client
  * discovery.
  *
- * @author unattributed
  */
 public interface ServicesBroadcaster {
 

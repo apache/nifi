@@ -19,7 +19,6 @@ package org.apache.nifi.cluster.manager.exception;
 /**
  * Represents the exceptional case when the cluster is unable to update the primary role of a node.
  *
- * @author unattributed
  */
 public class PrimaryRoleAssignmentException extends IllegalClusterStateException {
 

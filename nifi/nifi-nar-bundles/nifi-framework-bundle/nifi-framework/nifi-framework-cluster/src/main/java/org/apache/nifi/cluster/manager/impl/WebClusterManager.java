@@ -241,7 +241,6 @@ import org.apache.nifi.web.api.entity.ReportingTasksEntity;
  *
  * The start() and stop() methods must be called to initialize and stop the instance.
  *
- * @author unattributed
  */
 public class WebClusterManager implements HttpClusterManager, ProtocolHandler, ControllerServiceProvider, ReportingTaskProvider {
 

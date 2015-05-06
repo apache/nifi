@@ -17,7 +17,6 @@
 package org.apache.nifi.diagnostics;
 
 /**
- * @author unattributed
  */
 public final class DiagnosticUtils {
 

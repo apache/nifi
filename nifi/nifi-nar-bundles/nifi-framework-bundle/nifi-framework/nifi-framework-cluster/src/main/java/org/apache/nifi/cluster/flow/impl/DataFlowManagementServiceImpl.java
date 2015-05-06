@@ -53,7 +53,6 @@ import org.slf4j.LoggerFactory;
  * By default, the service will try to update the flow as quickly as possible. Configuring a delay enables a less aggressive retrieval strategy. Specifically, the eligible retrieval time is reset
  * every time the flow state is set to STALE. If the state is set to UNKNOWN or CURRENT, then the flow will not be retrieved.
  *
- * @author unattributed
  */
 public class DataFlowManagementServiceImpl implements DataFlowManagementService {
 

@@ -28,7 +28,6 @@ import org.slf4j.Logger;
  * A utility class containing a few useful static methods to do typical IO
  * operations.
  *
- * @author unattributed
  */
 public class FileUtils {
 

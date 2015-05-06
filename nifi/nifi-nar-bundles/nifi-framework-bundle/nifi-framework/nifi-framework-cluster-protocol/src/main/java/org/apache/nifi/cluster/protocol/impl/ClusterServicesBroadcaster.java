@@ -50,7 +50,6 @@ import org.slf4j.LoggerFactory;
  * The instance must be stopped before termination of the JVM to ensure proper
  * resource clean-up.
  *
- * @author unattributed
  */
 public class ClusterServicesBroadcaster implements MulticastServicesBroadcaster {
 

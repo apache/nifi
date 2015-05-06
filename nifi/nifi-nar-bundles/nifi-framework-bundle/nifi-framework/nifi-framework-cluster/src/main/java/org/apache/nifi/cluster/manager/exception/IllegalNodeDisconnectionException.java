@@ -19,7 +19,6 @@ package org.apache.nifi.cluster.manager.exception;
 /**
  * Represents the exceptional case when a disconnection request is issued to a node that cannot be disconnected (e.g., last node in cluster, node is primary node).
  *
- * @author unattributed
  */
 public class IllegalNodeDisconnectionException extends IllegalClusterStateException {
 

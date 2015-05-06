@@ -19,7 +19,6 @@ package org.apache.nifi.cluster.manager.exception;
 /**
  * Represents the exceptional case when a request is made for a node that does not exist.
  *
- * @author unattributed
  */
 public class UnknownNodeException extends ClusterException {
 

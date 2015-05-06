@@ -22,7 +22,6 @@ import java.util.List;
  * Manages an ordered list of events. The event history size dictates the total number of events to manage for a given source at a given time. When the size is exceeded, the oldest event for that
  * source is evicted.
  *
- * @author unattributed
  */
 public interface EventManager {
 

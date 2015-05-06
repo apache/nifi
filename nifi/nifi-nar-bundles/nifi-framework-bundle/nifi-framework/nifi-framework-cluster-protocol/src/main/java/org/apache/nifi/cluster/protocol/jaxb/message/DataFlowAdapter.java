@@ -21,7 +21,6 @@ import javax.xml.bind.annotation.adapters.XmlAdapter;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
 
 /**
- * @author unattributed
  */
 public class DataFlowAdapter extends XmlAdapter<AdaptedDataFlow, StandardDataFlow> {
 

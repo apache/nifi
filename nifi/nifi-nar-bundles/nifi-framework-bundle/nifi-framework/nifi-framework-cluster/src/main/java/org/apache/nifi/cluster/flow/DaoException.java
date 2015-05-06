@@ -19,7 +19,6 @@ package org.apache.nifi.cluster.flow;
 /**
  * A base exception for data access exceptions.
  *
- * @author unattributed
  */
 public class DaoException extends RuntimeException {
 

@@ -34,7 +34,6 @@ import org.apache.nifi.util.Connectables;
 
 /**
  *
- * @author none
  */
 public class ProcessContext {
 

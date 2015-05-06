@@ -24,7 +24,6 @@ import java.io.OutputStream;
  *
  * @param <T> The type of protocol message.
  *
- * @author unattributed
  */
 public interface ProtocolMessageMarshaller<T> {
 

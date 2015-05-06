@@ -56,7 +56,6 @@ import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
 
 /**
- * @author unattributed
  */
 public class DataFlowManagementServiceImplTest {
 

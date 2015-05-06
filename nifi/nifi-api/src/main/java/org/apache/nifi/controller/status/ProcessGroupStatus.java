@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * @author unattributed
  */
 public class ProcessGroupStatus implements Cloneable {
 

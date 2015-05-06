@@ -22,7 +22,6 @@ package org.apache.nifi.processor.exception;
  * session. In any event this exception indicates a logic or programming error
  * within the processor interacting with the offending session.
  *
- * @author none
  */
 public class FlowFileHandlingException extends ProcessException {
 

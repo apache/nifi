@@ -108,7 +108,6 @@ import org.apache.nifi.stream.io.StreamUtils;
  * </ul>
  * <p>
  *
- * @author unattributed
  */
 @EventDriven
 @SupportsBatching

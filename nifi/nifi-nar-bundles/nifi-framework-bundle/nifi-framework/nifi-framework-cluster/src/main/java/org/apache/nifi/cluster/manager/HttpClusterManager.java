@@ -33,7 +33,6 @@ import java.util.Set;
  * Extends the ClusterManager interface to define how requests issued to the cluster manager are federated to the nodes. Specifically, the HTTP protocol is used for communicating requests to the
  * cluster manager and to the nodes.
  *
- * @author unattributed
  */
 public interface HttpClusterManager extends ClusterManager {
 

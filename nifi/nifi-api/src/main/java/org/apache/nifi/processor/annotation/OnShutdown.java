@@ -28,7 +28,6 @@ import java.lang.annotation.Target;
  * should be called whenever the flow is being shutdown. This will be called at
  * most once for each processor instance in a process lifetime.
  *
- * @author none
  * @deprecated This Annotation has been replaced by the
  * {@link org.apache.nifi.annotation.lifecycle.OnShutdown} annotation.
  */

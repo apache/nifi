@@ -43,7 +43,6 @@ import java.lang.annotation.Target;
  * component will not be added to the flow.
  * </p>
  *
- * @author none
  */
 @Documented
 @Target({ElementType.METHOD})

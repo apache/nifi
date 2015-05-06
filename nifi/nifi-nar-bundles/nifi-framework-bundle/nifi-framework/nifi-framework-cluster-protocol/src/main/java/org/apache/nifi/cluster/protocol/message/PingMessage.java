@@ -20,7 +20,6 @@ import java.util.Date;
 import javax.xml.bind.annotation.XmlRootElement;
 
 /**
- * @author unattributed
  */
 @XmlRootElement(name = "pingMessage")
 public class PingMessage extends ProtocolMessage {

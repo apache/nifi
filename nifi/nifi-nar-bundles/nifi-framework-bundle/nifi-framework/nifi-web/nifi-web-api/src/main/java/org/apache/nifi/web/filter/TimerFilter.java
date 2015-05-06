@@ -36,7 +36,6 @@ import org.slf4j.LoggerFactory;
 /**
  * A filter to time requests.
  *
- * @author unattributed
  */
 public class TimerFilter implements Filter {
 

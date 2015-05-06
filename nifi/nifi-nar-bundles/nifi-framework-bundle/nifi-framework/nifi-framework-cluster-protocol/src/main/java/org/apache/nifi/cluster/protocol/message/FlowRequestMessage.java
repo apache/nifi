@@ -22,7 +22,6 @@ import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.cluster.protocol.jaxb.message.NodeIdentifierAdapter;
 
 /**
- * @author unattributed
  */
 @XmlRootElement(name = "flowRequestMessage")
 public class FlowRequestMessage extends ProtocolMessage {

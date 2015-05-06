@@ -18,7 +18,6 @@ package org.apache.nifi.io.nio.consumer;
 
 /**
  *
- * @author none
  */
 public interface StreamConsumerFactory {
 

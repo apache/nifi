@@ -21,7 +21,6 @@ package org.apache.nifi.cluster.manager.testutils;
  *
  * This class is good for simulating network latency.
  *
- * @author unattributed
  */
 public class HttpResponseAction {
 

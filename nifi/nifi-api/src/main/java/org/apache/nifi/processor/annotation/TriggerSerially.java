@@ -29,7 +29,6 @@ import java.lang.annotation.Target;
  * method. By default processors are assumed to be thread safe for concurrent
  * execution.
  *
- * @author none
  * @deprecated This Annotation has been replaced by the
  * {@link org.apache.nifi.annotation.behavior.TriggerSerially} annotation.
  */

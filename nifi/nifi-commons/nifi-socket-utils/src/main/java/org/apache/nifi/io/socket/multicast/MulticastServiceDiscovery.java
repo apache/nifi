@@ -22,7 +22,6 @@ import java.net.InetSocketAddress;
  * Defines the interface for discovering services based on name. Services are
  * expected to be exposed via socket address and port.
  *
- * @author unattributed
  */
 public interface MulticastServiceDiscovery extends ServiceDiscovery {
 

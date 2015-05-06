@@ -23,7 +23,6 @@ import java.net.InetSocketAddress;
  * unique case-sensitive service name and a socket address where it is
  * available.
  *
- * @author unattributed
  */
 public interface DiscoverableService {
 

@@ -29,7 +29,6 @@ import java.lang.annotation.Target;
  * concurrent execution of its onTrigger() method. By default, Processors are
  * assumed to be safe for concurrent execution.
  *
- * @author none
  */
 @Documented
 @Target({ElementType.TYPE})

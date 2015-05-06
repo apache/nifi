@@ -26,7 +26,6 @@ import java.lang.annotation.Target;
 /**
  *
  *
- * @author none
  */
 @Documented
 @Target({ElementType.FIELD, ElementType.METHOD})

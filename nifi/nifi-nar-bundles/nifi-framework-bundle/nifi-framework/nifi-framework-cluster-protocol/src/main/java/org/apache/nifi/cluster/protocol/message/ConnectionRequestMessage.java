@@ -21,7 +21,6 @@ import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.cluster.protocol.ConnectionRequest;
 
 /**
- * @author unattributed
  */
 @XmlRootElement(name = "connectionRequestMessage")
 public class ConnectionRequestMessage extends ProtocolMessage {

@@ -41,7 +41,6 @@ import java.lang.annotation.Target;
  * ProcessSession.commit() to ensure data is persisted before deleting the data
  * from a remote source.
  *
- * @author none
  */
 @Documented
 @Target({ElementType.TYPE})

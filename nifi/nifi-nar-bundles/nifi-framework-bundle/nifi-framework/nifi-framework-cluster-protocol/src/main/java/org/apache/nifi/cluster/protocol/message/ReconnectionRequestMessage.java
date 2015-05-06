@@ -24,7 +24,6 @@ import org.apache.nifi.cluster.protocol.StandardDataFlow;
 import org.apache.nifi.cluster.protocol.jaxb.message.NodeIdentifierAdapter;
 
 /**
- * @author unattributed
  */
 @XmlRootElement(name = "reconnectionRequestMessage")
 public class ReconnectionRequestMessage extends ProtocolMessage {

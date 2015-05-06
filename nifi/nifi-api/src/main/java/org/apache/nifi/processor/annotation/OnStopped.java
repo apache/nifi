@@ -45,7 +45,6 @@ import java.lang.annotation.Target;
  * longer scheduled to run, see the {@link OnUnscheduled} annotation.
  * </p>
  *
- * @author none
  * @deprecated This Annotation has been replaced by the
  * {@link org.apache.nifi.annotation.lifecycle.OnStopped} annotation.
  */

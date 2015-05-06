@@ -24,7 +24,6 @@ import java.util.Comparator;
  * so if features of that content are necessary for prioritization it should be
  * extracted to be used as an attribute of the flow file.
  *
- * @author none
  */
 public interface FlowFilePrioritizer extends Comparator<FlowFile> {
 }

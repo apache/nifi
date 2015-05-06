@@ -19,7 +19,6 @@ package org.apache.nifi.cluster.flow;
 /**
  * A data access object for loading and saving the flow managed by the cluster.
  *
- * @author unattributed
  */
 public interface DataFlowDao {
 

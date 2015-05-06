@@ -22,7 +22,6 @@ import java.util.Map;
 /**
  * Diagnostics for the JVM.
  *
- * @author unattributed
  */
 public class SystemDiagnostics implements Cloneable {
 

@@ -25,7 +25,6 @@ package org.apache.nifi.controller.repository.claim;
  * <p>
  * Must be thread safe</p>
  *
- * @author none
  */
 public interface ContentClaim extends Comparable<ContentClaim> {
 

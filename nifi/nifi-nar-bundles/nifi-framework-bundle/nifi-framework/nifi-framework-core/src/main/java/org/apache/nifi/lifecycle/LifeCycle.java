@@ -19,7 +19,6 @@ package org.apache.nifi.lifecycle;
 /**
  * Represents a start/stop lifecyle for a component.  <code>start</code> should only be called once per lifecyle unless otherwise documented by implementing classes.
  *
- * @author unattributed
  */
 public interface LifeCycle {
 

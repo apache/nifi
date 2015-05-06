@@ -24,7 +24,6 @@ import org.apache.nifi.cluster.protocol.jaxb.message.HeartbeatAdapter;
 /**
  * A heartbeat for indicating the status of a node to the cluster.
  *
- * @author unattributed
  */
 @XmlJavaTypeAdapter(HeartbeatAdapter.class)
 public class Heartbeat {

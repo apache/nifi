@@ -85,7 +85,6 @@ import org.slf4j.LoggerFactory;
  * <p>
  * NOT THREAD SAFE</p>
  * <p/>
- * @author none
  */
 public final class StandardProcessSession implements ProcessSession, ProvenanceEventEnricher {
 

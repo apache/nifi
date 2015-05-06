@@ -41,7 +41,6 @@ import org.apache.commons.lang3.builder.ToStringStyle;
  *
  * <b>Immutable - Thread Safe</b>
  *
- * @author none
  */
 public final class StandardFlowFileRecord implements FlowFile, FlowFileRecord {
 

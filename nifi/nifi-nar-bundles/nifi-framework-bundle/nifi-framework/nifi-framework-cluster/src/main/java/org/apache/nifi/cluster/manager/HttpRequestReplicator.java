@@ -28,7 +28,6 @@ import org.apache.nifi.cluster.protocol.NodeIdentifier;
  *
  * Clients must call start() and stop() to initialize and shutdown the instance. The instance must be started before issuing any replication requests.
  *
- * @author unattributed
  */
 public interface HttpRequestReplicator {
 

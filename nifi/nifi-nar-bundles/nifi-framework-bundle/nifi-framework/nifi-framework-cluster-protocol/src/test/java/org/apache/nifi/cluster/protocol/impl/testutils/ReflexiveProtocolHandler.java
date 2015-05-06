@@ -23,7 +23,6 @@ import org.apache.nifi.cluster.protocol.ProtocolHandler;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
 
 /**
- * @author unattributed
  */
 public class ReflexiveProtocolHandler implements ProtocolHandler {
 

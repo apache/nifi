@@ -32,7 +32,6 @@ import org.apache.nifi.processor.Relationship;
 /**
  * Holder for provenance relevant information
  * <p/>
- * @author none
  */
 public final class StandardProvenanceEventRecord implements ProvenanceEventRecord {
 

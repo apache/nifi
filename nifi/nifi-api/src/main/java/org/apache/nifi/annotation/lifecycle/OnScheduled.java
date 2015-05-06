@@ -58,7 +58,6 @@ import java.lang.annotation.Target;
  * will continue until the method succeeds, and the component will then be
  * scheduled to run after this method return successfully.
  *
- * @author none
  */
 @Documented
 @Target({ElementType.METHOD})

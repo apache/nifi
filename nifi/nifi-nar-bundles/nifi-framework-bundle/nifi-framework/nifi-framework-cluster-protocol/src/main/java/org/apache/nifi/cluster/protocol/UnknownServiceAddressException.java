@@ -19,7 +19,6 @@ package org.apache.nifi.cluster.protocol;
 /**
  * Represents the exceptional case when a service's address is not known.
  *
- * @author unattributed
  */
 public class UnknownServiceAddressException extends RuntimeException {
 
