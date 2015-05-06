@@ -16,16 +16,19 @@
  */
 package org.apache.nifi.util;
 
-import static org.junit.Assert.assertEquals;
+import org.junit.Assert;
+import org.junit.Test;
 
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 public class NiFiPropertiesTest {
 
@@ -36,13 +39,19 @@ public class NiFiPropertiesTest {
 
         assertEquals("UI Banner Text", properties.getBannerText());
 
-        List<Path> directories = properties.getNarLibraryDirectories();
+        Set<File> expectedDirectories = new HashSet<>();
+        expectedDirectories.add(new File("./target/resources/NiFiProperties/lib/"));
+        expectedDirectories.add(new File("./target/resources/NiFiProperties/lib2/"));
 
-        assertEquals(new File("./target/resources/NiFiProperties/lib/").getPath(),
-                directories.get(0).toString());
-        assertEquals(new File("./target/resources/NiFiProperties/lib2/").getPath(), directories
-                .get(1).toString());
+        Set<String> directories = new HashSet<>();
+        for (Path narLibDir : properties.getNarLibraryDirectories()) {
+            directories.add(narLibDir.toString());
+        }
 
+        Assert.assertEquals("Did not have the anticipated number of directories", expectedDirectories.size(), directories.size());
+        for (File expectedDirectory : expectedDirectories) {
+            Assert.assertTrue("Listed directories did not contain expected directory", directories.contains(expectedDirectory.getPath()));
+        }
     }
 
     @Test
