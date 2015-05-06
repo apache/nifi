@@ -20,7 +20,6 @@ import javax.xml.bind.annotation.adapters.XmlAdapter;
 import org.apache.nifi.cluster.protocol.ConnectionResponse;
 
 /**
- * @author unattributed
  */
 public class ConnectionResponseAdapter extends XmlAdapter<AdaptedConnectionResponse, ConnectionResponse> {
 

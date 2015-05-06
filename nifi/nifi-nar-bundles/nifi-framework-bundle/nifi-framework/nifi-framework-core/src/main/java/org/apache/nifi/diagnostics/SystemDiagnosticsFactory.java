@@ -38,7 +38,6 @@ import org.slf4j.LoggerFactory;
 /**
  * A factory for creating system diagnostics.
  *
- * @author unattributed
  */
 public class SystemDiagnosticsFactory {
 

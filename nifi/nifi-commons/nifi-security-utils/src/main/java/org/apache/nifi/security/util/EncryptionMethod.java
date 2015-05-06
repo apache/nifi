@@ -23,7 +23,6 @@ import org.apache.commons.lang3.builder.ToStringStyle;
  * Enumeration capturing essential information about the various encryption
  * methods that might be supported.
  *
- * @author none
  */
 public enum EncryptionMethod {
 

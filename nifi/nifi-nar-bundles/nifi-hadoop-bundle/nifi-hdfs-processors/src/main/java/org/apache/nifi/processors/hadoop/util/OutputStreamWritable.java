@@ -30,7 +30,6 @@ import org.apache.hadoop.io.Writable;
 /**
  * This class will write to an output stream, rather than an in-memory buffer, the fields being read.
  *
- * @author unattributed
  *
  */
 public class OutputStreamWritable implements Writable {

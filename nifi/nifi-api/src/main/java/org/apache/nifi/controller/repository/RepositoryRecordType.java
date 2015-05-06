@@ -18,7 +18,6 @@ package org.apache.nifi.controller.repository;
 
 /**
  *
- * @author none
  */
 public enum RepositoryRecordType {
 

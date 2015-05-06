@@ -21,7 +21,6 @@ package org.apache.nifi.web;
  * of a client ID and a version number. Two revisions are considered equal if
  * either their version numbers match or their client IDs match.
  *
- * @author unattributed
  */
 public interface OptimisticLockingManager {
 

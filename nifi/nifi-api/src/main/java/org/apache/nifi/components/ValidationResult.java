@@ -22,7 +22,6 @@ import java.util.Objects;
  *
  * Immutable - thread safe
  *
- * @author unattributed
  */
 public class ValidationResult {
 

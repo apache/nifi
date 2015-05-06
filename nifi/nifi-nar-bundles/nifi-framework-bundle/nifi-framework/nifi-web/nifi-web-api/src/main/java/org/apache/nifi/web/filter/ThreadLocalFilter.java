@@ -28,7 +28,6 @@ import org.apache.nifi.cluster.context.ClusterContextThreadLocal;
 /**
  * A filter to remove the threadlocal configuration.
  *
- * @author unattributed
  */
 public class ThreadLocalFilter implements Filter {
 

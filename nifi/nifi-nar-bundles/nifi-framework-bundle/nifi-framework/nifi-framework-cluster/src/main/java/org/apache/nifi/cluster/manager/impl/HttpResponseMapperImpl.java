@@ -37,7 +37,6 @@ import org.slf4j.LoggerFactory;
  *
  * If no 2XX responses were received, then the node's flow has not changed. Instead of disconnecting everything, we only disconnect the nodes with internal errors, i.e., 5XX responses.
  *
- * @author unattributed
  */
 public class HttpResponseMapperImpl implements HttpResponseMapper {
 

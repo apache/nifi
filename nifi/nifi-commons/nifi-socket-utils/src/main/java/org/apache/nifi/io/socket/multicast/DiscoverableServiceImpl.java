@@ -23,7 +23,6 @@ import org.apache.commons.lang3.StringUtils;
  * A basic implementation of the DiscoverableService interface. To services are
  * considered equal if they have the same case-sensitive service name.
  *
- * @author unattributed
  */
 public class DiscoverableServiceImpl implements DiscoverableService {
 

@@ -23,7 +23,6 @@ import org.apache.nifi.cluster.protocol.jaxb.message.ConnectionRequestAdapter;
  * A node's request to connect to the cluster. The request contains a proposed
  * identifier.
  *
- * @author unattributed
  */
 @XmlJavaTypeAdapter(ConnectionRequestAdapter.class)
 public class ConnectionRequest {

@@ -24,7 +24,6 @@ package org.apache.nifi.processor.exception;
  * framework and it is not something any processor or the framework can recover
  * so it must discard the object.
  *
- * @author none
  */
 public class MissingFlowFileException extends RuntimeException {
 

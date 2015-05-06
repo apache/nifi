@@ -20,7 +20,6 @@ import org.apache.nifi.cluster.protocol.NodeBulletins;
 import javax.xml.bind.annotation.XmlRootElement;
 
 /**
- * @author unattributed
  */
 @XmlRootElement(name = "nodeBulletinsMessage")
 public class NodeBulletinsMessage extends ProtocolMessage {

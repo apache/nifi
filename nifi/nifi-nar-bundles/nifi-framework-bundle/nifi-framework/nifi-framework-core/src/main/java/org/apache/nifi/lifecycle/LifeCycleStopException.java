@@ -19,7 +19,6 @@ package org.apache.nifi.lifecycle;
 /**
  * Represents the exceptional case when a problem is encountered during the shutdown of a class implementing the <code>LifeCycle</code> interface.
  *
- * @author unattributed
  */
 public class LifeCycleStopException extends LifeCycleException {
 

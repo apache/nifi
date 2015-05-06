@@ -19,7 +19,6 @@ package org.apache.nifi.authorization.exception;
 /**
  * Represents the exceptional case when an AuthorityProvider fails destruction.
  *
- * @author unattributed
  */
 public class ProviderDestructionException extends RuntimeException {
 

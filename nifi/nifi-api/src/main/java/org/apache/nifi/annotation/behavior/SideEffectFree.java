@@ -36,7 +36,6 @@ import java.lang.annotation.Target;
  * effects on external services which could not be rolled back and thus all the
  * processes could be safely repeated (implied idempotent behavior).
  *
- * @author none
  */
 @Documented
 @Target({ElementType.TYPE})

@@ -31,7 +31,6 @@ import java.lang.annotation.Target;
  * If any method annotated with this annotation throws, the processor will not
  * be added to the graph.
  *
- * @author none
  * @deprecated This Annotation has been replaced by the
  * {@link org.apache.nifi.annotation.lifecycle.OnAdded} annotation.
  */

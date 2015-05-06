@@ -57,7 +57,6 @@ import org.apache.nifi.processor.ProcessContext;
  * component is a Processor.
  * </p>
  *
- * @author none
  */
 @Documented
 @Target({ElementType.METHOD})

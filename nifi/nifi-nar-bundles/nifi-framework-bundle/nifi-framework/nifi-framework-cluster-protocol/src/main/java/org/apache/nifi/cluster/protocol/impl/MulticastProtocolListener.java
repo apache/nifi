@@ -55,7 +55,6 @@ import org.slf4j.LoggerFactory;
  * instance must be stopped before termination of the JVM to ensure proper
  * resource clean-up.
  *
- * @author unattributed
  */
 public class MulticastProtocolListener extends MulticastListener implements ProtocolListener {
 

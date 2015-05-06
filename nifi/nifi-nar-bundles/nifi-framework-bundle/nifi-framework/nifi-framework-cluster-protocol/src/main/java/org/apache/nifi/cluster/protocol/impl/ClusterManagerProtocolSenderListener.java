@@ -35,7 +35,6 @@ import org.apache.nifi.reporting.BulletinRepository;
  * A wrapper class for consolidating a protocol sender and listener for the
  * cluster manager.
  *
- * @author unattributed
  */
 public class ClusterManagerProtocolSenderListener implements ClusterManagerProtocolSender, ProtocolListener {
 

@@ -21,7 +21,6 @@ import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
 
 /**
- * @author unattributed
  */
 @XmlRootElement(name = "flowResponseMessage")
 public class FlowResponseMessage extends ProtocolMessage {

@@ -27,7 +27,6 @@ import org.slf4j.LoggerFactory;
 /**
  * Implements the OptimisticLockingManager interface.
  *
- * @author unattributed
  */
 public class StandardOptimisticLockingManager implements OptimisticLockingManager {
 

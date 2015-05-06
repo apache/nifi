@@ -29,7 +29,6 @@ import org.apache.commons.lang3.StringUtils;
  * This class overrides hashCode and equals and considers two instances to be
  * equal if they have the equal IDs.
  *
- * @author unattributed
  * @Immutable
  * @Threadsafe
  */

@@ -46,7 +46,6 @@ import org.apache.nifi.processor.exception.ProcessException;
  * default no-args constructor to facilitate the java service loader
  * mechanism.</p>
  *
- * @author none
  */
 public interface Processor extends ConfigurableComponent {
 

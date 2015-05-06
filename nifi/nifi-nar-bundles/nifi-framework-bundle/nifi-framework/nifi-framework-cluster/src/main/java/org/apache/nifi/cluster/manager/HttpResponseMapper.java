@@ -24,7 +24,6 @@ import org.apache.nifi.cluster.node.Node.Status;
 /**
  * Maps a HTTP response to a node status.
  *
- * @author unattributed
  */
 public interface HttpResponseMapper {
 

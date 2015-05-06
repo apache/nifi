@@ -54,7 +54,6 @@ import org.apache.nifi.processor.util.StandardValidators;
  * each corresponding relationship. If none of the supplied expressions matches for a given FlowFile, that FlowFile will be routed to the 'unmatched' relationship.
  * </p>
  *
- * @author unattributed
  */
 @EventDriven
 @SideEffectFree

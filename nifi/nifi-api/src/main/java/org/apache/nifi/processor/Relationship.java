@@ -19,7 +19,6 @@ package org.apache.nifi.processor;
 /**
  * An immutable object for holding information about a type of relationship.
  *
- * @author unattributed
  */
 public final class Relationship implements Comparable<Relationship> {
 

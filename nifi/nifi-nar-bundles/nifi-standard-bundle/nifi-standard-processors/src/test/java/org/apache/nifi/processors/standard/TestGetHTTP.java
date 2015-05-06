@@ -42,7 +42,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
- * @author unattributed
  *
  */
 public class TestGetHTTP {

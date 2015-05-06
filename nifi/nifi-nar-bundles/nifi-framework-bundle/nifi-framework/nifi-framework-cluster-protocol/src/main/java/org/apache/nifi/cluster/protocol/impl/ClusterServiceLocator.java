@@ -40,7 +40,6 @@ import org.slf4j.LoggerFactory;
  * which case, no service discovery occurs and the caller will always receive
  * the configured service.
  *
- * @author unattributed
  */
 public class ClusterServiceLocator implements ServiceDiscovery {
 

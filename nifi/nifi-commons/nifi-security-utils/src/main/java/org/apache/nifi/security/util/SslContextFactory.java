@@ -37,7 +37,6 @@ import javax.net.ssl.TrustManagerFactory;
  * A factory for creating SSL contexts using the application's security
  * properties.
  *
- * @author unattributed
  */
 public final class SslContextFactory {
 

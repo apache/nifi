@@ -23,7 +23,6 @@ import javax.xml.bind.annotation.XmlRootElement;
  * multicast. The identifier is necessary for the sender to identify a message
  * sent by it.
  *
- * @author unattributed
  */
 @XmlRootElement(name = "multicastMessage")
 public class MulticastProtocolMessage extends ProtocolMessage {

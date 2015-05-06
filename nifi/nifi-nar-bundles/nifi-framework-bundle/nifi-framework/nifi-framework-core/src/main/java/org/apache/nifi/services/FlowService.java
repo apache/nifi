@@ -31,7 +31,6 @@ import org.apache.nifi.lifecycle.LifeCycle;
 /**
  * Defines the API level services available for carrying out file-based dataflow operations.
  *
- * @author unattributed
  */
 public interface FlowService extends LifeCycle {
 

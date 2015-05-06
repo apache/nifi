@@ -36,7 +36,6 @@ import org.slf4j.LoggerFactory;
 /**
  * A filter to log requests.
  *
- * @author unattributed
  */
 public class RequestLogger implements Filter {
 

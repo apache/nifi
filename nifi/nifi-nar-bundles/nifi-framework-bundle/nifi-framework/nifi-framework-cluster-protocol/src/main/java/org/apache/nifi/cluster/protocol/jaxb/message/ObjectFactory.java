@@ -35,7 +35,6 @@ import org.apache.nifi.cluster.protocol.message.ReconnectionResponseMessage;
 import org.apache.nifi.cluster.protocol.message.ServiceBroadcastMessage;
 
 /**
- * @author unattributed
  */
 @XmlRegistry
 public class ObjectFactory {

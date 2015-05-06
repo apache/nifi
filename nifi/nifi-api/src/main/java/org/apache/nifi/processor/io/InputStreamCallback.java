@@ -21,7 +21,6 @@ import java.io.InputStream;
 
 /**
  *
- * @author unattributed
  */
 public interface InputStreamCallback {
 

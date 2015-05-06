@@ -20,7 +20,6 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 
 /**
- * @author unattributed
  */
 public final class JaxbProtocolUtils {
 

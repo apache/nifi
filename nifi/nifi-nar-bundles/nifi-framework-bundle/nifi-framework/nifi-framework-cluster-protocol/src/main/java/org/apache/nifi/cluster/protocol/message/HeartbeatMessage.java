@@ -20,7 +20,6 @@ import org.apache.nifi.cluster.protocol.Heartbeat;
 import javax.xml.bind.annotation.XmlRootElement;
 
 /**
- * @author unattributed
  */
 @XmlRootElement(name = "heartbeatMessage")
 public class HeartbeatMessage extends ProtocolMessage {

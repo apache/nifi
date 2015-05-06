@@ -30,7 +30,6 @@ import java.lang.annotation.Target;
  * description to be provided. This description can be provided to a user in
  * logs, UI, etc.
  *
- * @author none
  */
 @Documented
 @Target({ElementType.TYPE})

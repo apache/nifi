@@ -17,7 +17,6 @@
 package org.apache.nifi.jaxb;
 
 /**
- * @author unattributed
  */
 public class AdaptedCounter {
 

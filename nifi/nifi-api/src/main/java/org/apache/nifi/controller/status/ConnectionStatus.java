@@ -17,7 +17,6 @@
 package org.apache.nifi.controller.status;
 
 /**
- * @author unattributed
  */
 public class ConnectionStatus implements Cloneable {
 

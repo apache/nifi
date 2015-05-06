@@ -84,7 +84,6 @@ import org.w3c.dom.Element;
  * When the flow state file is saved, it is always saved first to the restore directory followed by a save to the primary directory. When the flow state file is loaded, a check is made to verify that
  * the primary and restore flow state files are both current. If either is not current, then an exception is thrown. The primary flow state file is always read when the load method is called.
  *
- * @author unattributed
  */
 public class DataFlowDaoImpl implements DataFlowDao {
 

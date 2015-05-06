@@ -20,7 +20,6 @@ import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 
 /**
- * @author unattributed
  */
 public class AdaptedNodeBulletins {
 

@@ -70,7 +70,6 @@ import org.slf4j.LoggerFactory;
  * ProcessorNode provides thread-safe access to a FlowFileProcessor as it exists within a controlled flow. This node keeps track of the processor, its scheduling information and its relationships to
  * other processors and whatever scheduled futures exist for it. Must be thread safe.
  *
- * @author none
  */
 public class StandardProcessorNode extends ProcessorNode implements Connectable {
 

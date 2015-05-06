@@ -46,7 +46,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 /**
- * @author unattributed
  */
 @Ignore
 public class StandardFlowServiceTest {

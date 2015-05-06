@@ -34,7 +34,6 @@ import org.apache.nifi.reporting.Bulletin;
 /**
  * The payload of the bulletins.
  *
- * @author unattributed
  */
 @XmlRootElement
 public class BulletinsPayload {

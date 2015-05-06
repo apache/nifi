@@ -19,7 +19,6 @@ package org.apache.nifi.framework.security.util;
 /**
  * Represents the exceptional case when a SslSocketFactory failed creation.
  *
- * @author unattributed
  */
 public class SslSocketFactoryCreationException extends SslException {
 

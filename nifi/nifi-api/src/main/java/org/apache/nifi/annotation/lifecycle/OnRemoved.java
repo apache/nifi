@@ -46,7 +46,6 @@ import org.apache.nifi.processor.ProcessContext;
  * of type {@link ProcessContext}.
  * </p>
  *
- * @author none
  */
 @Documented
 @Target({ElementType.METHOD})

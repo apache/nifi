@@ -48,7 +48,6 @@ import org.springframework.web.context.support.WebApplicationContextUtils;
  *
  * Since this header may be faked, we only make decisions about the header if the application instance is a node and connected to the cluster.
  *
- * @author unattributed
  */
 public class NodeRequestFilter implements Filter {
 

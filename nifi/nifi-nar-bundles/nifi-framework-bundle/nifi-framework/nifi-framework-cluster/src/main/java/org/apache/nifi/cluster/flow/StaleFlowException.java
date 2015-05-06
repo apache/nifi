@@ -19,7 +19,6 @@ package org.apache.nifi.cluster.flow;
 /**
  * Represents the exceptional case when a caller is requesting the current flow, but a current flow is not available.
  *
- * @author unattributed
  */
 public class StaleFlowException extends RuntimeException {
 

@@ -21,7 +21,6 @@ package org.apache.nifi.cluster.protocol;
  *
  * @param <T> The type of protocol message.
  *
- * @author unattributed
  */
 public interface ProtocolContext<T> {
 

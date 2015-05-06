@@ -17,7 +17,6 @@
 package org.apache.nifi.io.socket.multicast;
 
 /**
- * @author unattributed
  */
 public enum MulticastTimeToLive {
 

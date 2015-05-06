@@ -19,7 +19,6 @@ package org.apache.nifi.encrypt;
 /**
  * Represents the exceptional case when an encrypt or decrypt fails.
  *
- * @author unattributed
  */
 public class EncryptionException extends RuntimeException {
 

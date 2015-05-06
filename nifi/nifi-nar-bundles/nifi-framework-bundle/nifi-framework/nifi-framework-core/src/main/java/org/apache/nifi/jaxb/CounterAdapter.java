@@ -21,7 +21,6 @@ import org.apache.nifi.controller.Counter;
 import org.apache.nifi.controller.StandardCounter;
 
 /**
- * @author unattributed
  */
 public class CounterAdapter extends XmlAdapter<AdaptedCounter, Counter> {
 
