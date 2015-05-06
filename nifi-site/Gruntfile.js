@@ -77,7 +77,7 @@ module.exports = function (grunt) {
                         dest: 'dist/docs/',
                         rename: function (dest, src) {
                             var path = require('path');
-                            
+
                             if (src.indexOf('images') > 0) {
                                 return path.join(dest, 'rest-api/images', path.basename(src));
                             } else {
@@ -129,6 +129,24 @@ module.exports = function (grunt) {
                 stderr: true
             }
         },
+        replace: {
+            addGoogleAnalytics: {
+                src: ['dist/docs/*.html', 'dist/docs/rest-api/index.html'],
+                overwrite: true,
+                replacements: [{
+                        from: /<\/head>/g,
+                        to: "<script>\n" +
+                                    "(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){\n" +
+                                    "(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),\n" +
+                                    "m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)\n" +
+                                    "})(window,document,'script','//www.google-analytics.com/analytics.js','ga');\n" +
+                                    "ga('create', 'UA-57264262-1', 'auto');\n" +
+                                    "ga('send', 'pageview');\n" +
+                                "</script>\n" +
+                            "</head>"
+                    }]
+            }
+        },
         watch: {
             grunt: {
                 files: ['Gruntfile.js'],
@@ -161,11 +179,12 @@ module.exports = function (grunt) {
     grunt.loadNpmTasks('grunt-contrib-compass');
     grunt.loadNpmTasks('grunt-contrib-watch');
     grunt.loadNpmTasks('grunt-exec');
+    grunt.loadNpmTasks('grunt-text-replace');
 
     grunt.registerTask('img', ['newer:copy']);
     grunt.registerTask('css', ['clean:css', 'compass']);
     grunt.registerTask('js', ['clean:js', 'concat']);
-    grunt.registerTask('generate-docs', ['clean:generated', 'exec:generateDocs', 'exec:generateRestApiDocs', 'copy:generated']);
+    grunt.registerTask('generate-docs', ['clean:generated', 'exec:generateDocs', 'exec:generateRestApiDocs', 'copy:generated', 'replace:addGoogleAnalytics']);
     grunt.registerTask('default', ['clean', 'assemble', 'css', 'js', 'img', 'generate-docs', 'copy:dist']);
     grunt.registerTask('dev', ['default', 'watch']);
 };
