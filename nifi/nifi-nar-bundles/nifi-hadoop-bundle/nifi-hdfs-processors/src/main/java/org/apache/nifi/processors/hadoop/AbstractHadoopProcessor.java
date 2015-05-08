@@ -42,6 +42,13 @@ import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.compress.BZip2Codec;
+import org.apache.hadoop.io.compress.CompressionCodec;
+import org.apache.hadoop.io.compress.CompressionCodecFactory;
+import org.apache.hadoop.io.compress.DefaultCodec;
+import org.apache.hadoop.io.compress.GzipCodec;
+import org.apache.hadoop.io.compress.Lz4Codec;
+import org.apache.hadoop.io.compress.SnappyCodec;
 import org.apache.hadoop.net.NetUtils;
 
 /**
@@ -59,6 +66,13 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             .build();
 
     public static final String DIRECTORY_PROP_NAME = "Directory";
+
+    public static final PropertyDescriptor COMPRESSION_CODEC = new PropertyDescriptor.Builder()
+        .name("Compression codec")
+        .required(false)
+        .allowableValues(BZip2Codec.class.getName(), DefaultCodec.class.getName(),
+            GzipCodec.class.getName(), Lz4Codec.class.getName(), SnappyCodec.class.getName())
+        .build();
 
     protected static final List<PropertyDescriptor> properties;
 
@@ -228,6 +242,23 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         };
     }
 
+    /**
+     * Returns the configured CompressionCodec, or null if none is configured.
+     *
+     * @param context the ProcessContext
+     * @param configuration the Hadoop Configuration
+     * @return CompressionCodec or null
+     */
+    protected CompressionCodec getCompressionCodec(ProcessContext context, Configuration configuration) {
+        CompressionCodec codec = null;
+        if (context.getProperty(COMPRESSION_CODEC).isSet()) {
+            String compressionClassname = context.getProperty(COMPRESSION_CODEC).getValue();
+            CompressionCodecFactory ccf = new CompressionCodecFactory(configuration);
+            codec = ccf.getCodecByClassName(compressionClassname);
+        }
+
+        return codec;
+    }
 
     /**
      * Returns the relative path of the child that does not include the filename

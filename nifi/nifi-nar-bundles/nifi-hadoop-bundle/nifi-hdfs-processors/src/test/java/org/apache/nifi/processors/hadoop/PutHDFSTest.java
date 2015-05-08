@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.hadoop;
 
 import org.apache.nifi.processors.hadoop.PutHDFS;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -33,10 +34,10 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.compress.CompressionCodec;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -135,6 +136,20 @@ public class PutHDFSTest {
         Assert.assertEquals(1, results.size());
         for (ValidationResult vr : results) {
             assertTrue(vr.toString().contains("is invalid because octal umask [2000] is not a valid umask"));
+        }
+
+        results = new HashSet<>();
+        runner = TestRunners.newTestRunner(PutHDFS.class);
+        runner.setProperty(PutHDFS.DIRECTORY, "/target");
+        runner.setProperty(PutHDFS.COMPRESSION_CODEC, CompressionCodec.class.getName());
+        runner.enqueue(new byte[0]);
+        pc = runner.getProcessContext();
+        if (pc instanceof MockProcessContext) {
+            results = ((MockProcessContext) pc).validate();
+        }
+        Assert.assertEquals(1, results.size());
+        for (ValidationResult vr : results) {
+            Assert.assertTrue(vr.toString().contains("is invalid because Given value not found in allowed set"));
         }
     }
 

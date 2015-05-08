@@ -19,6 +19,8 @@ package org.apache.nifi.processors.hadoop;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -30,8 +32,9 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.compress.CompressionCodec;
+import org.apache.hadoop.io.compress.GzipCodec;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -105,6 +108,19 @@ public class GetHDFSTest {
         for (ValidationResult vr : results) {
             Assert.assertTrue(vr.toString().contains("is invalid because Minimum File Age cannot be greater than Maximum File Age"));
         }
+
+        results = new HashSet<>();
+        runner.setProperty(GetHDFS.DIRECTORY, "/target");
+        runner.setProperty(GetHDFS.COMPRESSION_CODEC, CompressionCodec.class.getName());
+        runner.enqueue(new byte[0]);
+        pc = runner.getProcessContext();
+        if (pc instanceof MockProcessContext) {
+            results = ((MockProcessContext) pc).validate();
+        }
+        Assert.assertEquals(1, results.size());
+        for (ValidationResult vr : results) {
+            Assert.assertTrue(vr.toString().contains("is invalid because Given value not found in allowed set"));
+        }
     }
 
     @Test
@@ -115,9 +131,25 @@ public class GetHDFSTest {
         runner.setProperty(GetHDFS.KEEP_SOURCE_FILE, "true");
         runner.run();
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetHDFS.REL_SUCCESS);
-        assertEquals(3, flowFiles.size());
+        assertEquals(4, flowFiles.size());
         for (MockFlowFile flowFile : flowFiles) {
             assertTrue(flowFile.getAttribute(CoreAttributes.FILENAME.key()).startsWith("random"));
         }
+    }
+
+    @Test
+    public void testGetFilesWithCompression() throws IOException {
+        TestRunner runner = TestRunners.newTestRunner(GetHDFS.class);
+        runner.setProperty(PutHDFS.DIRECTORY, "src/test/resources/testdata");
+        runner.setProperty(GetHDFS.FILE_FILTER_REGEX, "random.*.gz");
+        runner.setProperty(GetHDFS.COMPRESSION_CODEC, GzipCodec.class.getName());
+        runner.setProperty(GetHDFS.KEEP_SOURCE_FILE, "true");
+        runner.run();
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetHDFS.REL_SUCCESS);
+        assertEquals(1, flowFiles.size());
+        MockFlowFile flowFile = flowFiles.get(0);
+        assertTrue(flowFile.getAttribute(CoreAttributes.FILENAME.key()).startsWith("randombytes-1.gz"));
+        InputStream expected = getClass().getResourceAsStream("/testdata/randombytes-1");
+        flowFile.assertContentEquals(expected);
     }
 }
