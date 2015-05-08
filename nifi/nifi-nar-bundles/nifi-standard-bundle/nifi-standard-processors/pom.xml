@@ -248,6 +248,7 @@
                         <exclude>src/test/resources/CompressedData/SampleFileConcat.txt.bz2</exclude>
                         <exclude>src/test/resources/ExecuteCommand/TestIngestAndUpdate.jar</exclude>
                         <exclude>src/test/resources/ExecuteCommand/TestSuccess.jar</exclude>
+                        <exclude>src/test/resources/ExecuteCommand/TestDynamicEnvironment.jar</exclude>
                         <exclude>src/test/resources/TestIdentifyMimeType/1.jar</exclude>
                         <exclude>src/test/resources/TestIdentifyMimeType/1.tar</exclude>
                         <exclude>src/test/resources/TestIdentifyMimeType/1.tar.gz</exclude>

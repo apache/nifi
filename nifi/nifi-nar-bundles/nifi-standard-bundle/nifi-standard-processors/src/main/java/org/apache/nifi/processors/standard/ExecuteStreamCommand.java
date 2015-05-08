@@ -33,6 +33,7 @@ import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -113,6 +114,7 @@ import org.apache.nifi.stream.io.StreamUtils;
 @SupportsBatching
 @Tags({"command execution", "command", "stream", "execute"})
 @CapabilityDescription("Executes an external command on the contents of a flow file, and creates a new flow file with the results of the command.")
+@DynamicProperty(name = "An environment variable name", value = "An environment variable value", description = "These environment variables are passed to the process spawned by this Processor")
 @WritesAttributes({
     @WritesAttribute(attribute = "execution.command", description = "The name of the command executed to create the new FlowFile"),
     @WritesAttribute(attribute = "execution.command.args", description = "The semi-colon delimited list of arguments"),
@@ -203,6 +205,16 @@ public class ExecuteStreamCommand extends AbstractProcessor {
     }
 
     @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+        return new PropertyDescriptor.Builder()
+        .name(propertyDescriptorName)
+        .description("Sets the environment variable '" + propertyDescriptorName + "' for the process' environment")
+        .dynamic(true)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .build();
+    }
+
+    @Override
     public void onTrigger(ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         if (null == flowFile) {
@@ -230,6 +242,13 @@ public class ExecuteStreamCommand extends AbstractProcessor {
                 logger.warn("Failed to create working directory {}, using current working directory {}", new Object[]{workingDir, System.getProperty("user.dir")});
             }
         }
+        final Map<String, String> environment = new HashMap<>();
+        for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
+            if (entry.getKey().isDynamic()) {
+                environment.put(entry.getKey().getName(), entry.getValue());
+            }
+        }
+        builder.environment().putAll(environment);
         builder.command(args);
         builder.directory(dir);
         builder.redirectInput(Redirect.PIPE);
