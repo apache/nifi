@@ -75,14 +75,14 @@ public final class ChannelListener {
     private volatile long channelReaderFrequencyMSecs = 50;
 
     public ChannelListener(final int threadPoolSize, final StreamConsumerFactory consumerFactory, final BufferPool bufferPool, int timeout,
-            TimeUnit unit) throws IOException {
+            TimeUnit unit, final boolean readSingleDatagram) throws IOException {
         this.executor = Executors.newScheduledThreadPool(threadPoolSize + 1); // need to allow for long running ChannelDispatcher thread
         this.serverSocketSelector = Selector.open();
         this.socketChannelSelector = Selector.open();
         this.bufferPool = bufferPool;
         this.initialBufferPoolSize = bufferPool.size();
         channelDispatcher = new ChannelDispatcher(serverSocketSelector, socketChannelSelector, executor, consumerFactory, bufferPool,
-                timeout, unit);
+                timeout, unit, readSingleDatagram);
         executor.schedule(channelDispatcher, 50, TimeUnit.MILLISECONDS);
     }
 
