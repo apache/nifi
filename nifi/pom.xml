@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-parent</artifactId>
-        <version>1.0.0-incubating-SNAPSHOT</version>
+        <version>1.0.0-incubating</version>
         <relativePath />
     </parent>
     <artifactId>nifi</artifactId>
@@ -874,7 +874,7 @@
             <plugin>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-nar-maven-plugin</artifactId>
-                <version>1.0.1-incubating-SNAPSHOT</version>
+                <version>1.0.1-incubating</version>
                 <extensions>true</extensions>
             </plugin>
         </plugins>
