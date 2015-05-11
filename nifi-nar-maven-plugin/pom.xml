@@ -22,7 +22,7 @@
         <relativePath />
     </parent>
     <artifactId>nifi-nar-maven-plugin</artifactId>
-    <version>1.0.1-incubating</version>
+    <version>1.0.2-incubating-SNAPSHOT</version>
     <packaging>maven-plugin</packaging>
     <description>Apache NiFi Nar Plugin. It is currently a part of the Apache Incubator.</description>
     <build>
@@ -101,8 +101,4 @@
             <version>3.3</version>
         </dependency>
     </dependencies>
-
-  <scm>
-    <tag>nifi-nar-maven-plugin-1.0.1-incubating-rc13</tag>
-  </scm>
 </project>
