@@ -23,7 +23,7 @@
     </parent>
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-parent</artifactId>
-    <version>1.0.0-incubating-SNAPSHOT</version>
+    <version>1.0.0-incubating</version>
     <packaging>pom</packaging>
     <description>The nifi-parent enables each apache nifi project to ensure consistent approaches and DRY</description>
     <url>http://nifi.incubator.apache.org</url>
@@ -60,7 +60,7 @@
         <connection>scm:git:git://git.apache.org/incubator-nifi.git</connection>
         <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-nifi.git</developerConnection>
         <url>https://git-wip-us.apache.org/repos/asf?p=incubator-nifi.git</url>
-        <tag>HEAD</tag>
+        <tag>nifi-parent-1.0.0-incubating-rc13</tag>
     </scm>
     <issueManagement>
         <system>JIRA</system>
