@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>0.1.0-incubating</version>
+        <version>0.1.1-incubating-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-hl7-bundle</artifactId>
