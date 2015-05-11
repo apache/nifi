@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-solr-bundle</artifactId>
-        <version>0.1.0-incubating-SNAPSHOT</version>
+        <version>0.1.0-incubating</version>
     </parent>
 
     <artifactId>nifi-solr-processors</artifactId>
