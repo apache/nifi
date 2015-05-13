@@ -104,13 +104,12 @@ page is being added or removed it is done here.
 
 ### src/pages/html
 
-Contains pages that are written in HTML. If page being added/edited is written is
-HTML it resides here.
+Contains pages that are written in HTML. Any new HTML based content should reside here.
 
 ### src/pages/markdown
 
-Contains pages that are written in Markdown. If the page being added/edited is written
-in Markdown it resides here.
+Contains pages that are written in Markdown. Any new Markdown based content should
+reside here.
 
 ## Application Style Properties
 
