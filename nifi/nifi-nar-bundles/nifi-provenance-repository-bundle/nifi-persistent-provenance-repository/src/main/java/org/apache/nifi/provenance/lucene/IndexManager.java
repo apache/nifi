@@ -119,6 +119,14 @@ public class IndexManager implements Closeable {
                 }
 
                 writerCounts.put(absoluteFile, writerCount);
+
+                // Mark any active searchers as poisoned because we are updating the index
+                final List<ActiveIndexSearcher> searchers = activeSearchers.get(absoluteFile);
+                if ( searchers != null ) {
+                    for (final ActiveIndexSearcher activeSearcher : searchers) {
+                        activeSearcher.poison();
+                    }
+                }
             } else {
                 logger.debug("Providing existing index writer for {} and incrementing count to {}", indexingDirectory, writerCount.getCount() + 1);
                 writerCounts.put(absoluteFile, new IndexWriterCount(writerCount.getWriter(),
@@ -137,7 +145,7 @@ public class IndexManager implements Closeable {
 
         lock.lock();
         try {
-            IndexWriterCount count = writerCounts.remove(absoluteFile);
+            final IndexWriterCount count = writerCounts.remove(absoluteFile);
 
             try {
                 if ( count == null ) {
@@ -184,6 +192,15 @@ public class IndexManager implements Closeable {
                 try {
                     for ( final ActiveIndexSearcher searcher : currentlyCached ) {
                         if ( searcher.isCache() ) {
+                            // if the searcher is poisoned, we want to close and expire it.
+                            if ( searcher.isPoisoned() ) {
+                                logger.debug("Index Searcher for {} is poisoned; removing cached searcher", absoluteFile);
+                                expired.add(searcher);
+                                continue;
+                            }
+
+                            // if there are no references to the reader, it will have been closed. Since there is no
+                            // isClosed() method, this is how we determine whether it's been closed or not.
                             final int refCount = searcher.getSearcher().getIndexReader().getRefCount();
                             if ( refCount <= 0 ) {
                                 // if refCount == 0, then the reader has been closed, so we need to discard the searcher
@@ -212,7 +229,7 @@ public class IndexManager implements Closeable {
                 }
             }
 
-            IndexWriterCount writerCount = writerCounts.remove(absoluteFile);
+            final IndexWriterCount writerCount = writerCounts.remove(absoluteFile);
             if ( writerCount == null ) {
                 final Directory directory = FSDirectory.open(absoluteFile);
                 logger.debug("No Index Writer currently exists for {}; creating a cachable reader", indexDir);
@@ -270,21 +287,40 @@ public class IndexManager implements Closeable {
         lock.lock();
         try {
             // check if we already have a reader cached.
-            List<ActiveIndexSearcher> currentlyCached = activeSearchers.get(absoluteFile);
+            final List<ActiveIndexSearcher> currentlyCached = activeSearchers.get(absoluteFile);
             if ( currentlyCached == null ) {
                 logger.warn("Received Index Searcher for {} but no searcher was provided for that directory; this could "
                         + "result in a resource leak", indexDirectory);
                 return;
             }
 
+            // Check if the given searcher is in our list. We use an Iterator to do this so that if we
+            // find it we can call remove() on the iterator if need be.
             final Iterator<ActiveIndexSearcher> itr = currentlyCached.iterator();
             while (itr.hasNext()) {
                 final ActiveIndexSearcher activeSearcher = itr.next();
                 if ( activeSearcher.getSearcher().equals(searcher) ) {
                     if ( activeSearcher.isCache() ) {
-                        // the searcher is cached. Just leave it open.
-                        logger.debug("Index searcher for {} is cached; leaving open", indexDirectory);
-                        return;
+                        // if the searcher is poisoned, close it and remove from "pool".
+                        if ( activeSearcher.isPoisoned() ) {
+                            itr.remove();
+
+                            try {
+                                logger.debug("Closing Index Searcher for {} because it is poisoned", indexDirectory);
+                                activeSearcher.close();
+                            } catch (final IOException ioe) {
+                                logger.warn("Failed to close Index Searcher for {} due to {}", absoluteFile, ioe);
+                                if ( logger.isDebugEnabled() ) {
+                                    logger.warn("", ioe);
+                                }
+                            }
+
+                            return;
+                        } else {
+                            // the searcher is cached. Just leave it open.
+                            logger.debug("Index searcher for {} is cached; leaving open", indexDirectory);
+                            return;
+                        }
                     } else {
                         // searcher is not cached. It was created from a writer, and we want
                         // the newest updates the next time that we get a searcher, so we will
@@ -405,9 +441,10 @@ public class IndexManager implements Closeable {
         private final DirectoryReader directoryReader;
         private final Directory directory;
         private final boolean cache;
+        private boolean poisoned = false;
 
-        public ActiveIndexSearcher(IndexSearcher searcher, DirectoryReader directoryReader,
-                Directory directory, final boolean cache) {
+        public ActiveIndexSearcher(final IndexSearcher searcher, final DirectoryReader directoryReader,
+                final Directory directory, final boolean cache) {
             this.searcher = searcher;
             this.directoryReader = directoryReader;
             this.directory = directory;
@@ -420,6 +457,14 @@ public class IndexManager implements Closeable {
 
         public IndexSearcher getSearcher() {
             return searcher;
+        }
+
+        public boolean isPoisoned() {
+            return poisoned;
+        }
+
+        public void poison() {
+            this.poisoned = true;
         }
 
         @Override

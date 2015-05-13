@@ -64,14 +64,11 @@ public class DocsReader {
             final int docId = scoreDoc.doc;
             final Document d = indexReader.document(docId);
             docs.add(d);
-            if ( retrievalCount.incrementAndGet() >= maxResults ) {
-                break;
-            }
         }
 
         final long readDocuments = System.nanoTime() - start;
         logger.debug("Reading {} Lucene Documents took {} millis", docs.size(), TimeUnit.NANOSECONDS.toMillis(readDocuments));
-        return read(docs, allProvenanceLogFiles);
+        return read(docs, allProvenanceLogFiles, retrievalCount, maxResults);
     }
 
 
@@ -88,7 +85,7 @@ public class DocsReader {
 
 
     private ProvenanceEventRecord getRecord(final Document d, final RecordReader reader) throws IOException {
-        IndexableField blockField = d.getField(FieldNames.BLOCK_INDEX);
+        final IndexableField blockField = d.getField(FieldNames.BLOCK_INDEX);
         if ( blockField == null ) {
             reader.skipTo(getByteOffset(d, reader));
         } else {
@@ -97,7 +94,7 @@ public class DocsReader {
 
         StandardProvenanceEventRecord record;
         while ( (record = reader.nextRecord()) != null) {
-            IndexableField idField = d.getField(SearchableFields.Identifier.getSearchableFieldName());
+            final IndexableField idField = d.getField(SearchableFields.Identifier.getSearchableFieldName());
             if ( idField == null || idField.numericValue().longValue() == record.getEventId() ) {
                 break;
             }
@@ -111,7 +108,11 @@ public class DocsReader {
     }
 
 
-    public Set<ProvenanceEventRecord> read(final List<Document> docs, final Collection<Path> allProvenanceLogFiles) throws IOException {
+    public Set<ProvenanceEventRecord> read(final List<Document> docs, final Collection<Path> allProvenanceLogFiles, final AtomicInteger retrievalCount, final int maxResults) throws IOException {
+        if (retrievalCount.get() >= maxResults) {
+            return Collections.emptySet();
+        }
+
         LuceneUtil.sortDocsForRetrieval(docs);
 
         RecordReader reader = null;
@@ -133,6 +134,10 @@ public class DocsReader {
                 try {
                     if (reader != null && storageFilename.equals(lastStorageFilename)) {
                         matchingRecords.add(getRecord(d, reader));
+
+                        if ( retrievalCount.incrementAndGet() >= maxResults ) {
+                            break;
+                        }
                     } else {
                         logger.debug("Opening log file {}", storageFilename);
 
@@ -141,7 +146,7 @@ public class DocsReader {
                             reader.close();
                         }
 
-                        List<File> potentialFiles = LuceneUtil.getProvenanceLogFiles(storageFilename, allProvenanceLogFiles);
+                        final List<File> potentialFiles = LuceneUtil.getProvenanceLogFiles(storageFilename, allProvenanceLogFiles);
                         if (potentialFiles.isEmpty()) {
                             logger.warn("Could not find Provenance Log File with basename {} in the "
                                     + "Provenance Repository; assuming file has expired and continuing without it", storageFilename);
@@ -158,6 +163,10 @@ public class DocsReader {
                             try {
                                 reader = RecordReaders.newRecordReader(file, allProvenanceLogFiles);
                                 matchingRecords.add(getRecord(d, reader));
+
+                                if ( retrievalCount.incrementAndGet() >= maxResults ) {
+                                    break;
+                                }
                             } catch (final IOException e) {
                                 throw new IOException("Failed to retrieve record " + d + " from Provenance File " + file + " due to " + e, e);
                             }

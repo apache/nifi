@@ -261,8 +261,7 @@ language governing permissions and limitations under the License. -->
         <nifi.provenance.repository.rollover.size>100 MB</nifi.provenance.repository.rollover.size>
         <nifi.provenance.repository.query.threads>2</nifi.provenance.repository.query.threads>
         <nifi.provenance.repository.compress.on.rollover>true</nifi.provenance.repository.compress.on.rollover>
-        <nifi.provenance.repository.indexed.fields>EventType, FlowFileUUID,
-            Filename, ProcessorID</nifi.provenance.repository.indexed.fields>
+        <nifi.provenance.repository.indexed.fields>EventType, FlowFileUUID, Filename, ProcessorID</nifi.provenance.repository.indexed.fields> 
         <nifi.provenance.repository.indexed.attributes />
         <nifi.provenance.repository.index.shard.size>500 MB</nifi.provenance.repository.index.shard.size>
         <nifi.provenance.repository.always.sync>false</nifi.provenance.repository.always.sync>
@@ -302,8 +301,7 @@ language governing permissions and limitations under the License. -->
         <nifi.security.ocsp.responder.url />
         <nifi.security.ocsp.responder.certificate />
 
-        <!-- nifi.properties: cluster common properties (cluster manager and nodes
-        must have same values) -->
+        <!-- nifi.properties: cluster common properties (cluster manager and nodes must have same values) -->
         <nifi.cluster.protocol.heartbeat.interval>5 sec</nifi.cluster.protocol.heartbeat.interval>
         <nifi.cluster.protocol.is.secure>false</nifi.cluster.protocol.is.secure>
         <nifi.cluster.protocol.socket.timeout>30 sec</nifi.cluster.protocol.socket.timeout>
@@ -315,8 +313,7 @@ language governing permissions and limitations under the License. -->
         <nifi.cluster.protocol.multicast.service.locator.attempts>3</nifi.cluster.protocol.multicast.service.locator.attempts>
         <nifi.cluster.protocol.multicast.service.locator.attempts.delay>1 sec</nifi.cluster.protocol.multicast.service.locator.attempts.delay>
 
-        <!-- nifi.properties: cluster node properties (only configure for cluster
-        nodes) -->
+        <!-- nifi.properties: cluster node properties (only configure for cluster nodes) -->
         <nifi.cluster.is.node>false</nifi.cluster.is.node>
         <nifi.cluster.node.address />
         <nifi.cluster.node.protocol.port />
@@ -324,8 +321,7 @@ language governing permissions and limitations under the License. -->
         <nifi.cluster.node.unicast.manager.address />
         <nifi.cluster.node.unicast.manager.protocol.port />
 
-        <!-- nifi.properties: cluster manager properties (only configure for cluster
-        manager) -->
+        <!-- nifi.properties: cluster manager properties (only configure for cluster manager) -->
         <nifi.cluster.is.manager>false</nifi.cluster.is.manager>
         <nifi.cluster.manager.address />
         <nifi.cluster.manager.protocol.port />
@@ -382,10 +378,8 @@ language governing permissions and limitations under the License. -->
                         <artifactId>rpm-maven-plugin</artifactId>
                         <configuration>
                             <summary>Apache NiFi (incubating)</summary>
-                            <description>Apache Nifi (incubating) is dataflow system based on
-                                the Flow-Based Programming concepts.</description>
-                            <license>Apache License, Version 2.0 and others (see included
-                                LICENSE file)</license>
+                            <description>Apache Nifi (incubating) is dataflow system based on the Flow-Based Programming concepts.</description>
+                            <license>Apache License, Version 2.0 and others (see included LICENSE file)</license>
                             <url>http://nifi.incubator.apache.org</url>
                             <group>Utilities</group>
                             <prefix>/opt/nifi</prefix>
