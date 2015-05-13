@@ -1,6 +1,13 @@
+/* global module */
+
 module.exports = function (grunt) {
     // Project configuration.
     grunt.initConfig({
+        config: {
+            svn: {
+                url: 'https://svn.apache.org/repos/asf/incubator/nifi/site/trunk'
+            }
+        },
         pkg: grunt.file.readJSON('package.json'),
         clean: {
             options: {
@@ -9,7 +16,8 @@ module.exports = function (grunt) {
             js: ['dist/js/'],
             css: ['dist/css/'],
             assets: ['dist/assets/*'],
-            generated: ['dist/docs']
+            generated: ['dist/docs'],
+            all: ['dist']
         },
         assemble: {
             options: {
@@ -115,6 +123,51 @@ module.exports = function (grunt) {
                     }]
             }
         },
+        prompt: {
+            username: {
+                options: {
+                    questions: [{
+                            config: 'config.svn.username',
+                            type: 'input',
+                            message: 'Enter SVN username if different from current user:'
+                    }]
+                }
+            },
+            commit: {
+                options: {
+                    questions: [{
+                            config: 'config.svn.commit.confirmation',
+                            type: 'list',
+                            choices: ['Show diff', 'Commit', 'Abort'],
+                            message: 'Commit the changes listed above?'
+                    }],
+                    then: function (results) {
+                        if (results['config.svn.commit.confirmation'] === 'Commit') {
+                            grunt.task.run('prompt:message');
+                        } else if (results['config.svn.commit.confirmation'] === 'Show diff') {
+                            grunt.task.run('exec:diff');
+                            grunt.task.run('prompt:commit');
+                        }
+                    }
+                }
+            },
+            message: {
+                options: {
+                    questions: [{
+                            config: 'config.svn.commit.message',
+                            type: 'input',
+                            message: 'Commit message:'
+                    }, {
+                            config: 'config.svn.password',
+                            type: 'password',
+                            message: 'SVN password:'
+                    }],
+                    then: function () {
+                        grunt.task.run('exec:commit');
+                    }
+                }
+            }
+        },
         exec: {
             generateDocs: {
                 command: 'mvn clean package',
@@ -127,6 +180,44 @@ module.exports = function (grunt) {
                 cwd: '../nifi/nifi-nar-bundles/nifi-framework-bundle/nifi-framework/nifi-web/nifi-web-api',
                 stdout: true,
                 stderr: true
+            },
+            checkout: {
+                command: function() {
+                    var url = grunt.config('config.svn.url');
+                    var username = grunt.config('config.svn.username');
+                    if (username === '') {
+                        return 'svn checkout ' + url + ' --trust-server-cert --non-interactive dist';
+                    } else {
+                        return 'svn checkout --username ' + username + ' ' + url + ' --trust-server-cert --non-interactive dist';
+                    }
+                },
+                stdout: true,
+                stderr: true
+            },
+            status: {
+                cwd: 'dist',
+                command: 'svn status',
+                stdout: true,
+                stderr: true
+            },
+            diff: {
+                cwd: 'dist',
+                command: 'svn diff',
+                stdout: true,
+                stderr: true
+            },
+            commit: {
+                cwd: 'dist',
+                command: function() {
+                    var username = grunt.config('config.svn.username');
+                    var password = grunt.config('config.svn.password');
+                    var message = grunt.config('config.svn.commit.message');
+                    if (username === '') {
+                        return 'svn commit --password "' + password + '" -m "' + message + '" --trust-server-cert --non-interactive .';
+                    } else {
+                        return 'svn commit --username ' + username + ' --password "' + password + '" -m "' + message + '" --trust-server-cert --non-interactive .';
+                    }
+                }
             }
         },
         replace: {
@@ -196,11 +287,16 @@ module.exports = function (grunt) {
     grunt.loadNpmTasks('grunt-contrib-watch');
     grunt.loadNpmTasks('grunt-exec');
     grunt.loadNpmTasks('grunt-text-replace');
+    grunt.loadNpmTasks('grunt-prompt');
 
     grunt.registerTask('img', ['newer:copy']);
     grunt.registerTask('css', ['clean:css', 'compass']);
     grunt.registerTask('js', ['clean:js', 'concat']);
     grunt.registerTask('generate-docs', ['clean:generated', 'exec:generateDocs', 'exec:generateRestApiDocs', 'copy:generated', 'replace:addGoogleAnalytics', 'replace:moveTearDrop', 'replace:removeVersion']);
-    grunt.registerTask('default', ['clean', 'assemble', 'css', 'js', 'img', 'generate-docs', 'copy:dist']);
+
+    grunt.registerTask('build', ['assemble', 'css', 'js', 'img', 'generate-docs', 'copy:dist']);
+    grunt.registerTask('deploy', ['clean:all', 'prompt:username', 'exec:checkout', 'build', 'exec:status', 'prompt:commit']);
     grunt.registerTask('dev', ['default', 'watch']);
+    
+    grunt.registerTask('default', ['clean:all', 'build']);
 };
