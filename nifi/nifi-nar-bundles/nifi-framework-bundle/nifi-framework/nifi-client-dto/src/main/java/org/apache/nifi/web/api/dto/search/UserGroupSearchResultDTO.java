@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.search;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import javax.xml.bind.annotation.XmlType;
 
 /**
@@ -27,10 +28,11 @@ public class UserGroupSearchResultDTO {
     private String group;
 
     /**
-     * The name of the group that matched.
-     *
-     * @return
+     * @return name of the group that matched
      */
+    @ApiModelProperty(
+            value = "The name of the group that matched the search."
+    )
     public String getGroup() {
         return group;
     }

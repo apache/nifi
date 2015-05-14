@@ -25,15 +25,13 @@ import org.apache.nifi.controller.ControllerService;
  * component custom UIs.
  */
 public interface NiFiWebConfigurationContext {
-    
+
     /**
-     * Gets the ControllerService for the specified identifier. If a
+     * @param serviceIdentifier of the controller service
+     * @return the ControllerService for the specified identifier. If a
      * corresponding service cannot be found, null is returned. If this NiFi is
-     * clustered, the only services available will be those those
-     * availability is NCM only.
-     *
-     * @param serviceIdentifier
-     * @return
+     * clustered, the only services available will be those those availability
+     * is NCM only
      */
     ControllerService getControllerService(String serviceIdentifier);
 
@@ -48,55 +46,55 @@ public interface NiFiWebConfigurationContext {
      * been applied to the flow, we cannot revert them because of a failure to
      * insert an audit record.
      *
-     * @param requestContext
-     * @param actions
-     * @throws IllegalArgumentException     When the requestContext isn't fully populated or 
-     * isn't appropriate for the given request
+     * @param requestContext context of the request
+     * @param actions to save
+     * @throws IllegalArgumentException When the requestContext isn't fully
+     * populated or isn't appropriate for the given request
      */
     void saveActions(NiFiWebRequestContext requestContext, Collection<ConfigurationAction> actions);
 
     /**
-     * Gets the current user dn. Returns null if no user is found.
-     *
-     * @return
+     * @return the current user dn. Returns null if no user is found
      */
     String getCurrentUserDn();
 
     /**
-     * Gets the current user name. Returns null if no user is found.
-     *
-     * @return
+     * @return the current user name. Returns null if no user is found
      */
     String getCurrentUserName();
 
     /**
      * Sets the annotation data for the underlying component.
-     * 
-     * @param configurationContext
-     * @param annotationData
+     *
+     * @param configurationContext config context
+     * @param annotationData the data
      * @return the configuration for the underlying component
-     * @throws ResourceNotFoundException if the underlying component does not exit
+     * @throws ResourceNotFoundException if the underlying component does not
+     * exit
      * @throws InvalidRevisionException if a revision other than the current
      * revision is given
      * @throws ClusterRequestException if the annotation data was unable to be
-     * set for the underlying component. This exception will only be thrown when operating
-     * in a cluster.
-     * @throws IllegalArgumentException     When the requestContext isn't fully populated or 
-     * isn't appropriate for the given request
-     */
-    ComponentDetails setAnnotationData(NiFiWebConfigurationRequestContext configurationContext, String annotationData) throws ResourceNotFoundException, InvalidRevisionException, ClusterRequestException;
-    
-    /**
-     * Gets the details for the underlying component (including configuration, validation errors, and annotation data).
-     * 
-     * @param requestContext
-     * @return the configuration for the underlying component
-     * @throws ResourceNotFoundException if the underlying component does not exit
-     * @throws ClusterRequestException if the underlying component was unable to be
-     * retrieved from the cluster. This exception will only be thrown when
+     * set for the underlying component. This exception will only be thrown when
      * operating in a cluster.
-     * @throws IllegalArgumentException     When the requestContext isn't fully populated or 
-     * isn't appropriate for the given request
+     * @throws IllegalArgumentException When the requestContext isn't fully
+     * populated or isn't appropriate for the given request
+     */
+    ComponentDetails setAnnotationData(NiFiWebConfigurationRequestContext configurationContext, String annotationData)
+            throws ResourceNotFoundException, InvalidRevisionException, ClusterRequestException;
+
+    /**
+     * Gets the details for the underlying component (including configuration,
+     * validation errors, and annotation data).
+     *
+     * @param requestContext context of request
+     * @return the configuration for the underlying component
+     * @throws ResourceNotFoundException if the underlying component does not
+     * exit
+     * @throws ClusterRequestException if the underlying component was unable to
+     * be retrieved from the cluster. This exception will only be thrown when
+     * operating in a cluster.
+     * @throws IllegalArgumentException When the requestContext isn't fully
+     * populated or isn't appropriate for the given request
      */
     ComponentDetails getComponentDetails(NiFiWebRequestContext requestContext) throws ResourceNotFoundException, ClusterRequestException;
 }

@@ -24,28 +24,18 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Annotation that may be placed on a {@link org.apache.nifi.processor.Processor Processor} 
- * indicating that this processor writes/updates a specific FlowFile attribute.
- * 
- * @author 
+ * Annotation that may be placed on a
+ * {@link org.apache.nifi.processor.Processor Processor} indicating that this
+ * processor writes/updates a specific FlowFile attribute.
  *
  */
-
 @Documented
 @Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 @Inherited
 public @interface WritesAttribute {
-    
-    /**
-     * The FlowFile attribute that is being created or updated
-     * @return
-     */
+
     public String attribute();
-    
-    /**
-     * A description of what is being written to the FlowFile attribute
-     * @return
-     */
+
     public String description() default "";
 }

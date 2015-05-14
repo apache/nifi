@@ -22,11 +22,10 @@ import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.cluster.protocol.jaxb.message.NodeIdentifierAdapter;
 
 /**
- * @author unattributed
  */
 @XmlRootElement(name = "flowRequestMessage")
 public class FlowRequestMessage extends ProtocolMessage {
-    
+
     private NodeIdentifier nodeId;
 
     @XmlJavaTypeAdapter(NodeIdentifierAdapter.class)
@@ -37,10 +36,10 @@ public class FlowRequestMessage extends ProtocolMessage {
     public void setNodeId(NodeIdentifier nodeId) {
         this.nodeId = nodeId;
     }
-    
+
     @Override
     public MessageType getType() {
         return MessageType.FLOW_REQUEST;
     }
-    
+
 }

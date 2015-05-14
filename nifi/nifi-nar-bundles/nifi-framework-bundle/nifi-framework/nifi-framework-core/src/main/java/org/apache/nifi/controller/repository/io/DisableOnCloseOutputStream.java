@@ -20,9 +20,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 /**
- * Wraps an existing OutputStream, so that when {@link OutputStream#close()} is
- * called, the underlying OutputStream is NOT closed but this OutputStream can
- * no longer be written to
+ * Wraps an existing OutputStream, so that when {@link OutputStream#close()} is called, the underlying OutputStream is NOT closed but this OutputStream can no longer be written to
  */
 public class DisableOnCloseOutputStream extends OutputStream {
 

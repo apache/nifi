@@ -63,23 +63,11 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
         return connection;
     }
 
-    /**
-     * Gets the specified connection.
-     *
-     * @return The connections
-     */
     @Override
     public Connection getConnection(final String groupId, final String id) {
         return locateConnection(groupId, id);
     }
 
-    /**
-     * Gets the connections for the specified source processor.
-     *
-     * @param groupId
-     * @param processorId
-     * @return
-     */
     @Override
     public Set<Connection> getConnectionsForSource(final String groupId, final String processorId) {
         final Set<Connection> connections = new HashSet<>(getConnections(groupId));
@@ -93,13 +81,6 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
         return connections;
     }
 
-    /**
-     * Determines if the specified connection exists. Returns false when either
-     * the group or connection do not exist.
-     *
-     * @param id
-     * @return
-     */
     @Override
     public boolean hasConnection(final String groupId, final String id) {
         final ProcessGroup group = flowController.getGroup(groupId);
@@ -111,11 +92,6 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
         return group.getConnection(id) != null;
     }
 
-    /**
-     * Gets all of the connections.
-     *
-     * @return The connections
-     */
     @Override
     public Set<Connection> getConnections(final String groupId) {
         final ProcessGroup group = locateProcessGroup(flowController, groupId);
@@ -124,9 +100,6 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
 
     /**
      * Configures the specified connection using the specified dto.
-     *
-     * @param connection
-     * @param connectionDTO
      */
     private void configureConnection(Connection connection, ConnectionDTO connectionDTO) {
         // validate flow file comparators/prioritizers
@@ -181,10 +154,6 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
 
     /**
      * Validates the proposed processor configuration.
-     *
-     * @param processorNode
-     * @param config
-     * @return
      */
     private List<String> validateProposedConfiguration(final String groupId, final ConnectionDTO connectionDTO) {
         List<String> validationErrors = new ArrayList<>();
@@ -233,12 +202,6 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
         return validationErrors;
     }
 
-    /**
-     * Creates a new Connection.
-     *
-     * @param connectionDTO The connection DTO
-     * @return The connection
-     */
     @Override
     public Connection createConnection(final String groupId, final ConnectionDTO connectionDTO) {
         final ProcessGroup group = locateProcessGroup(flowController, groupId);
@@ -371,12 +334,6 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
         }
     }
 
-    /**
-     * Updates the specified Connection.
-     *
-     * @param connectionDTO The connection DTO
-     * @return The connection
-     */
     @Override
     public Connection updateConnection(final String groupId, final ConnectionDTO connectionDTO) {
         final ProcessGroup group = locateProcessGroup(flowController, groupId);
@@ -500,11 +457,6 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
         connection.verifyCanDelete();
     }
 
-    /**
-     * Deletes the specified Connection.
-     *
-     * @param id The id of the connection
-     */
     @Override
     public void deleteConnection(final String groupId, final String id) {
         final ProcessGroup group = locateProcessGroup(flowController, groupId);

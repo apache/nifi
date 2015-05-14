@@ -74,6 +74,7 @@
         <jsp:include page="/WEB-INF/partials/summary/cluster-output-port-summary-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/summary/cluster-remote-process-group-summary-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/summary/cluster-connection-summary-dialog.jsp"/>
+        <jsp:include page="/WEB-INF/partials/summary/cluster-process-group-summary-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/summary/system-diagnostics-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/summary/view-single-node-dialog.jsp"/>
         <div id="faded-background"></div>

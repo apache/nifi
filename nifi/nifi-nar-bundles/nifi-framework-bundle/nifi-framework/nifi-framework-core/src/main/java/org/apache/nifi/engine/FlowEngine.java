@@ -27,9 +27,6 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/**
- * @author unattributed
- */
 public final class FlowEngine extends ScheduledThreadPoolExecutor {
 
     private static final Logger logger = LoggerFactory.getLogger(FlowEngine.class);
@@ -37,21 +34,19 @@ public final class FlowEngine extends ScheduledThreadPoolExecutor {
     /**
      * Creates a new instance of FlowEngine
      *
-     * @param corePoolSize the maximum number of threads available to tasks
-     * running in the engine.
-     * @param threadNamePrefix
+     * @param corePoolSize the maximum number of threads available to tasks running in the engine.
+     * @param threadNamePrefix for naming the thread
      */
     public FlowEngine(int corePoolSize, final String threadNamePrefix) {
-    	this(corePoolSize, threadNamePrefix, false);
+        this(corePoolSize, threadNamePrefix, false);
     }
-    	
+
     /**
      * Creates a new instance of FlowEngine
      *
-     * @param corePoolSize the maximum number of threads available to tasks
-     * running in the engine.
-     * @param threadNamePrefix
-     * @param deamon if true, the thread pool will be populated with daemon threads, otherwise the threads will not be marked as daemon.
+     * @param corePoolSize the maximum number of threads available to tasks running in the engine.
+     * @param threadNamePrefix for thread naming
+     * @param daemon if true, the thread pool will be populated with daemon threads, otherwise the threads will not be marked as daemon.
      */
     public FlowEngine(int corePoolSize, final String threadNamePrefix, final boolean daemon) {
         super(corePoolSize);
@@ -62,8 +57,8 @@ public final class FlowEngine extends ScheduledThreadPoolExecutor {
             @Override
             public Thread newThread(final Runnable r) {
                 final Thread t = defaultThreadFactory.newThread(r);
-                if ( daemon ) {
-                	t.setDaemon(true);
+                if (daemon) {
+                    t.setDaemon(true);
                 }
                 t.setName(threadNamePrefix + " Thread-" + threadIndex.incrementAndGet());
                 return t;
@@ -72,11 +67,10 @@ public final class FlowEngine extends ScheduledThreadPoolExecutor {
     }
 
     /**
-     * Hook method called by the running thread whenever a runnable task is
-     * given to the thread to run.
+     * Hook method called by the running thread whenever a runnable task is given to the thread to run.
      *
-     * @param thread
-     * @param runnable
+     * @param thread thread
+     * @param runnable runnable
      */
     @Override
     protected void beforeExecute(final Thread thread, final Runnable runnable) {
@@ -86,12 +80,10 @@ public final class FlowEngine extends ScheduledThreadPoolExecutor {
     }
 
     /**
-     * Hook method called by the thread that executed the given runnable after
-     * execution of the runnable completed. Logs the fact of completion and any
-     * errors that might have occured.
+     * Hook method called by the thread that executed the given runnable after execution of the runnable completed. Logs the fact of completion and any errors that might have occured.
      *
-     * @param runnable
-     * @param throwable
+     * @param runnable runnable
+     * @param throwable throwable
      */
     @Override
     protected void afterExecute(final Runnable runnable, final Throwable throwable) {

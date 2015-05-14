@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.provenance;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Date;
 import java.util.Map;
 
@@ -37,10 +38,11 @@ public class ProvenanceRequestDTO {
     private Integer maxResults;
 
     /**
-     * Returns the search terms to use for this search
-     *
-     * @return
+     * @return the search terms to use for this search
      */
+    @ApiModelProperty(
+            value = "The search terms used to perform the search."
+    )
     public Map<String, String> getSearchTerms() {
         return searchTerms;
     }
@@ -50,11 +52,12 @@ public class ProvenanceRequestDTO {
     }
 
     /**
-     * The earliest event time to include in the query
-     *
-     * @return
+     * @return earliest event time to include in the query
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
+    @ApiModelProperty(
+            value = "The earliest event time to include in the query."
+    )
     public Date getStartDate() {
         return startDate;
     }
@@ -64,11 +67,12 @@ public class ProvenanceRequestDTO {
     }
 
     /**
-     * The latest event time to include in the query
-     *
-     * @return
+     * @return latest event time to include in the query
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
+    @ApiModelProperty(
+            value = "The latest event time to include in the query."
+    )
     public Date getEndDate() {
         return endDate;
     }
@@ -78,10 +82,11 @@ public class ProvenanceRequestDTO {
     }
 
     /**
-     * The minimum file size to include in the query.
-     *
-     * @return
+     * @return minimum file size to include in the query
      */
+    @ApiModelProperty(
+            value = "The minimum file size to include in the query."
+    )
     public String getMinimumFileSize() {
         return minimumFileSize;
     }
@@ -91,10 +96,11 @@ public class ProvenanceRequestDTO {
     }
 
     /**
-     * The maximum file size to include in the query.
-     *
-     * @return
+     * @return maximum file size to include in the query
      */
+    @ApiModelProperty(
+            value = "The maximum file size to include in the query."
+    )
     public String getMaximumFileSize() {
         return maximumFileSize;
     }
@@ -104,10 +110,11 @@ public class ProvenanceRequestDTO {
     }
 
     /**
-     * The number of max results.
-     *
-     * @return
+     * @return number of max results
      */
+    @ApiModelProperty(
+            value = "The maximum number of results to include."
+    )
     public Integer getMaxResults() {
         return maxResults;
     }

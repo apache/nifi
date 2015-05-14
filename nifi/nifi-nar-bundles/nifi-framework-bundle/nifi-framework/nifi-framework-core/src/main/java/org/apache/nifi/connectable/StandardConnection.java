@@ -39,9 +39,7 @@ import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 /**
- * Models a connection between connectable components. A connection may contain
- * one or more relationships that map the source component to the destination
- * component.
+ * Models a connection between connectable components. A connection may contain one or more relationships that map the source component to the destination component.
  */
 public final class StandardConnection implements Connection {
 
@@ -71,18 +69,22 @@ public final class StandardConnection implements Connection {
         hashCode = new HashCodeBuilder(7, 67).append(id).toHashCode();
     }
 
+    @Override
     public ProcessGroup getProcessGroup() {
         return processGroup.get();
     }
 
+    @Override
     public String getIdentifier() {
         return id;
     }
 
+    @Override
     public String getName() {
         return name.get();
     }
 
+    @Override
     public void setName(final String name) {
         this.name.set(name);
     }
@@ -97,10 +99,12 @@ public final class StandardConnection implements Connection {
         this.bendPoints.set(Collections.unmodifiableList(new ArrayList<>(position)));
     }
 
+    @Override
     public int getLabelIndex() {
         return labelIndex.get();
     }
 
+    @Override
     public void setLabelIndex(final int labelIndex) {
         this.labelIndex.set(labelIndex);
     }
@@ -115,22 +119,27 @@ public final class StandardConnection implements Connection {
         this.zIndex.set(zIndex);
     }
 
+    @Override
     public Connectable getSource() {
         return source;
     }
 
+    @Override
     public Connectable getDestination() {
         return destination.get();
     }
 
+    @Override
     public Collection<Relationship> getRelationships() {
         return relationships.get();
     }
 
+    @Override
     public FlowFileQueue getFlowFileQueue() {
         return flowFileQueue;
     }
 
+    @Override
     public void setProcessGroup(final ProcessGroup newGroup) {
         final ProcessGroup currentGroup = this.processGroup.get();
         try {
@@ -141,6 +150,7 @@ public final class StandardConnection implements Connection {
         }
     }
 
+    @Override
     public void setRelationships(final Collection<Relationship> newRelationships) {
         final Collection<Relationship> currentRelationships = relationships.get();
         if (currentRelationships.equals(newRelationships)) {
@@ -160,6 +170,7 @@ public final class StandardConnection implements Connection {
         }
     }
 
+    @Override
     public void setDestination(final Connectable newDestination) {
         final Connectable previousDestination = destination.get();
         if (previousDestination.equals(newDestination)) {
@@ -218,12 +229,10 @@ public final class StandardConnection implements Connection {
     }
 
     /**
-     * Gives this Connection ownership of the given FlowFile and allows the
-     * Connection to hold on to the FlowFile but NOT provide the FlowFile to
-     * consumers. This allows us to ensure that the Connection is not deleted
-     * during the middle of a Session commit.
+     * Gives this Connection ownership of the given FlowFile and allows the Connection to hold on to the FlowFile but NOT provide the FlowFile to consumers. This allows us to ensure that the
+     * Connection is not deleted during the middle of a Session commit.
      *
-     * @param flowFile
+     * @param flowFile to add
      */
     @Override
     public void enqueue(final FlowFileRecord flowFile) {

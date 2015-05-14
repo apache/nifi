@@ -38,28 +38,27 @@ import org.apache.nifi.cluster.protocol.ProtocolMessageUnmarshaller;
 /**
  * Implements a context for communicating internally amongst the cluster using
  * JAXB.
- * 
+ *
  * @param <T> The type of protocol message.
  *
- * @author unattributed
  */
 public class JaxbProtocolContext<T> implements ProtocolContext {
 
     private static final int BUF_SIZE = (int) Math.pow(2, 10);  // 1k
-    
+
     /*
      * A sentinel is used to detect corrupted messages.  Relying on the integrity
-     * of the message size can cause memory issues if the value is corrupted 
+     * of the message size can cause memory issues if the value is corrupted
      * and equal to a number larger than the memory size.
      */
     private static final byte MESSAGE_PROTOCOL_START_SENTINEL = 0x5A;
-    
+
     private final JAXBContext jaxbCtx;
-    
+
     public JaxbProtocolContext(final JAXBContext jaxbCtx) {
         this.jaxbCtx = jaxbCtx;
     }
-    
+
     @Override
     public ProtocolMessageMarshaller<T> createMarshaller() {
         return new ProtocolMessageMarshaller<T>() {
@@ -78,7 +77,7 @@ public class JaxbProtocolContext<T> implements ProtocolContext {
 
                     // write message protocol sentinel
                     dos.write(MESSAGE_PROTOCOL_START_SENTINEL);
-                    
+
                     // write message size in bytes
                     dos.writeInt(msgBytes.size());
 
@@ -108,14 +107,14 @@ public class JaxbProtocolContext<T> implements ProtocolContext {
 
                     // check for the presence of the message protocol sentinel
                     final byte sentinel = (byte) dis.read();
-                    if ( sentinel == -1 ) {
+                    if (sentinel == -1) {
                         throw new EOFException();
                     }
 
-                    if(MESSAGE_PROTOCOL_START_SENTINEL != sentinel) {
+                    if (MESSAGE_PROTOCOL_START_SENTINEL != sentinel) {
                         throw new IOException("Failed reading protocol message due to malformed header");
                     }
-                    
+
                     // read the message size
                     final int msgBytesSize = dis.readInt();
 

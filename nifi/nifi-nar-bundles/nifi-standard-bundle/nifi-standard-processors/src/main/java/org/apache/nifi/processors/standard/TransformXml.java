@@ -65,8 +65,8 @@ import org.apache.nifi.util.Tuple;
 @CapabilityDescription("Applies the provided XSLT file to the flowfile XML payload. A new FlowFile is created "
         + "with transformed content and is routed to the 'success' relationship. If the XSL transform "
         + "fails, the original FlowFile is routed to the 'failure' relationship")
-@DynamicProperty(name="An XSLT transform parameter name", value="An XSLT transform parameter value", supportsExpressionLanguage=true, 
-description="These XSLT parameters are passed to the transformer")
+@DynamicProperty(name = "An XSLT transform parameter name", value = "An XSLT transform parameter value", supportsExpressionLanguage = true,
+        description = "These XSLT parameters are passed to the transformer")
 public class TransformXml extends AbstractProcessor {
 
     public static final PropertyDescriptor XSLT_FILE_NAME = new PropertyDescriptor.Builder()
@@ -76,8 +76,14 @@ public class TransformXml extends AbstractProcessor {
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
             .build();
 
-    public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("The FlowFile with transformed content will be routed to this relationship").build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure").description("If a FlowFile fails processing for any reason (for example, the FlowFile is not valid XML), it will be routed to this relationship").build();
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("The FlowFile with transformed content will be routed to this relationship")
+            .build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("If a FlowFile fails processing for any reason (for example, the FlowFile is not valid XML), it will be routed to this relationship")
+            .build();
 
     private List<PropertyDescriptor> properties;
     private Set<Relationship> relationships;
@@ -184,12 +190,12 @@ public class TransformXml extends AbstractProcessor {
                     error = e.toString();
                 }
 
-                this.cachedResult = new Tuple<>(input,
-                        new ValidationResult.Builder()
+                this.cachedResult = new Tuple<>(input, new ValidationResult.Builder()
                         .input(input)
                         .subject(subject)
                         .valid(error == null)
-                        .explanation(error).build());
+                        .explanation(error)
+                        .build());
                 return this.cachedResult.getValue();
             }
         }

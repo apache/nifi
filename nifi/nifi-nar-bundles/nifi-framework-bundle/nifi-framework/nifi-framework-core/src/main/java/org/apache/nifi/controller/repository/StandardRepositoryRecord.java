@@ -24,10 +24,6 @@ import org.apache.nifi.controller.FlowFileQueue;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.processor.Relationship;
 
-/**
- *
- * @author
- */
 public class StandardRepositoryRecord implements RepositoryRecord {
 
     private RepositoryRecordType type = null;
@@ -41,10 +37,9 @@ public class StandardRepositoryRecord implements RepositoryRecord {
     private final Map<String, String> originalAttributes;
 
     /**
-     * Creates a new record which has no original claim or flow file - it is
-     * entirely new
+     * Creates a new record which has no original claim or flow file - it is entirely new
      *
-     * @param originalQueue
+     * @param originalQueue queue
      */
     public StandardRepositoryRecord(final FlowFileQueue originalQueue) {
         this(originalQueue, null);
@@ -54,8 +49,8 @@ public class StandardRepositoryRecord implements RepositoryRecord {
     /**
      * Creates a record based on given original items
      *
-     * @param originalQueue
-     * @param originalFlowFileRecord
+     * @param originalQueue queue
+     * @param originalFlowFileRecord record
      */
     public StandardRepositoryRecord(final FlowFileQueue originalQueue, final FlowFileRecord originalFlowFileRecord) {
         this(originalQueue, originalFlowFileRecord, null);
@@ -116,22 +111,22 @@ public class StandardRepositoryRecord implements RepositoryRecord {
 
     public void setWorking(final FlowFileRecord flowFile, final String attributeKey, final String attributeValue) {
         workingFlowFileRecord = flowFile;
-        
+
         // If setting attribute to same value as original, don't add to updated attributes
         final String currentValue = originalAttributes.get(attributeKey);
-        if ( currentValue == null || !currentValue.equals(attributeValue) ) {
-        	updatedAttributes.put(attributeKey, attributeValue);
+        if (currentValue == null || !currentValue.equals(attributeValue)) {
+            updatedAttributes.put(attributeKey, attributeValue);
         }
     }
 
     public void setWorking(final FlowFileRecord flowFile, final Map<String, String> updatedAttribs) {
         workingFlowFileRecord = flowFile;
-        
-        for ( final Map.Entry<String, String> entry : updatedAttribs.entrySet() ) {
-        	final String currentValue = originalAttributes.get(entry.getKey());
-        	if ( currentValue == null || !currentValue.equals(entry.getValue()) ) {
-        		updatedAttributes.put(entry.getKey(), entry.getValue());
-        	}
+
+        for (final Map.Entry<String, String> entry : updatedAttribs.entrySet()) {
+            final String currentValue = originalAttributes.get(entry.getKey());
+            if (currentValue == null || !currentValue.equals(entry.getValue())) {
+                updatedAttributes.put(entry.getKey(), entry.getValue());
+            }
         }
     }
 

@@ -22,7 +22,6 @@ import java.util.Objects;
  *
  * Immutable - thread safe
  *
- * @author unattributed
  */
 public class ValidationResult {
 
@@ -119,8 +118,8 @@ public class ValidationResult {
         /**
          * Defaults to false
          *
-         * @param valid
-         * @return
+         * @param valid true if is valid; false otherwise
+         * @return the builder
          */
         public Builder valid(final boolean valid) {
             this.valid = valid;
@@ -130,8 +129,8 @@ public class ValidationResult {
         /**
          * Defaults to empty string
          *
-         * @param input
-         * @return
+         * @param input what was validated
+         * @return the builder
          */
         public Builder input(final String input) {
             if (null != input) {
@@ -143,8 +142,8 @@ public class ValidationResult {
         /**
          * Defaults to empty string
          *
-         * @param explanation
-         * @return
+         * @param explanation of validation result
+         * @return the builder
          */
         public Builder explanation(final String explanation) {
             if (null != explanation) {
@@ -156,8 +155,8 @@ public class ValidationResult {
         /**
          * Defaults to empty string
          *
-         * @param subject
-         * @return
+         * @param subject the thing that was validated
+         * @return the builder
          */
         public Builder subject(final String subject) {
             if (null != subject) {

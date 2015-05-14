@@ -20,10 +20,8 @@ import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
 
 /**
- * A serialized representation of this class can be placed in the entity body of
- * a request or response to or from the API. This particular entity holds a
- * reference to ProcessorSearchResultDTOs, RemoteProcessGroupSearchResultDTOs,
- * and ConnectionSearchResultDTOs.
+ * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to ProcessorSearchResultDTOs,
+ * RemoteProcessGroupSearchResultDTOs, and ConnectionSearchResultDTOs.
  */
 @XmlRootElement(name = "searchResultsEntity")
 public class SearchResultsEntity {
@@ -31,9 +29,7 @@ public class SearchResultsEntity {
     private SearchResultsDTO searchResultsDTO;
 
     /**
-     * The search results.
-     *
-     * @return
+     * @return search results
      */
     public SearchResultsDTO getSearchResultsDTO() {
         return searchResultsDTO;

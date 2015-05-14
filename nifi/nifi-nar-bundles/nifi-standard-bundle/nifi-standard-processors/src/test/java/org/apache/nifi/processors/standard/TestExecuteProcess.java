@@ -20,11 +20,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
 import java.util.List;
 
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class TestExecuteProcess {
@@ -34,45 +37,124 @@ public class TestExecuteProcess {
         final List<String> nullArgs = ExecuteProcess.splitArgs(null);
         assertNotNull(nullArgs);
         assertTrue(nullArgs.isEmpty());
-        
+
         final List<String> zeroArgs = ExecuteProcess.splitArgs("  ");
         assertNotNull(zeroArgs);
         assertTrue(zeroArgs.isEmpty());
-        
+
         final List<String> singleArg = ExecuteProcess.splitArgs("    hello   ");
         assertEquals(1, singleArg.size());
         assertEquals("hello", singleArg.get(0));
-        
+
         final List<String> twoArg = ExecuteProcess.splitArgs("   hello    good-bye   ");
         assertEquals(2, twoArg.size());
         assertEquals("hello", twoArg.get(0));
         assertEquals("good-bye", twoArg.get(1));
-        
+
         final List<String> singleQuotedArg = ExecuteProcess.splitArgs("  \"hello\" ");
         assertEquals(1, singleQuotedArg.size());
         assertEquals("hello", singleQuotedArg.get(0));
-        
+
         final List<String> twoQuotedArg = ExecuteProcess.splitArgs("   hello \"good   bye\"");
         assertEquals(2, twoQuotedArg.size());
         assertEquals("hello", twoQuotedArg.get(0));
         assertEquals("good   bye", twoQuotedArg.get(1));
     }
-    
+
+    @Ignore   // won't run under Windows
     @Test
     public void testEcho() {
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi", "TRACE");
-        
+
         final TestRunner runner = TestRunners.newTestRunner(ExecuteProcess.class);
         runner.setProperty(ExecuteProcess.COMMAND, "echo");
         runner.setProperty(ExecuteProcess.COMMAND_ARGUMENTS, "test-args");
         runner.setProperty(ExecuteProcess.BATCH_DURATION, "500 millis");
-        
+
         runner.run();
 
         final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteProcess.REL_SUCCESS);
-        for ( final MockFlowFile flowFile : flowFiles ) {
+        for (final MockFlowFile flowFile : flowFiles) {
             System.out.println(flowFile);
             System.out.println(new String(flowFile.toByteArray()));
         }
+    }
+
+    // @Test
+    public void testBigBinaryInputData() {
+        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi", "TRACE");
+        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.processors.standard", "DEBUG");
+
+        String workingDirName = "/var/test";
+        String testFile = "eclipse-java-luna-SR2-win32.zip";
+
+        final TestRunner runner = TestRunners.newTestRunner(ExecuteProcess.class);
+        runner.setProperty(ExecuteProcess.COMMAND, "cmd");
+        runner.setProperty(ExecuteProcess.COMMAND_ARGUMENTS, " /c type " + testFile);
+        runner.setProperty(ExecuteProcess.WORKING_DIR, workingDirName);
+
+        File inFile = new File(workingDirName, testFile);
+        System.out.println(inFile.getAbsolutePath());
+
+        runner.run();
+
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteProcess.REL_SUCCESS);
+        long totalFlowFilesSize = 0;
+        for (final MockFlowFile flowFile : flowFiles) {
+            System.out.println(flowFile);
+            totalFlowFilesSize += flowFile.getSize();
+            // System.out.println(new String(flowFile.toByteArray()));
+        }
+
+        assertEquals(inFile.length(), totalFlowFilesSize);
+    }
+
+    @Test
+    public void testBigInputSplit() {
+        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi", "TRACE");
+        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.processors.standard", "DEBUG");
+
+        String workingDirName = "/var/test";
+        String testFile = "Novo_dicionário_da_língua_portuguesa_by_Cândido_de_Figueiredo.txt";
+        // String testFile = "eclipse-java-luna-SR2-win32.zip";
+
+        final TestRunner runner = TestRunners.newTestRunner(ExecuteProcess.class);
+        runner.setProperty(ExecuteProcess.COMMAND, "cmd");
+        runner.setProperty(ExecuteProcess.COMMAND_ARGUMENTS, " /c type " + testFile);
+        runner.setProperty(ExecuteProcess.WORKING_DIR, workingDirName);
+        runner.setProperty(ExecuteProcess.BATCH_DURATION, "150 millis");
+
+        File inFile = new File(workingDirName, testFile);
+        System.out.println(inFile.getAbsolutePath());
+
+        // runner.run(1,false,true);
+
+        ProcessContext processContext = runner.getProcessContext();
+
+        ExecuteProcess processor = (ExecuteProcess) runner.getProcessor();
+        processor.updateScheduledTrue();
+        processor.setupExecutor(processContext);
+
+        processor.onTrigger(processContext, runner.getProcessSessionFactory());
+        processor.onTrigger(processContext, runner.getProcessSessionFactory());
+        processor.onTrigger(processContext, runner.getProcessSessionFactory());
+        processor.onTrigger(processContext, runner.getProcessSessionFactory());
+        processor.onTrigger(processContext, runner.getProcessSessionFactory());
+        processor.onTrigger(processContext, runner.getProcessSessionFactory());
+        processor.onTrigger(processContext, runner.getProcessSessionFactory());
+        processor.onTrigger(processContext, runner.getProcessSessionFactory());
+        processor.onTrigger(processContext, runner.getProcessSessionFactory());
+
+        // runner.run(5,true,false);
+
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteProcess.REL_SUCCESS);
+        long totalFlowFilesSize = 0;
+        for (final MockFlowFile flowFile : flowFiles) {
+            System.out.println(flowFile);
+            totalFlowFilesSize += flowFile.getSize();
+            // System.out.println(new String(flowFile.toByteArray()));
+        }
+
+        // assertEquals(inFile.length(), totalFlowFilesSize);
     }
 }

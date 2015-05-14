@@ -21,8 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Encapsulates the status of the processor data transfers as stored in the
- * repository.
+ * Encapsulates the status of the processor data transfers as stored in the repository.
  */
 public class StandardRepositoryStatusReport implements RepositoryStatusReport {
 
@@ -30,8 +29,7 @@ public class StandardRepositoryStatusReport implements RepositoryStatusReport {
     }
 
     /**
-     * Returns a map where the key is the processor ID and the value is the
-     * status entry for the processor.
+     * Returns a map where the key is the processor ID and the value is the status entry for the processor.
      *
      * @return a map of report entries
      */
@@ -41,11 +39,9 @@ public class StandardRepositoryStatusReport implements RepositoryStatusReport {
     }
 
     /**
-     * Returns a particular entry for a given processor ID. If the processor ID
-     * does not exist, then null is returned.
+     * Returns a particular entry for a given processor ID. If the processor ID does not exist, then null is returned.
      *
-     * @param componentId the ID of a component; that component may be a
-     * Processor, a Connection, a ProcessGroup, etc.
+     * @param componentId the ID of a component; that component may be a Processor, a Connection, a ProcessGroup, etc.
      *
      * @return a status entry
      */

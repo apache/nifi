@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.cluster.manager.impl;
 
-import org.apache.nifi.cluster.manager.impl.HttpRequestReplicatorImpl;
 import javax.ws.rs.core.Response;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.ws.rs.HttpMethod;
@@ -43,10 +42,11 @@ import org.junit.Before;
 import org.junit.Test;
 import org.apache.nifi.cluster.manager.testutils.HttpResponseAction;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 /**
- * @author unattributed
  */
 public class HttpRequestReplicatorImplTest {
 

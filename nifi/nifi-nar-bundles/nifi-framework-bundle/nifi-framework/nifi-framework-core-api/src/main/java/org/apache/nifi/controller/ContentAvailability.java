@@ -23,43 +23,33 @@ package org.apache.nifi.controller;
 public interface ContentAvailability {
 
     /**
-     * Returns a boolean indicating whether or not the Input content is
+     * @return a boolean indicating whether or not the Input content is
      * available
-     *
-     * @return
      */
     boolean isInputAvailable();
 
     /**
-     * Returns a boolean indicating whether or not the Output content is
+     * @return a boolean indicating whether or not the Output content is
      * available
-     *
-     * @return
      */
     boolean isOutputAvailable();
 
     /**
-     * Returns <code>true</code> if the Input content is the same as the Output
+     * @return <code>true</code> if the Input content is the same as the Output
      * content
-     *
-     * @return
      */
     boolean isContentSame();
 
     /**
-     * Returns a boolean indicating whether or not the content is replayable. If
+     * @return a boolean indicating whether or not the content is replayable. If
      * this returns <code>false</code>, the reason that replay is not available
-     * can be determined by calling {@link #getReasonNotReplayable()}.
-     *
-     * @return
+     * can be determined by calling {@link #getReasonNotReplayable()}
      */
     boolean isReplayable();
 
     /**
-     * Returns the reason that the content cannot be replayed, or
-     * <code>null</code> if the content can be replayed.
-     *
-     * @return
+     * @return the reason that the content cannot be replayed, or
+     * <code>null</code> if the content can be replayed
      */
     String getReasonNotReplayable();
 }

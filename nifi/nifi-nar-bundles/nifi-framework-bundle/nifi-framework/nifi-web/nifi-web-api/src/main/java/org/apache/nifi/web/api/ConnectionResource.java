@@ -16,6 +16,12 @@
  */
 package org.apache.nifi.web.api;
 
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+import com.wordnik.swagger.annotations.Authorization;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -65,7 +71,6 @@ import org.apache.nifi.web.api.request.IntegerParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 
 import org.apache.commons.lang3.StringUtils;
-import org.codehaus.enunciate.jaxrs.TypeHint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -73,6 +78,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 /**
  * RESTful endpoint for managing a Connection.
  */
+@Api(hidden = true)
 public class ConnectionResource extends ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(ConnectionResource.class);
@@ -85,8 +91,8 @@ public class ConnectionResource extends ApplicationResource {
     /**
      * Populate the uri's for the specified processors and their relationships.
      *
-     * @param connections
-     * @return
+     * @param connections connections
+     * @return dtos
      */
     public Set<ConnectionDTO> populateRemainingConnectionsContent(Set<ConnectionDTO> connections) {
         for (ConnectionDTO connection : connections) {
@@ -97,9 +103,6 @@ public class ConnectionResource extends ApplicationResource {
 
     /**
      * Populate the uri's for the specified processor and its relationships.
-     *
-     * @param connection
-     * @return
      */
     private ConnectionDTO populateRemainingConnectionContent(ConnectionDTO connection) {
         // populate the remaining properties
@@ -110,16 +113,38 @@ public class ConnectionResource extends ApplicationResource {
     /**
      * Gets all the connections.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return A connectionsEntity.
      */
     @GET
+    @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Path("") // necessary due to bug in swagger
     @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
-    @TypeHint(ConnectionsEntity.class)
-    public Response getConnections(@QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
+    @ApiOperation(
+            value = "Gets all connections",
+            response = ConnectionsEntity.class,
+            authorizations = {
+                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getConnections(
+            @ApiParam(
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+                    required = false
+            )
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
@@ -145,18 +170,43 @@ public class ConnectionResource extends ApplicationResource {
     /**
      * Retrieves the specified connection.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the connection.
      * @return A connectionEntity.
      */
     @GET
+    @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/{id}")
     @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
-    @TypeHint(ConnectionEntity.class)
-    public Response getConnection(@QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+    @ApiOperation(
+            value = "Gets a connection",
+            response = ConnectionEntity.class,
+            authorizations = {
+                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getConnection(
+            @ApiParam(
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+                    required = false
+            )
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @ApiParam(
+                    value = "The connection id.",
+                    required = true
+            )
             @PathParam("id") String id) {
 
         // replicate if cluster manager
@@ -183,18 +233,44 @@ public class ConnectionResource extends ApplicationResource {
     /**
      * Retrieves the specified connection status history.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the connection to retrieve.
      * @return A statusHistoryEntity.
      */
     @GET
+    @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/{id}/status/history")
     @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
-    @TypeHint(StatusHistoryEntity.class)
-    public Response getConnectionStatusHistory(@QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId, @PathParam("id") String id) {
+    @ApiOperation(
+            value = "Gets the status history for a connection",
+            response = StatusHistoryEntity.class,
+            authorizations = {
+                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getConnectionStatusHistory(
+            @ApiParam(
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+                    required = false
+            )
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @ApiParam(
+                    value = "The connection id.",
+                    required = true
+            )
+            @PathParam("id") String id) {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
@@ -220,12 +296,9 @@ public class ConnectionResource extends ApplicationResource {
     /**
      * Creates a connection.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param name The name of the connection.
      * @param sourceId The id of the source connectable.
      * @param sourceGroupId The parent group id for the source.
@@ -233,26 +306,21 @@ public class ConnectionResource extends ApplicationResource {
      * @param bends Array of bend points in string form ["x,y", "x,y", "x,y"]
      * @param relationships Array of relationships.
      * @param flowFileExpiration The flow file expiration in minutes
-     * @param backPressureObjectThreshold The object count for when to apply
-     * back pressure.
-     * @param backPressureDataSizeThreshold The object size for when to apply
-     * back pressure.
-     * @param prioritizers Array of prioritizer types. These types should refer
-     * to one of the types in the GET /controller/prioritizers response. If this
-     * parameter is not specified no change will be made. If this parameter
-     * appears with no value (empty string), it will be treated as an empty
-     * array.
+     * @param backPressureObjectThreshold The object count for when to apply back pressure.
+     * @param backPressureDataSizeThreshold The object size for when to apply back pressure.
+     * @param prioritizers Array of prioritizer types. These types should refer to one of the types in the GET /controller/prioritizers response. If this parameter is not specified no change will be
+     * made. If this parameter appears with no value (empty string), it will be treated as an empty array.
      * @param destinationId The id of the destination connectable.
      * @param destinationGroupId The parent group id for the destination.
      * @param destinationType The type of the destination connectable.
-     * @param formParams
+     * @param formParams params
      * @return A connectionEntity.
      */
     @POST
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Path("") // necessary due to bug in swagger
     @PreAuthorize("hasRole('ROLE_DFM')")
-    @TypeHint(ConnectionEntity.class)
     public Response createConnection(
             @Context HttpServletRequest httpServletRequest,
             @FormParam(VERSION) LongParameter version,
@@ -378,17 +446,37 @@ public class ConnectionResource extends ApplicationResource {
     /**
      * Creates a new connection.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param connectionEntity A connectionEntity.
      * @return A connectionEntity.
      */
     @POST
     @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Path("") // necessary due to bug in swagger
     @PreAuthorize("hasRole('ROLE_DFM')")
-    @TypeHint(ConnectionEntity.class)
+    @ApiOperation(
+            value = "Creates a connection",
+            response = ConnectionEntity.class,
+            authorizations = {
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response createConnection(
             @Context HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The connection configuration details.",
+                    required = true
+            )
             ConnectionEntity connectionEntity) {
 
         if (connectionEntity == null || connectionEntity.getConnection() == null) {
@@ -466,12 +554,9 @@ public class ConnectionResource extends ApplicationResource {
     /**
      * Updates the specified relationship target.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param connectionId The id of the source processor.
      * @param name The name of the connection.
      * @param relationships Array of relationships.
@@ -479,19 +564,14 @@ public class ConnectionResource extends ApplicationResource {
      * @param labelIndex The control point index for the connection label
      * @param zIndex The zIndex for this connection
      * @param flowFileExpiration The flow file expiration in minutes
-     * @param backPressureObjectThreshold The object count for when to apply
-     * back pressure.
-     * @param backPressureDataSizeThreshold The object size for when to apply
-     * back pressure.
-     * @param prioritizers Array of prioritizer types. These types should refer
-     * to one of the types in the GET /controller/prioritizers response. If this
-     * parameter is not specified no change will be made. If this parameter
-     * appears with no value (empty string), it will be treated as an empty
-     * array.
+     * @param backPressureObjectThreshold The object count for when to apply back pressure.
+     * @param backPressureDataSizeThreshold The object size for when to apply back pressure.
+     * @param prioritizers Array of prioritizer types. These types should refer to one of the types in the GET /controller/prioritizers response. If this parameter is not specified no change will be
+     * made. If this parameter appears with no value (empty string), it will be treated as an empty array.
      * @param destinationId The id of the destination connectable.
      * @param destinationGroupId The group id of the destination.
      * @param destinationType The type of the destination type.
-     * @param formParams
+     * @param formParams params
      * @return A connectionEntity.
      */
     @PUT
@@ -499,7 +579,6 @@ public class ConnectionResource extends ApplicationResource {
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/{id}")
     @PreAuthorize("hasRole('ROLE_DFM')")
-    @TypeHint(ConnectionEntity.class)
     public Response updateConnection(
             @Context HttpServletRequest httpServletRequest,
             @FormParam(VERSION) LongParameter version,
@@ -627,7 +706,7 @@ public class ConnectionResource extends ApplicationResource {
     /**
      * Updates the specified connection.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param id The id of the connection.
      * @param connectionEntity A connectionEntity.
      * @return A connectionEntity.
@@ -637,11 +716,33 @@ public class ConnectionResource extends ApplicationResource {
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/{id}")
     @PreAuthorize("hasRole('ROLE_DFM')")
-    @TypeHint(ConnectionEntity.class)
+    @ApiOperation(
+            value = "Updates a connection",
+            response = ConnectionEntity.class,
+            authorizations = {
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response updateConnection(
             @Context HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The connection id.",
+                    required = true
+            )
             @PathParam("id") String id,
-            ConnectionEntity connectionEntity) {
+            @ApiParam(
+                    value = "The connection configuration details.",
+                    required = true
+            ) ConnectionEntity connectionEntity) {
 
         if (connectionEntity == null || connectionEntity.getConnection() == null) {
             throw new IllegalArgumentException("Connection details must be specified.");
@@ -698,24 +799,49 @@ public class ConnectionResource extends ApplicationResource {
     /**
      * Removes the specified connection.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the connection.
      * @return An Entity containing the client id and an updated revision.
      */
     @DELETE
+    @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/{id}")
     @PreAuthorize("hasRole('ROLE_DFM')")
-    @TypeHint(ConnectionEntity.class)
+    @ApiOperation(
+            value = "Deletes a connection",
+            response = ConnectionEntity.class,
+            authorizations = {
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response deleteRelationshipTarget(
             @Context HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The revision is used to verify the client is working with the latest version of the flow.",
+                    required = false
+            )
             @QueryParam(VERSION) LongParameter version,
+            @ApiParam(
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+                    required = false
+            )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @ApiParam(
+                    value = "The connection id.",
+                    required = true
+            )
             @PathParam("id") String id) {
 
         // replicate if cluster manager

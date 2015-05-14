@@ -31,6 +31,11 @@ public class ByteCountingInputStream extends InputStream {
         this.in = in;
     }
 
+    public ByteCountingInputStream(final InputStream in, final long initialOffset) {
+        this.in = in;
+        this.bytesSkipped = initialOffset;
+    }
+
     @Override
     public int read() throws IOException {
         final int fromSuper = in.read();

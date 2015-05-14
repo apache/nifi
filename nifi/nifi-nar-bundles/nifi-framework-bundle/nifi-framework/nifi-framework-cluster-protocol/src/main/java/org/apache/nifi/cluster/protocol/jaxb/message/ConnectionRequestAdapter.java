@@ -20,14 +20,13 @@ import javax.xml.bind.annotation.adapters.XmlAdapter;
 import org.apache.nifi.cluster.protocol.ConnectionRequest;
 
 /**
- * @author unattributed
  */
 public class ConnectionRequestAdapter extends XmlAdapter<AdaptedConnectionRequest, ConnectionRequest> {
 
     @Override
     public AdaptedConnectionRequest marshal(final ConnectionRequest cr) {
         final AdaptedConnectionRequest aCr = new AdaptedConnectionRequest();
-        if(cr != null) {
+        if (cr != null) {
             aCr.setNodeIdentifier(cr.getProposedNodeIdentifier());
         }
         return aCr;
@@ -37,5 +36,5 @@ public class ConnectionRequestAdapter extends XmlAdapter<AdaptedConnectionReques
     public ConnectionRequest unmarshal(final AdaptedConnectionRequest aCr) {
         return new ConnectionRequest(aCr.getNodeIdentifier());
     }
- 
+
 }

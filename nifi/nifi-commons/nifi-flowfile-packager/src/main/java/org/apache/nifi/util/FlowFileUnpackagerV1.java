@@ -51,7 +51,7 @@ public class FlowFileUnpackagerV1 implements FlowFileUnpackager {
         final TarArchiveEntry contentEntry = tarIn.getNextTarEntry();
 
         if (contentEntry != null && contentEntry.getName().equals(FlowFilePackagerV1.FILENAME_CONTENT)) {
-            final byte[] buffer = new byte[512 << 10];//512KB            
+            final byte[] buffer = new byte[512 << 10];//512KB
             int bytesRead = 0;
             while ((bytesRead = tarIn.read(buffer)) != -1) { //still more data to read
                 if (bytesRead > 0) {

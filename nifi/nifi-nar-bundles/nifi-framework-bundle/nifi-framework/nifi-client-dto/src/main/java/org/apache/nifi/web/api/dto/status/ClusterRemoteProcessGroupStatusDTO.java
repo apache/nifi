@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Collection;
 import java.util.Date;
 import javax.xml.bind.annotation.XmlType;
@@ -34,11 +35,12 @@ public class ClusterRemoteProcessGroupStatusDTO {
     private String remoteProcessGroupName;
 
     /**
-     * The time the status was last refreshed.
-     *
      * @return the time the status were last refreshed
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
+    @ApiModelProperty(
+            value = "The time when the remote process group status was last refreshed."
+    )
     public Date getStatsLastRefreshed() {
         return statsLastRefreshed;
     }
@@ -48,10 +50,11 @@ public class ClusterRemoteProcessGroupStatusDTO {
     }
 
     /**
-     * The remote process group status from each node in the cluster.
-     *
-     * @return
+     * @return remote process group status from each node in the cluster
      */
+    @ApiModelProperty(
+            value = "The remote process group status from each node in the cluster."
+    )
     public Collection<NodeRemoteProcessGroupStatusDTO> getNodeRemoteProcessGroupStatus() {
         return nodeRemoteProcessGroupStatus;
     }
@@ -61,10 +64,11 @@ public class ClusterRemoteProcessGroupStatusDTO {
     }
 
     /**
-     * The remote process group id.
-     *
-     * @return
+     * @return remote process group id
      */
+    @ApiModelProperty(
+            value = "The id of the remote process group."
+    )
     public String getRemoteProcessGroupId() {
         return remoteProcessGroupId;
     }
@@ -74,10 +78,11 @@ public class ClusterRemoteProcessGroupStatusDTO {
     }
 
     /**
-     * The remote process group name.
-     *
-     * @return
+     * @return remote process group name
      */
+    @ApiModelProperty(
+            value = "The name of the remote process group."
+    )
     public String getRemoteProcessGroupName() {
         return remoteProcessGroupName;
     }

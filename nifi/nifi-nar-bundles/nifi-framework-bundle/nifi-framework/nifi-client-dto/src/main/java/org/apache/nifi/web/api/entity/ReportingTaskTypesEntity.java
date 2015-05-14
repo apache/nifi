@@ -21,9 +21,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.web.api.dto.DocumentedTypeDTO;
 
 /**
- * A serialized representation of this class can be placed in the entity body of
- * a response to the API. This particular entity holds a reference to a list of
- * reporting task types.
+ * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to a list of reporting task types.
  */
 @XmlRootElement(name = "reportingTaskTypesEntity")
 public class ReportingTaskTypesEntity extends Entity {
@@ -31,9 +29,7 @@ public class ReportingTaskTypesEntity extends Entity {
     private Set<DocumentedTypeDTO> reportingTaskTypes;
 
     /**
-     * The list of reporting task types that are being serialized.
-     *
-     * @return
+     * @return list of reporting task types that are being serialized
      */
     public Set<DocumentedTypeDTO> getReportingTaskTypes() {
         return reportingTaskTypes;

@@ -41,7 +41,6 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
  *
- * @author none
  */
 public class UDPStreamConsumer implements StreamConsumer {
 

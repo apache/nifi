@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.provenance.lineage;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Date;
 import java.util.List;
 
@@ -25,8 +26,7 @@ import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import org.apache.nifi.web.api.dto.util.TimestampAdapter;
 
 /**
- * A node within a provenance lineage. May represent either an event or a
- * flowfile.
+ * A node within a provenance lineage. May represent either an event or a flowfile.
  */
 @XmlType(name = "provenanceNode")
 public class ProvenanceNodeDTO {
@@ -42,10 +42,11 @@ public class ProvenanceNodeDTO {
     private Date timestamp;
 
     /**
-     * The id of the node.
-     *
-     * @return
+     * @return id of the node
      */
+    @ApiModelProperty(
+            value = "The id of the node."
+    )
     public String getId() {
         return id;
     }
@@ -55,10 +56,11 @@ public class ProvenanceNodeDTO {
     }
 
     /**
-     * The flowfile uuid for this provenance event.
-     *
-     * @return
+     * @return flowfile uuid for this provenance event
      */
+    @ApiModelProperty(
+            value = "The uuid of the flowfile associated with the provenance event."
+    )
     public String getFlowFileUuid() {
         return flowFileUuid;
     }
@@ -68,10 +70,11 @@ public class ProvenanceNodeDTO {
     }
 
     /**
-     * The parent flowfile uuids for this provenance event.
-     *
-     * @return
+     * @return parent flowfile uuids for this provenance event
      */
+    @ApiModelProperty(
+            value = "The uuid of the parent flowfiles of the provenance event."
+    )
     public List<String> getParentUuids() {
         return parentUuids;
     }
@@ -81,10 +84,11 @@ public class ProvenanceNodeDTO {
     }
 
     /**
-     * The child flowfile uuids for this provenance event.
-     *
-     * @return
+     * @return child flowfile uuids for this provenance event
      */
+    @ApiModelProperty(
+            value = "The uuid of the childrent flowfiles of the provenance event."
+    )
     public List<String> getChildUuids() {
         return childUuids;
     }
@@ -94,10 +98,11 @@ public class ProvenanceNodeDTO {
     }
 
     /**
-     * The node identifier that this event/flowfile originated from.
-     *
-     * @return
+     * @return node identifier that this event/flowfile originated from
      */
+    @ApiModelProperty(
+            value = "The identifier of the node that this event/flowfile originated from."
+    )
     public String getClusterNodeIdentifier() {
         return clusterNodeIdentifier;
     }
@@ -107,10 +112,12 @@ public class ProvenanceNodeDTO {
     }
 
     /**
-     * The type of node.
-     *
-     * @return
+     * @return type of node
      */
+    @ApiModelProperty(
+            value = "The type of the node.",
+            allowableValues = "FLOWFILE, EVENT"
+    )
     public String getType() {
         return type;
     }
@@ -120,10 +127,11 @@ public class ProvenanceNodeDTO {
     }
 
     /**
-     * If this is an event node, this is the type of event.
-     *
-     * @return
+     * @return this is an event node, this is the type of event
      */
+    @ApiModelProperty(
+            value = "If the type is EVENT, this is the type of event."
+    )
     public String getEventType() {
         return eventType;
     }
@@ -133,11 +141,12 @@ public class ProvenanceNodeDTO {
     }
 
     /**
-     * The timestamp of this node.
-     *
-     * @return
+     * @return timestamp of this node
      */
     @XmlJavaTypeAdapter(TimestampAdapter.class)
+    @ApiModelProperty(
+            value = "The timestamp of the node formatted."
+    )
     public Date getTimestamp() {
         return timestamp;
     }
@@ -147,10 +156,11 @@ public class ProvenanceNodeDTO {
     }
 
     /**
-     * The number of millis since epoch.
-     *
-     * @return
+     * @return number of millis since epoch
      */
+    @ApiModelProperty(
+            value = "The timestamp of the node in milliseconds."
+    )
     public Long getMillis() {
         return millis;
     }

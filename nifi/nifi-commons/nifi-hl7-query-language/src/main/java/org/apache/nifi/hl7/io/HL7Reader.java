@@ -22,6 +22,6 @@ import org.apache.nifi.hl7.model.HL7Message;
 
 public interface HL7Reader {
 
-	HL7Message nextMessage() throws IOException;
-	
+    HL7Message nextMessage() throws IOException;
+
 }

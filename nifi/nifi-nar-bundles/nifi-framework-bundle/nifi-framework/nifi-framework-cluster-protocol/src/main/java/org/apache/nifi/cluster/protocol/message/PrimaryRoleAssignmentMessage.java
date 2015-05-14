@@ -22,7 +22,6 @@ import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.cluster.protocol.jaxb.message.NodeIdentifierAdapter;
 
 /**
- * @author unattributed
  */
 @XmlRootElement(name = "primaryRoleAssignmentMessage")
 public class PrimaryRoleAssignmentMessage extends ProtocolMessage {
@@ -30,7 +29,7 @@ public class PrimaryRoleAssignmentMessage extends ProtocolMessage {
     private NodeIdentifier nodeId;
 
     private boolean primary;
-    
+
     @XmlJavaTypeAdapter(NodeIdentifierAdapter.class)
     public NodeIdentifier getNodeId() {
         return nodeId;
@@ -47,7 +46,7 @@ public class PrimaryRoleAssignmentMessage extends ProtocolMessage {
     public void setPrimary(boolean primary) {
         this.primary = primary;
     }
-   
+
     @Override
     public MessageType getType() {
         return MessageType.PRIMARY_ROLE;

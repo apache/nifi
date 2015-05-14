@@ -32,24 +32,18 @@ import org.apache.nifi.controller.UninheritableFlowException;
 public interface FlowConfigurationDAO {
 
     /**
-     * Loads the given controller with the values from the given proposed flow.
-     * If loading the proposed flow configuration would cause the controller to
-     * orphan flow files, then an UninheritableFlowException is thrown.
+     * Loads the given controller with the values from the given proposed flow. If loading the proposed flow configuration would cause the controller to orphan flow files, then an
+     * UninheritableFlowException is thrown.
      *
-     * If the FlowSynchronizationException is thrown, then the controller may
-     * have changed some of its state and should no longer be used.
+     * If the FlowSynchronizationException is thrown, then the controller may have changed some of its state and should no longer be used.
      *
      * @param controller a controller
      * @param dataFlow the flow to load
      * @throws java.io.IOException
      *
-     * @throws FlowSerializationException if proposed flow is not a valid flow
-     * configuration file
-     * @throws UninheritableFlowException if the proposed flow cannot be loaded
-     * by the controller because in doing so would risk orphaning flow files
-     * @throws FlowSynchronizationException if updates to the controller failed.
-     * If this exception is thrown, then the controller should be considered
-     * unsafe to be used
+     * @throws FlowSerializationException if proposed flow is not a valid flow configuration file
+     * @throws UninheritableFlowException if the proposed flow cannot be loaded by the controller because in doing so would risk orphaning flow files
+     * @throws FlowSynchronizationException if updates to the controller failed. If this exception is thrown, then the controller should be considered unsafe to be used
      */
     void load(FlowController controller, DataFlow dataFlow)
             throws IOException, FlowSerializationException, FlowSynchronizationException, UninheritableFlowException;
@@ -73,37 +67,32 @@ public interface FlowConfigurationDAO {
     /**
      * Saves all changes made to the given flow to the given File.
      *
-     * @param flow
+     * @param flow to save
      * @throws NullPointerException if the given flow is null
      * @throws IOException If unable to persist state of given flow
-     * @throws IllegalStateException if FileFlowDAO not in proper state for
-     * saving
+     * @throws IllegalStateException if FileFlowDAO not in proper state for saving
      */
     void save(FlowController flow) throws IOException;
 
     /**
      * Saves all changes made to the given flow to the given File.
      *
-     * @param flow
-     * @param outStream the OutputStream to which the FlowController will be
-     * written
+     * @param flow to save
+     * @param outStream the OutputStream to which the FlowController will be written
      * @throws NullPointerException if the given flow is null
      * @throws IOException If unable to persist state of given flow
-     * @throws IllegalStateException if FileFlowDAO not in proper state for
-     * saving
+     * @throws IllegalStateException if FileFlowDAO not in proper state for saving
      */
     void save(FlowController flow, OutputStream outStream) throws IOException;
 
     /**
      * Saves all changes made to the given flow to the given File.
      *
-     * @param flow
-     * @param archive if true will also attempt to archive the flow
-     * configuration
+     * @param flow to save
+     * @param archive if true will also attempt to archive the flow configuration
      * @throws NullPointerException if the given flow is null
      * @throws IOException If unable to persist state of given flow
-     * @throws IllegalStateException if FileFlowDAO not in proper state for
-     * saving
+     * @throws IllegalStateException if FileFlowDAO not in proper state for saving
      */
     void save(FlowController flow, boolean archive) throws IOException;
 

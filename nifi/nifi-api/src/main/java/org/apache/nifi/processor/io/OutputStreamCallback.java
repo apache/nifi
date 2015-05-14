@@ -21,7 +21,6 @@ import java.io.OutputStream;
 
 /**
  *
- * @author unattributed
  */
 public interface OutputStreamCallback {
 
@@ -31,8 +30,8 @@ public interface OutputStreamCallback {
      * manually - and quite important if any streams wrapping these streams open
      * resources which should be cleared.
      *
-     * @param out
-     * @throws IOException
+     * @param out the stream to write bytes to
+     * @throws IOException if issues writing to output stream
      */
     void process(OutputStream out) throws IOException;
 

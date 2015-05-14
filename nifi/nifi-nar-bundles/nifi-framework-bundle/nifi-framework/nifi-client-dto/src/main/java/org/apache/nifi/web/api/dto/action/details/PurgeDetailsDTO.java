@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.action.details;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Date;
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
@@ -30,11 +31,12 @@ public class PurgeDetailsDTO extends ActionDetailsDTO {
     private Date endDate;
 
     /**
-     * The end date for this purge action.
-     *
-     * @return
+     * @return end date for this purge action
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
+    @ApiModelProperty(
+            value = "The end date for the purge action."
+    )
     public Date getEndDate() {
         return endDate;
     }

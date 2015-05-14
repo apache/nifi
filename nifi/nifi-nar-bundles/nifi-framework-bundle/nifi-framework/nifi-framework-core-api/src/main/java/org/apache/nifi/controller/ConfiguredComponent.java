@@ -55,9 +55,7 @@ public interface ConfiguredComponent {
     boolean isValid();
 
     /**
-     * Returns the any validation errors for this connectable.
-     *
-     * @return
+     * @return the any validation errors for this connectable
      */
     Collection<ValidationResult> getValidationErrors();
 }

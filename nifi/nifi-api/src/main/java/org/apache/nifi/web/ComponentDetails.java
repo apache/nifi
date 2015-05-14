@@ -20,7 +20,8 @@ import java.util.Collection;
 import java.util.Map;
 
 /**
- * Details about a given component. Contains configuration and current validation errors.
+ * Details about a given component. Contains configuration and current
+ * validation errors.
  */
 public class ComponentDetails {
 
@@ -43,63 +44,49 @@ public class ComponentDetails {
     }
 
     /**
-     * The component id.
-     * 
-     * @return 
+     * @return component id
      */
     public String getId() {
         return id;
     }
 
     /**
-     * The component name.
-     * 
-     * @return 
+     * @return component name
      */
     public String getName() {
         return name;
     }
 
     /**
-     * The component type.
-     * 
-     * @return 
+     * @return component type
      */
     public String getType() {
         return type;
     }
-    
+
     /**
-     * The component state.
-     * 
-     * @return 
+     * @return component state
      */
     public String getState() {
         return state;
     }
 
     /**
-     * The component's annotation data.
-     * 
-     * @return 
+     * @return component's annotation data
      */
     public String getAnnotationData() {
         return annotationData;
     }
 
     /**
-     * Mapping of component properties.
-     * 
-     * @return 
+     * @return Mapping of component properties
      */
     public Map<String, String> getProperties() {
         return properties;
     }
 
     /**
-     * Current validation errors for the component.
-     * 
-     * @return 
+     * @return Current validation errors for the component
      */
     public Collection<String> getValidationErrors() {
         return validationErrors;
@@ -124,7 +111,7 @@ public class ComponentDetails {
             this.name = name;
             return this;
         }
-        
+
         public Builder type(final String type) {
             this.type = type;
             return this;

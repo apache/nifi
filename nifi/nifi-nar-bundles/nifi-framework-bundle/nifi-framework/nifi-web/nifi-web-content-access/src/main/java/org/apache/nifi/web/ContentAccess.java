@@ -18,16 +18,15 @@ package org.apache.nifi.web;
 
 /**
  * Provides access to content within NiFi.
- * 
- * @author unattributed
+ *
  */
 public interface ContentAccess {
 
     /**
      * Gets the content for the specified claim.
      *
-     * @param request
-     * @return
+     * @param request the context of the request
+     * @return the downloadable content
      */
     DownloadableContent getContent(ContentRequestContext request);
 }

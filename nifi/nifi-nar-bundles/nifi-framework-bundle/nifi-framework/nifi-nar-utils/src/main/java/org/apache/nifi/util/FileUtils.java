@@ -28,7 +28,6 @@ import org.slf4j.Logger;
  * A utility class containing a few useful static methods to do typical IO
  * operations.
  *
- * @author unattributed
  */
 public class FileUtils {
 
@@ -52,9 +51,9 @@ public class FileUtils {
      * Deletes the given file. If the given file exists but could not be deleted
      * this will be printed as a warning to the given logger
      *
-     * @param file
-     * @param logger
-     * @return
+     * @param file to delete
+     * @param logger to notify
+     * @return true if deleted
      */
     public static boolean deleteFile(final File file, final Logger logger) {
         return FileUtils.deleteFile(file, logger, 1);
@@ -64,8 +63,8 @@ public class FileUtils {
      * Deletes the given file. If the given file exists but could not be deleted
      * this will be printed as a warning to the given logger
      *
-     * @param file
-     * @param logger
+     * @param file to delete
+     * @param logger to notify
      * @param attempts indicates how many times an attempt to delete should be
      * made
      * @return true if given file no longer exists
@@ -101,9 +100,9 @@ public class FileUtils {
      * recursive) that match the given filename filter. If any file cannot be
      * deleted then this is printed at warn to the given logger.
      *
-     * @param directory
+     * @param directory to delete contents of
      * @param filter if null then no filter is used
-     * @param logger
+     * @param logger to notify
      */
     public static void deleteFilesInDir(final File directory, final FilenameFilter filter, final Logger logger) {
         FileUtils.deleteFilesInDir(directory, filter, logger, false);
@@ -114,10 +113,10 @@ public class FileUtils {
      * that match the given filename filter. If any file cannot be deleted then
      * this is printed at warn to the given logger.
      *
-     * @param directory
+     * @param directory to delete contents of
      * @param filter if null then no filter is used
-     * @param logger
-     * @param recurse
+     * @param logger to notify
+     * @param recurse true if should recurse
      */
     public static void deleteFilesInDir(final File directory, final FilenameFilter filter, final Logger logger, final boolean recurse) {
         FileUtils.deleteFilesInDir(directory, filter, logger, recurse, false);
@@ -128,9 +127,9 @@ public class FileUtils {
      * that match the given filename filter. If any file cannot be deleted then
      * this is printed at warn to the given logger.
      *
-     * @param directory
+     * @param directory to delete contents of
      * @param filter if null then no filter is used
-     * @param logger
+     * @param logger to notify
      * @param recurse will look for contents of sub directories.
      * @param deleteEmptyDirectories default is false; if true will delete
      * directories found that are empty
@@ -157,9 +156,9 @@ public class FileUtils {
     /**
      * Deletes given files.
      *
-     * @param files
+     * @param files to delete
      * @param recurse will recurse
-     * @throws IOException
+     * @throws IOException if issues deleting files
      */
     public static void deleteFiles(final Collection<File> files, final boolean recurse) throws IOException {
         for (final File file : files) {

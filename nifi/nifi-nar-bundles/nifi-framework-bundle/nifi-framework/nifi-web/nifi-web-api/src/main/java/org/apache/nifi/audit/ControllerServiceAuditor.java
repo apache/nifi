@@ -63,16 +63,12 @@ public class ControllerServiceAuditor extends NiFiAuditor {
     /**
      * Audits the creation of controller service via createControllerService().
      *
-     * This method only needs to be run 'after returning'. However, in Java 7
-     * the order in which these methods are returned from
-     * Class.getDeclaredMethods (even though there is no order guaranteed) seems
-     * to differ from Java 6. SpringAOP depends on this ordering to determine
-     * advice precedence. By normalizing all advice into Around advice we can
-     * alleviate this issue.
+     * This method only needs to be run 'after returning'. However, in Java 7 the order in which these methods are returned from Class.getDeclaredMethods (even though there is no order guaranteed)
+     * seems to differ from Java 6. SpringAOP depends on this ordering to determine advice precedence. By normalizing all advice into Around advice we can alleviate this issue.
      *
-     * @param proceedingJoinPoint
-     * @return
-     * @throws java.lang.Throwable
+     * @param proceedingJoinPoint join point
+     * @return node
+     * @throws java.lang.Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.ControllerServiceDAO+) && "
             + "execution(org.apache.nifi.controller.service.ControllerServiceNode createControllerService(org.apache.nifi.web.api.dto.ControllerServiceDTO))")
@@ -94,11 +90,11 @@ public class ControllerServiceAuditor extends NiFiAuditor {
     /**
      * Audits the configuration of a single controller service.
      *
-     * @param proceedingJoinPoint
-     * @param controllerServiceDTO
-     * @param controllerServiceDAO
-     * @return
-     * @throws Throwable
+     * @param proceedingJoinPoint join point
+     * @param controllerServiceDTO dto
+     * @param controllerServiceDAO dao
+     * @return object
+     * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.ControllerServiceDAO+) && "
             + "execution(org.apache.nifi.controller.service.ControllerServiceNode updateControllerService(org.apache.nifi.web.api.dto.ControllerServiceDTO)) && "
@@ -220,47 +216,49 @@ public class ControllerServiceAuditor extends NiFiAuditor {
     /**
      * Audits the update of a component referencing a controller service.
      *
-     * @param proceedingJoinPoint
-     * @param controllerServiceId
-     * @return
-     * @throws Throwable
+     * @param proceedingJoinPoint join point
+     * @return object
+     * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.ControllerServiceDAO+) && "
-            + "execution(org.apache.nifi.controller.service.ControllerServiceReference updateControllerServiceReferencingComponents(java.lang.String, org.apache.nifi.controller.ScheduledState, org.apache.nifi.controller.service.ControllerServiceState))")
+            + "execution(org.apache.nifi.controller.service.ControllerServiceReference "
+            + "updateControllerServiceReferencingComponents(java.lang.String, org.apache.nifi.controller.ScheduledState, "
+            + "org.apache.nifi.controller.service.ControllerServiceState))")
     public Object updateControllerServiceReferenceAdvice(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
         // update the controller service references
         final ControllerServiceReference controllerServiceReference = (ControllerServiceReference) proceedingJoinPoint.proceed();
-        
+
         // get the current user
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
-        
+
         if (user != null) {
             final Collection<Action> actions = new ArrayList<>();
             final Collection<String> visitedServices = new ArrayList<>();
             visitedServices.add(controllerServiceReference.getReferencedComponent().getIdentifier());
-            
+
             // get all applicable actions
             getUpdateActionsForReferencingComponents(user, actions, visitedServices, controllerServiceReference.getReferencingComponents());
-            
+
             // ensure there are actions to record
             if (!actions.isEmpty()) {
                 // save the actions
                 saveActions(actions, logger);
             }
         }
-        
+
         return controllerServiceReference;
     }
-    
+
     /**
      * Gets the update actions for all specified referencing components.
-     * 
-     * @param user
-     * @param actions
-     * @param visitedServices
-     * @param referencingComponents 
+     *
+     * @param user user
+     * @param actions actions
+     * @param visitedServices services
+     * @param referencingComponents components
      */
-    private void getUpdateActionsForReferencingComponents(final NiFiUser user, final Collection<Action> actions, final Collection<String> visitedServices, final Set<ConfiguredComponent> referencingComponents) {
+    private void getUpdateActionsForReferencingComponents(
+            final NiFiUser user, final Collection<Action> actions, final Collection<String> visitedServices, final Set<ConfiguredComponent> referencingComponents) {
         // consider each component updates
         for (final ConfiguredComponent component : referencingComponents) {
             if (component instanceof ProcessorNode) {
@@ -325,14 +323,14 @@ public class ControllerServiceAuditor extends NiFiAuditor {
             }
         }
     }
-    
+
     /**
      * Audits the removal of a controller service via deleteControllerService().
      *
-     * @param proceedingJoinPoint
-     * @param controllerServiceId
-     * @param controllerServiceDAO
-     * @throws Throwable
+     * @param proceedingJoinPoint join point
+     * @param controllerServiceId id
+     * @param controllerServiceDAO dao
+     * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.ControllerServiceDAO+) && "
             + "execution(void deleteControllerService(java.lang.String)) && "
@@ -358,9 +356,9 @@ public class ControllerServiceAuditor extends NiFiAuditor {
     /**
      * Generates an audit record for the creation of a controller service.
      *
-     * @param controllerService
-     * @param operation
-     * @return
+     * @param controllerService service
+     * @param operation operation
+     * @return action
      */
     private Action generateAuditRecord(ControllerServiceNode controllerService, Operation operation) {
         return generateAuditRecord(controllerService, operation, null);
@@ -369,10 +367,10 @@ public class ControllerServiceAuditor extends NiFiAuditor {
     /**
      * Generates an audit record for the creation of a controller service.
      *
-     * @param controllerService
-     * @param operation
-     * @param actionDetails
-     * @return
+     * @param controllerService service
+     * @param operation operation
+     * @param actionDetails details
+     * @return action
      */
     private Action generateAuditRecord(ControllerServiceNode controllerService, Operation operation, ActionDetails actionDetails) {
         Action action = null;
@@ -406,12 +404,11 @@ public class ControllerServiceAuditor extends NiFiAuditor {
     }
 
     /**
-     * Extracts the values for the configured properties from the specified
-     * ControllerService.
+     * Extracts the values for the configured properties from the specified ControllerService.
      *
-     * @param controllerService
-     * @param controllerServiceDTO
-     * @return
+     * @param controllerService service
+     * @param controllerServiceDTO dto
+     * @return properties
      */
     private Map<String, String> extractConfiguredPropertyValues(ControllerServiceNode controllerService, ControllerServiceDTO controllerServiceDTO) {
         Map<String, String> values = new HashMap<>();
@@ -447,12 +444,11 @@ public class ControllerServiceAuditor extends NiFiAuditor {
     }
 
     /**
-     * Locates the actual property descriptor for the given spec property
-     * descriptor.
+     * Locates the actual property descriptor for the given spec property descriptor.
      *
-     * @param propertyDescriptors
-     * @param specDescriptor
-     * @return
+     * @param propertyDescriptors descriptors
+     * @param specDescriptor example descriptor
+     * @return property
      */
     private PropertyDescriptor locatePropertyDescriptor(Set<PropertyDescriptor> propertyDescriptors, PropertyDescriptor specDescriptor) {
         for (PropertyDescriptor propertyDescriptor : propertyDescriptors) {
@@ -465,9 +461,9 @@ public class ControllerServiceAuditor extends NiFiAuditor {
 
     /**
      * Returns whether the specified controller service is disabled (or disabling).
-     * 
-     * @param controllerService
-     * @return 
+     *
+     * @param controllerService service
+     * @return whether the specified controller service is disabled (or disabling)
      */
     private boolean isDisabled(final ControllerServiceNode controllerService) {
         return ControllerServiceState.DISABLED.equals(controllerService.getState()) || ControllerServiceState.DISABLING.equals(controllerService.getState());

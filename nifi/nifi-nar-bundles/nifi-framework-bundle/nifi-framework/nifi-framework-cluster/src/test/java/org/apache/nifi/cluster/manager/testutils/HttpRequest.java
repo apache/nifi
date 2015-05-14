@@ -30,10 +30,8 @@ import javax.ws.rs.core.MediaType;
 import org.apache.commons.lang3.StringUtils;
 
 /**
- * Encapsulates an HTTP request. The toString method returns the
- * specification-compliant request.
+ * Encapsulates an HTTP request. The toString method returns the specification-compliant request.
  *
- * @author unattributed
  */
 public class HttpRequest {
 
@@ -97,9 +95,7 @@ public class HttpRequest {
     }
 
     /**
-     * A builder for constructing basic HTTP requests. It handles only enough of
-     * the HTTP specification to support basic unit testing, and it should not
-     * be used otherwise.
+     * A builder for constructing basic HTTP requests. It handles only enough of the HTTP specification to support basic unit testing, and it should not be used otherwise.
      */
     public static class HttpRequestBuilder {
 

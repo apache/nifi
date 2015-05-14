@@ -19,14 +19,15 @@ package org.apache.nifi.remote;
 import org.apache.nifi.remote.protocol.CommunicationsSession;
 
 public abstract class AbstractCommunicationsSession implements CommunicationsSession {
+
     private String userDn;
-    
+
     private volatile String uri;
-    
+
     public AbstractCommunicationsSession(final String uri) {
         this.uri = uri;
     }
-    
+
     @Override
     public String toString() {
         return uri;
@@ -46,7 +47,7 @@ public abstract class AbstractCommunicationsSession implements CommunicationsSes
     public String getUserDn() {
         return userDn;
     }
-    
+
     @Override
     public void setUserDn(final String dn) {
         this.userDn = dn;

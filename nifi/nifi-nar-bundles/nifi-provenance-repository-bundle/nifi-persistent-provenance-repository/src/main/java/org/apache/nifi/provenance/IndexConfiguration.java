@@ -92,7 +92,7 @@ public class IndexConfiguration {
             }
             return firstRecord.getEventTime();
         } catch (final FileNotFoundException | EOFException fnf) {
-            return null;	// file no longer exists or there's no record in this file
+            return null; // file no longer exists or there's no record in this file
         } catch (final IOException ioe) {
             logger.warn("Failed to read first entry in file {} due to {}", provenanceLogFile, ioe.toString());
             logger.warn("", ioe);
@@ -121,13 +121,13 @@ public class IndexConfiguration {
         }
     }
 
-    public File getWritableIndexDirectory(final File provenanceLogFile) {
+    public File getWritableIndexDirectory(final File provenanceLogFile, final long newIndexTimestamp) {
         lock.lock();
         try {
             final File storageDirectory = provenanceLogFile.getParentFile();
             List<File> indexDirectories = this.indexDirectoryMap.get(storageDirectory);
             if (indexDirectories == null) {
-                final File newDir = addNewIndex(storageDirectory, provenanceLogFile);
+                final File newDir = addNewIndex(storageDirectory, provenanceLogFile, newIndexTimestamp);
                 indexDirectories = new ArrayList<>();
                 indexDirectories.add(newDir);
                 indexDirectoryMap.put(storageDirectory, indexDirectories);
@@ -135,7 +135,7 @@ public class IndexConfiguration {
             }
 
             if (indexDirectories.isEmpty()) {
-                final File newDir = addNewIndex(storageDirectory, provenanceLogFile);
+                final File newDir = addNewIndex(storageDirectory, provenanceLogFile, newIndexTimestamp);
                 indexDirectories.add(newDir);
                 return newDir;
             }
@@ -143,7 +143,7 @@ public class IndexConfiguration {
             final File lastDir = indexDirectories.get(indexDirectories.size() - 1);
             final long size = getSize(lastDir);
             if (size > repoConfig.getDesiredIndexSize()) {
-                final File newDir = addNewIndex(storageDirectory, provenanceLogFile);
+                final File newDir = addNewIndex(storageDirectory, provenanceLogFile, newIndexTimestamp);
                 indexDirectories.add(newDir);
                 return newDir;
             } else {
@@ -154,14 +154,14 @@ public class IndexConfiguration {
         }
     }
 
-    private File addNewIndex(final File storageDirectory, final File provenanceLogFile) {
+    private File addNewIndex(final File storageDirectory, final File provenanceLogFile, final long newIndexTimestamp) {
         // Build the event time of the first record into the index's filename so that we can determine
         // which index files to look at when we perform a search. We use the timestamp of the first record
         // in the Provenance Log file, rather than the current time, because we may perform the Indexing
         // retroactively.
         Long firstEntryTime = getFirstEntryTime(provenanceLogFile);
         if (firstEntryTime == null) {
-            firstEntryTime = System.currentTimeMillis();
+            firstEntryTime = newIndexTimestamp;
         }
         return new File(storageDirectory, "index-" + firstEntryTime);
     }
@@ -201,7 +201,8 @@ public class IndexConfiguration {
      * desired
      * @param endTime the end time of the query for which the indices are
      * desired
-     * @return
+     * @return the index directories that are applicable only for the given time
+     * span (times inclusive).
      */
     public List<File> getIndexDirectories(final Long startTime, final Long endTime) {
         if (startTime == null && endTime == null) {
@@ -221,7 +222,7 @@ public class IndexConfiguration {
                 }
             });
 
-            for (File indexDir : sortedIndexDirectories) {
+            for (final File indexDir : sortedIndexDirectories) {
                 // If the index was last modified before the start time, we know that it doesn't
                 // contain any data for us to query.
                 if (startTime != null && indexDir.lastModified() < startTime) {
@@ -252,7 +253,8 @@ public class IndexConfiguration {
      *
      * @param provenanceLogFile the provenance log file for which the index
      * directories are desired
-     * @return
+     * @return the index directories that are applicable only for the given
+     * event log
      */
     public List<File> getIndexDirectories(final File provenanceLogFile) {
         final List<File> dirs = new ArrayList<>();
@@ -280,7 +282,7 @@ public class IndexConfiguration {
             }
 
             boolean foundIndexCreatedLater = false;
-            for (File indexDir : sortedIndexDirectories) {
+            for (final File indexDir : sortedIndexDirectories) {
                 // If the index was last modified before the log file was created, we know the index doesn't include
                 // any data for the provenance log.
                 if (indexDir.lastModified() < firstEntryTime) {
@@ -334,9 +336,7 @@ public class IndexConfiguration {
     }
 
     /**
-     * Returns the amount of disk space in bytes used by all of the indices
-     *
-     * @return
+     * @return the amount of disk space in bytes used by all of the indices
      */
     public long getIndexSize() {
         lock.lock();

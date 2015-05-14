@@ -23,10 +23,11 @@ public interface CommunicationsInput {
 
     /**
      * Reads all data currently on the socket and throws it away
-     * @throws IOException
+     *
+     * @throws IOException if unable to consume
      */
     void consume() throws IOException;
-    
+
     InputStream getInputStream() throws IOException;
 
     long getBytesRead();

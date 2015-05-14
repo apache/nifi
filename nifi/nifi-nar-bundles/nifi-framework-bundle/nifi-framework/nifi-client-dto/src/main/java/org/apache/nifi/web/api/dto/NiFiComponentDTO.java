@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import javax.xml.bind.annotation.XmlType;
 
 /**
@@ -46,6 +47,9 @@ public class NiFiComponentDTO {
      *
      * @return The id
      */
+    @ApiModelProperty(
+            value = "The id of the component."
+    )
     public String getId() {
         return this.id;
     }
@@ -55,10 +59,11 @@ public class NiFiComponentDTO {
     }
 
     /**
-     * The id for the parent group of this component if applicable, null otherwise.
-     *
-     * @return
+     * @return id for the parent group of this component if applicable, null otherwise
      */
+    @ApiModelProperty(
+            value = "The id of parent process group of this component if applicable."
+    )
     public String getParentGroupId() {
         return parentGroupId;
     }
@@ -72,6 +77,9 @@ public class NiFiComponentDTO {
      *
      * @return The uri
      */
+    @ApiModelProperty(
+            value = "The URI for futures requests to the component."
+    )
     public String getUri() {
         return uri;
     }
@@ -89,6 +97,9 @@ public class NiFiComponentDTO {
      *
      * @return The position
      */
+    @ApiModelProperty(
+            value = "The position of this component in the UI if applicable."
+    )
     public PositionDTO getPosition() {
         return position;
     }

@@ -69,8 +69,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Responsible for scheduling Processors, Ports, and Funnels to run at regular
- * intervals
+ * Responsible for scheduling Processors, Ports, and Funnels to run at regular intervals
  */
 public final class StandardProcessScheduler implements ProcessScheduler {
 
@@ -147,12 +146,11 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                 LOG.error("", t);
             }
         }
-        
+
         frameworkTaskExecutor.shutdown();
         componentLifeCycleThreadPool.shutdown();
     }
 
-    
     @Override
     public void schedule(final ReportingTaskNode taskNode) {
         final ScheduleState scheduleState = getScheduleState(requireNonNull(taskNode));
@@ -182,15 +180,15 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
                     try {
                         try (final NarCloseable x = NarCloseable.withNarLoader()) {
-                            ReflectionUtils.invokeMethodsWithAnnotation(OnConfigured.class, OnScheduled.class, reportingTask, taskNode.getConfigurationContext());
+                            ReflectionUtils.invokeMethodsWithAnnotations(OnScheduled.class, OnConfigured.class, reportingTask, taskNode.getConfigurationContext());
                         }
-                        
+
                         break;
                     } catch (final Exception e) {
                         final Throwable cause = (e instanceof InvocationTargetException) ? e.getCause() : e;
                         final ComponentLog componentLog = new SimpleProcessLogger(reportingTask.getIdentifier(), reportingTask);
                         componentLog.error("Failed to invoke @OnEnabled method due to {}", cause);
-                        
+
                         LOG.error("Failed to invoke the On-Scheduled Lifecycle methods of {} due to {}; administratively yielding this ReportingTask and will attempt to schedule it again after {}",
                                 new Object[]{reportingTask, e.toString(), administrativeYieldDuration}, e);
                         try {
@@ -208,20 +206,19 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         taskNode.setScheduledState(ScheduledState.RUNNING);
     }
 
-    
     @Override
     public void unschedule(final ReportingTaskNode taskNode) {
         final ScheduleState scheduleState = getScheduleState(requireNonNull(taskNode));
         if (!scheduleState.isScheduled()) {
             return;
         }
-        
+
         taskNode.verifyCanStop();
         final SchedulingAgent agent = getSchedulingAgent(taskNode.getSchedulingStrategy());
         final ReportingTask reportingTask = taskNode.getReportingTask();
         scheduleState.setScheduled(false);
         taskNode.setScheduledState(ScheduledState.STOPPED);
-        
+
         final Runnable unscheduleReportingTaskRunnable = new Runnable() {
             @SuppressWarnings("deprecation")
             @Override
@@ -230,7 +227,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
                 try {
                     try (final NarCloseable x = NarCloseable.withNarLoader()) {
-                        ReflectionUtils.invokeMethodsWithAnnotation(OnUnscheduled.class, org.apache.nifi.processor.annotation.OnUnscheduled.class, reportingTask, configurationContext);
+                        ReflectionUtils.invokeMethodsWithAnnotations(OnUnscheduled.class, org.apache.nifi.processor.annotation.OnUnscheduled.class, reportingTask, configurationContext);
                     }
                 } catch (final Exception e) {
                     final Throwable cause = (e instanceof InvocationTargetException) ? e.getCause() : e;
@@ -240,7 +237,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                     LOG.error("Failed to invoke the @OnUnscheduled methods of {} due to {}; administratively yielding this ReportingTask and will attempt to schedule it again after {}",
                             reportingTask, cause.toString(), administrativeYieldDuration);
                     LOG.error("", cause);
-                    
+
                     try {
                         Thread.sleep(administrativeYieldMillis);
                     } catch (final InterruptedException ie) {
@@ -250,7 +247,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                 agent.unschedule(taskNode, scheduleState);
 
                 if (scheduleState.getActiveThreadCount() == 0 && scheduleState.mustCallOnStoppedMethods()) {
-                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, org.apache.nifi.processor.annotation.OnStopped.class, reportingTask, configurationContext);
+                    ReflectionUtils.quietlyInvokeMethodsWithAnnotations(OnStopped.class, org.apache.nifi.processor.annotation.OnStopped.class, reportingTask, configurationContext);
                 }
             }
         };
@@ -259,10 +256,8 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     }
 
     /**
-     * Starts scheduling the given processor to run after invoking all methods
-     * on the underlying {@link nifi.processor.Processor
-     * FlowFileProcessor} that are annotated with the {@link OnScheduled}
-     * annotation.
+     * Starts scheduling the given processor to run after invoking all methods on the underlying {@link nifi.processor.Processor
+     * FlowFileProcessor} that are annotated with the {@link OnScheduled} annotation.
      */
     @Override
     public synchronized void startProcessor(final ProcessorNode procNode) {
@@ -293,32 +288,32 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                     final StandardProcessContext processContext = new StandardProcessContext(procNode, controllerServiceProvider, encryptor);
 
                     final Set<String> serviceIds = new HashSet<>();
-                    for ( final PropertyDescriptor descriptor : processContext.getProperties().keySet() ) {
+                    for (final PropertyDescriptor descriptor : processContext.getProperties().keySet()) {
                         final Class<? extends ControllerService> serviceDefinition = descriptor.getControllerServiceDefinition();
-                        if ( serviceDefinition != null ) {
+                        if (serviceDefinition != null) {
                             final String serviceId = processContext.getProperty(descriptor).getValue();
-                            if ( serviceId != null ) {
-                            	serviceIds.add(serviceId);
+                            if (serviceId != null) {
+                                serviceIds.add(serviceId);
                             }
                         }
                     }
-                    
-                    attemptOnScheduled: while (true) {
+
+                    attemptOnScheduled:
+                    while (true) {
                         try {
                             synchronized (scheduleState) {
-                                for ( final String serviceId : serviceIds ) {
+                                for (final String serviceId : serviceIds) {
                                     final boolean enabled = processContext.isControllerServiceEnabled(serviceId);
-                                    if ( !enabled ) {
+                                    if (!enabled) {
                                         LOG.debug("Controller Service with ID {} is not yet enabled, so will not start {} yet", serviceId, procNode);
                                         Thread.sleep(administrativeYieldMillis);
                                         continue attemptOnScheduled;
                                     }
                                 }
-                                
+
                                 // if no longer scheduled to run, then we're finished. This can happen, for example,
-                                // if the @OnScheduled method throws an Exception and the user stops the processor 
+                                // if the @OnScheduled method throws an Exception and the user stops the processor
                                 // while we're administratively yielded.
-                                // 
                                 // we also check if the schedule state's last start time is equal to what it was before.
                                 // if not, then means that the processor has been stopped and started again, so we should just
                                 // bail; another thread will be responsible for invoking the @OnScheduled methods.
@@ -327,7 +322,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                                 }
 
                                 final SchedulingContext schedulingContext = new StandardSchedulingContext(processContext, controllerServiceProvider, procNode);
-                                ReflectionUtils.invokeMethodsWithAnnotation(OnScheduled.class, org.apache.nifi.processor.annotation.OnScheduled.class, procNode.getProcessor(), schedulingContext);
+                                ReflectionUtils.invokeMethodsWithAnnotations(OnScheduled.class, org.apache.nifi.processor.annotation.OnScheduled.class, procNode.getProcessor(), schedulingContext);
 
                                 getSchedulingAgent(procNode).schedule(procNode, scheduleState);
 
@@ -363,12 +358,6 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         componentLifeCycleThreadPool.execute(startProcRunnable);
     }
 
-    /**
-     * Used to delay scheduling the given Processor to run until its yield
-     * duration expires.
-     *
-     * @param procNode
-     */
     @Override
     public void yield(final ProcessorNode procNode) {
         // This exists in the ProcessScheduler so that the scheduler can take advantage of the fact that
@@ -381,15 +370,14 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         // the context. If this Processor has X number of threads, we end up submitting X new tasks while the previous
         // X-1 tasks are still running. At this point, another thread could finish and do the same thing, resulting in
         // an additional X-1 extra tasks being submitted.
-        // 
+        //
         // As a result, we simply removed this buggy implementation, as it was a very minor performance optimization
         // that gave very bad results.
     }
 
     /**
-     * Stops scheduling the given processor to run and invokes all methods on
-     * the underlying {@link nifi.processor.Processor FlowFileProcessor} that
-     * are annotated with the {@link OnUnscheduled} annotation.
+     * Stops scheduling the given processor to run and invokes all methods on the underlying {@link nifi.processor.Processor FlowFileProcessor} that are annotated with the {@link OnUnscheduled}
+     * annotation.
      */
     @Override
     public synchronized void stopProcessor(final ProcessorNode procNode) {
@@ -431,24 +419,11 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         getSchedulingAgent(worker).onEvent(worker);
     }
 
-    /**
-     * Returns the number of threads that are currently active for the given
-     * <code>Connectable</code>.
-     *
-     * @return
-     */
     @Override
     public int getActiveThreadCount(final Object scheduled) {
         return getScheduleState(scheduled).getActiveThreadCount();
     }
 
-    /**
-     * Begins scheduling the given port to run.
-     *
-     * @throws NullPointerException if the Port is null
-     * @throws IllegalStateException if the Port is already scheduled to run or
-     * has threads running
-     */
     @Override
     public void startPort(final Port port) {
         if (!port.isValid()) {
@@ -501,7 +476,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         if (!state.isScheduled()) {
             return;
         }
-        
+
         state.setScheduled(false);
         getSchedulingAgent(connectable).unschedule(connectable, state);
 
@@ -561,7 +536,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         if (procNode.getScheduledState() != ScheduledState.DISABLED) {
             throw new IllegalStateException("Processor cannot be enabled because it is not disabled");
         }
-        
+
         procNode.setScheduledState(ScheduledState.STOPPED);
     }
 
@@ -570,21 +545,22 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         if (procNode.getScheduledState() != ScheduledState.STOPPED) {
             throw new IllegalStateException("Processor cannot be disabled because its state is set to " + procNode.getScheduledState());
         }
-        
+
         procNode.setScheduledState(ScheduledState.DISABLED);
     }
 
     public synchronized void enableReportingTask(final ReportingTaskNode taskNode) {
-        if ( taskNode.getScheduledState() != ScheduledState.DISABLED ) {
+        if (taskNode.getScheduledState() != ScheduledState.DISABLED) {
             throw new IllegalStateException("Reporting Task cannot be enabled because it is not disabled");
         }
 
         taskNode.setScheduledState(ScheduledState.STOPPED);
     }
-    
+
     public synchronized void disableReportingTask(final ReportingTaskNode taskNode) {
-        if ( taskNode.getScheduledState() != ScheduledState.STOPPED ) {
-            throw new IllegalStateException("Reporting Task cannot be disabled because its state is set to " + taskNode.getScheduledState() + " but transition to DISABLED state is allowed only from the STOPPED state");
+        if (taskNode.getScheduledState() != ScheduledState.STOPPED) {
+            throw new IllegalStateException("Reporting Task cannot be disabled because its state is set to " + taskNode.getScheduledState()
+                    + " but transition to DISABLED state is allowed only from the STOPPED state");
         }
 
         taskNode.setScheduledState(ScheduledState.DISABLED);
@@ -597,12 +573,10 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     }
 
     /**
-     * Returns the ScheduleState that is registered for the given component;
-     * if no ScheduleState current is registered, one is created and registered
-     * atomically, and then that value is returned.
+     * Returns the ScheduleState that is registered for the given component; if no ScheduleState current is registered, one is created and registered atomically, and then that value is returned.
      *
-     * @param schedulable
-     * @return
+     * @param schedulable schedulable
+     * @return scheduled state
      */
     private ScheduleState getScheduleState(final Object schedulable) {
         ScheduleState scheduleState = scheduleStates.get(schedulable);
@@ -620,21 +594,21 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     public void enableControllerService(final ControllerServiceNode service) {
         service.setState(ControllerServiceState.ENABLING);
         final ScheduleState scheduleState = getScheduleState(service);
-        
+
         final Runnable enableRunnable = new Runnable() {
             @Override
             public void run() {
                 try (final NarCloseable x = NarCloseable.withNarLoader()) {
                     long lastStopTime = scheduleState.getLastStopTime();
                     final ConfigurationContext configContext = new StandardConfigurationContext(service, controllerServiceProvider);
-                    
+
                     while (true) {
                         try {
                             synchronized (scheduleState) {
                                 // if no longer enabled, then we're finished. This can happen, for example,
                                 // if the @OnEnabled method throws an Exception and the user disables the service
                                 // while we're administratively yielded.
-                                // 
+                                //
                                 // we also check if the schedule state's last stop time is equal to what it was before.
                                 // if not, then means that the service has been disabled and enabled again, so we should just
                                 // bail; another thread will be responsible for invoking the @OnEnabled methods.
@@ -649,11 +623,11 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                             }
                         } catch (final Exception e) {
                             final Throwable cause = (e instanceof InvocationTargetException) ? e.getCause() : e;
-                            
+
                             final ComponentLog componentLog = new SimpleProcessLogger(service.getIdentifier(), service);
                             componentLog.error("Failed to invoke @OnEnabled method due to {}", cause);
                             LOG.error("Failed to invoke @OnEnabled method of {} due to {}", service.getControllerServiceImplementation(), cause.toString());
-                            if ( LOG.isDebugEnabled() ) {
+                            if (LOG.isDebugEnabled()) {
                                 LOG.error("", cause);
                             }
 
@@ -666,15 +640,15 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                     final Throwable cause = (t instanceof InvocationTargetException) ? t.getCause() : t;
                     final ComponentLog componentLog = new SimpleProcessLogger(service.getIdentifier(), service);
                     componentLog.error("Failed to invoke @OnEnabled method due to {}", cause);
-                    
+
                     LOG.error("Failed to invoke @OnEnabled method on {} due to {}", service.getControllerServiceImplementation(), cause.toString());
-                    if ( LOG.isDebugEnabled() ) {
+                    if (LOG.isDebugEnabled()) {
                         LOG.error("", cause);
                     }
                 }
             }
         };
-        
+
         scheduleState.setScheduled(true);
         componentLifeCycleThreadPool.execute(enableRunnable);
     }
@@ -682,7 +656,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     @Override
     public void disableControllerService(final ControllerServiceNode service) {
         service.verifyCanDisable();
-        
+
         final ScheduleState state = getScheduleState(requireNonNull(service));
         final Runnable disableRunnable = new Runnable() {
             @Override
@@ -693,8 +667,8 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
                 try (final NarCloseable x = NarCloseable.withNarLoader()) {
                     final ConfigurationContext configContext = new StandardConfigurationContext(service, controllerServiceProvider);
-                    
-                    while(true) {
+
+                    while (true) {
                         try {
                             ReflectionUtils.invokeMethodsWithAnnotation(OnDisabled.class, service.getControllerServiceImplementation(), configContext);
                             heartbeater.heartbeat();
@@ -704,17 +678,18 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                             final Throwable cause = (e instanceof InvocationTargetException) ? e.getCause() : e;
                             final ComponentLog componentLog = new SimpleProcessLogger(service.getIdentifier(), service);
                             componentLog.error("Failed to invoke @OnDisabled method due to {}", cause);
-                            
+
                             LOG.error("Failed to invoke @OnDisabled method of {} due to {}", service.getControllerServiceImplementation(), cause.toString());
-                            if ( LOG.isDebugEnabled() ) {
+                            if (LOG.isDebugEnabled()) {
                                 LOG.error("", cause);
                             }
-        
+
                             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnDisabled.class, service.getControllerServiceImplementation(), configContext);
                             try {
                                 Thread.sleep(administrativeYieldMillis);
-                            } catch (final InterruptedException ie) {}
-                            
+                            } catch (final InterruptedException ie) {
+                            }
+
                             continue;
                         }
                     }
@@ -723,6 +698,6 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         };
 
         service.setState(ControllerServiceState.DISABLING);
-        componentLifeCycleThreadPool.execute(disableRunnable);        
+        componentLifeCycleThreadPool.execute(disableRunnable);
     }
 }

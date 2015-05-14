@@ -23,12 +23,11 @@ import org.apache.nifi.cluster.protocol.ProtocolHandler;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
 
 /**
- * @author unattributed
  */
 public class ReflexiveProtocolHandler implements ProtocolHandler {
-    
+
     private List<ProtocolMessage> messages = new ArrayList<>();
-        
+
     @Override
     public ProtocolMessage handle(ProtocolMessage msg) throws ProtocolException {
         messages.add(msg);
@@ -43,5 +42,5 @@ public class ReflexiveProtocolHandler implements ProtocolHandler {
     public List<ProtocolMessage> getMessages() {
         return messages;
     }
-    
+
 }

@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.cluster.manager.impl;
 
-import org.apache.nifi.cluster.manager.impl.HttpResponseMapperImpl;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.core.util.MultivaluedMapImpl;
 import java.io.ByteArrayInputStream;
@@ -29,13 +28,13 @@ import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.node.Node;
 import org.apache.nifi.cluster.node.Node.Status;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import static org.junit.Assert.assertTrue;
 import org.junit.Before;
 import org.junit.Test;
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
- * @author unattributed
  */
 public class HttpResponseMapperImplTest {
 

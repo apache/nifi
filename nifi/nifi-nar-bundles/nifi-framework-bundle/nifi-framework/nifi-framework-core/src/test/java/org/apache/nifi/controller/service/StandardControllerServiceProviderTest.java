@@ -27,45 +27,45 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class StandardControllerServiceProviderTest {
-	
+
     private ControllerService proxied;
     private ControllerService implementation;
-    
+
     @BeforeClass
     public static void setupSuite() throws Exception {
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, StandardFlowServiceTest.class.getResource("/conf/nifi.properties").getFile());
         NiFiProperties properties = NiFiProperties.getInstance();
         NarClassLoaders.load(properties);
-    	ExtensionManager.discoverExtensions();
+        ExtensionManager.discoverExtensions();
     }
 
     @Before
     public void setup() throws Exception {
-    	String id = "id";
-    	String clazz = "org.apache.nifi.controller.service.util.TestControllerService";  
-    	ControllerServiceProvider provider = new StandardControllerServiceProvider(null, null);
-    	ControllerServiceNode node = provider.createControllerService(clazz,id,true);
-    	proxied = node.getProxiedControllerService();
-    	implementation = node.getControllerServiceImplementation();
+        String id = "id";
+        String clazz = "org.apache.nifi.controller.service.util.TestControllerService";
+        ControllerServiceProvider provider = new StandardControllerServiceProvider(null, null);
+        ControllerServiceNode node = provider.createControllerService(clazz, id, true);
+        proxied = node.getProxiedControllerService();
+        implementation = node.getControllerServiceImplementation();
     }
-	
-    @Test (expected=UnsupportedOperationException.class)
-    public void testCallProxiedOnPropertyModified() {	
-		proxied.onPropertyModified(null, "oldValue", "newValue");
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testCallProxiedOnPropertyModified() {
+        proxied.onPropertyModified(null, "oldValue", "newValue");
     }
-    
+
     @Test
-    public void testCallImplementationOnPropertyModified() {	
-    	implementation.onPropertyModified(null, "oldValue", "newValue");
+    public void testCallImplementationOnPropertyModified() {
+        implementation.onPropertyModified(null, "oldValue", "newValue");
     }
-    
-    @Test (expected=UnsupportedOperationException.class)
-    public void testCallProxiedInitialized() throws InitializationException {	
-		proxied.initialize(null);
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testCallProxiedInitialized() throws InitializationException {
+        proxied.initialize(null);
     }
-    
+
     @Test
-    public void testCallImplementationInitialized() throws InitializationException {	
-    	implementation.initialize(null);
+    public void testCallImplementationInitialized() throws InitializationException {
+        implementation.initialize(null);
     }
 }

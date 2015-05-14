@@ -19,6 +19,8 @@
 
 nf.CanvasHeader = (function () {
 
+    var MIN_TOOLBAR_WIDTH = 640;
+
     var config = {
         urls: {
             helpDocument: '../nifi-docs/documentation',
@@ -308,6 +310,21 @@ nf.CanvasHeader = (function () {
                     }
                 }
             });
+            
+            var toolbar = $('#toolbar');
+            var groupButton = $('#action-group');
+            $(window).on('resize', function() {
+                if (toolbar.width() < MIN_TOOLBAR_WIDTH && groupButton.is(':visible')) {
+                    toolbar.find('.secondary').hide();
+                } else if (toolbar.width() > MIN_TOOLBAR_WIDTH && groupButton.is(':hidden')) {
+                    toolbar.find('.secondary').show();
+                }
+            });
+            
+            // set up the initial visibility
+            if (toolbar.width() < MIN_TOOLBAR_WIDTH) {
+                toolbar.find('.secondary').hide();
+            }
         },
         
         /**

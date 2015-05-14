@@ -45,31 +45,23 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Implements FlowManagementService interface. The service tries to keep the
- * cluster's flow current with regards to the available nodes.
+ * Implements FlowManagementService interface. The service tries to keep the cluster's flow current with regards to the available nodes.
  *
- * The instance may be configured with a retrieval delay, which will reduce the
- * number of retrievals performed by the service at the expense of increasing
- * the chances that the service will not be able to provide a current flow to
- * the caller.
+ * The instance may be configured with a retrieval delay, which will reduce the number of retrievals performed by the service at the expense of increasing the chances that the service will not be able
+ * to provide a current flow to the caller.
  *
- * By default, the service will try to update the flow as quickly as possible.
- * Configuring a delay enables a less aggressive retrieval strategy.
- * Specifically, the eligible retrieval time is reset every time the flow state
- * is set to STALE. If the state is set to UNKNOWN or CURRENT, then the flow
- * will not be retrieved.
+ * By default, the service will try to update the flow as quickly as possible. Configuring a delay enables a less aggressive retrieval strategy. Specifically, the eligible retrieval time is reset
+ * every time the flow state is set to STALE. If the state is set to UNKNOWN or CURRENT, then the flow will not be retrieved.
  *
- * @author unattributed
  */
 public class DataFlowManagementServiceImpl implements DataFlowManagementService {
 
     /*
-     * Developer Note: 
-     * 
+     * Developer Note:
+     *
      * This class maintains an ExecutorService and a Runnable.
      * Although the class is not externally threadsafe, its internals are protected to
      * accommodate multithread access between the ExecutorServer and the Runnable.
-     * 
      */
     private static final Logger logger = new NiFiLog(LoggerFactory.getLogger(DataFlowManagementServiceImpl.class));
 
@@ -170,13 +162,12 @@ public class DataFlowManagementServiceImpl implements DataFlowManagementService 
             resourceLock.unlock("updatePrimaryNode");
         }
     }
-    
-    
+
     @Override
     public void updateControllerServices(final byte[] controllerServiceBytes) throws DaoException {
-    	resourceLock.lock();
-    	try {
-    		final ClusterDataFlow existingClusterDataFlow = flowDao.loadDataFlow();
+        resourceLock.lock();
+        try {
+            final ClusterDataFlow existingClusterDataFlow = flowDao.loadDataFlow();
 
             final StandardDataFlow dataFlow;
             final byte[] reportingTaskBytes;
@@ -192,16 +183,16 @@ public class DataFlowManagementServiceImpl implements DataFlowManagementService 
             }
 
             flowDao.saveDataFlow(new ClusterDataFlow(dataFlow, nodeId, controllerServiceBytes, reportingTaskBytes));
-    	} finally {
-    		resourceLock.unlock("updateControllerServices");
-    	}
+        } finally {
+            resourceLock.unlock("updateControllerServices");
+        }
     }
-    
+
     @Override
     public void updateReportingTasks(final byte[] reportingTaskBytes) throws DaoException {
-    	resourceLock.lock();
-    	try {
-    		final ClusterDataFlow existingClusterDataFlow = flowDao.loadDataFlow();
+        resourceLock.lock();
+        try {
+            final ClusterDataFlow existingClusterDataFlow = flowDao.loadDataFlow();
 
             final StandardDataFlow dataFlow;
             final byte[] controllerServiceBytes;
@@ -217,9 +208,9 @@ public class DataFlowManagementServiceImpl implements DataFlowManagementService 
             }
 
             flowDao.saveDataFlow(new ClusterDataFlow(dataFlow, nodeId, controllerServiceBytes, reportingTaskBytes));
-    	} finally {
-    		resourceLock.unlock("updateControllerServices");
-    	}
+        } finally {
+            resourceLock.unlock("updateControllerServices");
+        }
     }
 
     @Override
@@ -300,8 +291,7 @@ public class DataFlowManagementServiceImpl implements DataFlowManagementService 
     }
 
     /**
-     * A timer task for issuing FlowRequestMessage messages to nodes to retrieve
-     * an updated flow.
+     * A timer task for issuing FlowRequestMessage messages to nodes to retrieve an updated flow.
      */
     private class FlowRetrieverTimerTask extends TimerTask {
 
@@ -361,8 +351,8 @@ public class DataFlowManagementServiceImpl implements DataFlowManagementService 
                             if (existingClusterDataFlow == null) {
                                 currentClusterDataFlow = new ClusterDataFlow(dataFlow, null, new byte[0], new byte[0]);
                             } else {
-                                currentClusterDataFlow = new ClusterDataFlow(dataFlow, existingClusterDataFlow.getPrimaryNodeId(), 
-                                		existingClusterDataFlow.getControllerServices(), existingClusterDataFlow.getReportingTasks());
+                                currentClusterDataFlow = new ClusterDataFlow(dataFlow, existingClusterDataFlow.getPrimaryNodeId(),
+                                        existingClusterDataFlow.getControllerServices(), existingClusterDataFlow.getReportingTasks());
                             }
                             flowDao.saveDataFlow(currentClusterDataFlow);
                             flowDao.setPersistedFlowState(PersistedFlowState.CURRENT);

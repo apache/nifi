@@ -47,16 +47,12 @@ public class ProcessGroupAuditor extends NiFiAuditor {
     /**
      * Audits the creation of process groups via createProcessGroup().
      *
-     * This method only needs to be run 'after returning'. However, in Java 7
-     * the order in which these methods are returned from
-     * Class.getDeclaredMethods (even though there is no order guaranteed) seems
-     * to differ from Java 6. SpringAOP depends on this ordering to determine
-     * advice precedence. By normalizing all advice into Around advice we can
-     * alleviate this issue.
+     * This method only needs to be run 'after returning'. However, in Java 7 the order in which these methods are returned from Class.getDeclaredMethods (even though there is no order guaranteed)
+     * seems to differ from Java 6. SpringAOP depends on this ordering to determine advice precedence. By normalizing all advice into Around advice we can alleviate this issue.
      *
-     * @param proceedingJoinPoint
-     * @return 
-     * @throws java.lang.Throwable
+     * @param proceedingJoinPoint join point
+     * @return group
+     * @throws java.lang.Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.ProcessGroupDAO+) && "
             + "execution(org.apache.nifi.groups.ProcessGroup createProcessGroup(java.lang.String, org.apache.nifi.web.api.dto.ProcessGroupDTO))")
@@ -79,10 +75,10 @@ public class ProcessGroupAuditor extends NiFiAuditor {
     /**
      * Audits the update of process group configuration.
      *
-     * @param proceedingJoinPoint
-     * @param processGroupDTO
-     * @return
-     * @throws Throwable
+     * @param proceedingJoinPoint join point
+     * @param processGroupDTO dto
+     * @return group
+     * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.ProcessGroupDAO+) && "
             + "execution(org.apache.nifi.groups.ProcessGroup updateProcessGroup(org.apache.nifi.web.api.dto.ProcessGroupDTO)) && "
@@ -190,9 +186,9 @@ public class ProcessGroupAuditor extends NiFiAuditor {
     /**
      * Audits the removal of a process group via deleteProcessGroup().
      *
-     * @param proceedingJoinPoint
-     * @param groupId
-     * @throws Throwable
+     * @param proceedingJoinPoint join point
+     * @param groupId group id
+     * @throws Throwable ex
      */
     @Around("within(org.apache.nifi.web.dao.ProcessGroupDAO+) && "
             + "execution(void deleteProcessGroup(java.lang.String)) && "
@@ -218,9 +214,9 @@ public class ProcessGroupAuditor extends NiFiAuditor {
     /**
      * Generates an audit record for the creation of a process group.
      *
-     * @param processGroup
-     * @param operation
-     * @return
+     * @param processGroup group
+     * @param operation operation
+     * @return action
      */
     public Action generateAuditRecord(ProcessGroup processGroup, Operation operation) {
         return generateAuditRecord(processGroup, operation, null);
@@ -229,10 +225,10 @@ public class ProcessGroupAuditor extends NiFiAuditor {
     /**
      * Generates an audit record for the creation of a process group.
      *
-     * @param processGroup
-     * @param operation
-     * @param actionDetails
-     * @return
+     * @param processGroup group
+     * @param operation operation
+     * @param actionDetails details
+     * @return action
      */
     public Action generateAuditRecord(ProcessGroup processGroup, Operation operation, ActionDetails actionDetails) {
         Action action = null;

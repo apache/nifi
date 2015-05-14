@@ -22,7 +22,6 @@ import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.reporting.Bulletin;
 
 /**
- * @author unattributed
  */
 public class BulletinAdapter extends XmlAdapter<AdaptedBulletin, Bulletin> {
 

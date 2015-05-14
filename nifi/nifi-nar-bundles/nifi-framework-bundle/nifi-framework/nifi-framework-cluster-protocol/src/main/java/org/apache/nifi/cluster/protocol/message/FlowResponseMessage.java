@@ -21,13 +21,12 @@ import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
 
 /**
- * @author unattributed
  */
 @XmlRootElement(name = "flowResponseMessage")
 public class FlowResponseMessage extends ProtocolMessage {
-    
+
     private StandardDataFlow dataFlow;
-    
+
     @Override
     public MessageType getType() {
         return MessageType.FLOW_RESPONSE;

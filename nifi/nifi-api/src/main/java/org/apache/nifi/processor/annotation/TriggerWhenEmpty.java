@@ -31,8 +31,8 @@ import java.lang.annotation.Target;
  * have non-self incoming edges will only be triggered if they have work in
  * their queue or they present this annotation.
  *
- * @author none
- * @deprecated This Annotation has been replaced by the {@link org.apache.nifi.annotation.behavior.TriggerWhenEmpty} annotation.
+ * @deprecated This Annotation has been replaced by the
+ * {@link org.apache.nifi.annotation.behavior.TriggerWhenEmpty} annotation.
  */
 @Documented
 @Target({ElementType.TYPE})

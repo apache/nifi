@@ -27,15 +27,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Represents a connected flow controller. Nodes always have an immutable
- * identifier and a status. The status may be changed, but never null.
+ * Represents a connected flow controller. Nodes always have an immutable identifier and a status. The status may be changed, but never null.
  *
  * A Node may be cloned, but the cloning is a shallow copy of the instance.
  *
- * This class overrides hashCode and equals and considers two instances to be
- * equal if they have the equal NodeIdentifiers.
+ * This class overrides hashCode and equals and considers two instances to be equal if they have the equal NodeIdentifiers.
  *
- * @author unattributed
  */
 public class Node implements Cloneable, Comparable<Node> {
 
@@ -44,19 +41,12 @@ public class Node implements Cloneable, Comparable<Node> {
     /**
      * The semantics of a Node status are as follows:
      * <ul>
-     * <li>CONNECTED -- a flow controller that is connected to the cluster. A
-     * connecting node transitions to connected after the cluster receives the
-     * flow controller's first heartbeat. A connected node can transition to
-     * disconnecting.</li>
-     * <li>CONNECTING -- a flow controller has issued a connection request to
-     * the cluster, but has not yet sent a heartbeat. A connecting node can
-     * transition to disconnecting or connected. The cluster will not accept any
-     * external requests to change the flow while any node is connecting.</li>
-     * <li>DISCONNECTED -- a flow controller that is not connected to the
-     * cluster. A disconnected node can transition to connecting.</li>
-     * <li>DISCONNECTING -- a flow controller that is in the process of
-     * disconnecting from the cluster. A disconnecting node will always
-     * transition to disconnected.</li>
+     * <li>CONNECTED -- a flow controller that is connected to the cluster. A connecting node transitions to connected after the cluster receives the flow controller's first heartbeat. A connected
+     * node can transition to disconnecting.</li>
+     * <li>CONNECTING -- a flow controller has issued a connection request to the cluster, but has not yet sent a heartbeat. A connecting node can transition to disconnecting or connected. The cluster
+     * will not accept any external requests to change the flow while any node is connecting.</li>
+     * <li>DISCONNECTED -- a flow controller that is not connected to the cluster. A disconnected node can transition to connecting.</li>
+     * <li>DISCONNECTING -- a flow controller that is in the process of disconnecting from the cluster. A disconnecting node will always transition to disconnected.</li>
      * </ul>
      */
     public static enum Status {
@@ -93,8 +83,7 @@ public class Node implements Cloneable, Comparable<Node> {
     private AtomicLong connectionRequestedTimestamp = new AtomicLong(0L);
 
     /**
-     * a flag to indicate this node was disconnected because of a lack of
-     * heartbeat
+     * a flag to indicate this node was disconnected because of a lack of heartbeat
      */
     private boolean heartbeatDisconnection;
 
@@ -156,31 +145,27 @@ public class Node implements Cloneable, Comparable<Node> {
     }
 
     /**
-     * Sets the time when the connection request for this node was last
-     * received.
+     * Sets the time when the connection request for this node was last received.
      *
      * This method is thread-safe and may be called without obtaining any lock.
      *
-     * @param connectionRequestedTimestamp
+     * @param connectionRequestedTimestamp timestamp
      */
     public void setConnectionRequestedTimestamp(long connectionRequestedTimestamp) {
         this.connectionRequestedTimestamp.set(connectionRequestedTimestamp);
     }
 
     /**
-     * Returns true if the node was disconnected due to lack of heartbeat; false
-     * otherwise.
+     * Returns true if the node was disconnected due to lack of heartbeat; false otherwise.
      *
-     * @return true if the node was disconnected due to lack of heartbeat; false
-     * otherwise.
+     * @return true if the node was disconnected due to lack of heartbeat; false otherwise.
      */
     public boolean isHeartbeatDisconnection() {
         return heartbeatDisconnection;
     }
 
     /**
-     * Sets the status to disconnected and flags the node as being disconnected
-     * by lack of heartbeat.
+     * Sets the status to disconnected and flags the node as being disconnected by lack of heartbeat.
      */
     public void setHeartbeatDisconnection() {
         setStatus(Status.DISCONNECTED);

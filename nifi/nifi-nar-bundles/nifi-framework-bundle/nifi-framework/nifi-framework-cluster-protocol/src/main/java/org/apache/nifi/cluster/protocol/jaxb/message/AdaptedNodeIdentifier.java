@@ -17,21 +17,21 @@
 package org.apache.nifi.cluster.protocol.jaxb.message;
 
 /**
- * @author unattributed
  */
 public class AdaptedNodeIdentifier {
-    
+
     private String id;
-    
+
     private String apiAddress;
 
-    private int apiPort;    
+    private int apiPort;
 
     private String socketAddress;
-    
+
     private int socketPort;
-    
-    public AdaptedNodeIdentifier() {}
+
+    public AdaptedNodeIdentifier() {
+    }
 
     public String getApiAddress() {
         return apiAddress;

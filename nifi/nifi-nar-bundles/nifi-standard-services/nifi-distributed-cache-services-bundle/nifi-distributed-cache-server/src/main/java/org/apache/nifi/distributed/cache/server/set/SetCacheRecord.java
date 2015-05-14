@@ -21,33 +21,34 @@ import java.nio.ByteBuffer;
 import org.apache.nifi.distributed.cache.server.CacheRecord;
 
 public class SetCacheRecord extends CacheRecord {
+
     private final ByteBuffer value;
-    
+
     public SetCacheRecord(final ByteBuffer value) {
         this.value = value;
     }
-    
+
     public ByteBuffer getValue() {
         return value;
     }
-    
+
     @Override
     public int hashCode() {
         return value.hashCode();
     }
-    
+
     @Override
     public boolean equals(final Object obj) {
-        if ( this == obj ) {
+        if (this == obj) {
             return true;
         }
-        
+
         if (obj instanceof SetCacheRecord) {
             return value.equals(((SetCacheRecord) obj).value);
         }
         return false;
     }
-    
+
     @Override
     public String toString() {
         return "SetCacheRecord[value=" + new String(value.array()) + ", hitCount=" + getHitCount() + "]";

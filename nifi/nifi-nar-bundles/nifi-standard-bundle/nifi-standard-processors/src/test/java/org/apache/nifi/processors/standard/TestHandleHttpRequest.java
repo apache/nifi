@@ -42,16 +42,16 @@ import org.junit.Test;
 
 public class TestHandleHttpRequest {
 
-    @Test
-    public void testRequestAddedToService() throws InitializationException, MalformedURLException, IOException {
+    @Test(timeout=10000)
+    public void testRequestAddedToService() throws InitializationException, MalformedURLException, IOException, InterruptedException {
         final TestRunner runner = TestRunners.newTestRunner(HandleHttpRequest.class);
         runner.setProperty(HandleHttpRequest.PORT, "0");
-        
+
         final MockHttpContextMap contextMap = new MockHttpContextMap();
         runner.addControllerService("http-context-map", contextMap);
         runner.enableControllerService(contextMap);
         runner.setProperty(HandleHttpRequest.HTTP_CONTEXT_MAP, "http-context-map");
-        
+
         // trigger processor to stop but not shutdown.
         runner.run(1, false);
         try {
@@ -60,7 +60,8 @@ public class TestHandleHttpRequest {
                 public void run() {
                     try {
                         final int port = ((HandleHttpRequest) runner.getProcessor()).getPort();
-                        final HttpURLConnection connection = (HttpURLConnection) new URL("http://localhost:" + port + "/my/path?query=true&value1=value1&value2=&value3&value4=apple=orange").openConnection();
+                        final HttpURLConnection connection = (HttpURLConnection) new URL("http://localhost:"
+                                + port + "/my/path?query=true&value1=value1&value2=&value3&value4=apple=orange").openConnection();
                         connection.setDoOutput(false);
                         connection.setRequestMethod("GET");
                         connection.setRequestProperty("header1", "value1");
@@ -68,7 +69,7 @@ public class TestHandleHttpRequest {
                         connection.setRequestProperty("header3", "apple=orange");
                         connection.setConnectTimeout(3000);
                         connection.setReadTimeout(3000);
-                        
+
                         StreamUtils.copy(connection.getInputStream(), new NullOutputStream());
                     } catch (final Throwable t) {
                         t.printStackTrace();
@@ -77,16 +78,15 @@ public class TestHandleHttpRequest {
                 }
             });
             httpThread.start();
-            
-            // give processor a bit to handle the http request
-            try { Thread.sleep(1000L); } catch (final InterruptedException ie) {}
-            
-            // process the request.
-            runner.run(1, false);
-            
+
+            while ( runner.getFlowFilesForRelationship(HandleHttpRequest.REL_SUCCESS).isEmpty() ) {
+                // process the request.
+                runner.run(1, false);
+            }
+
             runner.assertAllFlowFilesTransferred(HandleHttpRequest.REL_SUCCESS, 1);
             assertEquals(1, contextMap.size());
-            
+
             final MockFlowFile mff = runner.getFlowFilesForRelationship(HandleHttpRequest.REL_SUCCESS).get(0);
             mff.assertAttributeEquals("http.query.param.query", "true");
             mff.assertAttributeEquals("http.query.param.value1", "value1");
@@ -100,27 +100,27 @@ public class TestHandleHttpRequest {
             runner.run(1, true);
         }
     }
-    
-    
+
     private static class MockHttpContextMap extends AbstractControllerService implements HttpContextMap {
+
         private final ConcurrentMap<String, HttpServletResponse> responseMap = new ConcurrentHashMap<>();
-        
+
         @Override
-        public boolean register(String identifier, HttpServletRequest request, HttpServletResponse response, AsyncContext context) {
+        public boolean register(final String identifier, final HttpServletRequest request, final HttpServletResponse response, final AsyncContext context) {
             responseMap.put(identifier, response);
             return true;
         }
 
         @Override
-        public HttpServletResponse getResponse(String identifier) {
+        public HttpServletResponse getResponse(final String identifier) {
             return responseMap.get(identifier);
         }
 
         @Override
-        public void complete(String identifier) {
+        public void complete(final String identifier) {
             responseMap.remove(identifier);
         }
-        
+
         public int size() {
             return responseMap.size();
         }

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Date;
 import java.util.List;
 
@@ -24,8 +25,7 @@ import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
 /**
- * The contents for the bulletin board including the bulletins and the timestamp
- * when the board was generated.
+ * The contents for the bulletin board including the bulletins and the timestamp when the board was generated.
  */
 @XmlType(name = "bulletinBoard")
 public class BulletinBoardDTO {
@@ -34,10 +34,11 @@ public class BulletinBoardDTO {
     private Date generated;
 
     /**
-     * The bulletins to populate in the bulletin board.
-     *
-     * @return
+     * @return bulletins to populate in the bulletin board
      */
+    @ApiModelProperty(
+            value = "The bulletins in the bulletin board, that matches the supplied request."
+    )
     public List<BulletinDTO> getBulletins() {
         return bulletins;
     }
@@ -47,11 +48,12 @@ public class BulletinBoardDTO {
     }
 
     /**
-     * When this bulletin board was generated.
-     *
-     * @return
+     * @return when this bulletin board was generated
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
+    @ApiModelProperty(
+            value = "The timestamp when this report was generated."
+    )
     public Date getGenerated() {
         return generated;
     }

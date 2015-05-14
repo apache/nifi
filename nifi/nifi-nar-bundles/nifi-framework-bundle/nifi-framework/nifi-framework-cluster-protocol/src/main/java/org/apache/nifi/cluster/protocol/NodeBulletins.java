@@ -40,5 +40,5 @@ public class NodeBulletins {
     public byte[] getPayload() {
         return payload;
     }
-    
+
 }

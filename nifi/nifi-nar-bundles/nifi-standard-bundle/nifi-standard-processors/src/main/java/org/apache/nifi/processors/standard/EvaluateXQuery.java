@@ -94,9 +94,9 @@ import org.xml.sax.InputSource;
         + "'matched'. If no provided XQuery returns a result, the FlowFile will be routed to 'unmatched'.  If the "
         + "Destination is 'flowfile-attribute' and the XQueries matche nothing, no attributes will be applied to the "
         + "FlowFile.")
-@WritesAttribute(attribute="user-defined", description="This processor adds user-defined attributes if the <Destination> property is set to flowfile-attribute .")
-@DynamicProperty(name="A FlowFile attribute(if <Destination> is set to 'flowfile-attribute'", value="An XQuery", description="If <Destination>='flowfile-attribute' " + 
-        "then the FlowFile attribute is set to the result of the XQuery.  If <Destination>='flowfile-content' then the FlowFile content is set to the result of the XQuery.")
+@WritesAttribute(attribute = "user-defined", description = "This processor adds user-defined attributes if the <Destination> property is set to flowfile-attribute .")
+@DynamicProperty(name = "A FlowFile attribute(if <Destination> is set to 'flowfile-attribute'", value = "An XQuery", description = "If <Destination>='flowfile-attribute' "
+        + "then the FlowFile attribute is set to the result of the XQuery.  If <Destination>='flowfile-content' then the FlowFile content is set to the result of the XQuery.")
 public class EvaluateXQuery extends AbstractProcessor {
 
     public static final String DESTINATION_ATTRIBUTE = "flowfile-attribute";
@@ -147,22 +147,19 @@ public class EvaluateXQuery extends AbstractProcessor {
 
     public static final Relationship REL_MATCH = new Relationship.Builder()
             .name("matched")
-            .description(
-                    "FlowFiles are routed to this relationship when the XQuery is successfully evaluated and the FlowFile "
+            .description("FlowFiles are routed to this relationship when the XQuery is successfully evaluated and the FlowFile "
                     + "is modified as a result")
             .build();
 
     public static final Relationship REL_NO_MATCH = new Relationship.Builder()
             .name("unmatched")
-            .description(
-                    "FlowFiles are routed to this relationship when the XQuery does not match the content of the FlowFile "
+            .description("FlowFiles are routed to this relationship when the XQuery does not match the content of the FlowFile "
                     + "and the Destination is set to flowfile-content")
             .build();
 
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
-            .description(
-                    "FlowFiles are routed to this relationship when the XQuery cannot be evaluated against the content of "
+            .description("FlowFiles are routed to this relationship when the XQuery cannot be evaluated against the content of "
                     + "the FlowFile.")
             .build();
 
@@ -198,11 +195,8 @@ public class EvaluateXQuery extends AbstractProcessor {
                 }
             }
             if (xQueryCount != 1) {
-                results.add(new ValidationResult.Builder()
-                        .subject("XQueries")
-                        .valid(false)
-                        .explanation("Exactly one XQuery must be set if using destination of " + DESTINATION_CONTENT)
-                        .build());
+                results.add(new ValidationResult.Builder().subject("XQueries").valid(false)
+                        .explanation("Exactly one XQuery must be set if using destination of " + DESTINATION_CONTENT).build());
             }
         }
         return results;
@@ -220,13 +214,8 @@ public class EvaluateXQuery extends AbstractProcessor {
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
-        return new PropertyDescriptor.Builder()
-                .name(propertyDescriptorName)
-                .expressionLanguageSupported(false)
-                .addValidator(new XQueryValidator())
-                .required(false)
-                .dynamic(true)
-                .build();
+        return new PropertyDescriptor.Builder().name(propertyDescriptorName).expressionLanguageSupported(false)
+                .addValidator(new XQueryValidator()).required(false).dynamic(true).build();
     }
 
     @Override
@@ -362,8 +351,8 @@ public class EvaluateXQuery extends AbstractProcessor {
                     session.remove(childrenFlowFiles);
                     continue flowFileLoop;
                 } catch (TransformerFactoryConfigurationError | TransformerException | IOException e) {
-                    logger.error("Failed to write XQuery result for {} due to {}; routing original to 'failure'", new Object[]{
-                        flowFile, error.get()});
+                    logger.error("Failed to write XQuery result for {} due to {}; routing original to 'failure'",
+                            new Object[]{flowFile, error.get()});
                     session.transfer(flowFile, REL_FAILURE);
                     session.remove(childrenFlowFiles);
                     continue flowFileLoop;
@@ -392,15 +381,14 @@ public class EvaluateXQuery extends AbstractProcessor {
         } // end flowFileLoop
     }
 
-    private String formatItem(XdmItem item, ProcessContext context) throws TransformerConfigurationException,
-            TransformerFactoryConfigurationError, TransformerException, IOException {
+    private String formatItem(XdmItem item, ProcessContext context) throws TransformerConfigurationException, TransformerFactoryConfigurationError, TransformerException, IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         writeformattedItem(item, context, baos);
         return baos.toString();
     }
 
-    void writeformattedItem(XdmItem item, ProcessContext context, OutputStream out) throws TransformerConfigurationException,
-            TransformerFactoryConfigurationError, TransformerException, IOException {
+    void writeformattedItem(XdmItem item, ProcessContext context, OutputStream out)
+            throws TransformerConfigurationException, TransformerFactoryConfigurationError, TransformerException, IOException {
 
         if (item.isAtomicValue()) {
             out.write(item.getStringValue().getBytes(UTF8));
@@ -448,19 +436,10 @@ public class EvaluateXQuery extends AbstractProcessor {
                 } catch (final Exception e) {
                     error = e.toString();
                 }
-                return new ValidationResult.Builder()
-                        .input(input)
-                        .subject(subject)
-                        .valid(error == null)
-                        .explanation(error)
-                        .build();
+                return new ValidationResult.Builder().input(input).subject(subject).valid(error == null).explanation(error).build();
             } catch (final Exception e) {
-                return new ValidationResult.Builder()
-                        .input(input)
-                        .subject(subject)
-                        .valid(false)
-                        .explanation("Unable to initialize XQuery engine due to " + e.toString())
-                        .build();
+                return new ValidationResult.Builder().input(input).subject(subject).valid(false)
+                        .explanation("Unable to initialize XQuery engine due to " + e.toString()).build();
             }
         }
     }

@@ -20,23 +20,22 @@ import javax.xml.bind.annotation.adapters.XmlAdapter;
 import org.apache.nifi.cluster.protocol.NodeBulletins;
 
 /**
- * @author unattributed
  */
 public class NodeBulletinsAdapter extends XmlAdapter<AdaptedNodeBulletins, NodeBulletins> {
 
     @Override
     public AdaptedNodeBulletins marshal(final NodeBulletins hb) {
-        
+
         final AdaptedNodeBulletins adaptedBulletins = new AdaptedNodeBulletins();
-        
-        if(hb != null) {
+
+        if (hb != null) {
             // set node identifier
             adaptedBulletins.setNodeIdentifier(hb.getNodeIdentifier());
 
             // set payload
             adaptedBulletins.setPayload(hb.getPayload());
         }
-        
+
         return adaptedBulletins;
     }
 
@@ -44,5 +43,5 @@ public class NodeBulletinsAdapter extends XmlAdapter<AdaptedNodeBulletins, NodeB
     public NodeBulletins unmarshal(final AdaptedNodeBulletins adaptedBulletins) {
         return new NodeBulletins(adaptedBulletins.getNodeIdentifier(), adaptedBulletins.getPayload());
     }
- 
+
 }

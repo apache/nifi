@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import javax.xml.bind.annotation.XmlType;
 
 /**
@@ -40,10 +41,11 @@ public class ConnectionStatusDTO {
 
     /* getters / setters */
     /**
-     * The id for the connection.
-     *
      * @return The connection id
      */
+    @ApiModelProperty(
+            value = "The id of the connection."
+    )
     public String getId() {
         return id;
     }
@@ -53,10 +55,11 @@ public class ConnectionStatusDTO {
     }
 
     /**
-     * The ID of the Process Group to which this processor belongs.
-     *
-     * @return the ID of the Process Group to which this processor belongs.
+     * @return the ID of the Process Group to which this connection belongs.
      */
+    @ApiModelProperty(
+            value = "The id of the process group the connection belongs to."
+    )
     public String getGroupId() {
         return groupId;
     }
@@ -66,10 +69,11 @@ public class ConnectionStatusDTO {
     }
 
     /**
-     * The name of this connection.
-     *
-     * @return
+     * @return name of this connection
      */
+    @ApiModelProperty(
+            value = "The name of the connection."
+    )
     public String getName() {
         return name;
     }
@@ -79,10 +83,11 @@ public class ConnectionStatusDTO {
     }
 
     /**
-     * The total count of flow files that are queued.
-     *
-     * @return
+     * @return total count of flow files that are queued
      */
+    @ApiModelProperty(
+            value = "The number of flowfiles that are queued."
+    )
     public String getQueuedCount() {
         return queuedCount;
     }
@@ -92,10 +97,11 @@ public class ConnectionStatusDTO {
     }
 
     /**
-     * The total size of flow files that are queued.
-     *
-     * @return
+     * @return total size of flow files that are queued
      */
+    @ApiModelProperty(
+            value = "The total size of flowfiles that are queued formatted."
+    )
     public String getQueuedSize() {
         return queuedSize;
     }
@@ -105,10 +111,11 @@ public class ConnectionStatusDTO {
     }
 
     /**
-     * The total count and size of flow files that are queued.
-     *
      * @return The total count and size of queued flow files
      */
+    @ApiModelProperty(
+            value = "The total count and size of queued flowfiles formatted."
+    )
     public String getQueued() {
         return queued;
     }
@@ -118,10 +125,11 @@ public class ConnectionStatusDTO {
     }
 
     /**
-     * The id of the source of this connection.
-     *
-     * @return
+     * @return id of the source of this connection
      */
+    @ApiModelProperty(
+            value = "The id of the source of the connection."
+    )
     public String getSourceId() {
         return sourceId;
     }
@@ -131,10 +139,11 @@ public class ConnectionStatusDTO {
     }
 
     /**
-     * The name of the source of this connection.
-     *
-     * @return
+     * @return name of the source of this connection
      */
+    @ApiModelProperty(
+            value = "The name of the source of the connection."
+    )
     public String getSourceName() {
         return sourceName;
     }
@@ -144,10 +153,11 @@ public class ConnectionStatusDTO {
     }
 
     /**
-     * The id of the destination of this connection.
-     *
-     * @return
+     * @return id of the destination of this connection
      */
+    @ApiModelProperty(
+            value = "The id of the destination of the connection."
+    )
     public String getDestinationId() {
         return destinationId;
     }
@@ -157,10 +167,11 @@ public class ConnectionStatusDTO {
     }
 
     /**
-     * The name of the destination of this connection.
-     *
-     * @return
+     * @return name of the destination of this connection
      */
+    @ApiModelProperty(
+            value = "The name of the destination of the connection."
+    )
     public String getDestinationName() {
         return destinationName;
     }
@@ -170,10 +181,11 @@ public class ConnectionStatusDTO {
     }
 
     /**
-     * The input for this connection.
-     *
-     * @return
+     * @return input for this connection
      */
+    @ApiModelProperty(
+            value = "The input count/size for the connection in the last 5 minutes."
+    )
     public String getInput() {
         return input;
     }
@@ -183,10 +195,11 @@ public class ConnectionStatusDTO {
     }
 
     /**
-     * The output for this connection.
-     *
-     * @return
+     * @return output for this connection
      */
+    @ApiModelProperty(
+            value = "The output count/sie for the connection in the last 5 minutes."
+    )
     public String getOutput() {
         return output;
     }

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Collection;
 import java.util.Date;
 import javax.xml.bind.annotation.XmlType;
@@ -34,11 +35,12 @@ public class ClusterPortStatusDTO {
     private String portName;
 
     /**
-     * The time the status was last refreshed.
-     *
      * @return the time the status were last refreshed
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
+    @ApiModelProperty(
+            value = "The time the status was last refreshed."
+    )
     public Date getStatsLastRefreshed() {
         return statsLastRefreshed;
     }
@@ -48,10 +50,11 @@ public class ClusterPortStatusDTO {
     }
 
     /**
-     * The port status from each node in the cluster.
-     *
-     * @return
+     * @return port status from each node in the cluster
      */
+    @ApiModelProperty(
+            value = "The port status for each node."
+    )
     public Collection<NodePortStatusDTO> getNodePortStatus() {
         return nodePortStatus;
     }
@@ -61,10 +64,11 @@ public class ClusterPortStatusDTO {
     }
 
     /**
-     * The port id.
-     *
-     * @return
+     * @return port id
      */
+    @ApiModelProperty(
+            value = "The id of the port."
+    )
     public String getPortId() {
         return portId;
     }
@@ -74,10 +78,11 @@ public class ClusterPortStatusDTO {
     }
 
     /**
-     * The port name.
-     *
-     * @return
+     * @return port name
      */
+    @ApiModelProperty(
+            value = "The name of the port."
+    )
     public String getPortName() {
         return portName;
     }

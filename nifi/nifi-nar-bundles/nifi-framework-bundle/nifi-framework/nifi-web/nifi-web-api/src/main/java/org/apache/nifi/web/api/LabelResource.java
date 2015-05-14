@@ -16,6 +16,12 @@
  */
 package org.apache.nifi.web.api;
 
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+import com.wordnik.swagger.annotations.Authorization;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
@@ -55,7 +61,6 @@ import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.DoubleParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 import org.apache.commons.lang3.StringUtils;
-import org.codehaus.enunciate.jaxrs.TypeHint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -63,6 +68,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 /**
  * RESTful endpoint for managing a Label.
  */
+@Api(hidden = true)
 public class LabelResource extends ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(LabelResource.class);
@@ -74,8 +80,9 @@ public class LabelResource extends ApplicationResource {
 
     /**
      * Populates the uri for the specified labels.
-     * @param labels
-     * @return 
+     *
+     * @param labels labels
+     * @return dtos
      */
     public Set<LabelDTO> populateRemainingLabelsContent(Set<LabelDTO> labels) {
         for (LabelDTO label : labels) {
@@ -96,16 +103,38 @@ public class LabelResource extends ApplicationResource {
     /**
      * Retrieves all the of labels in this NiFi.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return A labelsEntity.
      */
     @GET
+    @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Path("") // necessary due to bug in swagger
     @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
-    @TypeHint(LabelsEntity.class)
-    public Response getLabels(@QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
+    @ApiOperation(
+            value = "Gets all labels",
+            response = LabelsEntity.class,
+            authorizations = {
+                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getLabels(
+            @ApiParam(
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+                    required = false
+            )
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
@@ -131,12 +160,9 @@ public class LabelResource extends ApplicationResource {
     /**
      * Creates a new label.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param x The x coordinate for this funnels position.
      * @param y The y coordinate for this funnels position.
      * @param width The width of the label.
@@ -147,8 +173,8 @@ public class LabelResource extends ApplicationResource {
     @POST
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Path("") // necessary due to bug in swagger
     @PreAuthorize("hasRole('ROLE_DFM')")
-    @TypeHint(LabelEntity.class)
     public Response createLabel(
             @Context HttpServletRequest httpServletRequest,
             @FormParam(VERSION) LongParameter version,
@@ -194,18 +220,37 @@ public class LabelResource extends ApplicationResource {
     /**
      * Creates a new Label.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param labelEntity A labelEntity.
      * @return A labelEntity.
      */
     @POST
     @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Path("") // necessary due to bug in swagger
     @PreAuthorize("hasRole('ROLE_DFM')")
-    @TypeHint(LabelEntity.class)
+    @ApiOperation(
+            value = "Creates a label",
+            response = LabelEntity.class,
+            authorizations = {
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response createLabel(
             @Context HttpServletRequest httpServletRequest,
-            LabelEntity labelEntity) {
+            @ApiParam(
+                    value = "The label configuration details.",
+                    required = true
+            ) LabelEntity labelEntity) {
 
         if (labelEntity == null || labelEntity.getLabel() == null) {
             throw new IllegalArgumentException("Label details must be specified.");
@@ -274,18 +319,44 @@ public class LabelResource extends ApplicationResource {
     /**
      * Retrieves the specified label.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the label to retrieve
      * @return A labelEntity.
      */
     @GET
+    @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("{id}")
     @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
-    @TypeHint(LabelEntity.class)
-    public Response getLabel(@QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId, @PathParam("id") String id) {
+    @ApiOperation(
+            value = "Gets a label",
+            response = LabelEntity.class,
+            authorizations = {
+                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getLabel(
+            @ApiParam(
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+                    required = false
+            )
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @ApiParam(
+                    value = "The label id.",
+                    required = true
+            )
+            @PathParam("id") String id) {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
@@ -310,20 +381,16 @@ public class LabelResource extends ApplicationResource {
     /**
      * Updates the specified label.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the label to update.
      * @param x The x coordinate for this funnels position.
      * @param y The y coordinate for this funnels position.
      * @param width The width of the label.
      * @param height The height of the label.
      * @param label The label's value.
-     * @param formParams Additionally, the label styles are specified in the
-     * form parameters. They are specified in a map-like fashion:
+     * @param formParams Additionally, the label styles are specified in the form parameters. They are specified in a map-like fashion:
      * <br>
      * <ul>
      * <li>style[background-color]=#aaaaaa</li>
@@ -336,7 +403,6 @@ public class LabelResource extends ApplicationResource {
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("{id}")
     @PreAuthorize("hasRole('ROLE_DFM')")
-    @TypeHint(LabelEntity.class)
     public Response updateLabel(
             @Context HttpServletRequest httpServletRequest,
             @FormParam(VERSION) LongParameter version,
@@ -404,7 +470,7 @@ public class LabelResource extends ApplicationResource {
     /**
      * Updates the specified label.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param id The id of the label to update.
      * @param labelEntity A labelEntity.
      * @return A labelEntity.
@@ -414,11 +480,33 @@ public class LabelResource extends ApplicationResource {
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("{id}")
     @PreAuthorize("hasRole('ROLE_DFM')")
-    @TypeHint(LabelEntity.class)
+    @ApiOperation(
+            value = "Updates a label",
+            response = LabelEntity.class,
+            authorizations = {
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response updateLabel(
             @Context HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The label id.",
+                    required = true
+            )
             @PathParam("id") String id,
-            LabelEntity labelEntity) {
+            @ApiParam(
+                    value = "The label configuraiton details.",
+                    required = true
+            ) LabelEntity labelEntity) {
 
         if (labelEntity == null || labelEntity.getLabel() == null) {
             throw new IllegalArgumentException("Label details must be specified.");
@@ -476,24 +564,49 @@ public class LabelResource extends ApplicationResource {
     /**
      * Removes the specified label.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the label to remove.
      * @return A entity containing the client id and an updated revision.
      */
     @DELETE
+    @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("{id}")
     @PreAuthorize("hasRole('ROLE_DFM')")
-    @TypeHint(LabelEntity.class)
+    @ApiOperation(
+            value = "Deletes a label",
+            response = LabelEntity.class,
+            authorizations = {
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response removeLabel(
             @Context HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The revision is used to verify the client is working with the latest version of the flow.",
+                    required = false
+            )
             @QueryParam(VERSION) LongParameter version,
+            @ApiParam(
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+                    required = false
+            )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @ApiParam(
+                    value = "The label id.",
+                    required = true
+            )
             @PathParam("id") String id) {
 
         // replicate if cluster manager

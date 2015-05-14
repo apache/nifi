@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Collection;
 import java.util.Date;
 import javax.xml.bind.annotation.XmlType;
@@ -34,11 +35,12 @@ public class ClusterConnectionStatusDTO {
     private String connectionName;
 
     /**
-     * The time the status were last refreshed.
-     *
-     * @return
+     * @return time the status were last refreshed
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
+    @ApiModelProperty(
+            value = "The time the status was last refreshed."
+    )
     public Date getStatsLastRefreshed() {
         return statsLastRefreshed;
     }
@@ -48,10 +50,11 @@ public class ClusterConnectionStatusDTO {
     }
 
     /**
-     * The connection id.
-     *
-     * @return
+     * @return connection id
      */
+    @ApiModelProperty(
+            value = "The id of the connection."
+    )
     public String getConnectionId() {
         return connectionId;
     }
@@ -61,10 +64,11 @@ public class ClusterConnectionStatusDTO {
     }
 
     /**
-     * The connection name.
-     *
-     * @return
+     * @return connection name
      */
+    @ApiModelProperty(
+            value = "The name of the connection."
+    )
     public String getConnectionName() {
         return connectionName;
     }
@@ -74,10 +78,11 @@ public class ClusterConnectionStatusDTO {
     }
 
     /**
-     * Collection of node connection status DTO.
-     *
      * @return The collection of node connection status DTO
      */
+    @ApiModelProperty(
+            value = "The connection status for each node."
+    )
     public Collection<NodeConnectionStatusDTO> getNodeConnectionStatus() {
         return nodeConnectionStatus;
     }

@@ -37,13 +37,10 @@ import org.apache.commons.lang3.builder.ToStringStyle;
 
 /**
  * <p>
- * A flow file is a logical notion of an item in a flow with its associated
- * attributes and identity which can be used as a reference for its actual
- * content.</p>
+ * A flow file is a logical notion of an item in a flow with its associated attributes and identity which can be used as a reference for its actual content.</p>
  *
  * <b>Immutable - Thread Safe</b>
  *
- * @author none
  */
 public final class StandardFlowFileRecord implements FlowFile, FlowFileRecord {
 
@@ -127,11 +124,10 @@ public final class StandardFlowFileRecord implements FlowFile, FlowFileRecord {
     }
 
     /**
-     * Provides the natural ordering for FlowFile objects which is based on
-     * their identifier.
+     * Provides the natural ordering for FlowFile objects which is based on their identifier.
      *
-     * @param other
-     * @return
+     * @param other other
+     * @return standard compare contract
      */
     @Override
     public int compareTo(final FlowFile other) {

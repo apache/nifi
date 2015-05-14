@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one or more
+    contributor license agreements.  See the NOTICE file distributed with
+    this work for additional information regarding copyright ownership.
+    The ASF licenses this file to You under the Apache License, Version 2.0
+    (the "License"); you may not use this file except in compliance with
+    the License.  You may obtain a copy of the License at
+        http://www.apache.org/licenses/LICENSE-2.0
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+-->
+<html>
+    <head>
+        <title>{{info.title}}-{{info.version}}</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+        <link rel="shortcut icon" href="images/nifi16.ico"/>
+        <script type="text/javascript" src="../nifi/js/jquery/jquery-2.1.1.min.js"></script>
+        <script type="text/javascript">
+            if (typeof window.jQuery === 'undefined') {
+                document.write(unescape('%3Cscript src="https://code.jquery.com/jquery-2.1.1.min.js" type="text/javascript" %3E%3C/script%3E'));
+            }
+        </script>
+        <style>
+            @import "https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic|Noto+Serif:400,400italic,700,700italic|Droid+Sans+Mono:400";
+
+            html {
+                overflow-y: scroll;
+            }
+            
+            html, html a {
+                -webkit-font-smoothing: antialiased;
+                text-shadow: 1px 1px 1px rgba(0,0,0,0.004);
+            }
+
+            body {
+                width: 62.5em;
+                margin: 0 auto;
+                display: block;
+                font-family: "Open Sans", "DejaVu Sans", sans-serif;
+            }
+            
+            div.header {
+                margin-top: 10px;
+            }
+            
+            img.logo {
+                float: left;
+                margin-right: 10px;
+            }
+            
+            div.header > div.title {
+                font-size: 30px;
+                height: 50px;
+                line-height: 50px;
+            }
+            
+            .sub-title {
+                font-style: italic;
+                color: #aaa;
+            }
+            
+            div.overview {
+                margin-top: 10px;
+                margin-bottom: 15px;
+            }
+            
+            div.endpoint {
+                margin-bottom: 10px;
+            }
+
+            /* get */
+            
+            div.endpoint.get {
+                border: 1px solid #174961;
+            }
+            
+            div.get div.operation-handle {
+                background-color: rgba(23, 73, 97, .15);
+            }
+            
+            div.get div.method {
+                background-color: #174961;
+            }
+            
+            div.get div.operation {
+                border-top: 1px solid #174961;
+            }
+            
+            /* post */
+            
+            div.endpoint.post {
+                border: 1px solid #7298AC;
+            }
+            
+            div.post div.operation-handle {
+                background-color: rgba(114, 152, 172, .15);
+            }
+            
+            div.post div.method {
+                background-color: #7298AC;
+            }
+            
+            div.post div.operation {
+                border-top: 1px solid #7298AC;
+            }
+            
+            /* put */
+            
+            div.endpoint.put {
+                border: 1px solid #063046;
+            }
+            
+            div.put div.operation-handle {
+                background-color: rgba(6, 48, 70, .15);
+            }
+            
+            div.put div.method {
+                background-color: #063046;
+            }
+            
+            div.put div.operation {
+                border-top: 1px solid #063046;
+            }
+            
+            /* delete */
+            
+            div.endpoint.delete {
+                border: 1px solid #47758E;
+            }
+            
+            div.delete div.operation-handle {
+                background-color: rgba(71, 117, 142, .15);
+            }
+            
+            div.delete div.method {
+                background-color: #47758E;
+            }
+            
+            div.delete div.operation {
+                border-top: 1px solid #47758E;
+            }
+            
+            /* operations */
+            
+            div.operation-handle {
+                cursor: pointer;
+                padding-right: 5px;
+                height: 22px;
+            }
+            
+            div.method {
+                float: left;
+                width: 75px;
+                color: #fff;
+                text-align: center;
+                background-color: #7098ad;
+                margin-right: 10px;
+                font-weight: bold;
+            }
+
+            div.endpoint div.path {
+                float: left;
+                line-height: 22px;
+            }
+
+            div.summary {
+                float: right;
+                font-size: 12px;
+                line-height: 22px;
+            }
+
+            div.operation {
+                padding: 5px;
+                font-size: 12px;
+            }
+
+            div.operation > div.title {
+                font-weight: bold;
+                color: #000;
+            }
+            
+            div.operation > table {
+                margin-left: 5px;
+                margin-right: 5px;
+            }
+            
+            div.operation div.details {
+                margin-left: 5px;
+                margin-bottom: 5px;
+                color: #333;
+            }
+            
+            div.operation div.description {
+                margin-bottom: 10px;
+            }
+
+            div.mediatype {
+                line-height: 16px;
+            }
+
+            div.mediatype > div.title {
+                float: left;
+                width: 70px;
+            }
+            
+            div.mediatype div.title {
+                float: left;
+            }
+            
+            div.type {
+                position: fixed;
+                width: 800px;
+                height: 500px;
+                left: 50%;
+                top: 50%;
+                margin-left: -400px;
+                margin-top: -250px;
+                border: 3px solid #365C6A;
+                box-shadow: 4px 4px 6px rgba(0, 0, 0, 0.9);
+                padding: 10px;
+                background-color: #eee;
+                font-size: 12px;
+            }
+            
+            div.type-container {
+                overflow-y: auto;
+                height: 415px;
+                border-bottom: 1px solid #ccc;
+            }
+            
+            div.close {
+                border: 1px solid #aaa;
+                background-color: #ddd;
+                float: right;
+                margin-top: 10px;
+                font-weight: bold;
+                height: 25px;
+                line-height: 25px;
+                padding: 0 10px;
+                cursor: pointer;
+            }
+            
+            div.close:hover {
+                background-color: #d1d1d1;
+            }
+            
+            div.section-header > div.title {
+                font-size: 24px;
+                float: left;
+            }
+            
+            div.section-description {
+                float: right;
+                margin-top: 10px;
+            }
+            
+            div.section-endpoints {
+                margin-top: 10px;
+            }
+            
+            /* tables */
+
+            table {
+                background-color: #fefefe;
+                border: 1px solid #ccc;
+                border-left: 6px solid #ccc;
+                color: #555;
+                display: block;
+                margin-bottom: 12px;
+                padding: 5px 8px;
+            }
+            
+            table th {
+                font-weight: bold;
+                vertical-align:top;
+                text-align:left;
+                padding: 4px 15px;
+                border-width: 0;
+                white-space: nowrap;
+            }
+            
+            table td {
+                vertical-align:top;
+                text-align:left;
+                padding: 2px 15px;
+                border-width: 0;
+                white-space: nowrap;
+            }
+            
+            table td:last-child {
+                width: 99%;
+                white-space: normal;
+            }
+            
+            code.example {
+                background-color: #fefefe;
+                border: 1px solid #ccc;
+                border-left: 6px solid #ccc;
+                color: #555;
+                margin-bottom: 10px;
+                padding: 5px 8px;
+                white-space: pre;
+                display: block;
+                tab-size: 4;
+                -moz-tab-size: 4;
+                -o-tab-size: 4;
+                line-height: 20px
+            }
+            
+            span.nested.collapsed {
+                cursor: pointer;
+                border: 1px solid #7298AC;
+                background-color: rgba(114, 152, 172, .15);
+                padding: 1px;
+            }
+            
+            /* general */
+            
+            .mono {
+                font-family: monospace;
+            }
+            
+            div.clear {
+                clear: both;
+            }
+
+            .hidden {
+                display: none;
+            }
+            
+            a, .link {
+                cursor: pointer;
+                color: #1e373f;
+                font-weight: normal;
+            }
+            
+            a:hover, .link:hover {
+                color: #264c58;
+                text-decoration: underline;
+            }
+        </style>
+        <script type="text/javascript">
+            $(document).ready(function () {
+                // hide any open type dialogs
+                $('html').on('click', function() {
+                    $('div.type').hide();
+                }).on('keydown', function(e) {
+                    if (e.which === 27) {
+                        $('div.type').hide();
+                    }
+                });
+                
+                // populate all paths - this is necessary because the @key
+                // doesn't seem to reset after iterating through a nested 
+                // array or object
+                $('span.path').each(function() {
+                    var path = $(this);
+                    var endpoint = path.parent();
+                    endpoint.find('div.path').text(path.text());
+                });
+                
+                // toggles the visibility of a given operation
+                $('div.operation-handle').on('click', function () {
+                    $(this).next('div.operation').slideToggle();
+                });
+                
+                // add support for clicking to view the definition of a type
+                $('a.type-link').on('click', function(e) {
+                    // hide any previously shown dialogs
+                    $('div.type').hide();
+
+                    // show the type selected
+                    var link = $(this);
+                    var typeId = link.text();
+                    $('#' + typeId).show();
+                    e.stopPropagation();
+                });
+                
+                // prevent hiding when clicking on the type dialog
+                $('div.type').on('click', function(e) {
+                    e.stopPropagation();
+                });
+                
+                // due to lack of support for @last when iterating objects in 
+                // handlebars we need to remove the last comma from each example
+                $('code.example').find('span.comma:last').remove();
+                
+                // populate nested examples
+                $('code.example').on('click', 'span.nested', function(e) {
+                    var nested = $(this).removeClass('collapsed');
+                    var nestedId = nested.find('span.nested-id');
+                    var nestedExample = nested.find('span.nested-example');
+                    
+                    // get the id of the nested example
+                    var typeId = nestedId.text();
+                    var example = $('#' + typeId + ' code.example').html();
+                    var depth = nestedId.parents('span.open-object').length;
+                    
+                    // tab over as appropriate
+                    example = example.replace(/(\r\n|\r|\n)/g, function(match) {
+                        var tab = '\t';
+                        for (var i = 0; i < depth - 1; i++) {
+                            tab += '\t';
+                        }
+                        return match + tab;
+                    });
+                    
+                    // copy over the example
+                    nestedExample.html(example);
+                    e.stopPropagation();
+                });
+                
+                // handle close button
+                $('div.close').on('click', function() {
+                    $(this).closest('div.type').hide();
+                });
+                
+                // function for organizing the endpoints
+                var organizeEndpoints = function(term, container) {
+                    $('div.unorganized > div.endpoints').each(function() {
+                        var endpoints = $(this);
+                        var path = endpoints.find('div.path').text();
+                        
+                        if (term === null || path.indexOf(term) > 0) {
+                            endpoints.detach().appendTo(container);
+                        }
+                    });
+                };
+                
+                // organize the endpoints
+                organizeEndpoints('cluster', $('#cluster-endpoints'));
+                organizeEndpoints('provenance', $('#provenance-endpoints'));
+                organizeEndpoints('user', $('#user-endpoints'));
+                organizeEndpoints('controller-services', $('#controller-service-endpoints'));
+                organizeEndpoints('reporting-tasks', $('#reporting-task-endpoints'));
+                organizeEndpoints('connections', $('#connection-endpoints'));
+                organizeEndpoints('processors', $('#processor-endpoints'));
+                organizeEndpoints('funnels', $('#funnel-endpoints'));
+                organizeEndpoints('remote-process-groups', $('#remote-process-group-endpoints'));
+                organizeEndpoints('input-ports', $('#input-port-endpoints'));
+                organizeEndpoints('output-ports', $('#output-port-endpoints'));
+                organizeEndpoints('labels', $('#label-endpoints'));
+                organizeEndpoints('process-groups', $('#process-group-endpoints'));
+                organizeEndpoints('history', $('#history-endpoints'));
+                organizeEndpoints(null, $('#controller-endpoints'));
+                
+                
+                // handle expanding/collapsing the sections
+                $('div.section-header > div.title').on('click', function() {
+                    $(this).parent('div.section-header').next('div.section-endpoints').slideToggle();
+                });
+            });
+        </script>
+    </head>
+    <body>
+        <div class="header">
+            <img class="logo" src="images/bgNifiLogo.png" alt="NiFi Logo"/>
+            <div class="title">{{basePath}}</div>
+            <div class="sub-title">{{info.title}} {{info.version}}</div>
+            <div class="clear"></div>
+        </div>
+        <div class="clear"></div>
+        <div class="overview">{{info.description}}</div>
+        <div class="section">
+            <div class="section-header">
+                <div class="title link">Controller</div>
+                <div class="sub-title section-description">Get controller configuration, Search the flow, Manage templates, System diagnostics</div>
+                <div class="clear"></div>
+            </div>
+            <div id="controller-endpoints" class="section-endpoints hidden"></div>
+        </div>
+        <div class="section">
+            <div class="section-header">
+                <div class="title link">Process Groups</div>
+                <div class="sub-title section-description">Get the flow, Instantiate a template, Manage sub groups, Monitor component status</div>
+                <div class="clear"></div>
+            </div>
+            <div id="process-group-endpoints" class="section-endpoints hidden"></div>
+        </div>
+        <div class="section">
+            <div class="section-header">
+                <div class="title link">Processors</div>
+                <div class="sub-title section-description">Create a processor, Set properties, Schedule</div>
+                <div class="clear"></div>
+            </div>
+            <div id="processor-endpoints" class="section-endpoints hidden"></div>
+        </div>
+        <div class="section">
+            <div class="section-header">
+                <div class="title link">Connections</div>
+                <div class="sub-title section-description">Create a connection, Set queue priority, Update connection destination</div>
+                <div class="clear"></div>
+            </div>
+            <div id="connection-endpoints" class="section-endpoints hidden"></div>
+        </div>
+        <div class="section">
+            <div class="section-header">
+                <div class="title link">Input Ports</div>
+                <div class="sub-title section-description">Create an input port, Set remote port access control</div>
+                <div class="clear"></div>
+            </div>
+            <div id="input-port-endpoints" class="section-endpoints hidden"></div>
+        </div>
+        <div class="section">
+            <div class="section-header">
+                <div class="title link">Output Ports</div>
+                <div class="sub-title section-description">Create an output port, Set remote port access control</div>
+                <div class="clear"></div>
+            </div>
+            <div id="output-port-endpoints" class="section-endpoints hidden"></div>
+        </div>
+        <div class="section">
+            <div class="section-header">
+                <div class="title link">Remote Process Groups</div>
+                <div class="sub-title section-description">Create a remote group, Enable transmission</div>
+                <div class="clear"></div>
+            </div>
+            <div id="remote-process-group-endpoints" class="section-endpoints hidden"></div>
+        </div>
+        <div class="section">
+            <div class="section-header">
+                <div class="title link">Labels</div>
+                <div class="sub-title section-description">Create a label, Set label style</div>
+                <div class="clear"></div>
+            </div>
+            <div id="label-endpoints" class="section-endpoints hidden"></div>
+        </div>
+        <div class="section">
+            <div class="section-header">
+                <div class="title link">Funnels</div>
+                <div class="sub-title section-description">Manage funnels</div>
+                <div class="clear"></div>
+            </div>
+            <div id="funnel-endpoints" class="section-endpoints hidden"></div>
+        </div>
+        <div class="section">
+            <div class="section-header">
+                <div class="title link">Controller Services</div>
+                <div class="sub-title section-description">Manage controller services, Update controller service references</div>
+                <div class="clear"></div>
+            </div>
+            <div id="controller-service-endpoints" class="section-endpoints hidden"></div>
+        </div>
+        <div class="section">
+            <div class="section-header">
+                <div class="title link">Reporting Tasks</div>
+                <div class="sub-title section-description">Manage reporting tasks</div>
+                <div class="clear"></div>
+            </div>
+            <div id="reporting-task-endpoints" class="section-endpoints hidden"></div>
+        </div>
+        <div class="section">
+            <div class="section-header">
+                <div class="title link">Cluster</div>
+                <div class="sub-title section-description">View node status, Disconnect nodes, Aggregate component status</div>
+                <div class="clear"></div>
+            </div>
+            <div id="cluster-endpoints" class="section-endpoints hidden"></div>
+        </div>
+        <div class="section">
+            <div class="section-header">
+                <div class="title link">Provenance</div>
+                <div class="sub-title section-description">Query provenance, Search event lineage, Download content, Replay</div>
+                <div class="clear"></div>
+            </div>
+            <div id="provenance-endpoints" class="section-endpoints hidden"></div>
+        </div>
+        <div class="section">
+            <div class="section-header">
+                <div class="title link">History</div>
+                <div class="sub-title section-description">View flow history, Purge flow history</div>
+                <div class="clear"></div>
+            </div>
+            <div id="history-endpoints" class="section-endpoints hidden"></div>
+        </div>
+        <div class="section">
+            <div class="section-header">
+                <div class="title link">Users</div>
+                <div class="sub-title section-description">Update user access, revoke accounts, get account details, Group users</div>
+                <div class="clear"></div>
+            </div>
+            <div id="user-endpoints" class="section-endpoints hidden"></div>
+        </div>
+        <div class="unorganized hidden">
+            {{#each paths}}
+                {{> endpoint}}
+            {{/each}}
+        </div>
+        {{#each definitions}}
+            {{> type}}
+        {{/each}}
+    </body>
+</html>

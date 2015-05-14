@@ -17,10 +17,8 @@
 package org.apache.nifi.lifecycle;
 
 /**
- * The base exception for issues encountered during the lifecycle of a class
- * implementing the <code>LifeCycle</code> interface.
+ * The base exception for issues encountered during the lifecycle of a class implementing the <code>LifeCycle</code> interface.
  *
- * @author unattributed
  */
 public class LifeCycleException extends RuntimeException {
 

@@ -50,11 +50,11 @@ public class StandardNiFiContentAccess implements ContentAccess {
 
     private static final Logger logger = LoggerFactory.getLogger(StandardNiFiContentAccess.class);
     public static final String CLIENT_ID_PARAM = "clientId";
-    
+
     private NiFiProperties properties;
     private NiFiServiceFacade serviceFacade;
     private WebClusterManager clusterManager;
-    
+
     @Override
     @PreAuthorize("hasRole('ROLE_PROVENANCE')")
     public DownloadableContent getContent(final ContentRequestContext request) {
@@ -67,11 +67,11 @@ public class StandardNiFiContentAccess implements ContentAccess {
             } catch (final URISyntaxException use) {
                 throw new ClusterRequestException(use);
             }
-            
+
             // set the request parameters
             final MultivaluedMap<String, String> parameters = new MultivaluedMapImpl();
             parameters.add(CLIENT_ID_PARAM, request.getClientId());
-            
+
             // set the headers
             final Map<String, String> headers = new HashMap<>();
             if (StringUtils.isNotBlank(request.getProxiedEntitiesChain())) {
@@ -90,7 +90,7 @@ public class StandardNiFiContentAccess implements ContentAccess {
                     headers.put("X-ProxiedEntityUserDetails", hexEncodedUserDetails);
                 }
             }
-            
+
             // get the target node and ensure it exists
             final Node targetNode = clusterManager.getNode(request.getClusterNodeId());
             if (targetNode == null) {
@@ -104,14 +104,14 @@ public class StandardNiFiContentAccess implements ContentAccess {
             final NodeResponse nodeResponse = clusterManager.applyRequest(HttpMethod.GET, dataUri, parameters, headers, targetNodes);
             final ClientResponse clientResponse = nodeResponse.getClientResponse();
             final MultivaluedMap<String, String> responseHeaders = clientResponse.getHeaders();
-            
+
             // get the file name
             final String contentDisposition = responseHeaders.getFirst("Content-Disposition");
             final String filename = StringUtils.substringAfterLast(contentDisposition, "filename=");
-            
+
             // get the content type
             final String contentType = responseHeaders.getFirst("Content-Type");
-            
+
             // create the downloadable content
             return new DownloadableContent(filename, contentType, clientResponse.getEntityInputStream());
         } else {
@@ -119,7 +119,7 @@ public class StandardNiFiContentAccess implements ContentAccess {
             final String eventDetails = StringUtils.substringAfterLast(request.getDataUri(), "events/");
             final String rawEventId = StringUtils.substringBefore(eventDetails, "/content/");
             final String rawDirection = StringUtils.substringAfterLast(eventDetails, "/content/");
-            
+
             // get the content type
             final Long eventId;
             final ContentDirection direction;

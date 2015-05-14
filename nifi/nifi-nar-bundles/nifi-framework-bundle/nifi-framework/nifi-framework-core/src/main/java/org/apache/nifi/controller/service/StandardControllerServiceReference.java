@@ -65,9 +65,9 @@ public class StandardControllerServiceReference implements ControllerServiceRefe
         for (final ConfiguredComponent component : components) {
             if (component instanceof ControllerServiceNode) {
                 serviceNodes.add((ControllerServiceNode) component);
-                
+
                 final ControllerServiceState state = ((ControllerServiceNode) component).getState();
-                if ( state != ControllerServiceState.DISABLED ) {
+                if (state != ControllerServiceState.DISABLED) {
                     activeReferences.add(component);
                 }
             } else if (isRunning(component)) {

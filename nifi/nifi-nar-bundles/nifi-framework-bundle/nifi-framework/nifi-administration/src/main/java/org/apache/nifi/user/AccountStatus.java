@@ -29,8 +29,8 @@ public enum AccountStatus {
      * Returns the matching status or null if the specified status does not
      * match any statuses.
      *
-     * @param rawStatus
-     * @return
+     * @param rawStatus string form of status
+     * @return account status object
      */
     public static AccountStatus valueOfStatus(String rawStatus) {
         AccountStatus desiredStatus = null;

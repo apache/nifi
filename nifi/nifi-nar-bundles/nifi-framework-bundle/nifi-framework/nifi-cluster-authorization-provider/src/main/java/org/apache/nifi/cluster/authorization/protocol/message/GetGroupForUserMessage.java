@@ -19,7 +19,6 @@ package org.apache.nifi.cluster.authorization.protocol.message;
 import javax.xml.bind.annotation.XmlRootElement;
 
 /**
- * @author unattributed
  */
 @XmlRootElement(name = "getGroupForUserMessage")
 public class GetGroupForUserMessage extends ProtocolMessage {

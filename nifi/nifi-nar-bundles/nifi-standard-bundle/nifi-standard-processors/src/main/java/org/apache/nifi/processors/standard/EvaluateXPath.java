@@ -93,9 +93,9 @@ import org.xml.sax.InputSource;
         + "evaluate to a Node, the FlowFile will be routed to 'unmatched' without having its contents modified. If Destination is "
         + "flowfile-attribute and the expression matches nothing, attributes will be created with empty strings as the value, and the "
         + "FlowFile will always be routed to 'matched'")
-@WritesAttribute(attribute="user-defined", description="This processor adds user-defined attributes if the <Destination> property is set to flowfile-attribute.")
-@DynamicProperty(name="A FlowFile attribute(if <Destination> is set to 'flowfile-attribute'", value="An XPath expression", description="If <Destination>='flowfile-attribute' " + 
-"then the FlowFile attribute is set to the result of the XPath Expression.  If <Destination>='flowfile-content' then the FlowFile content is set to the result of the XPath Expression.")
+@WritesAttribute(attribute = "user-defined", description = "This processor adds user-defined attributes if the <Destination> property is set to flowfile-attribute.")
+@DynamicProperty(name = "A FlowFile attribute(if <Destination> is set to 'flowfile-attribute'", value = "An XPath expression", description = "If <Destination>='flowfile-attribute' "
+        + "then the FlowFile attribute is set to the result of the XPath Expression.  If <Destination>='flowfile-content' then the FlowFile content is set to the result of the XPath Expression.")
 public class EvaluateXPath extends AbstractProcessor {
 
     public static final String DESTINATION_ATTRIBUTE = "flowfile-attribute";
@@ -106,7 +106,9 @@ public class EvaluateXPath extends AbstractProcessor {
 
     public static final PropertyDescriptor DESTINATION = new PropertyDescriptor.Builder()
             .name("Destination")
-            .description("Indicates whether the results of the XPath evaluation are written to the FlowFile content or a FlowFile attribute; if using attribute, must specify the Attribute Name property. If set to flowfile-content, only one XPath may be specified, and the property name is ignored.")
+            .description("Indicates whether the results of the XPath evaluation are written to the FlowFile content or a FlowFile attribute; "
+                    + "if using attribute, must specify the Attribute Name property. If set to flowfile-content, only one XPath may be specified, "
+                    + "and the property name is ignored.")
             .required(true)
             .allowableValues(DESTINATION_CONTENT, DESTINATION_ATTRIBUTE)
             .defaultValue(DESTINATION_CONTENT)
@@ -114,15 +116,29 @@ public class EvaluateXPath extends AbstractProcessor {
 
     public static final PropertyDescriptor RETURN_TYPE = new PropertyDescriptor.Builder()
             .name("Return Type")
-            .description("Indicates the desired return type of the Xpath expressions.  Selecting 'auto-detect' will set the return type to 'nodeset' for a Destination of 'flowfile-content', and 'string' for a Destination of 'flowfile-attribute'.")
+            .description("Indicates the desired return type of the Xpath expressions.  Selecting 'auto-detect' will set the return type to 'nodeset' "
+                    + "for a Destination of 'flowfile-content', and 'string' for a Destination of 'flowfile-attribute'.")
             .required(true)
             .allowableValues(RETURN_TYPE_AUTO, RETURN_TYPE_NODESET, RETURN_TYPE_STRING)
             .defaultValue(RETURN_TYPE_AUTO)
             .build();
 
-    public static final Relationship REL_MATCH = new Relationship.Builder().name("matched").description("FlowFiles are routed to this relationship when the XPath is successfully evaluated and the FlowFile is modified as a result").build();
-    public static final Relationship REL_NO_MATCH = new Relationship.Builder().name("unmatched").description("FlowFiles are routed to this relationship when the XPath does not match the content of the FlowFile and the Destination is set to flowfile-content").build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure").description("FlowFiles are routed to this relationship when the XPath cannot be evaluated against the content of the FlowFile; for instance, if the FlowFile is not valid XML, or if the Return Type is 'nodeset' and the XPath evaluates to multiple nodes").build();
+    public static final Relationship REL_MATCH = new Relationship.Builder()
+            .name("matched")
+            .description("FlowFiles are routed to this relationship "
+                    + "when the XPath is successfully evaluated and the FlowFile is modified as a result")
+            .build();
+    public static final Relationship REL_NO_MATCH = new Relationship.Builder()
+            .name("unmatched")
+            .description("FlowFiles are routed to this relationship "
+                    + "when the XPath does not match the content of the FlowFile and the Destination is set to flowfile-content")
+            .build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("FlowFiles are routed to this relationship "
+                    + "when the XPath cannot be evaluated against the content of the FlowFile; for instance, if the FlowFile is not valid XML, or if the Return "
+                    + "Type is 'nodeset' and the XPath evaluates to multiple nodes")
+            .build();
 
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> properties;
@@ -130,8 +146,7 @@ public class EvaluateXPath extends AbstractProcessor {
     private final AtomicReference<XPathFactory> factoryRef = new AtomicReference<>();
 
     static {
-        System.setProperty("javax.xml.xpath.XPathFactory:" + NamespaceConstant.OBJECT_MODEL_SAXON,
-                "net.sf.saxon.xpath.XPathFactoryImpl");
+        System.setProperty("javax.xml.xpath.XPathFactory:" + NamespaceConstant.OBJECT_MODEL_SAXON, "net.sf.saxon.xpath.XPathFactoryImpl");
     }
 
     @Override
@@ -163,7 +178,8 @@ public class EvaluateXPath extends AbstractProcessor {
             }
 
             if (xpathCount != 1) {
-                results.add(new ValidationResult.Builder().subject("XPaths").valid(false).explanation("Exactly one XPath must be set if using destination of " + DESTINATION_CONTENT).build());
+                results.add(new ValidationResult.Builder().subject("XPaths").valid(false)
+                        .explanation("Exactly one XPath must be set if using destination of " + DESTINATION_CONTENT).build());
             }
         }
 
@@ -188,12 +204,8 @@ public class EvaluateXPath extends AbstractProcessor {
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
-                .name(propertyDescriptorName)
-                .expressionLanguageSupported(false)
-                .addValidator(new XPathValidator())
-                .required(false)
-                .dynamic(true)
-                .build();
+                .name(propertyDescriptorName).expressionLanguageSupported(false)
+                .addValidator(new XPathValidator()).required(false).dynamic(true).build();
     }
 
     @Override
@@ -272,7 +284,8 @@ public class EvaluateXPath extends AbstractProcessor {
             });
 
             if (error.get() != null) {
-                logger.error("unable to evaluate XPath against {} due to {}; routing to 'failure'", new Object[]{flowFile, error.get()});
+                logger.error("unable to evaluate XPath against {} due to {}; routing to 'failure'",
+                        new Object[]{flowFile, error.get()});
                 session.transfer(flowFile, REL_FAILURE);
                 continue;
             }
@@ -287,7 +300,8 @@ public class EvaluateXPath extends AbstractProcessor {
                         continue;
                     }
                 } catch (final XPathExpressionException e) {
-                    logger.error("failed to evaluate XPath for {} for Property {} due to {}; routing to failure", new Object[]{flowFile, entry.getKey(), e});
+                    logger.error("failed to evaluate XPath for {} for Property {} due to {}; routing to failure",
+                            new Object[]{flowFile, entry.getKey(), e});
                     session.transfer(flowFile, REL_FAILURE);
                     continue flowFileLoop;
                 }
@@ -299,8 +313,8 @@ public class EvaluateXPath extends AbstractProcessor {
                         session.transfer(flowFile, REL_NO_MATCH);
                         continue flowFileLoop;
                     } else if (nodeList.size() > 1) {
-                        logger.error("Routing {} to 'failure' because the XPath evaluated to {} XML nodes", new Object[]{
-                            flowFile, nodeList.size()});
+                        logger.error("Routing {} to 'failure' because the XPath evaluated to {} XML nodes",
+                                new Object[]{flowFile, nodeList.size()});
                         session.transfer(flowFile, REL_FAILURE);
                         continue flowFileLoop;
                     }
@@ -312,7 +326,7 @@ public class EvaluateXPath extends AbstractProcessor {
                             doTransform(sourceNode, baos);
                             xpathResults.put(entry.getKey(), baos.toString("UTF-8"));
                         } catch (UnsupportedEncodingException e) {
-                            throw new ProcessException(e); // this REALLY shouldn't happen						
+                            throw new ProcessException(e);
                         } catch (TransformerException e) {
                             error.set(e);
                         }
@@ -352,8 +366,8 @@ public class EvaluateXPath extends AbstractProcessor {
                 if (DESTINATION_ATTRIBUTE.equals(destination)) {
                     flowFile = session.putAllAttributes(flowFile, xpathResults);
                     final Relationship destRel = xpathResults.isEmpty() ? REL_NO_MATCH : REL_MATCH;
-                    logger.info("Successfully evaluated XPaths against {} and found {} matches; routing to {}", new Object[]{flowFile,
-                        xpathResults.size(), destRel.getName()});
+                    logger.info("Successfully evaluated XPaths against {} and found {} matches; routing to {}",
+                            new Object[]{flowFile, xpathResults.size(), destRel.getName()});
                     session.transfer(flowFile, destRel);
                     session.getProvenanceReporter().modifyAttributes(flowFile);
                 } else if (DESTINATION_CONTENT.equals(destination)) {
@@ -362,7 +376,8 @@ public class EvaluateXPath extends AbstractProcessor {
                     session.getProvenanceReporter().modifyContent(flowFile);
                 }
             } else {
-                logger.error("Failed to write XPath result for {} due to {}; routing original to 'failure'", new Object[]{flowFile, error.get()});
+                logger.error("Failed to write XPath result for {} due to {}; routing original to 'failure'",
+                        new Object[]{flowFile, error.get()});
                 session.transfer(flowFile, REL_FAILURE);
             }
         }
@@ -383,29 +398,29 @@ public class EvaluateXPath extends AbstractProcessor {
         transformer.setOutputProperties(props);
 
         final ProcessorLog logger = getLogger();
-        
+
         final ObjectHolder<TransformerException> error = new ObjectHolder<>(null);
         transformer.setErrorListener(new ErrorListener() {
             @Override
             public void warning(final TransformerException exception) throws TransformerException {
-                logger.warn("Encountered warning from XPath Engine: ", new Object[] {exception.toString(), exception});
+                logger.warn("Encountered warning from XPath Engine: ", new Object[]{exception.toString(), exception});
             }
 
             @Override
             public void error(final TransformerException exception) throws TransformerException {
-                logger.error("Encountered error from XPath Engine: ", new Object[] {exception.toString(), exception});
+                logger.error("Encountered error from XPath Engine: ", new Object[]{exception.toString(), exception});
                 error.set(exception);
             }
 
             @Override
             public void fatalError(final TransformerException exception) throws TransformerException {
-                logger.error("Encountered warning from XPath Engine: ", new Object[] {exception.toString(), exception});
+                logger.error("Encountered warning from XPath Engine: ", new Object[]{exception.toString(), exception});
                 error.set(exception);
             }
         });
-        
+
         transformer.transform(sourceNode, new StreamResult(out));
-        if ( error.get() != null ) {
+        if (error.get() != null) {
             throw error.get();
         }
     }
@@ -427,7 +442,8 @@ public class EvaluateXPath extends AbstractProcessor {
 
                 return new ValidationResult.Builder().input(input).subject(subject).valid(error == null).explanation(error).build();
             } catch (final Exception e) {
-                return new ValidationResult.Builder().input(input).subject(subject).valid(false).explanation("Unable to initialize XPath engine due to " + e.toString()).build();
+                return new ValidationResult.Builder().input(input).subject(subject).valid(false)
+                        .explanation("Unable to initialize XPath engine due to " + e.toString()).build();
             }
         }
     }

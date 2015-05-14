@@ -34,10 +34,8 @@ import org.apache.nifi.diagnostics.SystemDiagnostics;
 import org.apache.nifi.jaxb.CounterAdapter;
 
 /**
- * The payload of the heartbeat. The payload contains status to inform the
- * cluster manager the current workload of this node.
+ * The payload of the heartbeat. The payload contains status to inform the cluster manager the current workload of this node.
  *
- * @author unattributed
  */
 @XmlRootElement
 public class HeartbeatPayload {

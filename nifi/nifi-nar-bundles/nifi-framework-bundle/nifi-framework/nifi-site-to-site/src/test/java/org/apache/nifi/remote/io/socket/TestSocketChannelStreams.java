@@ -65,7 +65,7 @@ package org.apache.nifi.remote.io.socket;
 //        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/nifi.properties");
 //        final SocketChannel channel = SocketChannel.open(new InetSocketAddress("localhost", 5000));
 //        channel.configureBlocking(false);
-//        
+//
 //        final CommunicationsSession commsSession;
 //        commsSession = new SocketChannelCommunicationsSession(channel, "", null);
 //        commsSession.setUri("nifi://localhost:5000");
@@ -74,7 +74,7 @@ package org.apache.nifi.remote.io.socket;
 //
 //        dos.write(CommunicationsProtocol.MAGIC_BYTES);
 //        dos.flush();
-//        
+//
 //        final EventReporter eventReporter = Mockito.mock(EventReporter.class);
 //        final StandardSiteToSiteProtocol proposedProtocol = new StandardSiteToSiteProtocol(commsSession, eventReporter, NiFiProperties.getInstance());
 //
@@ -84,20 +84,20 @@ package org.apache.nifi.remote.io.socket;
 //        final RemoteProcessGroup rpg = Mockito.mock(RemoteProcessGroup.class);
 //        Mockito.when(rpg.getCommunicationsTimeout(Mockito.any(TimeUnit.class))).thenReturn(2000);
 //        Mockito.when(rpg.getTargetUri()).thenReturn( new URI("https://localhost:5050/") );
-//        
+//
 //        final RemoteGroupPort port = Mockito.mock(RemoteGroupPort.class);
 //        Mockito.when(port.getIdentifier()).thenReturn("90880680-d6da-40be-b2cc-a15423de2e1a");
 //        Mockito.when(port.getName()).thenReturn("Data In");
 //        Mockito.when(port.getRemoteProcessGroup()).thenReturn(rpg);
-//        
+//
 //        negotiatedProtocol.initiateHandshake(port, TransferDirection.SEND);
 //    }
-//    
+//
 //    @Test
 //    public void testInputOutputStreams() throws IOException, InterruptedException {
 //        final ServerThread server = new ServerThread();
 //        server.start();
-//        
+//
 //        int port = server.getPort();
 //        while ( port <= 0 ) {
 //            Thread.sleep(10L);
@@ -106,11 +106,11 @@ package org.apache.nifi.remote.io.socket;
 //
 //        final SocketChannel channel = SocketChannel.open(new InetSocketAddress("localhost", port));
 //        channel.configureBlocking(false);
-//        
+//
 //        final OutputStream out = new SocketChannelOutputStream(channel);
 //        final InputStream in = new SocketChannelInputStream(channel);
 //        final DataInputStream dataIn = new DataInputStream(in);
-//        
+//
 //        final byte[] sent = new byte[DATA_SIZE];
 //        for (int i=0; i < sent.length; i++) {
 //            sent[i] = (byte) (i % 255);
@@ -125,21 +125,21 @@ package org.apache.nifi.remote.io.socket;
 //            final float megabytes = (float) DATA_SIZE / (1024F * 1024F);
 //            final float MBperS = megabytes / seconds;
 //            System.out.println("Millis: " + millis + "; MB/s: " + MBperS);
-//            
+//
 //            Thread.sleep(2500L);
 //            final byte[] received = server.getReceivedData();
 //            System.out.println("Server received " + received.length + " bytes");
 //            server.clearReceivedData();
 //            assertTrue(Arrays.equals(sent, received));
-//            
+//
 //            final long val = dataIn.readLong();
 //            assertEquals(DATA_SIZE, val);
 //            System.out.println(val);
 //        }
-//        
+//
 //        server.shutdown();
 //    }
-//    
+//
 //    public final long toLong(final byte[] buffer) throws IOException {
 //        return (((long)buffer[0] << 56) +
 //                ((long)(buffer[1] & 255) << 48) +
@@ -150,82 +150,82 @@ package org.apache.nifi.remote.io.socket;
 //                ((buffer[6] & 255) <<  8) +
 //                ((buffer[7] & 255) <<  0));
 //    }
-//    
+//
 //    private static class ServerThread extends Thread {
 //        private int listeningPort;
 //        private final ByteArrayOutputStream received = new ByteArrayOutputStream();
-//        
+//
 //        private volatile int readingDelay = 0;
 //        private volatile boolean shutdown = false;
-//        
+//
 //        public ServerThread() {
 //        }
-//        
+//
 //        public int getPort() {
 //            return listeningPort;
 //        }
-//        
+//
 //        public byte[] getReceivedData() {
 //            return received.toByteArray();
 //        }
-//        
+//
 //        @Override
 //        public void run() {
 //            try {
 //                final ServerSocketFactory serverSocketFactory = ServerSocketFactory.getDefault();
 //                final ServerSocket serverSocket = serverSocketFactory.createServerSocket(0);
 //                this.listeningPort = serverSocket.getLocalPort();
-//                
+//
 //                final Socket socket = serverSocket.accept();
 //                final InputStream stream = socket.getInputStream();
 //                final DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
-//                
+//
 //                final byte[] buffer = new byte[4096];
 //                int len;
-//                
+//
 //                while (!shutdown) {
 //                    try {
 //                        len = stream.read(buffer);
-//                        
+//
 //                        System.out.println("Received " + len + " bytes");
-//                        
+//
 //                        if ( readingDelay > 0 ) {
 //                            try { Thread.sleep(readingDelay); } catch (final InterruptedException e) {}
 //                        }
 //                    } catch (final SocketTimeoutException e) {
 //                        continue;
 //                    }
-//                    
+//
 //                    if ( len < 0 ) {
 //                        return;
 //                    }
-//                    
+//
 //                    received.write(buffer, 0, len);
-//                    
+//
 //                    final long length = received.size();
 //                    if ( length % (DATA_SIZE) == 0 ) {
 //                        dos.writeLong(length);
 //                        dos.flush();
 //                    }
 //                }
-//                
+//
 //                System.out.println("Server successfully shutdown");
 //            } catch (final Exception e) {
 //                e.printStackTrace();
 //            }
 //        }
-//        
+//
 //        public void clearReceivedData() {
 //            this.received.reset();
 //        }
-//        
+//
 //        public void shutdown() {
 //            this.shutdown = true;
 //        }
-//        
+//
 //        public void delayReading(final int millis) {
 //            this.readingDelay = millis;
 //        }
 //    }
-//    
+//
 //}

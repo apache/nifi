@@ -42,7 +42,7 @@ import org.springframework.security.access.AccessDeniedException;
 
 /**
  * Controller servlet for viewing content. This is responsible for generating
- * the markup for the header and footer of the page. Included in that is the 
+ * the markup for the header and footer of the page. Included in that is the
  * combo that allows the user to choose how they wait to view the data
  * (original, formatted, hex). If a data viewer is registered for the detected
  * content type, it will include the markup it generates in the response.
@@ -50,13 +50,13 @@ import org.springframework.security.access.AccessDeniedException;
 public class ContentViewerController extends HttpServlet {
 
     private static final Logger logger = LoggerFactory.getLogger(ContentViewerController.class);
-    
+
     // 1.5kb - multiple of 12 (3 bytes = 4 base 64 encoded chars)
     private final static int BUFFER_LENGTH = 1536;
-    
+
     /**
      * Gets the content and defers to registered viewers to generate the markup.
-     * 
+     *
      * @param request servlet request
      * @param response servlet response
      * @throws ServletException if a servlet-specific error occurs
@@ -67,18 +67,18 @@ public class ContentViewerController extends HttpServlet {
         // get the content
         final ServletContext servletContext = request.getServletContext();
         final ContentAccess contentAccess = (ContentAccess) servletContext.getAttribute("nifi-content-access");
-        
+
         final ContentRequestContext contentRequest = getContentRequest(request);
         if (contentRequest.getDataUri() == null) {
             request.setAttribute("title", "Error");
             request.setAttribute("messages", "The data reference must be specified.");
-            
+
             // forward to the error page
             final ServletContext viewerContext = servletContext.getContext("/nifi");
             viewerContext.getRequestDispatcher("/message").forward(request, response);
             return;
         }
-        
+
         // get the content
         final DownloadableContent downloadableContent;
         try {
@@ -86,7 +86,7 @@ public class ContentViewerController extends HttpServlet {
         } catch (final ResourceNotFoundException rnfe) {
             request.setAttribute("title", "Error");
             request.setAttribute("messages", "Unable to find the specified content");
-            
+
             // forward to the error page
             final ServletContext viewerContext = servletContext.getContext("/nifi");
             viewerContext.getRequestDispatcher("/message").forward(request, response);
@@ -94,7 +94,7 @@ public class ContentViewerController extends HttpServlet {
         } catch (final AccessDeniedException ade) {
             request.setAttribute("title", "Acess Denied");
             request.setAttribute("messages", "Unable to approve access to the specified content: " + ade.getMessage());
-            
+
             // forward to the error page
             final ServletContext viewerContext = servletContext.getContext("/nifi");
             viewerContext.getRequestDispatcher("/message").forward(request, response);
@@ -102,7 +102,7 @@ public class ContentViewerController extends HttpServlet {
         } catch (final Exception e) {
             request.setAttribute("title", "Error");
             request.setAttribute("messages", "An unexcepted error has occurred: " + e.getMessage());
-            
+
             // forward to the error page
             final ServletContext viewerContext = servletContext.getContext("/nifi");
             viewerContext.getRequestDispatcher("/message").forward(request, response);
@@ -111,12 +111,12 @@ public class ContentViewerController extends HttpServlet {
 
         // determine how we want to view the data
         String mode = request.getParameter("mode");
-        
+
         // if the name isn't set, use original
         if (mode == null) {
             mode = DisplayMode.Original.name();
         }
-        
+
         // determine the display mode
         final DisplayMode displayMode;
         try {
@@ -124,16 +124,16 @@ public class ContentViewerController extends HttpServlet {
         } catch (final IllegalArgumentException iae) {
             request.setAttribute("title", "Error");
             request.setAttribute("messages", "Invalid display mode: " + mode);
-            
+
             // forward to the error page
             final ServletContext viewerContext = servletContext.getContext("/nifi");
             viewerContext.getRequestDispatcher("/message").forward(request, response);
             return;
         }
-        
+
         // buffer the content to support reseting in case we need to detect the content type or char encoding
         final BufferedInputStream bis = new BufferedInputStream(downloadableContent.getContent());
-        
+
         // detect the content type
         final DefaultDetector detector = new DefaultDetector();
 
@@ -147,33 +147,33 @@ public class ContentViewerController extends HttpServlet {
         // Get mime type
         final MediaType mediatype = detector.detect(tikaStream, metadata);
         final String mimeType = mediatype.toString();
-        
+
         // add attributes needed for the header
         request.setAttribute("filename", downloadableContent.getFilename());
         request.setAttribute("contentType", mimeType);
-        
+
         // generate the header
         request.getRequestDispatcher("/WEB-INF/jsp/header.jsp").include(request, response);
-        
+
         // remove the attributes needed for the header
         request.removeAttribute("filename");
         request.removeAttribute("contentType");
-        
+
         // generate the markup for the content based on the display mode
         if (DisplayMode.Hex.equals(displayMode)) {
             final byte[] buffer = new byte[BUFFER_LENGTH];
             final int read = StreamUtils.fillBuffer(bis, buffer, false);
-            
+
             // trim the byte array if necessary
             byte[] bytes = buffer;
             if (read != buffer.length) {
                 bytes = new byte[read];
                 System.arraycopy(buffer, 0, bytes, 0, read);
             }
-            
+
             // convert bytes into the base 64 bytes
             final String base64 = Base64.encodeBase64String(bytes);
-            
+
             // defer to the jsp
             request.setAttribute("content", base64);
             request.getRequestDispatcher("/WEB-INF/jsp/hexview.jsp").include(request, response);
@@ -232,13 +232,13 @@ public class ContentViewerController extends HttpServlet {
                 } catch (final Exception e) {
                     String message = e.getMessage() != null ? e.getMessage() : e.toString();
                     message = "Unable to generate view of data: " + message;
-                    
+
                     // log the error
                     logger.error(message);
                     if (logger.isDebugEnabled()) {
                         logger.error(StringUtils.EMPTY, e);
                     }
-                    
+
                     // populate the request attributes
                     request.setAttribute("title", "Error");
                     request.setAttribute("messages", message);
@@ -248,7 +248,7 @@ public class ContentViewerController extends HttpServlet {
                     viewerContext.getRequestDispatcher("/message").forward(request, response);
                     return;
                 }
-                
+
                 // remove the request attribute
                 request.removeAttribute(ViewableContent.CONTENT_REQUEST_ATTRIBUTE);
             }
@@ -259,9 +259,8 @@ public class ContentViewerController extends HttpServlet {
     }
 
     /**
-     * Get the content request context based on the specified request.
-     * @param request
-     * @return 
+     * @param request request
+     * @return Get the content request context based on the specified request
      */
     private ContentRequestContext getContentRequest(final HttpServletRequest request) {
         return new ContentRequestContext() {

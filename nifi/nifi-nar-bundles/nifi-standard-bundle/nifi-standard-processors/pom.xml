@@ -81,6 +81,10 @@
             <artifactId>bcprov-jdk16</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcpg-jdk16</artifactId>
+        </dependency>
+        <dependency>
             <groupId>commons-codec</groupId>
             <artifactId>commons-codec</artifactId>
         </dependency>
@@ -176,6 +180,7 @@
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
                     <excludes>
+                        <exclude>src/test/resources/localhost.cer</exclude>
                         <exclude>src/test/resources/hello.txt</exclude>
                         <exclude>src/test/resources/CharacterSetConversionSamples/Converted.txt</exclude>
                         <exclude>src/test/resources/CharacterSetConversionSamples/Original.txt</exclude>
@@ -186,6 +191,8 @@
                         <exclude>src/test/resources/ScanAttribute/dictionary-with-empty-new-lines</exclude>
                         <exclude>src/test/resources/ScanAttribute/dictionary-with-extra-info</exclude>
                         <exclude>src/test/resources/ScanAttribute/dictionary1</exclude>
+                        <exclude>src/test/resources/TestEncryptContent/text.txt</exclude>
+                        <exclude>src/test/resources/TestEncryptContent/text.txt.asc</exclude>
                         <exclude>src/test/resources/TestIdentifyMimeType/1.txt</exclude>
                         <exclude>src/test/resources/TestJson/json-sample.json</exclude>
                         <exclude>src/test/resources/TestMergeContent/demarcate</exclude>
@@ -231,6 +238,8 @@
                         <exclude>src/test/resources/TestTransformXml/tokens.xml</exclude>
                         <exclude>src/test/resources/TestUnpackContent/folder/cal.txt</exclude>
                         <exclude>src/test/resources/TestUnpackContent/folder/date.txt</exclude>
+                        <exclude>src/test/resources/TestUnpackContent/data.flowfilev2</exclude>
+                        <exclude>src/test/resources/TestUnpackContent/data.flowfilev3</exclude>
                         <exclude>src/test/resources/TestXml/xml-bundle-1</exclude>
                         <exclude>src/test/resources/CompressedData/SampleFile.txt.bz2</exclude>
                         <exclude>src/test/resources/CompressedData/SampleFile.txt.gz</exclude>

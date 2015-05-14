@@ -21,23 +21,24 @@ import java.util.Map;
 import org.apache.nifi.hl7.query.evaluator.BooleanEvaluator;
 
 public class OrEvaluator extends BooleanEvaluator {
-	private final BooleanEvaluator lhs;
-	private final BooleanEvaluator rhs;
-	
-	public OrEvaluator(final BooleanEvaluator lhs, final BooleanEvaluator rhs) {
-		this.lhs = lhs;
-		this.rhs = rhs;
-	}
-	
-	@Override
-	public Boolean evaluate(final Map<String, Object> objectMap) {
-		final Boolean lhsValue = lhs.evaluate(objectMap);
-		if ( lhsValue != null && Boolean.TRUE.equals(lhsValue) ) {
-			return true;
-		}
-		
-		final Boolean rhsValue = rhs.evaluate(objectMap);
-		return (rhsValue != null && Boolean.TRUE.equals(rhsValue));
-	}
+
+    private final BooleanEvaluator lhs;
+    private final BooleanEvaluator rhs;
+
+    public OrEvaluator(final BooleanEvaluator lhs, final BooleanEvaluator rhs) {
+        this.lhs = lhs;
+        this.rhs = rhs;
+    }
+
+    @Override
+    public Boolean evaluate(final Map<String, Object> objectMap) {
+        final Boolean lhsValue = lhs.evaluate(objectMap);
+        if (lhsValue != null && Boolean.TRUE.equals(lhsValue)) {
+            return true;
+        }
+
+        final Boolean rhsValue = rhs.evaluate(objectMap);
+        return (rhsValue != null && Boolean.TRUE.equals(rhsValue));
+    }
 
 }

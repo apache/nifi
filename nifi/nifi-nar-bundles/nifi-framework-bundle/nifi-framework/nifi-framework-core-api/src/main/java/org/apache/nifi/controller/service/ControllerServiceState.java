@@ -16,30 +16,28 @@
  */
 package org.apache.nifi.controller.service;
 
-
 /**
  * Represents the valid states for a Controller Service.
  */
 public enum ControllerServiceState {
+
     /**
      * Controller Service is disabled and cannot be used.
      */
     DISABLED,
-    
     /**
-     * Controller Service has been disabled but has not yet finished its lifecycle
-     * methods.
+     * Controller Service has been disabled but has not yet finished its
+     * lifecycle methods.
      */
     DISABLING,
-    
     /**
-     * Controller Service has been enabled but has not yet finished its lifecycle methods.
+     * Controller Service has been enabled but has not yet finished its
+     * lifecycle methods.
      */
     ENABLING,
-    
     /**
-     * Controller Service has been enabled and has finished its lifecycle methods. The Controller SErvice
-     * is ready to be used.
+     * Controller Service has been enabled and has finished its lifecycle
+     * methods. The Controller SErvice is ready to be used.
      */
     ENABLED;
 }

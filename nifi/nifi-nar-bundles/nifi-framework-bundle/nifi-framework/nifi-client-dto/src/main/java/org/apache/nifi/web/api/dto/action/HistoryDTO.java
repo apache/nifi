@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.action;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Collection;
 import java.util.Date;
 import javax.xml.bind.annotation.XmlType;
@@ -33,10 +34,11 @@ public class HistoryDTO {
     private Collection<ActionDTO> actions;
 
     /**
-     * The total number of actions.
-     *
-     * @return
+     * @return total number of actions
      */
+    @ApiModelProperty(
+            value = "The number of number of actions that matched the search criteria.."
+    )
     public Integer getTotal() {
         return total;
     }
@@ -46,11 +48,12 @@ public class HistoryDTO {
     }
 
     /**
-     * Timestamp when these records were returned.
-     *
-     * @return
+     * @return timestamp when these records were returned
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
+    @ApiModelProperty(
+            value = "The timestamp when the report was generated."
+    )
     public Date getLastRefreshed() {
         return lastRefreshed;
     }
@@ -60,10 +63,11 @@ public class HistoryDTO {
     }
 
     /**
-     * The actions for this range.
-     *
-     * @return
+     * @return actions for this range
      */
+    @ApiModelProperty(
+            value = "The actions."
+    )
     public Collection<ActionDTO> getActions() {
         return actions;
     }

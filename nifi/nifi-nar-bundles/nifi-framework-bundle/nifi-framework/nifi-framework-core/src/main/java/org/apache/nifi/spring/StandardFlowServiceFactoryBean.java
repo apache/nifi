@@ -28,9 +28,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
 /**
- * Factory bean for creating a singleton FlowController instance. If the
- * application is configured to act as the cluster manager, then null is always
- * returned as the created instance.
+ * Factory bean for creating a singleton FlowController instance. If the application is configured to act as the cluster manager, then null is always returned as the created instance.
  */
 @SuppressWarnings("rawtypes")
 public class StandardFlowServiceFactoryBean implements FactoryBean, ApplicationContextAware {
@@ -46,7 +44,7 @@ public class StandardFlowServiceFactoryBean implements FactoryBean, ApplicationC
     @Override
     public Object getObject() throws Exception {
         /*
-         * If configured for the cluster manager, then the flow controller is never used.  
+         * If configured for the cluster manager, then the flow controller is never used.
          */
         if (properties.isClusterManager()) {
             return null;

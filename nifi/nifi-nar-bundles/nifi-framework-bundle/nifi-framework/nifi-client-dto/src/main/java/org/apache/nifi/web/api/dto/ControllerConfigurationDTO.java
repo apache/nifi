@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Date;
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
@@ -42,10 +43,11 @@ public class ControllerConfigurationDTO {
     private String uri;
 
     /**
-     * The maximum number of timer driven threads this NiFi has available.
-     *
-     * @return The maximum number of threads
+     * @return maximum number of timer driven threads this NiFi has available
      */
+    @ApiModelProperty(
+            value = "The maimum number of timer driven threads the NiFi has available."
+    )
     public Integer getMaxTimerDrivenThreadCount() {
         return maxTimerDrivenThreadCount;
     }
@@ -55,10 +57,11 @@ public class ControllerConfigurationDTO {
     }
 
     /**
-     * The maximum number of event driven thread this NiFi has available.
-     *
-     * @return
+     * @return maximum number of event driven thread this NiFi has available
      */
+    @ApiModelProperty(
+            value = "The maximum number of event driven threads the NiFi has avaiable."
+    )
     public Integer getMaxEventDrivenThreadCount() {
         return maxEventDrivenThreadCount;
     }
@@ -68,10 +71,11 @@ public class ControllerConfigurationDTO {
     }
 
     /**
-     * The name of this NiFi.
-     *
-     * @return The name
+     * @return name of this NiFi
      */
+    @ApiModelProperty(
+            value = "The name of this NiFi."
+    )
     public String getName() {
         return name;
     }
@@ -81,10 +85,11 @@ public class ControllerConfigurationDTO {
     }
 
     /**
-     * The comments for this NiFi.
-     *
-     * @return
+     * @return comments for this NiFi
      */
+    @ApiModelProperty(
+            value = "The comments for this NiFi."
+    )
     public String getComments() {
         return comments;
     }
@@ -94,11 +99,12 @@ public class ControllerConfigurationDTO {
     }
 
     /**
-     * The interval in seconds between the automatic NiFi refresh requests. This
-     * value is read only.
-     *
-     * @return The interval in seconds
+     * @return interval in seconds between the automatic NiFi refresh requests. This value is read only
      */
+    @ApiModelProperty(
+            value = "The interval in seconds between the automatic NiFi refresh requests.",
+            readOnly = true
+    )
     public Long getAutoRefreshIntervalSeconds() {
         return autoRefreshIntervalSeconds;
     }
@@ -108,11 +114,12 @@ public class ControllerConfigurationDTO {
     }
 
     /**
-     * Indicates whether or not Site-to-Site communications with this instance
-     * is secure (2-way authentication). This value is read only.
-     *
-     * @return
+     * @return Indicates whether or not Site-to-Site communications with this instance is secure (2-way authentication). This value is read only
      */
+    @ApiModelProperty(
+            value = "Indicates whether site to site communication with the NiFi is secure (requires 2-way authenticiation).",
+            readOnly = true
+    )
     public Boolean isSiteToSiteSecure() {
         return siteToSiteSecure;
     }
@@ -122,11 +129,12 @@ public class ControllerConfigurationDTO {
     }
 
     /**
-     * The current time on the server.
-     * 
-     * @return 
+     * @return current time on the server
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
+    @ApiModelProperty(
+            value = "The current time on the system."
+    )
     public Date getCurrentTime() {
         return currentTime;
     }
@@ -136,10 +144,11 @@ public class ControllerConfigurationDTO {
     }
 
     /**
-     * The time offset of the server.
-     *
-     * @return
+     * @return time offset of the server
      */
+    @ApiModelProperty(
+            value = "The time offset of the system."
+    )
     public Integer getTimeOffset() {
         return timeOffset;
     }
@@ -149,10 +158,11 @@ public class ControllerConfigurationDTO {
     }
 
     /**
-     * Returns the URL for the content viewer if configured.
-     *
-     * @return
+     * @return the URL for the content viewer if configured
      */
+    @ApiModelProperty(
+            value = "The URL for the content viewer if configured."
+    )
     public String getContentViewerUrl() {
         return contentViewerUrl;
     }
@@ -162,10 +172,11 @@ public class ControllerConfigurationDTO {
     }
 
     /**
-     * The URI for this NiFi controller.
-     *
-     * @return
+     * @return URI for this NiFi controller
      */
+    @ApiModelProperty(
+            value = "The URI for the NiFi."
+    )
     public String getUri() {
         return uri;
     }

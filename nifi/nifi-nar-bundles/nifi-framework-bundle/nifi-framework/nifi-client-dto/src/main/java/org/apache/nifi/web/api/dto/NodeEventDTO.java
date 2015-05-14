@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Date;
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
@@ -32,10 +33,11 @@ public class NodeEventDTO {
     private String message;
 
     /**
-     * The category of the node event.
-     *
-     * @return
+     * @return category of the node event
      */
+    @ApiModelProperty(
+            value = "The category of the node event."
+    )
     public String getCategory() {
         return category;
     }
@@ -45,10 +47,11 @@ public class NodeEventDTO {
     }
 
     /**
-     * The message of the node event.
-     *
-     * @return
+     * @return message of the node event
      */
+    @ApiModelProperty(
+            value = "The message in the node event."
+    )
     public String getMessage() {
         return message;
     }
@@ -58,11 +61,12 @@ public class NodeEventDTO {
     }
 
     /**
-     * The timestamp of the node event.
-     *
-     * @return
+     * @return timestamp of the node event
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
+    @ApiModelProperty(
+            value = "The timestamp of the node event."
+    )
     public Date getTimestamp() {
         return timestamp;
     }

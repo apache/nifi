@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.action.details;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import javax.xml.bind.annotation.XmlType;
 
 /**
@@ -33,10 +34,11 @@ public class ConnectDetailsDTO extends ActionDetailsDTO {
     private String destinationType;
 
     /**
-     * The id of the source of the connection.
-     *
-     * @return
+     * @return id of the source of the connection
      */
+    @ApiModelProperty(
+            value = "The id of the source of the connection."
+    )
     public String getSourceId() {
         return sourceId;
     }
@@ -46,10 +48,11 @@ public class ConnectDetailsDTO extends ActionDetailsDTO {
     }
 
     /**
-     * The name of the source of the connection.
-     *
-     * @return
+     * @return name of the source of the connection
      */
+    @ApiModelProperty(
+            value = "The name of the source of the connection."
+    )
     public String getSourceName() {
         return sourceName;
     }
@@ -59,10 +62,11 @@ public class ConnectDetailsDTO extends ActionDetailsDTO {
     }
 
     /**
-     * The type of the source of the connection.
-     *
-     * @return
+     * @return type of the source of the connection
      */
+    @ApiModelProperty(
+            value = "The type of the source of the connection."
+    )
     public String getSourceType() {
         return sourceType;
     }
@@ -72,10 +76,11 @@ public class ConnectDetailsDTO extends ActionDetailsDTO {
     }
 
     /**
-     * The name of the relationship that was connected.
-     *
-     * @return
+     * @return name of the relationship that was connected
      */
+    @ApiModelProperty(
+            value = "The name of the relationship that was connected."
+    )
     public String getRelationship() {
         return relationship;
     }
@@ -85,10 +90,11 @@ public class ConnectDetailsDTO extends ActionDetailsDTO {
     }
 
     /**
-     * The id of the destination of the connection.
-     *
-     * @return
+     * @return id of the destination of the connection
      */
+    @ApiModelProperty(
+            value = "The id of the destination of the connection."
+    )
     public String getDestinationId() {
         return destinationId;
     }
@@ -98,10 +104,11 @@ public class ConnectDetailsDTO extends ActionDetailsDTO {
     }
 
     /**
-     * The name of the destination of the connection.
-     *
-     * @return
+     * @return name of the destination of the connection
      */
+    @ApiModelProperty(
+            value = "The name of the destination of the connection."
+    )
     public String getDestinationName() {
         return destinationName;
     }
@@ -111,10 +118,11 @@ public class ConnectDetailsDTO extends ActionDetailsDTO {
     }
 
     /**
-     * The type of the destination of the connection.
-     *
-     * @return
+     * @return type of the destination of the connection
      */
+    @ApiModelProperty(
+            value = "The type of the destination of the connection."
+    )
     public String getDestinationType() {
         return destinationType;
     }

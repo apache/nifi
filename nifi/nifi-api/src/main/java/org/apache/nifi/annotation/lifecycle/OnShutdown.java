@@ -28,22 +28,22 @@ import org.apache.nifi.processor.ProcessContext;
 
 /**
  * <p>
- * Marker annotation a {@link org.apache.nifi.processor.Processor Processor}, 
+ * Marker annotation a {@link org.apache.nifi.processor.Processor Processor},
  * {@link org.apache.nifi.controller.ControllerService ControllerService}, or
- * {@link org.apache.nifi.reporting.ReportingTask ReportingTask} implementation 
- * can use to indicate a method should be called whenever the flow is being shutdown. 
- * This will be called at most once for each component in a JVM lifetime.
- * It is not, however, guaranteed that this method will be called on shutdown, as 
- * the service may be killed suddenly.
+ * {@link org.apache.nifi.reporting.ReportingTask ReportingTask} implementation
+ * can use to indicate a method should be called whenever the flow is being
+ * shutdown. This will be called at most once for each component in a JVM
+ * lifetime. It is not, however, guaranteed that this method will be called on
+ * shutdown, as the service may be killed suddenly.
  * </p>
- * 
+ *
  * <p>
- * Methods with this annotation are permitted to take either 0 or 1 argument. If an argument
- * is used, it must be of type {@link ConfigurationContext} if the component is a ReportingTask
- * or Controller Service, or of type {@link ProcessContext} if the component is a Processor.
+ * Methods with this annotation are permitted to take either 0 or 1 argument. If
+ * an argument is used, it must be of type {@link ConfigurationContext} if the
+ * component is a ReportingTask or Controller Service, or of type
+ * {@link ProcessContext} if the component is a Processor.
  * </p>
- *  
- * @author none
+ *
  */
 @Documented
 @Target({ElementType.METHOD})

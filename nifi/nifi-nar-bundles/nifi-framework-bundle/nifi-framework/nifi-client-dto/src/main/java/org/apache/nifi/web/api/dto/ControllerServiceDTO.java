@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
@@ -32,22 +33,23 @@ public class ControllerServiceDTO extends NiFiComponentDTO {
     private String comments;
     private String availability;
     private String state;
-    
+
     private Map<String, String> properties;
     private Map<String, PropertyDescriptorDTO> descriptors;
- 
+
     private String customUiUrl;
     private String annotationData;
-    
+
     private Set<ControllerServiceReferencingComponentDTO> referencingComponents;
-    
+
     private Collection<String> validationErrors;
 
     /**
-     * The controller service name.
-     * 
-     * @return 
+     * @return controller service name
      */
+    @ApiModelProperty(
+            value = "The name of the controller service."
+    )
     public String getName() {
         return name;
     }
@@ -57,10 +59,11 @@ public class ControllerServiceDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The controller service type.
-     * 
-     * @return 
+     * @return the controller service type
      */
+    @ApiModelProperty(
+            value = "The type of the controller service."
+    )
     public String getType() {
         return type;
     }
@@ -68,25 +71,28 @@ public class ControllerServiceDTO extends NiFiComponentDTO {
     public void setType(String type) {
         this.type = type;
     }
-    
 
     /**
-     * The comment for the Controller Service
-     * @return
+     * @return the comment for the Controller Service
      */
+    @ApiModelProperty(
+            value = "The comments for the controller service."
+    )
     public String getComments() {
-		return comments;
-	}
+        return comments;
+    }
 
-	public void setComments(String comments) {
-		this.comments = comments;
-	}
+    public void setComments(String comments) {
+        this.comments = comments;
+    }
 
-	/**
-     * Where this service is available. Possible values are NCM, NODE.
-     * 
-     * @return 
+    /**
+     * @return Where this service is available. Possible values are NCM, NODE
      */
+    @ApiModelProperty(
+            value = "Where the servcie is available.",
+            allowableValues = "NCM, NODE"
+    )
     public String getAvailability() {
         return availability;
     }
@@ -96,9 +102,12 @@ public class ControllerServiceDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The state of this controller service. Possible values are ENABLED, ENABLING, DISABLED, DISABLING.
-     * @return 
+     * @return The state of this controller service. Possible values are ENABLED, ENABLING, DISABLED, DISABLING
      */
+    @ApiModelProperty(
+            value = "The state of the controller service.",
+            allowableValues = "ENABLED, ENABLING, DISABLED, DISABLING"
+    )
     public String getState() {
         return state;
     }
@@ -108,10 +117,11 @@ public class ControllerServiceDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The controller service properties.
-     * 
-     * @return 
+     * @return controller service properties
      */
+    @ApiModelProperty(
+            value = "The properties of the controller service."
+    )
     public Map<String, String> getProperties() {
         return properties;
     }
@@ -121,10 +131,11 @@ public class ControllerServiceDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The descriptors for the controller service properties.
-     * 
-     * @return 
+     * @return descriptors for the controller service properties
      */
+    @ApiModelProperty(
+            value = "The descriptors for the controller service properties."
+    )
     public Map<String, PropertyDescriptorDTO> getDescriptors() {
         return descriptors;
     }
@@ -134,11 +145,11 @@ public class ControllerServiceDTO extends NiFiComponentDTO {
     }
 
     /**
-     * Returns the URL for this controller services custom configuration UI
-     * if applicable. Null otherwise.
-     *
-     * @return
+     * @return the URL for this controller services custom configuration UI if applicable. Null otherwise
      */
+    @ApiModelProperty(
+            value = "The URL for the controller services custom configuration UI if applicable."
+    )
     public String getCustomUiUrl() {
         return customUiUrl;
     }
@@ -148,10 +159,11 @@ public class ControllerServiceDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The annotation data for this controller service.
-     * 
-     * @return 
+     * @return annotation data for this controller service
      */
+    @ApiModelProperty(
+            value = "The annontation for the controller service. This is how the custom UI relays configuration to the controller service."
+    )
     public String getAnnotationData() {
         return annotationData;
     }
@@ -161,10 +173,11 @@ public class ControllerServiceDTO extends NiFiComponentDTO {
     }
 
     /**
-     * All components referencing this controller service.
-     * 
-     * @return 
+     * @return all components referencing this controller service
      */
+    @ApiModelProperty(
+            value = "All components referencing this controller service."
+    )
     public Set<ControllerServiceReferencingComponentDTO> getReferencingComponents() {
         return referencingComponents;
     }
@@ -174,12 +187,13 @@ public class ControllerServiceDTO extends NiFiComponentDTO {
     }
 
     /**
-     * Gets the validation errors from this controller service. These validation errors
-     * represent the problems with the controller service that must be resolved before it
-     * can be enabled.
+     * Gets the validation errors from this controller service. These validation errors represent the problems with the controller service that must be resolved before it can be enabled.
      *
      * @return The validation errors
      */
+    @ApiModelProperty(
+            value = "The validation errors from the controller service. These validation errors represent the problems with the controller service that must be resolved before it can be enabled."
+    )
     public Collection<String> getValidationErrors() {
         return validationErrors;
     }

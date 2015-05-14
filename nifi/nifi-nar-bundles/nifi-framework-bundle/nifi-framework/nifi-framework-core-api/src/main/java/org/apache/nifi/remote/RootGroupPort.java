@@ -42,36 +42,36 @@ public interface RootGroupPort extends Port {
      * and returns a {@link PortAuthorizationResult} indicating why the user is
      * unauthorized if this assumption fails
      *
-     * @param dn
-     * @return
+     * @param dn dn of user
+     * @return result
      */
     PortAuthorizationResult checkUserAuthorization(String dn);
 
     /**
      * Receives data from the given stream
      *
-     * @param peer
-     * @param serverProtocol
-     * @param requestHeaders
+     * @param peer peer
+     * @param serverProtocol protocol
+     * @param requestHeaders headers
      *
      * @return the number of FlowFiles received
-     * @throws org.apache.nifi.remote.exception.NotAuthorizedException
-     * @throws org.apache.nifi.remote.exception.BadRequestException
-     * @throws org.apache.nifi.remote.exception.RequestExpiredException
+     * @throws org.apache.nifi.remote.exception.NotAuthorizedException nae
+     * @throws org.apache.nifi.remote.exception.BadRequestException bre
+     * @throws org.apache.nifi.remote.exception.RequestExpiredException ree
      */
     int receiveFlowFiles(Peer peer, ServerProtocol serverProtocol, Map<String, String> requestHeaders) throws NotAuthorizedException, BadRequestException, RequestExpiredException;
 
     /**
      * Transfers data to the given stream
      *
-     * @param peer
-     * @param requestHeaders
-     * @param serverProtocol
+     * @param peer peer
+     * @param requestHeaders headers
+     * @param serverProtocol protocol
      *
      * @return the number of FlowFiles transferred
-     * @throws org.apache.nifi.remote.exception.NotAuthorizedException
-     * @throws org.apache.nifi.remote.exception.BadRequestException
-     * @throws org.apache.nifi.remote.exception.RequestExpiredException
+     * @throws org.apache.nifi.remote.exception.NotAuthorizedException nae
+     * @throws org.apache.nifi.remote.exception.BadRequestException bre
+     * @throws org.apache.nifi.remote.exception.RequestExpiredException ree
      */
     int transferFlowFiles(Peer peer, ServerProtocol serverProtocol, Map<String, String> requestHeaders) throws NotAuthorizedException, BadRequestException, RequestExpiredException;
 

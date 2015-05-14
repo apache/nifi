@@ -16,17 +16,16 @@
  */
 package org.apache.nifi.framework.security.util;
 
-import org.apache.nifi.framework.security.util.SslContextFactory;
 import org.apache.nifi.security.util.KeystoreType;
 import java.io.File;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
- * @author unattributed
  */
 public class SslContextFactoryTest {
 
@@ -38,13 +37,13 @@ public class SslContextFactoryTest {
 
         final File ksFile = new File(SslContextFactoryTest.class.getResource("/localhost-ks.jks").toURI());
         final File trustFile = new File(SslContextFactoryTest.class.getResource("/localhost-ts.jks").toURI());
-        
+
         authProps = mock(NiFiProperties.class);
         when(authProps.getProperty(NiFiProperties.SECURITY_KEYSTORE)).thenReturn(ksFile.getAbsolutePath());
         when(authProps.getProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE)).thenReturn(KeystoreType.JKS.toString());
         when(authProps.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD)).thenReturn("localtest");
         when(authProps.getNeedClientAuth()).thenReturn(false);
-        
+
         mutualAuthProps = mock(NiFiProperties.class);
         when(mutualAuthProps.getProperty(NiFiProperties.SECURITY_KEYSTORE)).thenReturn(ksFile.getAbsolutePath());
         when(mutualAuthProps.getProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE)).thenReturn(KeystoreType.JKS.toString());
@@ -53,17 +52,17 @@ public class SslContextFactoryTest {
         when(mutualAuthProps.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE)).thenReturn(KeystoreType.JKS.toString());
         when(mutualAuthProps.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD)).thenReturn("localtest");
         when(mutualAuthProps.getNeedClientAuth()).thenReturn(true);
-    
-    }        
+
+    }
 
     @Test
     public void testCreateSslContextWithMutualAuth() {
-       Assert.assertNotNull(SslContextFactory.createSslContext(mutualAuthProps));
+        Assert.assertNotNull(SslContextFactory.createSslContext(mutualAuthProps));
     }
 
     @Test
     public void testCreateSslContextWithNoMutualAuth() {
-       Assert.assertNotNull(SslContextFactory.createSslContext(authProps));
+        Assert.assertNotNull(SslContextFactory.createSslContext(authProps));
     }
-    
+
 }

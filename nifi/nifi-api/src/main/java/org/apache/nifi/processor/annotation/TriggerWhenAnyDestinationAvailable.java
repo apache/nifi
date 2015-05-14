@@ -29,8 +29,9 @@ import java.lang.annotation.Target;
  * for incoming FlowFiles. By default processors are triggered only when all
  * destinations report that they have available space.
  *
- * @author none
- * @deprecated This Annotation has been replaced by the {@link org.apache.nifi.annotation.behavior.TriggerWhenAnyDestinationAvailable} annotation.
+ * @deprecated This Annotation has been replaced by the
+ * {@link org.apache.nifi.annotation.behavior.TriggerWhenAnyDestinationAvailable}
+ * annotation.
  */
 @Documented
 @Target({ElementType.TYPE})

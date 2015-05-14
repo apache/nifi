@@ -22,7 +22,6 @@ import org.apache.nifi.cluster.protocol.StandardDataFlow;
 /**
  * A dataflow with additional information about the cluster.
  *
- * @author unattributed
  */
 public class ClusterDataFlow {
 
@@ -39,13 +38,13 @@ public class ClusterDataFlow {
     }
 
     public byte[] getControllerServices() {
-    	return controllerServices;
+        return controllerServices;
     }
-    
+
     public byte[] getReportingTasks() {
-    	return reportingTasks;
+        return reportingTasks;
     }
-    
+
     public NodeIdentifier getPrimaryNodeId() {
         return primaryNodeId;
     }

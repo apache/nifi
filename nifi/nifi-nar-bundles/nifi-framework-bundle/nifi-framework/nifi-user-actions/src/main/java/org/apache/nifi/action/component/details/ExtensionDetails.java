@@ -30,5 +30,5 @@ public class ExtensionDetails extends ComponentDetails {
     public void setType(String type) {
         this.type = type;
     }
-    
+
 }

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Set;
 import javax.xml.bind.annotation.XmlType;
 
@@ -30,10 +31,11 @@ public class DocumentedTypeDTO {
     private Set<String> tags;
 
     /**
-     * An optional description of the corresponding type.
-     *
-     * @return
+     * @return An optional description of the corresponding type
      */
+    @ApiModelProperty(
+            value = "The description of the type."
+    )
     public String getDescription() {
         return description;
     }
@@ -43,10 +45,11 @@ public class DocumentedTypeDTO {
     }
 
     /**
-     * The type is the fully-qualified name of a Java class.
-     *
-     * @return
+     * @return The type is the fully-qualified name of a Java class
      */
+    @ApiModelProperty(
+            value = "The fulley qualified name of the type."
+    )
     public String getType() {
         return type;
     }
@@ -56,10 +59,11 @@ public class DocumentedTypeDTO {
     }
 
     /**
-     * The tags associated with this type.
-     *
-     * @return
+     * @return The tags associated with this type
      */
+    @ApiModelProperty(
+            value = "The tags associated with this type."
+    )
     public Set<String> getTags() {
         return tags;
     }

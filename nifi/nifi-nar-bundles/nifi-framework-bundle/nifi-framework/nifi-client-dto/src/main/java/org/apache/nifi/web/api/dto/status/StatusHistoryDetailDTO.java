@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import javax.xml.bind.annotation.XmlType;
 
 /**
@@ -28,10 +29,11 @@ public class StatusHistoryDetailDTO {
     private String value;
 
     /**
-     * The label for this status detail.
-     *
-     * @return
+     * @return label for this status detail
      */
+    @ApiModelProperty(
+            value = "The label for the status detail."
+    )
     public String getLabel() {
         return label;
     }
@@ -41,10 +43,11 @@ public class StatusHistoryDetailDTO {
     }
 
     /**
-     * The value for this status detail.
-     *
-     * @return
+     * @return value for this status detail
      */
+    @ApiModelProperty(
+            value = "The value for the status detail."
+    )
     public String getValue() {
         return value;
     }

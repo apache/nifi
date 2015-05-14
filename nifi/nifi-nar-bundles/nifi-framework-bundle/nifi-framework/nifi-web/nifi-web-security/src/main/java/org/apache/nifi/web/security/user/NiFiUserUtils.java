@@ -28,14 +28,13 @@ import org.springframework.security.core.context.SecurityContextHolder;
  * Utility methods for retrieving information about the current application
  * user.
  *
- * @author unattributed
  */
 public final class NiFiUserUtils {
 
     /**
      * Return the authorities for the current user.
      *
-     * @return
+     * @return authorities
      */
     public static Set<String> getAuthorities() {
         Set<GrantedAuthority> grantedAuthorities = new HashSet<>();
@@ -62,7 +61,7 @@ public final class NiFiUserUtils {
      * Returns the current NiFiUser or null if the current user is not a
      * NiFiUser.
      *
-     * @return
+     * @return user
      */
     public static NiFiUser getNiFiUser() {
         NiFiUser user = null;
@@ -79,7 +78,7 @@ public final class NiFiUserUtils {
 
         return user;
     }
-    
+
     public static String getNiFiUserName() {
         // get the nifi user to extract the username
         NiFiUser user = NiFiUserUtils.getNiFiUser();

@@ -16,8 +16,16 @@
  */
 package org.apache.nifi.web.api;
 
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+import com.wordnik.swagger.annotations.Authorization;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
+import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
@@ -32,7 +40,6 @@ import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.IntegerParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 import org.apache.commons.lang3.StringUtils;
-import org.codehaus.enunciate.jaxrs.TypeHint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -40,6 +47,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 /**
  * RESTful endpoint for managing a Template.
  */
+@Api(hidden = true)
 public class BulletinBoardResource extends ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(BulletinBoardResource.class);
@@ -62,13 +70,63 @@ public class BulletinBoardResource extends ApplicationResource {
      * @return A bulletinBoardEntity.
      */
     @GET
+    @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Path("") // necessary due to bug in swagger
     @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
-    @TypeHint(BulletinBoardEntity.class)
-    public Response getBulletinBoard(@QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @QueryParam("after") LongParameter after, @QueryParam("sourceName") BulletinBoardPatternParameter sourceName,
-            @QueryParam("message") BulletinBoardPatternParameter message, @QueryParam("sourceId") BulletinBoardPatternParameter sourceId,
-            @QueryParam("groupId") BulletinBoardPatternParameter groupId, @QueryParam("limit") IntegerParameter limit) {
+    @ApiOperation(
+            value = "Gets current bulletins",
+            response = BulletinBoardEntity.class,
+            authorizations = {
+                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getBulletinBoard(
+            @ApiParam(
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+                    required = false
+            )
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @ApiParam(
+                    value = "Includes bulletins with an id after this value.",
+                    required = false
+            )
+            @QueryParam("after") LongParameter after,
+            @ApiParam(
+                    value = "Includes bulletins originating from this sources whose name match this regular expression.",
+                    required = false
+            )
+            @QueryParam("sourceName") BulletinBoardPatternParameter sourceName,
+            @ApiParam(
+                    value = "Includes bulletins whose message that match this regular expression.",
+                    required = false
+            )
+            @QueryParam("message") BulletinBoardPatternParameter message,
+            @ApiParam(
+                    value = "Includes bulletins originating from this sources whose id match this regular expression.",
+                    required = false
+            )
+            @QueryParam("sourceId") BulletinBoardPatternParameter sourceId,
+            @ApiParam(
+                    value = "Includes bulletins originating from this sources whose group id match this regular expression.",
+                    required = false
+            )
+            @QueryParam("groupId") BulletinBoardPatternParameter groupId,
+            @ApiParam(
+                    value = "The number of bulletins to limit the response to.",
+                    required = false
+            )
+            @QueryParam("limit") IntegerParameter limit) {
 
         // build the bulletin query
         final BulletinQueryDTO query = new BulletinQueryDTO();

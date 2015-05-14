@@ -35,8 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Continually runs a Connectable as long as the processor has work to do. {@link #call()} will return
- * <code>true</code> if the Connectable should be yielded, <code>false</code> otherwise.
+ * Continually runs a Connectable as long as the processor has work to do. {@link #call()} will return <code>true</code> if the Connectable should be yielded, <code>false</code> otherwise.
  */
 public class ContinuallyRunConnectableTask implements Callable<Boolean> {
 
@@ -60,7 +59,7 @@ public class ContinuallyRunConnectableTask implements Callable<Boolean> {
         if (!scheduleState.isScheduled()) {
             return false;
         }
-        
+
         // Connectable should run if the following conditions are met:
         // 1. It is not yielded.
         // 2. It has incoming connections with FlowFiles queued or doesn't expect incoming connections
@@ -95,7 +94,7 @@ public class ContinuallyRunConnectableTask implements Callable<Boolean> {
             } finally {
                 if (!scheduleState.isScheduled() && scheduleState.getActiveThreadCount() == 1 && scheduleState.mustCallOnStoppedMethods()) {
                     try (final NarCloseable x = NarCloseable.withNarLoader()) {
-                        ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, org.apache.nifi.processor.annotation.OnStopped.class, connectable, processContext);
+                        ReflectionUtils.quietlyInvokeMethodsWithAnnotations(OnStopped.class, org.apache.nifi.processor.annotation.OnStopped.class, connectable, processContext);
                     }
                 }
 
@@ -106,7 +105,7 @@ public class ContinuallyRunConnectableTask implements Callable<Boolean> {
             // yield for just a bit.
             return true;
         }
-        
-        return false;	// do not yield
+
+        return false; // do not yield
     }
 }

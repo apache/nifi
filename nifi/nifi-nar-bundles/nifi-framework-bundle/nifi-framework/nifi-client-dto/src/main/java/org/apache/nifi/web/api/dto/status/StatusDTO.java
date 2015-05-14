@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.List;
 import javax.xml.bind.annotation.XmlType;
 import org.apache.nifi.web.api.dto.BulletinDTO;
@@ -29,10 +30,11 @@ public abstract class StatusDTO {
     private List<BulletinDTO> bulletins;
 
     /**
-     * Bulletins for this component.
-     *
-     * @return
+     * @return Bulletins for this component
      */
+    @ApiModelProperty(
+            value = "The current bulletins for the component."
+    )
     public List<BulletinDTO> getBulletins() {
         return bulletins;
     }

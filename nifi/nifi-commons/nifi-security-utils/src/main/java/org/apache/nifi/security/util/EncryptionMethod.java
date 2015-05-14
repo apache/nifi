@@ -23,7 +23,6 @@ import org.apache.commons.lang3.builder.ToStringStyle;
  * Enumeration capturing essential information about the various encryption
  * methods that might be supported.
  *
- * @author none
  */
 public enum EncryptionMethod {
 
@@ -46,7 +45,10 @@ public enum EncryptionMethod {
     SHA_256AES("PBEWITHSHAAND256BITAES-CBC-BC", "BC", true),
     SHA_3KEYTRIPLEDES("PBEWITHSHAAND3-KEYTRIPLEDES-CBC", "BC", true),
     SHA_TWOFISH("PBEWITHSHAANDTWOFISH-CBC", "BC", true),
-    SHA_128RC4("PBEWITHSHAAND128BITRC4", "BC", true);
+    SHA_128RC4("PBEWITHSHAAND128BITRC4", "BC", true),
+    PGP("PGP", "BC", false),
+    PGP_ASCII_ARMOR("PGP-ASCII-ARMOR", "BC", false);
+
     private final String algorithm;
     private final String provider;
     private final boolean unlimitedStrength;

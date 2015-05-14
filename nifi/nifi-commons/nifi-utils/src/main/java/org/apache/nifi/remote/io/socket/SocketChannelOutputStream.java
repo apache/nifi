@@ -104,7 +104,8 @@ public class SocketChannelOutputStream extends OutputStream {
 
     /**
      * Closes the underlying SocketChannel
-     * @throws java.io.IOException
+     *
+     * @throws java.io.IOException if issues closing underlying stream
      */
     @Override
     public void close() throws IOException {

@@ -101,7 +101,7 @@ public class ReadOnlyAccessControlTest {
     /**
      * Ensures the admin user can get a groups content.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testGroupGet() throws Exception {
@@ -133,13 +133,12 @@ public class ReadOnlyAccessControlTest {
         Assert.assertEquals(1, processGroupContentsDTO.getInputPorts().size());
         Assert.assertEquals(1, processGroupContentsDTO.getOutputPorts().size());
         Assert.assertEquals(1, processGroupContentsDTO.getLabels().size());
-//        Assert.assertEquals(1, processGroupContentsDTO.getRemoteProcessGroups().size());
     }
 
     /**
      * Verifies the admin user cannot update a group.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testGroupPut() throws Exception {
@@ -163,7 +162,7 @@ public class ReadOnlyAccessControlTest {
     /**
      * Verifies the read only user can retrieve the controller configuration.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testControllerConfigurationGet() throws Exception {
@@ -188,7 +187,7 @@ public class ReadOnlyAccessControlTest {
     /**
      * Verifies the read only user cannot update the controller configuration.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testControllerConfigurationPut() throws Exception {
@@ -212,7 +211,7 @@ public class ReadOnlyAccessControlTest {
     /**
      * Verifies the read only user cannot create a new flow archive.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testFlowConfigurationArchivePost() throws Exception {
@@ -232,7 +231,7 @@ public class ReadOnlyAccessControlTest {
     /**
      * Verifies the read only user can retrieve his credentials.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testAuthoritiesGet() throws Exception {
@@ -255,7 +254,7 @@ public class ReadOnlyAccessControlTest {
     /**
      * Verifies the read only user can retrieve the banners.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testBannersGet() throws Exception {
@@ -278,7 +277,7 @@ public class ReadOnlyAccessControlTest {
     /**
      * Verifies the read only user can retrieve the processor types.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testProcessorTypesGet() throws Exception {
@@ -300,7 +299,7 @@ public class ReadOnlyAccessControlTest {
     /**
      * Verifies the read only user can retrieve the prioritizer types.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testPrioritizerTypesGet() throws Exception {
@@ -325,7 +324,7 @@ public class ReadOnlyAccessControlTest {
     /**
      * Verifies that the admin user can get process groups.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testProcessorGroupsGet() throws Exception {
@@ -346,7 +345,7 @@ public class ReadOnlyAccessControlTest {
     /**
      * Verifies that the operator user cannot create new process groups.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testProcessGroupPost() throws Exception {
@@ -369,10 +368,9 @@ public class ReadOnlyAccessControlTest {
     }
 
     /**
-     * Verifies that the operator user cannot update process group
-     * configuration.
+     * Verifies that the operator user cannot update process group configuration.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testProcessGroupPut() throws Exception {
@@ -397,7 +395,7 @@ public class ReadOnlyAccessControlTest {
     /**
      * Verifies that the operator user cannot delete process groups.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testProcessGroupDelete() throws Exception {
@@ -416,7 +414,7 @@ public class ReadOnlyAccessControlTest {
     /**
      * Verifies that the admin user can get processors.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testProcessorsGet() throws Exception {
@@ -437,7 +435,7 @@ public class ReadOnlyAccessControlTest {
     /**
      * Verifies that the read only user cannot create new processors.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testProcessorPost() throws Exception {
@@ -461,7 +459,7 @@ public class ReadOnlyAccessControlTest {
     /**
      * Verifies that the read only user cannot create new processors.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testProcessorPut() throws Exception {
@@ -485,7 +483,7 @@ public class ReadOnlyAccessControlTest {
     /**
      * Verifies that the read only user cannot delete processors.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testProcessorDelete() throws Exception {
@@ -504,7 +502,7 @@ public class ReadOnlyAccessControlTest {
     /**
      * Verifies that the admin user can get connections.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testConnectionsGet() throws Exception {
@@ -525,7 +523,7 @@ public class ReadOnlyAccessControlTest {
     /**
      * Verifies that the read only user cannot create connections.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testConnectionPost() throws Exception {
@@ -549,7 +547,7 @@ public class ReadOnlyAccessControlTest {
     /**
      * Verifies that the read only user cannot create connections.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testConnectionPut() throws Exception {
@@ -573,7 +571,7 @@ public class ReadOnlyAccessControlTest {
     /**
      * Verifies that the read only user cannot delete connections.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testConnectionDelete() throws Exception {
@@ -592,7 +590,7 @@ public class ReadOnlyAccessControlTest {
     /**
      * Verifies that the admin user can get input ports.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testInputPortsGet() throws Exception {
@@ -613,7 +611,7 @@ public class ReadOnlyAccessControlTest {
     /**
      * Verifies that the admin user cannot create input ports.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testInputPortPost() throws Exception {
@@ -638,7 +636,7 @@ public class ReadOnlyAccessControlTest {
     /**
      * Verifies that the admin user cannot create input ports.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testInputPortPut() throws Exception {
@@ -663,7 +661,7 @@ public class ReadOnlyAccessControlTest {
     /**
      * Verifies that the admin user cannot delete input ports.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testInputPortDelete() throws Exception {
@@ -682,7 +680,7 @@ public class ReadOnlyAccessControlTest {
     /**
      * Verifies that the admin user can get output ports.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testOutputPortsGet() throws Exception {
@@ -703,7 +701,7 @@ public class ReadOnlyAccessControlTest {
     /**
      * Verifies that the admin user cannot create output ports.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testOutputPortPost() throws Exception {
@@ -728,7 +726,7 @@ public class ReadOnlyAccessControlTest {
     /**
      * Verifies that the admin user cannot create input ports.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testOutputPortPut() throws Exception {
@@ -753,7 +751,7 @@ public class ReadOnlyAccessControlTest {
     /**
      * Verifies that the admin user cannot delete output ports.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testOutputPortDelete() throws Exception {
@@ -772,7 +770,7 @@ public class ReadOnlyAccessControlTest {
     /**
      * Verifies that the admin user can get input ports.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testLabelsGet() throws Exception {
@@ -793,7 +791,7 @@ public class ReadOnlyAccessControlTest {
     /**
      * Verifies that the read only user cannot create labels.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testLabelPost() throws Exception {
@@ -817,7 +815,7 @@ public class ReadOnlyAccessControlTest {
     /**
      * Verifies that the read only user cannot create labels.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testLabelPut() throws Exception {
@@ -841,7 +839,7 @@ public class ReadOnlyAccessControlTest {
     /**
      * Verifies that the read only user cannot delete labels.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testLabelDelete() throws Exception {
@@ -854,93 +852,13 @@ public class ReadOnlyAccessControlTest {
         Assert.assertEquals(403, response.getStatus());
     }
 
-//    // ----------------------------------------------
-//    // REMOTE PROCESS GROUP
-//    // ----------------------------------------------
-//    
-//    /**
-//     * Verifies that the admin user can get input ports.
-//     * 
-//     * @throws Exception 
-//     */
-//    @Test
-//    public void testRemoteProcessGroupsGet() throws Exception {
-//        String url = BASE_URL + "/controller/process-groups/root/remote-process-groups";
-//        
-//        // perform the request
-//        ClientResponse response = READ_ONLY_USER.testGet(url);
-//        
-//        // get the response
-//        RemoteProcessGroupsEntity entity = response.getEntity(RemoteProcessGroupsEntity.class);
-//        
-//        // ensure the request was successful
-//        Assert.assertEquals(200, response.getStatus());
-//        Assert.assertNotNull(entity.getRemoteProcessGroups());
-//        Assert.assertEquals(1, entity.getRemoteProcessGroups().size());
-//    }
-//    
-//    /**
-//     * Verifies that the read only user cannot create new remote process groups.
-//     * 
-//     * @throws Exception 
-//     */
-//    @Test
-//    public void testRemoteProcessGroupPost() throws Exception {
-//        String url = BASE_URL + "/controller/process-groups/root/remote-process-groups";
-//        
-//        // create the entity body
-//        RemoteProcessGroupEntity entity = new RemoteProcessGroupEntity();
-//        entity.setRevision(NiFiTestUser.REVISION);
-//        
-//        // perform the request
-//        ClientResponse response = READ_ONLY_USER.testPost(url, entity);
-//        
-//        // ensure the request is failed with a forbidden status code
-//        Assert.assertEquals(403, response.getStatus());
-//    }
-//    
-//    /**
-//     * Verifies that the read only user cannot update a remote process group.
-//     * 
-//     * @throws Exception 
-//     */
-//    @Test
-//    public void testRemoteProcessGroupPut() throws Exception {
-//        String url = BASE_URL + "/controller/process-groups/root/remote-process-groups/1";
-//        
-//        // create the entity body
-//        RemoteProcessGroupEntity entity = new RemoteProcessGroupEntity();
-//        entity.setRevision(NiFiTestUser.REVISION);
-//        
-//        // perform the request
-//        ClientResponse response = READ_ONLY_USER.testPut(url, entity);
-//        
-//        // ensure the request is failed with a forbidden status code
-//        Assert.assertEquals(403, response.getStatus());
-//    }
-//    
-//    /**
-//     * Verifies that the read only user cannot delete remote process groups.
-//     * 
-//     * @throws Exception 
-//     */
-//    @Test
-//    public void testRemoteProcessGroupDelete() throws Exception {
-//        String url = BASE_URL + "/controller/process-groups/root/remote-process-groups/1";
-//        
-//        // perform the request
-//        ClientResponse response = READ_ONLY_USER.testDelete(url);
-//        
-//        // ensure the request is failed with a forbidden status code
-//        Assert.assertEquals(403, response.getStatus());
-//    }
     // ----------------------------------------------
     // HISTORY
     // ----------------------------------------------
     /**
      * Tests the ability to retrieve the NiFi history.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testHistoryGet() throws Exception {
@@ -960,7 +878,7 @@ public class ReadOnlyAccessControlTest {
     /**
      * Tests the ability to retrieve a specific action.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testActionGet() throws Exception {
@@ -977,7 +895,7 @@ public class ReadOnlyAccessControlTest {
     /**
      * Verifies the read only user cannot purge history.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testHistoryDelete() throws Exception {
@@ -996,7 +914,7 @@ public class ReadOnlyAccessControlTest {
     /**
      * Tests the ability to retrieve the NiFi users.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testUsersGet() throws Exception {
@@ -1012,7 +930,7 @@ public class ReadOnlyAccessControlTest {
     /**
      * Tests the ability to retrieve a specific user.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testUserGet() throws Exception {
@@ -1029,7 +947,7 @@ public class ReadOnlyAccessControlTest {
     /**
      * Verifies the admin user can update a person.
      *
-     * @throws Exception
+     * @throws Exception ex
      */
     @Test
     public void testUserPut() throws Exception {

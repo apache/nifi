@@ -51,12 +51,6 @@ public class StandardInputPortDAO extends ComponentDAO implements PortDAO {
         return port;
     }
 
-    /**
-     * Creates a port.
-     *
-     * @param portDTO The port DTO
-     * @return The port
-     */
     @Override
     public Port createPort(String groupId, PortDTO portDTO) {
         if (isNotNull(portDTO.getParentGroupId()) && !flowController.areGroupsSame(groupId, portDTO.getParentGroupId())) {
@@ -93,23 +87,11 @@ public class StandardInputPortDAO extends ComponentDAO implements PortDAO {
         return port;
     }
 
-    /**
-     * Gets the specified port.
-     *
-     * @param portId The port id
-     * @return The port
-     */
     @Override
     public Port getPort(String groupId, String portId) {
         return locatePort(groupId, portId);
     }
 
-    /**
-     * Determines if the specified port exists.
-     *
-     * @param portId
-     * @return
-     */
     @Override
     public boolean hasPort(String groupId, String portId) {
         ProcessGroup group = flowController.getGroup(groupId);
@@ -121,11 +103,6 @@ public class StandardInputPortDAO extends ComponentDAO implements PortDAO {
         return group.getInputPort(portId) != null;
     }
 
-    /**
-     * Gets all of the ports.
-     *
-     * @return The ports
-     */
     @Override
     public Set<Port> getPorts(String groupId) {
         ProcessGroup group = locateProcessGroup(flowController, groupId);
@@ -187,13 +164,6 @@ public class StandardInputPortDAO extends ComponentDAO implements PortDAO {
         }
     }
 
-    /**
-     * Validates the proposed processor configuration.
-     *
-     * @param processorNode
-     * @param config
-     * @return
-     */
     private List<String> validateProposedConfiguration(PortDTO portDTO) {
         List<String> validationErrors = new ArrayList<>();
 
@@ -207,12 +177,6 @@ public class StandardInputPortDAO extends ComponentDAO implements PortDAO {
         return validationErrors;
     }
 
-    /**
-     * Updates the specified port.
-     *
-     * @param portDTO The port DTO
-     * @return The port
-     */
     @Override
     public Port updatePort(String groupId, PortDTO portDTO) {
         ProcessGroup group = locateProcessGroup(flowController, groupId);
@@ -290,11 +254,6 @@ public class StandardInputPortDAO extends ComponentDAO implements PortDAO {
         inputPort.verifyCanDelete();
     }
 
-    /**
-     * Deletes the specified port.
-     *
-     * @param portId The port id
-     */
     @Override
     public void deletePort(final String groupId, final String portId) {
         final ProcessGroup group = locateProcessGroup(flowController, groupId);

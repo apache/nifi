@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import javax.xml.bind.annotation.XmlType;
 
 /**
@@ -42,10 +43,11 @@ public class ProcessorStatusDTO extends StatusDTO {
 
     /* getters / setters */
     /**
-     * The id for the processor.
-     *
      * @return The processor id
      */
+    @ApiModelProperty(
+            value = "The id of the processor."
+    )
     public String getId() {
         return id;
     }
@@ -55,10 +57,11 @@ public class ProcessorStatusDTO extends StatusDTO {
     }
 
     /**
-     * The name of the processor.
-     *
      * @return The processor name
      */
+    @ApiModelProperty(
+            value = "The name of the prcessor."
+    )
     public String getName() {
         return name;
     }
@@ -68,10 +71,11 @@ public class ProcessorStatusDTO extends StatusDTO {
     }
 
     /**
-     * The type of the processor.
-     *
      * @return The processor type
      */
+    @ApiModelProperty(
+            value = "The type of the processor."
+    )
     public String getType() {
         return type;
     }
@@ -81,10 +85,12 @@ public class ProcessorStatusDTO extends StatusDTO {
     }
 
     /**
-     * The run status of this processor.
-     *
-     * @return
+     * @return run status of this processor
      */
+    @ApiModelProperty(
+            value = "The state of the processor.",
+            allowableValues = "RUNNING, STOPPED, DISABLED, INVALID"
+    )
     public String getRunStatus() {
         return runStatus;
     }
@@ -94,11 +100,11 @@ public class ProcessorStatusDTO extends StatusDTO {
     }
 
     /**
-     * The total count and size of flow files that have been accepted in the
-     * last five minutes.
-     *
-     * @return The total processed
+     * @return The total count and size of flow files that have been accepted in the last five minutes
      */
+    @ApiModelProperty(
+            value = "The count/size of flowfiles that have been accepted in the last 5 minutes."
+    )
     public String getInput() {
         return input;
     }
@@ -108,10 +114,11 @@ public class ProcessorStatusDTO extends StatusDTO {
     }
 
     /**
-     * The number of bytes read.
-     *
-     * @return
+     * @return number of bytes read
      */
+    @ApiModelProperty(
+            value = "The number of bytes read in the last 5 minutes."
+    )
     public String getRead() {
         return read;
     }
@@ -121,10 +128,11 @@ public class ProcessorStatusDTO extends StatusDTO {
     }
 
     /**
-     * The number of bytes written.
-     *
-     * @return
+     * @return number of bytes written
      */
+    @ApiModelProperty(
+            value = "The number of bytes written in the last 5 minutes."
+    )
     public String getWritten() {
         return written;
     }
@@ -134,10 +142,11 @@ public class ProcessorStatusDTO extends StatusDTO {
     }
 
     /**
-     * The ID of the Process Group to which this processor belongs.
-     *
      * @return the ID of the Process Group to which this processor belongs.
      */
+    @ApiModelProperty(
+            value = "The id of the parent process group to which the processor belongs."
+    )
     public String getGroupId() {
         return groupId;
     }
@@ -147,11 +156,11 @@ public class ProcessorStatusDTO extends StatusDTO {
     }
 
     /**
-     * The total count and size of flow files that have been processed in the
-     * last five minutes.
-     *
-     * @return The total output
+     * @return The total count and size of flow files that have been processed in the last five minutes
      */
+    @ApiModelProperty(
+            value = "The count/size of flowfiles that have been processed in the last 5 minutes."
+    )
     public String getOutput() {
         return output;
     }
@@ -161,10 +170,11 @@ public class ProcessorStatusDTO extends StatusDTO {
     }
 
     /**
-     * The number of threads currently running for this Processor
-     *
-     * @return
+     * @return number of threads currently running for this Processor
      */
+    @ApiModelProperty(
+            value = "The number of threads currently executing in the processor."
+    )
     public Integer getActiveThreadCount() {
         return activeThreadCount;
     }
@@ -174,10 +184,11 @@ public class ProcessorStatusDTO extends StatusDTO {
     }
 
     /**
-     * The number of task this connectable has had over the last 5 minutes.
-     *
-     * @return
+     * @return number of task this connectable has had over the last 5 minutes
      */
+    @ApiModelProperty(
+            value = "The total number of task this connectable has completed over the last 5 minutes."
+    )
     public String getTasks() {
         return tasks;
     }
@@ -187,11 +198,11 @@ public class ProcessorStatusDTO extends StatusDTO {
     }
 
     /**
-     * The total duration of all tasks for this connectable over the last 5
-     * minutes.
-     *
-     * @return
+     * @return total duration of all tasks for this connectable over the last 5 minutes
      */
+    @ApiModelProperty(
+            value = "The total duration of all tasks for this connectable over the last 5 minutes."
+    )
     public String getTasksDuration() {
         return tasksDuration;
     }

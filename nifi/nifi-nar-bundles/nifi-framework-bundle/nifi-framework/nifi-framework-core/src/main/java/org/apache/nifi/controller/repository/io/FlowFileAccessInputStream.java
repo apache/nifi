@@ -27,12 +27,8 @@ import org.apache.nifi.processor.exception.FlowFileAccessException;
 
 /**
  * <p>
- * Wraps an InputStream so that if any IOException is thrown, it will be wrapped
- * in a FlowFileAccessException. We do this to isolate IOExceptions thrown by
- * the framework from those thrown by user code. If thrown by the framework, it
- * generally indicates a problem communicating with the Content Repository and
- * session rollback is often appropriate so that the FlowFile can be processed
- * again.
+ * Wraps an InputStream so that if any IOException is thrown, it will be wrapped in a FlowFileAccessException. We do this to isolate IOExceptions thrown by the framework from those thrown by user
+ * code. If thrown by the framework, it generally indicates a problem communicating with the Content Repository and session rollback is often appropriate so that the FlowFile can be processed again.
  * </p>
  */
 public class FlowFileAccessInputStream extends FilterInputStream {
@@ -56,10 +52,7 @@ public class FlowFileAccessInputStream extends FilterInputStream {
     }
 
     /**
-     * Returns the ContentNotFoundException that was thrown by this stream, or
-     * <code>null</code> if no such Exception was thrown.
-     *
-     * @return
+     * @return the ContentNotFoundException that was thrown by this stream, or <code>null</code> if no such Exception was thrown
      */
     public ContentNotFoundException getContentNotFoundException() {
         return thrown;

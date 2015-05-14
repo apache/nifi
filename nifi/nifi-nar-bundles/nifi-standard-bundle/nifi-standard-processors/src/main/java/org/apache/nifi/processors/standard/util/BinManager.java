@@ -34,7 +34,6 @@ import org.apache.nifi.processor.ProcessSession;
 /**
  * This class is thread safe
  *
- * @author none
  */
 public class BinManager {
 
@@ -106,15 +105,12 @@ public class BinManager {
     }
 
     /**
-     * Adds the given flowFile to the first available bin in which it fits for
-     * the given group or creates a new bin in the specified group if necessary.
+     * Adds the given flowFile to the first available bin in which it fits for the given group or creates a new bin in the specified group if necessary.
      * <p/>
-     * @param groupIdentifier the group to which the flow file belongs; can be
-     * null
+     * @param groupIdentifier the group to which the flow file belongs; can be null
      * @param flowFile the flow file to bin
      * @param session the ProcessSession to which the FlowFile belongs
-     * @return true if added; false if no bin exists which can fit this item and
-     * no bin can be created based on current min/max criteria
+     * @return true if added; false if no bin exists which can fit this item and no bin can be created based on current min/max criteria
      */
     public boolean offer(final String groupIdentifier, final FlowFile flowFile, final ProcessSession session) {
         final long currentMaxSizeBytes = maxSizeBytes.get();
@@ -151,13 +147,11 @@ public class BinManager {
     }
 
     /**
-     * Finds all bins that are considered full and removes them from the
-     * manager.
+     * Finds all bins that are considered full and removes them from the manager.
      * <p/>
-     * @param relaxFullnessConstraint if false will require bins to be full
-     * before considered ready; if true bins only have to meet their minimum
-     * size criteria or be 'old' and then they'll be considered ready
-     * @return 
+     * @param relaxFullnessConstraint if false will require bins to be full before considered ready; if true bins only have to meet their minimum size criteria or be 'old' and then they'll be
+     * considered ready
+     * @return bins that are considered full
      */
     public Collection<Bin> removeReadyBins(boolean relaxFullnessConstraint) {
         final Map<String, List<Bin>> newGroupMap = new HashMap<>();

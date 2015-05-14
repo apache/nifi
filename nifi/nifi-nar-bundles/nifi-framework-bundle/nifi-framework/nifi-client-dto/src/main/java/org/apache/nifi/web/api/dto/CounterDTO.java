@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import javax.xml.bind.annotation.XmlType;
 
 /**
- * Counter value for a specific component in a specific context. A counter is a
- * value that a component can adjust during processing.
+ * Counter value for a specific component in a specific context. A counter is a value that a component can adjust during processing.
  */
 @XmlType(name = "counter")
 public class CounterDTO {
@@ -32,10 +32,11 @@ public class CounterDTO {
     private String value;
 
     /**
-     * The context of the counter.
-     *
-     * @return
+     * @return context of the counter
      */
+    @ApiModelProperty(
+            value = "The context of the counter."
+    )
     public String getContext() {
         return context;
     }
@@ -45,10 +46,11 @@ public class CounterDTO {
     }
 
     /**
-     * The id of the counter.
-     *
-     * @return
+     * @return id of the counter
      */
+    @ApiModelProperty(
+            value = "The id of the counter."
+    )
     public String getId() {
         return id;
     }
@@ -58,10 +60,11 @@ public class CounterDTO {
     }
 
     /**
-     * The name of the counter
-     *
-     * @return
+     * @return name of the counter
      */
+    @ApiModelProperty(
+            value = "The name of the counter."
+    )
     public String getName() {
         return name;
     }
@@ -71,10 +74,11 @@ public class CounterDTO {
     }
 
     /**
-     * The value for the counter
-     *
-     * @return
+     * @return value for the counter
      */
+    @ApiModelProperty(
+            value = "The value of the counter."
+    )
     public String getValue() {
         return value;
     }
@@ -83,6 +87,9 @@ public class CounterDTO {
         this.value = value;
     }
 
+    @ApiModelProperty(
+            value = "The value count."
+    )
     public Long getValueCount() {
         return valueCount;
     }

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Map;
 import java.util.Set;
 
@@ -54,11 +55,13 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * The frequency with which to schedule the processor. The format of the value will
-     * depend on the value of {@link #getSchedulingStrategy()}.
+     * The frequency with which to schedule the processor. The format of the value will depend on the value of {@link #getSchedulingStrategy()}.
      *
      * @return The scheduling period
      */
+    @ApiModelProperty(
+            value = "The frequency with which to schedule the processor. The format of the value will depend on th value of schedulingStrategy."
+    )
     public String getSchedulingPeriod() {
         return schedulingPeriod;
     }
@@ -68,11 +71,13 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * Indicates whether the processor should be scheduled to run in
-     * event-driven mode or timer-driven mode
+     * Indicates whether the processor should be scheduled to run in event-driven mode or timer-driven mode
      *
-     * @return
+     * @return scheduling strategy
      */
+    @ApiModelProperty(
+            value = "Indcates whether the prcessor should be scheduled to run in event or timer driven mode."
+    )
     public String getSchedulingStrategy() {
         return schedulingStrategy;
     }
@@ -82,11 +87,11 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * The amount of time that is used when this processor penalizes a flow
-     * file.
-     *
-     * @return
+     * @return the amount of time that is used when this processor penalizes a flowfile
      */
+    @ApiModelProperty(
+            value = "The amout of time that is used when the process penalizes a flowfile."
+    )
     public String getPenaltyDuration() {
         return penaltyDuration;
     }
@@ -96,11 +101,11 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * When yielding, this amount of time must elaspe before this processor is
-     * scheduled again.
-     *
-     * @return
+     * @return amount of time must elapse before this processor is scheduled again when yielding
      */
+    @ApiModelProperty(
+            value = "The amount of time that must elapse before this processor is scheduled again after yielding."
+    )
     public String getYieldDuration() {
         return yieldDuration;
     }
@@ -110,10 +115,11 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * The level at this this processor will report bulletins.
-     *
-     * @return
+     * @return the level at this this processor will report bulletins
      */
+    @ApiModelProperty(
+            value = "The level at which the processor will report bulletins."
+    )
     public String getBulletinLevel() {
         return bulletinLevel;
     }
@@ -123,12 +129,13 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * The number of tasks that should be concurrently scheduled for this
-     * processor. If this processor doesn't allow parallel processing then any
-     * positive input will be ignored.
+     * The number of tasks that should be concurrently scheduled for this processor. If this processor doesn't allow parallel processing then any positive input will be ignored.
      *
-     * @return The concurrently schedulable task count
+     * @return the concurrently schedulable task count
      */
+    @ApiModelProperty(
+            value = "The number of tasks that should be concurrently schedule for the processor. If the processor doesn't allow parallol processing then any positive input will be ignored."
+    )
     public Integer getConcurrentlySchedulableTaskCount() {
         return concurrentlySchedulableTaskCount;
     }
@@ -138,10 +145,11 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * Whether or not this Processor is Loss Tolerant
-     *
-     * @return
+     * @return whether or not this Processor is Loss Tolerant
      */
+    @ApiModelProperty(
+            value = "Whether the processor is loss tolerant."
+    )
     public Boolean isLossTolerant() {
         return lossTolerant;
     }
@@ -151,10 +159,11 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * The comments for this processor.
-     *
-     * @return The comments
+     * @return the comments
      */
+    @ApiModelProperty(
+            value = "The comments for the processor."
+    )
     public String getComments() {
         return comments;
     }
@@ -164,14 +173,14 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * The properties for this processor. Properties whose value is not set will
-     * only contain the property name. These properties are (un)marshalled
-     * differently since we need/want to control the ordering of the properties.
-     * The descriptors and metadata are used as a lookup when processing these
-     * properties.
+     * The properties for this processor. Properties whose value is not set will only contain the property name. These properties are (un)marshalled differently since we need/want to control the
+     * ordering of the properties. The descriptors and metadata are used as a lookup when processing these properties.
      *
      * @return The optional properties
      */
+    @ApiModelProperty(
+            value = "The properties for the processor. Properties whose value is not set will only contain the property name."
+    )
     public Map<String, String> getProperties() {
         return properties;
     }
@@ -181,10 +190,11 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * The descriptors for this processor's properties.
-     *
-     * @return
+     * @return descriptors for this processor's properties
      */
+    @ApiModelProperty(
+            value = "Descriptors for the processor's properties."
+    )
     public Map<String, PropertyDescriptorDTO> getDescriptors() {
         return descriptors;
     }
@@ -198,6 +208,9 @@ public class ProcessorConfigDTO {
      *
      * @return The annotation data
      */
+    @ApiModelProperty(
+            value = "The annotation data for the processor used to relay configuration between a custom UI and the procesosr."
+    )
     public String getAnnotationData() {
         return annotationData;
     }
@@ -207,11 +220,11 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * Returns the URL for this processors custom configuration UI
-     * if applicable. Null otherwise.
-     *
-     * @return
+     * @return the URL for this processors custom configuration UI if applicable. Null otherwise.
      */
+    @ApiModelProperty(
+            value = "The URL for the processor's custom configuration UI if applicable."
+    )
     public String getCustomUiUrl() {
         return customUiUrl;
     }
@@ -221,11 +234,11 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * The names of all processor relationships that cause a flow file to be
-     * terminated if the relationship is not connected to anything
-     *
-     * @return
+     * @return the names of all processor relationships that cause a flow file to be terminated if the relationship is not connected to anything
      */
+    @ApiModelProperty(
+            value = "The names of all relationships that cause a flow file to be terminated if the relationship is not connected elsewhere."
+    )
     public Set<String> getAutoTerminatedRelationships() {
         return autoTerminatedRelationships;
     }
@@ -235,11 +248,11 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * Maps default values for concurrent tasks for each applicable scheduling
-     * strategy.
-     *
-     * @return
+     * @return maps default values for concurrent tasks for each applicable scheduling strategy.
      */
+    @ApiModelProperty(
+            value = "Maps default values for concurrent tasks for each applicable scheduling strategy."
+    )
     public Map<String, String> getDefaultConcurrentTasks() {
         return defaultConcurrentTasks;
     }
@@ -249,10 +262,11 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * The run duration in milliseconds.
-     *
-     * @return
+     * @return run duration in milliseconds
      */
+    @ApiModelProperty(
+            value = "The run duration for the processor in milliseconds."
+    )
     public Long getRunDurationMillis() {
         return runDurationMillis;
     }
@@ -262,11 +276,11 @@ public class ProcessorConfigDTO {
     }
 
     /**
-     * Maps default values for scheduling period for each applicable scheduling
-     * strategy.
-     *
-     * @return
+     * @return Maps default values for scheduling period for each applicable scheduling strategy
      */
+    @ApiModelProperty(
+            value = "Maps default values for scheduling period for each applicable scheduling strategy."
+    )
     public Map<String, String> getDefaultSchedulingPeriod() {
         return defaultSchedulingPeriod;
     }

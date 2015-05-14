@@ -37,7 +37,6 @@ import javax.net.ssl.TrustManagerFactory;
  * A factory for creating SSL contexts using the application's security
  * properties.
  *
- * @author unattributed
  */
 public final class SslContextFactory {
 
@@ -60,12 +59,12 @@ public final class SslContextFactory {
      * @param clientAuth the type of client authentication
      *
      * @return a SSLContext instance
-     * @throws java.security.KeyStoreException
-     * @throws java.io.IOException
-     * @throws java.security.NoSuchAlgorithmException
-     * @throws java.security.cert.CertificateException
-     * @throws java.security.UnrecoverableKeyException
-     * @throws java.security.KeyManagementException
+     * @throws java.security.KeyStoreException if any issues accessing the keystore
+     * @throws java.io.IOException for any problems loading the keystores
+     * @throws java.security.NoSuchAlgorithmException if an algorithm is found to be used but is unknown
+     * @throws java.security.cert.CertificateException if there is an issue with the certificate
+     * @throws java.security.UnrecoverableKeyException if the key is insufficient
+     * @throws java.security.KeyManagementException if unable to manage the key
      */
     public static SSLContext createSslContext(
             final String keystore, final char[] keystorePasswd, final String keystoreType,
@@ -113,12 +112,12 @@ public final class SslContextFactory {
      * @param keystoreType the type of keystore (e.g., PKCS12, JKS)
      *
      * @return a SSLContext instance
-     * @throws java.security.KeyStoreException
-     * @throws java.io.IOException
-     * @throws java.security.NoSuchAlgorithmException
-     * @throws java.security.cert.CertificateException
-     * @throws java.security.UnrecoverableKeyException
-     * @throws java.security.KeyManagementException
+     * @throws java.security.KeyStoreException if any issues accessing the keystore
+     * @throws java.io.IOException for any problems loading the keystores
+     * @throws java.security.NoSuchAlgorithmException if an algorithm is found to be used but is unknown
+     * @throws java.security.cert.CertificateException if there is an issue with the certificate
+     * @throws java.security.UnrecoverableKeyException if the key is insufficient
+     * @throws java.security.KeyManagementException if unable to manage the key
      */
     public static SSLContext createSslContext(
             final String keystore, final char[] keystorePasswd, final String keystoreType)
@@ -149,12 +148,12 @@ public final class SslContextFactory {
      * @param truststoreType the type of truststore (e.g., PKCS12, JKS)
      *
      * @return a SSLContext instance
-     * @throws java.security.KeyStoreException
-     * @throws java.io.IOException
-     * @throws java.security.NoSuchAlgorithmException
-     * @throws java.security.cert.CertificateException
-     * @throws java.security.UnrecoverableKeyException
-     * @throws java.security.KeyManagementException
+     * @throws java.security.KeyStoreException if any issues accessing the keystore
+     * @throws java.io.IOException for any problems loading the keystores
+     * @throws java.security.NoSuchAlgorithmException if an algorithm is found to be used but is unknown
+     * @throws java.security.cert.CertificateException if there is an issue with the certificate
+     * @throws java.security.UnrecoverableKeyException if the key is insufficient
+     * @throws java.security.KeyManagementException if unable to manage the key
      */
     public static SSLContext createTrustSslContext(
             final String truststore, final char[] truststorePasswd, final String truststoreType)

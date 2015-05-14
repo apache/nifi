@@ -62,11 +62,11 @@ import java.util.UUID;
 @Tags({"split", "text"})
 @CapabilityDescription("Splits a text file into multiple smaller text files on line boundaries, each having up to a configured number of lines")
 @WritesAttributes({
-        @WritesAttribute(attribute = "text.line.count", description = "The number of lines of text from the original FlowFile that were copied to this FlowFile"),
-        @WritesAttribute(attribute = "fragment.identifier", description = "All split FlowFiles produced from the same parent FlowFile will have the same randomly generated UUID added for this attribute"),
-        @WritesAttribute(attribute = "fragment.index", description = "A one-up number that indicates the ordering of the split FlowFiles that were created from a single parent FlowFile"),
-        @WritesAttribute(attribute = "fragment.count", description = "The number of split FlowFiles generated from the parent FlowFile"),
-    @WritesAttribute(attribute = "segment.original.filename ", description = "The filename of the parent FlowFile") })
+    @WritesAttribute(attribute = "text.line.count", description = "The number of lines of text from the original FlowFile that were copied to this FlowFile"),
+    @WritesAttribute(attribute = "fragment.identifier", description = "All split FlowFiles produced from the same parent FlowFile will have the same randomly generated UUID added for this attribute"),
+    @WritesAttribute(attribute = "fragment.index", description = "A one-up number that indicates the ordering of the split FlowFiles that were created from a single parent FlowFile"),
+    @WritesAttribute(attribute = "fragment.count", description = "The number of split FlowFiles generated from the parent FlowFile"),
+    @WritesAttribute(attribute = "segment.original.filename ", description = "The filename of the parent FlowFile")})
 @SeeAlso(MergeContent.class)
 public class SplitText extends AbstractProcessor {
 
@@ -92,17 +92,25 @@ public class SplitText extends AbstractProcessor {
             .build();
     public static final PropertyDescriptor REMOVE_TRAILING_NEWLINES = new PropertyDescriptor.Builder()
             .name("Remove Trailing Newlines")
-            .description(
-                    "Whether to remove newlines at the end of each split file. This should be false if you intend to merge the split files later")
+            .description("Whether to remove newlines at the end of each split file. This should be false if you intend to merge the split files later")
             .required(true)
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .allowableValues("true", "false")
             .defaultValue("true")
             .build();
 
-    public static final Relationship REL_ORIGINAL = new Relationship.Builder().name("original").description("The original input file will be routed to this destination when it has been successfully split into 1 or more files").build();
-    public static final Relationship REL_SPLITS = new Relationship.Builder().name("splits").description("The split files will be routed to this destination when an input file is successfully split into 1 or more split files").build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure").description("If a file cannot be split for some reason, the original file will be routed to this destination and nothing will be routed elsewhere").build();
+    public static final Relationship REL_ORIGINAL = new Relationship.Builder()
+            .name("original")
+            .description("The original input file will be routed to this destination when it has been successfully split into 1 or more files")
+            .build();
+    public static final Relationship REL_SPLITS = new Relationship.Builder()
+            .name("splits")
+            .description("The split files will be routed to this destination when an input file is successfully split into 1 or more split files")
+            .build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("If a file cannot be split for some reason, the original file will be routed to this destination and nothing will be routed elsewhere")
+            .build();
 
     private List<PropertyDescriptor> properties;
     private Set<Relationship> relationships;
@@ -132,15 +140,6 @@ public class SplitText extends AbstractProcessor {
         return properties;
     }
 
-    /**
-     * Reads up to the given maximum number of lines, copying them to out
-     *
-     * @param in
-     * @param maxNumLines
-     * @param out
-     * @return the number of lines actually copied
-     * @throws IOException
-     */
     private int readLines(final InputStream in, final int maxNumLines, final OutputStream out, final boolean keepAllNewLines) throws IOException {
         int numLines = 0;
         for (int i = 0; i < maxNumLines; i++) {
@@ -271,7 +270,7 @@ public class SplitText extends AbstractProcessor {
                                 if (linesCopied.get() > 0) {
                                     splits.add(splitFile);
                                 } else {
-                                    // if the number of content lines is a multiple of the SPLIT_LINE_COUNT, 
+                                    // if the number of content lines is a multiple of the SPLIT_LINE_COUNT,
                                     // the last flow file will contain just a header; don't forward that one
                                     session.remove(splitFile);
                                 }
@@ -294,7 +293,9 @@ public class SplitText extends AbstractProcessor {
                                 splitInfos.add(info);
                                 final long procNanos = System.nanoTime() - startNanos;
                                 final long procMillis = TimeUnit.MILLISECONDS.convert(procNanos, TimeUnit.NANOSECONDS);
-                                logger.debug("Detected start of Split File in {} at byte offset {} with a length of {} bytes; total splits = {}; total processing time = {} ms", new Object[]{flowFile, beforeReadingLines, info.lengthBytes, splitInfos.size(), procMillis});
+                                logger.debug("Detected start of Split File in {} at byte offset {} with a length of {} bytes; "
+                                        + "total splits = {}; total processing time = {} ms",
+                                        new Object[]{flowFile, beforeReadingLines, info.lengthBytes, splitInfos.size(), procMillis});
                             }
                         }
                     }
@@ -331,13 +332,6 @@ public class SplitText extends AbstractProcessor {
         session.transfer(splits, REL_SPLITS);
     }
 
-    /**
-     * Apply split index, count and other attributes.
-     *
-     * @param session
-     * @param source
-     * @param unpacked
-     */
     private void finishFragmentAttributes(final ProcessSession session, final FlowFile source, final List<FlowFile> splits) {
         final String originalFilename = source.getAttribute(CoreAttributes.FILENAME.key());
 

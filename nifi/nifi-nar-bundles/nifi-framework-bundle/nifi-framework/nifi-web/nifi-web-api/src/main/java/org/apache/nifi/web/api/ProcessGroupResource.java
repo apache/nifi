@@ -17,6 +17,12 @@
 package org.apache.nifi.web.api;
 
 import com.sun.jersey.api.core.ResourceContext;
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+import com.wordnik.swagger.annotations.Authorization;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
@@ -62,12 +68,12 @@ import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.DoubleParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 import org.apache.commons.lang3.StringUtils;
-import org.codehaus.enunciate.jaxrs.TypeHint;
 import org.springframework.security.access.prepost.PreAuthorize;
 
 /**
  * RESTful endpoint for managing a Group.
  */
+@Api(hidden = true)
 public class ProcessGroupResource extends ApplicationResource {
 
     private static final String VERBOSE = "false";
@@ -84,9 +90,13 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Get the processor resource within the specified group.
      *
-     * @return
+     * @return the processor resource within the specified group
      */
     @Path("processors")
+    @ApiOperation(
+            value = "Gets the processor resource",
+            response = ProcessorResource.class
+    )
     public ProcessorResource getProcessorResource() {
         ProcessorResource processorResource = resourceContext.getResource(ProcessorResource.class);
         processorResource.setGroupId(groupId);
@@ -96,9 +106,13 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Get the connection sub-resource within the specified group.
      *
-     * @return
+     * @return the connection sub-resource within the specified group
      */
     @Path("connections")
+    @ApiOperation(
+            value = "Gets the connection resource",
+            response = ConnectionResource.class
+    )
     public ConnectionResource getConnectionResource() {
         ConnectionResource connectionResource = resourceContext.getResource(ConnectionResource.class);
         connectionResource.setGroupId(groupId);
@@ -108,9 +122,13 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Get the input ports sub-resource within the specified group.
      *
-     * @return
+     * @return the input ports sub-resource within the specified group
      */
     @Path("input-ports")
+    @ApiOperation(
+            value = "Gets the input port resource",
+            response = InputPortResource.class
+    )
     public InputPortResource getInputPortResource() {
         InputPortResource inputPortResource = resourceContext.getResource(InputPortResource.class);
         inputPortResource.setGroupId(groupId);
@@ -120,9 +138,13 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Get the output ports sub-resource within the specified group.
      *
-     * @return
+     * @return the output ports sub-resource within the specified group
      */
     @Path("output-ports")
+    @ApiOperation(
+            value = "Gets the output port resource",
+            response = OutputPortResource.class
+    )
     public OutputPortResource getOutputPortResource() {
         OutputPortResource outputPortResource = resourceContext.getResource(OutputPortResource.class);
         outputPortResource.setGroupId(groupId);
@@ -132,9 +154,13 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Locates the label sub-resource within the specified group.
      *
-     * @return
+     * @return the label sub-resource within the specified group
      */
     @Path("labels")
+    @ApiOperation(
+            value = "Gets the label resource",
+            response = LabelResource.class
+    )
     public LabelResource getLabelResource() {
         LabelResource labelResource = resourceContext.getResource(LabelResource.class);
         labelResource.setGroupId(groupId);
@@ -144,9 +170,13 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Locates the funnel sub-resource within the specified group.
      *
-     * @return
+     * @return the funnel sub-resource within the specified group
      */
     @Path("funnels")
+    @ApiOperation(
+            value = "Gets the funnel resource",
+            response = FunnelResource.class
+    )
     public FunnelResource getFunnelResource() {
         FunnelResource funnelResource = resourceContext.getResource(FunnelResource.class);
         funnelResource.setGroupId(groupId);
@@ -156,9 +186,13 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Locates the remote process group sub-resource within the specified group.
      *
-     * @return
+     * @return the remote process group sub-resource within the specified group
      */
     @Path("remote-process-groups")
+    @ApiOperation(
+            value = "Gets the remote process group resource",
+            response = RemoteProcessGroupResource.class
+    )
     public RemoteProcessGroupResource getRemoteProcessGroupResource() {
         RemoteProcessGroupResource remoteProcessGroupResource = resourceContext.getResource(RemoteProcessGroupResource.class);
         remoteProcessGroupResource.setGroupId(groupId);
@@ -168,8 +202,8 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Populates the remaining fields in the specified process groups.
      *
-     * @param processGroups
-     * @return
+     * @param processGroups groups
+     * @return group dto
      */
     public Set<ProcessGroupDTO> populateRemainingProcessGroupsContent(Set<ProcessGroupDTO> processGroups) {
         for (ProcessGroupDTO processGroup : processGroups) {
@@ -181,9 +215,9 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Populates the remaining fields in the specified process group.
      *
-     * @param processGroup
-     * @param verbose
-     * @return
+     * @param processGroup group
+     * @param processGroupUri processGroupUri
+     * @return group dto
      */
     private ProcessGroupDTO populateRemainingProcessGroupContent(ProcessGroupDTO processGroup, String processGroupUri) {
         FlowSnippetDTO flowSnippet = processGroup.getContents();
@@ -201,9 +235,6 @@ public class ProcessGroupResource extends ApplicationResource {
 
     /**
      * Populates the remaining content of the specified snippet.
-     *
-     * @param snippet
-     * @return
      */
     private FlowSnippetDTO populateRemainingSnippetContent(FlowSnippetDTO snippet) {
         getProcessorResource().populateRemainingProcessorsContent(snippet.getProcessors());
@@ -224,9 +255,6 @@ public class ProcessGroupResource extends ApplicationResource {
 
     /**
      * Generates a URI for a process group.
-     *
-     * @param processGroupId
-     * @return
      */
     private String getProcessGroupUri(String processGroupId) {
         return generateResourceUri("controller", "process-groups", processGroupId);
@@ -234,37 +262,61 @@ public class ProcessGroupResource extends ApplicationResource {
 
     /**
      * Generates a URI for a process group reference.
-     *
-     * @param processGroupId
-     * @return
      */
     private String getProcessGroupReferenceUri(ProcessGroupDTO processGroup) {
         return generateResourceUri("controller", "process-groups", processGroup.getParentGroupId(), "process-group-references", processGroup.getId());
     }
 
     /**
-     * Retrieves the content of the specified group. This includes all
-     * processors, the connections, the process group references, the remote
-     * process group references, and the labels.
+     * Retrieves the content of the specified group. This includes all processors, the connections, the process group references, the remote process group references, and the labels.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param recursive Optional recursive flag that defaults to false. If set
-     * to true, all descendent groups and their content will be included if the
-     * verbose flag is also set to true.
-     * @param verbose Optional verbose flag that defaults to false. If the
-     * verbose flag is set to true processor configuration and property details
-     * will be included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param recursive Optional recursive flag that defaults to false. If set to true, all descendent groups and their content will be included if the verbose flag is also set to true.
+     * @param verbose Optional verbose flag that defaults to false. If the verbose flag is set to true processor configuration and property details will be included in the response.
      * @return A processGroupEntity.
      */
     @GET
+    @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Path("") // necessary due to bug in swagger
     @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
-    @TypeHint(ProcessGroupEntity.class)
+    @ApiOperation(
+            value = "Gets a process group",
+            notes = "Gets a process group and includes all components contained in this group. The verbose and recursive flags can be used to adjust "
+                    + "the default behavior. This endpoint is starting point for obtaining the current flow and consequently includes the current "
+                    + "flow revision.",
+            response = ProcessGroupEntity.class,
+            authorizations = {
+                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response getProcessGroup(
+            @ApiParam(
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response",
+                    required = false
+            )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @ApiParam(
+                    value = "Whether the response should contain all encapsulated components or just the immediate children.",
+                    required = false,
+                    allowableValues = "true, false"
+            )
             @QueryParam("recursive") @DefaultValue(RECURSIVE) Boolean recursive,
+            @ApiParam(
+                    value = "Whether to include any encapulated components or just details about the process group.",
+                    required = false
+            )
             @QueryParam("verbose") @DefaultValue(VERBOSE) Boolean verbose) {
 
         // replicate if cluster manager
@@ -300,12 +352,9 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Copies the specified snippet within this ProcessGroup.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param snippetId The id of the snippet to copy.
      * @param originX The x coordinate of the origin of the bounding box.
      * @param originY The y coordinate of the origin of the bounding box.
@@ -316,13 +365,48 @@ public class ProcessGroupResource extends ApplicationResource {
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/snippet-instance")
     @PreAuthorize("hasRole('ROLE_DFM')")
-    @TypeHint(FlowSnippetEntity.class)
+    @ApiOperation(
+            value = "Copies a snippet",
+            response = FlowSnippetEntity.class,
+            authorizations = {
+                @Authorization(value = "ROLE_DFM", type = "ROLE_DFM")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response copySnippet(
             @Context HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The revision is used to verify the client is working with the latest version of the flow.",
+                    required = false
+            )
             @FormParam(VERSION) LongParameter version,
+            @ApiParam(
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+                    required = false
+            )
             @FormParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @ApiParam(
+                    value = "The snippet id.",
+                    required = true
+            )
             @FormParam("snippetId") String snippetId,
+            @ApiParam(
+                    value = "The x coordinate of the origin of the bounding box where the new components will be placed.",
+                    required = true
+            )
             @FormParam("originX") DoubleParameter originX,
+            @ApiParam(
+                    value = "The y coordinate of the origin of the bounding box where the new components will be placed.",
+                    required = true
+            )
             @FormParam("originY") DoubleParameter originY) {
 
         // ensure the position has been specified
@@ -379,12 +463,9 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Instantiates the specified template within this ProcessGroup.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param templateId The id of the template to instantiate.
      * @param originX The x coordinate of the origin of the bounding box.
      * @param originY The y coordinate of the origin of the bounding box.
@@ -395,13 +476,48 @@ public class ProcessGroupResource extends ApplicationResource {
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/template-instance")
     @PreAuthorize("hasRole('ROLE_DFM')")
-    @TypeHint(FlowSnippetEntity.class)
+    @ApiOperation(
+            value = "Instantiates a template",
+            response = FlowSnippetEntity.class,
+            authorizations = {
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response instantiateTemplate(
             @Context HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The revision is used to verify the client is working with the latest version of the flow.",
+                    required = false
+            )
             @FormParam(VERSION) LongParameter version,
+            @ApiParam(
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+                    required = false
+            )
             @FormParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @ApiParam(
+                    value = "The id of the template",
+                    required = false
+            )
             @FormParam("templateId") String templateId,
+            @ApiParam(
+                    value = "The x coordinate of the origin of the bounding box where the new components will be placed.",
+                    required = true
+            )
             @FormParam("originX") DoubleParameter originX,
+            @ApiParam(
+                    value = "The y coordinate of the origin of the bounding box where the new components will be placed.",
+                    required = true
+            )
             @FormParam("originY") DoubleParameter originY) {
 
         // ensure the position has been specified
@@ -453,25 +569,19 @@ public class ProcessGroupResource extends ApplicationResource {
     }
 
     /**
-     * Updates the state of all processors in the process group. Supports
-     * modifying whether the processors and process groups are running/stopped
-     * and instantiating templates.
+     * Updates the state of all processors in the process group. Supports modifying whether the processors and process groups are running/stopped and instantiating templates.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param running Optional flag that indicates whether all processors in
-     * this group should be started/stopped.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param running Optional flag that indicates whether all processors in this group should be started/stopped.
      * @return A processGroupEntity.
      */
     @PUT
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Path("") // necessary due to bug in swagger
     @PreAuthorize("hasRole('ROLE_DFM')")
-    @TypeHint(ProcessGroupEntity.class)
     public Response updateProcessGroup(
             @Context HttpServletRequest httpServletRequest,
             @FormParam(VERSION) LongParameter version,
@@ -501,21 +611,42 @@ public class ProcessGroupResource extends ApplicationResource {
     }
 
     /**
-     * Updates the state of all processors in the process group. Supports
-     * modifying whether the processors and process groups are running/stopped
-     * and instantiating templates.
+     * Updates the state of all processors in the process group. Supports modifying whether the processors and process groups are running/stopped and instantiating templates.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param processGroupEntity A processGroupEntity
      * @return A processGroupEntity
      */
     @PUT
     @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Path("") // necessary due to bug in swagger
     @PreAuthorize("hasRole('ROLE_DFM')")
-    @TypeHint(ProcessGroupEntity.class)
+    @ApiOperation(
+            value = "Updates a process group",
+            response = ProcessGroupEntity.class,
+            authorizations = {
+                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response updateProcessGroup(
             @Context HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The process group to update. The only action that is supported at this endpoint is to set the running flag in order "
+                            + "to start or stop all descendent schedulable components. This defines the schema of the expected input.",
+                    required = true
+            )
             ProcessGroupEntity processGroupEntity) {
 
         if (processGroupEntity == null || processGroupEntity.getProcessGroup() == null) {
@@ -573,27 +704,55 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Retrieves the contents of the specified group.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param recursive Optional recursive flag that defaults to false. If set
-     * to true, all descendent groups and their content will be included if the
-     * verbose flag is also set to true.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param recursive Optional recursive flag that defaults to false. If set to true, all descendent groups and their content will be included if the verbose flag is also set to true.
      * @param processGroupReferenceId The id of the process group.
-     * @param verbose Optional verbose flag that defaults to false. If the
-     * verbose flag is set to true processor configuration and property details
-     * will be included in the response.
+     * @param verbose Optional verbose flag that defaults to false. If the verbose flag is set to true processor configuration and property details will be included in the response.
      * @return A processGroupEntity.
      */
     @GET
+    @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/process-group-references/{id}")
     @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
-    @TypeHint(ProcessGroupEntity.class)
+    @ApiOperation(
+            value = "Gets a process group",
+            response = ProcessGroupEntity.class,
+            authorizations = {
+                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response getProcessGroup(
+            @ApiParam(
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+                    required = false
+            )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @ApiParam(
+                    value = "The process group id.",
+                    required = false
+            )
             @PathParam("id") String processGroupReferenceId,
+            @ApiParam(
+                    value = "Whether the response should contain all encapsulated components or just the immediate children.",
+                    required = false
+            )
             @QueryParam("recursive") @DefaultValue(RECURSIVE) Boolean recursive,
+            @ApiParam(
+                    value = "Whether to include any encapulated components or just details about the process group.",
+                    required = false
+            )
             @QueryParam("verbose") @DefaultValue(VERBOSE) Boolean verbose) {
 
         // replicate if cluster manager
@@ -629,21 +788,43 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Retrieves the content of the specified group reference.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param verbose Optional verbose flag that defaults to false. If the
-     * verbose flag is set to true processor configuration and property details
-     * will be included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param verbose Optional verbose flag that defaults to false. If the verbose flag is set to true processor configuration and property details will be included in the response.
      * @return A controllerEntity.
      */
     @GET
+    @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/process-group-references")
     @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
-    @TypeHint(ProcessGroupsEntity.class)
+    @ApiOperation(
+            value = "Gets all process groups",
+            response = ProcessGroupsEntity.class,
+            authorizations = {
+                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response getProcessGroupReferences(
+            @ApiParam(
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+                    required = false
+            )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @ApiParam(
+                    value = "Whether to include any encapulated components or just details about the process group.",
+                    required = false
+            )
             @QueryParam("verbose") @DefaultValue(VERBOSE) Boolean verbose) {
 
         // replicate if cluster manager
@@ -676,12 +857,9 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Adds the specified process group.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param name The name of the process group
      * @param x The x coordinate for this funnels position.
      * @param y The y coordinate for this funnels position.
@@ -692,7 +870,6 @@ public class ProcessGroupResource extends ApplicationResource {
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/process-group-references")
     @PreAuthorize("hasRole('ROLE_DFM')")
-    @TypeHint(ProcessGroupEntity.class)
     public Response createProcessGroupReference(
             @Context HttpServletRequest httpServletRequest,
             @FormParam(VERSION) LongParameter version,
@@ -729,7 +906,7 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Adds the specified process group.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param processGroupEntity A processGroupEntity
      * @return A processGroupEntity
      */
@@ -738,9 +915,28 @@ public class ProcessGroupResource extends ApplicationResource {
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/process-group-references")
     @PreAuthorize("hasRole('ROLE_DFM')")
-    @TypeHint(ProcessGroupEntity.class)
+    @ApiOperation(
+            value = "Creates a process group",
+            response = ProcessGroupEntity.class,
+            authorizations = {
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response createProcessGroupReference(
             @Context HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The process group configuration details.",
+                    required = true
+            )
             ProcessGroupEntity processGroupEntity) {
 
         if (processGroupEntity == null || processGroupEntity.getProcessGroup() == null) {
@@ -810,17 +1006,13 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Updates the specified process group.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the process group
      * @param name The name of the process group.
      * @param comments The comments for the process group.
-     * @param running Optional flag that indicates whether all processors should
-     * be started/stopped.
+     * @param running Optional flag that indicates whether all processors should be started/stopped.
      * @param x The x coordinate for this funnels position.
      * @param y The y coordinate for this funnels position.
      * @return A processGroupEntity.
@@ -830,7 +1022,6 @@ public class ProcessGroupResource extends ApplicationResource {
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/process-group-references/{id}")
     @PreAuthorize("hasRole('ROLE_DFM')")
-    @TypeHint(ProcessGroupEntity.class)
     public Response updateProcessGroupReference(
             @Context HttpServletRequest httpServletRequest,
             @FormParam(VERSION) LongParameter version,
@@ -874,7 +1065,7 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Updates the specified process group.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param id The id of the process group.
      * @param processGroupEntity A processGroupEntity.
      * @return A processGroupEntity.
@@ -884,10 +1075,33 @@ public class ProcessGroupResource extends ApplicationResource {
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/process-group-references/{id}")
     @PreAuthorize("hasRole('ROLE_DFM')")
-    @TypeHint(ProcessGroupEntity.class)
+    @ApiOperation(
+            value = "Updates a process group",
+            response = ProcessGroupEntity.class,
+            authorizations = {
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response updateProcessGroupReference(
             @Context HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The process group id.",
+                    required = true
+            )
             @PathParam("id") String id,
+            @ApiParam(
+                    value = "The process group configuration details.",
+                    required = true
+            )
             ProcessGroupEntity processGroupEntity) {
 
         if (processGroupEntity == null || processGroupEntity.getProcessGroup() == null) {
@@ -945,24 +1159,49 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Removes the specified process group reference.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the process group to be removed.
      * @return A processGroupEntity.
      */
     @DELETE
+    @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/process-group-references/{id}")
     @PreAuthorize("hasRole('ROLE_DFM')")
-    @TypeHint(ProcessGroupEntity.class)
+    @ApiOperation(
+            value = "Deletes a process group",
+            response = ProcessGroupEntity.class,
+            authorizations = {
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response removeProcessGroupReference(
             @Context HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The revision is used to verify the client is working with the latest version of the flow.",
+                    required = false
+            )
             @QueryParam(VERSION) LongParameter version,
+            @ApiParam(
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+                    required = false
+            )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @ApiParam(
+                    value = "The process group id.",
+                    required = true
+            )
             @PathParam("id") String id) {
 
         // replicate if cluster manager
@@ -1002,19 +1241,36 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Retrieves the status report for this NiFi.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
-     * @param recursive Optional recursive flag that defaults to false. If set
-     * to true, all descendent groups and their content will be included if the
-     * verbose flag is also set to true.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param recursive Optional recursive flag that defaults to false. If set to true, all descendent groups and their content will be included if the verbose flag is also set to true.
      * @return A processGroupStatusEntity.
      */
     @GET
+    @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/status")
     @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN', 'ROLE_NIFI')")
-    @TypeHint(ProcessGroupStatusEntity.class)
+    @ApiOperation(
+            value = "Gets the status for a process group",
+            notes = "The status for a process group includes status for all descendent components. When invoked on the root group with "
+                    + "recursive set to true, it will return the current status of every component in the flow.",
+            response = ProcessGroupStatusEntity.class,
+            authorizations = {
+                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+                @Authorization(value = "Administrator", type = "ROLE_ADMIN"),
+                @Authorization(value = "NiFi", type="ROLE_NIFI")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response getProcessGroupStatus(
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
             @QueryParam("recursive") @DefaultValue(RECURSIVE) Boolean recursive) {
@@ -1050,16 +1306,32 @@ public class ProcessGroupResource extends ApplicationResource {
     /**
      * Retrieves the specified remote process groups status history.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return A processorEntity.
      */
     @GET
+    @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/status/history")
     @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
-    @TypeHint(StatusHistoryEntity.class)
+    @ApiOperation(
+            value = "Gets status history for a remote process group",
+            response = StatusHistoryEntity.class,
+            authorizations = {
+                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response getProcessGroupStatusHistory(@QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
 
         // replicate if cluster manager

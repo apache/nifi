@@ -58,56 +58,54 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
             new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
 
     public static final PropertyDescriptor CREDENTAILS_FILE = new PropertyDescriptor.Builder()
-        .name("Credentials File")
-        .expressionLanguageSupported(false)
-        .required(false)
-        .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
-        .build();
+            .name("Credentials File")
+            .expressionLanguageSupported(false)
+            .required(false)
+            .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+            .build();
     public static final PropertyDescriptor ACCESS_KEY = new PropertyDescriptor.Builder()
-        .name("Access Key")
-        .expressionLanguageSupported(false)
-        .required(false)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .sensitive(true)
-        .build();
+            .name("Access Key")
+            .expressionLanguageSupported(false)
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .sensitive(true)
+            .build();
     public static final PropertyDescriptor SECRET_KEY = new PropertyDescriptor.Builder()
-        .name("Secret Key")
-        .expressionLanguageSupported(false)
-        .required(false)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .sensitive(true)
-        .build();
+            .name("Secret Key")
+            .expressionLanguageSupported(false)
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .sensitive(true)
+            .build();
     public static final PropertyDescriptor REGION = new PropertyDescriptor.Builder()
-        .name("Region")
-        .required(true)
-        .allowableValues(getAvailableRegions())
-        .defaultValue(createAllowableValue(Regions.DEFAULT_REGION).getValue())
-        .build();
+            .name("Region")
+            .required(true)
+            .allowableValues(getAvailableRegions())
+            .defaultValue(createAllowableValue(Regions.DEFAULT_REGION).getValue())
+            .build();
 
     public static final PropertyDescriptor TIMEOUT = new PropertyDescriptor.Builder()
-        .name("Communications Timeout")
-        .required(true)
-        .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-        .defaultValue("30 secs")
-        .build();
-
+            .name("Communications Timeout")
+            .required(true)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .defaultValue("30 secs")
+            .build();
 
     private volatile ClientType client;
-
 
     private static AllowableValue createAllowableValue(final Regions regions) {
         return new AllowableValue(regions.getName(), regions.getName(), regions.getName());
     }
-    
+
     private static AllowableValue[] getAvailableRegions() {
         final List<AllowableValue> values = new ArrayList<>();
-        for ( final Regions regions : Regions.values() ) {
+        for (final Regions regions : Regions.values()) {
             values.add(createAllowableValue(regions));
         }
-        
+
         return (AllowableValue[]) values.toArray(new AllowableValue[values.size()]);
     }
-    
+
     @Override
     public Set<Relationship> getRelationships() {
         return relationships;
@@ -116,52 +114,50 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> problems = new ArrayList<>(super.customValidate(validationContext));
-        
+
         final boolean accessKeySet = validationContext.getProperty(ACCESS_KEY).isSet();
         final boolean secretKeySet = validationContext.getProperty(SECRET_KEY).isSet();
-        if ( (accessKeySet && !secretKeySet) || (secretKeySet && !accessKeySet) ) {
+        if ((accessKeySet && !secretKeySet) || (secretKeySet && !accessKeySet)) {
             problems.add(new ValidationResult.Builder().input("Access Key").valid(false).explanation("If setting Secret Key or Access Key, must set both").build());
         }
-        
+
         final boolean credentialsFileSet = validationContext.getProperty(CREDENTAILS_FILE).isSet();
-        if ( (secretKeySet || accessKeySet) && credentialsFileSet ) {
+        if ((secretKeySet || accessKeySet) && credentialsFileSet) {
             problems.add(new ValidationResult.Builder().input("Access Key").valid(false).explanation("Cannot set both Credentials File and Secret Key/Access Key").build());
         }
-        
+
         return problems;
     }
-
 
     protected ClientConfiguration createConfiguration(final ProcessContext context) {
         final ClientConfiguration config = new ClientConfiguration();
         config.setMaxConnections(context.getMaxConcurrentTasks());
         config.setMaxErrorRetry(0);
         config.setUserAgent("NiFi");
-        
+
         final int commsTimeout = context.getProperty(TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
         config.setConnectionTimeout(commsTimeout);
         config.setSocketTimeout(commsTimeout);
-        
+
         return config;
     }
 
-    
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         final ClientType awsClient = createClient(context, getCredentials(context), createConfiguration(context));
         this.client = awsClient;
-        
+
         // if the processor supports REGION, get the configured region.
-        if ( getSupportedPropertyDescriptors().contains(REGION) ) {
+        if (getSupportedPropertyDescriptors().contains(REGION)) {
             final String region = context.getProperty(REGION).getValue();
-            if ( region != null ) {
+            if (region != null) {
                 client.setRegion(Region.getRegion(Regions.fromName(region)));
             }
         }
     }
 
     protected abstract ClientType createClient(final ProcessContext context, final AWSCredentials credentials, final ClientConfiguration config);
-    
+
     protected ClientType getClient() {
         return client;
     }
@@ -171,23 +167,22 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
         final String secretKey = context.getProperty(SECRET_KEY).getValue();
 
         final String credentialsFile = context.getProperty(CREDENTAILS_FILE).getValue();
-        
-        if ( credentialsFile != null ) {
+
+        if (credentialsFile != null) {
             try {
                 return new PropertiesCredentials(new File(credentialsFile));
             } catch (final IOException ioe) {
                 throw new ProcessException("Could not read Credentials File", ioe);
             }
         }
-        
-        if ( accessKey != null && secretKey != null ) {
+
+        if (accessKey != null && secretKey != null) {
             return new BasicAWSCredentials(accessKey, secretKey);
         }
-        
+
         return new AnonymousAWSCredentials();
     }
 
-    
     protected boolean isEmpty(final String value) {
         return value == null || value.trim().equals("");
     }

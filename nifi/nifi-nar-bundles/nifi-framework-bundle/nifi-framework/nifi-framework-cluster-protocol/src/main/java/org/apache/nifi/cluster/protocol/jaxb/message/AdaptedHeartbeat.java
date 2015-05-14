@@ -20,16 +20,16 @@ import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 
 /**
- * @author unattributed
  */
 public class AdaptedHeartbeat {
-    
+
     private NodeIdentifier nodeIdentifier;
     private byte[] payload;
     private boolean primary;
     private boolean connected;
-    
-    public AdaptedHeartbeat() {}
+
+    public AdaptedHeartbeat() {
+    }
 
     @XmlJavaTypeAdapter(NodeIdentifierAdapter.class)
     public NodeIdentifier getNodeIdentifier() {
@@ -39,7 +39,7 @@ public class AdaptedHeartbeat {
     public void setNodeIdentifier(NodeIdentifier nodeIdentifier) {
         this.nodeIdentifier = nodeIdentifier;
     }
-    
+
     public boolean isPrimary() {
         return primary;
     }
@@ -51,11 +51,11 @@ public class AdaptedHeartbeat {
     public boolean isConnected() {
         return connected;
     }
-    
+
     public void setConnected(boolean connected) {
         this.connected = connected;
     }
-    
+
     public byte[] getPayload() {
         return payload;
     }

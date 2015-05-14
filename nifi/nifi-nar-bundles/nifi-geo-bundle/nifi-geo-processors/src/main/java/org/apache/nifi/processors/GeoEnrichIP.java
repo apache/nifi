@@ -60,20 +60,20 @@ import com.maxmind.geoip2.record.Subdivision;
 @SupportsBatching
 @Tags({"geo", "enrich", "ip", "maxmind"})
 @CapabilityDescription("Looks up geolocation information for an IP address and adds the geo information to FlowFile attributes. The "
-		+ "geo data is provided as a MaxMind database. The attribute that contains the IP address to lookup is provided by the "
-		+ "'IP Address Attribute' property. If the name of the attribute provided is 'X', then the the attributes added by enrichment "
-		+ "will take the form X.geo.<fieldName>")
+        + "geo data is provided as a MaxMind database. The attribute that contains the IP address to lookup is provided by the "
+        + "'IP Address Attribute' property. If the name of the attribute provided is 'X', then the the attributes added by enrichment "
+        + "will take the form X.geo.<fieldName>")
 @WritesAttributes({
-	@WritesAttribute(attribute="X.geo.lookup.micros", description="The number of microseconds that the geo lookup took"),
-	@WritesAttribute(attribute="X.geo.city", description="The city identified for the IP address"),
-	@WritesAttribute(attribute="X.geo.latitude", description="The latitude identified for this IP address"),
-	@WritesAttribute(attribute="X.geo.longitude", description="The longitude identified for this IP address"),
-	@WritesAttribute(attribute="X.geo.subdivision.N", description="Each subdivision that is identified for this IP address is added with a one-up number appended to the attribute name, starting with 0"),
-	@WritesAttribute(attribute="X.geo.subdivision.isocode.N", description="The ISO code for the subdivision that is identified by X.geo.subdivision.N"),
-	@WritesAttribute(attribute="X.geo.country", description="The country identified for this IP address"),
-	@WritesAttribute(attribute="X.geo.country.isocode", description="The ISO Code for the country identified"),
-	@WritesAttribute(attribute="X.geo.postalcode", description="The postal code for the country identified"),
-})
+    @WritesAttribute(attribute = "X.geo.lookup.micros", description = "The number of microseconds that the geo lookup took"),
+    @WritesAttribute(attribute = "X.geo.city", description = "The city identified for the IP address"),
+    @WritesAttribute(attribute = "X.geo.latitude", description = "The latitude identified for this IP address"),
+    @WritesAttribute(attribute = "X.geo.longitude", description = "The longitude identified for this IP address"),
+    @WritesAttribute(attribute = "X.geo.subdivision.N",
+            description = "Each subdivision that is identified for this IP address is added with a one-up number appended to the attribute name, starting with 0"),
+    @WritesAttribute(attribute = "X.geo.subdivision.isocode.N", description = "The ISO code for the subdivision that is identified by X.geo.subdivision.N"),
+    @WritesAttribute(attribute = "X.geo.country", description = "The country identified for this IP address"),
+    @WritesAttribute(attribute = "X.geo.country.isocode", description = "The ISO Code for the country identified"),
+    @WritesAttribute(attribute = "X.geo.postalcode", description = "The postal code for the country identified"),})
 public class GeoEnrichIP extends AbstractProcessor {
 
     public static final PropertyDescriptor GEO_DATABASE_FILE = new PropertyDescriptor.Builder()
@@ -127,12 +127,12 @@ public class GeoEnrichIP extends AbstractProcessor {
 
     @OnStopped
     public void closeReader() throws IOException {
-    	final DatabaseReader reader = databaseReaderRef.get();
-    	if ( reader != null ) {
-    		reader.close();
-    	}
+        final DatabaseReader reader = databaseReaderRef.get();
+        if (reader != null) {
+            reader.close();
+        }
     }
-    
+
     @Override
     protected void init(final ProcessorInitializationContext context) {
         final Set<Relationship> rels = new HashSet<>();
@@ -180,7 +180,7 @@ public class GeoEnrichIP extends AbstractProcessor {
             getLogger().warn("Failure while trying to find enrichment data for {} due to {}", new Object[]{flowFile, ex}, ex);
             return;
         }
-        
+
         if (response == null) {
             session.transfer(flowFile, REL_NOT_FOUND);
             return;
@@ -189,8 +189,17 @@ public class GeoEnrichIP extends AbstractProcessor {
         final Map<String, String> attrs = new HashMap<>();
         attrs.put(new StringBuilder(ipAttributeName).append(".geo.lookup.micros").toString(), String.valueOf(stopWatch.getDuration(TimeUnit.MICROSECONDS)));
         attrs.put(new StringBuilder(ipAttributeName).append(".geo.city").toString(), response.getCity().getName());
-        attrs.put(new StringBuilder(ipAttributeName).append(".geo.latitude").toString(), response.getLocation().getLatitude().toString());
-        attrs.put(new StringBuilder(ipAttributeName).append(".geo.longitude").toString(), response.getLocation().getLongitude().toString());
+
+        final Double latitude = response.getLocation().getLatitude();
+        if (latitude != null) {
+            attrs.put(new StringBuilder(ipAttributeName).append(".geo.latitude").toString(), latitude.toString());
+        }
+
+        final Double longitude = response.getLocation().getLongitude();
+        if (longitude != null) {
+            attrs.put(new StringBuilder(ipAttributeName).append(".geo.longitude").toString(), longitude.toString());
+        }
+
         int i = 0;
         for (final Subdivision subd : response.getSubdivisions()) {
             attrs.put(new StringBuilder(ipAttributeName).append(".geo.subdivision.").append(i).toString(), subd.getName());

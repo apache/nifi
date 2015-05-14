@@ -19,14 +19,14 @@ package org.apache.nifi.cluster.protocol.message;
 import javax.xml.bind.annotation.XmlRootElement;
 
 /**
- * @author unattributed
  */
 @XmlRootElement(name = "exceptionMessage")
 public class ExceptionMessage extends ProtocolMessage {
-    
+
     private String exceptionMessage;
 
-    public ExceptionMessage() {}
+    public ExceptionMessage() {
+    }
 
     public String getExceptionMessage() {
         return exceptionMessage;
@@ -35,10 +35,10 @@ public class ExceptionMessage extends ProtocolMessage {
     public void setExceptionMessage(String exceptionMessage) {
         this.exceptionMessage = exceptionMessage;
     }
-    
+
     @Override
     public MessageType getType() {
         return MessageType.EXCEPTION;
     }
-    
+
 }

@@ -19,24 +19,23 @@ package org.apache.nifi.util;
 public class EscapeUtils {
 
     /**
-     * Escapes the specified html by replacing &amp;, &lt;, &gt;, &quot;, &#39;, &#x2f; 
-     * with their corresponding html entity. If html is null, null is returned.
-     * 
-     * @param html
-     * @return 
+     * Escapes the specified html by replacing &amp;, &lt;, &gt;, &quot;, &#39;, &#x2f; with their corresponding html entity. If html is null, null is returned.
+     *
+     * @param html to escape
+     * @return escaped html
      */
     public static String escapeHtml(String html) {
         if (html == null) {
             return null;
         }
-        
+
         html = html.replace("&", "&amp;");
         html = html.replace("<", "&lt;");
         html = html.replace(">", "&gt;");
         html = html.replace("\"", "&quot;");
         html = html.replace("'", "&#39;");
         html = html.replace("/", "&#x2f;");
-        
+
         return html;
     }
 }

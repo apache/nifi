@@ -19,7 +19,6 @@ package org.apache.nifi.processor.exception;
 /**
  * Indicates an issue occurred in user code while processing a FlowFile.
  *
- * @author none
  */
 public class ProcessException extends RuntimeException {
 

@@ -40,9 +40,6 @@ import org.apache.nifi.web.dao.SnippetDAO;
 import org.apache.nifi.web.util.SnippetUtils;
 import org.apache.commons.lang3.StringUtils;
 
-/**
- *
- */
 public class StandardSnippetDAO implements SnippetDAO {
 
     private FlowController flowController;
@@ -58,15 +55,6 @@ public class StandardSnippetDAO implements SnippetDAO {
         return snippet;
     }
 
-    /**
-     * Creates a new snippet based off of an existing snippet. Used for copying
-     * and pasting.
-     *
-     * @param groupId
-     * @param originX
-     * @param originY
-     * @return
-     */
     @Override
     public FlowSnippetDTO copySnippet(final String groupId, final String snippetId, final Double originX, final Double originY) {
         try {
@@ -111,13 +99,6 @@ public class StandardSnippetDAO implements SnippetDAO {
         }
     }
 
-    /**
-     * Creates a new snippet containing the specified components. Whether or not
-     * the snippet is linked will determine whether actions on this snippet
-     * actually affect the data flow.
-     *
-     * @return
-     */
     @Override
     public Snippet createSnippet(final SnippetDTO snippetDTO) {
         // create the snippet request
@@ -167,12 +148,6 @@ public class StandardSnippetDAO implements SnippetDAO {
         }
     }
 
-    /**
-     * Deletes a snippet. If the snippet is linked, also deletes the underlying
-     * components.
-     *
-     * @param snippetId
-     */
     @Override
     public void deleteSnippet(String snippetId) {
         final StandardSnippet snippet = locateSnippet(snippetId);
@@ -238,12 +213,6 @@ public class StandardSnippetDAO implements SnippetDAO {
         }
     }
 
-    /**
-     * Updates the specified snippet. If the snippet is linked, the underlying
-     * components will be moved into the specified groupId.
-     *
-     * @return
-     */
     @Override
     public Snippet updateSnippet(final SnippetDTO snippetDTO) {
         final StandardSnippet snippet = locateSnippet(snippetDTO.getId());
@@ -275,12 +244,6 @@ public class StandardSnippetDAO implements SnippetDAO {
         return snippet;
     }
 
-    /**
-     * Looks up the actual value for any sensitive properties from the specified
-     * snippet.
-     *
-     * @param snippet
-     */
     private void lookupSensitiveProperties(final FlowSnippetDTO snippet) {
         // ensure that contents have been specified
         if (snippet != null) {
@@ -289,10 +252,10 @@ public class StandardSnippetDAO implements SnippetDAO {
                 lookupSensitiveProcessorProperties(snippet.getProcessors());
             }
 
-            if ( snippet.getControllerServices() != null ) {
+            if (snippet.getControllerServices() != null) {
                 lookupSensitiveControllerServiceProperties(snippet.getControllerServices());
             }
-            
+
             // go through each process group if specified
             if (snippet.getProcessGroups() != null) {
                 for (final ProcessGroupDTO group : snippet.getProcessGroups()) {
@@ -302,12 +265,6 @@ public class StandardSnippetDAO implements SnippetDAO {
         }
     }
 
-    /**
-     * Looks up the actual value for any sensitive properties from the specified
-     * processors.
-     *
-     * @param snippet
-     */
     private void lookupSensitiveProcessorProperties(final Set<ProcessorDTO> processors) {
         final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
 
@@ -336,11 +293,11 @@ public class StandardSnippetDAO implements SnippetDAO {
             }
         }
     }
-    
+
     private void lookupSensitiveControllerServiceProperties(final Set<ControllerServiceDTO> controllerServices) {
         // go through each service
         for (final ControllerServiceDTO serviceDTO : controllerServices) {
-            
+
             // ensure that some property configuration have been specified
             final Map<String, String> serviceProperties = serviceDTO.getProperties();
             if (serviceProperties != null) {

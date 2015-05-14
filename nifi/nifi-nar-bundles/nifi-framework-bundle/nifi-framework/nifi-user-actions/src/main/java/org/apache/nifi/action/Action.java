@@ -30,12 +30,12 @@ public class Action implements Serializable {
     private String userDn;
     private String userName;
     private Date timestamp;
-    
+
     private String sourceId;
     private String sourceName;
     private Component sourceType;
     private ComponentDetails componentDetails;
-    
+
     private Operation operation;
     private ActionDetails actionDetails;
 

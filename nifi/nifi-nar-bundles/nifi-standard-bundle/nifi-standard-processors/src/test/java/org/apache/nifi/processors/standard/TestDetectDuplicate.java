@@ -57,7 +57,7 @@ public class TestDetectDuplicate {
 
     @Test
     public void testDuplicate() throws InitializationException {
-        TestRunner runner = TestRunners.newTestRunner(DetectDuplicate.class);
+        final TestRunner runner = TestRunners.newTestRunner(DetectDuplicate.class);
         final DistributedMapCacheClientImpl client = createClient();
         final Map<String, String> clientProperties = new HashMap<>();
         clientProperties.put(DistributedMapCacheClientService.HOSTNAME.getName(), "localhost");
@@ -65,11 +65,11 @@ public class TestDetectDuplicate {
         runner.setProperty(DetectDuplicate.DISTRIBUTED_CACHE_SERVICE, "client");
         runner.setProperty(DetectDuplicate.FLOWFILE_DESCRIPTION, "The original flow file");
         runner.setProperty(DetectDuplicate.AGE_OFF_DURATION, "48 hours");
-        Map<String, String> props = new HashMap<>();
+        final Map<String, String> props = new HashMap<>();
         props.put("hash.value", "1000");
         runner.enqueue(new byte[]{}, props);
         runner.enableControllerService(client);
-        
+
         runner.run();
         runner.assertAllFlowFilesTransferred(DetectDuplicate.REL_NON_DUPLICATE, 1);
         runner.clearTransferState();
@@ -84,7 +84,7 @@ public class TestDetectDuplicate {
     @Test
     public void testDuplicateWithAgeOff() throws InitializationException, InterruptedException {
 
-        TestRunner runner = TestRunners.newTestRunner(DetectDuplicate.class);
+        final TestRunner runner = TestRunners.newTestRunner(DetectDuplicate.class);
         final DistributedMapCacheClientImpl client = createClient();
         final Map<String, String> clientProperties = new HashMap<>();
         clientProperties.put(DistributedMapCacheClientService.HOSTNAME.getName(), "localhost");
@@ -93,11 +93,11 @@ public class TestDetectDuplicate {
         runner.setProperty(DetectDuplicate.FLOWFILE_DESCRIPTION, "The original flow file");
         runner.setProperty(DetectDuplicate.AGE_OFF_DURATION, "2 secs");
         runner.enableControllerService(client);
-        
-        Map<String, String> props = new HashMap<>();
+
+        final Map<String, String> props = new HashMap<>();
         props.put("hash.value", "1000");
         runner.enqueue(new byte[]{}, props);
-        
+
         runner.run();
         runner.assertAllFlowFilesTransferred(DetectDuplicate.REL_NON_DUPLICATE, 1);
         runner.clearTransferState();
@@ -114,7 +114,7 @@ public class TestDetectDuplicate {
 
         final DistributedMapCacheClientImpl client = new DistributedMapCacheClientImpl();
         final ComponentLog logger = new MockProcessorLog("client", client);
-        MockControllerServiceInitializationContext clientInitContext = new MockControllerServiceInitializationContext(client, "client", logger);
+        final MockControllerServiceInitializationContext clientInitContext = new MockControllerServiceInitializationContext(client, "client", logger);
         client.initialize(clientInitContext);
 
         return client;
@@ -130,12 +130,12 @@ public class TestDetectDuplicate {
         }
 
         @Override
-        public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
+        public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
         }
 
         @Override
         protected java.util.List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-            List<PropertyDescriptor> props = new ArrayList<>();
+            final List<PropertyDescriptor> props = new ArrayList<>();
             props.add(DistributedMapCacheClientService.HOSTNAME);
             props.add(DistributedMapCacheClientService.COMMUNICATIONS_TIMEOUT);
             props.add(DistributedMapCacheClientService.PORT);
@@ -144,7 +144,7 @@ public class TestDetectDuplicate {
         }
 
         @Override
-        public <K, V> boolean putIfAbsent(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException {
+        public <K, V> boolean putIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
             if (exists) {
                 return false;
             }
@@ -154,8 +154,8 @@ public class TestDetectDuplicate {
         }
 
         @Override
-        public <K, V> V getAndPutIfAbsent(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer,
-                Deserializer<V> valueDeserializer) throws IOException {
+        public <K, V> V getAndPutIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer,
+                final Deserializer<V> valueDeserializer) throws IOException {
             if (exists) {
                 return (V) cacheValue;
             }
@@ -164,19 +164,23 @@ public class TestDetectDuplicate {
         }
 
         @Override
-        public <K> boolean containsKey(K key, Serializer<K> keySerializer) throws IOException {
+        public <K> boolean containsKey(final K key, final Serializer<K> keySerializer) throws IOException {
             return exists;
         }
 
         @Override
-        public <K, V> V get(K key, Serializer<K> keySerializer, Deserializer<V> valueDeserializer) throws IOException {
+        public <K, V> V get(final K key, final Serializer<K> keySerializer, final Deserializer<V> valueDeserializer) throws IOException {
             return null;
         }
 
         @Override
-        public <K> boolean remove(K key, Serializer<K> serializer) throws IOException {
+        public <K> boolean remove(final K key, final Serializer<K> serializer) throws IOException {
             exists = false;
             return true;
+        }
+
+        @Override
+        public <K, V> void put(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) throws IOException {
         }
     }
 

@@ -36,7 +36,7 @@ public class NiFiUserDetails implements UserDetails {
     /**
      * Creates a new NiFiUserDetails.
      *
-     * @param user
+     * @param user user
      */
     public NiFiUserDetails(NiFiUser user) {
         this.user = user;
@@ -45,7 +45,7 @@ public class NiFiUserDetails implements UserDetails {
     /**
      * Get the user for this UserDetails.
      *
-     * @return
+     * @return user
      */
     public NiFiUser getNiFiUser() {
         return user;
@@ -54,7 +54,7 @@ public class NiFiUserDetails implements UserDetails {
     /**
      * Returns the authorities that this NiFi user has.
      *
-     * @return
+     * @return authorities
      */
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -66,21 +66,11 @@ public class NiFiUserDetails implements UserDetails {
         return grantedAuthorities;
     }
 
-    /**
-     * Not used.
-     *
-     * @return
-     */
     @Override
     public String getPassword() {
         return StringUtils.EMPTY;
     }
 
-    /**
-     * Gets the user name.
-     *
-     * @return
-     */
     @Override
     public String getUsername() {
         return user.getDn();

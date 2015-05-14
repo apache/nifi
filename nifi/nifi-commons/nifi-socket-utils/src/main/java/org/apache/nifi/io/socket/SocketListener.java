@@ -41,7 +41,6 @@ import org.slf4j.LoggerFactory;
 /**
  * Implements a listener for TCP/IP messages sent over unicast socket.
  *
- * @author unattributed
  */
 public abstract class SocketListener {
 

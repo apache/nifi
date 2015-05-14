@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.nifi.processors.standard.TransformXml;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -57,7 +56,6 @@ public class TestTransformXml {
         runner.assertAllFlowFilesTransferred(TransformXml.REL_FAILURE);
         final MockFlowFile original = runner.getFlowFilesForRelationship(TransformXml.REL_FAILURE).get(0);
         final String originalContent = new String(original.toByteArray(), StandardCharsets.UTF_8);
-        System.out.println("originalContent:\n" + originalContent);
 
         original.assertContentEquals("not xml");
     }
@@ -76,7 +74,6 @@ public class TestTransformXml {
         runner.assertAllFlowFilesTransferred(TransformXml.REL_SUCCESS);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(TransformXml.REL_SUCCESS).get(0);
         final String transformedContent = new String(transformed.toByteArray(), StandardCharsets.UTF_8);
-        System.out.println("transformedContent:\n" + transformedContent);
 
         transformed.assertContentEquals(Paths.get("src/test/resources/TestTransformXml/math.html"));
     }
@@ -105,14 +102,12 @@ public class TestTransformXml {
         }
         builder.append("</data>");
         String data = builder.toString();
-        System.out.println("Original content:\n" + data);
         runner.enqueue(data.getBytes(), attributes);
         runner.run();
 
         runner.assertAllFlowFilesTransferred(TransformXml.REL_SUCCESS);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(TransformXml.REL_SUCCESS).get(0);
         final String transformedContent = new String(transformed.toByteArray(), StandardCharsets.ISO_8859_1);
-        System.out.println("transformedContent:\n" + transformedContent);
 
         transformed.assertContentEquals(Paths.get("src/test/resources/TestTransformXml/tokens.xml"));
     }

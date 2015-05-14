@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.action.component.details;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import javax.xml.bind.annotation.XmlType;
 
 /**
@@ -27,10 +28,11 @@ public class ExtensionDetailsDTO extends ComponentDetailsDTO {
     private String type;
 
     /**
-     * The extension type.
-     *
-     * @return
+     * @return extension type
      */
+    @ApiModelProperty(
+            value = "The fully qualified type of extension."
+    )
     public String getType() {
         return type;
     }

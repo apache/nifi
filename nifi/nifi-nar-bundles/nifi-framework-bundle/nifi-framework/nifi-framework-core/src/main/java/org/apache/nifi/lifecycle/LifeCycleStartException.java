@@ -17,11 +17,8 @@
 package org.apache.nifi.lifecycle;
 
 /**
- * Represents the exceptional case when a problem is encountered during the
- * startup or initialization of a class implementing the <code>LifeCycle</code>
- * interface.
+ * Represents the exceptional case when a problem is encountered during the startup or initialization of a class implementing the <code>LifeCycle</code> interface.
  *
- * @author unattributed
  */
 public class LifeCycleStartException extends LifeCycleException {
 

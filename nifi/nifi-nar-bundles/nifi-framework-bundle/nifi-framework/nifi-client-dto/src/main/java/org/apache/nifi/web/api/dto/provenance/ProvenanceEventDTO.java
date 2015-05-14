@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.provenance;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
@@ -83,10 +84,11 @@ public class ProvenanceEventDTO {
     private String sourceConnectionIdentifier;
 
     /**
-     * The event uuid.
-     *
-     * @return
+     * @return event uuid
      */
+    @ApiModelProperty(
+            value = "The event uuid."
+    )
     public String getId() {
         return id;
     }
@@ -96,10 +98,11 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * The event id.
-     *
-     * @return
+     * @return event id
      */
+    @ApiModelProperty(
+            value = "The event id. This is a one up number thats unique per node."
+    )
     public Long getEventId() {
         return eventId;
     }
@@ -109,11 +112,12 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * The time the event occurred.
-     *
-     * @return
+     * @return time the event occurred
      */
     @XmlJavaTypeAdapter(TimestampAdapter.class)
+    @ApiModelProperty(
+            value = "The timestamp of the event."
+    )
     public Date getEventTime() {
         return eventTime;
     }
@@ -123,10 +127,11 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * The UUID of the FlowFile for this event.
-     *
-     * @return
+     * @return UUID of the FlowFile for this event
      */
+    @ApiModelProperty(
+            value = "The uuid of the flowfile for the event."
+    )
     public String getFlowFileUuid() {
         return flowFileUuid;
     }
@@ -136,10 +141,11 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * The size of the FlowFile for this event.
-     *
-     * @return
+     * @return size of the FlowFile for this event
      */
+    @ApiModelProperty(
+            value = "The size of the flowfile for the event."
+    )
     public String getFileSize() {
         return fileSize;
     }
@@ -149,10 +155,11 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * The size of the FlowFile in bytes for this event.
-     *
-     * @return
+     * @return size of the FlowFile in bytes for this event
      */
+    @ApiModelProperty(
+            value = "The size of the flowfile in bytes for the event."
+    )
     public Long getFileSizeBytes() {
         return fileSizeBytes;
     }
@@ -162,10 +169,11 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * The type of this event.
-     *
-     * @return
+     * @return type of this event
      */
+    @ApiModelProperty(
+            value = "The type of the event."
+    )
     public String getEventType() {
         return eventType;
     }
@@ -175,10 +183,11 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * The attributes for the FlowFile for this event.
-     *
-     * @return
+     * @return attributes for the FlowFile for this event
      */
+    @ApiModelProperty(
+            value = "The attributes of the flowfile for the event."
+    )
     public Collection<AttributeDTO> getAttributes() {
         return attributes;
     }
@@ -188,11 +197,11 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * The id of the group that this component resides in. If the component is
-     * no longer in the flow, the group id will not be set.
-     *
-     * @return
+     * @return id of the group that this component resides in. If the component is no longer in the flow, the group id will not be set
      */
+    @ApiModelProperty(
+            value = "The id of the group that the component resides in. If the component is no longer in the flow, the group id will not be set."
+    )
     public String getGroupId() {
         return groupId;
     }
@@ -202,10 +211,11 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * The id of the component that generated this event.
-     *
-     * @return
+     * @return id of the component that generated this event
      */
+    @ApiModelProperty(
+            value = "The id of the component that generated the event."
+    )
     public String getComponentId() {
         return componentId;
     }
@@ -215,10 +225,11 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * The name of the component that generated this event.
-     *
-     * @return
+     * @return name of the component that generated this event
      */
+    @ApiModelProperty(
+            value = "The name of the component that generated the event."
+    )
     public String getComponentName() {
         return componentName;
     }
@@ -228,10 +239,11 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * The type of the component that generated this event.
-     *
-     * @return
+     * @return type of the component that generated this event
      */
+    @ApiModelProperty(
+            value = "The type of the component that generated the event."
+    )
     public String getComponentType() {
         return componentType;
     }
@@ -241,10 +253,11 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * The source/destination system URI if the event was a RECEIVE/SEND.
-     *
-     * @return
+     * @return source/destination system URI if the event was a RECEIVE/SEND
      */
+    @ApiModelProperty(
+            value = "The source/destination system uri if the event was a RECEIVE/SEND."
+    )
     public String getTransitUri() {
         return transitUri;
     }
@@ -254,10 +267,11 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * The alternate identifier URI for the FlowFile for this event.
-     *
-     * @return
+     * @return alternate identifier URI for the FlowFile for this event
      */
+    @ApiModelProperty(
+            value = "The alternate identifier uri for the fileflow for the event."
+    )
     public String getAlternateIdentifierUri() {
         return alternateIdentifierUri;
     }
@@ -267,10 +281,11 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * The identifier of the node where this event originated.
-     *
-     * @return
+     * @return identifier of the node where this event originated
      */
+    @ApiModelProperty(
+            value = "The identifier for the node where the event originated."
+    )
     public String getClusterNodeId() {
         return clusterNodeId;
     }
@@ -280,10 +295,11 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * The label to use to show which node this event originated from.
-     *
-     * @return
+     * @return label to use to show which node this event originated from
      */
+    @ApiModelProperty(
+            value = "The label for the node where the event originated."
+    )
     public String getClusterNodeAddress() {
         return clusterNodeAddress;
     }
@@ -293,10 +309,11 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * The parent uuids for this event.
-     *
-     * @return
+     * @return parent uuids for this event
      */
+    @ApiModelProperty(
+            value = "The parent uuids for the event."
+    )
     public List<String> getParentUuids() {
         return parentUuids;
     }
@@ -306,10 +323,11 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * The child uuids for this event.
-     *
-     * @return
+     * @return child uuids for this event
      */
+    @ApiModelProperty(
+            value = "The child uuids for the event."
+    )
     public List<String> getChildUuids() {
         return childUuids;
     }
@@ -319,10 +337,11 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * The duration of the event, in milliseconds.
-     *
-     * @return
+     * @return duration of the event, in milliseconds
      */
+    @ApiModelProperty(
+            value = "The event duration in milliseconds."
+    )
     public Long getEventDuration() {
         return eventDuration;
     }
@@ -332,10 +351,11 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * The duration since the lineage began, in milliseconds.
-     *
-     * @return
+     * @return duration since the lineage began, in milliseconds
      */
+    @ApiModelProperty(
+            value = "The duration since the lineage began, in milliseconds."
+    )
     public Long getLineageDuration() {
         return lineageDuration;
     }
@@ -345,10 +365,11 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * The source system FlowFile id.
-     *
-     * @return
+     * @return source system FlowFile id
      */
+    @ApiModelProperty(
+            value = "The source system flowfile id."
+    )
     public String getSourceSystemFlowFileId() {
         return sourceSystemFlowFileId;
     }
@@ -358,11 +379,11 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * If this represents a route event, this is the relationship to which the
-     * flowfile was routed.
-     *
-     * @return
+     * @return If this represents a route event, this is the relationship to which the flowfile was routed
      */
+    @ApiModelProperty(
+            value = "The relationship to which the flowfile was routed if the event is of type ROUTE."
+    )
     public String getRelationship() {
         return relationship;
     }
@@ -372,10 +393,11 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * The event details.
-     *
-     * @return
+     * @return event details
      */
+    @ApiModelProperty(
+            value = "The event details."
+    )
     public String getDetails() {
         return details;
     }
@@ -385,10 +407,11 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * Whether or not the input and output content claim is the same.
-     *
-     * @return
+     * @return whether or not the input and output content claim is the same
      */
+    @ApiModelProperty(
+            value = "Whether the input and output content claim is the same."
+    )
     public Boolean getContentEqual() {
         return contentEqual;
     }
@@ -398,10 +421,11 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * Returns whether or not the output content is still available.
-     *
-     * @return
+     * @return whether or not the output content is still available
      */
+    @ApiModelProperty(
+            value = "Whether the output content is still available."
+    )
     public Boolean getOutputContentAvailable() {
         return outputContentAvailable;
     }
@@ -411,11 +435,11 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * Returns the Section in which the output Content Claim lives, or
-     * <code>null</code> if no Content Claim exists.
-     *
-     * @return
+     * @return the Section in which the output Content Claim lives, or <code>null</code> if no Content Claim exists
      */
+    @ApiModelProperty(
+            value = "The section in which the output content claim lives."
+    )
     public String getOutputContentClaimSection() {
         return outputContentClaimSection;
     }
@@ -425,11 +449,11 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * Returns the Container in which the output Content Claim lives, or
-     * <code>null</code> if no Content Claim exists.
-     *
-     * @return
+     * @return the Container in which the output Content Claim lives, or <code>null</code> if no Content Claim exists
      */
+    @ApiModelProperty(
+            value = "The container in which the output content claim lives."
+    )
     public String getOutputContentClaimContainer() {
         return outputContentClaimContainer;
     }
@@ -439,11 +463,11 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * Returns the Identifier of the output Content Claim, or <code>null</code>
-     * if no Content Claim exists.
-     *
-     * @return
+     * @return the Identifier of the output Content Claim, or <code>null</code> if no Content Claim exists
      */
+    @ApiModelProperty(
+            value = "The identifier of the output content claim."
+    )
     public String getOutputContentClaimIdentifier() {
         return outputContentClaimIdentifier;
     }
@@ -453,11 +477,11 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * Returns the offset into the the output Content Claim where the FlowFile's
-     * content begins, or <code>null</code> if no Content Claim exists.
-     *
-     * @return
+     * @return the offset into the the output Content Claim where the FlowFile's content begins, or <code>null</code> if no Content Claim exists
      */
+    @ApiModelProperty(
+            value = "The offset into the output content claim where the flowfiles content begins."
+    )
     public Long getOutputContentClaimOffset() {
         return outputContentClaimOffset;
     }
@@ -467,10 +491,11 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * Returns the formatted file size of the input content claim.
-     *
-     * @return
+     * @return the formatted file size of the input content claim
      */
+    @ApiModelProperty(
+            value = "The file size of the output content claim formatted."
+    )
     public String getOutputContentClaimFileSize() {
         return outputContentClaimFileSize;
     }
@@ -480,10 +505,11 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * Returns the number of bytes of the input content claim.
-     *
-     * @return
+     * @return the number of bytes of the input content claim
      */
+    @ApiModelProperty(
+            value = "The file size of the output content claim in bytes."
+    )
     public Long getOutputContentClaimFileSizeBytes() {
         return outputContentClaimFileSizeBytes;
     }
@@ -493,10 +519,11 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * Returns whether or not the input content is still available.
-     *
-     * @return
+     * @return whether or not the input content is still available
      */
+    @ApiModelProperty(
+            value = "Whether the input content is still available."
+    )
     public Boolean getInputContentAvailable() {
         return inputContentAvailable;
     }
@@ -506,11 +533,11 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * Returns the Section in which the input Content Claim lives, or
-     * <code>null</code> if no Content Claim exists.
-     *
-     * @return
+     * @return the Section in which the input Content Claim lives, or <code>null</code> if no Content Claim exists
      */
+    @ApiModelProperty(
+            value = "The section in which the input content claim lives."
+    )
     public String getInputContentClaimSection() {
         return inputContentClaimSection;
     }
@@ -520,11 +547,11 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * Returns the Container in which the input Content Claim lives, or
-     * <code>null</code> if no Content Claim exists.
-     *
-     * @return
+     * @return the Container in which the input Content Claim lives, or <code>null</code> if no Content Claim exists
      */
+    @ApiModelProperty(
+            value = "The container in which the input content claim lives."
+    )
     public String getInputContentClaimContainer() {
         return inputContentClaimContainer;
     }
@@ -534,11 +561,11 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * Returns the Identifier of the input Content Claim, or <code>null</code>
-     * if no Content Claim exists.
-     *
-     * @return
+     * @return the Identifier of the input Content Claim, or <code>null</code> if no Content Claim exists
      */
+    @ApiModelProperty(
+            value = "The identifier of the input content claim."
+    )
     public String getInputContentClaimIdentifier() {
         return inputContentClaimIdentifier;
     }
@@ -548,11 +575,11 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * Returns the offset into the the input Content Claim where the FlowFile's
-     * content begins, or <code>null</code> if no Content Claim exists.
-     *
-     * @return
+     * @return the offset into the the input Content Claim where the FlowFile's content begins, or <code>null</code> if no Content Claim exists
      */
+    @ApiModelProperty(
+            value = "The offset into the input content claim where the flowfiles content begins."
+    )
     public Long getInputContentClaimOffset() {
         return inputContentClaimOffset;
     }
@@ -562,10 +589,11 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * Returns the formatted file size of the input content claim.
-     *
-     * @return
+     * @return the formatted file size of the input content claim
      */
+    @ApiModelProperty(
+            value = "The file size of the input content claim formatted."
+    )
     public String getInputContentClaimFileSize() {
         return inputContentClaimFileSize;
     }
@@ -575,10 +603,11 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * Returns the number of bytes of the input content claim.
-     *
-     * @return
+     * @return the number of bytes of the input content claim
      */
+    @ApiModelProperty(
+            value = "The file size of the intput content claim in bytes."
+    )
     public Long getInputContentClaimFileSizeBytes() {
         return inputContentClaimFileSizeBytes;
     }
@@ -588,10 +617,11 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * Returns whether or not replay is available.
-     *
-     * @return
+     * @return whether or not replay is available
      */
+    @ApiModelProperty(
+            value = "Whether or not replay is available."
+    )
     public Boolean getReplayAvailable() {
         return replayAvailable;
     }
@@ -601,10 +631,11 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * Returns the explanation as to why replay is unavailable.
-     *
-     * @return
+     * @return the explanation as to why replay is unavailable
      */
+    @ApiModelProperty(
+            value = "Explanation as to why replay is unavailable."
+    )
     public String getReplayExplanation() {
         return replayExplanation;
     }
@@ -614,12 +645,13 @@ public class ProvenanceEventDTO {
     }
 
     /**
-     * Returns identifier of the FlowFile Queue / Connection from which the
-     * FlowFile was pulled to generate this event, or <code>null</code> if
-     * either the queue is unknown or the FlowFile was created by this event.
-     *
-     * @return
+     * @return identifier of the FlowFile Queue / Connection from which the FlowFile was pulled to generate this event, or <code>null</code> if either the queue is unknown or the FlowFile was created
+     * by this event
      */
+    @ApiModelProperty(
+            value = "The identifier of the queue/connection from which the flowfile was pulled to genereate this event. May be null if the queue/connection is unknown or the "
+                    + "flowfile was generated from this event."
+    )
     public String getSourceConnectionIdentifier() {
         return sourceConnectionIdentifier;
     }

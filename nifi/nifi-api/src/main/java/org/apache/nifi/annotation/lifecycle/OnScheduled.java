@@ -25,34 +25,39 @@ import java.lang.annotation.Target;
 
 /**
  * <p>
- * Marker annotation a {@link org.apache.nifi.processor.Processor Processor} or 
- * {@link org.apache.nifi.reporting.ReportingTask ReportingTask} implementation 
- * can use to indicate a method should be called whenever the component is scheduled 
- * to run. This will be called before any call to 'onTrigger' and will be called once each time
- * a Processor or Reporting Task is scheduled to run. This occurs in one of two ways: either
- * a user clicks to schedule the component to run, or NiFi is restarted with the "auto-resume state"
- * configuration set to true (the default value) and the component is already running.
- * </p> 
- * 
- * <p>
- * Methods using this annotation must take either 0 arguments or a single argument.
- * </p>
- * 
- * <p>
- * If using 1 argument and the component using the annotation is a Processor, that argument must
- * be of type {@link org.apache.nifi.processor.ProcessContext ProcessContext}.
- * </p>
- * 
- * <p>
- * If using 1 argument and the component using the annotation is a Reporting Task, that argument must
- * be of type {@link org.apache.nifi.controller.ConfigurationContext ConfigurationContext}.
+ * Marker annotation a {@link org.apache.nifi.processor.Processor Processor} or
+ * {@link org.apache.nifi.reporting.ReportingTask ReportingTask} implementation
+ * can use to indicate a method should be called whenever the component is
+ * scheduled to run. This will be called before any call to 'onTrigger' and will
+ * be called once each time a Processor or Reporting Task is scheduled to run.
+ * This occurs in one of two ways: either a user clicks to schedule the
+ * component to run, or NiFi is restarted with the "auto-resume state"
+ * configuration set to true (the default value) and the component is already
+ * running.
  * </p>
  *
- * If any method annotated with this annotation throws any Throwable, the framework will wait a while
- * and then attempt to invoke the method again. This will continue until the method succeeds, and the
- * component will then be scheduled to run after this method return successfully.
+ * <p>
+ * Methods using this annotation must take either 0 arguments or a single
+ * argument.
+ * </p>
  *
- * @author none
+ * <p>
+ * If using 1 argument and the component using the annotation is a Processor,
+ * that argument must be of type
+ * {@link org.apache.nifi.processor.ProcessContext ProcessContext}.
+ * </p>
+ *
+ * <p>
+ * If using 1 argument and the component using the annotation is a Reporting
+ * Task, that argument must be of type
+ * {@link org.apache.nifi.controller.ConfigurationContext ConfigurationContext}.
+ * </p>
+ *
+ * If any method annotated with this annotation throws any Throwable, the
+ * framework will wait a while and then attempt to invoke the method again. This
+ * will continue until the method succeeds, and the component will then be
+ * scheduled to run after this method return successfully.
+ *
  */
 @Documented
 @Target({ElementType.METHOD})

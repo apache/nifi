@@ -20,4 +20,5 @@ public class FieldNames {
 
     public static final String STORAGE_FILENAME = "storage-filename";
     public static final String STORAGE_FILE_OFFSET = "storage-fileOffset";
+    public static final String BLOCK_INDEX = "block-index";
 }

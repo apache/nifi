@@ -102,11 +102,11 @@ public class JettyServer implements NiFiServer {
 
     private final Server server;
     private final NiFiProperties props;
-    
+
     private ExtensionMapping extensionMapping;
     private WebAppContext webApiContext;
     private WebAppContext webDocsContext;
-    
+
     // content viewer and mime type specific extensions
     private WebAppContext webContentViewerContext;
     private Collection<WebAppContext> contentViewerWebContexts;
@@ -114,10 +114,10 @@ public class JettyServer implements NiFiServer {
     // component (processor, controller service, reporting task) ui extensions
     private UiExtensionMapping componentUiExtensions;
     private Collection<WebAppContext> componentUiExtensionWebContexts;
-    
+
     @Deprecated
     private Collection<WebAppContext> customUiWebContexts;
-    
+
     /**
      * Creates and configures a new Jetty instance.
      *
@@ -138,11 +138,6 @@ public class JettyServer implements NiFiServer {
         loadWars(locateNarWorkingDirectories());
     }
 
-    /**
-     * Locates the working directory for each NAR.
-     *
-     * @return
-     */
     private Set<File> locateNarWorkingDirectories() {
         final File frameworkWorkingDir = props.getFrameworkWorkingDirectory();
         final File extensionsWorkingDir = props.getExtensionsWorkingDirectory();
@@ -168,7 +163,7 @@ public class JettyServer implements NiFiServer {
      * Loads the WARs in the specified NAR working directories. A WAR file must
      * have a ".war" extension.
      *
-     * @param warDir a directory containing WARs to load
+     * @param narWorkingDirectories dirs
      */
     private void loadWars(final Set<File> narWorkingDirectories) {
 
@@ -219,14 +214,14 @@ public class JettyServer implements NiFiServer {
 
         @Deprecated
         final Map<String, String> customUiMappings = new HashMap<>();
-        
+
         // deploy the other wars
         if (CollectionUtils.isNotEmpty(otherWars)) {
             // hold onto to the web contexts for all ui extensions
             customUiWebContexts = new ArrayList<>();
             componentUiExtensionWebContexts = new ArrayList<>();
             contentViewerWebContexts = new ArrayList<>();
-            
+
             // ui extension organized by component type
             final Map<String, List<UiExtension>> componentUiExtensionsByType = new HashMap<>();
             for (File war : otherWars) {
@@ -237,7 +232,7 @@ public class JettyServer implements NiFiServer {
                 // identify all known extension types in the war
                 final Map<UiExtensionType, List<String>> uiExtensionInWar = new HashMap<>();
                 identifyUiExtensionsForComponents(uiExtensionInWar, war);
-                
+
                 // only include wars that are for custom processor ui's
                 if (!customUiProcessorTypes.isEmpty() || !uiExtensionInWar.isEmpty()) {
                     // get the context path
@@ -258,7 +253,7 @@ public class JettyServer implements NiFiServer {
                     // also store it by type so we can populate the appropriate initialization parameters
                     if (!customUiProcessorTypes.isEmpty()) {
                         customUiWebContexts.add(extensionUiContext);
-                        
+
                         // @Deprecated - supported custom uis as init params to the web api
                         for (String customUiProcessorType : customUiProcessorTypes) {
                             // map the processor type to the custom ui path
@@ -307,9 +302,9 @@ public class JettyServer implements NiFiServer {
                     // include custom ui web context in the handlers
                     handlers.addHandler(extensionUiContext);
                 }
-                
+
             }
-            
+
             // record all ui extensions to give to the web api
             componentUiExtensions = new UiExtensionMapping(componentUiExtensionsByType);
         } else {
@@ -328,7 +323,7 @@ public class JettyServer implements NiFiServer {
         webContentViewerContext = loadWar(webContentViewerWar, "/nifi-content-viewer", frameworkClassLoader);
         webContentViewerContext.getInitParams().putAll(mimeMappings);
         handlers.addHandler(webContentViewerContext);
-        
+
         // create a web app for the docs
         final String docsContextPath = "/nifi-docs";
 
@@ -348,12 +343,6 @@ public class JettyServer implements NiFiServer {
         server.setHandler(handlers);
     }
 
-    /**
-     * Finds WAR files in the specified NAR working directories.
-     *
-     * @param narWorkingDirectories
-     * @return
-     */
     private Map<File, File> findWars(final Set<File> narWorkingDirectories) {
         final Map<File, File> wars = new HashMap<>();
 
@@ -381,7 +370,7 @@ public class JettyServer implements NiFiServer {
         if (jarEntry == null) {
             return;
         }
-        
+
         // get an input stream for the nifi-processor configuration file
         BufferedReader in = new BufferedReader(new InputStreamReader(jarFile.getInputStream(jarEntry)));
 
@@ -392,24 +381,24 @@ public class JettyServer implements NiFiServer {
             final String componentType = extractComponentType(rawComponentType);
             if (componentType != null) {
                 List<String> extensions = uiExtensions.get(uiExtensionType);
-                
+
                 // if there are currently no extensions for this type create it
                 if (extensions == null) {
                     extensions = new ArrayList<>();
                     uiExtensions.put(uiExtensionType, extensions);
                 }
-                
+
                 // add the specified type
                 extensions.add(componentType);
             }
         }
     }
-    
+
     /**
      * Identifies all known UI extensions and stores them in the specified map.
-     * 
-     * @param uiExtensions
-     * @param warFile 
+     *
+     * @param uiExtensions extensions
+     * @param warFile war
      */
     private void identifyUiExtensionsForComponents(final Map<UiExtensionType, List<String>> uiExtensions, final File warFile) {
         try (final JarFile jarFile = new JarFile(warFile)) {
@@ -422,12 +411,13 @@ public class JettyServer implements NiFiServer {
             logger.warn(String.format("Unable to inspect %s for a UI extensions.", warFile));
         }
     }
-    
+
     /**
-     * Extracts the component type. Trims the line and considers comments. Returns null if no type was found.
-     * 
-     * @param line
-     * @return 
+     * Extracts the component type. Trims the line and considers comments.
+     * Returns null if no type was found.
+     *
+     * @param line line
+     * @return type
      */
     private String extractComponentType(final String line) {
         final String trimmedLine = line.trim();
@@ -437,12 +427,13 @@ public class JettyServer implements NiFiServer {
         }
         return null;
     }
-    
+
     /**
      * Returns the extension in the specified WAR using the specified path.
      *
-     * @param war
-     * @return
+     * @param war war
+     * @param path path
+     * @return extensions
      */
     private List<String> getWarExtensions(final File war, final String path) {
         List<String> processorTypes = new ArrayList<>();
@@ -529,10 +520,10 @@ public class JettyServer implements NiFiServer {
             final ResourceHandler resourceHandler = new ResourceHandler();
             resourceHandler.setDirectoriesListed(false);
 
-            // load the docs directory 
+            // load the docs directory
             final File docsDir = Paths.get("docs").toRealPath().toFile();
             final Resource docsResource = Resource.newResource(docsDir);
-            
+
             // load the component documentation working directory
             final String componentDocsDirPath = props.getProperty(NiFiProperties.COMPONENT_DOCS_DIRECTORY, "work/docs/components");
             final File workingDocsDirectory = Paths.get(componentDocsDirPath).toRealPath().getParent().toFile();
@@ -547,7 +538,7 @@ public class JettyServer implements NiFiServer {
                 }
             }
             final Resource webApiDocsResource = Resource.newResource(webApiDocsDir);
-            
+
             // create resources for both docs locations
             final ResourceCollection resources = new ResourceCollection(docsResource, workingDocsResource, webApiDocsResource);
             resourceHandler.setBaseResource(resources);
@@ -660,9 +651,6 @@ public class JettyServer implements NiFiServer {
         return contextFactory;
     }
 
-    /**
-     * Starts the web server.
-     */
     @Override
     public void start() {
         try {
@@ -682,21 +670,21 @@ public class JettyServer implements NiFiServer {
                     }
                 }
             }
-            
-            // ensure the appropriate wars deployed successfully before injecting the NiFi context and security filters - 
+
+            // ensure the appropriate wars deployed successfully before injecting the NiFi context and security filters
             // this must be done after starting the server (and ensuring there were no start up failures)
             if (webApiContext != null) {
                 // give the web api the component ui extensions
                 final ServletContext webApiServletContext = webApiContext.getServletHandler().getServletContext();
                 webApiServletContext.setAttribute("nifi-ui-extensions", componentUiExtensions);
-                
+
                 // get the application context
                 final WebApplicationContext webApplicationContext = WebApplicationContextUtils.getRequiredWebApplicationContext(webApiServletContext);
 
                 // @Deprecated
                 if (CollectionUtils.isNotEmpty(customUiWebContexts)) {
                     final NiFiWebContext niFiWebContext = webApplicationContext.getBean("nifiWebContext", NiFiWebContext.class);
-                    
+
                     for (final WebAppContext customUiContext : customUiWebContexts) {
                         // set the NiFi context in each custom ui servlet context
                         final ServletContext customUiServletContext = customUiContext.getServletHandler().getServletContext();
@@ -709,7 +697,7 @@ public class JettyServer implements NiFiServer {
                         }
                     }
                 }
-                
+
                 // component ui extensions
                 if (CollectionUtils.isNotEmpty(componentUiExtensionWebContexts)) {
                     final NiFiWebConfigurationContext configurationContext = webApplicationContext.getBean("nifiWebConfigurationContext", NiFiWebConfigurationContext.class);
@@ -726,7 +714,7 @@ public class JettyServer implements NiFiServer {
                         }
                     }
                 }
-                
+
                 // content viewer extensions
                 if (CollectionUtils.isNotEmpty(contentViewerWebContexts)) {
                     for (final WebAppContext contentViewerContext : contentViewerWebContexts) {
@@ -737,35 +725,35 @@ public class JettyServer implements NiFiServer {
                         }
                     }
                 }
-                
+
                 // content viewer controller
                 if (webContentViewerContext != null) {
                     final ContentAccess contentAccess = webApplicationContext.getBean("contentAccess", ContentAccess.class);
-                    
+
                     // add the content access
                     final ServletContext webContentViewerServletContext = webContentViewerContext.getServletHandler().getServletContext();
                     webContentViewerServletContext.setAttribute("nifi-content-access", contentAccess);
-                    
+
                     final FilterHolder securityFilter = webApiContext.getServletHandler().getFilter("springSecurityFilterChain");
                     if (securityFilter != null) {
                         webContentViewerContext.addFilter(securityFilter, "/*", EnumSet.allOf(DispatcherType.class));
                     }
                 }
             }
-            
+
             // ensure the web document war was loaded and provide the extension mapping
             if (webDocsContext != null) {
                 final ServletContext webDocsServletContext = webDocsContext.getServletHandler().getServletContext();
                 webDocsServletContext.setAttribute("nifi-extension-mapping", extensionMapping);
             }
-            
-            // if this nifi is a node in a cluster, start the flow service and load the flow - the 
-            // flow service is loaded here for clustered nodes because the loading of the flow will 
-            // initialize the connection between the node and the NCM. if the node connects (starts 
-            // heartbeating, etc), the NCM may issue web requests before the application (wars) have 
-            // finished loading. this results in the node being disconnected since its unable to 
-            // successfully respond to the requests. to resolve this, flow loading was moved to here 
-            // (after the wars have been successfully deployed) when this nifi instance is a node  
+
+            // if this nifi is a node in a cluster, start the flow service and load the flow - the
+            // flow service is loaded here for clustered nodes because the loading of the flow will
+            // initialize the connection between the node and the NCM. if the node connects (starts
+            // heartbeating, etc), the NCM may issue web requests before the application (wars) have
+            // finished loading. this results in the node being disconnected since its unable to
+            // successfully respond to the requests. to resolve this, flow loading was moved to here
+            // (after the wars have been successfully deployed) when this nifi instance is a node
             // in a cluster
             if (props.isNode()) {
 
@@ -799,11 +787,6 @@ public class JettyServer implements NiFiServer {
         }
     }
 
-    /**
-     * Dump each applicable url.
-     *
-     * @throws SocketException
-     */
     private void dumpUrls() throws SocketException {
         final List<String> urls = new ArrayList<>();
 
@@ -853,11 +836,6 @@ public class JettyServer implements NiFiServer {
         }
     }
 
-    /**
-     * Handles when a start up failure occurs.
-     *
-     * @param t
-     */
     private void startUpFailure(Throwable t) {
         System.err.println("Failed to start web server: " + t.getMessage());
         System.err.println("Shutting down...");
@@ -870,9 +848,6 @@ public class JettyServer implements NiFiServer {
         this.extensionMapping = extensionMapping;
     }
 
-    /**
-     * Stops the web server.
-     */
     @Override
     public void stop() {
         try {

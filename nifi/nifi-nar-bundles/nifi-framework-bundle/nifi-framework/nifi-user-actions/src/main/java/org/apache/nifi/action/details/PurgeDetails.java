@@ -27,15 +27,19 @@ public class PurgeDetails extends ActionDetails {
 
     /**
      * The end date for this purge action.
-     * 
-     * @return 
+     *
+     * @return date at which the purge ends
      */
     public Date getEndDate() {
         return endDate;
     }
 
+    /**
+     * Establishes the end data for this purge action
+     * @param endDate date at which the purge ends
+     */
     public void setEndDate(Date endDate) {
         this.endDate = endDate;
     }
-    
+
 }

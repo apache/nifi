@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import javax.xml.bind.annotation.XmlType;
 import org.apache.nifi.web.api.dto.NodeDTO;
 
@@ -29,10 +30,11 @@ public class NodePortStatusDTO {
     private PortStatusDTO portStatus;
 
     /**
-     * The node.
-     *
-     * @return
+     * @return the node
      */
+    @ApiModelProperty(
+            value = "The node."
+    )
     public NodeDTO getNode() {
         return node;
     }
@@ -42,10 +44,11 @@ public class NodePortStatusDTO {
     }
 
     /**
-     * The port's status.
-     *
-     * @return
+     * @return port status
      */
+    @ApiModelProperty(
+            value = "The port status from the node."
+    )
     public PortStatusDTO getPortStatus() {
         return portStatus;
     }

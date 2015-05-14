@@ -21,18 +21,19 @@ import java.io.InputStream;
 
 /**
  * Defines an unmarshaller for deserializing protocol messages.
- * 
+ *
  * @param <T> The type of protocol message.
- * 
- * @author unattributed
+ *
  */
 public interface ProtocolMessageUnmarshaller<T> {
-    
+
     /**
      * Deserializes a message on the given input stream.
+     *
      * @param is an input stream
-     * @return 
-     * @throws IOException if the message could not be deserialized from the stream
+     * @return deserialized message
+     * @throws IOException if the message could not be deserialized from the
+     * stream
      */
     T unmarshal(InputStream is) throws IOException;
 }

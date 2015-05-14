@@ -61,19 +61,19 @@ package org.apache.nifi.remote.io.socket.ssl;
 ////@Ignore("For local testing only")
 //public class TestSSLSocketChannel {
 //    public static final int DATA_SIZE = 4096;
-//    
+//
 //    @Test
 //    @Ignore
 //    public void testSendingToLocalInstance() throws IOException, InterruptedException, HandshakeException, UnknownPortException, PortNotRunningException, URISyntaxException {
 //        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/nifi.properties");
-//        
+//
 //        final NiFiProperties properties = NiFiProperties.getInstance();
 //        final SSLContext sslContext = SslContextFactory.createSslContext(properties);
-//        
+//
 //        final SSLSocketChannel channel = new SSLSocketChannel(sslContext, "localhost", 5000, true);
 //        channel.setTimeout(2000000);
 //        channel.connect();
-//        
+//
 //        final CommunicationsSession commsSession;
 //        commsSession = new SSLSocketChannelCommunicationsSession(channel, "", null);
 //        commsSession.setUri("nifi://localhost:5000");
@@ -82,7 +82,7 @@ package org.apache.nifi.remote.io.socket.ssl;
 //
 //        dos.write(CommunicationsProtocol.MAGIC_BYTES);
 //        dos.flush();
-//        
+//
 //        final EventReporter eventReporter = Mockito.mock(EventReporter.class);
 //        final StandardSiteToSiteProtocol proposedProtocol = new StandardSiteToSiteProtocol(commsSession, eventReporter, NiFiProperties.getInstance());
 //        final StandardSiteToSiteProtocol negotiatedProtocol = (StandardSiteToSiteProtocol) RemoteResourceFactory.initiateResourceNegotiation(proposedProtocol, dis, dos);
@@ -91,25 +91,25 @@ package org.apache.nifi.remote.io.socket.ssl;
 //        final RemoteProcessGroup rpg = Mockito.mock(RemoteProcessGroup.class);
 //        Mockito.when(rpg.getCommunicationsTimeout(Mockito.any(TimeUnit.class))).thenReturn(2000);
 //        Mockito.when(rpg.getTargetUri()).thenReturn( new URI("https://localhost:5050/") );
-//        
+//
 //        final RemoteGroupPort port = Mockito.mock(RemoteGroupPort.class);
 //        Mockito.when(port.getIdentifier()).thenReturn("90880680-d6da-40be-b2cc-a15423de2e1a");
 //        Mockito.when(port.getName()).thenReturn("Data In");
 //        Mockito.when(port.getRemoteProcessGroup()).thenReturn(rpg);
-//        
+//
 //        negotiatedProtocol.initiateHandshake(port, TransferDirection.SEND);
 //    }
-//    
+//
 //    @Test
 //    public void testWithSimpleSSLSocket() throws IOException, InterruptedException {
 //        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/nifi.properties");
-//        
+//
 //        final NiFiProperties properties = NiFiProperties.getInstance();
 //        final SSLContext sslContext = SslContextFactory.createSslContext(properties);
-//        
+//
 //        final ServerThread server = new ServerThread(sslContext);
 //        server.start();
-//        
+//
 //        int port = server.getPort();
 //        while ( port <= 0 ) {
 //            Thread.sleep(10L);
@@ -118,7 +118,7 @@ package org.apache.nifi.remote.io.socket.ssl;
 //
 //        final Socket socket = sslContext.getSocketFactory().createSocket("localhost", port);
 //        final OutputStream out = socket.getOutputStream();
-//        
+//
 //        final byte[] sent = new byte[DATA_SIZE];
 //        for (int i=0; i < sent.length; i++) {
 //            sent[i] = (byte) (i % 255);
@@ -133,17 +133,17 @@ package org.apache.nifi.remote.io.socket.ssl;
 //        final float MBperS = megabytes / seconds;
 //        System.out.println("Millis: " + millis + "; MB/s: " + MBperS);
 //    }
-//    
+//
 //    @Test
 //    public void testDirectChannelComms() throws IOException, InterruptedException {
 //        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/nifi.properties");
-//        
+//
 //        final NiFiProperties properties = NiFiProperties.getInstance();
 //        final SSLContext sslContext = SslContextFactory.createSslContext(properties);
-//        
+//
 //        final ServerThread server = new ServerThread(sslContext);
 //        server.start();
-//        
+//
 //        int port = server.getPort();
 //        while ( port <= 0 ) {
 //            Thread.sleep(10L);
@@ -161,12 +161,12 @@ package org.apache.nifi.remote.io.socket.ssl;
 //
 //        for (int itr=0; itr < 2; itr++) {
 //            channel.write(sent);
-//            
+//
 //            Thread.sleep(250L);
 //            final byte[] received = server.getReceivedData();
 //            server.clearReceivedData();
 //            assertTrue(Arrays.equals(sent, received));
-//            
+//
 //            int len;
 //            final byte[] buffer = new byte[4096];
 //            final ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -183,23 +183,23 @@ package org.apache.nifi.remote.io.socket.ssl;
 //                }
 //            }
 //        }
-//        
+//
 //        channel.close();
 //        server.shutdown();
 //    }
 //
-//    
+//
 //    @Test
 //    public void testWriteTimesOut() throws IOException, InterruptedException {
 //        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/nifi.properties");
-//        
+//
 //        final NiFiProperties properties = NiFiProperties.getInstance();
 //        final SSLContext sslContext = SslContextFactory.createSslContext(properties);
-//        
+//
 //        final ServerThread server = new ServerThread(sslContext);
 //        server.delayReading(2000);
 //        server.start();
-//        
+//
 //        int port = server.getPort();
 //        while ( port <= 0 ) {
 //            Thread.sleep(10L);
@@ -209,9 +209,9 @@ package org.apache.nifi.remote.io.socket.ssl;
 //        final SSLSocketChannel channel = new SSLSocketChannel(sslContext, "localhost", port, true);
 //        channel.setTimeout(1000);
 //        channel.connect();
-//        
+//
 //        final OutputStream out = new SSLSocketChannelOutputStream(channel);
-//        
+//
 //        final byte[] sent = new byte[1024 * 1024];
 //        for (int i=0; i < sent.length; i++) {
 //            sent[i] = (byte) (i % 255);
@@ -225,25 +225,25 @@ package org.apache.nifi.remote.io.socket.ssl;
 //        }
 //
 //        server.delayReading(0);
-//        
+//
 //        try {
 //            channel.close();
 //        } catch (final Exception e) {}
-//        
+//
 //        server.shutdown();
 //    }
-//    
-//    
+//
+//
 //    @Test
 //    public void testInputOutputStreams() throws IOException, InterruptedException {
 //        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, "src/test/resources/nifi.properties");
-//        
+//
 //        final NiFiProperties properties = NiFiProperties.getInstance();
 //        final SSLContext sslContext = SslContextFactory.createSslContext(properties);
-//        
+//
 //        final ServerThread server = new ServerThread(sslContext);
 //        server.start();
-//        
+//
 //        int port = server.getPort();
 //        while ( port <= 0 ) {
 //            Thread.sleep(10L);
@@ -253,11 +253,11 @@ package org.apache.nifi.remote.io.socket.ssl;
 //        final SSLSocketChannel channel = new SSLSocketChannel(sslContext, "localhost", port, true);
 //        channel.setTimeout(2000);
 //        channel.connect();
-//        
+//
 //        final OutputStream out = new SSLSocketChannelOutputStream(channel);
 //        final InputStream in = new SSLSocketChannelInputStream(channel);
 //        final DataInputStream dataIn = new DataInputStream(in);
-//        
+//
 //        final byte[] sent = new byte[DATA_SIZE];
 //        for (int i=0; i < sent.length; i++) {
 //            sent[i] = (byte) (i % 255);
@@ -272,22 +272,22 @@ package org.apache.nifi.remote.io.socket.ssl;
 //            final float megabytes = (float) DATA_SIZE / (1024F * 1024F);
 //            final float MBperS = megabytes / seconds;
 //            System.out.println("Millis: " + millis + "; MB/s: " + MBperS);
-//            
+//
 //            Thread.sleep(500L);
 //            final byte[] received = server.getReceivedData();
 //            System.out.println("Server received " + received.length + " bytes");
 //            server.clearReceivedData();
 //            assertTrue(Arrays.equals(sent, received));
-//            
+//
 //            final long val = dataIn.readLong();
 //            assertEquals(DATA_SIZE, val);
 //            System.out.println(val);
 //        }
-//        
+//
 //        channel.close();
 //        server.shutdown();
 //    }
-//    
+//
 //    public final long toLong(final byte[] buffer) throws IOException {
 //        return (((long)buffer[0] << 56) +
 //                ((long)(buffer[1] & 255) << 48) +
@@ -298,82 +298,82 @@ package org.apache.nifi.remote.io.socket.ssl;
 //                ((buffer[6] & 255) <<  8) +
 //                ((buffer[7] & 255) <<  0));
 //    }
-//    
+//
 //    private static class ServerThread extends Thread {
 //        private final SSLContext sslContext;
 //        private int listeningPort;
 //        private final ByteArrayOutputStream received = new ByteArrayOutputStream();
-//        
+//
 //        private volatile int readingDelay = 0;
 //        private volatile boolean shutdown = false;
-//        
+//
 //        public ServerThread(final SSLContext sslContext) {
 //            this.sslContext = sslContext;
 //        }
-//        
+//
 //        public int getPort() {
 //            return listeningPort;
 //        }
-//        
+//
 //        public byte[] getReceivedData() {
 //            return received.toByteArray();
 //        }
-//        
+//
 //        @Override
 //        public void run() {
 //            try {
 //                final SSLServerSocketFactory sslServerSocketFactory = sslContext.getServerSocketFactory();
 //                final SSLServerSocket serverSocket = (SSLServerSocket) sslServerSocketFactory.createServerSocket(0);
 //                serverSocket.setNeedClientAuth(true);
-//                
+//
 //                this.listeningPort = serverSocket.getLocalPort();
-//                
+//
 //                final Socket socket = serverSocket.accept();
-////                socket.setSoTimeout(250);
+//                socket.setSoTimeout(250);
 //                final InputStream stream = socket.getInputStream();
 //                final DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
-//                
+//
 //                final byte[] buffer = new byte[1024];
 //                int len;
-//                
+//
 //                while (!shutdown) {
 //                    try {
 //                        len = stream.read(buffer);
-//                        
+//
 //                        if ( readingDelay > 0 ) {
 //                            try { Thread.sleep(readingDelay); } catch (final InterruptedException e) {}
 //                        }
 //                    } catch (final SocketTimeoutException e) {
 //                        continue;
 //                    }
-//                    
+//
 //                    if ( len < 0 ) {
 //                        return;
 //                    }
-//                    
+//
 //                    received.write(buffer, 0, len);
-//                    
+//
 //                    final long length = received.size();
 //                    if ( length % (DATA_SIZE) == 0 ) {
 //                        dos.writeLong(length);
 //                        dos.flush();
 //                    }
 //                }
-//                
+//
 //                System.out.println("Server successfully shutdown");
 //            } catch (final Exception e) {
 //                e.printStackTrace();
 //            }
 //        }
-//        
+//
 //        public void clearReceivedData() {
 //            this.received.reset();
 //        }
-//        
+//
 //        public void shutdown() {
 //            this.shutdown = true;
 //        }
-//        
+//
 //        public void delayReading(final int millis) {
 //            this.readingDelay = millis;
 //        }

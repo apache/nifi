@@ -20,14 +20,13 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 
 /**
- * @author unattributed
  */
 public final class JaxbProtocolUtils {
-    
+
     public static final String JAXB_CONTEXT_PATH = ObjectFactory.class.getPackage().getName();
 
     public static final JAXBContext JAXB_CONTEXT = initializeJaxbContext();
-    
+
     /**
      * Load the JAXBContext version.
      */
@@ -38,5 +37,5 @@ public final class JaxbProtocolUtils {
             throw new RuntimeException("Unable to create JAXBContext.", e);
         }
     }
-    
+
 }

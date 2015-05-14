@@ -63,8 +63,7 @@ import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.web.util.ClientResponseUtils;
 
 /**
- * Implements the NiFiWebContext interface to support a context in both
- * standalone and clustered environments.
+ * Implements the NiFiWebContext interface to support a context in both standalone and clustered environments.
  */
 @Deprecated
 public class StandardNiFiWebContext implements NiFiWebContext {
@@ -285,11 +284,10 @@ public class StandardNiFiWebContext implements NiFiWebContext {
     }
 
     /**
-     * Gets the headers for the request to replicate to each node while
-     * clustered.
+     * Gets the headers for the request to replicate to each node while clustered.
      *
-     * @param config
-     * @return
+     * @param config config
+     * @return headers
      */
     private Map<String, String> getHeaders(final NiFiWebContextConfig config) {
         final Map<String, String> headers = new HashMap<>();

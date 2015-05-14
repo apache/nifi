@@ -32,33 +32,35 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.commons.lang3.StringUtils;
 
 /**
- * A factory for creating SSL contexts using the application's security properties.
- * @author unattributed
+ * A factory for creating SSL contexts using the application's security
+ * properties.
+ *
  */
 public final class SslContextFactory {
 
     public static enum ClientAuth {
+
         WANT,
         REQUIRED,
         NONE
     }
-    
+
     public static SSLContext createSslContext(final NiFiProperties props)
             throws SslContextCreationException {
         return createSslContext(props, false);
     }
-    
+
     public static SSLContext createSslContext(final NiFiProperties props, final boolean strict)
             throws SslContextCreationException {
 
         final boolean hasKeystoreProperties = hasKeystoreProperties(props);
-        if(hasKeystoreProperties == false) {
-            if(strict) {
+        if (hasKeystoreProperties == false) {
+            if (strict) {
                 throw new SslContextCreationException("SSL context cannot be created because keystore properties have not been configured.");
             } else {
                 return null;
             }
-        } else if(props.getNeedClientAuth() && hasTruststoreProperties(props) == false) {
+        } else if (props.getNeedClientAuth() && hasTruststoreProperties(props) == false) {
             throw new SslContextCreationException("Need client auth is set to 'true', but no truststore properties are configured.");
         }
 
@@ -66,7 +68,7 @@ public final class SslContextFactory {
 
             // prepare the trust store
             final KeyStore trustStore;
-            if(hasTruststoreProperties(props)) {
+            if (hasTruststoreProperties(props)) {
                 trustStore = KeyStore.getInstance(props.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE));
                 try (final InputStream trustStoreStream = new FileInputStream(props.getProperty(NiFiProperties.SECURITY_TRUSTSTORE))) {
                     trustStore.load(trustStoreStream, props.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD).toCharArray());
@@ -83,7 +85,7 @@ public final class SslContextFactory {
                 keyStore.load(keyStoreStream, props.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD).toCharArray());
             }
             KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-            
+
             // if the key password is provided, try to use that - otherwise default to the keystore password
             if (StringUtils.isNotBlank(props.getProperty(NiFiProperties.SECURITY_KEY_PASSWD))) {
                 keyManagerFactory.init(keyStore, props.getProperty(NiFiProperties.SECURITY_KEY_PASSWD).toCharArray());
@@ -94,26 +96,26 @@ public final class SslContextFactory {
             // initialize the ssl context
             final SSLContext sslContext = SSLContext.getInstance("TLS");
             sslContext.init(keyManagerFactory.getKeyManagers(),
-                trustManagerFactory.getTrustManagers(), null);
+                    trustManagerFactory.getTrustManagers(), null);
             sslContext.getDefaultSSLParameters().setNeedClientAuth(props.getNeedClientAuth());
 
             return sslContext;
-            
-        } catch(final KeyStoreException | IOException | NoSuchAlgorithmException | CertificateException | UnrecoverableKeyException | KeyManagementException e) {
+
+        } catch (final KeyStoreException | IOException | NoSuchAlgorithmException | CertificateException | UnrecoverableKeyException | KeyManagementException e) {
             throw new SslContextCreationException(e);
         }
     }
 
     private static boolean hasKeystoreProperties(final NiFiProperties props) {
-        return (StringUtils.isNotBlank(props.getProperty(NiFiProperties.SECURITY_KEYSTORE)) &&
-                StringUtils.isNotBlank(props.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD)) &&
-                StringUtils.isNotBlank(props.getProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE)) );
+        return (StringUtils.isNotBlank(props.getProperty(NiFiProperties.SECURITY_KEYSTORE))
+                && StringUtils.isNotBlank(props.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD))
+                && StringUtils.isNotBlank(props.getProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE)));
     }
 
     private static boolean hasTruststoreProperties(final NiFiProperties props) {
-        return (StringUtils.isNotBlank(props.getProperty(NiFiProperties.SECURITY_TRUSTSTORE)) &&
-                StringUtils.isNotBlank(props.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD)) &&
-                StringUtils.isNotBlank(props.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE)) );
+        return (StringUtils.isNotBlank(props.getProperty(NiFiProperties.SECURITY_TRUSTSTORE))
+                && StringUtils.isNotBlank(props.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD))
+                && StringUtils.isNotBlank(props.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE)));
     }
-    
+
 }

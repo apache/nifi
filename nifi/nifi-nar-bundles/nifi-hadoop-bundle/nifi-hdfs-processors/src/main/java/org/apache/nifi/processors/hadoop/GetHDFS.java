@@ -58,16 +58,15 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StopWatch;
 
-/**
- * This processor reads files from HDFS into NiFi FlowFiles.
- */
 @TriggerWhenEmpty
 @Tags({"hadoop", "HDFS", "get", "fetch", "ingest", "source", "filesystem"})
-@CapabilityDescription("Fetch files from Hadoop Distributed File System (HDFS) into FlowFiles")
+@CapabilityDescription("Fetch files from Hadoop Distributed File System (HDFS) into FlowFiles. This Processor will delete the file from HDFS after fetching it.")
 @WritesAttributes({
-        @WritesAttribute(attribute = "filename", description = "The name of the file that was read from HDFS."),
-        @WritesAttribute(attribute = "path", description = "The path is set to the relative path of the file's directory on HDFS. For example, if the Directory property is set to /tmp, then files picked up from /tmp will have the path attribute set to \"./\". If the Recurse Subdirectories property is set to true and a file is picked up from /tmp/abc/1/2/3, then the path attribute will be set to \"abc/1/2/3\".") })
-@SeeAlso(PutHDFS.class)
+    @WritesAttribute(attribute = "filename", description = "The name of the file that was read from HDFS."),
+    @WritesAttribute(attribute = "path", description = "The path is set to the relative path of the file's directory on HDFS. For example, if the Directory property "
+            + "is set to /tmp, then files picked up from /tmp will have the path attribute set to \"./\". If the Recurse Subdirectories property is set to true and "
+            + "a file is picked up from /tmp/abc/1/2/3, then the path attribute will be set to \"abc/1/2/3\".") })
+@SeeAlso({PutHDFS.class, ListHDFS.class})
 public class GetHDFS extends AbstractHadoopProcessor {
 
     public static final String BUFFER_SIZE_KEY = "io.file.buffer.size";
@@ -76,105 +75,101 @@ public class GetHDFS extends AbstractHadoopProcessor {
 
     // relationships
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
-            .name("success")
-            .description("All files retrieved from HDFS are transferred to this relationship")
-            .build();
+    .name("success")
+    .description("All files retrieved from HDFS are transferred to this relationship")
+    .build();
 
     public static final Relationship REL_PASSTHROUGH = new Relationship.Builder()
-            .name("passthrough")
-            .description(
-                    "If this processor has an input queue for some reason, then FlowFiles arriving on that input are transferred to this relationship")
+    .name("passthrough")
+    .description(
+            "If this processor has an input queue for some reason, then FlowFiles arriving on that input are transferred to this relationship")
             .build();
 
     // properties
     public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()
-            .name(DIRECTORY_PROP_NAME)
-            .description("The HDFS directory from which files should be read")
-            .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
+    .name(DIRECTORY_PROP_NAME)
+    .description("The HDFS directory from which files should be read")
+    .required(true)
+    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+    .build();
 
     public static final PropertyDescriptor RECURSE_SUBDIRS = new PropertyDescriptor.Builder()
-            .name("Recurse Subdirectories")
-            .description("Indicates whether to pull files from subdirectories of the HDFS directory")
-            .required(true)
-            .allowableValues("true", "false")
-            .defaultValue("true")
-            .build();
+    .name("Recurse Subdirectories")
+    .description("Indicates whether to pull files from subdirectories of the HDFS directory")
+    .required(true)
+    .allowableValues("true", "false")
+    .defaultValue("true")
+    .build();
 
     public static final PropertyDescriptor KEEP_SOURCE_FILE = new PropertyDescriptor.Builder()
-            .name("Keep Source File")
-            .description("Determines whether to delete the file from HDFS after it has been successfully transferred")
-            .required(true)
-            .allowableValues("true", "false")
-            .defaultValue("false")
-            .build();
+    .name("Keep Source File")
+    .description("Determines whether to delete the file from HDFS after it has been successfully transferred. If true, the file will be fetched repeatedly. This is intended for testing only.")
+    .required(true)
+    .allowableValues("true", "false")
+    .defaultValue("false")
+    .build();
 
     public static final PropertyDescriptor FILE_FILTER_REGEX = new PropertyDescriptor.Builder()
-            .name("File Filter Regex")
-            .description(
-                    "A Java Regular Expression for filtering Filenames; if a filter is supplied then only files whose names match that Regular Expression will be fetched, otherwise all files will be fetched")
+    .name("File Filter Regex")
+    .description("A Java Regular Expression for filtering Filenames; if a filter is supplied then only files whose names match that Regular "
+            + "Expression will be fetched, otherwise all files will be fetched")
             .required(false)
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor FILTER_MATCH_NAME_ONLY = new PropertyDescriptor.Builder()
-            .name("Filter Match Name Only")
-            .description(
-                    "If true then File Filter Regex will match on just the filename, otherwise subdirectory names will be included with filename in the regex comparison")
+    .name("Filter Match Name Only")
+    .description("If true then File Filter Regex will match on just the filename, otherwise subdirectory names will be included with filename "
+            + "in the regex comparison")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("true")
             .build();
 
     public static final PropertyDescriptor IGNORE_DOTTED_FILES = new PropertyDescriptor.Builder()
-            .name("Ignore Dotted Files")
-            .description("If true, files whose names begin with a dot (\".\") will be ignored")
-            .required(true)
-            .allowableValues("true", "false")
-            .defaultValue("true")
-            .build();
+    .name("Ignore Dotted Files")
+    .description("If true, files whose names begin with a dot (\".\") will be ignored")
+    .required(true)
+    .allowableValues("true", "false")
+    .defaultValue("true")
+    .build();
 
     public static final PropertyDescriptor MIN_AGE = new PropertyDescriptor.Builder()
-            .name("Minimum File Age")
-            .description(
-                    "The minimum age that a file must be in order to be pulled; any file younger than this amount of time (based on last modification date) will be ignored")
-            .required(true)
-            .addValidator(
-                    StandardValidators.createTimePeriodValidator(0, TimeUnit.MILLISECONDS, Long.MAX_VALUE, TimeUnit.NANOSECONDS))
-            .defaultValue("0 sec")
-            .build();
+    .name("Minimum File Age")
+    .description("The minimum age that a file must be in order to be pulled; any file younger than this amount of time (based on last modification date) will be ignored")
+    .required(true)
+    .addValidator(StandardValidators.createTimePeriodValidator(0, TimeUnit.MILLISECONDS, Long.MAX_VALUE, TimeUnit.NANOSECONDS))
+    .defaultValue("0 sec")
+    .build();
 
     public static final PropertyDescriptor MAX_AGE = new PropertyDescriptor.Builder()
-            .name("Maximum File Age")
-            .description(
-                    "The maximum age that a file must be in order to be pulled; any file older than this amount of time (based on last modification date) will be ignored")
-            .required(false)
-            .addValidator(
-                    StandardValidators.createTimePeriodValidator(100, TimeUnit.MILLISECONDS, Long.MAX_VALUE, TimeUnit.NANOSECONDS))
-            .build();
+    .name("Maximum File Age")
+    .description("The maximum age that a file must be in order to be pulled; any file older than this amount of time (based on last modification date) will be ignored")
+    .required(false)
+    .addValidator(StandardValidators.createTimePeriodValidator(100, TimeUnit.MILLISECONDS, Long.MAX_VALUE, TimeUnit.NANOSECONDS))
+    .build();
 
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
-            .name("Batch Size")
-            .description("The maximum number of files to pull in each iteration, based on run schedule.")
-            .required(true)
-            .defaultValue("100")
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .build();
+    .name("Batch Size")
+    .description("The maximum number of files to pull in each iteration, based on run schedule.")
+    .required(true)
+    .defaultValue("100")
+    .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+    .build();
 
     public static final PropertyDescriptor POLLING_INTERVAL = new PropertyDescriptor.Builder()
-            .name("Polling Interval")
-            .description("Indicates how long to wait between performing directory listings")
-            .required(true)
-            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .defaultValue("0 sec")
-            .build();
+    .name("Polling Interval")
+    .description("Indicates how long to wait between performing directory listings")
+    .required(true)
+    .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+    .defaultValue("0 sec")
+    .build();
 
     public static final PropertyDescriptor BUFFER_SIZE = new PropertyDescriptor.Builder()
-            .name("IO Buffer Size")
-            .description("Amount of memory to use to buffer file contents during IO. This overrides the Hadoop Configuration")
-            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
-            .build();
+    .name("IO Buffer Size")
+    .description("Amount of memory to use to buffer file contents during IO. This overrides the Hadoop Configuration")
+    .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+    .build();
 
     private static final Set<Relationship> relationships;
     protected static final List<PropertyDescriptor> localProperties;
@@ -241,8 +236,8 @@ public class GetHDFS extends AbstractHadoopProcessor {
         abstractOnScheduled(context);
         // copy configuration values to pass them around cleanly
         processorConfig = new ProcessorConfiguration(context);
-        FileSystem fs = hdfsResources.get().getValue();
-        Path dir = new Path(context.getProperty(DIRECTORY).getValue());
+        final FileSystem fs = getFileSystem();
+        final Path dir = new Path(context.getProperty(DIRECTORY).getValue());
         if (!fs.exists(dir)) {
             throw new IOException("PropertyDescriptor " + DIRECTORY + " has invalid value " + dir + ". The directory does not exist.");
         }
@@ -335,8 +330,8 @@ public class GetHDFS extends AbstractHadoopProcessor {
     protected void processBatchOfFiles(final List<Path> files, final ProcessContext context, final ProcessSession session) {
         // process the batch of files
         FSDataInputStream stream = null;
-        Configuration conf = hdfsResources.get().getKey();
-        FileSystem hdfs = hdfsResources.get().getValue();
+        Configuration conf = getConfiguration();
+        FileSystem hdfs = getFileSystem();
         final boolean keepSourceFiles = context.getProperty(KEEP_SOURCE_FILE).asBoolean();
         final Double bufferSizeProp = context.getProperty(BUFFER_SIZE).asDataSize(DataUnit.B);
         int bufferSize = bufferSizeProp != null ? bufferSizeProp.intValue() : conf.getInt(BUFFER_SIZE_KEY,
@@ -389,11 +384,11 @@ public class GetHDFS extends AbstractHadoopProcessor {
     /**
      * Do a listing of HDFS if the POLLING_INTERVAL has lapsed.
      *
-     * Will return null if POLLING_INTERVAL has not lapsed. Will return an empty
-     * set if no files were found on HDFS that matched the configured filters.
-     * @param context
-     * @return 
-     * @throws java.io.IOException
+     * Will return null if POLLING_INTERVAL has not lapsed. Will return an empty set if no files were found on HDFS that matched the configured filters.
+     *
+     * @param context context
+     * @return null if POLLING_INTERVAL has not lapsed. Will return an empty set if no files were found on HDFS that matched the configured filters
+     * @throws java.io.IOException ex
      */
     protected Set<Path> performListing(final ProcessContext context) throws IOException {
 
@@ -403,7 +398,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
 
         if (System.currentTimeMillis() >= nextPollTime && listingLock.tryLock()) {
             try {
-                final FileSystem hdfs = hdfsResources.get().getValue();
+                final FileSystem hdfs = getFileSystem();
                 // get listing
                 listing = selectFiles(hdfs, processorConfig.getConfiguredRootDirPath(), null);
                 lastPollTime.set(System.currentTimeMillis());
@@ -417,11 +412,12 @@ public class GetHDFS extends AbstractHadoopProcessor {
 
     /**
      * Poll HDFS for files to process that match the configured file filters.
-     * @param hdfs
-     * @param dir
-     * @param filesVisited
-     * @return 
-     * @throws java.io.IOException 
+     *
+     * @param hdfs hdfs
+     * @param dir dir
+     * @param filesVisited filesVisited
+     * @return files to process
+     * @throws java.io.IOException ex
      */
     protected Set<Path> selectFiles(final FileSystem hdfs, final Path dir, Set<Path> filesVisited) throws IOException {
         if (null == filesVisited) {
@@ -465,35 +461,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
     }
 
     /**
-     * Returns the relative path of the child that does not include the filename
-     * or the root path.
-     * @param root
-     * @param child
-     * @return 
-     */
-    public static String getPathDifference(final Path root, final Path child) {
-        final int depthDiff = child.depth() - root.depth();
-        if (depthDiff <= 1) {
-            return "".intern();
-        }
-        String lastRoot = root.getName();
-        Path childsParent = child.getParent();
-        final StringBuilder builder = new StringBuilder();
-        builder.append(childsParent.getName());
-        for (int i = (depthDiff - 3); i >= 0; i--) {
-            childsParent = childsParent.getParent();
-            String name = childsParent.getName();
-            if (name.equals(lastRoot) && childsParent.toString().endsWith(root.toString())) {
-                break;
-            }
-            builder.insert(0, Path.SEPARATOR).insert(0, name);
-        }
-        return builder.toString();
-    }
-
-    /**
-     * Holder for a snapshot in time of some processor properties that are
-     * passed around.
+     * Holder for a snapshot in time of some processor properties that are passed around.
      */
     protected static class ProcessorConfiguration {
 

@@ -17,17 +17,17 @@
 package org.apache.nifi.cluster.protocol.jaxb.message;
 
 /**
- * @author unattributed
  */
 public class AdaptedCounter {
-    
+
     private String groupName;
-    
+
     private String name;
-    
+
     private long value;
 
-    public AdaptedCounter() {}
+    public AdaptedCounter() {
+    }
 
     public String getGroupName() {
         return groupName;
@@ -52,5 +52,5 @@ public class AdaptedCounter {
     public void setValue(long value) {
         this.value = value;
     }
-    
+
 }

@@ -29,16 +29,13 @@ import org.apache.nifi.controller.UninheritableFlowException;
 import org.apache.nifi.lifecycle.LifeCycle;
 
 /**
- * Defines the API level services available for carrying out file-based dataflow
- * operations.
+ * Defines the API level services available for carrying out file-based dataflow operations.
  *
- * @author unattributed
  */
 public interface FlowService extends LifeCycle {
 
     /**
-     * Immediately persists the state of the flow controller to the flow.xml
-     * file in a blocking call.
+     * Immediately persists the state of the flow controller to the flow.xml file in a blocking call.
      *
      * @throws NullPointerException if the given flow is null.
      * @throws IOException if any problem occurs creating/modifying file
@@ -46,19 +43,16 @@ public interface FlowService extends LifeCycle {
     void saveFlowChanges() throws IOException;
 
     /**
-     * Immediately persists the state of the flow controller to the given output
-     * stream in a blocking call.
+     * Immediately persists the state of the flow controller to the given output stream in a blocking call.
      *
-     * @param outStream the stream to which the FlowController is to be
-     * persisted
+     * @param outStream the stream to which the FlowController is to be persisted
      * @throws NullPointerException if the given flow is null.
      * @throws IOException if any problem occurs creating/modifying file
      */
     void saveFlowChanges(OutputStream outStream) throws IOException;
 
     /**
-     * Saves the given stream to the flow.xml file on disk. This method does not
-     * change the state of the flow controller.
+     * Saves the given stream to the flow.xml file on disk. This method does not change the state of the flow controller.
      *
      * @param is an input stream
      * @throws IOException if unable to save the flow
@@ -66,58 +60,44 @@ public interface FlowService extends LifeCycle {
     void overwriteFlow(InputStream is) throws IOException;
 
     /**
-     * Asynchronously saves the flow controller. The flow controller will be
-     * copied and immediately returned. If another call to save is made within
-     * that time the latest called state of the flow controller will be used. In
-     * database terms this technique is referred to as 'write-delay'.
+     * Asynchronously saves the flow controller. The flow controller will be copied and immediately returned. If another call to save is made within that time the latest called state of the flow
+     * controller will be used. In database terms this technique is referred to as 'write-delay'.
      *
-     * @param delayUnit
-     * @param delay
+     * @param delayUnit unit of delay
+     * @param delay period of delay
      */
     void saveFlowChanges(TimeUnit delayUnit, long delay);
 
     /**
-     * Asynchronously saves the flow controller. The flow controller will be
-     * copied and immediately returned. If another call to save is made within
-     * that time the latest called state of the flow controller will be used. In
-     * database terms this technique is referred to as 'write-delay'.
+     * Asynchronously saves the flow controller. The flow controller will be copied and immediately returned. If another call to save is made within that time the latest called state of the flow
+     * controller will be used. In database terms this technique is referred to as 'write-delay'.
      *
-     * @param delayUnit
-     * @param delay
-     * @param archive if true means the user wants the flow configuration to be
-     * archived as well
+     * @param delayUnit unit of delay
+     * @param delay period of delay
+     * @param archive if true means the user wants the flow configuration to be archived as well
      */
     void saveFlowChanges(TimeUnit delayUnit, long delay, boolean archive);
 
     /**
      * Stops the flow and underlying repository as determined by user
      *
-     * @param force if true the controller is not allowed to gracefully shut
-     * down.
+     * @param force if true the controller is not allowed to gracefully shut down.
      */
     @Override
     void stop(boolean force);
 
     /**
-     * Loads the flow controller with the given flow. Passing null means that
-     * the local flow on disk will used as the proposed flow. If loading the
-     * proposed flow configuration would cause the controller to orphan flow
-     * files, then an UninheritableFlowException is thrown.
+     * Loads the flow controller with the given flow. Passing null means that the local flow on disk will used as the proposed flow. If loading the proposed flow configuration would cause the
+     * controller to orphan flow files, then an UninheritableFlowException is thrown.
      *
-     * If the FlowSynchronizationException is thrown, then the controller may
-     * have changed some of its state and should no longer be used.
+     * If the FlowSynchronizationException is thrown, then the controller may have changed some of its state and should no longer be used.
      *
      * @param proposedFlow the flow to load
      *
-     * @throws IOException if flow configuration could not be retrieved from
-     * disk
-     * @throws FlowSerializationException if proposed flow is not a valid flow
-     * configuration file
-     * @throws UninheritableFlowException if the proposed flow cannot be loaded
-     * by the controller because in doing so would risk orphaning flow files
-     * @throws FlowSynchronizationException if updates to the controller failed.
-     * If this exception is thrown, then the controller should be considered
-     * unsafe to be used
+     * @throws IOException if flow configuration could not be retrieved from disk
+     * @throws FlowSerializationException if proposed flow is not a valid flow configuration file
+     * @throws UninheritableFlowException if the proposed flow cannot be loaded by the controller because in doing so would risk orphaning flow files
+     * @throws FlowSynchronizationException if updates to the controller failed. If this exception is thrown, then the controller should be considered unsafe to be used
      */
     void load(DataFlow proposedFlow)
             throws IOException, FlowSerializationException, FlowSynchronizationException, UninheritableFlowException;
@@ -131,8 +111,7 @@ public interface FlowService extends LifeCycle {
     void copyCurrentFlow(OutputStream os) throws IOException;
 
     /**
-     * Returns the managed controller.
-     * @return 
+     * @return the managed controller
      */
     FlowController getController();
 

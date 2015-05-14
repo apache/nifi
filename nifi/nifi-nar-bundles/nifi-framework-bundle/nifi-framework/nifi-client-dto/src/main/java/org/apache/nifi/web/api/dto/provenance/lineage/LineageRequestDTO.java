@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.provenance.lineage;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import javax.xml.bind.annotation.XmlEnum;
 import javax.xml.bind.annotation.XmlType;
 
@@ -31,7 +32,6 @@ public class LineageRequestDTO {
     @XmlType(name = "lineageRequestType")
     @XmlEnum
     public enum LineageRequestType {
-
         PARENTS,
         CHILDREN,
         FLOWFILE;
@@ -43,10 +43,11 @@ public class LineageRequestDTO {
     private String uuid;
 
     /**
-     * The event id that was used to generate this lineage.
-     *
-     * @return
+     * @return event id that was used to generate this lineage
      */
+    @ApiModelProperty(
+            value = ""
+    )
     public Long getEventId() {
         return eventId;
     }
@@ -56,14 +57,14 @@ public class LineageRequestDTO {
     }
 
     /**
-     * The type of lineage request. Either 'PARENTS', 'CHILDREN', or 'FLOWFILE'.
-     * PARENTS will return the lineage for the flowfiles that are parents of the
-     * specified event. CHILDREN will return the lineage of for the flowfiles
-     * that are children of the specified event. FLOWFILE will return the
-     * lineage for the specified flowfile.
-     *
-     * @return
+     * @return type of lineage request. Either 'PARENTS', 'CHILDREN', or 'FLOWFILE'. PARENTS will return the lineage for the flowfiles that are parents of the specified event. CHILDREN will return the
+     * lineage of for the flowfiles that are children of the specified event. FLOWFILE will return the lineage for the specified flowfile.
      */
+    @ApiModelProperty(
+            value = "The type of lineage request. PARENTS will return the lineage for the flowfiles that are parents of the specified event. CHILDREN will return the lineage "
+                    + "for the flowfiles that are children of the specified event. FLOWFILE will return the lineage for the specified flowfile.",
+            allowableValues = "PARENTS, CHILDREN, and FLOWFILE"
+    )
     public LineageRequestType getLineageRequestType() {
         return lineageRequestType;
     }
@@ -73,10 +74,11 @@ public class LineageRequestDTO {
     }
 
     /**
-     * The uuid that was used to generate this lineage.
-     *
-     * @return
+     * @return uuid that was used to generate this lineage
      */
+    @ApiModelProperty(
+            value = "The uuid that was used to generate the lineage."
+    )
     public String getUuid() {
         return uuid;
     }

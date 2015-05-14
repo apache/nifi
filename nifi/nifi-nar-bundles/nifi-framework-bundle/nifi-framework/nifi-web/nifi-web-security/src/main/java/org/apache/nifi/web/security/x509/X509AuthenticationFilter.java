@@ -58,16 +58,6 @@ public class X509AuthenticationFilter extends AbstractPreAuthenticatedProcessing
     private NiFiProperties properties;
     private UserService userService;
 
-    /**
-     * Override doFilter in order to properly handle when users could not be
-     * authenticated.
-     *
-     * @param request
-     * @param response
-     * @param chain
-     * @throws IOException
-     * @throws ServletException
-     */
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
         final HttpServletResponse httpResponse = (HttpServletResponse) response;
@@ -194,13 +184,6 @@ public class X509AuthenticationFilter extends AbstractPreAuthenticatedProcessing
         return certificateExtractor.extractClientCertificate(request);
     }
 
-    /**
-     * Sets the response headers for successful proxied requests.
-     *
-     * @param request
-     * @param response
-     * @param authResult
-     */
     @Override
     protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, Authentication authResult) {
         if (StringUtils.isNotBlank(request.getHeader(PROXY_ENTITIES_CHAIN))) {
@@ -209,13 +192,6 @@ public class X509AuthenticationFilter extends AbstractPreAuthenticatedProcessing
         super.successfulAuthentication(request, response, authResult);
     }
 
-    /**
-     * Sets the response headers for unsuccessful proxied requests.
-     *
-     * @param request
-     * @param response
-     * @param failed
-     */
     @Override
     protected void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response, AuthenticationException failed) {
         if (StringUtils.isNotBlank(request.getHeader(PROXY_ENTITIES_CHAIN))) {
@@ -228,8 +204,8 @@ public class X509AuthenticationFilter extends AbstractPreAuthenticatedProcessing
      * Determines if the specified request is attempting to register a new user
      * account.
      *
-     * @param request
-     * @return
+     * @param request http request
+     * @return true if new user
      */
     private boolean isNewAccountRequest(HttpServletRequest request) {
         if ("POST".equalsIgnoreCase(request.getMethod())) {
@@ -246,10 +222,10 @@ public class X509AuthenticationFilter extends AbstractPreAuthenticatedProcessing
     /**
      * Handles requests that were unable to be authorized.
      *
-     * @param request
-     * @param response
-     * @param ae
-     * @throws IOException
+     * @param request request
+     * @param response response
+     * @param ae ex
+     * @throws IOException ex
      */
     private void handleUnsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response, AuthenticationException ae) throws IOException {
         // set the response status
@@ -292,14 +268,6 @@ public class X509AuthenticationFilter extends AbstractPreAuthenticatedProcessing
         }
     }
 
-    /**
-     * Handles requests that failed because of a user service error.
-     *
-     * @param request
-     * @param response
-     * @param e
-     * @throws IOException
-     */
     private void handleUserServiceError(HttpServletRequest request, HttpServletResponse response, int responseCode, String message) throws IOException {
         // set the response status
         response.setContentType("text/plain");
@@ -316,9 +284,9 @@ public class X509AuthenticationFilter extends AbstractPreAuthenticatedProcessing
     /**
      * Handles requests that failed because they were bad input.
      *
-     * @param request
-     * @param response
-     * @throws IOException
+     * @param request request
+     * @param response response
+     * @throws IOException ioe
      */
     private void handleMissingCertificate(HttpServletRequest request, HttpServletResponse response) throws IOException {
         // set the response status

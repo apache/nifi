@@ -22,7 +22,6 @@ import org.apache.nifi.cluster.authorization.protocol.message.GetAuthoritiesMess
 import org.apache.nifi.cluster.authorization.protocol.message.GetGroupForUserMessage;
 
 /**
- * @author unattributed
  */
 @XmlRegistry
 public class ObjectFactory {

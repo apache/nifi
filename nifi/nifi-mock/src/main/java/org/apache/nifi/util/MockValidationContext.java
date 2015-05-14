@@ -38,10 +38,10 @@ public class MockValidationContext implements ValidationContext, ControllerServi
 
     public MockValidationContext(final MockProcessContext processContext) {
         this.context = processContext;
-        
+
         final Map<PropertyDescriptor, String> properties = processContext.getProperties();
         expressionLanguageSupported = new HashMap<>(properties.size());
-        for ( final PropertyDescriptor descriptor : properties.keySet() ) {
+        for (final PropertyDescriptor descriptor : properties.keySet()) {
             expressionLanguageSupported.put(descriptor.getName(), descriptor.isExpressionLanguageSupported());
         }
     }
@@ -101,13 +101,13 @@ public class MockValidationContext implements ValidationContext, ControllerServi
     public boolean isControllerServiceEnabled(final ControllerService service) {
         return context.isControllerServiceEnabled(service);
     }
-    
+
     @Override
     public String getControllerServiceName(final String serviceIdentifier) {
-    	final ControllerServiceConfiguration configuration = context.getConfiguration(serviceIdentifier);
-    	return configuration == null ? null : serviceIdentifier;
+        final ControllerServiceConfiguration configuration = context.getConfiguration(serviceIdentifier);
+        return configuration == null ? null : serviceIdentifier;
     }
-    
+
     @Override
     public boolean isValidationRequired(final ControllerService service) {
         return true;
@@ -117,16 +117,16 @@ public class MockValidationContext implements ValidationContext, ControllerServi
     public boolean isControllerServiceEnabling(String serviceIdentifier) {
         return context.isControllerServiceEnabling(serviceIdentifier);
     }
-    
+
     public boolean isExpressionLanguagePresent(final String value) {
-        if ( value == null ) {
+        if (value == null) {
             return false;
         }
-        
+
         final List<Range> elRanges = Query.extractExpressionRanges(value);
         return (elRanges != null && !elRanges.isEmpty());
     }
-    
+
     @Override
     public boolean isExpressionLanguageSupported(final String propertyName) {
         final Boolean supported = expressionLanguageSupported.get(propertyName);

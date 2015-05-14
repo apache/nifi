@@ -22,5 +22,5 @@ import java.io.Serializable;
  *
  */
 public abstract class ComponentDetails implements Serializable {
-    
+
 }

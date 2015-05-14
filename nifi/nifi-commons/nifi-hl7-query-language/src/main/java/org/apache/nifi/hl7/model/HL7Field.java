@@ -16,6 +16,5 @@
  */
 package org.apache.nifi.hl7.model;
 
-
 public interface HL7Field extends HL7Component {
 }

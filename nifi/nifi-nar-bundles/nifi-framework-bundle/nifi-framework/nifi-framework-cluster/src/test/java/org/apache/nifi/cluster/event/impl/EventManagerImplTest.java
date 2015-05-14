@@ -16,18 +16,18 @@
  */
 package org.apache.nifi.cluster.event.impl;
 
-import org.apache.nifi.cluster.event.impl.EventManagerImpl;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import org.apache.nifi.cluster.event.Event;
 import org.apache.nifi.cluster.event.Event.Category;
 import org.apache.nifi.cluster.event.EventManager;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import org.junit.Test;
-import static org.junit.Assert.*;
 
 /**
- * @author unattributed
  */
 public class EventManagerImplTest {
 

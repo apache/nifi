@@ -32,52 +32,53 @@ import ca.uhn.hl7v2.parser.EncodingCharacters;
 import ca.uhn.hl7v2.parser.PipeParser;
 
 public class HapiField implements HL7Field, HL7Component {
-	private final String value;
-	private final List<HL7Component> components;
-	
-	public HapiField(final Type type) {
-		this.value = PipeParser.encode(type, EncodingCharacters.defaultInstance());
-		
-		final List<HL7Component> componentList = new ArrayList<>();
-		if ( type instanceof Composite ) {
-			final Composite composite = (Composite) type;
-			
-			for ( final Type component : composite.getComponents() ) {
-				componentList.add(new HapiField(component));
-			}
-		}
-		
-		final ExtraComponents extra = type.getExtraComponents();
-		if ( extra != null && extra.numComponents() > 0 ) {
-			final String singleFieldValue;
-			if ( type instanceof Primitive ) {
-				singleFieldValue = ((Primitive) type).getValue();
-			} else {
-				singleFieldValue = this.value;
-			}
-			componentList.add(new SingleValueField(singleFieldValue));
-			
-			for (int i=0; i < extra.numComponents(); i++) {
-				final Varies varies = extra.getComponent(i);
-				componentList.add(new HapiField(varies));
-			}
-		}
-		
-		this.components = Collections.unmodifiableList(componentList);
-	}
-	
-	@Override
-	public String getValue() {
-		return value;
-	}
 
-	@Override
-	public List<HL7Component> getComponents() {
-		return components;
-	}
-	
-	@Override
-	public String toString() {
-		return value;
-	}
+    private final String value;
+    private final List<HL7Component> components;
+
+    public HapiField(final Type type) {
+        this.value = PipeParser.encode(type, EncodingCharacters.defaultInstance());
+
+        final List<HL7Component> componentList = new ArrayList<>();
+        if (type instanceof Composite) {
+            final Composite composite = (Composite) type;
+
+            for (final Type component : composite.getComponents()) {
+                componentList.add(new HapiField(component));
+            }
+        }
+
+        final ExtraComponents extra = type.getExtraComponents();
+        if (extra != null && extra.numComponents() > 0) {
+            final String singleFieldValue;
+            if (type instanceof Primitive) {
+                singleFieldValue = ((Primitive) type).getValue();
+            } else {
+                singleFieldValue = this.value;
+            }
+            componentList.add(new SingleValueField(singleFieldValue));
+
+            for (int i = 0; i < extra.numComponents(); i++) {
+                final Varies varies = extra.getComponent(i);
+                componentList.add(new HapiField(varies));
+            }
+        }
+
+        this.components = Collections.unmodifiableList(componentList);
+    }
+
+    @Override
+    public String getValue() {
+        return value;
+    }
+
+    @Override
+    public List<HL7Component> getComponents() {
+        return components;
+    }
+
+    @Override
+    public String toString() {
+        return value;
+    }
 }

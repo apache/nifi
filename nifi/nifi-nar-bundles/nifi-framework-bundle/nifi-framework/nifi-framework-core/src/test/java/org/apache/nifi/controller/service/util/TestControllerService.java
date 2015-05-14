@@ -28,34 +28,34 @@ import org.apache.nifi.reporting.InitializationException;
 
 public class TestControllerService implements ControllerService {
 
-	@Override
-	public Collection<ValidationResult> validate(ValidationContext context) {
-		return null;
-	}
+    @Override
+    public Collection<ValidationResult> validate(ValidationContext context) {
+        return null;
+    }
 
-	@Override
-	public PropertyDescriptor getPropertyDescriptor(String name) {
-		return null;
-	}
+    @Override
+    public PropertyDescriptor getPropertyDescriptor(String name) {
+        return null;
+    }
 
-	@Override
-	public void onPropertyModified(PropertyDescriptor descriptor,
-			String oldValue, String newValue) {
-	}
+    @Override
+    public void onPropertyModified(PropertyDescriptor descriptor,
+            String oldValue, String newValue) {
+    }
 
-	@Override
-	public List<PropertyDescriptor> getPropertyDescriptors() {
-		return null;
-	}
+    @Override
+    public List<PropertyDescriptor> getPropertyDescriptors() {
+        return null;
+    }
 
-	@Override
-	public String getIdentifier() {
-		return null;
-	}
+    @Override
+    public String getIdentifier() {
+        return null;
+    }
 
-	@Override
-	public void initialize(ControllerServiceInitializationContext context)
-			throws InitializationException {
-	}
+    @Override
+    public void initialize(ControllerServiceInitializationContext context)
+            throws InitializationException {
+    }
 
 }

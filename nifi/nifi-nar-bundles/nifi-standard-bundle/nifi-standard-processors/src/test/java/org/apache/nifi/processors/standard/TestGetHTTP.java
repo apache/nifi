@@ -42,13 +42,12 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
- * @author unattributed
  *
  */
 public class TestGetHTTP {
 
     private TestRunner controller;
-    
+
     @BeforeClass
     public static void before() {
         System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "info");
@@ -73,30 +72,29 @@ public class TestGetHTTP {
         assertTrue(confDir.delete());
     }
 
-
     @Test
     public final void testContentModified() throws Exception {
         // set up web service
         ServletHandler handler = new ServletHandler();
         handler.addServletWithMapping(RESTServiceContentModified.class, "/*");
-        
+
         // create the service
         TestServer server = new TestServer();
         server.addHandler(handler);
-        
+
         try {
             server.startServer();
-            
+
             // this is the base url with the random port
             String destination = server.getUrl();
-            
+
             // set up NiFi mock controller
             controller = TestRunners.newTestRunner(GetHTTP.class);
             controller.setProperty(GetHTTP.CONNECTION_TIMEOUT, "5 secs");
             controller.setProperty(GetHTTP.URL, destination);
             controller.setProperty(GetHTTP.FILENAME, "testFile");
             controller.setProperty(GetHTTP.ACCEPT_CONTENT_TYPE, "application/json");
-            
+
             GetHTTP getHTTPProcessor = (GetHTTP) controller.getProcessor();
             assertEquals("", getHTTPProcessor.entityTagRef.get());
             assertEquals("Thu, 01 Jan 1970 00:00:00 GMT", getHTTPProcessor.lastModifiedRef.get());
@@ -169,30 +167,30 @@ public class TestGetHTTP {
         for (File file : files) {
             assertTrue("Failed to delete " + file.getName(), file.delete());
         }
-        
+
         // set up web service
         ServletHandler handler = new ServletHandler();
         handler.addServletWithMapping(RESTServiceContentModified.class, "/*");
-        
+
         // create the service
         TestServer server = new TestServer();
         server.addHandler(handler);
-        
+
         try {
             server.startServer();
-            
+
             // get the server url
             String destination = server.getUrl();
-            
+
             // set up NiFi mock controller
             controller = TestRunners.newTestRunner(GetHTTP.class);
             controller.setProperty(GetHTTP.CONNECTION_TIMEOUT, "5 secs");
             controller.setProperty(GetHTTP.FILENAME, "testFile");
             controller.setProperty(GetHTTP.URL, destination);
             controller.setProperty(GetHTTP.ACCEPT_CONTENT_TYPE, "application/json");
-            
+
             GetHTTP getHTTPProcessor = (GetHTTP) controller.getProcessor();
-            
+
             assertEquals("", getHTTPProcessor.entityTagRef.get());
             assertEquals("Thu, 01 Jan 1970 00:00:00 GMT", getHTTPProcessor.lastModifiedRef.get());
             controller.run(2);
@@ -217,8 +215,7 @@ public class TestGetHTTP {
             assertEquals(etag, props.getProperty(GetHTTP.ETAG));
             assertEquals(lastMod, props.getProperty(GetHTTP.LAST_MODIFIED));
 
-            ProcessorInitializationContext pic = new MockProcessorInitializationContext(controller.getProcessor(),
-                    (MockProcessContext) controller.getProcessContext());
+            ProcessorInitializationContext pic = new MockProcessorInitializationContext(controller.getProcessor(), (MockProcessContext) controller.getProcessContext());
             // init causes read from file
             getHTTPProcessor.init(pic);
             assertEquals(etag, getHTTPProcessor.entityTagRef.get());
@@ -249,14 +246,14 @@ public class TestGetHTTP {
         // set up web service
         ServletHandler handler = new ServletHandler();
         handler.addServletWithMapping(UserAgentTestingServlet.class, "/*");
-        
+
         // create the service
         TestServer server = new TestServer();
         server.addHandler(handler);
-        
+
         try {
             server.startServer();
-            
+
             String destination = server.getUrl();
 
             // set up NiFi mock controller
@@ -265,7 +262,7 @@ public class TestGetHTTP {
             controller.setProperty(GetHTTP.URL, destination);
             controller.setProperty(GetHTTP.FILENAME, "testFile");
             controller.setProperty(GetHTTP.ACCEPT_CONTENT_TYPE, "application/json");
-            
+
             controller.run();
             controller.assertTransferCount(GetHTTP.REL_SUCCESS, 0);
 
@@ -278,7 +275,7 @@ public class TestGetHTTP {
             server.shutdownServer();
         }
     }
-    
+
     private Map<String, String> getSslProperties() {
         Map<String, String> props = new HashMap<String, String>();
         props.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/localhost-ks.jks");
@@ -289,7 +286,7 @@ public class TestGetHTTP {
         props.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), "JKS");
         return props;
     }
-    
+
     private void useSSLContextService() {
         final SSLContextService service = new StandardSSLContextService();
         try {
@@ -299,34 +296,34 @@ public class TestGetHTTP {
             ex.printStackTrace();
             Assert.fail("Could not create SSL Context Service");
         }
-        
+
         controller.setProperty(GetHTTP.SSL_CONTEXT_SERVICE, "ssl-service");
     }
-    
+
     @Test
     public final void testSecure() throws Exception {
         // set up web service
         ServletHandler handler = new ServletHandler();
         handler.addServletWithMapping(HelloWorldServlet.class, "/*");
-        
+
         // create the service
         TestServer server = new TestServer(getSslProperties());
         server.addHandler(handler);
-        
+
         try {
             server.startServer();
-            
+
             String destination = server.getSecureUrl();
 
             // set up NiFi mock controller
             controller = TestRunners.newTestRunner(GetHTTP.class);
             useSSLContextService();
-            
+
             controller.setProperty(GetHTTP.CONNECTION_TIMEOUT, "5 secs");
             controller.setProperty(GetHTTP.URL, destination);
             controller.setProperty(GetHTTP.FILENAME, "testFile");
             controller.setProperty(GetHTTP.ACCEPT_CONTENT_TYPE, "application/json");
-            
+
             controller.run();
             controller.assertAllFlowFilesTransferred(GetHTTP.REL_SUCCESS, 1);
             final MockFlowFile mff = controller.getFlowFilesForRelationship(GetHTTP.REL_SUCCESS).get(0);
@@ -335,6 +332,5 @@ public class TestGetHTTP {
             server.shutdownServer();
         }
     }
-    
-    
+
 }

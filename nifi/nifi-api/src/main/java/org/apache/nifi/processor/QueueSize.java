@@ -18,7 +18,6 @@ package org.apache.nifi.processor;
 
 /**
  *
- * @author
  */
 public class QueueSize {
 

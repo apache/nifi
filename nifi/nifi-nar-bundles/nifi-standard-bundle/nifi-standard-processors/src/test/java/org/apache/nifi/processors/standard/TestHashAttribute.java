@@ -67,7 +67,7 @@ public class TestHashAttribute {
         runner.assertTransferCount(HashAttribute.REL_SUCCESS, 4);
 
         final List<MockFlowFile> success = runner.getFlowFilesForRelationship(HashAttribute.REL_SUCCESS);
-        final Map<String, Integer> correlationCount = new HashMap<String, Integer>();
+        final Map<String, Integer> correlationCount = new HashMap<>();
         for (final MockFlowFile flowFile : success) {
             final String correlationId = flowFile.getAttribute("hashValue");
             assertNotNull(correlationId);

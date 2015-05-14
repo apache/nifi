@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.List;
 import javax.xml.bind.annotation.XmlType;
 
@@ -38,10 +39,11 @@ public class RemoteProcessGroupStatusDTO extends StatusDTO {
     private String received;
 
     /**
-     * The id for the remote process group.
-     *
      * @return The id for the remote process group
      */
+    @ApiModelProperty(
+            value = "The id of the remote process group."
+    )
     public String getId() {
         return id;
     }
@@ -51,10 +53,11 @@ public class RemoteProcessGroupStatusDTO extends StatusDTO {
     }
 
     /**
-     * The id of the group this remote process group is in.
-     *
-     * @return
+     * @return id of the group this remote process group is in
      */
+    @ApiModelProperty(
+            value = "The id of the parent process group the remote process group resides in."
+    )
     public String getGroupId() {
         return groupId;
     }
@@ -64,10 +67,11 @@ public class RemoteProcessGroupStatusDTO extends StatusDTO {
     }
 
     /**
-     * The URI of the target system.
-     *
-     * @return
+     * @return URI of the target system
      */
+    @ApiModelProperty(
+            value = "The URI of the target system."
+    )
     public String getTargetUri() {
         return targetUri;
     }
@@ -77,10 +81,11 @@ public class RemoteProcessGroupStatusDTO extends StatusDTO {
     }
 
     /**
-     * The name of this remote process group.
-     *
-     * @return
+     * @return name of this remote process group
      */
+    @ApiModelProperty(
+            value = "The name of the remote process group."
+    )
     public String getName() {
         return name;
     }
@@ -90,10 +95,11 @@ public class RemoteProcessGroupStatusDTO extends StatusDTO {
     }
 
     /**
-     * The transmission status of this remote process group.
-     *
-     * @return
+     * @return transmission status of this remote process group
      */
+    @ApiModelProperty(
+            value = "The transmission status of the remote process group."
+    )
     public String getTransmissionStatus() {
         return transmissionStatus;
     }
@@ -103,10 +109,11 @@ public class RemoteProcessGroupStatusDTO extends StatusDTO {
     }
 
     /**
-     * The number of active threads.
-     *
-     * @return
+     * @return number of active threads
      */
+    @ApiModelProperty(
+            value = "The number of active threads for the remote process group."
+    )
     public Integer getActiveThreadCount() {
         return activeThreadCount;
     }
@@ -116,10 +123,11 @@ public class RemoteProcessGroupStatusDTO extends StatusDTO {
     }
 
     /**
-     * Returns any remote authorization issues for this remote process group.
-     *
-     * @return
+     * @return any remote authorization issues for this remote process group
      */
+    @ApiModelProperty(
+            value = "Any remote authorization issues for the remote process group."
+    )
     public List<String> getAuthorizationIssues() {
         return authorizationIssues;
     }
@@ -129,11 +137,11 @@ public class RemoteProcessGroupStatusDTO extends StatusDTO {
     }
 
     /**
-     * Formatted description of the amount of data sent to this remote process
-     * group.
-     *
-     * @return
+     * @return Formatted description of the amount of data sent to this remote process group
      */
+    @ApiModelProperty(
+            value = "The count/size of the flowfiles sent to the remote process group in the last 5 minutes."
+    )
     public String getSent() {
         return sent;
     }
@@ -143,11 +151,11 @@ public class RemoteProcessGroupStatusDTO extends StatusDTO {
     }
 
     /**
-     * Formatted description of the amount of data received from this remote
-     * process group.
-     *
-     * @return
+     * @return Formatted description of the amount of data received from this remote process group
      */
+    @ApiModelProperty(
+            value = "The count/size of the flowfiles received from the remote process group in the last 5 minutes."
+    )
     public String getReceived() {
         return received;
     }

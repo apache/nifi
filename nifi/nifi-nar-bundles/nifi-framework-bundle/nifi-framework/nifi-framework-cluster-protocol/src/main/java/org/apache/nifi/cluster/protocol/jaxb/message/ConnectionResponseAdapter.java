@@ -20,14 +20,13 @@ import javax.xml.bind.annotation.adapters.XmlAdapter;
 import org.apache.nifi.cluster.protocol.ConnectionResponse;
 
 /**
- * @author unattributed
  */
 public class ConnectionResponseAdapter extends XmlAdapter<AdaptedConnectionResponse, ConnectionResponse> {
 
     @Override
     public AdaptedConnectionResponse marshal(final ConnectionResponse cr) {
         final AdaptedConnectionResponse aCr = new AdaptedConnectionResponse();
-        if(cr != null) {
+        if (cr != null) {
             aCr.setDataFlow(cr.getDataFlow());
             aCr.setNodeIdentifier(cr.getNodeIdentifier());
             aCr.setTryLaterSeconds(cr.getTryLaterSeconds());
@@ -42,14 +41,14 @@ public class ConnectionResponseAdapter extends XmlAdapter<AdaptedConnectionRespo
 
     @Override
     public ConnectionResponse unmarshal(final AdaptedConnectionResponse aCr) {
-        if(aCr.shouldTryLater()) {
+        if (aCr.shouldTryLater()) {
             return new ConnectionResponse(aCr.getTryLaterSeconds());
-        } else if(aCr.isBlockedByFirewall()) {
+        } else if (aCr.isBlockedByFirewall()) {
             return ConnectionResponse.createBlockedByFirewallResponse();
         } else {
-            return new ConnectionResponse(aCr.getNodeIdentifier(), aCr.getDataFlow(), aCr.isPrimary(), 
-                aCr.getManagerRemoteInputPort(), aCr.isManagerRemoteCommsSecure(), aCr.getInstanceId());
+            return new ConnectionResponse(aCr.getNodeIdentifier(), aCr.getDataFlow(), aCr.isPrimary(),
+                    aCr.getManagerRemoteInputPort(), aCr.isManagerRemoteCommsSecure(), aCr.getInstanceId());
         }
     }
- 
+
 }

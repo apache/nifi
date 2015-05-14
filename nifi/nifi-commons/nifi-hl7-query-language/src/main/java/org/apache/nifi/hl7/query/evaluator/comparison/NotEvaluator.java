@@ -21,16 +21,17 @@ import java.util.Map;
 import org.apache.nifi.hl7.query.evaluator.BooleanEvaluator;
 
 public class NotEvaluator extends BooleanEvaluator {
-	private final BooleanEvaluator subjectEvaluator;
-	
-	public NotEvaluator(final BooleanEvaluator subjectEvaluator) {
-		this.subjectEvaluator = subjectEvaluator;
-	}
-	
-	@Override
-	public Boolean evaluate(final Map<String, Object> objectMap) {
-		final Boolean subjectValue = subjectEvaluator.evaluate(objectMap);
-		return (subjectValue == null || Boolean.TRUE.equals(subjectValue));
-	}
+
+    private final BooleanEvaluator subjectEvaluator;
+
+    public NotEvaluator(final BooleanEvaluator subjectEvaluator) {
+        this.subjectEvaluator = subjectEvaluator;
+    }
+
+    @Override
+    public Boolean evaluate(final Map<String, Object> objectMap) {
+        final Boolean subjectValue = subjectEvaluator.evaluate(objectMap);
+        return (subjectValue == null || Boolean.TRUE.equals(subjectValue));
+    }
 
 }

@@ -68,14 +68,24 @@ import org.apache.nifi.util.ObjectHolder;
 @SideEffectFree
 @SupportsBatching
 @Tags({"Unpack", "un-merge", "tar", "zip", "archive", "flowfile-stream", "flowfile-stream-v3"})
-@CapabilityDescription("Unpacks the content of FlowFiles that have been packaged with one of several different Packaging Formats, emitting one to many FlowFiles for each input FlowFile")
-@ReadsAttribute(attribute = "mime.type", description = "If the <Packaging Format> property is set to use mime.type attribute, this attribute is used to determine the FlowFile's MIME Type. In this case, if the attribute is set to application/tar, the TAR Packaging Format will be used. If the attribute is set to application/zip, the ZIP Packaging Format will be used. If the attribute is set to application/flowfile-v3 or application/flowfile-v2 or application/flowfile-v1, the appropriate FlowFile Packaging Format will be used. If this attribute is missing, the FlowFile will be routed to 'failure'. Otherwise, if the attribute's value is not one of those mentioned above, the FlowFile will be routed to 'success' without being unpacked")
+@CapabilityDescription("Unpacks the content of FlowFiles that have been packaged with one of several different Packaging Formats, emitting one to many "
+        + "FlowFiles for each input FlowFile")
+@ReadsAttribute(attribute = "mime.type", description = "If the <Packaging Format> property is set to use mime.type attribute, this attribute is used "
+        + "to determine the FlowFile's MIME Type. In this case, if the attribute is set to application/tar, the TAR Packaging Format will be used. If "
+        + "the attribute is set to application/zip, the ZIP Packaging Format will be used. If the attribute is set to application/flowfile-v3 or "
+        + "application/flowfile-v2 or application/flowfile-v1, the appropriate FlowFile Packaging Format will be used. If this attribute is missing, "
+        + "the FlowFile will be routed to 'failure'. Otherwise, if the attribute's value is not one of those mentioned above, the FlowFile will be "
+        + "routed to 'success' without being unpacked")
 @WritesAttributes({
-        @WritesAttribute(attribute = "mime.type", description = "If the FlowFile is successfully unpacked, its MIME Type is no longer known, so the mime.type attribute is set to application/octet-stream."),
-        @WritesAttribute(attribute = "fragment.identifier", description = "All unpacked FlowFiles produced from the same parent FlowFile will have the same randomly generated UUID added for this attribute"),
-        @WritesAttribute(attribute = "fragment.index", description = "A one-up number that indicates the ordering of the unpacked FlowFiles that were created from a single parent FlowFile"),
-        @WritesAttribute(attribute = "fragment.count", description = "The number of unpacked FlowFiles generated from the parent FlowFile"),
-        @WritesAttribute(attribute = "segment.original.filename ", description = "The filename of the parent FlowFile. Extensions of .tar, .zip or .pkg are removed because the MergeContent processor automatically adds those extensions if it is used to rebuild the original FlowFile") })
+    @WritesAttribute(attribute = "mime.type", description = "If the FlowFile is successfully unpacked, its MIME Type is no longer known, so the mime.type "
+            + "attribute is set to application/octet-stream."),
+    @WritesAttribute(attribute = "fragment.identifier", description = "All unpacked FlowFiles produced from the same parent FlowFile will have the same randomly generated "
+            + "UUID added for this attribute"),
+    @WritesAttribute(attribute = "fragment.index", description = "A one-up number that indicates the ordering of the unpacked FlowFiles that were created from a single "
+            + "parent FlowFile"),
+    @WritesAttribute(attribute = "fragment.count", description = "The number of unpacked FlowFiles generated from the parent FlowFile"),
+    @WritesAttribute(attribute = "segment.original.filename ", description = "The filename of the parent FlowFile. Extensions of .tar, .zip or .pkg are removed because "
+            + "the MergeContent processor automatically adds those extensions if it is used to rebuild the original FlowFile")})
 @SeeAlso(MergeContent.class)
 public class UnpackContent extends AbstractProcessor {
 
@@ -102,9 +112,18 @@ public class UnpackContent extends AbstractProcessor {
             .defaultValue(AUTO_DETECT_FORMAT)
             .build();
 
-    public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("Unpacked FlowFiles are sent to this relationship").build();
-    public static final Relationship REL_ORIGINAL = new Relationship.Builder().name("original").description("The original FlowFile is sent to this relationship after it has been successfully unpacked").build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure").description("The original FlowFile is sent to this relationship when it cannot be unpacked for some reason").build();
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("Unpacked FlowFiles are sent to this relationship")
+            .build();
+    public static final Relationship REL_ORIGINAL = new Relationship.Builder()
+            .name("original")
+            .description("The original FlowFile is sent to this relationship after it has been successfully unpacked")
+            .build();
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("The original FlowFile is sent to this relationship when it cannot be unpacked for some reason")
+            .build();
 
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> properties;
@@ -386,27 +405,12 @@ public class UnpackContent extends AbstractProcessor {
         }
     }
 
-    /**
-     * Maps attributes from legacy nifi to the new naming scheme
-     *
-     * @param attributes
-     * @param oldKey
-     * @param newKey
-     */
     private static void mapAttributes(final Map<String, String> attributes, final String oldKey, final String newKey) {
         if (!attributes.containsKey(newKey) && attributes.containsKey(oldKey)) {
             attributes.put(newKey, attributes.get(oldKey));
         }
     }
 
-    /**
-     * If the unpacked flowfiles contain fragment index attributes, then we need
-     * to apply fragment count and other attributes for completeness.
-     *
-     * @param session
-     * @param source
-     * @param unpacked
-     */
     private void finishFragmentAttributes(final ProcessSession session, final FlowFile source, final List<FlowFile> unpacked) {
         // first pass verifies all FlowFiles have the FRAGMENT_INDEX attribute and gets the total number of fragments
         int fragmentCount = 0;

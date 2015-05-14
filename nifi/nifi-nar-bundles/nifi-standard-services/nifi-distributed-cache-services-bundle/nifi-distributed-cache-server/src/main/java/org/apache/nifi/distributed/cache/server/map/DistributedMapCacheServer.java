@@ -33,7 +33,7 @@ import org.apache.nifi.ssl.SSLContextService.ClientAuth;
 @Tags({"distributed", "cluster", "map", "cache", "server", "key/value"})
 @CapabilityDescription("Provides a map (key/value) cache that can be accessed over a socket. Interaction with this service"
         + " is typically accomplished via a DistributedMapCacheClient service.")
-@SeeAlso(classNames={"org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService", "org.apache.nifi.ssl.StandardSSLContextService"})
+@SeeAlso(classNames = {"org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService", "org.apache.nifi.ssl.StandardSSLContextService"})
 public class DistributedMapCacheServer extends DistributedCacheServer {
 
     @Override
@@ -43,14 +43,14 @@ public class DistributedMapCacheServer extends DistributedCacheServer {
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         final int maxSize = context.getProperty(MAX_CACHE_ENTRIES).asInteger();
         final String evictionPolicyName = context.getProperty(EVICTION_POLICY).getValue();
-        
+
         final SSLContext sslContext;
-        if ( sslContextService == null ) {
+        if (sslContextService == null) {
             sslContext = null;
         } else {
             sslContext = sslContextService.createSSLContext(ClientAuth.REQUIRED);
         }
-        
+
         final EvictionPolicy evictionPolicy;
         switch (evictionPolicyName) {
             case EVICTION_STRATEGY_FIFO:
@@ -65,10 +65,10 @@ public class DistributedMapCacheServer extends DistributedCacheServer {
             default:
                 throw new IllegalArgumentException("Illegal Eviction Policy: " + evictionPolicyName);
         }
-        
+
         try {
             final File persistenceDir = persistencePath == null ? null : new File(persistencePath);
-            
+
             return new MapCacheServer(getIdentifier(), sslContext, port, maxSize, evictionPolicy, persistenceDir);
         } catch (final Exception e) {
             throw new RuntimeException(e);

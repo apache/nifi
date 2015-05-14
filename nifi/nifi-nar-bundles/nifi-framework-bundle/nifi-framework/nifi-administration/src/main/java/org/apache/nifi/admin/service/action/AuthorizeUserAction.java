@@ -142,9 +142,7 @@ public class AuthorizeUserAction extends AbstractUserAction<NiFiUser> {
     }
 
     /**
-     * Determines if account verification is required.
-     *
-     * @return
+     * @return Determines if account verification is required
      */
     private boolean isAccountVerificationRequired(NiFiUser user) {
         // accounts that have never been verified obviously needs to be re-verified
@@ -163,7 +161,7 @@ public class AuthorizeUserAction extends AbstractUserAction<NiFiUser> {
     /**
      * Checks the account status of the specified user.
      *
-     * @param user
+     * @param user to check
      */
     private void checkAccountStatus(NiFiUser user) {
         if (AccountStatus.DISABLED.equals(user.getStatus())) {

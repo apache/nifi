@@ -46,16 +46,9 @@ public class NiFiTestServer {
     private static final Logger logger = LoggerFactory.getLogger(NiFiTestServer.class);
 
     private Server jetty;
-    private NiFiProperties properties;
+    private final NiFiProperties properties;
     private WebAppContext webappContext;
 
-    /**
-     * Creates the NiFi test server.
-     *
-     * @param webappRoot
-     * @param contextPath
-     * @param props
-     */
     public NiFiTestServer(String webappRoot, String contextPath) {
         // load the configuration
         properties = NiFiProperties.getInstance();
@@ -64,13 +57,6 @@ public class NiFiTestServer {
         createServer();
     }
 
-    /**
-     * Creates the webapp context.
-     *
-     * @param webappRoot
-     * @param contextPath
-     * @return
-     */
     private WebAppContext createWebAppContext(String webappRoot, String contextPath) {
         webappContext = new WebAppContext();
         webappContext.setContextPath(contextPath);
@@ -80,12 +66,6 @@ public class NiFiTestServer {
         return webappContext;
     }
 
-    /**
-     * Creates the server.
-     *
-     * @param webappContext
-     * @return
-     */
     private Server createServer() {
         jetty = new Server(0);
 
@@ -95,11 +75,6 @@ public class NiFiTestServer {
         return jetty;
     }
 
-    /**
-     * Creates the connector.
-     *
-     * @return
-     */
     private void createSecureConnector() {
         org.eclipse.jetty.util.ssl.SslContextFactory contextFactory = new org.eclipse.jetty.util.ssl.SslContextFactory();
 
@@ -155,21 +130,13 @@ public class NiFiTestServer {
         jetty.addConnector(https);
     }
 
-    /**
-     * Starts the server.
-     *
-     * @throws Exception
-     */
     public void startServer() throws Exception {
         jetty.start();
-        
+
         // ensure the ui extensions are set
         webappContext.getServletContext().setAttribute("nifi-ui-extensions", new UiExtensionMapping(Collections.EMPTY_MAP));
     }
 
-    /**
-     * Loads the flow.
-     */
     public void loadFlow() throws Exception {
         logger.info("Loading Flow...");
 
@@ -180,20 +147,10 @@ public class NiFiTestServer {
         logger.info("Flow loaded successfully.");
     }
 
-    /**
-     * Stops the server.
-     *
-     * @throws Exception
-     */
     public void shutdownServer() throws Exception {
         jetty.stop();
     }
 
-    /**
-     * Returns the port for the server.
-     *
-     * @return
-     */
     public int getPort() {
         if (!jetty.isStarted()) {
             throw new IllegalStateException("Jetty server not started");
@@ -201,36 +158,24 @@ public class NiFiTestServer {
         return ((ServerConnector) jetty.getConnectors()[1]).getLocalPort();
     }
 
-    /**
-     * Returns the url for the server.
-     *
-     * @return
-     */
     public String getBaseUrl() {
         return "https://localhost:" + getPort();
     }
 
-    /**
-     * Get a client for accessing the resources.
-     *
-     * @return
-     */
     public Client getClient() {
         // create the client
         return WebUtils.createClient(null, SslContextFactory.createSslContext(properties));
     }
 
     /**
-     * Convenience method to provide access to Spring beans accessible from the
-     * web application context.
+     * Convenience method to provide access to Spring beans accessible from the web application context.
      *
      * @param <T> target cast
      * @param beanName name of the spring bean
      * @param clazz class of the spring bean
      * @return Spring bean with given name and class type
      *
-     * @throws ClassCastException if the bean found cannot be cast to the given
-     * class type
+     * @throws ClassCastException if the bean found cannot be cast to the given class type
      */
     public <T> T getSpringBean(String beanName, Class<T> clazz) {
         ServletContext servletContext = webappContext.getServletHandler().getServletContext();

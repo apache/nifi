@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import javax.xml.bind.annotation.XmlType;
 
 /**
@@ -34,10 +35,12 @@ public class ConnectableDTO {
     private String comments;
 
     /**
-     * The id of this connectable component.
-     *
-     * @return
+     * @return id of this connectable component
      */
+    @ApiModelProperty(
+            value = "The id of the connectable component.",
+            required = true
+    )
     public String getId() {
         return id;
     }
@@ -47,10 +50,13 @@ public class ConnectableDTO {
     }
 
     /**
-     * The type of this connectable component.
-     *
-     * @return
+     * @return type of this connectable component
      */
+    @ApiModelProperty(
+            value = "The type of component the connectable is.",
+            required = true,
+            allowableValues = "PROCESSOR, REMOTE_INPUT_PORT, REMOTE_OUTPUT_PORT, INPUT_PORT, OUTPUT_PORT, FUNNEL"
+    )
     public String getType() {
         return type;
     }
@@ -60,10 +66,12 @@ public class ConnectableDTO {
     }
 
     /**
-     * The id of the group that this connectable component resides in.
-     *
-     * @return
+     * @return id of the group that this connectable component resides in
      */
+    @ApiModelProperty(
+            value = "The id of the group that the connectable component resides in",
+            required = true
+    )
     public String getGroupId() {
         return groupId;
     }
@@ -73,10 +81,11 @@ public class ConnectableDTO {
     }
 
     /**
-     * The name of this connectable component.
-     *
-     * @return
+     * @return name of this connectable component
      */
+    @ApiModelProperty(
+            value = "The name of the connectable component"
+    )
     public String getName() {
         return name;
     }
@@ -86,10 +95,11 @@ public class ConnectableDTO {
     }
 
     /**
-     * Used to reflect the current state of this Connectable.
-     *
-     * @return
+     * @return Used to reflect the current state of this Connectable
      */
+    @ApiModelProperty(
+            value = "Reflects the current state of the connectable component."
+    )
     public Boolean isRunning() {
         return running;
     }
@@ -99,11 +109,11 @@ public class ConnectableDTO {
     }
 
     /**
-     * If this represents a remote port it is used to indicate whether the
-     * target exists.
-     *
-     * @return
+     * @return If this represents a remote port it is used to indicate whether the target exists
      */
+    @ApiModelProperty(
+            value = "If the connectable component represents a remote port, indicates if the target exists."
+    )
     public Boolean getExists() {
         return exists;
     }
@@ -113,11 +123,11 @@ public class ConnectableDTO {
     }
 
     /**
-     * If this represents a remote port it is used to indicate whether is it
-     * configured to transmit.
-     *
-     * @return
+     * @return If this represents a remote port it is used to indicate whether is it configured to transmit
      */
+    @ApiModelProperty(
+            value = "If the connectable component represents a remote port, indicates if the target is configured to transmit."
+    )
     public Boolean getTransmitting() {
         return transmitting;
     }
@@ -127,10 +137,11 @@ public class ConnectableDTO {
     }
 
     /**
-     * The comments from this Connectable.
-     *
-     * @return
+     * @return The comments from this Connectable
      */
+    @ApiModelProperty(
+            value = "The comments for the connectable component."
+    )
     public String getComments() {
         return comments;
     }

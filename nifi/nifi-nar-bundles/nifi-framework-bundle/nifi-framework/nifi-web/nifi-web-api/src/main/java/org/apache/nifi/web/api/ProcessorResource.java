@@ -16,6 +16,12 @@
  */
 package org.apache.nifi.web.api;
 
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+import com.wordnik.swagger.annotations.Authorization;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;
@@ -75,7 +81,6 @@ import org.apache.nifi.ui.extension.UiExtensionMapping;
 import org.apache.nifi.web.UiExtensionType;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
-import org.codehaus.enunciate.jaxrs.TypeHint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -83,6 +88,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 /**
  * RESTful endpoint for managing a Processor.
  */
+@Api(hidden = true)
 public class ProcessorResource extends ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(ProcessorResource.class);
@@ -100,8 +106,8 @@ public class ProcessorResource extends ApplicationResource {
     /**
      * Populate the uri's for the specified processors and their relationships.
      *
-     * @param processors
-     * @return
+     * @param processors processors
+     * @return dtos
      */
     public Set<ProcessorDTO> populateRemainingProcessorsContent(Set<ProcessorDTO> processors) {
         for (ProcessorDTO processor : processors) {
@@ -112,9 +118,6 @@ public class ProcessorResource extends ApplicationResource {
 
     /**
      * Populate the uri's for the specified processor and its relationships.
-     *
-     * @param processor
-     * @return
      */
     private ProcessorDTO populateRemainingProcessorContent(ProcessorDTO processor) {
         // populate the remaining properties
@@ -147,15 +150,32 @@ public class ProcessorResource extends ApplicationResource {
     /**
      * Retrieves all the processors in this NiFi.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @return A processorsEntity.
      */
     @GET
+    @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Path("") // necessary due to bug in swagger
     @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
-    @TypeHint(ProcessorsEntity.class)
+    @ApiOperation(
+            value = "Gets all processors",
+            response = ProcessorsEntity.class,
+            authorizations = {
+                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response getProcessors(@QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
 
         // replicate if cluster manager
@@ -182,15 +202,11 @@ public class ProcessorResource extends ApplicationResource {
     /**
      * Creates a new processor.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param name The name of the new processor.
-     * @param type The type of the new processor. This type should refer to one
-     * of the types in the GET /controller/processor-types response.
+     * @param type The type of the new processor. This type should refer to one of the types in the GET /controller/processor-types response.
      * @param x The x coordinate for this funnels position.
      * @param y The y coordinate for this funnels position.
      * @return A processorEntity.
@@ -198,8 +214,8 @@ public class ProcessorResource extends ApplicationResource {
     @POST
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Path("") // necessary due to bug in swagger
     @PreAuthorize("hasRole('ROLE_DFM')")
-    @TypeHint(ProcessorEntity.class)
     public Response createProcessor(
             @Context HttpServletRequest httpServletRequest,
             @FormParam(VERSION) LongParameter version,
@@ -238,17 +254,37 @@ public class ProcessorResource extends ApplicationResource {
     /**
      * Creates a new processor.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param processorEntity A processorEntity.
      * @return A processorEntity.
      */
     @POST
     @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Path("") // necessary due to bug in swagger
     @PreAuthorize("hasRole('ROLE_DFM')")
-    @TypeHint(ProcessorEntity.class)
+    @ApiOperation(
+            value = "Creates a new processor",
+            response = ProcessorEntity.class,
+            authorizations = {
+                @Authorization(value = "ROLE_DFM", type = "ROLE_DFM")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response createProcessor(
             @Context HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The processor configuration details.",
+                    required = true
+            )
             ProcessorEntity processorEntity) {
 
         if (processorEntity == null || processorEntity.getProcessor() == null) {
@@ -262,7 +298,7 @@ public class ProcessorResource extends ApplicationResource {
         if (processorEntity.getProcessor().getId() != null) {
             throw new IllegalArgumentException("Processor ID cannot be specified.");
         }
-        
+
         if (StringUtils.isBlank(processorEntity.getProcessor().getType())) {
             throw new IllegalArgumentException("The type of processor to create must be specified.");
         }
@@ -324,18 +360,44 @@ public class ProcessorResource extends ApplicationResource {
     /**
      * Retrieves the specified processor.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the processor to retrieve.
      * @return A processorEntity.
      */
     @GET
+    @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/{id}")
     @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
-    @TypeHint(ProcessorEntity.class)
-    public Response getProcessor(@QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId, @PathParam("id") String id) {
+    @ApiOperation(
+            value = "Gets a processor",
+            response = ProcessorEntity.class,
+            authorizations = {
+                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getProcessor(
+            @ApiParam(
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+                    required = false
+            )
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @ApiParam(
+                    value = "The processor id.",
+                    required = true
+            )
+            @PathParam("id") String id) {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
@@ -361,18 +423,44 @@ public class ProcessorResource extends ApplicationResource {
     /**
      * Retrieves the specified processor status history.
      *
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the processor history to retrieve.
      * @return A statusHistoryEntity.
      */
     @GET
+    @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/{id}/status/history")
     @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
-    @TypeHint(StatusHistoryEntity.class)
-    public Response getProcessorStatusHistory(@QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId, @PathParam("id") String id) {
+    @ApiOperation(
+            value = "Gets status history for a processor",
+            response = StatusHistoryEntity.class,
+            authorizations = {
+                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getProcessorStatusHistory(
+            @ApiParam(
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+                    required = false
+            )
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @ApiParam(
+                    value = "The processor id.",
+                    required = true
+            )
+            @PathParam("id") String id) {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
@@ -394,48 +482,77 @@ public class ProcessorResource extends ApplicationResource {
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();
     }
-    
+
     /**
      * Returns the descriptor for the specified property.
-     * 
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     *
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the processor
      * @param propertyName The property
      * @return a propertyDescriptorEntity
      */
     @GET
+    @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/{id}/descriptors")
     @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
-    @TypeHint(PropertyDescriptorEntity.class)
+    @ApiOperation(
+            value = "Gets the descriptor for a processor property",
+            response = PropertyDescriptorEntity.class,
+            authorizations = {
+                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response getPropertyDescriptor(
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId, 
-            @PathParam("id") String id, @QueryParam("propertyName") String propertyName) {
-        
+            @ApiParam(
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+                    required = false
+            )
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @ApiParam(
+                    value = "The processor id.",
+                    required = true
+            )
+            @PathParam("id") String id,
+            @ApiParam(
+                    value = "The property name.",
+                    required = true
+            )
+            @QueryParam("propertyName") String propertyName) {
+
         // ensure the property name is specified
         if (propertyName == null) {
             throw new IllegalArgumentException("The property name must be specified.");
         }
-        
+
         // replicate if cluster manager
         if (properties.isClusterManager()) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
         }
-        
+
         // get the property descriptor
         final PropertyDescriptorDTO descriptor = serviceFacade.getProcessorPropertyDescriptor(groupId, id, propertyName);
-        
+
         // create the revision
         final RevisionDTO revision = new RevisionDTO();
         revision.setClientId(clientId.getClientId());
-        
+
         // generate the response entity
         final PropertyDescriptorEntity entity = new PropertyDescriptorEntity();
         entity.setRevision(revision);
         entity.setPropertyDescriptor(descriptor);
-        
+
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();
     }
@@ -443,18 +560,14 @@ public class ProcessorResource extends ApplicationResource {
     /**
      * Updates the specified processor with the specified values.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the processor to update.
      * @param x The x coordinate for this processors position.
      * @param y The y coordinate for this processors position.
      * @param name The name of the processor.
-     * @param concurrentlySchedulableTaskCount The number of
-     * concurrentlySchedulableTasks
+     * @param concurrentlySchedulableTaskCount The number of concurrentlySchedulableTasks
      * @param schedulingPeriod The scheduling period
      * @param schedulingStrategy The scheduling strategy
      * @param penaltyDuration The penalty duration
@@ -462,13 +575,10 @@ public class ProcessorResource extends ApplicationResource {
      * @param runDurationMillis The run duration in milliseconds
      * @param bulletinLevel The bulletin level
      * @param comments Any comments about this processor.
-     * @param markedForDeletion Array of property names whose value should be
-     * removed.
+     * @param markedForDeletion Array of property names whose value should be removed.
      * @param state The processors state.
-     * @param formParams Additionally, the processor properties and styles are
-     * specified in the form parameters. Because the property names and styles
-     * differ from processor to processor they are specified in a map-like
-     * fashion:
+     * @param formParams Additionally, the processor properties and styles are specified in the form parameters. Because the property names and styles differ from processor to processor they are
+     * specified in a map-like fashion:
      * <br>
      * <ul>
      * <li>properties[required.file.path]=/path/to/file</li>
@@ -488,7 +598,6 @@ public class ProcessorResource extends ApplicationResource {
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/{id}")
     @PreAuthorize("hasRole('ROLE_DFM')")
-    @TypeHint(ProcessorEntity.class)
     public Response updateProcessor(
             @Context HttpServletRequest httpServletRequest,
             @FormParam(VERSION) LongParameter version,
@@ -604,7 +713,7 @@ public class ProcessorResource extends ApplicationResource {
     /**
      * Updates the specified processor with the specified values.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param id The id of the processor to update.
      * @param processorEntity A processorEntity.
      * @return A processorEntity.
@@ -614,10 +723,33 @@ public class ProcessorResource extends ApplicationResource {
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/{id}")
     @PreAuthorize("hasRole('ROLE_DFM')")
-    @TypeHint(ProcessorEntity.class)
+    @ApiOperation(
+            value = "Updates a processor",
+            response = ProcessorEntity.class,
+            authorizations = {
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response updateProcessor(
             @Context HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The processor id.",
+                    required = true
+            )
             @PathParam("id") String id,
+            @ApiParam(
+                    value = "The processor configuration details.",
+                    required = true
+            )
             ProcessorEntity processorEntity) {
 
         if (processorEntity == null || processorEntity.getProcessor() == null) {
@@ -686,24 +818,49 @@ public class ProcessorResource extends ApplicationResource {
     /**
      * Removes the specified processor.
      *
-     * @param httpServletRequest
-     * @param version The revision is used to verify the client is working with
-     * the latest version of the flow.
-     * @param clientId Optional client id. If the client id is not specified, a
-     * new one will be generated. This value (whether specified or generated) is
-     * included in the response.
+     * @param httpServletRequest request
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
      * @param id The id of the processor to remove.
      * @return A processorEntity.
      */
     @DELETE
+    @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/{id}")
     @PreAuthorize("hasRole('ROLE_DFM')")
-    @TypeHint(ProcessorEntity.class)
+    @ApiOperation(
+            value = "Deletes a processor",
+            response = ProcessorEntity.class,
+            authorizations = {
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response deleteProcessor(
             @Context HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The revision is used to verify the client is working with the latest version of the flow.",
+                    required = false
+            )
             @QueryParam(VERSION) LongParameter version,
+            @ApiParam(
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+                    required = false
+            )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @ApiParam(
+                    value = "The processor id.",
+                    required = true
+            )
             @PathParam("id") String id) {
 
         // replicate if cluster manager

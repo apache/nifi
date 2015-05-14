@@ -30,7 +30,6 @@ import javax.servlet.http.HttpServletResponse;
  * A filter to set a response header directing IE to use the most recent
  * document mode.
  *
- * @author unattributed
  */
 public class IeEdgeHeader implements Filter {
 

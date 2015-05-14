@@ -35,9 +35,6 @@ import org.apache.nifi.logging.NiFiLog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * @author unattributed
- */
 public final class SocketUtils {
 
     private static final Logger logger = new NiFiLog(LoggerFactory.getLogger(SocketUtils.class));
@@ -99,7 +96,8 @@ public final class SocketUtils {
         return socket;
     }
 
-    public static ServerSocket createServerSocket(final int port, final ServerSocketConfiguration config) throws IOException, KeyManagementException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, CertificateException {
+    public static ServerSocket createServerSocket(final int port, final ServerSocketConfiguration config)
+            throws IOException, KeyManagementException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, CertificateException {
         if (config == null) {
             throw new NullPointerException("Configuration may not be null.");
         }

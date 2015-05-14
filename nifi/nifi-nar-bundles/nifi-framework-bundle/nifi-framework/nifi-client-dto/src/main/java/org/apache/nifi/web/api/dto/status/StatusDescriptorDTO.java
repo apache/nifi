@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import javax.xml.bind.annotation.XmlType;
 
 /**
@@ -25,7 +26,6 @@ import javax.xml.bind.annotation.XmlType;
 public class StatusDescriptorDTO {
 
     public enum Formatter {
-
         COUNT,
         DURATION,
         DATA_SIZE
@@ -47,10 +47,11 @@ public class StatusDescriptorDTO {
     }
 
     /**
-     * The name of this status field.
-     *
-     * @return
+     * @return name of this status field
      */
+    @ApiModelProperty(
+            value = "The name of the status field."
+    )
     public String getField() {
         return field;
     }
@@ -60,10 +61,11 @@ public class StatusDescriptorDTO {
     }
 
     /**
-     * The label of this status field.
-     *
-     * @return
+     * @return label of this status field
      */
+    @ApiModelProperty(
+            value = "The label for the status field."
+    )
     public String getLabel() {
         return label;
     }
@@ -73,10 +75,11 @@ public class StatusDescriptorDTO {
     }
 
     /**
-     * The description of this status field.
-     *
-     * @return
+     * @return description of this status field
      */
+    @ApiModelProperty(
+            value = "The description of the status field."
+    )
     public String getDescription() {
         return description;
     }
@@ -86,10 +89,11 @@ public class StatusDescriptorDTO {
     }
 
     /**
-     * The formatter for this descriptor.
-     *
-     * @return
+     * @return formatter for this descriptor
      */
+    @ApiModelProperty(
+            value = "The formatter for the status descriptor."
+    )
     public String getFormatter() {
         return formatter;
     }

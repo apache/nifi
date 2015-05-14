@@ -20,64 +20,62 @@ import javax.jms.Message;
 
 import org.apache.nifi.flowfile.FlowFile;
 
-
 /**
- * 	Data structure which allows to collect processing summary data. 
- * 
+ * Data structure which allows to collect processing summary data.
+ *
  */
 public class JmsProcessingSummary {
-	
-	private int			messagesReceived;
-	private long		bytesReceived;
-	private Message 	lastMessageReceived;
-	private int	 		flowFilesCreated;
-	private FlowFile	lastFlowFile;			// helps testing
 
-	public JmsProcessingSummary() {
-		super();
-		this.messagesReceived 	= 0;
-		this.bytesReceived 		= 0;
-		this.lastMessageReceived = null;
-		this.flowFilesCreated 	= 0;
-		this.lastFlowFile 		= null;
-	}
-	
-	public JmsProcessingSummary(long bytesReceived, Message lastMessageReceived, FlowFile lastFlowFile) {
-		super();
-		this.messagesReceived 	= 1;
-		this.bytesReceived 		= bytesReceived;
-		this.lastMessageReceived = lastMessageReceived;
-		this.flowFilesCreated 	= 1;
-		this.lastFlowFile 		= lastFlowFile;
-	}
-	
-	public void add(JmsProcessingSummary jmsProcessingSummary) {
-		this.messagesReceived 	+= jmsProcessingSummary.messagesReceived;
-		this.bytesReceived 		+= jmsProcessingSummary.bytesReceived;
-		this.lastMessageReceived = jmsProcessingSummary.lastMessageReceived;
-		this.flowFilesCreated 	+= jmsProcessingSummary.flowFilesCreated;
-		this.lastFlowFile 		=  jmsProcessingSummary.lastFlowFile;
-	}
+    private int messagesReceived;
+    private long bytesReceived;
+    private Message lastMessageReceived;
+    private int flowFilesCreated;
+    private FlowFile lastFlowFile; // helps testing
 
-	public int getMessagesReceived() {
-		return messagesReceived;
-	}
+    public JmsProcessingSummary() {
+        super();
+        this.messagesReceived = 0;
+        this.bytesReceived = 0;
+        this.lastMessageReceived = null;
+        this.flowFilesCreated = 0;
+        this.lastFlowFile = null;
+    }
 
-	public long getBytesReceived() {
-		return bytesReceived;
-	}
+    public JmsProcessingSummary(long bytesReceived, Message lastMessageReceived, FlowFile lastFlowFile) {
+        super();
+        this.messagesReceived = 1;
+        this.bytesReceived = bytesReceived;
+        this.lastMessageReceived = lastMessageReceived;
+        this.flowFilesCreated = 1;
+        this.lastFlowFile = lastFlowFile;
+    }
 
-	public Message getLastMessageReceived() {
-		return lastMessageReceived;
-	}
+    public void add(JmsProcessingSummary jmsProcessingSummary) {
+        this.messagesReceived += jmsProcessingSummary.messagesReceived;
+        this.bytesReceived += jmsProcessingSummary.bytesReceived;
+        this.lastMessageReceived = jmsProcessingSummary.lastMessageReceived;
+        this.flowFilesCreated += jmsProcessingSummary.flowFilesCreated;
+        this.lastFlowFile = jmsProcessingSummary.lastFlowFile;
+    }
 
-	public int getFlowFilesCreated() {
-		return flowFilesCreated;
-	}
+    public int getMessagesReceived() {
+        return messagesReceived;
+    }
 
-	public FlowFile getLastFlowFile() {
-		return lastFlowFile;
-	}
-	
+    public long getBytesReceived() {
+        return bytesReceived;
+    }
+
+    public Message getLastMessageReceived() {
+        return lastMessageReceived;
+    }
+
+    public int getFlowFilesCreated() {
+        return flowFilesCreated;
+    }
+
+    public FlowFile getLastFlowFile() {
+        return lastFlowFile;
+    }
+
 }
-

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import javax.xml.bind.annotation.XmlType;
 
 /**
@@ -28,10 +29,11 @@ public class NodeSystemDiagnosticsDTO {
     private SystemDiagnosticsDTO systemDiagnostics;
 
     /**
-     * The node.
-     *
-     * @return
+     * @return the node
      */
+    @ApiModelProperty(
+            value = "The node."
+    )
     public NodeDTO getNode() {
         return node;
     }
@@ -41,10 +43,11 @@ public class NodeSystemDiagnosticsDTO {
     }
 
     /**
-     * The system diagnostics.
-     *
-     * @return
+     * @return the system diagnostics
      */
+    @ApiModelProperty(
+            value = "The diagnostics for the system the node is on."
+    )
     public SystemDiagnosticsDTO getSystemDiagnostics() {
         return systemDiagnostics;
     }

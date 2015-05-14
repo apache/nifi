@@ -1,0 +1,104 @@
+{{!--
+    Licensed to the Apache Software Foundation (ASF) under one or more
+    contributor license agreements.  See the NOTICE file distributed with
+    this work for additional information regarding copyright ownership.
+    The ASF licenses this file to You under the Apache License, Version 2.0
+    (the "License"); you may not use this file except in compliance with
+    the License.  You may obtain a copy of the License at
+        http://www.apache.org/licenses/LICENSE-2.0
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+--}}
+<div class="operation hidden">
+    {{#if description}}
+    <div class="description">
+        {{description}}
+    </div>
+    {{/if}}
+    <div class="title">Request</div>
+    <div class="mediatypes details">
+        {{#if consumes}}
+        <div class="mediatype"><div class="title">consumes:</div><div class="mono">{{join consumes ", "}}</div><div class="clear"></div></div>
+        {{/if}}
+    </div>
+    {{#if parameters}}
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Location</th>
+                <th>Type</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+    {{/if}}
+    {{#each parameters}}
+        <tr>
+            <td>{{#ifeq in "body"}}{{else}}{{name}}{{/ifeq}}</td>
+            <td>{{in}}</td>
+            {{#ifeq in "body"}}
+                <td>
+                {{#ifeq schema.type "array"}}Array[<a class="type-link" href="javascript:void(0);">{{basename schema.items.$ref}}</a>]{{/ifeq}}
+                {{#schema.$ref}}<a class="type-link" href="javascript:void(0);">{{basename schema.$ref}}</a> {{/schema.$ref}}
+                </td>
+            {{else}}
+                {{#ifeq type "array"}}
+                        <td>Array[{{items.type}}] ({{collectionFormat}})</td>
+                {{else}}
+                    {{#ifeq type "ref"}}
+                        <td>string</td>
+                    {{else}}
+                        <td>{{type}} {{#format}}({{format}}){{/format}}</td>
+                    {{/ifeq}}
+                {{/ifeq}}
+            {{/ifeq}}
+            <td>{{description}}</td>
+        </tr>
+    {{/each}}
+    {{#if parameters}}
+        </tbody>
+    </table>
+    {{/if}}
+    <div class="title">Response</div>
+    <div class="mediatypes details">
+        {{#if produces}}
+        <div class="mediatype"><div class="title">produces:</div><div class="mono">{{join produces ", "}}</div><div class="clear"></div></div>
+        {{/if}}
+    </div>
+    <table>
+        <thead>
+            <tr>
+                <th>Status Code</th>
+                <th>Type</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#each responses}}
+            <tr>
+                <td>{{@key}}</td>
+                <td>
+                    {{#if schema}}
+                        {{#schema.$ref}}<a class="type-link" href="javascript:void(0);">{{basename schema.$ref}}</a>{{/schema.$ref}}
+                    {{else}}
+                        string
+                    {{/if}}
+                </td>
+                <td>{{description}}</td>
+            </tr>
+            {{/each}}
+        </tbody>
+    </table>
+    <div class="title">Authorization</div>
+    <div class="authorization details">
+        {{#security}}
+            {{#each this}}
+            <div>{{@key}}</div>
+            {{/each}}
+        {{/security}}
+    </div>
+</div>

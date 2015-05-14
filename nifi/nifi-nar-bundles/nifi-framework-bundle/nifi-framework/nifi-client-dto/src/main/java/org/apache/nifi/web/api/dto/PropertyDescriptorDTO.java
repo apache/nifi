@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.List;
 import javax.xml.bind.annotation.XmlType;
 
@@ -37,11 +38,11 @@ public class PropertyDescriptorDTO {
     private String identifiesControllerService;
 
     /**
-     * The set of allowable values for this property. If empty then the
-     * allowable values are not constrained.
-     *
-     * @return
+     * @return set of allowable values for this property. If empty then the allowable values are not constrained
      */
+    @ApiModelProperty(
+            value = "Allowable values for the property. If empty then the allowed values are not constrained."
+    )
     public List<AllowableValueDTO> getAllowableValues() {
         return allowableValues;
     }
@@ -51,10 +52,11 @@ public class PropertyDescriptorDTO {
     }
 
     /**
-     * The default value for this property.
-     *
-     * @return
+     * @return default value for this property
      */
+    @ApiModelProperty(
+            value = "The default value for the property."
+    )
     public String getDefaultValue() {
         return defaultValue;
     }
@@ -64,12 +66,11 @@ public class PropertyDescriptorDTO {
     }
 
     /**
-     * And explanation of the meaning of the given property. This
-     * description is meant to be displayed to a user or simply provide a
-     * mechanism of documenting intent.
-     *
-     * @return
+     * @return An explanation of the meaning of the given property. This description is meant to be displayed to a user or simply provide a mechanism of documenting intent
      */
+    @ApiModelProperty(
+            value = "The descriptoin for the property. Used to relay additional details to a user or provide a mechanism of documenting intent."
+    )
     public String getDescription() {
         return description;
     }
@@ -79,10 +80,11 @@ public class PropertyDescriptorDTO {
     }
 
     /**
-     * The property name.
-     *
-     * @return
+     * @return property name
      */
+    @ApiModelProperty(
+            value = "The name for the property."
+    )
     public String getName() {
         return name;
     }
@@ -92,10 +94,11 @@ public class PropertyDescriptorDTO {
     }
 
     /**
-     * The human-readable name to display to users.
-     *
-     * @return
+     * @return human-readable name to display to users
      */
+    @ApiModelProperty(
+            value = "The human readable name for the property."
+    )
     public String getDisplayName() {
         return displayName;
     }
@@ -105,10 +108,11 @@ public class PropertyDescriptorDTO {
     }
 
     /**
-     * Determines whether the property is required for this processor.
-     *
-     * @return
+     * @return whether the property is required for this processor
      */
+    @ApiModelProperty(
+            value = "Whether the property is required."
+    )
     public boolean isRequired() {
         return required;
     }
@@ -118,11 +122,11 @@ public class PropertyDescriptorDTO {
     }
 
     /**
-     * Indicates that the value for this property should be considered
-     * sensitive and protected whenever stored or represented.
-     *
-     * @return
+     * @return indicates that the value for this property should be considered sensitive and protected whenever stored or represented
      */
+    @ApiModelProperty(
+            value = "Whether the property is sensitive and protected whenever stored or represented."
+    )
     public boolean isSensitive() {
         return sensitive;
     }
@@ -132,10 +136,11 @@ public class PropertyDescriptorDTO {
     }
 
     /**
-     * Indicates whether this property is dynamic.
-     *
-     * @return
+     * @return indicates whether this property is dynamic
      */
+    @ApiModelProperty(
+            value = "Whether the property is dynamic (user-defined)."
+    )
     public boolean isDynamic() {
         return dynamic;
     }
@@ -145,10 +150,11 @@ public class PropertyDescriptorDTO {
     }
 
     /**
-     * Specifies whether or not this property support expression language.
-     *
-     * @return
+     * @return specifies whether or not this property support expression language
      */
+    @ApiModelProperty(
+            value = "Whether the property supports expression language."
+    )
     public boolean getSupportsEl() {
         return supportsEl;
     }
@@ -158,11 +164,11 @@ public class PropertyDescriptorDTO {
     }
 
     /**
-     * If this property identifies a controller service, this returns the 
-     * fully qualified type, null otherwise.
-     * 
-     * @return 
+     * @return if this property identifies a controller service, this returns the fully qualified type, null otherwise
      */
+    @ApiModelProperty(
+            value = "If the property identifies a controller service, this returns the fully qualified type."
+    )
     public String getIdentifiesControllerService() {
         return identifiesControllerService;
     }
@@ -170,7 +176,7 @@ public class PropertyDescriptorDTO {
     public void setIdentifiesControllerService(String identifiesControllerService) {
         this.identifiesControllerService = identifiesControllerService;
     }
-    
+
     /**
      * The allowable values for a property with a constrained set of options.
      */
@@ -182,11 +188,11 @@ public class PropertyDescriptorDTO {
         private String description;
 
         /**
-         * Returns the human-readable value that is allowed for this
-         * PropertyDescriptor
-         *
-         * @return
+         * @return the human-readable value that is allowed for this PropertyDescriptor
          */
+        @ApiModelProperty(
+                value = "A human readable value that is allowed for the property descriptor."
+        )
         public String getDisplayName() {
             return displayName;
         }
@@ -196,10 +202,11 @@ public class PropertyDescriptorDTO {
         }
 
         /**
-         * Returns the value for this allowable value.
-         *
-         * @return
+         * @return the value for this allowable value
          */
+        @ApiModelProperty(
+                value = "A value that is allowed for the property descriptor."
+        )
         public String getValue() {
             return value;
         }
@@ -209,11 +216,11 @@ public class PropertyDescriptorDTO {
         }
 
         /**
-         * Returns a description of this Allowable Value, or <code>null</code>
-         * if no description is given
-         *
-         * @return
+         * @return a description of this Allowable Value, or <code>null</code> if no description is given
          */
+        @ApiModelProperty(
+                value = "A description for this allowable value."
+        )
         public String getDescription() {
             return description;
         }

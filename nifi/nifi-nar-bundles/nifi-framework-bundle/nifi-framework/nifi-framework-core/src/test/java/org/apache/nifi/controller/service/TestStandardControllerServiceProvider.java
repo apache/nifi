@@ -54,7 +54,7 @@ public class TestStandardControllerServiceProvider {
                 return null;
             }
         }).when(scheduler).enableControllerService(Mockito.any(ControllerServiceNode.class));
-        
+
         Mockito.doAnswer(new Answer<Object>() {
             @Override
             public Object answer(final InvocationOnMock invocation) throws Throwable {
@@ -64,55 +64,54 @@ public class TestStandardControllerServiceProvider {
                 return null;
             }
         }).when(scheduler).disableControllerService(Mockito.any(ControllerServiceNode.class));
-        
+
         return scheduler;
     }
-    
+
     @Test
     public void testDisableControllerService() {
         final ProcessScheduler scheduler = createScheduler();
         final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null);
-        
+
         final ControllerServiceNode serviceNode = provider.createControllerService(ServiceB.class.getName(), "B", false);
         provider.enableControllerService(serviceNode);
         provider.disableControllerService(serviceNode);
     }
-    
+
     @Test
     public void testEnableDisableWithReference() {
         final ProcessScheduler scheduler = createScheduler();
         final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null);
-        
+
         final ControllerServiceNode serviceNodeB = provider.createControllerService(ServiceB.class.getName(), "B", false);
         final ControllerServiceNode serviceNodeA = provider.createControllerService(ServiceA.class.getName(), "A", false);
-        
+
         serviceNodeA.setProperty(ServiceA.OTHER_SERVICE.getName(), "B");
-        
+
         try {
             provider.enableControllerService(serviceNodeA);
             Assert.fail("Was able to enable Service A but Service B is disabled.");
         } catch (final IllegalStateException expected) {
         }
-        
+
         provider.enableControllerService(serviceNodeB);
         provider.enableControllerService(serviceNodeA);
-        
+
         try {
             provider.disableControllerService(serviceNodeB);
             Assert.fail("Was able to disable Service B but Service A is enabled and references B");
         } catch (final IllegalStateException expected) {
         }
-        
+
         provider.disableControllerService(serviceNodeA);
         provider.disableControllerService(serviceNodeB);
     }
-    
-    
+
     @Test
     public void testEnableReferencingServicesGraph() {
         final ProcessScheduler scheduler = createScheduler();
         final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null);
-        
+
         // build a graph of controller services with dependencies as such:
         //
         // A -> B -> D
@@ -125,31 +124,29 @@ public class TestStandardControllerServiceProvider {
         // So we have to verify that if D is enabled, when we enable its referencing services,
         // we enable C and B, even if we attempt to enable C before B... i.e., if we try to enable C, we cannot do so
         // until B is first enabled so ensure that we enable B first.
-        
         final ControllerServiceNode serviceNode1 = provider.createControllerService(ServiceA.class.getName(), "1", false);
         final ControllerServiceNode serviceNode2 = provider.createControllerService(ServiceA.class.getName(), "2", false);
         final ControllerServiceNode serviceNode3 = provider.createControllerService(ServiceA.class.getName(), "3", false);
         final ControllerServiceNode serviceNode4 = provider.createControllerService(ServiceB.class.getName(), "4", false);
-        
+
         serviceNode1.setProperty(ServiceA.OTHER_SERVICE.getName(), "2");
         serviceNode2.setProperty(ServiceA.OTHER_SERVICE.getName(), "4");
         serviceNode3.setProperty(ServiceA.OTHER_SERVICE.getName(), "2");
         serviceNode3.setProperty(ServiceA.OTHER_SERVICE_2.getName(), "4");
-        
+
         provider.enableControllerService(serviceNode4);
         provider.enableReferencingServices(serviceNode4);
-        
+
         assertEquals(ControllerServiceState.ENABLED, serviceNode3.getState());
         assertEquals(ControllerServiceState.ENABLED, serviceNode2.getState());
         assertEquals(ControllerServiceState.ENABLED, serviceNode1.getState());
     }
-    
-    
+
     @Test
     public void testStartStopReferencingComponents() {
         final ProcessScheduler scheduler = createScheduler();
         final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null);
-        
+
         // build a graph of reporting tasks and controller services with dependencies as such:
         //
         // Processor P1 -> A -> B -> D
@@ -162,12 +159,11 @@ public class TestStandardControllerServiceProvider {
         // So we have to verify that if D is enabled, when we enable its referencing services,
         // we enable C and B, even if we attempt to enable C before B... i.e., if we try to enable C, we cannot do so
         // until B is first enabled so ensure that we enable B first.
-        
         final ControllerServiceNode serviceNode1 = provider.createControllerService(ServiceA.class.getName(), "1", false);
         final ControllerServiceNode serviceNode2 = provider.createControllerService(ServiceA.class.getName(), "2", false);
         final ControllerServiceNode serviceNode3 = provider.createControllerService(ServiceA.class.getName(), "3", false);
         final ControllerServiceNode serviceNode4 = provider.createControllerService(ServiceB.class.getName(), "4", false);
-        
+
         final ProcessGroup mockProcessGroup = Mockito.mock(ProcessGroup.class);
         Mockito.doAnswer(new Answer<Object>() {
             @Override
@@ -178,7 +174,7 @@ public class TestStandardControllerServiceProvider {
                 return null;
             }
         }).when(mockProcessGroup).startProcessor(Mockito.any(ProcessorNode.class));
-        
+
         Mockito.doAnswer(new Answer<Object>() {
             @Override
             public Object answer(final InvocationOnMock invocation) throws Throwable {
@@ -188,36 +184,36 @@ public class TestStandardControllerServiceProvider {
                 return null;
             }
         }).when(mockProcessGroup).stopProcessor(Mockito.any(ProcessorNode.class));
-        
+
         final String id1 = UUID.randomUUID().toString();
         final ProcessorNode procNodeA = new StandardProcessorNode(new DummyProcessor(), id1,
                 new StandardValidationContextFactory(provider), scheduler, provider);
         procNodeA.getProcessor().initialize(new StandardProcessorInitializationContext(id1, null, provider));
         procNodeA.setProperty(DummyProcessor.SERVICE.getName(), "1");
         procNodeA.setProcessGroup(mockProcessGroup);
-        
+
         final String id2 = UUID.randomUUID().toString();
-        final ProcessorNode procNodeB = new StandardProcessorNode(new DummyProcessor(),id2,
+        final ProcessorNode procNodeB = new StandardProcessorNode(new DummyProcessor(), id2,
                 new StandardValidationContextFactory(provider), scheduler, provider);
         procNodeB.getProcessor().initialize(new StandardProcessorInitializationContext(id2, null, provider));
         procNodeB.setProperty(DummyProcessor.SERVICE.getName(), "3");
         procNodeB.setProcessGroup(mockProcessGroup);
-        
+
         serviceNode1.setProperty(ServiceA.OTHER_SERVICE.getName(), "2");
         serviceNode2.setProperty(ServiceA.OTHER_SERVICE.getName(), "4");
         serviceNode3.setProperty(ServiceA.OTHER_SERVICE.getName(), "2");
         serviceNode3.setProperty(ServiceA.OTHER_SERVICE_2.getName(), "4");
-        
+
         provider.enableControllerService(serviceNode4);
         provider.enableReferencingServices(serviceNode4);
         provider.scheduleReferencingComponents(serviceNode4);
-        
+
         assertEquals(ControllerServiceState.ENABLED, serviceNode3.getState());
         assertEquals(ControllerServiceState.ENABLED, serviceNode2.getState());
         assertEquals(ControllerServiceState.ENABLED, serviceNode1.getState());
         assertTrue(procNodeA.isRunning());
         assertTrue(procNodeB.isRunning());
-        
+
         // stop processors and verify results.
         provider.unscheduleReferencingComponents(serviceNode4);
         assertFalse(procNodeA.isRunning());
@@ -225,18 +221,17 @@ public class TestStandardControllerServiceProvider {
         assertEquals(ControllerServiceState.ENABLED, serviceNode3.getState());
         assertEquals(ControllerServiceState.ENABLED, serviceNode2.getState());
         assertEquals(ControllerServiceState.ENABLED, serviceNode1.getState());
-        
+
         provider.disableReferencingServices(serviceNode4);
         assertEquals(ControllerServiceState.DISABLED, serviceNode3.getState());
         assertEquals(ControllerServiceState.DISABLED, serviceNode2.getState());
         assertEquals(ControllerServiceState.DISABLED, serviceNode1.getState());
         assertEquals(ControllerServiceState.ENABLED, serviceNode4.getState());
-        
+
         provider.disableControllerService(serviceNode4);
         assertEquals(ControllerServiceState.DISABLED, serviceNode4.getState());
     }
-    
-    
+
     @Test
     public void testOrderingOfServices() {
         final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(null, null);
@@ -248,7 +243,7 @@ public class TestStandardControllerServiceProvider {
         final Map<String, ControllerServiceNode> nodeMap = new LinkedHashMap<>();
         nodeMap.put("1", serviceNode1);
         nodeMap.put("2", serviceNode2);
-        
+
         List<List<ControllerServiceNode>> branches = StandardControllerServiceProvider.determineEnablingOrder(nodeMap);
         assertEquals(2, branches.size());
         List<ControllerServiceNode> ordered = branches.get(0);
@@ -257,11 +252,11 @@ public class TestStandardControllerServiceProvider {
         assertTrue(ordered.get(1) == serviceNode1);
         assertEquals(1, branches.get(1).size());
         assertTrue(branches.get(1).get(0) == serviceNode2);
-        
+
         nodeMap.clear();
         nodeMap.put("2", serviceNode2);
         nodeMap.put("1", serviceNode1);
-        
+
         branches = StandardControllerServiceProvider.determineEnablingOrder(nodeMap);
         assertEquals(2, branches.size());
         ordered = branches.get(1);
@@ -270,20 +265,20 @@ public class TestStandardControllerServiceProvider {
         assertTrue(ordered.get(1) == serviceNode1);
         assertEquals(1, branches.get(0).size());
         assertTrue(branches.get(0).get(0) == serviceNode2);
-        
+
         // add circular dependency on self.
         nodeMap.clear();
         serviceNode1.setProperty(ServiceA.OTHER_SERVICE_2.getName(), "1");
         nodeMap.put("1", serviceNode1);
         nodeMap.put("2", serviceNode2);
-        
+
         branches = StandardControllerServiceProvider.determineEnablingOrder(nodeMap);
         assertEquals(2, branches.size());
         ordered = branches.get(0);
         assertEquals(2, ordered.size());
         assertTrue(ordered.get(0) == serviceNode2);
         assertTrue(ordered.get(1) == serviceNode1);
-        
+
         nodeMap.clear();
         nodeMap.put("2", serviceNode2);
         nodeMap.put("1", serviceNode1);
@@ -293,7 +288,7 @@ public class TestStandardControllerServiceProvider {
         assertEquals(2, ordered.size());
         assertTrue(ordered.get(0) == serviceNode2);
         assertTrue(ordered.get(1) == serviceNode1);
-        
+
         // add circular dependency once removed. In this case, we won't actually be able to enable these because of the
         // circular dependency because they will never be valid because they will always depend on a disabled service.
         // But we want to ensure that the method returns successfully without throwing a StackOverflowException or anything
@@ -310,7 +305,7 @@ public class TestStandardControllerServiceProvider {
         assertEquals(2, ordered.size());
         assertTrue(ordered.get(0) == serviceNode3);
         assertTrue(ordered.get(1) == serviceNode1);
-        
+
         nodeMap.clear();
         nodeMap.put("3", serviceNode3);
         nodeMap.put("1", serviceNode1);
@@ -320,8 +315,7 @@ public class TestStandardControllerServiceProvider {
         assertEquals(2, ordered.size());
         assertTrue(ordered.get(0) == serviceNode3);
         assertTrue(ordered.get(1) == serviceNode1);
-        
-        
+
         // Add multiple completely disparate branches.
         nodeMap.clear();
         serviceNode1.setProperty(ServiceA.OTHER_SERVICE.getName(), "2");
@@ -333,7 +327,7 @@ public class TestStandardControllerServiceProvider {
         nodeMap.put("3", serviceNode3);
         nodeMap.put("4", serviceNode4);
         nodeMap.put("5", serviceNode5);
-        
+
         branches = StandardControllerServiceProvider.determineEnablingOrder(nodeMap);
         assertEquals(5, branches.size());
 
@@ -341,21 +335,21 @@ public class TestStandardControllerServiceProvider {
         assertEquals(2, ordered.size());
         assertTrue(ordered.get(0) == serviceNode2);
         assertTrue(ordered.get(1) == serviceNode1);
-        
+
         assertEquals(1, branches.get(1).size());
         assertTrue(branches.get(1).get(0) == serviceNode2);
-        
+
         ordered = branches.get(2);
         assertEquals(2, ordered.size());
         assertTrue(ordered.get(0) == serviceNode4);
         assertTrue(ordered.get(1) == serviceNode3);
-        
+
         assertEquals(1, branches.get(3).size());
         assertTrue(branches.get(3).get(0) == serviceNode4);
-        
+
         assertEquals(1, branches.get(4).size());
         assertTrue(branches.get(4).get(0) == serviceNode5);
-        
+
         // create 2 branches both dependent on the same service
         nodeMap.clear();
         serviceNode1.setProperty(ServiceA.OTHER_SERVICE.getName(), "2");
@@ -363,19 +357,19 @@ public class TestStandardControllerServiceProvider {
         nodeMap.put("1", serviceNode1);
         nodeMap.put("2", serviceNode2);
         nodeMap.put("3", serviceNode3);
-        
+
         branches = StandardControllerServiceProvider.determineEnablingOrder(nodeMap);
         assertEquals(3, branches.size());
-        
+
         ordered = branches.get(0);
         assertEquals(2, ordered.size());
         assertTrue(ordered.get(0) == serviceNode2);
         assertTrue(ordered.get(1) == serviceNode1);
-        
+
         ordered = branches.get(1);
         assertEquals(1, ordered.size());
         assertTrue(ordered.get(0) == serviceNode2);
-        
+
         ordered = branches.get(2);
         assertEquals(2, ordered.size());
         assertTrue(ordered.get(0) == serviceNode2);

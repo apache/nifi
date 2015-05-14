@@ -27,36 +27,35 @@ import org.slf4j.LoggerFactory;
 /**
  * Implements the OptimisticLockingManager interface.
  *
- * @author unattributed
  */
 public class StandardOptimisticLockingManager implements OptimisticLockingManager {
 
     private static final Logger logger = LoggerFactory.getLogger(StandardOptimisticLockingManager.class);
-    
+
     private static final String INVALID_REVISION_ERROR = "Given revision %s does not match current revision %s.";
     private static final String SYNC_ERROR = "This NiFi instance has been updated by '%s'. Please refresh to synchronize the view.";
-    
+
     private Revision currentRevision = new Revision(0L, "");
     private String lastModifier = "unknown";
     private final Lock lock = new ReentrantLock();
-    
+
     private void lock() {
         lock.lock();
     }
-    
+
     private void unlock() {
         lock.unlock();
     }
 
     private void checkRevision(final Revision revision) {
         final FlowModification lastMod = getLastModification();
-        
+
         // with lock, verify revision
         boolean approved = lastMod.getRevision().equals(revision);
 
         if (!approved) {
             logger.debug("Revision check failed because current revision is " + lastMod.getRevision() + " but supplied revision is " + revision);
-            
+
             if (lastMod.getRevision().getClientId() == null || lastMod.getRevision().getClientId().trim().isEmpty() || lastMod.getRevision().getVersion() == null) {
                 throw new InvalidRevisionException(String.format(INVALID_REVISION_ERROR, revision, lastMod.getRevision()));
             } else {
@@ -64,11 +63,11 @@ public class StandardOptimisticLockingManager implements OptimisticLockingManage
             }
         }
     }
-    
+
     private Revision updateRevision(final Revision updatedRevision) {
         // record the current modification
         setLastModification(new FlowModification(updatedRevision, NiFiUserUtils.getNiFiUserName()));
-        
+
         // return the revision
         return updatedRevision;
     }
@@ -98,7 +97,7 @@ public class StandardOptimisticLockingManager implements OptimisticLockingManage
         lock();
         try {
             final Revision updatedRevision = updateRevision.execute(getLastModification().getRevision());
-            
+
             // update the revision
             if (updatedRevision != null) {
                 updateRevision(updatedRevision);
@@ -107,7 +106,7 @@ public class StandardOptimisticLockingManager implements OptimisticLockingManage
             unlock();
         }
     }
-    
+
     @Override
     public FlowModification getLastModification() {
         lock();
@@ -119,19 +118,19 @@ public class StandardOptimisticLockingManager implements OptimisticLockingManage
             } else {
                 revision = ctx.getRevision();
             }
-            
+
             return new FlowModification(revision, lastModifier);
         } finally {
             unlock();
         }
     }
-    
+
     private void setLastModification(final FlowModification lastModification) {
         lock();
         try {
             // record the last modifier
             lastModifier = lastModification.getLastModifier();
-            
+
             // record the updated revision in the cluster context if possible
             final ClusterContext ctx = ClusterContextThreadLocal.getContext();
             if (ctx != null) {
@@ -143,10 +142,10 @@ public class StandardOptimisticLockingManager implements OptimisticLockingManage
             unlock();
         }
     }
-    
+
     private Revision incrementRevision(String clientId) {
         final Revision current = getLastModification().getRevision();
-        
+
         final long incrementedVersion;
         if (current.getVersion() == null) {
             incrementedVersion = 0;
@@ -155,5 +154,5 @@ public class StandardOptimisticLockingManager implements OptimisticLockingManage
         }
         return new Revision(incrementedVersion, clientId);
     }
-    
+
 }

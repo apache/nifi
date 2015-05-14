@@ -40,25 +40,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Encapsulates a node's response in regards to receiving a external API
- * request.
+ * Encapsulates a node's response in regards to receiving a external API request.
  *
- * Both the ClientResponse and (server) Response may be obtained from this
- * instance. The ClientResponse is stored as it is received from the node. This
- * includes the entity input stream. The Response is constructed on demand when
- * mapping a ClientResponse to the Response. The ClientResponse to Response
- * mapping includes copying the ClientResponse's input stream to the Response.
- * Therefore, the getResponse() method should not be called more than once.
- * Furthermore, the method should not be called if the caller has already read
- * the ClientResponse's input stream.
+ * Both the ClientResponse and (server) Response may be obtained from this instance. The ClientResponse is stored as it is received from the node. This includes the entity input stream. The Response
+ * is constructed on demand when mapping a ClientResponse to the Response. The ClientResponse to Response mapping includes copying the ClientResponse's input stream to the Response. Therefore, the
+ * getResponse() method should not be called more than once. Furthermore, the method should not be called if the caller has already read the ClientResponse's input stream.
  *
- * If a ClientResponse was unable to be created, then a NodeResponse will store
- * the Throwable, which may be obtained by calling getThrowable().
+ * If a ClientResponse was unable to be created, then a NodeResponse will store the Throwable, which may be obtained by calling getThrowable().
  *
- * This class overrides hashCode and equals and considers two instances to be
- * equal if they have the equal NodeIdentifiers.
+ * This class overrides hashCode and equals and considers two instances to be equal if they have the equal NodeIdentifiers.
  *
- * @author unattributed
  */
 public class NodeResponse {
 
@@ -145,14 +136,14 @@ public class NodeResponse {
     public int getStatus() {
         if (hasThrowable()) {
             /*
-             * since there is a throwable, there is no client input stream to 
+             * since there is a throwable, there is no client input stream to
              * worry about maintaining, so we can call getResponse() method
              */
             return getResponse().getStatus();
         } else {
             /*
              * use client response's status instead of calling getResponse().getStatus()
-             * so that we don't read the client's input stream as part of creating 
+             * so that we don't read the client's input stream as part of creating
              * the response in the getResponse() method
              */
             return clientResponse.getStatus();
@@ -160,9 +151,7 @@ public class NodeResponse {
     }
 
     /**
-     * Returns true if the response status is 2xx, false otherwise.
-     *
-     * @return
+     * @return true if the response status is 2xx, false otherwise.
      */
     public boolean is2xx() {
         final int statusCode = getStatus();
@@ -170,9 +159,7 @@ public class NodeResponse {
     }
 
     /**
-     * Returns true if the response status is 5xx, false otherwise.
-     *
-     * @return
+     * @return true if the response status is 5xx, false otherwise.
      */
     public boolean is5xx() {
         final int statusCode = getStatus();
@@ -180,8 +167,7 @@ public class NodeResponse {
     }
 
     /**
-     * Returns null if hasThrowable() is true; otherwise the client's response
-     * is returned.
+     * Returns null if hasThrowable() is true; otherwise the client's response is returned.
      *
      * The ClientResponse's input stream can only be read once.
      *
@@ -192,24 +178,18 @@ public class NodeResponse {
     }
 
     /**
-     * If this node response has been merged returns the updated entity, 
-     * otherwise null. Also returns null if hasThrowable() is true. The
-     * intent of this method is to support getting the response entity
-     * when it was already consumed during the merge operation. In this
-     * case the client response rom getClientResponse() will not support 
-     * a getEntity(...) or getEntityInputStream()  call.
-     * 
-     * @return 
+     * If this node response has been merged returns the updated entity, otherwise null. Also returns null if hasThrowable() is true. The intent of this method is to support getting the response
+     * entity when it was already consumed during the merge operation. In this case the client response rom getClientResponse() will not support a getEntity(...) or getEntityInputStream() call.
+     *
+     * @return If this node response has been merged returns the updated entity, otherwise null. Also returns null if hasThrowable() is true
      */
     public Entity getUpdatedEntity() {
         return updatedEntity;
     }
-    
+
     /**
-     * Creates a Response by mapping the ClientResponse values to it. Since the
-     * ClientResponse's input stream can only be read once, this method should
-     * only be called once. Furthermore, the caller should not have already read
-     * the ClientResponse's input stream.
+     * Creates a Response by mapping the ClientResponse values to it. Since the ClientResponse's input stream can only be read once, this method should only be called once. Furthermore, the caller
+     * should not have already read the ClientResponse's input stream.
      *
      * @return the response
      */
@@ -232,11 +212,9 @@ public class NodeResponse {
     }
 
     /**
-     * Returns true if a throwable was thrown and a response was not able to be
-     * created; false otherwise.
+     * Returns true if a throwable was thrown and a response was not able to be created; false otherwise.
      *
-     * @return true if a throwable was thrown and a response was not able to be
-     * created; false otherwise
+     * @return true if a throwable was thrown and a response was not able to be created; false otherwise
      */
     public boolean hasThrowable() {
         return getThrowable() != null;

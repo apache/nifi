@@ -43,10 +43,8 @@ import org.apache.nifi.util.ReflectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 /**
- * Continually runs a processor as long as the processor has work to do. {@link #call()} will return
- * <code>true</code> if the processor should be yielded, <code>false</code> otherwise.
+ * Continually runs a processor as long as the processor has work to do. {@link #call()} will return <code>true</code> if the processor should be yielded, <code>false</code> otherwise.
  */
 public class ContinuallyRunProcessorTask implements Callable<Boolean> {
 
@@ -61,7 +59,7 @@ public class ContinuallyRunProcessorTask implements Callable<Boolean> {
     private final int numRelationships;
 
     public ContinuallyRunProcessorTask(final SchedulingAgent schedulingAgent, final ProcessorNode procNode,
-            final FlowController flowController, final ProcessContextFactory contextFactory, final ScheduleState scheduleState, 
+            final FlowController flowController, final ProcessContextFactory contextFactory, final ScheduleState scheduleState,
             final StandardProcessContext processContext) {
 
         this.schedulingAgent = schedulingAgent;
@@ -163,18 +161,18 @@ public class ContinuallyRunProcessorTask implements Callable<Boolean> {
                 if (batch) {
                     rawSession.commit();
                 }
-    
+
                 final long processingNanos = System.nanoTime() - startNanos;
-    
+
                 // if the processor is no longer scheduled to run and this is the last thread,
                 // invoke the OnStopped methods
                 if (!scheduleState.isScheduled() && scheduleState.getActiveThreadCount() == 1 && scheduleState.mustCallOnStoppedMethods()) {
                     try (final NarCloseable x = NarCloseable.withNarLoader()) {
-                        ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, org.apache.nifi.processor.annotation.OnStopped.class, procNode.getProcessor(), processContext);
+                        ReflectionUtils.quietlyInvokeMethodsWithAnnotations(OnStopped.class, org.apache.nifi.processor.annotation.OnStopped.class, procNode.getProcessor(), processContext);
                         flowController.heartbeat();
                     }
                 }
-    
+
                 try {
                     final StandardFlowFileEvent procEvent = new StandardFlowFileEvent(procNode.getIdentifier());
                     procEvent.setProcessingNanos(processingNanos);
@@ -188,7 +186,7 @@ public class ContinuallyRunProcessorTask implements Callable<Boolean> {
                 scheduleState.decrementActiveThreadCount();
             }
         }
-        
+
         return false;
     }
 

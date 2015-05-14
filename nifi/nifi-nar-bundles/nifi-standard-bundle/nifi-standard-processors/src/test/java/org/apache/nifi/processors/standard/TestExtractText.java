@@ -41,9 +41,9 @@ public class TestExtractText {
 
         testRunner.setProperty("regex.result1", "(?s)(.*)");
         testRunner.setProperty("regex.result2", "(?s).*(bar1).*");
-        testRunner.setProperty("regex.result3", "(?s).*?(bar\\d).*");	// reluctant gets first
+        testRunner.setProperty("regex.result3", "(?s).*?(bar\\d).*"); // reluctant gets first
         testRunner.setProperty("regex.result4", "(?s).*?(?:bar\\d).*?(bar\\d).*?(bar3).*"); // reluctant w/ repeated pattern gets second
-        testRunner.setProperty("regex.result5", "(?s).*(bar\\d).*");	// greedy gets last
+        testRunner.setProperty("regex.result5", "(?s).*(bar\\d).*"); // greedy gets last
         testRunner.setProperty("regex.result6", "(?s)^(.*)$");
         testRunner.setProperty("regex.result7", "(?s)(XXX)");
 
@@ -74,9 +74,9 @@ public class TestExtractText {
 
         testRunner.setProperty("regex.result1", "(.*)");
         testRunner.setProperty("regex.result2", ".*(bar1).*");
-        testRunner.setProperty("regex.result3", ".*?(bar\\d).*");	// reluctant gets first
+        testRunner.setProperty("regex.result3", ".*?(bar\\d).*"); // reluctant gets first
         testRunner.setProperty("regex.result4", ".*?(?:bar\\d).*?(bar\\d).*"); // reluctant w/ repeated pattern gets second
-        testRunner.setProperty("regex.result5", ".*(bar\\d).*");	// greedy gets last
+        testRunner.setProperty("regex.result5", ".*(bar\\d).*"); // greedy gets last
         testRunner.setProperty("regex.result6", "^(.*)$");
         testRunner.setProperty("regex.result7", "^(XXX)$");
 
@@ -117,15 +117,15 @@ public class TestExtractText {
 
         testRunner.assertAllFlowFilesTransferred(ExtractText.REL_MATCH, 1);
         final MockFlowFile out = testRunner.getFlowFilesForRelationship(ExtractText.REL_MATCH).get(0);
-        out.assertAttributeEquals("regex.result1", "foo"); 	// matches everything on the first line
+        out.assertAttributeEquals("regex.result1", "foo"); // matches everything on the first line
         out.assertAttributeEquals("regex.result2", "bar1");
         out.assertAttributeEquals("regex.result3", "bar1");
-        out.assertAttributeEquals("regex.result4", null);	// null because no line has two bar's
+        out.assertAttributeEquals("regex.result4", null); // null because no line has two bar's
         out.assertAttributeEquals("regex.result4b", "bar2"); // included newlines in regex
-        out.assertAttributeEquals("regex.result5", "bar1");	//still gets first because no lines with multiple bar's 
-        out.assertAttributeEquals("regex.result5b", "bar3");// included newlines in regex
-        out.assertAttributeEquals("regex.result6", "foo");	// matches all of first line
-        out.assertAttributeEquals("regex.result7", null);	// no match
+        out.assertAttributeEquals("regex.result5", "bar1"); //still gets first because no lines with multiple bar's
+        out.assertAttributeEquals("regex.result5b", "bar3"); // included newlines in regex
+        out.assertAttributeEquals("regex.result6", "foo"); // matches all of first line
+        out.assertAttributeEquals("regex.result7", null); // no match
     }
 
     @Test
@@ -228,7 +228,7 @@ public class TestExtractText {
         final MockFlowFile out = testRunner.getFlowFilesForRelationship(ExtractText.REL_MATCH).get(0);
 
         out.assertAttributeEquals("regex.result1", "foo");
-        out.assertAttributeEquals("regex.result2", null); 	// null because outsk
+        out.assertAttributeEquals("regex.result2", null); // null because outsk
     }
 
     @Test
@@ -301,7 +301,6 @@ public class TestExtractText {
         final ExtractText processor = new ExtractText();
         final TestRunner testRunner = TestRunners.newTestRunner(processor);
 
-//		testRunner.setProperty("regex.result1", "(.*)");
         testRunner.enqueue("foo".getBytes("UTF-8"));
         testRunner.run();
 

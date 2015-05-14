@@ -19,11 +19,9 @@ package org.apache.nifi.cluster.event;
 import java.util.List;
 
 /**
- * Manages an ordered list of events. The event history size dictates the total
- * number of events to manage for a given source at a given time. When the size
- * is exceeded, the oldest event for that source is evicted.
+ * Manages an ordered list of events. The event history size dictates the total number of events to manage for a given source at a given time. When the size is exceeded, the oldest event for that
+ * source is evicted.
  *
- * @author unattributed
  */
 public interface EventManager {
 
@@ -35,8 +33,7 @@ public interface EventManager {
     void addEvent(Event event);
 
     /**
-     * Returns a list of events for a given source sorted by the event's
-     * timestamp where the most recent event is first in the list.
+     * Returns a list of events for a given source sorted by the event's timestamp where the most recent event is first in the list.
      *
      * @param eventSource the source
      *

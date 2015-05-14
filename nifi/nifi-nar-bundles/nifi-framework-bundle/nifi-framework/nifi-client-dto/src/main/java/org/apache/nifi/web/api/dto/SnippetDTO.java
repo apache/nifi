@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.HashSet;
 import java.util.Set;
 import javax.xml.bind.annotation.XmlType;
@@ -44,10 +45,11 @@ public class SnippetDTO {
     private FlowSnippetDTO contents;
 
     /**
-     * The id of this snippet.
-     *
-     * @return
+     * @return id of this snippet
      */
+    @ApiModelProperty(
+            value = "The id of the snippet."
+    )
     public String getId() {
         return id;
     }
@@ -57,10 +59,11 @@ public class SnippetDTO {
     }
 
     /**
-     * The uri of this snippet.
-     *
-     * @return
+     * @return uri of this snippet
      */
+    @ApiModelProperty(
+            value = "The URI of the snippet."
+    )
     public String getUri() {
         return uri;
     }
@@ -70,10 +73,11 @@ public class SnippetDTO {
     }
 
     /**
-     * The group id for the components in this snippet.
-     *
-     * @return
+     * @return group id for the components in this snippet
      */
+    @ApiModelProperty(
+            value = "The group id for the components in the snippet."
+    )
     public String getParentGroupId() {
         return parentGroupId;
     }
@@ -83,10 +87,13 @@ public class SnippetDTO {
     }
 
     /**
-     * Whether or not this snippet is linked to the underlying data flow.
-     *
-     * @return
+     * @return whether or not this snippet is linked to the underlying data flow
      */
+    @ApiModelProperty(
+            value = "Whether or not the snippet is linked to the underlying data flow. For instance if linked was set to true and the snippet was deleted "
+                    + "it would also deleted the components in the snippet. If the snippet was not linked, deleting the snippet would only remove the "
+                    + "snippet and leave the component intact."
+    )
     public Boolean isLinked() {
         return linked;
     }
@@ -96,13 +103,13 @@ public class SnippetDTO {
     }
 
     /**
-     * The ids of the connections in this snippet. These ids will be populated
-     * within each response. They can be specified when creating a snippet.
-     * However, once a snippet has been created its contents cannot be modified
-     * (these ids are ignored during update requests).
-     *
-     * @return
+     * @return the ids of the connections in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet has been created its
+     * contents cannot be modified (these ids are ignored during update requests)
      */
+    @ApiModelProperty(
+            value = "The ids of the connections in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet "
+                    + "has been created its contents cannot be modified (these ids are ignored during update requests)."
+    )
     public Set<String> getConnections() {
         return connections;
     }
@@ -112,13 +119,13 @@ public class SnippetDTO {
     }
 
     /**
-     * The ids of the funnels in this snippet. These ids will be populated
-     * within each response. They can be specified when creating a snippet.
-     * However, once a snippet has been created its contents cannot be modified
-     * (these ids are ignored during update requests).
-     *
-     * @param funnels
+     * @return the ids of the funnels in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet has been created its
+     * contents cannot be modified (these ids are ignored during update requests)
      */
+    @ApiModelProperty(
+            value = "The ids of the funnels in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet "
+                    + "has been created its contents cannot be modified (these ids are ignored during update requests)."
+    )
     public Set<String> getFunnels() {
         return funnels;
     }
@@ -128,13 +135,13 @@ public class SnippetDTO {
     }
 
     /**
-     * The ids of the input port in this snippet. These ids will be populated
-     * within each response. They can be specified when creating a snippet.
-     * However, once a snippet has been created its contents cannot be modified
-     * (these ids are ignored during update requests).
-     *
-     * @return
+     * @return the ids of the input port in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet has been created its
+     * contents cannot be modified (these ids are ignored during update requests)
      */
+    @ApiModelProperty(
+            value = "The ids of the input ports in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet "
+                    + "has been created its contents cannot be modified (these ids are ignored during update requests)."
+    )
     public Set<String> getInputPorts() {
         return inputPorts;
     }
@@ -144,13 +151,13 @@ public class SnippetDTO {
     }
 
     /**
-     * The ids of the labels in this snippet. These ids will be populated within
-     * each response. They can be specified when creating a snippet. However,
-     * once a snippet has been created its contents cannot be modified (these
-     * ids are ignored during update requests).
-     *
-     * @return
+     * @return the ids of the labels in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet has been created its
+     * contents cannot be modified (these ids are ignored during update requests)
      */
+    @ApiModelProperty(
+            value = "The ids of the labels in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet "
+                    + "has been created its contents cannot be modified (these ids are ignored during update requests)."
+    )
     public Set<String> getLabels() {
         return labels;
     }
@@ -160,13 +167,13 @@ public class SnippetDTO {
     }
 
     /**
-     * The ids of the output ports in this snippet. These ids will be populated
-     * within each response. They can be specified when creating a snippet.
-     * However, once a snippet has been created its contents cannot be modified
-     * (these ids are ignored during update requests).
-     *
-     * @return
+     * @return the ids of the output ports in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet has been created
+     * its contents cannot be modified (these ids are ignored during update requests)
      */
+    @ApiModelProperty(
+            value = "The ids of the output ports in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet "
+                    + "has been created its contents cannot be modified (these ids are ignored during update requests)."
+    )
     public Set<String> getOutputPorts() {
         return outputPorts;
     }
@@ -176,13 +183,13 @@ public class SnippetDTO {
     }
 
     /**
-     * The ids of the process groups in this snippet. These ids will be
-     * populated within each response. They can be specified when creating a
-     * snippet. However, once a snippet has been created its contents cannot be
-     * modified (these ids are ignored during update requests).
-     *
-     * @return
+     * @return The ids of the process groups in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet has been created
+     * its contents cannot be modified (these ids are ignored during update requests)
      */
+    @ApiModelProperty(
+            value = "The ids of the process groups in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet "
+                    + "has been created its contents cannot be modified (these ids are ignored during update requests)."
+    )
     public Set<String> getProcessGroups() {
         return processGroups;
     }
@@ -192,13 +199,13 @@ public class SnippetDTO {
     }
 
     /**
-     * The ids of the processors in this snippet. These ids will be populated
-     * within each response. They can be specified when creating a snippet.
-     * However, once a snippet has been created its contents cannot be modified
-     * (these ids are ignored during update requests).
-     *
-     * @return
+     * @return The ids of the processors in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet has been created its
+     * contents cannot be modified (these ids are ignored during update requests)
      */
+    @ApiModelProperty(
+            value = "The ids of the processors in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet "
+                    + "has been created its contents cannot be modified (these ids are ignored during update requests)."
+    )
     public Set<String> getProcessors() {
         return processors;
     }
@@ -208,13 +215,13 @@ public class SnippetDTO {
     }
 
     /**
-     * The ids of the remote process groups in this snippet. These ids will be
-     * populated within each response. They can be specified when creating a
-     * snippet. However, once a snippet has been created its contents cannot be
-     * modified (these ids are ignored during update requests).
-     *
-     * @return
+     * @return the ids of the remote process groups in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet has been
+     * created its contents cannot be modified (these ids are ignored during update requests)
      */
+    @ApiModelProperty(
+            value = "The ids of the remote process groups in this snippet. These ids will be populated within each response. They can be specified when creating a snippet. However, once a snippet "
+                    + "has been created its contents cannot be modified (these ids are ignored during update requests)."
+    )
     public Set<String> getRemoteProcessGroups() {
         return remoteProcessGroups;
     }
@@ -224,10 +231,11 @@ public class SnippetDTO {
     }
 
     /**
-     * The contents of the configuration for this snippet.
-     *
-     * @return
+     * @return the contents of the configuration for this snippet
      */
+    @ApiModelProperty(
+            value = "The contents of the configuration for the snippet."
+    )
     public FlowSnippetDTO getContents() {
         return contents;
     }

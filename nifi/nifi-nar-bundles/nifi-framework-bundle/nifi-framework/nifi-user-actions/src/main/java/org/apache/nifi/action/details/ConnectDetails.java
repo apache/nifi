@@ -86,5 +86,5 @@ public class ConnectDetails extends ActionDetails {
     public void setRelationship(String relationship) {
         this.relationship = relationship;
     }
-    
+
 }

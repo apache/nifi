@@ -45,20 +45,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Implements a listener for protocol messages sent over multicast.  If a message
+ * Implements a listener for protocol messages sent over multicast. If a message
  * is of type MulticastProtocolMessage, then the underlying protocol message is
- * passed to the handler.  If the receiving handler produces a message response,
- * then the message is wrapped with a MulticastProtocolMessage before being 
- * sent to the originator.
- * 
- * The client caller is responsible for starting and stopping the listener.
- * The instance must be stopped before termination of the JVM to ensure proper
+ * passed to the handler. If the receiving handler produces a message response,
+ * then the message is wrapped with a MulticastProtocolMessage before being sent
+ * to the originator.
+ *
+ * The client caller is responsible for starting and stopping the listener. The
+ * instance must be stopped before termination of the JVM to ensure proper
  * resource clean-up.
- * 
- * @author unattributed
+ *
  */
 public class MulticastProtocolListener extends MulticastListener implements ProtocolListener {
-    
+
     private static final Logger logger = new NiFiLog(LoggerFactory.getLogger(MulticastProtocolListener.class));
 
     // immutable members
@@ -74,7 +73,7 @@ public class MulticastProtocolListener extends MulticastListener implements Prot
             final ProtocolContext<ProtocolMessage> protocolContext) {
 
         super(numThreads, multicastAddress, configuration);
-        
+
         if (protocolContext == null) {
             throw new IllegalArgumentException("Protocol Context may not be null.");
         }
@@ -89,21 +88,21 @@ public class MulticastProtocolListener extends MulticastListener implements Prot
     @Override
     public void start() throws IOException {
 
-        if(super.isRunning()) {
+        if (super.isRunning()) {
             throw new IllegalStateException("Instance is already started.");
         }
-        
+
         super.start();
-        
+
     }
 
     @Override
     public void stop() throws IOException {
 
-        if(super.isRunning() == false) {
+        if (super.isRunning() == false) {
             throw new IllegalStateException("Instance is already stopped.");
         }
-        
+
         // shutdown listener
         super.stop();
 
@@ -116,17 +115,17 @@ public class MulticastProtocolListener extends MulticastListener implements Prot
 
     @Override
     public void addHandler(final ProtocolHandler handler) {
-        if(handler == null) {
+        if (handler == null) {
             throw new NullPointerException("Protocol handler may not be null.");
         }
         handlers.add(handler);
     }
-    
+
     @Override
     public boolean removeHandler(final ProtocolHandler handler) {
         return handlers.remove(handler);
     }
-    
+
     @Override
     public void dispatchRequest(final MulticastSocket multicastSocket, final DatagramPacket packet) {
 
@@ -138,10 +137,10 @@ public class MulticastProtocolListener extends MulticastListener implements Prot
 
             // unwrap multicast message, if necessary
             final ProtocolMessage unwrappedRequest;
-            if(request instanceof MulticastProtocolMessage) {
+            if (request instanceof MulticastProtocolMessage) {
                 final MulticastProtocolMessage multicastRequest = (MulticastProtocolMessage) request;
                 // don't process a message we sent
-                if(listenerId.equals(multicastRequest.getId())) {
+                if (listenerId.equals(multicastRequest.getId())) {
                     return;
                 } else {
                     unwrappedRequest = multicastRequest.getProtocolMessage();
@@ -149,7 +148,7 @@ public class MulticastProtocolListener extends MulticastListener implements Prot
             } else {
                 unwrappedRequest = request;
             }
-            
+
             // dispatch message to handler
             ProtocolHandler desiredHandler = null;
             for (final ProtocolHandler handler : getHandlers()) {
@@ -164,28 +163,28 @@ public class MulticastProtocolListener extends MulticastListener implements Prot
                 throw new ProtocolException("No handler assigned to handle message type: " + request.getType());
             } else {
                 final ProtocolMessage response = desiredHandler.handle(request);
-                if(response != null) {
+                if (response != null) {
                     try {
-                        
+
                         // wrap with listener id
                         final MulticastProtocolMessage multicastResponse = new MulticastProtocolMessage(listenerId, response);
-                        
+
                         // marshal message
                         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
                         final ProtocolMessageMarshaller<ProtocolMessage> marshaller = protocolContext.createMarshaller();
                         marshaller.marshal(multicastResponse, baos);
                         final byte[] responseBytes = baos.toByteArray();
-                        
+
                         final int maxPacketSizeBytes = getMaxPacketSizeBytes();
-                        if(responseBytes.length > maxPacketSizeBytes) {
-                            logger.warn("Cluster protocol handler '" + desiredHandler.getClass() + 
-                                "' produced a multicast response with length greater than configured max packet size '" + maxPacketSizeBytes + "'");
+                        if (responseBytes.length > maxPacketSizeBytes) {
+                            logger.warn("Cluster protocol handler '" + desiredHandler.getClass()
+                                    + "' produced a multicast response with length greater than configured max packet size '" + maxPacketSizeBytes + "'");
                         }
-                        
+
                         // create and send packet
-                        final DatagramPacket responseDatagram = new DatagramPacket(responseBytes, responseBytes.length, getMulticastAddress().getAddress(), getMulticastAddress().getPort()); 
+                        final DatagramPacket responseDatagram = new DatagramPacket(responseBytes, responseBytes.length, getMulticastAddress().getAddress(), getMulticastAddress().getPort());
                         multicastSocket.send(responseDatagram);
-                        
+
                     } catch (final IOException ioe) {
                         throw new ProtocolException("Failed marshalling protocol message in response to message type: " + request.getType() + " due to: " + ioe, ioe);
                     }
@@ -194,8 +193,8 @@ public class MulticastProtocolListener extends MulticastListener implements Prot
 
         } catch (final Throwable t) {
             logger.warn("Failed processing protocol message due to " + t, t);
-            
-            if ( bulletinRepository != null ) {
+
+            if (bulletinRepository != null) {
                 final Bulletin bulletin = BulletinFactory.createBulletin("Clustering", "WARNING", "Failed to process Protocol Message due to " + t.toString());
                 bulletinRepository.addBulletin(bulletin);
             }

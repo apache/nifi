@@ -21,15 +21,15 @@ import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.cluster.protocol.ConnectionRequest;
 
 /**
- * @author unattributed
  */
 @XmlRootElement(name = "connectionRequestMessage")
 public class ConnectionRequestMessage extends ProtocolMessage {
-    
+
     private ConnectionRequest connectionRequest;
-    
-    public ConnectionRequestMessage() {}
-    
+
+    public ConnectionRequestMessage() {
+    }
+
     public ConnectionRequest getConnectionRequest() {
         return connectionRequest;
     }
@@ -37,7 +37,7 @@ public class ConnectionRequestMessage extends ProtocolMessage {
     public void setConnectionRequest(ConnectionRequest connectionRequest) {
         this.connectionRequest = connectionRequest;
     }
-    
+
     @Override
     public MessageType getType() {
         return MessageType.CONNECTION_REQUEST;

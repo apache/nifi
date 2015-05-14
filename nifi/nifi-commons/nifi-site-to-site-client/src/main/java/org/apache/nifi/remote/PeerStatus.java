@@ -17,6 +17,7 @@
 package org.apache.nifi.remote;
 
 public class PeerStatus {
+
     private final PeerDescription description;
     private final int numFlowFiles;
 
@@ -28,15 +29,15 @@ public class PeerStatus {
     public PeerDescription getPeerDescription() {
         return description;
     }
-    
+
     public int getFlowFileCount() {
         return numFlowFiles;
     }
 
     @Override
     public String toString() {
-        return "PeerStatus[hostname=" + description.getHostname() + ",port=" + description.getPort() + 
-                ",secure=" + description.isSecure() + ",flowFileCount=" + numFlowFiles + "]";
+        return "PeerStatus[hostname=" + description.getHostname() + ",port=" + description.getPort()
+                + ",secure=" + description.isSecure() + ",flowFileCount=" + numFlowFiles + "]";
     }
 
     @Override

@@ -16,25 +16,17 @@
  */
 package org.apache.nifi.provenance.lucene;
 
-import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.Term;
 import org.apache.nifi.provenance.IndexConfiguration;
 import org.apache.nifi.provenance.PersistentProvenanceRepository;
-import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.apache.nifi.provenance.expiration.ExpirationAction;
 import org.apache.nifi.provenance.serialization.RecordReader;
 import org.apache.nifi.provenance.serialization.RecordReaders;
-
-import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.index.Term;
-import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.FSDirectory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,10 +35,12 @@ public class DeleteIndexAction implements ExpirationAction {
     private static final Logger logger = LoggerFactory.getLogger(DeleteIndexAction.class);
     private final PersistentProvenanceRepository repository;
     private final IndexConfiguration indexConfiguration;
+    private final IndexManager indexManager;
 
-    public DeleteIndexAction(final PersistentProvenanceRepository repo, final IndexConfiguration indexConfiguration) {
+    public DeleteIndexAction(final PersistentProvenanceRepository repo, final IndexConfiguration indexConfiguration, final IndexManager indexManager) {
         this.repository = repo;
         this.indexConfiguration = indexConfiguration;
+        this.indexManager = indexManager;
     }
 
     @Override
@@ -55,48 +49,35 @@ public class DeleteIndexAction implements ExpirationAction {
         long numDeleted = 0;
         long maxEventId = -1L;
         try (final RecordReader reader = RecordReaders.newRecordReader(expiredFile, repository.getAllLogFiles())) {
-            try {
-                StandardProvenanceEventRecord record;
-                while ((record = reader.nextRecord()) != null) {
-                    numDeleted++;
-
-                    if (record.getEventId() > maxEventId) {
-                        maxEventId = record.getEventId();
-                    }
-                }
-            } catch (final EOFException eof) {
-                // finished reading -- the last record was not completely written out, so it is discarded.
-            }
-        } catch (final EOFException eof) {
-            // no data in file.
-            return expiredFile;
+            maxEventId = reader.getMaxEventId();
+        } catch (final IOException ioe) {
+            logger.warn("Failed to obtain max ID present in journal file {}", expiredFile.getAbsolutePath());
         }
 
         // remove the records from the index
         final List<File> indexDirs = indexConfiguration.getIndexDirectories(expiredFile);
         for (final File indexingDirectory : indexDirs) {
-            try (final Directory directory = FSDirectory.open(indexingDirectory);
-                    final Analyzer analyzer = new StandardAnalyzer()) {
-                IndexWriterConfig config = new IndexWriterConfig(LuceneUtil.LUCENE_VERSION, analyzer);
-                config.setWriteLockTimeout(300000L);
+            final Term term = new Term(FieldNames.STORAGE_FILENAME, LuceneUtil.substringBefore(expiredFile.getName(), "."));
 
-                Term term = new Term(FieldNames.STORAGE_FILENAME, LuceneUtil.substringBefore(expiredFile.getName(), "."));
+            boolean deleteDir = false;
+            final IndexWriter writer = indexManager.borrowIndexWriter(indexingDirectory);
+            try {
+                writer.deleteDocuments(term);
+                writer.commit();
+                final int docsLeft = writer.numDocs();
+                deleteDir = (docsLeft <= 0);
+                logger.debug("After expiring {}, there are {} docs left for index {}", expiredFile, docsLeft, indexingDirectory);
+            } finally {
+                indexManager.returnIndexWriter(indexingDirectory, writer);
+            }
 
-                boolean deleteDir = false;
-                try (final IndexWriter indexWriter = new IndexWriter(directory, config)) {
-                    indexWriter.deleteDocuments(term);
-                    indexWriter.commit();
-                    final int docsLeft = indexWriter.numDocs();
-                    deleteDir = (docsLeft <= 0);
-                    logger.debug("After expiring {}, there are {} docs left for index {}", expiredFile, docsLeft, indexingDirectory);
-                }
+            // we've confirmed that all documents have been removed. Delete the index directory.
+            if (deleteDir) {
+                indexManager.removeIndex(indexingDirectory);
+                indexConfiguration.removeIndexDirectory(indexingDirectory);
 
-                // we've confirmed that all documents have been removed. Delete the index directory.
-                if (deleteDir) {
-                    indexConfiguration.removeIndexDirectory(indexingDirectory);
-                    deleteDirectory(indexingDirectory);
-                    logger.info("Removed empty index directory {}", indexingDirectory);
-                }
+                deleteDirectory(indexingDirectory);
+                logger.info("Removed empty index directory {}", indexingDirectory);
             }
         }
 

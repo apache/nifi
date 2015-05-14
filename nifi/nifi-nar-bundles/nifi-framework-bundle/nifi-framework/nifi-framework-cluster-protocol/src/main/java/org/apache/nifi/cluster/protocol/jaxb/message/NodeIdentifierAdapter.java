@@ -20,13 +20,12 @@ import javax.xml.bind.annotation.adapters.XmlAdapter;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 
 /**
- * @author unattributed
  */
 public class NodeIdentifierAdapter extends XmlAdapter<AdaptedNodeIdentifier, NodeIdentifier> {
 
     @Override
     public AdaptedNodeIdentifier marshal(final NodeIdentifier ni) {
-        if(ni == null) {
+        if (ni == null) {
             return null;
         } else {
             final AdaptedNodeIdentifier aNi = new AdaptedNodeIdentifier();
@@ -41,11 +40,11 @@ public class NodeIdentifierAdapter extends XmlAdapter<AdaptedNodeIdentifier, Nod
 
     @Override
     public NodeIdentifier unmarshal(final AdaptedNodeIdentifier aNi) {
-        if(aNi == null) {
+        if (aNi == null) {
             return null;
         } else {
             return new NodeIdentifier(aNi.getId(), aNi.getApiAddress(), aNi.getApiPort(), aNi.getSocketAddress(), aNi.getSocketPort());
         }
     }
- 
+
 }

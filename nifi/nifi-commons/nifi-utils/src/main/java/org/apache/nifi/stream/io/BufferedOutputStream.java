@@ -21,11 +21,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 /**
- * This class is a slight modification of the
- * {@link java.io.BufferedOutputStream} class. This implementation differs in
- * that it does not mark methods as synchronized. This means that this class is
- * not suitable for writing by multiple concurrent threads. However, the removal
- * of the synchronized keyword results in potentially much better performance.
+ * This class is a slight modification of the {@link java.io.BufferedOutputStream} class. This implementation differs in that it does not mark methods as synchronized. This means that this class is
+ * not suitable for writing by multiple concurrent threads. However, the removal of the synchronized keyword results in potentially much better performance.
  */
 public class BufferedOutputStream extends FilterOutputStream {
 
@@ -35,15 +32,13 @@ public class BufferedOutputStream extends FilterOutputStream {
     protected byte buf[];
 
     /**
-     * The number of valid bytes in the buffer. This value is always in the
-     * range <tt>0</tt> through <tt>buf.length</tt>; elements
+     * The number of valid bytes in the buffer. This value is always in the range <tt>0</tt> through <tt>buf.length</tt>; elements
      * <tt>buf[0]</tt> through <tt>buf[count-1]</tt> contain valid byte data.
      */
     protected int count;
 
     /**
-     * Creates a new buffered output stream to write data to the specified
-     * underlying output stream.
+     * Creates a new buffered output stream to write data to the specified underlying output stream.
      *
      * @param out the underlying output stream.
      */
@@ -52,8 +47,7 @@ public class BufferedOutputStream extends FilterOutputStream {
     }
 
     /**
-     * Creates a new buffered output stream to write data to the specified
-     * underlying output stream with the specified buffer size.
+     * Creates a new buffered output stream to write data to the specified underlying output stream with the specified buffer size.
      *
      * @param out the underlying output stream.
      * @param size the buffer size.
@@ -92,16 +86,12 @@ public class BufferedOutputStream extends FilterOutputStream {
     }
 
     /**
-     * Writes <code>len</code> bytes from the specified byte array starting at
-     * offset <code>off</code> to this buffered output stream.
+     * Writes <code>len</code> bytes from the specified byte array starting at offset <code>off</code> to this buffered output stream.
      *
      * <p>
-     * Ordinarily this method stores bytes from the given array into this
-     * stream's buffer, flushing the buffer to the underlying output stream as
-     * needed. If the requested length is at least as large as this stream's
-     * buffer, however, then this method will flush the buffer and write the
-     * bytes directly to the underlying output stream. Thus redundant
-     * <code>BufferedOutputStream</code>s will not copy data unnecessarily.
+     * Ordinarily this method stores bytes from the given array into this stream's buffer, flushing the buffer to the underlying output stream as needed. If the requested length is at least as large
+     * as this stream's buffer, however, then this method will flush the buffer and write the bytes directly to the underlying output stream. Thus redundant <code>BufferedOutputStream</code>s will not
+     * copy data unnecessarily.
      *
      * @param b the data.
      * @param off the start offset in the data.
@@ -126,8 +116,7 @@ public class BufferedOutputStream extends FilterOutputStream {
     }
 
     /**
-     * Flushes this buffered output stream. This forces any buffered output
-     * bytes to be written out to the underlying output stream.
+     * Flushes this buffered output stream. This forces any buffered output bytes to be written out to the underlying output stream.
      *
      * @exception IOException if an I/O error occurs.
      * @see java.io.FilterOutputStream#out

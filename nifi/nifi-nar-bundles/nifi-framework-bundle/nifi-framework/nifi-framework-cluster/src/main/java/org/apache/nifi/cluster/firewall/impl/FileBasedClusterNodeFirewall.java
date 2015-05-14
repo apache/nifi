@@ -16,10 +16,14 @@
  */
 package org.apache.nifi.cluster.firewall.impl;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
 import org.apache.commons.net.util.SubnetUtils;
 import org.apache.nifi.cluster.firewall.ClusterNodeFirewall;
 import org.apache.nifi.util.file.FileUtils;
@@ -28,11 +32,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A file-based implementation of the ClusterFirewall interface. The class is
- * configured with a file. If the file is empty, then everything is permissible.
- * Otherwise, the file should contain hostnames or IPs formatted as dotted
- * decimals with an optional CIDR suffix. Each entry must be separated by a
- * newline. An example configuration is given below:
+ * A file-based implementation of the ClusterFirewall interface. The class is configured with a file. If the file is empty, then everything is permissible. Otherwise, the file should contain hostnames
+ * or IPs formatted as dotted decimals with an optional CIDR suffix. Each entry must be separated by a newline. An example configuration is given below:
  *
  * <code>
  * # hash character is a comment delimiter
@@ -42,12 +43,9 @@ import org.slf4j.LoggerFactory;
  * 9.10.11.12/13   # a smaller range of CIDR IPs
  * </code>
  *
- * This class allows for synchronization with an optionally configured restore
- * directory. If configured, then at startup, if the either the config file or
- * the restore directory's copy is missing, then the configuration file will be
- * copied to the appropriate location. If both restore directory contains a copy
- * that is different in content to configuration file, then an exception is
- * thrown at construction time.
+ * This class allows for synchronization with an optionally configured restore directory. If configured, then at startup, if the either the config file or the restore directory's copy is missing, then
+ * the configuration file will be copied to the appropriate location. If both restore directory contains a copy that is different in content to configuration file, then an exception is thrown at
+ * construction time.
  */
 public class FileBasedClusterNodeFirewall implements ClusterNodeFirewall {
 
@@ -103,7 +101,7 @@ public class FileBasedClusterNodeFirewall implements ClusterNodeFirewall {
             try {
                 ip = InetAddress.getByName(hostOrIp).getHostAddress();
             } catch (final UnknownHostException uhe) {
-                logger.warn("Blocking unknown host: " + hostOrIp, uhe);
+                logger.warn("Blocking unknown host '{}'", hostOrIp, uhe);
                 return false;
             }
 
@@ -115,9 +113,11 @@ public class FileBasedClusterNodeFirewall implements ClusterNodeFirewall {
             }
 
             // no match
+            logger.debug("Blocking host '{}' because it does not match our allowed list.", hostOrIp);
             return false;
 
         } catch (final IllegalArgumentException iae) {
+            logger.debug("Blocking requested host, '{}', because it is malformed.", hostOrIp, iae);
             return false;
         }
     }
@@ -168,30 +168,30 @@ public class FileBasedClusterNodeFirewall implements ClusterNodeFirewall {
                 if (ipOrHostLine.contains("/")) {
                     ipCidr = ipOrHostLine;
                 } else if (ipOrHostLine.contains("\\")) {
-                    logger.warn("CIDR IP notation uses forward slashes '/'.  Replacing backslash '\\' with forward slash'/' for '" + ipOrHostLine + "'");
+                    logger.warn("CIDR IP notation uses forward slashes '/'.  Replacing backslash '\\' with forward slash'/' for '{}'", ipOrHostLine);
                     ipCidr = ipOrHostLine.replace("\\", "/");
                 } else {
                     try {
                         ipCidr = InetAddress.getByName(ipOrHostLine).getHostAddress();
                         if (!ipOrHostLine.equals(ipCidr)) {
-                            logger.debug(String.format("Resolved host '%s' to ip '%s'", ipOrHostLine, ipCidr));
+                            logger.debug("Resolved host '{}' to ip '{}'", ipOrHostLine, ipCidr);
                         }
                         ipCidr += "/32";
-                        logger.debug("Adding CIDR to exact IP: " + ipCidr);
+                        logger.debug("Adding CIDR to exact IP: '{}'", ipCidr);
                     } catch (final UnknownHostException uhe) {
-                        logger.warn("Firewall is skipping unknown host address: " + ipOrHostLine);
+                        logger.warn("Firewall is skipping unknown host address: '{}'", ipOrHostLine);
                         continue;
                     }
                 }
 
                 try {
-                    logger.debug("Adding CIDR IP to firewall: " + ipCidr);
+                    logger.debug("Adding CIDR IP to firewall: '{}'", ipCidr);
                     final SubnetUtils subnetUtils = new SubnetUtils(ipCidr);
                     subnetUtils.setInclusiveHostCount(true);
                     subnetInfos.add(subnetUtils.getInfo());
                     totalIpsAdded++;
                 } catch (final IllegalArgumentException iae) {
-                    logger.warn("Firewall is skipping invalid CIDR address: " + ipOrHostLine);
+                    logger.warn("Firewall is skipping invalid CIDR address: '{}'", ipOrHostLine);
                 }
 
             }
@@ -199,7 +199,7 @@ public class FileBasedClusterNodeFirewall implements ClusterNodeFirewall {
             if (totalIpsAdded == 0) {
                 logger.info("No IPs added to firewall.  Firewall will accept all requests.");
             } else {
-                logger.info(String.format("Added %d IP(s) to firewall.  Only requests originating from the configured IPs will be accepted.", totalIpsAdded));
+                logger.info("Added {} IP(s) to firewall.  Only requests originating from the configured IPs will be accepted.", totalIpsAdded);
             }
 
         }

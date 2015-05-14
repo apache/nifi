@@ -24,8 +24,7 @@ import java.util.Arrays;
 import org.apache.commons.codec.binary.Base64;
 
 /**
- * An InputStream that throws an IOException if any byte is read that is not a
- * valid Base64 character. Whitespace is considered valid.
+ * An InputStream that throws an IOException if any byte is read that is not a valid Base64 character. Whitespace is considered valid.
  */
 public class ValidatingBase64InputStream extends FilterInputStream {
 

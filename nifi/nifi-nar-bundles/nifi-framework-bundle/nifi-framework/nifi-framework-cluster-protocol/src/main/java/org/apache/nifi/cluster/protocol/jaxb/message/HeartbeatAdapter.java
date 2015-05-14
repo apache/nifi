@@ -20,29 +20,28 @@ import javax.xml.bind.annotation.adapters.XmlAdapter;
 import org.apache.nifi.cluster.protocol.Heartbeat;
 
 /**
- * @author unattributed
  */
 public class HeartbeatAdapter extends XmlAdapter<AdaptedHeartbeat, Heartbeat> {
 
     @Override
     public AdaptedHeartbeat marshal(final Heartbeat hb) {
-        
+
         final AdaptedHeartbeat aHb = new AdaptedHeartbeat();
-        
-        if(hb != null) {
+
+        if (hb != null) {
             // set node identifier
             aHb.setNodeIdentifier(hb.getNodeIdentifier());
 
             // set payload
             aHb.setPayload(hb.getPayload());
-            
+
             // set leader flag
             aHb.setPrimary(hb.isPrimary());
-            
+
             // set connected flag
             aHb.setConnected(hb.isConnected());
         }
-        
+
         return aHb;
     }
 
@@ -50,5 +49,5 @@ public class HeartbeatAdapter extends XmlAdapter<AdaptedHeartbeat, Heartbeat> {
     public Heartbeat unmarshal(final AdaptedHeartbeat aHb) {
         return new Heartbeat(aHb.getNodeIdentifier(), aHb.isPrimary(), aHb.isConnected(), aHb.getPayload());
     }
- 
+
 }

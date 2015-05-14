@@ -30,9 +30,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.FactoryBean;
 
-/**
- *
- */
 public class UserDataSourceFactoryBean implements FactoryBean {
 
     private static final Logger logger = LoggerFactory.getLogger(UserDataSourceFactoryBean.class);
@@ -196,12 +193,6 @@ public class UserDataSourceFactoryBean implements FactoryBean {
         return connectionPool;
     }
 
-    /**
-     * Get the database url for the specified database file.
-     *
-     * @param databaseFile
-     * @return
-     */
     private String getDatabaseUrl(File databaseFile) {
         String databaseUrl = "jdbc:h2:" + databaseFile + ";AUTOCOMMIT=OFF;DB_CLOSE_ON_EXIT=FALSE;LOCK_MODE=3";
         String databaseUrlAppend = properties.getProperty(NiFiProperties.H2_URL_APPEND);
@@ -225,9 +216,6 @@ public class UserDataSourceFactoryBean implements FactoryBean {
         this.properties = properties;
     }
 
-    /**
-     * Disposes resources.
-     */
     public void shutdown() {
 
         // shutdown the connection pool

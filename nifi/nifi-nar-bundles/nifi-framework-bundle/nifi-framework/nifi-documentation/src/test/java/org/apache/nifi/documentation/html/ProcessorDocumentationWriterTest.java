@@ -31,73 +31,72 @@ import org.junit.Test;
 
 public class ProcessorDocumentationWriterTest {
 
-	@Test
-	public void testFullyDocumentedProcessor() throws IOException {
-		FullyDocumentedProcessor processor = new FullyDocumentedProcessor();
-		processor.initialize(new MockProcessorInitializationContext());
+    @Test
+    public void testFullyDocumentedProcessor() throws IOException {
+        FullyDocumentedProcessor processor = new FullyDocumentedProcessor();
+        processor.initialize(new MockProcessorInitializationContext());
 
-		DocumentationWriter writer = new HtmlProcessorDocumentationWriter();
+        DocumentationWriter writer = new HtmlProcessorDocumentationWriter();
 
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-		writer.write(processor, baos, false);
-	
-		String results = new String(baos.toByteArray());
-		XmlValidator.assertXmlValid(results);
+        writer.write(processor, baos, false);
 
-		assertContains(results, FullyDocumentedProcessor.DIRECTORY.getDisplayName());
-		assertContains(results, FullyDocumentedProcessor.DIRECTORY.getDescription());
-		assertContains(results, FullyDocumentedProcessor.OPTIONAL_PROPERTY.getDisplayName());
-		assertContains(results, FullyDocumentedProcessor.OPTIONAL_PROPERTY.getDescription());
-		assertContains(results, FullyDocumentedProcessor.POLLING_INTERVAL.getDisplayName());
-		assertContains(results, FullyDocumentedProcessor.POLLING_INTERVAL.getDescription());
-		assertContains(results, FullyDocumentedProcessor.POLLING_INTERVAL.getDefaultValue());
-		assertContains(results, FullyDocumentedProcessor.RECURSE.getDisplayName());
-		assertContains(results, FullyDocumentedProcessor.RECURSE.getDescription());
+        String results = new String(baos.toByteArray());
+        XmlValidator.assertXmlValid(results);
 
-		assertContains(results, FullyDocumentedProcessor.REL_SUCCESS.getName());
-		assertContains(results, FullyDocumentedProcessor.REL_SUCCESS.getDescription());
-		assertContains(results, FullyDocumentedProcessor.REL_FAILURE.getName());
-		assertContains(results, FullyDocumentedProcessor.REL_FAILURE.getDescription());
-		assertContains(results, "Controller Service: ");
-		assertContains(results, "SampleService");
+        assertContains(results, FullyDocumentedProcessor.DIRECTORY.getDisplayName());
+        assertContains(results, FullyDocumentedProcessor.DIRECTORY.getDescription());
+        assertContains(results, FullyDocumentedProcessor.OPTIONAL_PROPERTY.getDisplayName());
+        assertContains(results, FullyDocumentedProcessor.OPTIONAL_PROPERTY.getDescription());
+        assertContains(results, FullyDocumentedProcessor.POLLING_INTERVAL.getDisplayName());
+        assertContains(results, FullyDocumentedProcessor.POLLING_INTERVAL.getDescription());
+        assertContains(results, FullyDocumentedProcessor.POLLING_INTERVAL.getDefaultValue());
+        assertContains(results, FullyDocumentedProcessor.RECURSE.getDisplayName());
+        assertContains(results, FullyDocumentedProcessor.RECURSE.getDescription());
 
-		assertNotContains(results, "iconSecure.png");
-		assertContains(results, FullyDocumentedProcessor.class.getAnnotation(CapabilityDescription.class)
-				.value());
-		assertNotContains(results, "This component has no required or optional properties.");
-		assertNotContains(results, "No description provided.");
-		assertNotContains(results, "No Tags provided.");
-		assertNotContains(results, "Additional Details...");
-	}
+        assertContains(results, FullyDocumentedProcessor.REL_SUCCESS.getName());
+        assertContains(results, FullyDocumentedProcessor.REL_SUCCESS.getDescription());
+        assertContains(results, FullyDocumentedProcessor.REL_FAILURE.getName());
+        assertContains(results, FullyDocumentedProcessor.REL_FAILURE.getDescription());
+        assertContains(results, "Controller Service API: ");
+        assertContains(results, "SampleService");
 
-	@Test
-	public void testNakedProcessor() throws IOException {
-		NakedProcessor processor = new NakedProcessor();
-		processor.initialize(new MockProcessorInitializationContext());
+        assertNotContains(results, "iconSecure.png");
+        assertContains(results, FullyDocumentedProcessor.class.getAnnotation(CapabilityDescription.class)
+                .value());
+        assertNotContains(results, "This component has no required or optional properties.");
+        assertNotContains(results, "No description provided.");
+        assertNotContains(results, "No Tags provided.");
+        assertNotContains(results, "Additional Details...");
+    }
 
-		DocumentationWriter writer = new HtmlProcessorDocumentationWriter();
+    @Test
+    public void testNakedProcessor() throws IOException {
+        NakedProcessor processor = new NakedProcessor();
+        processor.initialize(new MockProcessorInitializationContext());
 
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DocumentationWriter writer = new HtmlProcessorDocumentationWriter();
 
-		writer.write(processor, baos, false);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-		String results = new String(baos.toByteArray());
-		XmlValidator.assertXmlValid(results);
-		
-		// no description
-		assertContains(results, "No description provided.");
-		
-		// no tags
-		assertContains(results, "None.");
-		
-		// properties
-		assertContains(results, "This component has no required or optional properties.");
-		
-		// relationships
-		assertContains(results, "This processor has no relationships.");
-		
+        writer.write(processor, baos, false);
 
-	}
+        String results = new String(baos.toByteArray());
+        XmlValidator.assertXmlValid(results);
+
+        // no description
+        assertContains(results, "No description provided.");
+
+        // no tags
+        assertContains(results, "None.");
+
+        // properties
+        assertContains(results, "This component has no required or optional properties.");
+
+        // relationships
+        assertContains(results, "This processor has no relationships.");
+
+    }
 
 }

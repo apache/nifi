@@ -19,18 +19,18 @@ package org.apache.nifi.cluster.protocol.message;
 import javax.xml.bind.annotation.XmlRootElement;
 
 /**
- * @author unattributed
  */
 @XmlRootElement(name = "serviceBroadcastMessage")
 public class ServiceBroadcastMessage extends ProtocolMessage {
 
     private String serviceName;
-    
+
     private String address;
-    
+
     private int port;
-    
-    public ServiceBroadcastMessage() {}
+
+    public ServiceBroadcastMessage() {
+    }
 
     public String getServiceName() {
         return serviceName;

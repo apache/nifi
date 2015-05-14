@@ -18,7 +18,8 @@ package org.apache.nifi.web;
 
 /**
  * Response object that captures some configuration for a given revision.
- * @param <T>
+ *
+ * @param <T> type of snapshot
  */
 public class ConfigurationSnapshot<T> {
 

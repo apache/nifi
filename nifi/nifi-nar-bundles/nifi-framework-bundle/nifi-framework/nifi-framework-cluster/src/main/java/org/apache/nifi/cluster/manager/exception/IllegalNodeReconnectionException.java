@@ -17,10 +17,8 @@
 package org.apache.nifi.cluster.manager.exception;
 
 /**
- * Represents the exceptional case when a reconnection request is issued to a
- * node that cannot be reconnected (e.g., the node is not disconnected).
+ * Represents the exceptional case when a reconnection request is issued to a node that cannot be reconnected (e.g., the node is not disconnected).
  *
- * @author unattributed
  */
 public class IllegalNodeReconnectionException extends IllegalClusterStateException {
 

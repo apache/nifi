@@ -57,5 +57,5 @@ public class MoveDetails extends ActionDetails {
     public void setPreviousGroupId(String previousGroupId) {
         this.previousGroupId = previousGroupId;
     }
-    
+
 }

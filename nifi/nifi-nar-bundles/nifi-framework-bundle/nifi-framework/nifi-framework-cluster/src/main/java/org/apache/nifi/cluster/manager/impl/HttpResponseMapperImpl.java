@@ -33,14 +33,10 @@ import org.slf4j.LoggerFactory;
  *
  * The algorithm is as follows.
  *
- * If any HTTP responses were 2XX, then disconnect non-2XX responses. This is
- * because 2XX may have changed a node's flow.
+ * If any HTTP responses were 2XX, then disconnect non-2XX responses. This is because 2XX may have changed a node's flow.
  *
- * If no 2XX responses were received, then the node's flow has not changed.
- * Instead of disconnecting everything, we only disconnect the nodes with
- * internal errors, i.e., 5XX responses.
+ * If no 2XX responses were received, then the node's flow has not changed. Instead of disconnecting everything, we only disconnect the nodes with internal errors, i.e., 5XX responses.
  *
- * @author unattributed
  */
 public class HttpResponseMapperImpl implements HttpResponseMapper {
 
@@ -60,7 +56,7 @@ public class HttpResponseMapperImpl implements HttpResponseMapper {
             }
         }
 
-        // determine the status of each node 
+        // determine the status of each node
         for (final NodeResponse nodeResponse : nodeResponses) {
 
             final Node.Status status;

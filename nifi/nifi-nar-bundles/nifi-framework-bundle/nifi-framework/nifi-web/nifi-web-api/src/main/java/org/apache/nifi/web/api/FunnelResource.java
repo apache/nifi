@@ -16,6 +16,12 @@
  */
 package org.apache.nifi.web.api;
 
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+import com.wordnik.swagger.annotations.Authorization;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
@@ -53,7 +59,6 @@ import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.DoubleParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 import org.apache.commons.lang3.StringUtils;
-import org.codehaus.enunciate.jaxrs.TypeHint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -61,6 +66,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 /**
  * RESTful endpoint for managing a Funnel.
  */
+@Api(hidden = true)
 public class FunnelResource extends ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(FunnelResource.class);
@@ -72,8 +78,9 @@ public class FunnelResource extends ApplicationResource {
 
     /**
      * Populates the uri for the specified funnels.
-     * @param funnels
-     * @return 
+     *
+     * @param funnels funnels
+     * @return funnels
      */
     public Set<FunnelDTO> populateRemainingFunnelsContent(Set<FunnelDTO> funnels) {
         for (FunnelDTO funnel : funnels) {
@@ -100,10 +107,34 @@ public class FunnelResource extends ApplicationResource {
      * @return A funnelsEntity.
      */
     @GET
+    @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Path("") // necessary due to bug in swagger
     @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
-    @TypeHint(FunnelsEntity.class)
-    public Response getFunnels(@QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
+    @ApiOperation(
+            value = "Gets all funnels",
+            response = FunnelsEntity.class,
+            authorizations = {
+                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getFunnels(
+            @ApiParam(
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+                    required = false
+            )
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
@@ -129,7 +160,7 @@ public class FunnelResource extends ApplicationResource {
     /**
      * Creates a new funnel.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param version The revision is used to verify the client is working with
      * the latest version of the flow.
      * @param clientId Optional client id. If the client id is not specified, a
@@ -142,8 +173,8 @@ public class FunnelResource extends ApplicationResource {
     @POST
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Path("") // necessary due to bug in swagger
     @PreAuthorize("hasRole('ROLE_DFM')")
-    @TypeHint(FunnelEntity.class)
     public Response createFunnel(
             @Context HttpServletRequest httpServletRequest,
             @FormParam(VERSION) LongParameter version,
@@ -178,18 +209,37 @@ public class FunnelResource extends ApplicationResource {
     /**
      * Creates a new Funnel.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param funnelEntity A funnelEntity.
      * @return A funnelEntity.
      */
     @POST
     @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Path("") // necessary due to bug in swagger
     @PreAuthorize("hasRole('ROLE_DFM')")
-    @TypeHint(FunnelEntity.class)
+    @ApiOperation(
+            value = "Creates a funnel",
+            response = FunnelEntity.class,
+            authorizations = {
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response createFunnel(
             @Context HttpServletRequest httpServletRequest,
-            FunnelEntity funnelEntity) {
+            @ApiParam(
+                    value = "The funnel configuration details.",
+                    required = true
+            ) FunnelEntity funnelEntity) {
 
         if (funnelEntity == null || funnelEntity.getFunnel() == null) {
             throw new IllegalArgumentException("Funnel details must be specified.");
@@ -265,11 +315,39 @@ public class FunnelResource extends ApplicationResource {
      * @return A funnelEntity.
      */
     @GET
+    @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("{id}")
     @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
-    @TypeHint(FunnelEntity.class)
-    public Response getFunnel(@QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId, @PathParam("id") String id) {
+    @ApiOperation(
+            value = "Gets a funnel",
+            response = FunnelEntity.class,
+            authorizations = {
+                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getFunnel(
+            @ApiParam(
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+                    required = false
+            )
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @ApiParam(
+                    value = "The funnel id.",
+                    required = true
+            )
+            @PathParam("id") String id) {
 
         // replicate if cluster manager
         if (properties.isClusterManager()) {
@@ -294,7 +372,7 @@ public class FunnelResource extends ApplicationResource {
     /**
      * Updates the specified funnel.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param version The revision is used to verify the client is working with
      * the latest version of the flow.
      * @param clientId Optional client id. If the client id is not specified, a
@@ -311,7 +389,6 @@ public class FunnelResource extends ApplicationResource {
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("{id}")
     @PreAuthorize("hasRole('ROLE_DFM')")
-    @TypeHint(FunnelEntity.class)
     public Response updateFunnel(
             @Context HttpServletRequest httpServletRequest,
             @FormParam(VERSION) LongParameter version,
@@ -349,7 +426,7 @@ public class FunnelResource extends ApplicationResource {
     /**
      * Creates a new Funnel.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param id The id of the funnel to update.
      * @param funnelEntity A funnelEntity.
      * @return A funnelEntity.
@@ -359,11 +436,33 @@ public class FunnelResource extends ApplicationResource {
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("{id}")
     @PreAuthorize("hasRole('ROLE_DFM')")
-    @TypeHint(FunnelEntity.class)
+    @ApiOperation(
+            value = "Updates a funnel",
+            response = FunnelEntity.class,
+            authorizations = {
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response updateFunnel(
             @Context HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The funnel id.",
+                    required = true
+            )
             @PathParam("id") String id,
-            FunnelEntity funnelEntity) {
+            @ApiParam(
+                    value = "The funnel configuration details.",
+                    required = true
+            ) FunnelEntity funnelEntity) {
 
         if (funnelEntity == null || funnelEntity.getFunnel() == null) {
             throw new IllegalArgumentException("Funnel details must be specified.");
@@ -421,7 +520,7 @@ public class FunnelResource extends ApplicationResource {
     /**
      * Removes the specified funnel.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param version The revision is used to verify the client is working with
      * the latest version of the flow.
      * @param clientId Optional client id. If the client id is not specified, a
@@ -431,14 +530,42 @@ public class FunnelResource extends ApplicationResource {
      * @return A entity containing the client id and an updated revision.
      */
     @DELETE
+    @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("{id}")
     @PreAuthorize("hasRole('ROLE_DFM')")
-    @TypeHint(FunnelEntity.class)
+    @ApiOperation(
+            value = "Deletes a funnel",
+            response = FunnelEntity.class,
+            authorizations = {
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response removeFunnel(
             @Context HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The revision is used to verify the client is working with the latest version of the flow.",
+                    required = false
+            )
             @QueryParam(VERSION) LongParameter version,
+            @ApiParam(
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+                    required = false
+            )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @ApiParam(
+                    value = "The funnel id.",
+                    required = true
+            )
             @PathParam("id") String id) {
 
         // replicate if cluster manager

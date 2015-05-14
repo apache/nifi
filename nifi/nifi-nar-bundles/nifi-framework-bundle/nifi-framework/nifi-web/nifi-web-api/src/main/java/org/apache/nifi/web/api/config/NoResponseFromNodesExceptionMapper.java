@@ -26,8 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Maps the exceptional case when the cluster is unable to service a request
- * because no nodes returned a response.
+ * Maps the exceptional case when the cluster is unable to service a request because no nodes returned a response.
  */
 @Provider
 public class NoResponseFromNodesExceptionMapper implements ExceptionMapper<NoResponseFromNodesException> {

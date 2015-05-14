@@ -16,18 +16,18 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import javax.xml.bind.annotation.XmlType;
 
 /**
- * A component referencing a controller service. This can either be another
- * controller service or a processor. Depending on the type of component
- * different properties may be set.
+ * A component referencing a controller service. This can either be another controller service or a processor. Depending on the type of component different properties may be set.
  */
 @XmlType(name = "controllerServiceReferencingComponent")
 public class ControllerServiceReferencingComponentDTO {
+
     private String groupId;
     private String id;
     private String name;
@@ -36,21 +36,22 @@ public class ControllerServiceReferencingComponentDTO {
 
     private Map<String, String> properties;
     private Map<String, PropertyDescriptorDTO> descriptors;
-    
+
     private Collection<String> validationErrors;
-    
+
     private String referenceType;
     private Integer activeThreadCount;
-    
+
     private Boolean referenceCycle;
     private Set<ControllerServiceReferencingComponentDTO> referencingComponents;
 
     /**
-     * Group id for this component referencing a controller service. If this
-     * component is another service, this field is blank.
-     * 
-     * @return 
+     * @return Group id for this component referencing a controller service. If this component is another service, this field is blank
      */
+    @ApiModelProperty(
+            value = "The group id for the component referencing a controller service. If this component is another controller service or a reporting "
+                    + "task, this field is blank."
+    )
     public String getGroupId() {
         return groupId;
     }
@@ -60,10 +61,11 @@ public class ControllerServiceReferencingComponentDTO {
     }
 
     /**
-     * The id for this component referencing a controller service.
-     * 
-     * @return 
+     * @return id for this component referencing a controller service
      */
+    @ApiModelProperty(
+            value = "The id of the component referencing a controller service."
+    )
     public String getId() {
         return id;
     }
@@ -73,10 +75,11 @@ public class ControllerServiceReferencingComponentDTO {
     }
 
     /**
-     * The name for this component referencing a controller service.
-     * 
-     * @return 
+     * @return name for this component referencing a controller service
      */
+    @ApiModelProperty(
+            value = "The name of the component referencing a controller service."
+    )
     public String getName() {
         return name;
     }
@@ -86,10 +89,11 @@ public class ControllerServiceReferencingComponentDTO {
     }
 
     /**
-     * The type for this component referencing a controller service.
-     * 
-     * @return 
+     * @return type for this component referencing a controller service
      */
+    @ApiModelProperty(
+            value = "The type of the component referencing a controller service."
+    )
     public String getType() {
         return type;
     }
@@ -99,11 +103,12 @@ public class ControllerServiceReferencingComponentDTO {
     }
 
     /**
-     * The state of the processor referencing a controller service. If this
-     * component is another service, this field is blank.
-     * 
-     * @return 
+     * @return state of the processor referencing a controller service. If this component is another service, this field is blank
      */
+    @ApiModelProperty(
+            value = "The state of a processor or reporting task referencing a controller service. If this component is another controller "
+                    + "service, this field is blank."
+    )
     public String getState() {
         return state;
     }
@@ -113,9 +118,12 @@ public class ControllerServiceReferencingComponentDTO {
     }
 
     /**
-     * The type of reference this is (Processor, ControllerService, or ReportingTask).
-     * @return 
+     * @return type of reference this is (Processor, ControllerService, or ReportingTask)
      */
+    @ApiModelProperty(
+            value = "The type of reference this is.",
+            allowableValues = "Processor, ControllerService, or ReportingTask"
+    )
     public String getReferenceType() {
         return referenceType;
     }
@@ -125,10 +133,11 @@ public class ControllerServiceReferencingComponentDTO {
     }
 
     /**
-     * The component properties.
-     * 
-     * @return 
+     * @return component properties
      */
+    @ApiModelProperty(
+            value = "The properties for the component."
+    )
     public Map<String, String> getProperties() {
         return properties;
     }
@@ -138,10 +147,11 @@ public class ControllerServiceReferencingComponentDTO {
     }
 
     /**
-     * The descriptors for the components properties.
-     * 
-     * @return 
+     * @return descriptors for the components properties
      */
+    @ApiModelProperty(
+            value = "The descriptors for the componet properties."
+    )
     public Map<String, PropertyDescriptorDTO> getDescriptors() {
         return descriptors;
     }
@@ -149,12 +159,13 @@ public class ControllerServiceReferencingComponentDTO {
     public void setDescriptors(Map<String, PropertyDescriptorDTO> descriptors) {
         this.descriptors = descriptors;
     }
-    
+
     /**
-     * Any validation error associated with this component.
-     * 
-     * @return 
+     * @return Any validation error associated with this component
      */
+    @ApiModelProperty(
+            value = "The validation errors for the component."
+    )
     public Collection<String> getValidationErrors() {
         return validationErrors;
     }
@@ -162,12 +173,13 @@ public class ControllerServiceReferencingComponentDTO {
     public void setValidationErrors(Collection<String> validationErrors) {
         this.validationErrors = validationErrors;
     }
-    
+
     /**
-     * The active thread count for the referencing component.
-     * 
-     * @return 
+     * @return active thread count for the referencing component
      */
+    @ApiModelProperty(
+            value = "The number of active threads for the referencing component."
+    )
     public Integer getActiveThreadCount() {
         return activeThreadCount;
     }
@@ -177,11 +189,11 @@ public class ControllerServiceReferencingComponentDTO {
     }
 
     /**
-     * If this referencing component represents a ControllerService, these
-     * are the components that reference it.
-     * 
-     * @return 
+     * @return If this referencing component represents a ControllerService, these are the components that reference it
      */
+    @ApiModelProperty(
+            value = "If the referencing component represents a controller service, these are the components that referenc it."
+    )
     public Set<ControllerServiceReferencingComponentDTO> getReferencingComponents() {
         return referencingComponents;
     }
@@ -191,11 +203,11 @@ public class ControllerServiceReferencingComponentDTO {
     }
 
     /**
-     * If this referencing component represents a ControllerService, this indicates
-     * whether it has already been represented in this hierarchy.
-     * 
-     * @return 
+     * @return If this referencing component represents a ControllerService, this indicates whether it has already been represented in this hierarchy
      */
+    @ApiModelProperty(
+            value = "If the referencing component represents a controller service, this indicates whether it has already been represented in this hierarchy."
+    )
     public Boolean getReferenceCycle() {
         return referenceCycle;
     }

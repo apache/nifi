@@ -44,8 +44,7 @@ public class DebugEnabledTimedLock implements DebuggableTimedLock {
     }
 
     /**
-     *
-     * @return
+     * @return true if lock obtained; false otherwise
      */
     @Override
     public boolean tryLock() {
@@ -61,10 +60,9 @@ public class DebugEnabledTimedLock implements DebuggableTimedLock {
     }
 
     /**
-     *
-     * @param timeout
-     * @param timeUnit
-     * @return
+     * @param timeout duration to wait for lock
+     * @param timeUnit unit to understand given duration
+     * @return true if lock obtained in time; false otherwise
      */
     @Override
     public boolean tryLock(final long timeout, final TimeUnit timeUnit) {
@@ -84,9 +82,6 @@ public class DebugEnabledTimedLock implements DebuggableTimedLock {
         return true;
     }
 
-    /**
-     *
-     */
     @Override
     public void lock() {
         logger.trace("Obtaining Lock {}", name);
@@ -96,8 +91,7 @@ public class DebugEnabledTimedLock implements DebuggableTimedLock {
     }
 
     /**
-     *
-     * @param task
+     * @param task to release the lock for
      */
     @Override
     public void unlock(final String task) {

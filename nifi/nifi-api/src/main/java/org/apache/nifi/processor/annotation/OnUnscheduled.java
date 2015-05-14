@@ -36,8 +36,8 @@ import java.lang.annotation.Target;
  * If any method annotated with this annotation throws, the processor will not
  * be scheduled to run.
  *
- * @author none
- * @deprecated This Annotation has been replaced by the {@link org.apache.nifi.annotation.lifecycle.OnUnscheduled} annotation.
+ * @deprecated This Annotation has been replaced by the
+ * {@link org.apache.nifi.annotation.lifecycle.OnUnscheduled} annotation.
  */
 @Documented
 @Target({ElementType.METHOD})

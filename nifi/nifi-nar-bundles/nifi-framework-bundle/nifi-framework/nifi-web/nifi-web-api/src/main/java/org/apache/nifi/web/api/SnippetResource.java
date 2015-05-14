@@ -17,6 +17,12 @@
 package org.apache.nifi.web.api;
 
 import com.sun.jersey.api.core.ResourceContext;
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+import com.wordnik.swagger.annotations.Authorization;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
@@ -53,7 +59,7 @@ import org.apache.nifi.web.api.entity.SnippetEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 import org.apache.commons.lang3.StringUtils;
-import org.codehaus.enunciate.jaxrs.TypeHint;
+import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -61,6 +67,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 /**
  * RESTful endpoint for managing a Snippet.
  */
+@Api(hidden = true)
 public class SnippetResource extends ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(SnippetResource.class);
@@ -77,7 +84,7 @@ public class SnippetResource extends ApplicationResource {
     /**
      * Get the processor resource within the specified group.
      *
-     * @return
+     * @return the processor resource within the specified group
      */
     private ProcessorResource getProcessorResource(final String groupId) {
         ProcessorResource processorResource = resourceContext.getResource(ProcessorResource.class);
@@ -88,7 +95,7 @@ public class SnippetResource extends ApplicationResource {
     /**
      * Get the connection sub-resource within the specified group.
      *
-     * @return
+     * @return the connection sub-resource within the specified group
      */
     private ConnectionResource getConnectionResource(final String groupId) {
         ConnectionResource connectionResource = resourceContext.getResource(ConnectionResource.class);
@@ -99,7 +106,7 @@ public class SnippetResource extends ApplicationResource {
     /**
      * Get the input ports sub-resource within the specified group.
      *
-     * @return
+     * @return the input ports sub-resource within the specified group
      */
     private InputPortResource getInputPortResource(final String groupId) {
         InputPortResource inputPortResource = resourceContext.getResource(InputPortResource.class);
@@ -110,7 +117,7 @@ public class SnippetResource extends ApplicationResource {
     /**
      * Get the output ports sub-resource within the specified group.
      *
-     * @return
+     * @return the output ports sub-resource within the specified group
      */
     private OutputPortResource getOutputPortResource(final String groupId) {
         OutputPortResource outputPortResource = resourceContext.getResource(OutputPortResource.class);
@@ -121,7 +128,7 @@ public class SnippetResource extends ApplicationResource {
     /**
      * Locates the label sub-resource within the specified group.
      *
-     * @return
+     * @return the label sub-resource within the specified group
      */
     private LabelResource getLabelResource(final String groupId) {
         LabelResource labelResource = resourceContext.getResource(LabelResource.class);
@@ -132,7 +139,7 @@ public class SnippetResource extends ApplicationResource {
     /**
      * Locates the funnel sub-resource within the specified group.
      *
-     * @return
+     * @return the funnel sub-resource within the specified group
      */
     private FunnelResource getFunnelResource(final String groupId) {
         FunnelResource funnelResource = resourceContext.getResource(FunnelResource.class);
@@ -143,7 +150,7 @@ public class SnippetResource extends ApplicationResource {
     /**
      * Locates the remote process group sub-resource within the specified group.
      *
-     * @return
+     * @return the remote process group sub-resource within the specified group
      */
     private RemoteProcessGroupResource getRemoteProcessGroupResource(final String groupId) {
         RemoteProcessGroupResource remoteProcessGroupResource = resourceContext.getResource(RemoteProcessGroupResource.class);
@@ -154,8 +161,8 @@ public class SnippetResource extends ApplicationResource {
     /**
      * Locates the process group sub-resource within the specified group.
      *
-     * @param groupId
-     * @return
+     * @param groupId group id
+     * @return the process group sub-resource within the specified group
      */
     private ProcessGroupResource getProcessGroupResource(final String groupId) {
         ProcessGroupResource processGroupResource = resourceContext.getResource(ProcessGroupResource.class);
@@ -191,7 +198,7 @@ public class SnippetResource extends ApplicationResource {
     /**
      * Creates a new snippet based on the specified contents.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param version The revision is used to verify the client is working with
      * the latest version of the flow.
      * @param clientId Optional client id. If the client id is not specified, a
@@ -217,7 +224,6 @@ public class SnippetResource extends ApplicationResource {
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @PreAuthorize("hasRole('ROLE_DFM')")
-    @TypeHint(SnippetEntity.class)
     public Response createSnippet(
             @Context HttpServletRequest httpServletRequest,
             @FormParam(VERSION) LongParameter version,
@@ -266,17 +272,39 @@ public class SnippetResource extends ApplicationResource {
     /**
      * Creates a snippet based off the specified configuration.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param snippetEntity A snippetEntity
      * @return A snippetEntity
      */
     @POST
     @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Path("") // necessary due to bug in swagger
     @PreAuthorize("hasRole('ROLE_DFM')")
-    @TypeHint(SnippetEntity.class)
+    @ApiOperation(
+            value = "Gets a reporting task property descriptor",
+            response = PropertyDescriptorEntity.class,
+            authorizations = {
+                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response createSnippet(
             @Context HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The snippet configuration details.",
+                    required = true
+            )
             final SnippetEntity snippetEntity) {
 
         if (snippetEntity == null || snippetEntity.getSnippet() == null) {
@@ -363,13 +391,43 @@ public class SnippetResource extends ApplicationResource {
      * @return A snippetEntity.
      */
     @GET
+    @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("{id}")
     @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
-    @TypeHint(SnippetEntity.class)
+    @ApiOperation(
+            value = "Gets a snippet",
+            response = SnippetEntity.class,
+            authorizations = {
+                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response getSnippet(
+            @ApiParam(
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+                    required = false
+            )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @ApiParam(
+                    value = "Whether to include configuration details for the components specified in the snippet.",
+                    required = false
+            )
             @QueryParam("verbose") @DefaultValue(VERBOSE) Boolean verbose,
+            @ApiParam(
+                    value = "The snippet id.",
+                    required = true
+            )
             @PathParam("id") String id) {
 
         // replicate if cluster manager
@@ -400,7 +458,7 @@ public class SnippetResource extends ApplicationResource {
     /**
      * Updates the specified snippet.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param version The revision is used to verify the client is working with
      * the latest version of the flow.
      * @param clientId Optional client id. If the client id is not specified, a
@@ -421,7 +479,6 @@ public class SnippetResource extends ApplicationResource {
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("{id}")
     @PreAuthorize("hasRole('ROLE_DFM')")
-    @TypeHint(SnippetEntity.class)
     public Response updateSnippet(
             @Context HttpServletRequest httpServletRequest,
             @FormParam(VERSION) LongParameter version,
@@ -458,7 +515,7 @@ public class SnippetResource extends ApplicationResource {
      * Updates the specified snippet. The contents of the snippet (component
      * ids) cannot be updated once the snippet is created.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param id The id of the snippet.
      * @param snippetEntity A snippetEntity
      * @return A snippetEntity
@@ -468,10 +525,33 @@ public class SnippetResource extends ApplicationResource {
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("{id}")
     @PreAuthorize("hasRole('ROLE_DFM')")
-    @TypeHint(SnippetEntity.class)
+    @ApiOperation(
+            value = "Updates a snippet",
+            response = SnippetEntity.class,
+            authorizations = {
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response updateSnippet(
             @Context HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The snippet id.",
+                    required = true
+            )
             @PathParam("id") String id,
+            @ApiParam(
+                    value = "The snippet configuration details.",
+                    required = true
+            )
             final SnippetEntity snippetEntity) {
 
         if (snippetEntity == null || snippetEntity.getSnippet() == null) {
@@ -533,7 +613,7 @@ public class SnippetResource extends ApplicationResource {
     /**
      * Removes the specified snippet.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param version The revision is used to verify the client is working with
      * the latest version of the flow.
      * @param clientId Optional client id. If the client id is not specified, a
@@ -543,14 +623,42 @@ public class SnippetResource extends ApplicationResource {
      * @return A entity containing the client id and an updated revision.
      */
     @DELETE
+    @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("{id}")
     @PreAuthorize("hasRole('ROLE_DFM')")
-    @TypeHint(SnippetEntity.class)
+    @ApiOperation(
+            value = "Deletes a snippet",
+            response = SnippetEntity.class,
+            authorizations = {
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response removeSnippet(
             @Context HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The revision is used to verify the client is working with the latest version of the flow.",
+                    required = false
+            )
             @QueryParam(VERSION) LongParameter version,
+            @ApiParam(
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+                    required = false
+            )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @ApiParam(
+                    value = "The snippet id.",
+                    required = true
+            )
             @PathParam("id") String id) {
 
         // replicate if cluster manager

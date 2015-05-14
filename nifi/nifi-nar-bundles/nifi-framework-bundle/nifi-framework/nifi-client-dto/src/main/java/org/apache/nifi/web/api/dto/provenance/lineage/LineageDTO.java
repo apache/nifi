@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.provenance.lineage;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Date;
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
@@ -40,10 +41,11 @@ public class LineageDTO {
     private LineageResultsDTO results;
 
     /**
-     * The id of this lineage.
-     *
-     * @return
+     * @return id of this lineage
      */
+    @ApiModelProperty(
+            value = "The id of this lineage query."
+    )
     public String getId() {
         return id;
     }
@@ -53,10 +55,11 @@ public class LineageDTO {
     }
 
     /**
-     * The uri for this lineage.
-     *
-     * @return
+     * @return uri for this lineage
      */
+    @ApiModelProperty(
+            value = "The URI for this lineage query for later retrieval and deletion."
+    )
     public String getUri() {
         return uri;
     }
@@ -66,10 +69,11 @@ public class LineageDTO {
     }
 
     /**
-     * The id of the node in the cluster where this lineage originated.
-     *
-     * @return
+     * @return id of the node in the cluster where this lineage originated
      */
+    @ApiModelProperty(
+            value = "The id of the node where this lineage originated if clustered."
+    )
     public String getClusterNodeId() {
         return clusterNodeId;
     }
@@ -79,11 +83,12 @@ public class LineageDTO {
     }
 
     /**
-     * The submission time for this lineage.
-     *
-     * @return
+     * @return submission time for this lineage
      */
     @XmlJavaTypeAdapter(TimestampAdapter.class)
+    @ApiModelProperty(
+            value = "When the lineage query was submitted."
+    )
     public Date getSubmissionTime() {
         return submissionTime;
     }
@@ -93,11 +98,12 @@ public class LineageDTO {
     }
 
     /**
-     * The expiration of this lineage.
-     *
-     * @return
+     * @return expiration of this lineage
      */
     @XmlJavaTypeAdapter(TimestampAdapter.class)
+    @ApiModelProperty(
+            value = "When the lineage query will expire."
+    )
     public Date getExpiration() {
         return expiration;
     }
@@ -107,10 +113,11 @@ public class LineageDTO {
     }
 
     /**
-     * Percent completed for this result.
-     *
-     * @return
+     * @return percent completed for this result
      */
+    @ApiModelProperty(
+            value = "The percent complete for the lineage query."
+    )
     public Integer getPercentCompleted() {
         return percentCompleted;
     }
@@ -120,10 +127,11 @@ public class LineageDTO {
     }
 
     /**
-     * Whether or not the request is finished running.
-     *
-     * @return
+     * @return whether or not the request is finished running
      */
+    @ApiModelProperty(
+            value = "Whether the lineage query has finished."
+    )
     public Boolean getFinished() {
         return finished;
     }
@@ -133,10 +141,11 @@ public class LineageDTO {
     }
 
     /**
-     * The lineage request.
-     *
-     * @return
+     * @return the lineage request
      */
+    @ApiModelProperty(
+            value = "The initial lineage result."
+    )
     public LineageRequestDTO getRequest() {
         return request;
     }
@@ -146,10 +155,11 @@ public class LineageDTO {
     }
 
     /**
-     * The results of this lineage.
-     *
-     * @return
+     * @return the results of this lineage
      */
+    @ApiModelProperty(
+            value = "The results of the lineage query."
+    )
     public LineageResultsDTO getResults() {
         return results;
     }

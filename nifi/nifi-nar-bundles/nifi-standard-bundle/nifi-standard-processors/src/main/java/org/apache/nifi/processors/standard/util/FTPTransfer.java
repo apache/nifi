@@ -465,8 +465,7 @@ public class FTPTransfer implements FileTransfer {
                 logger.debug(this + " sent command to the FTP server: " + cmd + " for " + flowFile);
 
                 if (FTPReply.isNegativePermanent(result) || FTPReply.isNegativeTransient(result)) {
-                    throw new IOException(this + " negative reply back from FTP server cmd: "
-                            + cmd + " reply:" + result + ": " + client.getReplyString() + " for " + flowFile);
+                    throw new IOException(this + " negative reply back from FTP server cmd: " + cmd + " reply:" + result + ": " + client.getReplyString() + " for " + flowFile);
                 }
             }
         }

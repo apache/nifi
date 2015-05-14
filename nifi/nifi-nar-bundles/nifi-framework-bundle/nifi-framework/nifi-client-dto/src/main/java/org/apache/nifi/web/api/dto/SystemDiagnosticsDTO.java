@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Date;
 import java.util.Set;
 import javax.xml.bind.annotation.XmlType;
@@ -54,10 +55,11 @@ public class SystemDiagnosticsDTO {
 
     /* getters / setters */
     /**
-     * The number of available processors, if supported.
-     *
-     * @return
+     * @return number of available processors, if supported
      */
+    @ApiModelProperty(
+            value = "Number of available processors if supported by the underlying system."
+    )
     public Integer getAvailableProcessors() {
         return availableProcessors;
     }
@@ -67,10 +69,11 @@ public class SystemDiagnosticsDTO {
     }
 
     /**
-     * The number of daemon threads.
-     *
-     * @return
+     * @return number of daemon threads
      */
+    @ApiModelProperty(
+            value = "Number of daemon threads."
+    )
     public Integer getDaemonThreads() {
         return daemonThreads;
     }
@@ -80,10 +83,11 @@ public class SystemDiagnosticsDTO {
     }
 
     /**
-     * The amount of free heap.
-     *
-     * @return
+     * @return amount of free heap
      */
+    @ApiModelProperty(
+            value = "Amount of free heap."
+    )
     public String getFreeHeap() {
         return freeHeap;
     }
@@ -93,10 +97,11 @@ public class SystemDiagnosticsDTO {
     }
 
     /**
-     * The amount of free non-heap.
-     *
-     * @return
+     * @return amount of free non-heap
      */
+    @ApiModelProperty(
+            value = "Amount of free non heap."
+    )
     public String getFreeNonHeap() {
         return freeNonHeap;
     }
@@ -106,10 +111,11 @@ public class SystemDiagnosticsDTO {
     }
 
     /**
-     * The max size of the heap.
-     *
-     * @return
+     * @return max size of the heap
      */
+    @ApiModelProperty(
+            value = "Maximum size of heap."
+    )
     public String getMaxHeap() {
         return maxHeap;
     }
@@ -119,10 +125,11 @@ public class SystemDiagnosticsDTO {
     }
 
     /**
-     * The max size of the non-heap.
-     *
-     * @return
+     * @return max size of the non-heap
      */
+    @ApiModelProperty(
+            value = "Maximum size of non heap."
+    )
     public String getMaxNonHeap() {
         return maxNonHeap;
     }
@@ -132,10 +139,11 @@ public class SystemDiagnosticsDTO {
     }
 
     /**
-     * The processor load average, if supported.
-     *
-     * @return
+     * @return processor load average, if supported
      */
+    @ApiModelProperty(
+            value = "The processor load average if supported by the underlying system."
+    )
     public Double getProcessorLoadAverage() {
         return processorLoadAverage;
     }
@@ -145,10 +153,11 @@ public class SystemDiagnosticsDTO {
     }
 
     /**
-     * The total size of the heap.
-     *
-     * @return
+     * @return total size of the heap
      */
+    @ApiModelProperty(
+            value = "Total size of heap."
+    )
     public String getTotalHeap() {
         return totalHeap;
     }
@@ -158,10 +167,11 @@ public class SystemDiagnosticsDTO {
     }
 
     /**
-     * The total size of non-heap.
-     *
-     * @return
+     * @return total size of non-heap
      */
+    @ApiModelProperty(
+            value = "Total size of non heap."
+    )
     public String getTotalNonHeap() {
         return totalNonHeap;
     }
@@ -171,10 +181,11 @@ public class SystemDiagnosticsDTO {
     }
 
     /**
-     * The total number of threads.
-     *
-     * @return
+     * @return total number of threads
      */
+    @ApiModelProperty(
+            value = "Total number of threads."
+    )
     public Integer getTotalThreads() {
         return totalThreads;
     }
@@ -184,10 +195,11 @@ public class SystemDiagnosticsDTO {
     }
 
     /**
-     * The amount of used heap.
-     *
-     * @return
+     * @return amount of used heap
      */
+    @ApiModelProperty(
+            value = "Amount of used heap."
+    )
     public String getUsedHeap() {
         return usedHeap;
     }
@@ -197,10 +209,11 @@ public class SystemDiagnosticsDTO {
     }
 
     /**
-     * The amount of used non-heap.
-     *
-     * @return
+     * @return amount of used non-heap
      */
+    @ApiModelProperty(
+            value = "Amount of use non heap."
+    )
     public String getUsedNonHeap() {
         return usedNonHeap;
     }
@@ -210,10 +223,11 @@ public class SystemDiagnosticsDTO {
     }
 
     /**
-     * The heap utilization.
-     *
-     * @return
+     * @return heap utilization
      */
+    @ApiModelProperty(
+            value = "Utilization of heap."
+    )
     public String getHeapUtilization() {
         return heapUtilization;
     }
@@ -223,10 +237,11 @@ public class SystemDiagnosticsDTO {
     }
 
     /**
-     * The non-heap utilization.
-     *
-     * @return
+     * @return non-heap utilization
      */
+    @ApiModelProperty(
+            value = "Utilization of non heap."
+    )
     public String getNonHeapUtilization() {
         return nonHeapUtilization;
     }
@@ -236,10 +251,11 @@ public class SystemDiagnosticsDTO {
     }
 
     /**
-     * The content repository storage usage.
-     *
-     * @return
+     * @return content repository storage usage
      */
+    @ApiModelProperty(
+            value = "The content repository storage usage."
+    )
     public Set<StorageUsageDTO> getContentRepositoryStorageUsage() {
         return contentRepositoryStorageUsage;
     }
@@ -249,10 +265,11 @@ public class SystemDiagnosticsDTO {
     }
 
     /**
-     * The flowfile repository storage usage.
-     *
-     * @return
+     * @return flowfile repository storage usage
      */
+    @ApiModelProperty(
+            value = "The flowfile repository storage usage."
+    )
     public StorageUsageDTO getFlowFileRepositoryStorageUsage() {
         return flowFileRepositoryStorageUsage;
     }
@@ -262,10 +279,11 @@ public class SystemDiagnosticsDTO {
     }
 
     /**
-     * Garbage collection details.
-     *
-     * @return
+     * @return Garbage collection details
      */
+    @ApiModelProperty(
+            value = "The garbage collection details."
+    )
     public Set<GarbageCollectionDTO> getGarbageCollection() {
         return garbageCollection;
     }
@@ -275,11 +293,12 @@ public class SystemDiagnosticsDTO {
     }
 
     /**
-     * When these diagnostics were generated.
-     *
-     * @return
+     * @return When these diagnostics were generated
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
+    @ApiModelProperty(
+            value = "When the diagnostics were generated."
+    )
     public Date getStatsLastRefreshed() {
         return statsLastRefreshed;
     }
@@ -304,10 +323,11 @@ public class SystemDiagnosticsDTO {
         private String utilization;
 
         /**
-         * The identifier for this storage location.
-         *
-         * @return
+         * @return identifier for this storage location
          */
+        @ApiModelProperty(
+                value = "The identifier of this storage location. The identifier will correspond to the identifier keyed in the storage configuration."
+        )
         public String getIdentifier() {
             return identifier;
         }
@@ -317,10 +337,11 @@ public class SystemDiagnosticsDTO {
         }
 
         /**
-         * The amount of free space.
-         *
-         * @return
+         * @return amount of free space
          */
+        @ApiModelProperty(
+                value = "Amount of free space."
+        )
         public String getFreeSpace() {
             return freeSpace;
         }
@@ -330,10 +351,11 @@ public class SystemDiagnosticsDTO {
         }
 
         /**
-         * The amount of total space.
-         *
-         * @param freeSpace
+         * @return freeSpace amount of total space
          */
+        @ApiModelProperty(
+                value = "Amount of total space."
+        )
         public String getTotalSpace() {
             return totalSpace;
         }
@@ -343,10 +365,11 @@ public class SystemDiagnosticsDTO {
         }
 
         /**
-         * The amount of used space.
-         *
-         * @return
+         * @return amount of used space
          */
+        @ApiModelProperty(
+                value = "Amount of used space."
+        )
         public String getUsedSpace() {
             return usedSpace;
         }
@@ -356,10 +379,11 @@ public class SystemDiagnosticsDTO {
         }
 
         /**
-         * The utilization of this storage location.
-         *
-         * @return
+         * @return utilization of this storage location
          */
+        @ApiModelProperty(
+                value = "Utilization of this storage location."
+        )
         public String getUtilization() {
             return utilization;
         }
@@ -369,10 +393,11 @@ public class SystemDiagnosticsDTO {
         }
 
         /**
-         * The number of bytes of free space.
-         *
-         * @return
+         * @return number of bytes of free space
          */
+        @ApiModelProperty(
+                value = "The number of bytes of free space."
+        )
         public Long getFreeSpaceBytes() {
             return freeSpaceBytes;
         }
@@ -382,10 +407,11 @@ public class SystemDiagnosticsDTO {
         }
 
         /**
-         * The number of bytes of total space.
-         *
-         * @return
+         * @return number of bytes of total space
          */
+        @ApiModelProperty(
+                value = "The number of bytes of total space."
+        )
         public Long getTotalSpaceBytes() {
             return totalSpaceBytes;
         }
@@ -395,10 +421,11 @@ public class SystemDiagnosticsDTO {
         }
 
         /**
-         * The number of bytes of used space.
-         *
-         * @return
+         * @return number of bytes of used space
          */
+        @ApiModelProperty(
+                value = "The number of bytes of used space."
+        )
         public Long getUsedSpaceBytes() {
             return usedSpaceBytes;
         }
@@ -419,10 +446,11 @@ public class SystemDiagnosticsDTO {
         private String collectionTime;
 
         /**
-         * The name of the garbage collector.
-         *
-         * @return
+         * @return name of the garbage collector
          */
+        @ApiModelProperty(
+                value = "The name of the garbage collector."
+        )
         public String getName() {
             return name;
         }
@@ -431,24 +459,26 @@ public class SystemDiagnosticsDTO {
             this.name = name;
         }
 
+        @ApiModelProperty(
+                value = "The number of times garbage collection has run."
+        )
         public long getCollectionCount() {
             return collectionCount;
         }
 
         /**
-         * The number of times garbage collection has run.
-         *
-         * @param collectionCount
+         * @param collectionCount number of times garbage collection has run
          */
         public void setCollectionCount(long collectionCount) {
             this.collectionCount = collectionCount;
         }
 
         /**
-         * The total amount of time spent garbage collecting.
-         *
-         * @return
+         * @return total amount of time spent garbage collecting
          */
+        @ApiModelProperty(
+                value = "The total amount of time spent garbage collecting."
+        )
         public String getCollectionTime() {
             return collectionTime;
         }

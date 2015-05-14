@@ -16,6 +16,12 @@
  */
 package org.apache.nifi.web.api;
 
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+import com.wordnik.swagger.annotations.Authorization;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -56,17 +62,17 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.web.NiFiServiceFacade;
 import static org.apache.nifi.web.api.ApplicationResource.CLIENT_ID;
 import org.apache.nifi.web.api.dto.RevisionDTO;
-import org.codehaus.enunciate.jaxrs.TypeHint;
 import org.springframework.security.access.prepost.PreAuthorize;
 
 /**
  * RESTful endpoint for managing this Controller's users.
  */
+@Api(hidden = true)
 public class UserResource extends ApplicationResource {
 
     /*
      * Developer Note: Clustering assumes a centralized security provider. The
-     * cluster manager will manage user accounts when in clustered mode and 
+     * cluster manager will manage user accounts when in clustered mode and
      * interface with the authorization provider. However, when nodes perform
      * Site-to-Site, the authorization details of the remote NiFi will be cached
      * locally. These details need to be invalidated when certain actions are
@@ -87,11 +93,35 @@ public class UserResource extends ApplicationResource {
      * @return A usersEntity.
      */
     @GET
+    @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
+    @Path("") // necessary due to a bug in swagger
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    @TypeHint(UsersEntity.class)
+    @ApiOperation(
+            value = "Gets all users",
+            response = UsersEntity.class,
+            authorizations = {
+                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response getUsers(
+            @ApiParam(
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+                    required = false
+            )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @ApiParam(
+                    value = "Whether to return the users in their respective groups.",
+                    required = false
+            )
             @QueryParam("grouped") @DefaultValue("false") Boolean grouped) {
 
         // get the users
@@ -121,11 +151,36 @@ public class UserResource extends ApplicationResource {
      * @return A userEntity.
      */
     @GET
+    @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @Path("/{id}")
-    @TypeHint(UserEntity.class)
-    public Response getUser(@QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+    @ApiOperation(
+            value = "Gets a user",
+            response = UserEntity.class,
+            authorizations = {
+                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getUser(
+            @ApiParam(
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+                    required = false
+            )
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @ApiParam(
+                    value = "The user id.",
+                    required = true
+            )
             @PathParam("id") String id) {
 
         // get the specified user
@@ -151,11 +206,33 @@ public class UserResource extends ApplicationResource {
      * @return A userSearchResultsEntity
      */
     @GET
+    @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/search-results")
     @PreAuthorize("hasAnyRole('ROLE_DFM', 'ROLE_ADMIN')")
-    @TypeHint(UserSearchResultsEntity.class)
-    public Response searchUsers(@QueryParam("q") @DefaultValue(StringUtils.EMPTY) String value) {
+    @ApiOperation(
+            value = "Searches for users",
+            response = UserSearchResultsEntity.class,
+            authorizations = {
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response searchUsers(
+            @ApiParam(
+                    value = "The search terms.",
+                    required = true
+            )
+            @QueryParam("q") @DefaultValue(StringUtils.EMPTY) String value) {
+
         final List<UserSearchResultDTO> userMatches = new ArrayList<>();
         final List<UserGroupSearchResultDTO> userGroupMatches = new ArrayList<>();
 
@@ -237,7 +314,7 @@ public class UserResource extends ApplicationResource {
     /**
      * Updates the specified user.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param clientId Optional client id. If the client id is not specified, a
      * new one will be generated. This value (whether specified or generated) is
      * included in the response.
@@ -245,7 +322,7 @@ public class UserResource extends ApplicationResource {
      * @param rawAuthorities Array of authorities to assign to the specified
      * user.
      * @param status The status of the specified users account.
-     * @param formParams
+     * @param formParams form params
      * @return A userEntity
      */
     @PUT
@@ -253,7 +330,6 @@ public class UserResource extends ApplicationResource {
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @Path("/{id}")
-    @TypeHint(UserEntity.class)
     public Response updateUser(
             @Context HttpServletRequest httpServletRequest,
             @FormParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
@@ -296,7 +372,7 @@ public class UserResource extends ApplicationResource {
     /**
      * Updates the specified user.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param id The id of the user to update.
      * @param userEntity A userEntity
      * @return A userEntity
@@ -306,11 +382,33 @@ public class UserResource extends ApplicationResource {
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @PreAuthorize("hasRole('ROLE_ADMIN')")
     @Path("/{id}")
-    @TypeHint(UserEntity.class)
+    @ApiOperation(
+            value = "Updates a user",
+            response = UserEntity.class,
+            authorizations = {
+                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response updateUser(
             @Context HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The user id.",
+                    required = true
+            )
             @PathParam("id") String id,
-            UserEntity userEntity) {
+            @ApiParam(
+                    value = "The user configuration details.",
+                    required = true
+            ) UserEntity userEntity) {
 
         if (userEntity == null || userEntity.getUser() == null) {
             throw new IllegalArgumentException("User details must be specified.");
@@ -334,7 +432,7 @@ public class UserResource extends ApplicationResource {
         // this user is being modified, replicate to the nodes to invalidate this account
         // so that it will be re-authorized during the next attempted access - if this wasn't
         // done the account would remain stale for up to the configured cache duration. this
-        // is acceptable sometimes but when updating a users authorities or groups via the UI 
+        // is acceptable sometimes but when updating a users authorities or groups via the UI
         // they shouldn't have to wait for the changes to take effect`
         if (properties.isClusterManager()) {
             // change content type to JSON for serializing entity
@@ -391,7 +489,7 @@ public class UserResource extends ApplicationResource {
     /**
      * Deletes the specified user.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param id The user id
      * @param clientId Optional client id. If the client id is not specified, a
      * new one will be generated. This value (whether specified or generated) is
@@ -399,19 +497,43 @@ public class UserResource extends ApplicationResource {
      * @return A userEntity.
      */
     @DELETE
+    @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/{id}")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    @TypeHint(UserEntity.class)
+    @ApiOperation(
+            value = "Deletes a user",
+            response = UserEntity.class,
+            authorizations = {
+                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response deleteUser(
             @Context HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The user id.",
+                    required = true
+            )
             @PathParam("id") String id,
+            @ApiParam(
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+                    required = false
+            )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
 
         // this user is being modified, replicate to the nodes to invalidate this account
         // so that it will be re-authorized during the next attempted access - if this wasn't
         // done the account would remain stale for up to the configured cache duration. this
-        // is acceptable sometimes but when removing a user via the UI they shouldn't have to 
+        // is acceptable sometimes but when removing a user via the UI they shouldn't have to
         // wait for the changes to take effect
         if (properties.isClusterManager()) {
             // identify yourself as the NCM attempting to invalidate the user

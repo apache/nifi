@@ -23,48 +23,53 @@ import org.apache.nifi.reporting.BulletinRepository;
 
 /**
  * Defines the interface for a listener to process protocol messages.
- * @author unattributed
+ *
  */
 public interface ProtocolListener {
-    
+
     /**
-     * Starts the instance for listening for messages.  Start may only be called
+     * Starts the instance for listening for messages. Start may only be called
      * if the instance is not running.
-     * @throws java.io.IOException
+     *
+     * @throws java.io.IOException ex
      */
     void start() throws IOException;
-    
+
     /**
-     * Stops the instance from listening for messages.  Stop may only be called
+     * Stops the instance from listening for messages. Stop may only be called
      * if the instance is running.
-     * @throws java.io.IOException
+     *
+     * @throws java.io.IOException ex
      */
     void stop() throws IOException;
-    
+
     /**
      * @return true if the instance is started; false otherwise.
      */
     boolean isRunning();
-    
+
     /**
      * @return the handlers registered with the listener
      */
     Collection<ProtocolHandler> getHandlers();
-    
+
     /**
      * Registers a handler with the listener.
+     *
      * @param handler a handler
      */
     void addHandler(ProtocolHandler handler);
-    
+
     /**
      * Sets the BulletinRepository that can be used to report bulletins
-     * @param bulletinRepository
+     *
+     * @param bulletinRepository repo
      */
     void setBulletinRepository(BulletinRepository bulletinRepository);
-    
+
     /**
      * Unregisters the handler with the listener.
+     *
      * @param handler a handler
      * @return true if the handler was removed; false otherwise
      */

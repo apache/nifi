@@ -32,18 +32,14 @@ public class UiExtension {
     }
 
     /**
-     * The type of this UI extension.
-     * 
-     * @return 
+     * @return type of this UI extension
      */
     public UiExtensionType getExtensionType() {
         return extensionType;
     }
 
     /**
-     * The context path of this UI extenion.
-     * 
-     * @return 
+     * @return The context path of this UI extension
      */
     public String getContextPath() {
         return contextPath;

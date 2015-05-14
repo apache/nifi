@@ -19,14 +19,14 @@ package org.apache.nifi.hl7.query.evaluator.comparison;
 import org.apache.nifi.hl7.query.evaluator.Evaluator;
 
 public class NotEqualsEvaluator extends AbstractComparisonEvaluator {
-	
-	public NotEqualsEvaluator(final Evaluator<?> lhs, final Evaluator<?> rhs) {
-		super(lhs, rhs);
-	}
 
-	@Override
-	protected boolean compare(final Object lhs, final Object rhs) {
-		return lhs != null && rhs != null && lhs != rhs && !lhs.equals(rhs) && !lhs.toString().equals(rhs.toString());
-	}
+    public NotEqualsEvaluator(final Evaluator<?> lhs, final Evaluator<?> rhs) {
+        super(lhs, rhs);
+    }
+
+    @Override
+    protected boolean compare(final Object lhs, final Object rhs) {
+        return lhs != null && rhs != null && lhs != rhs && !lhs.equals(rhs) && !lhs.toString().equals(rhs.toString());
+    }
 
 }

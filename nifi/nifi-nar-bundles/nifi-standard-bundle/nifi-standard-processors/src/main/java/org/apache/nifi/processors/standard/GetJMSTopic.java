@@ -112,8 +112,8 @@ public class GetJMSTopic extends JmsConsumer {
             return;
         }
 
-        // decrypt the passwords so the persisted and current properties can be compared... 
-        // we can modify this properties instance since the unsubscribe method will reload 
+        // decrypt the passwords so the persisted and current properties can be compared...
+        // we can modify this properties instance since the unsubscribe method will reload
         // the properties from disk
         decryptPassword(persistedProps, context);
         decryptPassword(currentProps, context);
@@ -168,13 +168,12 @@ public class GetJMSTopic extends JmsConsumer {
     }
 
     /**
-     * Attempts to locate the password in the specified properties. If found,
-     * decrypts it using the specified context.
+     * Attempts to locate the password in the specified properties. If found, decrypts it using the specified context.
      *
-     * @param properties
-     * @param context
+     * @param properties properties
+     * @param context context
      */
-    public void decryptPassword(final Properties properties, final ProcessContext context) {
+    protected void decryptPassword(final Properties properties, final ProcessContext context) {
         final String encryptedPassword = properties.getProperty(PASSWORD.getName());
 
         // if the is in the properties, decrypt it
@@ -192,8 +191,8 @@ public class GetJMSTopic extends JmsConsumer {
     /**
      * Persists the subscription details for future use.
      *
-     * @param context
-     * @throws IOException
+     * @param context context
+     * @throws IOException ex
      */
     private void persistSubscriptionInfo(final ProcessContext context) throws IOException {
         final Properties props = getSubscriptionPropertiesFromContext(context);
@@ -203,11 +202,10 @@ public class GetJMSTopic extends JmsConsumer {
     }
 
     /**
-     * Returns the subscription details from the specified context. Note: if a
-     * password is set, the resulting entry will be encrypted.
+     * Returns the subscription details from the specified context. Note: if a password is set, the resulting entry will be encrypted.
      *
-     * @param context
-     * @return
+     * @param context context
+     * @return Returns the subscription details from the specified context
      */
     private Properties getSubscriptionPropertiesFromContext(final ProcessContext context) {
         final String unencryptedPassword = context.getProperty(PASSWORD).getValue();
@@ -235,11 +233,10 @@ public class GetJMSTopic extends JmsConsumer {
     }
 
     /**
-     * Loads the subscription details from disk. Since the details are coming
-     * from disk, if a password is set, the resulting entry will be encrypted.
+     * Loads the subscription details from disk. Since the details are coming from disk, if a password is set, the resulting entry will be encrypted.
      *
-     * @return
-     * @throws IOException
+     * @return properties
+     * @throws IOException ex
      */
     private Properties getSubscriptionPropertiesFromFile() throws IOException {
         final Path subscriptionPath = getSubscriptionPath();
@@ -257,11 +254,10 @@ public class GetJMSTopic extends JmsConsumer {
     }
 
     /**
-     * Loads subscription info from the Subscription File and unsubscribes from
-     * the subscription, if the file exists; otherwise, does nothing
+     * Loads subscription info from the Subscription File and unsubscribes from the subscription, if the file exists; otherwise, does nothing
      *
-     * @throws IOException
-     * @throws JMSException
+     * @throws IOException ex
+     * @throws JMSException ex
      */
     private void unsubscribe(final ProcessContext context) throws IOException, JMSException {
         final Properties props = getSubscriptionPropertiesFromFile();
@@ -281,15 +277,6 @@ public class GetJMSTopic extends JmsConsumer {
         unsubscribe(serverUrl, username, password, subscriptionName, jmsProvider, timeoutMillis);
     }
 
-    /**
-     * Unsubscribes from a subscription using the supplied parameters
-     *
-     * @param url
-     * @param username
-     * @param password
-     * @param subscriptionId
-     * @throws JMSException
-     */
     private void unsubscribe(final String url, final String username, final String password, final String subscriptionId, final String jmsProvider, final int timeoutMillis) throws JMSException {
         final Connection connection;
         if (username == null && password == null) {

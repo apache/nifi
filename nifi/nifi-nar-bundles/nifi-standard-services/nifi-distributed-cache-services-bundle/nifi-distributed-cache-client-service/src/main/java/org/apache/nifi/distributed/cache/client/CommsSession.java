@@ -27,20 +27,20 @@ import javax.net.ssl.SSLContext;
 public interface CommsSession extends Closeable {
 
     void setTimeout(final long value, final TimeUnit timeUnit);
-    
+
     InputStream getInputStream() throws IOException;
-    
+
     OutputStream getOutputStream() throws IOException;
-    
+
     boolean isClosed();
-    
+
     void interrupt();
-    
+
     String getHostname();
-    
+
     int getPort();
-    
+
     long getTimeout(TimeUnit timeUnit);
-    
+
     SSLContext getSSLContext();
 }

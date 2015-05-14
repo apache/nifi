@@ -39,133 +39,131 @@ import com.amazonaws.services.s3.model.Permission;
 public abstract class AbstractS3Processor extends AbstractAWSProcessor<AmazonS3Client> {
 
     public static final PropertyDescriptor FULL_CONTROL_USER_LIST = new PropertyDescriptor.Builder()
-        .name("FullControl User List")
-        .required(false)
-        .expressionLanguageSupported(true)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .description("A comma-separated list of Amazon User ID's or E-mail addresses that specifies who should have Full Control for an object")
-        .defaultValue("${s3.permissions.full.users}")
-        .build();
+            .name("FullControl User List")
+            .required(false)
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .description("A comma-separated list of Amazon User ID's or E-mail addresses that specifies who should have Full Control for an object")
+            .defaultValue("${s3.permissions.full.users}")
+            .build();
     public static final PropertyDescriptor READ_USER_LIST = new PropertyDescriptor.Builder()
-        .name("Read Permission User List")
-        .required(false)
-        .expressionLanguageSupported(true)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .description("A comma-separated list of Amazon User ID's or E-mail addresses that specifies who should have Read Access for an object")
-        .defaultValue("${s3.permissions.read.users}")
-        .build();
+            .name("Read Permission User List")
+            .required(false)
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .description("A comma-separated list of Amazon User ID's or E-mail addresses that specifies who should have Read Access for an object")
+            .defaultValue("${s3.permissions.read.users}")
+            .build();
     public static final PropertyDescriptor WRITE_USER_LIST = new PropertyDescriptor.Builder()
-        .name("Write Permission User List")
-        .required(false)
-        .expressionLanguageSupported(true)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .description("A comma-separated list of Amazon User ID's or E-mail addresses that specifies who should have Write Access for an object")
-        .defaultValue("${s3.permissions.write.users}")
-        .build();
+            .name("Write Permission User List")
+            .required(false)
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .description("A comma-separated list of Amazon User ID's or E-mail addresses that specifies who should have Write Access for an object")
+            .defaultValue("${s3.permissions.write.users}")
+            .build();
     public static final PropertyDescriptor READ_ACL_LIST = new PropertyDescriptor.Builder()
-        .name("Read ACL User List")
-        .required(false)
-        .expressionLanguageSupported(true)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .description("A comma-separated list of Amazon User ID's or E-mail addresses that specifies who should have permissions to read the Access Control List for an object")
-        .defaultValue("${s3.permissions.readacl.users}")
-        .build();
+            .name("Read ACL User List")
+            .required(false)
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .description("A comma-separated list of Amazon User ID's or E-mail addresses that specifies who should have permissions to read the Access Control List for an object")
+            .defaultValue("${s3.permissions.readacl.users}")
+            .build();
     public static final PropertyDescriptor WRITE_ACL_LIST = new PropertyDescriptor.Builder()
-        .name("Write ACL User List")
-        .required(false)
-        .expressionLanguageSupported(true)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .description("A comma-separated list of Amazon User ID's or E-mail addresses that specifies who should have permissions to change the Access Control List for an object")
-        .defaultValue("${s3.permissions.writeacl.users}")
-        .build();
+            .name("Write ACL User List")
+            .required(false)
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .description("A comma-separated list of Amazon User ID's or E-mail addresses that specifies who should have permissions to change the Access Control List for an object")
+            .defaultValue("${s3.permissions.writeacl.users}")
+            .build();
     public static final PropertyDescriptor OWNER = new PropertyDescriptor.Builder()
-        .name("Owner")
-        .required(false)
-        .expressionLanguageSupported(true)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .description("The Amazon ID to use for the object's owner")
-        .defaultValue("${s3.owner}")
-        .build();
+            .name("Owner")
+            .required(false)
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .description("The Amazon ID to use for the object's owner")
+            .defaultValue("${s3.owner}")
+            .build();
     public static final PropertyDescriptor BUCKET = new PropertyDescriptor.Builder()
-        .name("Bucket")
-        .expressionLanguageSupported(true)
-        .required(true)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .build();
+            .name("Bucket")
+            .expressionLanguageSupported(true)
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
     public static final PropertyDescriptor KEY = new PropertyDescriptor.Builder()
-        .name("Object Key")
-        .required(true)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(true)
-        .defaultValue("${filename}")
-        .build();
-    
-    
+            .name("Object Key")
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(true)
+            .defaultValue("${filename}")
+            .build();
+
     @Override
     protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentials credentials, final ClientConfiguration config) {
         return new AmazonS3Client(credentials, config);
     }
-    
-    
+
     protected Grantee createGrantee(final String value) {
-        if ( isEmpty(value) ) {
+        if (isEmpty(value)) {
             return null;
         }
-        
-        if ( value.contains("@") ) {
+
+        if (value.contains("@")) {
             return new EmailAddressGrantee(value);
         } else {
             return new CanonicalGrantee(value);
         }
     }
-    
+
     protected final List<Grantee> createGrantees(final String value) {
-        if ( isEmpty(value) ) {
+        if (isEmpty(value)) {
             return Collections.emptyList();
         }
-        
+
         final List<Grantee> grantees = new ArrayList<>();
         final String[] vals = value.split(",");
-        for ( final String val : vals ) {
+        for (final String val : vals) {
             final String identifier = val.trim();
             final Grantee grantee = createGrantee(identifier);
-            if ( grantee != null ) {
+            if (grantee != null) {
                 grantees.add(grantee);
             }
         }
         return grantees;
     }
-    
+
     protected final AccessControlList createACL(final ProcessContext context, final FlowFile flowFile) {
         final AccessControlList acl = new AccessControlList();
-        
+
         final String ownerId = context.getProperty(OWNER).evaluateAttributeExpressions(flowFile).getValue();
-        if ( !isEmpty(ownerId) ) {
+        if (!isEmpty(ownerId)) {
             final Owner owner = new Owner();
             owner.setId(ownerId);
             acl.setOwner(owner);
         }
-        
-        for ( final Grantee grantee : createGrantees(context.getProperty(FULL_CONTROL_USER_LIST).evaluateAttributeExpressions(flowFile).getValue())) {
+
+        for (final Grantee grantee : createGrantees(context.getProperty(FULL_CONTROL_USER_LIST).evaluateAttributeExpressions(flowFile).getValue())) {
             acl.grantPermission(grantee, Permission.FullControl);
         }
-        
-        for ( final Grantee grantee : createGrantees(context.getProperty(READ_USER_LIST).evaluateAttributeExpressions(flowFile).getValue())) {
+
+        for (final Grantee grantee : createGrantees(context.getProperty(READ_USER_LIST).evaluateAttributeExpressions(flowFile).getValue())) {
             acl.grantPermission(grantee, Permission.Read);
         }
 
-        for ( final Grantee grantee : createGrantees(context.getProperty(WRITE_USER_LIST).evaluateAttributeExpressions(flowFile).getValue())) {
+        for (final Grantee grantee : createGrantees(context.getProperty(WRITE_USER_LIST).evaluateAttributeExpressions(flowFile).getValue())) {
             acl.grantPermission(grantee, Permission.Write);
         }
-        
-        for ( final Grantee grantee : createGrantees(context.getProperty(READ_ACL_LIST).evaluateAttributeExpressions(flowFile).getValue())) {
+
+        for (final Grantee grantee : createGrantees(context.getProperty(READ_ACL_LIST).evaluateAttributeExpressions(flowFile).getValue())) {
             acl.grantPermission(grantee, Permission.ReadAcp);
         }
 
-        for ( final Grantee grantee : createGrantees(context.getProperty(WRITE_ACL_LIST).evaluateAttributeExpressions(flowFile).getValue())) {
+        for (final Grantee grantee : createGrantees(context.getProperty(WRITE_ACL_LIST).evaluateAttributeExpressions(flowFile).getValue())) {
             acl.grantPermission(grantee, Permission.WriteAcp);
         }
-        
+
         return acl;
     }
 }

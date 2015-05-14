@@ -25,12 +25,9 @@ import org.apache.nifi.processor.exception.FlowFileAccessException;
 
 /**
  * <p>
- * Wraps an OutputStream so that if any IOException is thrown, it will be
- * wrapped in a FlowFileAccessException. We do this to isolate IOExceptions
- * thrown by the framework from those thrown by user code. If thrown by the
- * framework, it generally indicates a problem communicating with the Content
- * Repository (such as out of disk space) and session rollback is often
- * appropriate so that the FlowFile can be processed again.
+ * Wraps an OutputStream so that if any IOException is thrown, it will be wrapped in a FlowFileAccessException. We do this to isolate IOExceptions thrown by the framework from those thrown by user
+ * code. If thrown by the framework, it generally indicates a problem communicating with the Content Repository (such as out of disk space) and session rollback is often appropriate so that the
+ * FlowFile can be processed again.
  * </p>
  */
 public class FlowFileAccessOutputStream extends FilterOutputStream {

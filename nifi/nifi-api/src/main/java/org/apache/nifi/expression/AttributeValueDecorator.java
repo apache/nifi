@@ -22,8 +22,8 @@ public interface AttributeValueDecorator {
      * Decorates the value of a FlowFile Attribute or System/JVM property in
      * some way
      *
-     * @param attributeValue
-     * @return
+     * @param attributeValue to decorate
+     * @return decorated value
      */
     String decorate(String attributeValue);
 }

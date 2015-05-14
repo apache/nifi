@@ -20,32 +20,22 @@ import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.encrypt.StringEncryptor;
 
 /**
- * @author unattributed
  */
 public interface FlowSynchronizer {
 
     /**
-     * Synchronizes the given controller with the given flow configuration. If
-     * loading the proposed flow configuration would cause the controller to
-     * orphan flow files, then an UninheritableFlowException is thrown.
+     * Synchronizes the given controller with the given flow configuration. If loading the proposed flow configuration would cause the controller to orphan flow files, then an
+     * UninheritableFlowException is thrown.
      *
-     * If the FlowSynchronizationException is thrown, then the controller may
-     * have changed some of its state and should no longer be used.
+     * If the FlowSynchronizationException is thrown, then the controller may have changed some of its state and should no longer be used.
      *
      * @param controller the flow controller
-     * @param dataFlow the flow to load the controller with. If the flow is null
-     * or zero length, then the controller must not have a flow or else an
-     * UninheritableFlowException will be thrown.
-     * @param encryptor used for the encryption/decryption of sensitive property
-     * values
+     * @param dataFlow the flow to load the controller with. If the flow is null or zero length, then the controller must not have a flow or else an UninheritableFlowException will be thrown.
+     * @param encryptor used for the encryption/decryption of sensitive property values
      *
-     * @throws FlowSerializationException if proposed flow is not a valid flow
-     * configuration file
-     * @throws UninheritableFlowException if the proposed flow cannot be loaded
-     * by the controller because in doing so would risk orphaning flow files
-     * @throws FlowSynchronizationException if updates to the controller failed.
-     * If this exception is thrown, then the controller should be considered
-     * unsafe to be used
+     * @throws FlowSerializationException if proposed flow is not a valid flow configuration file
+     * @throws UninheritableFlowException if the proposed flow cannot be loaded by the controller because in doing so would risk orphaning flow files
+     * @throws FlowSynchronizationException if updates to the controller failed. If this exception is thrown, then the controller should be considered unsafe to be used
      */
     void sync(FlowController controller, DataFlow dataFlow, StringEncryptor encryptor)
             throws FlowSerializationException, UninheritableFlowException, FlowSynchronizationException;

@@ -16,6 +16,12 @@
  */
 package org.apache.nifi.web.api;
 
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+import com.wordnik.swagger.annotations.Authorization;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -44,17 +50,17 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.UserGroupDTO;
-import org.codehaus.enunciate.jaxrs.TypeHint;
 import org.springframework.security.access.prepost.PreAuthorize;
 
 /**
  * RESTful endpoint for managing this Controller's user groups.
  */
+@Api(hidden = true)
 public class UserGroupResource extends ApplicationResource {
 
     /*
      * Developer Note: Clustering assumes a centralized security provider. The
-     * cluster manager will manage user accounts when in clustered mode and 
+     * cluster manager will manage user accounts when in clustered mode and
      * interface with the authorization provider. However, when nodes perform
      * Site-to-Site, the authorization details of the remote NiFi will be cached
      * locally. These details need to be invalidated when certain actions are
@@ -68,7 +74,7 @@ public class UserGroupResource extends ApplicationResource {
     /**
      * Updates a new user group.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param clientId Optional client id. If the client id is not specified, a
      * new one will be generated. This value (whether specified or generated) is
      * included in the response.
@@ -79,7 +85,7 @@ public class UserGroupResource extends ApplicationResource {
      * @param rawAuthorities Array of authorities to assign to the specified
      * user.
      * @param status The status of the specified users account.
-     * @param formParams
+     * @param formParams form params
      * @return A userGroupEntity.
      */
     @PUT
@@ -87,7 +93,6 @@ public class UserGroupResource extends ApplicationResource {
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/{group}")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    @TypeHint(UserGroupEntity.class)
     public Response updateUserGroup(
             @Context HttpServletRequest httpServletRequest,
             @PathParam("group") String group,
@@ -132,7 +137,7 @@ public class UserGroupResource extends ApplicationResource {
     /**
      * Creates a new user group with the specified users.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param group The user group.
      * @param userGroupEntity A userGroupEntity.
      * @return A userGroupEntity.
@@ -142,10 +147,33 @@ public class UserGroupResource extends ApplicationResource {
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/{group}")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    @TypeHint(UserGroupEntity.class)
+    @ApiOperation(
+            value = "Updates a user group",
+            response = UserGroupEntity.class,
+            authorizations = {
+                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response updateUserGroup(
             @Context HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The name of the user group.",
+                    required = true
+            )
             @PathParam("group") String group,
+            @ApiParam(
+                    value = "The user group configuration details.",
+                    required = true
+            )
             UserGroupEntity userGroupEntity) {
 
         if (userGroupEntity == null || userGroupEntity.getUserGroup() == null) {
@@ -177,7 +205,7 @@ public class UserGroupResource extends ApplicationResource {
         // this user is being modified, replicate to the nodes to invalidate this account
         // so that it will be re-authorized during the next attempted access - if this wasn't
         // done the account would remain stale for up to the configured cache duration. this
-        // is acceptable sometimes but when updating a users authorities or groups via the UI 
+        // is acceptable sometimes but when updating a users authorities or groups via the UI
         // they shouldn't have to wait for the changes to take effect`
         if (properties.isClusterManager()) {
             // change content type to JSON for serializing entity
@@ -236,7 +264,7 @@ public class UserGroupResource extends ApplicationResource {
      * Deletes the user from the specified group. The user will not be removed,
      * just the fact that they were in this group.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param group The user group.
      * @param userId The user id to remove.
      * @param clientId Optional client id. If the client id is not specified, a
@@ -245,20 +273,49 @@ public class UserGroupResource extends ApplicationResource {
      * @return A userGroupEntity.
      */
     @DELETE
+    @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/{group}/users/{userId}")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    @TypeHint(UserGroupEntity.class)
+    @ApiOperation(
+            value = "Removes a user from a user group",
+            notes = "Removes a user from a user group. The will not be deleted, jsut the fact that they were in this group.",
+            response = UserGroupEntity.class,
+            authorizations = {
+                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response removeUserFromGroup(
             @Context HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The name of the user group.",
+                    required = true
+            )
             @PathParam("group") String group,
+            @ApiParam(
+                    value = "The id of the user to remove from the user group.",
+                    required = true
+            )
             @PathParam("userId") String userId,
+            @ApiParam(
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+                    required = false
+            )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
 
         // this user is being modified, replicate to the nodes to invalidate this account
         // so that it will be re-authorized during the next attempted access - if this wasn't
         // done the account would remain stale for up to the configured cache duration. this
-        // is acceptable sometimes but when removing a user via the UI they shouldn't have to 
+        // is acceptable sometimes but when removing a user via the UI they shouldn't have to
         // wait for the changes to take effect
         if (properties.isClusterManager()) {
             // identify yourself as the NCM attempting to invalidate the user
@@ -305,7 +362,7 @@ public class UserGroupResource extends ApplicationResource {
      * Deletes the user group. The users will not be removed, just the fact that
      * they were grouped.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param group The user group.
      * @param clientId Optional client id. If the client id is not specified, a
      * new one will be generated. This value (whether specified or generated) is
@@ -313,19 +370,44 @@ public class UserGroupResource extends ApplicationResource {
      * @return A userGroupEntity.
      */
     @DELETE
+    @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/{group}")
     @PreAuthorize("hasRole('ROLE_ADMIN')")
-    @TypeHint(UserGroupEntity.class)
+    @ApiOperation(
+            value = "Deletes a user group",
+            notes = "Deletes a user group. The users will not be removed, just the fact that they were grouped.",
+            response = UserGroupEntity.class,
+            authorizations = {
+                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response ungroup(
             @Context HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The name of the user group.",
+                    required = true
+            )
             @PathParam("group") String group,
+            @ApiParam(
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+                    required = false
+            )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId) {
 
         // this user is being modified, replicate to the nodes to invalidate this account
         // so that it will be re-authorized during the next attempted access - if this wasn't
         // done the account would remain stale for up to the configured cache duration. this
-        // is acceptable sometimes but when removing a user via the UI they shouldn't have to 
+        // is acceptable sometimes but when removing a user via the UI they shouldn't have to
         // wait for the changes to take effect
         if (properties.isClusterManager()) {
             // identify yourself as the NCM attempting to invalidate the user

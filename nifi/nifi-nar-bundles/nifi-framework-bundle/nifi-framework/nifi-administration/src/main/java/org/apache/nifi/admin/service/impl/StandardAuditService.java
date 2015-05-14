@@ -197,22 +197,12 @@ public class StandardAuditService implements AuditService {
         }
     }
 
-    /**
-     * Rolls back the specified transaction.
-     *
-     * @param transaction
-     */
     private void rollback(Transaction transaction) {
         if (transaction != null) {
             transaction.rollback();
         }
     }
 
-    /**
-     * Closes the specified transaction.
-     *
-     * @param transaction
-     */
     private void closeQuietly(final Transaction transaction) {
         if (transaction != null) {
             try {
@@ -222,7 +212,6 @@ public class StandardAuditService implements AuditService {
         }
     }
 
-    /* setters */
     public void setTransactionBuilder(TransactionBuilder transactionBuilder) {
         this.transactionBuilder = transactionBuilder;
     }

@@ -20,9 +20,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceEventDTO;
 
 /**
- * A serialized representation of this class can be placed in the entity body of
- * a request or response to or from the API. This particular entity holds a
- * reference to a ProvenanceEventDTO.
+ * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a ProvenanceEventDTO.
  */
 @XmlRootElement(name = "provenanceEventEntity")
 public class ProvenanceEventEntity extends Entity {

@@ -16,15 +16,14 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Date;
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
 /**
- * A bulletin that represents a notification about a passing event including,
- * the source component (if applicable), the timestamp, the message, and where
- * the bulletin originated (if applicable).
+ * A bulletin that represents a notification about a passing event including, the source component (if applicable), the timestamp, the message, and where the bulletin originated (if applicable).
  */
 @XmlType(name = "bulletin")
 public class BulletinDTO {
@@ -40,10 +39,11 @@ public class BulletinDTO {
     private Date timestamp;
 
     /**
-     * The id of this message.
-     *
-     * @return
+     * @return id of this message
      */
+    @ApiModelProperty(
+            value = "The id of the bulletin."
+    )
     public Long getId() {
         return id;
     }
@@ -53,11 +53,11 @@ public class BulletinDTO {
     }
 
     /**
-     * When clustered, the address of the node from which this bulletin
-     * originated.
-     *
-     * @return
+     * @return When clustered, the address of the node from which this bulletin originated
      */
+    @ApiModelProperty(
+            value = "If clustered, the address of the node from whicih the bulletin originated."
+    )
     public String getNodeAddress() {
         return nodeAddress;
     }
@@ -67,10 +67,11 @@ public class BulletinDTO {
     }
 
     /**
-     * The group id of the source component.
-     *
-     * @return
+     * @return group id of the source component
      */
+    @ApiModelProperty(
+            value = "The group id of the source component."
+    )
     public String getGroupId() {
         return groupId;
     }
@@ -80,10 +81,11 @@ public class BulletinDTO {
     }
 
     /**
-     * The category of this message.
-     *
-     * @return
+     * @return category of this message
      */
+    @ApiModelProperty(
+            value = "The catagory of this bulletin."
+    )
     public String getCategory() {
         return category;
     }
@@ -93,10 +95,11 @@ public class BulletinDTO {
     }
 
     /**
-     * The actual message.
-     *
-     * @return
+     * @return actual message
      */
+    @ApiModelProperty(
+            value = "The bulletin message."
+    )
     public String getMessage() {
         return message;
     }
@@ -106,10 +109,11 @@ public class BulletinDTO {
     }
 
     /**
-     * The id of the source of this message.
-     *
-     * @return
+     * @return id of the source of this message
      */
+    @ApiModelProperty(
+            value = "The id of the source component."
+    )
     public String getSourceId() {
         return sourceId;
     }
@@ -119,10 +123,11 @@ public class BulletinDTO {
     }
 
     /**
-     * The name of the source of this message.
-     *
-     * @return
+     * @return name of the source of this message
      */
+    @ApiModelProperty(
+            value = "The name of the source component."
+    )
     public String getSourceName() {
         return sourceName;
     }
@@ -132,10 +137,11 @@ public class BulletinDTO {
     }
 
     /**
-     * The level of this bulletin.
-     *
-     * @return
+     * @return level of this bulletin
      */
+    @ApiModelProperty(
+            value = "The level of the bulletin."
+    )
     public String getLevel() {
         return level;
     }
@@ -145,11 +151,12 @@ public class BulletinDTO {
     }
 
     /**
-     * When this bulletin was generated as a formatted string.
-     *
-     * @return
+     * @return When this bulletin was generated as a formatted string
      */
     @XmlJavaTypeAdapter(TimeAdapter.class)
+    @ApiModelProperty(
+            value = "When this bulletin was generated."
+    )
     public Date getTimestamp() {
         return timestamp;
     }

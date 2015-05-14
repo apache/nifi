@@ -20,13 +20,13 @@ import org.apache.nifi.hl7.query.evaluator.Evaluator;
 
 public class EqualsEvaluator extends AbstractComparisonEvaluator {
 
-	public EqualsEvaluator(final Evaluator<?> lhs, final Evaluator<?> rhs) {
-		super(lhs, rhs);
-	}
-	
-	@Override
-	protected boolean compare(final Object lhs, final Object rhs) {
-		return lhs != null && rhs != null && ((lhs == rhs) || (lhs.equals(rhs)) || lhs.toString().equals(rhs.toString()));
-	}
+    public EqualsEvaluator(final Evaluator<?> lhs, final Evaluator<?> rhs) {
+        super(lhs, rhs);
+    }
+
+    @Override
+    protected boolean compare(final Object lhs, final Object rhs) {
+        return lhs != null && rhs != null && ((lhs == rhs) || (lhs.equals(rhs)) || lhs.toString().equals(rhs.toString()));
+    }
 
 }

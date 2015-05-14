@@ -42,7 +42,7 @@ public class ReportingTaskWrapper implements Runnable {
             taskNode.getReportingTask().onTrigger(taskNode.getReportingContext());
         } catch (final Throwable t) {
             final ComponentLog componentLog = new SimpleProcessLogger(taskNode.getIdentifier(), taskNode.getReportingTask());
-            componentLog.error("Error running task {} due to {}", new Object[] {taskNode.getReportingTask(), t.toString()});
+            componentLog.error("Error running task {} due to {}", new Object[]{taskNode.getReportingTask(), t.toString()});
             if (componentLog.isDebugEnabled()) {
                 componentLog.error("", t);
             }
@@ -52,7 +52,9 @@ public class ReportingTaskWrapper implements Runnable {
                 // invoke the OnStopped methods
                 if (!scheduleState.isScheduled() && scheduleState.getActiveThreadCount() == 1 && scheduleState.mustCallOnStoppedMethods()) {
                     try (final NarCloseable x = NarCloseable.withNarLoader()) {
-                        ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnStopped.class, org.apache.nifi.processor.annotation.OnStopped.class, taskNode.getReportingTask(), taskNode.getConfigurationContext());
+                        ReflectionUtils.quietlyInvokeMethodsWithAnnotations(
+                                OnStopped.class, org.apache.nifi.processor.annotation.OnStopped.class,
+                                taskNode.getReportingTask(), taskNode.getConfigurationContext());
                     }
                 }
             } finally {

@@ -31,70 +31,64 @@ public class ReflectionUtils {
     private final static Logger LOG = LoggerFactory.getLogger(ReflectionUtils.class);
 
     /**
-     * Invokes all methods on the given instance that have been annotated with
-     * the given Annotation. If the signature of the method that is defined in
-     * <code>instance</code> uses 1 or more parameters, those parameters must be
-     * specified by the <code>args</code> parameter. However, if more arguments
-     * are supplied by the <code>args</code> parameter than needed, the extra
-     * arguments will be ignored.
+     * Invokes all methods on the given instance that have been annotated with the given Annotation. If the signature of the method that is defined in <code>instance</code> uses 1 or more parameters,
+     * those parameters must be specified by the <code>args</code> parameter. However, if more arguments are supplied by the <code>args</code> parameter than needed, the extra arguments will be
+     * ignored.
      *
-     * @param annotation
-     * @param instance
-     * @param args
-     * @throws InvocationTargetException
-     * @throws IllegalArgumentException
-     * @throws IllegalAccessException
+     * @param annotation annotation
+     * @param instance instance
+     * @param args args
+     * @throws InvocationTargetException ex
+     * @throws IllegalArgumentException ex
+     * @throws IllegalAccessException ex
      */
-    public static void invokeMethodsWithAnnotation(final Class<? extends Annotation> annotation, final Object instance, final Object... args) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-        invokeMethodsWithAnnotation(annotation, null, instance, args);
+    public static void invokeMethodsWithAnnotation(
+            final Class<? extends Annotation> annotation, final Object instance, final Object... args) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+        invokeMethodsWithAnnotations(annotation, null, instance, args);
     }
 
-    
     /**
-     * Invokes all methods on the given instance that have been annotated with
-     * the given preferredAnnotation and if no such method exists will invoke all
-     * methods on the given instance that have been annotated with the given
-     * alternateAnnotation, if any exists. If the signature of the method that is defined in
-     * <code>instance</code> uses 1 or more parameters, those parameters must be
-     * specified by the <code>args</code> parameter. However, if more arguments
-     * are supplied by the <code>args</code> parameter than needed, the extra
-     * arguments will be ignored.
+     * Invokes all methods on the given instance that have been annotated with the given preferredAnnotation and if no such method exists will invoke all methods on the given instance that have been
+     * annotated with the given alternateAnnotation, if any exists. If the signature of the method that is defined in <code>instance</code> uses 1 or more parameters, those parameters must be
+     * specified by the <code>args</code> parameter. However, if more arguments are supplied by the <code>args</code> parameter than needed, the extra arguments will be ignored.
      *
-     * @param preferredAnnotation
-     * @param alternateAnnotation
-     * @param instance
-     * @param args
-     * @throws InvocationTargetException
-     * @throws IllegalArgumentException
-     * @throws IllegalAccessException
+     * @param preferredAnnotation preferred
+     * @param alternateAnnotation alternate
+     * @param instance instance
+     * @param args args
+     * @throws InvocationTargetException ex
+     * @throws IllegalArgumentException ex
+     * @throws IllegalAccessException ex
      */
-    public static void invokeMethodsWithAnnotation(final Class<? extends Annotation> preferredAnnotation, final Class<? extends Annotation> alternateAnnotation, final Object instance, final Object... args) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+    public static void invokeMethodsWithAnnotations(
+            final Class<? extends Annotation> preferredAnnotation, final Class<? extends Annotation> alternateAnnotation, final Object instance, final Object... args)
+            throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
         final List<Class<? extends Annotation>> annotationClasses = new ArrayList<>(alternateAnnotation == null ? 1 : 2);
         annotationClasses.add(preferredAnnotation);
-        if ( alternateAnnotation != null ) {
+        if (alternateAnnotation != null) {
             annotationClasses.add(alternateAnnotation);
         }
-        
+
         boolean annotationFound = false;
-        for ( final Class<? extends Annotation> annotationClass : annotationClasses ) {
-            if ( annotationFound ) {
+        for (final Class<? extends Annotation> annotationClass : annotationClasses) {
+            if (annotationFound) {
                 break;
             }
-            
+
             try {
                 for (final Method method : instance.getClass().getMethods()) {
                     if (method.isAnnotationPresent(annotationClass)) {
                         annotationFound = true;
                         final boolean isAccessible = method.isAccessible();
                         method.setAccessible(true);
-        
+
                         try {
                             final Class<?>[] argumentTypes = method.getParameterTypes();
                             if (argumentTypes.length > args.length) {
                                 throw new IllegalArgumentException(String.format("Unable to invoke method %1$s on %2$s because method expects %3$s parameters but only %4$s were given",
                                         method.getName(), instance, argumentTypes.length, args.length));
                             }
-        
+
                             for (int i = 0; i < argumentTypes.length; i++) {
                                 final Class<?> argType = argumentTypes[i];
                                 if (!argType.isAssignableFrom(args[i].getClass())) {
@@ -103,7 +97,7 @@ public class ReflectionUtils {
                                             method.getName(), instance, i, argType, args[i].getClass()));
                                 }
                             }
-        
+
                             if (argumentTypes.length == args.length) {
                                 method.invoke(instance, args);
                             } else {
@@ -111,7 +105,7 @@ public class ReflectionUtils {
                                 for (int i = 0; i < argsToPass.length; i++) {
                                     argsToPass[i] = args[i];
                                 }
-        
+
                                 method.invoke(instance, argsToPass);
                             }
                         } finally {
@@ -122,7 +116,7 @@ public class ReflectionUtils {
                     }
                 }
             } catch (final InvocationTargetException ite) {
-                if ( ite.getCause() instanceof RuntimeException ) {
+                if (ite.getCause() instanceof RuntimeException) {
                     throw (RuntimeException) ite.getCause();
                 } else {
                     throw ite;
@@ -131,119 +125,117 @@ public class ReflectionUtils {
         }
     }
 
-    
     /**
-     * Invokes all methods on the given instance that have been annotated with
-     * the given Annotation. If the signature of the method that is defined in
-     * <code>instance</code> uses 1 or more parameters, those parameters must be
-     * specified by the <code>args</code> parameter. However, if more arguments
-     * are supplied by the <code>args</code> parameter than needed, the extra
-     * arguments will be ignored.
+     * Invokes all methods on the given instance that have been annotated with the given Annotation. If the signature of the method that is defined in <code>instance</code> uses 1 or more parameters,
+     * those parameters must be specified by the <code>args</code> parameter. However, if more arguments are supplied by the <code>args</code> parameter than needed, the extra arguments will be
+     * ignored.
      *
-     * @param annotation
-     * @param instance
-     * @param args
-     * @return <code>true</code> if all appropriate methods were invoked and
-     * returned without throwing an Exception, <code>false</code> if one of the
-     * methods threw an Exception or could not be invoked; if <code>false</code>
-     * is returned, an error will have been logged.
+     * @param annotation annotation
+     * @param instance instance
+     * @param args args
+     * @return <code>true</code> if all appropriate methods were invoked and returned without throwing an Exception, <code>false</code> if one of the methods threw an Exception or could not be
+     * invoked; if <code>false</code> is returned, an error will have been logged.
      */
     public static boolean quietlyInvokeMethodsWithAnnotation(final Class<? extends Annotation> annotation, final Object instance, final Object... args) {
-        return quietlyInvokeMethodsWithAnnotation(annotation, null, instance, null, args);
+        return quietlyInvokeMethodsWithAnnotations(annotation, null, instance, null, args);
     }
-    
-    
+
     /**
-     * Invokes all methods on the given instance that have been annotated with
-     * the given Annotation. If the signature of the method that is defined in
-     * <code>instance</code> uses 1 or more parameters, those parameters must be
-     * specified by the <code>args</code> parameter. However, if more arguments
-     * are supplied by the <code>args</code> parameter than needed, the extra
-     * arguments will be ignored.
+     * Invokes all methods on the given instance that have been annotated with the given Annotation. If the signature of the method that is defined in <code>instance</code> uses 1 or more parameters,
+     * those parameters must be specified by the <code>args</code> parameter. However, if more arguments are supplied by the <code>args</code> parameter than needed, the extra arguments will be
+     * ignored.
      *
-     * @param annotation
-     * @param instance
-     * @param args
-     * @return <code>true</code> if all appropriate methods were invoked and
-     * returned without throwing an Exception, <code>false</code> if one of the
-     * methods threw an Exception or could not be invoked; if <code>false</code>
-     * is returned, an error will have been logged.
+     * @param annotation annotation
+     * @param instance instance
+     * @param logger logger
+     * @param args args
+     * @return <code>true</code> if all appropriate methods were invoked and returned without throwing an Exception, <code>false</code> if one of the methods threw an Exception or could not be
+     * invoked; if <code>false</code> is returned, an error will have been logged.
      */
     public static boolean quietlyInvokeMethodsWithAnnotation(final Class<? extends Annotation> annotation, final Object instance, final ProcessorLog logger, final Object... args) {
-        return quietlyInvokeMethodsWithAnnotation(annotation, null, instance, logger, args);
+        return quietlyInvokeMethodsWithAnnotations(annotation, null, instance, logger, args);
     }
-    
-    
+
     /**
-     * Invokes all methods on the given instance that have been annotated with
-     * the given preferredAnnotation and if no such method exists will invoke all methods
-     * on the given instance that have been annotated with the given
-     * alternateAnnotation, if any exists. If the signature of the method that is defined in
-     * <code>instance</code> uses 1 or more parameters, those parameters must be
-     * specified by the <code>args</code> parameter. However, if more arguments
-     * are supplied by the <code>args</code> parameter than needed, the extra
-     * arguments will be ignored.
+     * Invokes all methods on the given instance that have been annotated with the given preferredAnnotation and if no such method exists will invoke all methods on the given instance that have been
+     * annotated with the given alternateAnnotation, if any exists. If the signature of the method that is defined in <code>instance</code> uses 1 or more parameters, those parameters must be
+     * specified by the <code>args</code> parameter. However, if more arguments are supplied by the <code>args</code> parameter than needed, the extra arguments will be ignored.
      *
-     * @param preferredAnnotation
-     * @param alternateAnnotation
-     * @param instance
-     * @param logger the ProcessorLog to use for logging any errors. If null, will use own logger, but that will not generate bulletins
-     *          or easily tie to the Processor's log messages.
-     * @param args
-     * @return <code>true</code> if all appropriate methods were invoked and
-     * returned without throwing an Exception, <code>false</code> if one of the
-     * methods threw an Exception or could not be invoked; if <code>false</code>
-     * is returned, an error will have been logged.
+     * @param preferredAnnotation preferred
+     * @param alternateAnnotation alternate
+     * @param instance instance
+     * @param args args
+     * @return <code>true</code> if all appropriate methods were invoked and returned without throwing an Exception, <code>false</code> if one of the methods threw an Exception or could not be
+     * invoked; if <code>false</code> is returned, an error will have been logged.
      */
-    public static boolean quietlyInvokeMethodsWithAnnotation(final Class<? extends Annotation> preferredAnnotation, final Class<? extends Annotation> alternateAnnotation, final Object instance, final ProcessorLog logger, final Object... args) {
+    public static boolean quietlyInvokeMethodsWithAnnotations(
+            final Class<? extends Annotation> preferredAnnotation, final Class<? extends Annotation> alternateAnnotation, final Object instance, final Object... args) {
+        return quietlyInvokeMethodsWithAnnotations(preferredAnnotation, alternateAnnotation, instance, null, args);
+    }
+
+    /**
+     * Invokes all methods on the given instance that have been annotated with the given preferredAnnotation and if no such method exists will invoke all methods on the given instance that have been
+     * annotated with the given alternateAnnotation, if any exists. If the signature of the method that is defined in <code>instance</code> uses 1 or more parameters, those parameters must be
+     * specified by the <code>args</code> parameter. However, if more arguments are supplied by the <code>args</code> parameter than needed, the extra arguments will be ignored.
+     *
+     * @param preferredAnnotation preferred
+     * @param alternateAnnotation alternate
+     * @param instance instance
+     * @param logger the ProcessorLog to use for logging any errors. If null, will use own logger, but that will not generate bulletins or easily tie to the Processor's log messages.
+     * @param args args
+     * @return <code>true</code> if all appropriate methods were invoked and returned without throwing an Exception, <code>false</code> if one of the methods threw an Exception or could not be
+     * invoked; if <code>false</code> is returned, an error will have been logged.
+     */
+    public static boolean quietlyInvokeMethodsWithAnnotations(
+            final Class<? extends Annotation> preferredAnnotation, final Class<? extends Annotation> alternateAnnotation, final Object instance, final ProcessorLog logger, final Object... args) {
         final List<Class<? extends Annotation>> annotationClasses = new ArrayList<>(alternateAnnotation == null ? 1 : 2);
         annotationClasses.add(preferredAnnotation);
-        if ( alternateAnnotation != null ) {
+        if (alternateAnnotation != null) {
             annotationClasses.add(alternateAnnotation);
         }
-        
+
         boolean annotationFound = false;
-        for ( final Class<? extends Annotation> annotationClass : annotationClasses ) {
-            if ( annotationFound ) {
+        for (final Class<? extends Annotation> annotationClass : annotationClasses) {
+            if (annotationFound) {
                 break;
             }
-            
+
             for (final Method method : instance.getClass().getMethods()) {
                 if (method.isAnnotationPresent(annotationClass)) {
                     annotationFound = true;
-                    
+
                     final boolean isAccessible = method.isAccessible();
                     method.setAccessible(true);
-    
+
                     try {
                         final Class<?>[] argumentTypes = method.getParameterTypes();
                         if (argumentTypes.length > args.length) {
-                            if ( logger == null ) {
+                            if (logger == null) {
                                 LOG.error("Unable to invoke method {} on {} because method expects {} parameters but only {} were given",
-                                    new Object[]{method.getName(), instance, argumentTypes.length, args.length});
+                                        new Object[]{method.getName(), instance, argumentTypes.length, args.length});
                             } else {
                                 logger.error("Unable to invoke method {} on {} because method expects {} parameters but only {} were given",
                                         new Object[]{method.getName(), instance, argumentTypes.length, args.length});
                             }
-                            
+
                             return false;
                         }
-    
+
                         for (int i = 0; i < argumentTypes.length; i++) {
                             final Class<?> argType = argumentTypes[i];
                             if (!argType.isAssignableFrom(args[i].getClass())) {
-                                if ( logger == null ) {
+                                if (logger == null) {
                                     LOG.error("Unable to invoke method {} on {} because method parameter {} is expected to be of type {} but argument passed was of type {}",
-                                        new Object[]{method.getName(), instance, i, argType, args[i].getClass()});
+                                            new Object[]{method.getName(), instance, i, argType, args[i].getClass()});
                                 } else {
                                     logger.error("Unable to invoke method {} on {} because method parameter {} is expected to be of type {} but argument passed was of type {}",
                                             new Object[]{method.getName(), instance, i, argType, args[i].getClass()});
                                 }
-                                
+
                                 return false;
                             }
                         }
-    
+
                         try {
                             if (argumentTypes.length == args.length) {
                                 method.invoke(instance, args);
@@ -252,24 +244,24 @@ public class ReflectionUtils {
                                 for (int i = 0; i < argsToPass.length; i++) {
                                     argsToPass[i] = args[i];
                                 }
-    
+
                                 method.invoke(instance, argsToPass);
                             }
                         } catch (final InvocationTargetException ite) {
-                            if ( logger == null ) {
+                            if (logger == null) {
                                 LOG.error("Unable to invoke method {} on {} due to {}", new Object[]{method.getName(), instance, ite.getCause()});
                                 LOG.error("", ite.getCause());
                             } else {
                                 logger.error("Unable to invoke method {} on {} due to {}", new Object[]{method.getName(), instance, ite.getCause()});
                             }
                         } catch (final IllegalAccessException | IllegalArgumentException t) {
-                            if ( logger == null ) {
+                            if (logger == null) {
                                 LOG.error("Unable to invoke method {} on {} due to {}", new Object[]{method.getName(), instance, t});
                                 LOG.error("", t);
                             } else {
                                 logger.error("Unable to invoke method {} on {} due to {}", new Object[]{method.getName(), instance, t});
                             }
-                            
+
                             return false;
                         }
                     } finally {

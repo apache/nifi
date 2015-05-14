@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Date;
 import java.util.List;
 import javax.xml.bind.annotation.XmlType;
@@ -41,11 +42,12 @@ public class NodeDTO {
     private Date nodeStartTime;
 
     /**
-     * The node's last heartbeat timestamp.
-     *
-     * @return
+     * @return node's last heartbeat timestamp
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
+    @ApiModelProperty(
+            value = "the time of the nodes's last heartbeat."
+    )
     public Date getHeartbeat() {
         return heartbeat;
     }
@@ -55,11 +57,12 @@ public class NodeDTO {
     }
 
     /**
-     * The time of the node's last connection request.
-     *
-     * @return
+     * @return time of the node's last connection request
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
+    @ApiModelProperty(
+            value = "The time of the node's last connection request."
+    )
     public Date getConnectionRequested() {
         return connectionRequested;
     }
@@ -73,6 +76,9 @@ public class NodeDTO {
      *
      * @return The active thread count
      */
+    @ApiModelProperty(
+            value = "The active threads for the NiFi on the node."
+    )
     public Integer getActiveThreadCount() {
         return activeThreadCount;
     }
@@ -82,10 +88,11 @@ public class NodeDTO {
     }
 
     /**
-     * The queue for the controller.
-     *
-     * @return
+     * @return queue for the controller
      */
+    @ApiModelProperty(
+            value = "The queue the NiFi on the node."
+    )
     public String getQueued() {
         return queued;
     }
@@ -95,10 +102,11 @@ public class NodeDTO {
     }
 
     /**
-     * The node's host/IP address.
-     *
-     * @return
+     * @return node's host/IP address
      */
+    @ApiModelProperty(
+            value = "The node's host/ip address."
+    )
     public String getAddress() {
         return address;
     }
@@ -108,10 +116,11 @@ public class NodeDTO {
     }
 
     /**
-     * The node ID.
-     *
-     * @return
+     * @return node ID
      */
+    @ApiModelProperty(
+            value = "The id of the node."
+    )
     public String getNodeId() {
         return nodeId;
     }
@@ -121,10 +130,11 @@ public class NodeDTO {
     }
 
     /**
-     * The port the node is listening for API requests.
-     *
-     * @return
+     * @return port the node is listening for API requests
      */
+    @ApiModelProperty(
+            value = "The port the node is listening for API requests."
+    )
     public Integer getApiPort() {
         return apiPort;
     }
@@ -134,10 +144,11 @@ public class NodeDTO {
     }
 
     /**
-     * The node's status.
-     *
-     * @return
+     * @return node's status
      */
+    @ApiModelProperty(
+            value = "The node's status."
+    )
     public String getStatus() {
         return status;
     }
@@ -147,10 +158,11 @@ public class NodeDTO {
     }
 
     /**
-     * The node's events.
-     *
-     * @return
+     * @return node's events
      */
+    @ApiModelProperty(
+            value = "The node's events."
+    )
     public List<NodeEventDTO> getEvents() {
         return events;
     }
@@ -160,10 +172,11 @@ public class NodeDTO {
     }
 
     /**
-     * Whether this node is the primary node within the cluster.
-     *
-     * @return
+     * @return whether this node is the primary node within the cluster
      */
+    @ApiModelProperty(
+            value = "Whether the node is the primary node within the cluster."
+    )
     public Boolean isPrimary() {
         return primary;
     }
@@ -173,11 +186,12 @@ public class NodeDTO {
     }
 
     /**
-     * The time at which this Node was last restarted
-     *
-     * @return
+     * @return time at which this Node was last restarted
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
+    @ApiModelProperty(
+            value = "The time at which this Node was last refreshed."
+    )
     public Date getNodeStartTime() {
         return nodeStartTime;
     }

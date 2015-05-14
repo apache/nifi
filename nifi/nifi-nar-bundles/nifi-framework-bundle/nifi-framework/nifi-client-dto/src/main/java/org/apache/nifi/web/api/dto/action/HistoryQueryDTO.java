@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.action;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Date;
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
@@ -37,10 +38,11 @@ public class HistoryQueryDTO {
     private String sortOrder;
 
     /**
-     * The user name.
-     *
-     * @return
+     * @return user name
      */
+    @ApiModelProperty(
+            value = "The name of the source component."
+    )
     public String getUserName() {
         return userName;
     }
@@ -50,10 +52,11 @@ public class HistoryQueryDTO {
     }
 
     /**
-     * The source component id.
-     *
-     * @return
+     * @return source component id
      */
+    @ApiModelProperty(
+            value = "The id of the source component."
+    )
     public String getSourceId() {
         return sourceId;
     }
@@ -63,11 +66,12 @@ public class HistoryQueryDTO {
     }
 
     /**
-     * The start date.
-     *
-     * @return
+     * @return start date
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
+    @ApiModelProperty(
+            value = "The start date of actions to return."
+    )
     public Date getStartDate() {
         return startDate;
     }
@@ -77,11 +81,12 @@ public class HistoryQueryDTO {
     }
 
     /**
-     * The end date.
-     *
-     * @return
+     * @return end date
      */
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
+    @ApiModelProperty(
+            value = "The end date of actions to return."
+    )
     public Date getEndDate() {
         return endDate;
     }
@@ -91,10 +96,11 @@ public class HistoryQueryDTO {
     }
 
     /**
-     * The offset.
-     *
-     * @return
+     * @return offset
      */
+    @ApiModelProperty(
+            value = "The offset into the result set."
+    )
     public Integer getOffset() {
         return offset;
     }
@@ -104,10 +110,11 @@ public class HistoryQueryDTO {
     }
 
     /**
-     * The desired row count.
-     *
-     * @return
+     * @return desired row count
      */
+    @ApiModelProperty(
+            value = "The number of actions to return."
+    )
     public Integer getCount() {
         return count;
     }
@@ -117,10 +124,11 @@ public class HistoryQueryDTO {
     }
 
     /**
-     * The desired sort column.
-     *
-     * @return
+     * @return desired sort column
      */
+    @ApiModelProperty(
+            value = "The field to sort on."
+    )
     public String getSortColumn() {
         return sortColumn;
     }
@@ -130,10 +138,11 @@ public class HistoryQueryDTO {
     }
 
     /**
-     * The desired sort order.
-     *
-     * @return
+     * @return desired sort order
      */
+    @ApiModelProperty(
+            value = "The sort order."
+    )
     public String getSortOrder() {
         return sortOrder;
     }

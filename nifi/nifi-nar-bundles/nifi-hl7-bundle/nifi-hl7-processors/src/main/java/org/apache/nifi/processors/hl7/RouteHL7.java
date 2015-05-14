@@ -64,154 +64,158 @@ import ca.uhn.hl7v2.validation.impl.ValidationContextFactory;
 @SideEffectFree
 @SupportsBatching
 @Tags({"HL7", "healthcare", "route", "Health Level 7"})
-@DynamicProperties({@DynamicProperty(name="Name of a Relationship", value="An HL7 Query Language query", description="If a FlowFile matches the query, it will be routed to a relationship with the name of the property")})
-@WritesAttributes({@WritesAttribute(attribute="RouteHL7.Route", description="The name of the relationship to which the FlowFile was routed")})
+@DynamicProperties({
+    @DynamicProperty(name = "Name of a Relationship", value = "An HL7 Query Language query",
+            description = "If a FlowFile matches the query, it will be routed to a relationship with the name of the property")})
+@WritesAttributes({
+    @WritesAttribute(attribute = "RouteHL7.Route", description = "The name of the relationship to which the FlowFile was routed")})
 @CapabilityDescription("Routes incoming HL7 data according to user-defined queries. To add a query, add a new property to the processor."
-		+ " The name of the property will become a new relationship for the processor, and the value is an HL7 Query Language query. If"
-		+ " a FlowFile matches the query, a copy of the FlowFile will be routed to the associated relationship.")
+        + " The name of the property will become a new relationship for the processor, and the value is an HL7 Query Language query. If"
+        + " a FlowFile matches the query, a copy of the FlowFile will be routed to the associated relationship.")
 public class RouteHL7 extends AbstractProcessor {
-	public static final PropertyDescriptor CHARACTER_SET = new PropertyDescriptor.Builder()
-		.name("Character Encoding")
-		.description("The Character Encoding that is used to encode the HL7 data")
-		.required(true)
-		.expressionLanguageSupported(true)
-		.addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
-		.defaultValue("UTF-8")
-		.build();
 
-	static final Relationship REL_FAILURE = new Relationship.Builder()
-		.name("failure")
-		.description("Any FlowFile that cannot be parsed as HL7 will be routed to this relationship")
-		.build();
-	static final Relationship REL_ORIGINAL = new Relationship.Builder()
-		.name("original")
-		.description("The original FlowFile that comes into this processor will be routed to this relationship, unless it is routed to 'failure'")
-		.build();
-	
-	private volatile Map<Relationship, HL7Query> queries = new HashMap<>();
-	
-	@Override
-	protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
-		return new PropertyDescriptor.Builder()
-			.name(propertyDescriptorName)
-			.description("Specifies a query that will cause any HL7 message matching the query to be routed to the '" + propertyDescriptorName + "' relationship")
-			.required(false)
-			.dynamic(true)
-			.addValidator(new HL7QueryValidator())
-			.build();
-	}
+    public static final PropertyDescriptor CHARACTER_SET = new PropertyDescriptor.Builder()
+            .name("Character Encoding")
+            .description("The Character Encoding that is used to encode the HL7 data")
+            .required(true)
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
+            .defaultValue("UTF-8")
+            .build();
 
-	@Override
-	protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-		final List<PropertyDescriptor> properties = new ArrayList<>();
-		properties.add(CHARACTER_SET);
-		return properties;
-	}
-	
-	@Override
-	public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
-		if ( !descriptor.isDynamic() ) {
-			return;
-		}
-		
-		final Map<Relationship, HL7Query> updatedQueryMap = new HashMap<>(queries);
-		final Relationship relationship = new Relationship.Builder().name(descriptor.getName()).build();
-		
-		if ( newValue == null ) {
-			updatedQueryMap.remove(relationship);
-		} else {
-			final HL7Query query = HL7Query.compile(newValue);
-			updatedQueryMap.put(relationship, query);
-		}
-		
-		this.queries = updatedQueryMap;
-	}
-	
-	@Override
-	public Set<Relationship> getRelationships() {
-		final Set<Relationship> relationships = new HashSet<>(queries.keySet());
-		relationships.add(REL_FAILURE);
-		relationships.add(REL_ORIGINAL);
-		return relationships;
-	}
-	
-	@Override
-	public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-		FlowFile flowFile = session.get();
-		if ( flowFile == null ) {
-			return;
-		}
-		
-		final Charset charset = Charset.forName(context.getProperty(CHARACTER_SET).evaluateAttributeExpressions(flowFile).getValue());
-		
-		final byte[] buffer = new byte[(int) flowFile.getSize()];
-		session.read(flowFile, new InputStreamCallback() {
-			@Override
-			public void process(final InputStream in) throws IOException {
-				StreamUtils.fillBuffer(in, buffer);
-			}
-		});
+    static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("Any FlowFile that cannot be parsed as HL7 will be routed to this relationship")
+            .build();
+    static final Relationship REL_ORIGINAL = new Relationship.Builder()
+            .name("original")
+            .description("The original FlowFile that comes into this processor will be routed to this relationship, unless it is routed to 'failure'")
+            .build();
 
-		@SuppressWarnings("resource")
-		final HapiContext hapiContext = new DefaultHapiContext();
-		hapiContext.setValidationContext(ValidationContextFactory.noValidation());
-		
-		final PipeParser parser = hapiContext.getPipeParser();
-		final String hl7Text = new String(buffer, charset);
-		final HL7Message message;
-		try {
-			final Message hapiMessage = parser.parse(hl7Text);
-			message = new HapiMessage(hapiMessage);
-		} catch (final Exception e) {
-			getLogger().error("Failed to parse {} as HL7 due to {}; routing to failure", new Object[] {flowFile, e});
-			session.transfer(flowFile, REL_FAILURE);
-			return;
-		}
+    private volatile Map<Relationship, HL7Query> queries = new HashMap<>();
 
-		final Set<String> matchingRels = new HashSet<>();
-		final Map<Relationship, HL7Query> queryMap = queries;
-		for ( final Map.Entry<Relationship, HL7Query> entry : queryMap.entrySet() ) {
-			final Relationship relationship = entry.getKey();
-			final HL7Query query = entry.getValue();
-			
-			final QueryResult result = query.evaluate(message);
-			if ( result.isMatch() ) {
-				FlowFile clone = session.clone(flowFile);
-				clone = session.putAttribute(clone, "RouteHL7.Route", relationship.getName());
-				session.transfer(clone, relationship);
-				session.getProvenanceReporter().route(clone, relationship);
-				matchingRels.add(relationship.getName());
-			}
-		}
+    @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+        return new PropertyDescriptor.Builder()
+                .name(propertyDescriptorName)
+                .description("Specifies a query that will cause any HL7 message matching the query to be routed to the '" + propertyDescriptorName + "' relationship")
+                .required(false)
+                .dynamic(true)
+                .addValidator(new HL7QueryValidator())
+                .build();
+    }
 
-		session.transfer(flowFile, REL_ORIGINAL);
-		getLogger().info("Routed a copy of {} to {} relationships: {}", new Object[] {flowFile, matchingRels.size(), matchingRels});
-	}
+    @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        final List<PropertyDescriptor> properties = new ArrayList<>();
+        properties.add(CHARACTER_SET);
+        return properties;
+    }
 
-	private static class HL7QueryValidator implements Validator {
+    @Override
+    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
+        if (!descriptor.isDynamic()) {
+            return;
+        }
 
-		@Override
-		public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
-			String error = null;
-			
-			try {
-				final HL7Query hl7Query = HL7Query.compile(input);
-				final List<Class<?>> returnTypes = hl7Query.getReturnTypes();
-				if ( returnTypes.size() != 1 ) {
-					error = "RouteHL7 requires that the HL7 Query return exactly 1 element of type MESSAGE";
-				} else if ( !HL7Message.class.isAssignableFrom(returnTypes.get(0)) ) {
-					error = "RouteHL7 requires that the HL7 Query return exactly 1 element of type MESSAGE";
-				}
-			} catch (final HL7QueryParsingException e) {
-				error = e.toString();
-			}
-			
-			if ( error == null ) {
-				return new ValidationResult.Builder().subject(subject).input(input).valid(true).build();
-			} else {
-				return new ValidationResult.Builder().subject(subject).input(input).valid(false).explanation(error).build();
-			}
-		}
-		
-	}
+        final Map<Relationship, HL7Query> updatedQueryMap = new HashMap<>(queries);
+        final Relationship relationship = new Relationship.Builder().name(descriptor.getName()).build();
+
+        if (newValue == null) {
+            updatedQueryMap.remove(relationship);
+        } else {
+            final HL7Query query = HL7Query.compile(newValue);
+            updatedQueryMap.put(relationship, query);
+        }
+
+        this.queries = updatedQueryMap;
+    }
+
+    @Override
+    public Set<Relationship> getRelationships() {
+        final Set<Relationship> relationships = new HashSet<>(queries.keySet());
+        relationships.add(REL_FAILURE);
+        relationships.add(REL_ORIGINAL);
+        return relationships;
+    }
+
+    @Override
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        FlowFile flowFile = session.get();
+        if (flowFile == null) {
+            return;
+        }
+
+        final Charset charset = Charset.forName(context.getProperty(CHARACTER_SET).evaluateAttributeExpressions(flowFile).getValue());
+
+        final byte[] buffer = new byte[(int) flowFile.getSize()];
+        session.read(flowFile, new InputStreamCallback() {
+            @Override
+            public void process(final InputStream in) throws IOException {
+                StreamUtils.fillBuffer(in, buffer);
+            }
+        });
+
+        @SuppressWarnings("resource")
+        final HapiContext hapiContext = new DefaultHapiContext();
+        hapiContext.setValidationContext(ValidationContextFactory.noValidation());
+
+        final PipeParser parser = hapiContext.getPipeParser();
+        final String hl7Text = new String(buffer, charset);
+        final HL7Message message;
+        try {
+            final Message hapiMessage = parser.parse(hl7Text);
+            message = new HapiMessage(hapiMessage);
+        } catch (final Exception e) {
+            getLogger().error("Failed to parse {} as HL7 due to {}; routing to failure", new Object[]{flowFile, e});
+            session.transfer(flowFile, REL_FAILURE);
+            return;
+        }
+
+        final Set<String> matchingRels = new HashSet<>();
+        final Map<Relationship, HL7Query> queryMap = queries;
+        for (final Map.Entry<Relationship, HL7Query> entry : queryMap.entrySet()) {
+            final Relationship relationship = entry.getKey();
+            final HL7Query query = entry.getValue();
+
+            final QueryResult result = query.evaluate(message);
+            if (result.isMatch()) {
+                FlowFile clone = session.clone(flowFile);
+                clone = session.putAttribute(clone, "RouteHL7.Route", relationship.getName());
+                session.transfer(clone, relationship);
+                session.getProvenanceReporter().route(clone, relationship);
+                matchingRels.add(relationship.getName());
+            }
+        }
+
+        session.transfer(flowFile, REL_ORIGINAL);
+        getLogger().info("Routed a copy of {} to {} relationships: {}", new Object[]{flowFile, matchingRels.size(), matchingRels});
+    }
+
+    private static class HL7QueryValidator implements Validator {
+
+        @Override
+        public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+            String error = null;
+
+            try {
+                final HL7Query hl7Query = HL7Query.compile(input);
+                final List<Class<?>> returnTypes = hl7Query.getReturnTypes();
+                if (returnTypes.size() != 1) {
+                    error = "RouteHL7 requires that the HL7 Query return exactly 1 element of type MESSAGE";
+                } else if (!HL7Message.class.isAssignableFrom(returnTypes.get(0))) {
+                    error = "RouteHL7 requires that the HL7 Query return exactly 1 element of type MESSAGE";
+                }
+            } catch (final HL7QueryParsingException e) {
+                error = e.toString();
+            }
+
+            if (error == null) {
+                return new ValidationResult.Builder().subject(subject).input(input).valid(true).build();
+            } else {
+                return new ValidationResult.Builder().subject(subject).input(input).valid(false).explanation(error).build();
+            }
+        }
+
+    }
 }

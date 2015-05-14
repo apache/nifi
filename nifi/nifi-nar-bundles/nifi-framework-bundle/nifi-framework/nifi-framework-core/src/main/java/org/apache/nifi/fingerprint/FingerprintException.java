@@ -17,7 +17,6 @@
 package org.apache.nifi.fingerprint;
 
 /**
- * @author unattributed
  */
 public class FingerprintException extends RuntimeException {
 

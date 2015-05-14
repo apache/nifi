@@ -19,24 +19,19 @@ package org.apache.nifi.controller.repository;
 import java.io.Closeable;
 import java.io.IOException;
 
-/**
- *
- * @author none
- */
 public interface FlowFileEventRepository extends Closeable {
 
     /**
      * Updates the repository to include a new FlowFile processing event
      *
-     * @param event
-     * @throws java.io.IOException
+     * @param event new event
+     * @throws java.io.IOException ioe
      */
     void updateRepository(FlowFileEvent event) throws IOException;
 
     /**
-     * Returns a report of processing activity since the given time
-     * @param sinceEpochMillis
-     * @return 
+     * @param sinceEpochMillis age of report
+     * @return a report of processing activity since the given time
      */
     RepositoryStatusReport reportTransferEvents(long sinceEpochMillis);
 
@@ -44,7 +39,7 @@ public interface FlowFileEventRepository extends Closeable {
      * Causes any flow file events of the given entry age in epoch milliseconds
      * or older to be purged from the repository
      *
-     * @param cutoffEpochMilliseconds
+     * @param cutoffEpochMilliseconds cutoff
      */
     void purgeTransferEvents(long cutoffEpochMilliseconds);
 }

@@ -25,9 +25,9 @@ public interface ExpirationAction {
      * Performs some action against the given File and returns the new File that
      * contains the modified version
      *
-     * @param expiredFile
-     * @return
-     * @throws IOException
+     * @param expiredFile the file that was expired
+     * @return the new file after the file has been renamed, or the expiredFile if the file was not renamed
+     * @throws IOException if there was an IO problem
      */
     File execute(File expiredFile) throws IOException;
 

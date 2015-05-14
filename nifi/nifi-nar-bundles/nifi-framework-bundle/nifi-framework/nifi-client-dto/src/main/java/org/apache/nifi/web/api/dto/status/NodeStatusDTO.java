@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import javax.xml.bind.annotation.XmlType;
 import org.apache.nifi.web.api.dto.NodeDTO;
 
@@ -29,10 +30,11 @@ public class NodeStatusDTO {
     private ProcessGroupStatusDTO controllerStatus;
 
     /**
-     * The node.
-     *
-     * @return
+     * @return the node
      */
+    @ApiModelProperty(
+            value = "The node."
+    )
     public NodeDTO getNode() {
         return node;
     }
@@ -42,10 +44,11 @@ public class NodeStatusDTO {
     }
 
     /**
-     * The controller status.
-     *
-     * @return
+     * @return the controller status
      */
+    @ApiModelProperty(
+            value = "The controller status for each node."
+    )
     public ProcessGroupStatusDTO getControllerStatus() {
         return controllerStatus;
     }

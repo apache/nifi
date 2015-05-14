@@ -43,15 +43,16 @@ import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
-/**
- *
- */
 public class ControllerServiceLoader {
 
     private static final Logger logger = LoggerFactory.getLogger(ControllerServiceLoader.class);
 
-
-    public static List<ControllerServiceNode> loadControllerServices(final ControllerServiceProvider provider, final InputStream serializedStream, final StringEncryptor encryptor, final BulletinRepository bulletinRepo, final boolean autoResumeState) throws IOException {
+    public static List<ControllerServiceNode> loadControllerServices(
+            final ControllerServiceProvider provider,
+            final InputStream serializedStream,
+            final StringEncryptor encryptor,
+            final BulletinRepository bulletinRepo,
+            final boolean autoResumeState) throws IOException {
         final DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
         documentBuilderFactory.setNamespaceAware(true);
 
@@ -87,66 +88,70 @@ public class ControllerServiceLoader {
                     throw err;
                 }
             });
-            
+
             final Document document = builder.parse(in);
             final Element controllerServices = document.getDocumentElement();
             final List<Element> serviceElements = DomUtils.getChildElementsByTagName(controllerServices, "controllerService");
-            return new ArrayList<ControllerServiceNode>(loadControllerServices(serviceElements, provider, encryptor, bulletinRepo, autoResumeState));
+            return new ArrayList<>(loadControllerServices(serviceElements, provider, encryptor, bulletinRepo, autoResumeState));
         } catch (SAXException | ParserConfigurationException sxe) {
             throw new IOException(sxe);
         }
     }
-    
-    public static Collection<ControllerServiceNode> loadControllerServices(final List<Element> serviceElements, final ControllerServiceProvider provider, final StringEncryptor encryptor, final BulletinRepository bulletinRepo, final boolean autoResumeState) {
+
+    public static Collection<ControllerServiceNode> loadControllerServices(
+            final List<Element> serviceElements,
+            final ControllerServiceProvider provider,
+            final StringEncryptor encryptor,
+            final BulletinRepository bulletinRepo,
+            final boolean autoResumeState) {
         final Map<ControllerServiceNode, Element> nodeMap = new HashMap<>();
-        for ( final Element serviceElement : serviceElements ) {
+        for (final Element serviceElement : serviceElements) {
             final ControllerServiceNode serviceNode = createControllerService(provider, serviceElement, encryptor);
-            // We need to clone the node because it will be used in a separate thread below, and 
+            // We need to clone the node because it will be used in a separate thread below, and
             // Element is not thread-safe.
             nodeMap.put(serviceNode, (Element) serviceElement.cloneNode(true));
         }
-        for ( final Map.Entry<ControllerServiceNode, Element> entry : nodeMap.entrySet() ) {
+        for (final Map.Entry<ControllerServiceNode, Element> entry : nodeMap.entrySet()) {
             configureControllerService(entry.getKey(), entry.getValue(), encryptor);
         }
-        
+
         // Start services
-        if ( autoResumeState ) {
+        if (autoResumeState) {
             final Set<ControllerServiceNode> nodesToEnable = new HashSet<>();
-            
-            for ( final ControllerServiceNode node : nodeMap.keySet() ) {
+
+            for (final ControllerServiceNode node : nodeMap.keySet()) {
                 final Element controllerServiceElement = nodeMap.get(node);
 
                 final ControllerServiceDTO dto;
                 synchronized (controllerServiceElement.getOwnerDocument()) {
                     dto = FlowFromDOMFactory.getControllerService(controllerServiceElement, encryptor);
                 }
-                
+
                 final ControllerServiceState state = ControllerServiceState.valueOf(dto.getState());
                 if (state == ControllerServiceState.ENABLED) {
                     nodesToEnable.add(node);
                 }
             }
-            
+
             provider.enableControllerServices(nodesToEnable);
         }
-        
+
         return nodeMap.keySet();
     }
-    
-    
+
     private static ControllerServiceNode createControllerService(final ControllerServiceProvider provider, final Element controllerServiceElement, final StringEncryptor encryptor) {
         final ControllerServiceDTO dto = FlowFromDOMFactory.getControllerService(controllerServiceElement, encryptor);
-        
+
         final ControllerServiceNode node = provider.createControllerService(dto.getType(), dto.getId(), false);
         node.setName(dto.getName());
         node.setComments(dto.getComments());
         return node;
     }
-    
+
     private static void configureControllerService(final ControllerServiceNode node, final Element controllerServiceElement, final StringEncryptor encryptor) {
         final ControllerServiceDTO dto = FlowFromDOMFactory.getControllerService(controllerServiceElement, encryptor);
         node.setAnnotationData(dto.getAnnotationData());
-        
+
         for (final Map.Entry<String, String> entry : dto.getProperties().entrySet()) {
             if (entry.getValue() == null) {
                 node.removeProperty(entry.getKey());

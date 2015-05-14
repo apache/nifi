@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.nifi.processors.standard.ScanAttribute;
 import java.util.HashMap;
 import java.util.Map;
 

@@ -19,7 +19,6 @@ package org.apache.nifi.io.socket.multicast;
 /**
  * Defines a generic interface for discovering services.
  *
- * @author unattributed
  */
 public interface ServiceDiscovery {
 

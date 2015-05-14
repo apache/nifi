@@ -25,7 +25,6 @@ package org.apache.nifi.controller.repository.claim;
  * <p>
  * Must be thread safe</p>
  *
- * @author none
  */
 public interface ContentClaim extends Comparable<ContentClaim> {
 
@@ -45,11 +44,9 @@ public interface ContentClaim extends Comparable<ContentClaim> {
     String getSection();
 
     /**
-     * Specifies whether or not the Claim is loss-tolerant. If so, we will
+     * @return Indicates whether or not the Claim is loss-tolerant. If so, we will
      * attempt to keep the content but will not sacrifice a great deal of
-     * performance to do so.
-     *
-     * @return
+     * performance to do so
      */
     boolean isLossTolerant();
 }

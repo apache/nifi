@@ -4,19 +4,10 @@ title:     Apache NiFi Development Quickstart
 
 # Apache NiFi Development Quickstart
 
-This documentation is in progress, but should get many started at building Apache NiFi.
-
 ## Source Code
 
 Apache NiFi source code is version controlled using [Git][git] version control ([browse][gitbrowse]|[checkout][gitrepo]).  
-
 The code is also mirrored to [Github][githubrepo]
-
-The code as it was initially contributed and entered the incubator is on the 'master' branch.
-
-To view the lastest codebase as we work toward an initial release checkout the 'develop' branch.
-
-All guidance that follows assumes you are working on the 'develop' branch.
 
 ## Issue Tracking
 
@@ -42,9 +33,13 @@ git checkout develop
 
 1. You need a recent Java 7 (or newer) JDK.
 2. You need Apache [Maven 3.X][maven]. We've successfully used 3.2.3 and as far back as 3.0.5
-3. Build the maven plugins.  In the root dir of the source tree cd to `nifi-nar-maven-plugin`.
+3. Ensure your MAVEN_OPTS provides sufficient memory.  Some build steps are fairly memory intensive
+    - These settings have worked well `MAVEN_OPTS="-Xms1024m -Xmx3076m -XX:MaxPermSize=256m"`
+4. Build the nifi parent. In the root dir of the source tree cd to `nifi-parent`.
    Run `mvn clean install`
-4. Build the entire code base.  In the root dir of the source tree cd to `nifi` and run `mvn -T C2.0 clean install`
+5. Build the nifi nar maven plugin.  In the root dir of the source tree cd to `nifi-nar-maven-plugin`.
+   Run `mvn clean install`
+6. Build the entire code base.  In the root dir of the source tree cd to `nifi` and run `mvn -T C2.0 clean install`
    You can tweak the maven build settings as you like but the previous command will execute with 2 threads per core.
 
 Now you should have a fully functioning build off the latest code in the develop branch.

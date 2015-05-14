@@ -35,8 +35,8 @@ import java.lang.annotation.Target;
  * which could not be rolled back and thus all the processes could be safely
  * repeated (implied idempotent behavior).
  *
- * @author none
- * @deprecated This Annotation has been replaced by the {@link org.apache.nifi.annotation.behavior.SideEffectFree} annotation.
+ * @deprecated This Annotation has been replaced by the
+ * {@link org.apache.nifi.annotation.behavior.SideEffectFree} annotation.
  */
 @Documented
 @Target({ElementType.TYPE})

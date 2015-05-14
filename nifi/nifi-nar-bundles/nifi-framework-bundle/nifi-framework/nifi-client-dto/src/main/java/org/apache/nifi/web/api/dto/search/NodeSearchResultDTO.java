@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.search;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import javax.xml.bind.annotation.XmlType;
 
 /**
@@ -28,10 +29,11 @@ public class NodeSearchResultDTO {
     private String address;
 
     /**
-     * The id of the node that was matched.
-     *
-     * @return
+     * @return id of the node that was matched
      */
+    @ApiModelProperty(
+            value = "The id of the node that matched the search."
+    )
     public String getId() {
         return id;
     }
@@ -41,10 +43,11 @@ public class NodeSearchResultDTO {
     }
 
     /**
-     * The address of the node that was matched.
-     *
-     * @return
+     * @return address of the node that was matched
      */
+    @ApiModelProperty(
+            value = "The address of the node that matched the search."
+    )
     public String getAddress() {
         return address;
     }

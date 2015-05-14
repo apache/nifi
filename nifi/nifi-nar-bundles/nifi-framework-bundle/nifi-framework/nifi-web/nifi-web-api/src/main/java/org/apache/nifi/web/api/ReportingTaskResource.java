@@ -16,6 +16,12 @@
  */
 package org.apache.nifi.web.api;
 
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+import com.wordnik.swagger.annotations.Authorization;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
@@ -62,7 +68,6 @@ import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.entity.ReportingTasksEntity;
 import org.apache.nifi.web.util.Availability;
-import org.codehaus.enunciate.jaxrs.TypeHint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -70,6 +75,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 /**
  * RESTful endpoint for managing a Reporting Task.
  */
+@Api(hidden = true)
 public class ReportingTaskResource extends ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(ReportingTaskResource.class);
@@ -77,15 +83,15 @@ public class ReportingTaskResource extends ApplicationResource {
     private NiFiServiceFacade serviceFacade;
     private WebClusterManager clusterManager;
     private NiFiProperties properties;
-    
+
     @Context
     private ServletContext servletContext;
-    
+
     /**
      * Populates the uri for the specified reporting task.
-     * 
-     * @param reportingTasks
-     * @return 
+     *
+     * @param reportingTasks tasks
+     * @return tasks
      */
     private Set<ReportingTaskDTO> populateRemainingReportingTasksContent(final String availability, final Set<ReportingTaskDTO> reportingTasks) {
         for (ReportingTaskDTO reportingTask : reportingTasks) {
@@ -93,7 +99,7 @@ public class ReportingTaskResource extends ApplicationResource {
         }
         return reportingTasks;
     }
-    
+
     /**
      * Populates the uri for the specified reporting task.
      */
@@ -101,7 +107,7 @@ public class ReportingTaskResource extends ApplicationResource {
         // populate the reporting task href
         reportingTask.setUri(generateResourceUri("controller", "reporting-tasks", availability, reportingTask.getId()));
         reportingTask.setAvailability(availability);
-        
+
         // see if this processor has any ui extensions
         final UiExtensionMapping uiExtensionMapping = (UiExtensionMapping) servletContext.getAttribute("nifi-ui-extensions");
         if (uiExtensionMapping.hasUiExtension(reportingTask.getType())) {
@@ -112,16 +118,13 @@ public class ReportingTaskResource extends ApplicationResource {
                 }
             }
         }
-        
+
         return reportingTask;
     }
 
     /**
-     * Parses the availability and ensure that the specified availability makes sense for the
-     * given NiFi instance.
-     * 
-     * @param availability
-     * @return 
+     * Parses the availability and ensure that the specified availability makes
+     * sense for the given NiFi instance.
      */
     private Availability parseAvailability(final String availability) {
         final Availability avail;
@@ -130,33 +133,63 @@ public class ReportingTaskResource extends ApplicationResource {
         } catch (IllegalArgumentException iae) {
             throw new IllegalArgumentException(String.format("Availability: Value must be one of [%s]", StringUtils.join(Availability.values(), ", ")));
         }
-        
+
         // ensure this nifi is an NCM is specifying NCM availability
         if (!properties.isClusterManager() && Availability.NCM.equals(avail)) {
             throw new IllegalArgumentException("Availability of NCM is only applicable when the NiFi instance is the cluster manager.");
         }
-        
+
         return avail;
     }
-    
+
     /**
      * Retrieves all the of reporting tasks in this NiFi.
      *
      * @param clientId Optional client id. If the client id is not specified, a
      * new one will be generated. This value (whether specified or generated) is
      * included in the response.
-     * @param availability Whether the reporting task is available on the NCM only (ncm) or on the 
-     * nodes only (node). If this instance is not clustered all tasks should use the node availability.
+     * @param availability Whether the reporting task is available on the NCM
+     * only (ncm) or on the nodes only (node). If this instance is not clustered
+     * all tasks should use the node availability.
      * @return A reportingTasksEntity.
      */
     @GET
+    @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/{availability}")
     @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
-    @TypeHint(ReportingTasksEntity.class)
-    public Response getReportingTasks(@QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId, @PathParam("availability") String availability) {
+    @ApiOperation(
+            value = "Gets all reporting tasks",
+            response = ReportingTasksEntity.class,
+            authorizations = {
+                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getReportingTasks(
+            @ApiParam(
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+                    required = false
+            )
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @ApiParam(
+                    value = "Whether the reporting task is available on the NCM or nodes. If the NiFi is standalone the availability should be NODE.",
+                    allowableValues = "NCM, NODE",
+                    required = true
+            )
+            @PathParam("availability") String availability) {
+
         final Availability avail = parseAvailability(availability);
-        
+
         // replicate if cluster manager
         if (properties.isClusterManager() && Availability.NODE.equals(avail)) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
@@ -164,7 +197,7 @@ public class ReportingTaskResource extends ApplicationResource {
 
         // get all the reporting tasks
         final Set<ReportingTaskDTO> reportingTasks = populateRemainingReportingTasksContent(availability, serviceFacade.getReportingTasks());
-        
+
         // create the revision
         final RevisionDTO revision = new RevisionDTO();
         revision.setClientId(clientId.getClientId());
@@ -181,14 +214,15 @@ public class ReportingTaskResource extends ApplicationResource {
     /**
      * Creates a new reporting task.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param version The revision is used to verify the client is working with
      * the latest version of the flow.
      * @param clientId Optional client id. If the client id is not specified, a
      * new one will be generated. This value (whether specified or generated) is
      * included in the response.
-     * @param availability Whether the reporting task is available on the NCM only (ncm) or on the 
-     * nodes only (node). If this instance is not clustered all tasks should use the node availability.
+     * @param availability Whether the reporting task is available on the NCM
+     * only (ncm) or on the nodes only (node). If this instance is not clustered
+     * all tasks should use the node availability.
      * @param type The type of reporting task to create.
      * @return A reportingTaskEntity.
      */
@@ -197,14 +231,13 @@ public class ReportingTaskResource extends ApplicationResource {
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/{availability}")
     @PreAuthorize("hasRole('ROLE_DFM')")
-    @TypeHint(ReportingTaskEntity.class)
     public Response createReportingTask(
             @Context HttpServletRequest httpServletRequest,
             @FormParam(VERSION) LongParameter version,
             @FormParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @PathParam("availability") String availability, 
+            @PathParam("availability") String availability,
             @FormParam("type") String type) {
-        
+
         // create the reporting task DTO
         final ReportingTaskDTO reportingTaskDTO = new ReportingTaskDTO();
         reportingTaskDTO.setType(type);
@@ -227,9 +260,10 @@ public class ReportingTaskResource extends ApplicationResource {
     /**
      * Creates a new Reporting Task.
      *
-     * @param httpServletRequest
-     * @param availability Whether the reporting task is available on the NCM only (ncm) or on the 
-     * nodes only (node). If this instance is not clustered all tasks should use the node availability.
+     * @param httpServletRequest request
+     * @param availability Whether the reporting task is available on the NCM
+     * only (ncm) or on the nodes only (node). If this instance is not clustered
+     * all tasks should use the node availability.
      * @param reportingTaskEntity A reportingTaskEntity.
      * @return A reportingTaskEntity.
      */
@@ -238,30 +272,52 @@ public class ReportingTaskResource extends ApplicationResource {
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/{availability}")
     @PreAuthorize("hasRole('ROLE_DFM')")
-    @TypeHint(ReportingTaskEntity.class)
+    @ApiOperation(
+            value = "Creates a new remote process group",
+            response = ReportingTaskEntity.class,
+            authorizations = {
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response createReportingTask(
             @Context HttpServletRequest httpServletRequest,
-            @PathParam("availability") String availability, 
-            ReportingTaskEntity reportingTaskEntity) {
-        
+            @ApiParam(
+                    value = "Whether the reporting task is available on the NCM or nodes. If the NiFi is standalone the availability should be NODE.",
+                    allowableValues = "NCM, NODE",
+                    required = true
+            )
+            @PathParam("availability") String availability,
+            @ApiParam(
+                    value = "The reporting task configuration details.",
+                    required = true
+            ) ReportingTaskEntity reportingTaskEntity) {
+
         final Availability avail = parseAvailability(availability);
 
-        if (reportingTaskEntity == null || reportingTaskEntity.getReportingTask()== null) {
+        if (reportingTaskEntity == null || reportingTaskEntity.getReportingTask() == null) {
             throw new IllegalArgumentException("Reporting task details must be specified.");
         }
 
         if (reportingTaskEntity.getRevision() == null) {
             throw new IllegalArgumentException("Revision must be specified.");
         }
-        
+
         if (reportingTaskEntity.getReportingTask().getId() != null) {
             throw new IllegalArgumentException("Reporting task ID cannot be specified.");
         }
-        
+
         if (StringUtils.isBlank(reportingTaskEntity.getReportingTask().getType())) {
             throw new IllegalArgumentException("The type of reporting task to create must be specified.");
         }
-        
+
         // get the revision
         final RevisionDTO revision = reportingTaskEntity.getRevision();
 
@@ -320,21 +376,55 @@ public class ReportingTaskResource extends ApplicationResource {
      * @param clientId Optional client id. If the client id is not specified, a
      * new one will be generated. This value (whether specified or generated) is
      * included in the response.
-     * @param availability Whether the reporting task is available on the NCM only (ncm) or on the 
-     * nodes only (node). If this instance is not clustered all tasks should use the node availability.
+     * @param availability Whether the reporting task is available on the NCM
+     * only (ncm) or on the nodes only (node). If this instance is not clustered
+     * all tasks should use the node availability.
      * @param id The id of the reporting task to retrieve
      * @return A reportingTaskEntity.
      */
     @GET
+    @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/{availability}/{id}")
     @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
-    @TypeHint(ReportingTaskEntity.class)
-    public Response getReportingTask(@QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId, 
-            @PathParam("availability") String availability, @PathParam("id") String id) {
+    @ApiOperation(
+            value = "Gets a reporting task",
+            response = ReportingTaskEntity.class,
+            authorizations = {
+                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getReportingTask(
+            @ApiParam(
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+                    required = false
+            )
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @ApiParam(
+                    value = "Whether the reporting task is available on the NCM or nodes. If the NiFi is standalone the availability should be NODE.",
+                    allowableValues = "NCM, NODE",
+                    required = true
+            )
+            @PathParam("availability") String availability,
+            @ApiParam(
+                    value = "The reporting task id.",
+                    required = true
+            )
+            @PathParam("id") String id) {
 
         final Availability avail = parseAvailability(availability);
-        
+
         // replicate if cluster manager
         if (properties.isClusterManager() && Availability.NODE.equals(avail)) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
@@ -354,71 +444,109 @@ public class ReportingTaskResource extends ApplicationResource {
 
         return clusterContext(generateOkResponse(entity)).build();
     }
-    
+
     /**
      * Returns the descriptor for the specified property.
-     * 
+     *
      * @param clientId Optional client id. If the client id is not specified, a
      * new one will be generated. This value (whether specified or generated) is
      * included in the response.
-     * @param availability
+     * @param availability availability
      * @param id The id of the reporting task.
      * @param propertyName The property
      * @return a propertyDescriptorEntity
      */
     @GET
+    @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/{availability}/{id}/descriptors")
     @PreAuthorize("hasAnyRole('ROLE_MONITOR', 'ROLE_DFM', 'ROLE_ADMIN')")
-    @TypeHint(PropertyDescriptorEntity.class)
+    @ApiOperation(
+            value = "Gets a reporting task property descriptor",
+            response = PropertyDescriptorEntity.class,
+            authorizations = {
+                @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
+                @Authorization(value = "Administrator", type = "ROLE_ADMIN")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response getPropertyDescriptor(
-            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId, 
-            @PathParam("availability") String availability, @PathParam("id") String id, 
+            @ApiParam(
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+                    required = false
+            )
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @ApiParam(
+                    value = "Whether the reporting task is available on the NCM or nodes. If the NiFi is standalone the availability should be NODE.",
+                    allowableValues = "NCM, NODE",
+                    required = true
+            )
+            @PathParam("availability") String availability,
+            @ApiParam(
+                    value = "The reporting task id.",
+                    required = true
+            )
+            @PathParam("id") String id,
+            @ApiParam(
+                    value = "The property name.",
+                    required = true
+            )
             @QueryParam("propertyName") String propertyName) {
-        
+
         final Availability avail = parseAvailability(availability);
-        
+
         // ensure the property name is specified
         if (propertyName == null) {
             throw new IllegalArgumentException("The property name must be specified.");
         }
-        
+
         // replicate if cluster manager and task is on node
         if (properties.isClusterManager() && Availability.NODE.equals(avail)) {
             return clusterManager.applyRequest(HttpMethod.GET, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
         }
-        
+
         // get the property descriptor
         final PropertyDescriptorDTO descriptor = serviceFacade.getReportingTaskPropertyDescriptor(id, propertyName);
-        
+
         // create the revision
         final RevisionDTO revision = new RevisionDTO();
         revision.setClientId(clientId.getClientId());
-        
+
         // generate the response entity
         final PropertyDescriptorEntity entity = new PropertyDescriptorEntity();
         entity.setRevision(revision);
         entity.setPropertyDescriptor(descriptor);
-        
+
         // generate the response
         return clusterContext(generateOkResponse(entity)).build();
     }
-    
+
     /**
      * Updates the specified reporting task.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param version The revision is used to verify the client is working with
      * the latest version of the flow.
      * @param clientId Optional client id. If the client id is not specified, a
      * new one will be generated. This value (whether specified or generated) is
      * included in the response.
-     * @param availability Whether the reporting task is available on the NCM only (ncm) or on the 
-     * nodes only (node). If this instance is not clustered all tasks should use the node availability.
+     * @param availability Whether the reporting task is available on the NCM
+     * only (ncm) or on the nodes only (node). If this instance is not clustered
+     * all tasks should use the node availability.
      * @param id The id of the reporting task to update.
      * @param name The name of the reporting task
      * @param annotationData The annotation data for the reporting task
-     * @param markedForDeletion Array of property names whose value should be removed.
+     * @param markedForDeletion Array of property names whose value should be
+     * removed.
      * @param state The updated scheduled state
      * @param schedulingStrategy The scheduling strategy for this reporting task
      * @param schedulingPeriod The scheduling period for this reporting task
@@ -444,7 +572,6 @@ public class ReportingTaskResource extends ApplicationResource {
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/{availability}/{id}")
     @PreAuthorize("hasRole('ROLE_DFM')")
-    @TypeHint(ReportingTaskEntity.class)
     public Response updateReportingTask(
             @Context HttpServletRequest httpServletRequest,
             @FormParam(VERSION) LongParameter version,
@@ -457,7 +584,7 @@ public class ReportingTaskResource extends ApplicationResource {
 
         // create collections for holding the reporting task properties
         final Map<String, String> updatedProperties = new LinkedHashMap<>();
-        
+
         // go through each parameter and look for processor properties
         for (String parameterName : formParams.keySet()) {
             if (StringUtils.isNotBlank(parameterName)) {
@@ -473,12 +600,12 @@ public class ReportingTaskResource extends ApplicationResource {
                 }
             }
         }
-        
+
         // set the properties to remove
         for (String propertyToDelete : markedForDeletion) {
             updatedProperties.put(propertyToDelete, null);
         }
-        
+
         // create the reporting task DTO
         final ReportingTaskDTO reportingTaskDTO = new ReportingTaskDTO();
         reportingTaskDTO.setId(id);
@@ -493,7 +620,7 @@ public class ReportingTaskResource extends ApplicationResource {
         if (!updatedProperties.isEmpty()) {
             reportingTaskDTO.setProperties(updatedProperties);
         }
-        
+
         // create the revision
         final RevisionDTO revision = new RevisionDTO();
         revision.setClientId(clientId.getClientId());
@@ -513,9 +640,10 @@ public class ReportingTaskResource extends ApplicationResource {
     /**
      * Updates the specified a Reporting Task.
      *
-     * @param httpServletRequest
-     * @param availability Whether the reporting task is available on the NCM only (ncm) or on the 
-     * nodes only (node). If this instance is not clustered all tasks should use the node availability.
+     * @param httpServletRequest request
+     * @param availability Whether the reporting task is available on the NCM
+     * only (ncm) or on the nodes only (node). If this instance is not clustered
+     * all tasks should use the node availability.
      * @param id The id of the reporting task to update.
      * @param reportingTaskEntity A reportingTaskEntity.
      * @return A reportingTaskEntity.
@@ -525,15 +653,42 @@ public class ReportingTaskResource extends ApplicationResource {
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/{availability}/{id}")
     @PreAuthorize("hasRole('ROLE_DFM')")
-    @TypeHint(ReportingTaskEntity.class)
+    @ApiOperation(
+            value = "Updates a reporting task",
+            response = ReportingTaskEntity.class,
+            authorizations = {
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response updateReportingTask(
             @Context HttpServletRequest httpServletRequest,
-            @PathParam("availability") String availability, 
+            @ApiParam(
+                    value = "Whether the reporting task is available on the NCM or nodes. If the NiFi is standalone the availability should be NODE.",
+                    allowableValues = "NCM, NODE",
+                    required = true
+            )
+            @PathParam("availability") String availability,
+            @ApiParam(
+                    value = "The reporting task id.",
+                    required = true
+            )
             @PathParam("id") String id,
-            ReportingTaskEntity reportingTaskEntity) {
+            @ApiParam(
+                    value = "The reporting task configuration details.",
+                    required = true
+            ) ReportingTaskEntity reportingTaskEntity) {
 
         final Availability avail = parseAvailability(availability);
-        
+
         if (reportingTaskEntity == null || reportingTaskEntity.getReportingTask() == null) {
             throw new IllegalArgumentException("Reporting task details must be specified.");
         }
@@ -558,7 +713,7 @@ public class ReportingTaskResource extends ApplicationResource {
             // replicate the request
             return clusterManager.applyRequest(HttpMethod.PUT, getAbsolutePath(), updateClientId(reportingTaskEntity), getHeaders(headersToOverride)).getResponse();
         }
-        
+
         // handle expects request (usually from the cluster manager)
         final String expects = httpServletRequest.getHeader(WebClusterManager.NCM_EXPECTS_HTTP_HEADER);
         if (expects != null) {
@@ -590,30 +745,65 @@ public class ReportingTaskResource extends ApplicationResource {
     /**
      * Removes the specified reporting task.
      *
-     * @param httpServletRequest
+     * @param httpServletRequest request
      * @param version The revision is used to verify the client is working with
      * the latest version of the flow.
      * @param clientId Optional client id. If the client id is not specified, a
      * new one will be generated. This value (whether specified or generated) is
      * included in the response.
-     * @param availability Whether the reporting task is available on the NCM only (ncm) or on the 
-     * nodes only (node). If this instance is not clustered all tasks should use the node availability.
+     * @param availability Whether the reporting task is available on the NCM
+     * only (ncm) or on the nodes only (node). If this instance is not clustered
+     * all tasks should use the node availability.
      * @param id The id of the reporting task to remove.
      * @return A entity containing the client id and an updated revision.
      */
     @DELETE
+    @Consumes(MediaType.WILDCARD)
     @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
     @Path("/{availability}/{id}")
     @PreAuthorize("hasRole('ROLE_DFM')")
-    @TypeHint(ReportingTaskEntity.class)
+    @ApiOperation(
+            value = "Deletes a reporting task",
+            response = ReportingTaskEntity.class,
+            authorizations = {
+                @Authorization(value = "Data Flow Manager", type = "ROLE_DFM")
+            }
+    )
+    @ApiResponses(
+            value = {
+                @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
     public Response removeReportingTask(
             @Context HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The revision is used to verify the client is working with the latest version of the flow.",
+                    required = false
+            )
             @QueryParam(VERSION) LongParameter version,
+            @ApiParam(
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+                    required = false
+            )
             @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
-            @PathParam("availability") String availability, @PathParam("id") String id) {
+            @ApiParam(
+                    value = "Whether the reporting task is available on the NCM or nodes. If the NiFi is standalone the availability should be NODE.",
+                    allowableValues = "NCM, NODE",
+                    required = true
+            )
+            @PathParam("availability") String availability,
+            @ApiParam(
+                    value = "The reporting task id.",
+                    required = true
+            )
+            @PathParam("id") String id) {
 
         final Availability avail = parseAvailability(availability);
-        
+
         // replicate if cluster manager
         if (properties.isClusterManager() && Availability.NODE.equals(avail)) {
             return clusterManager.applyRequest(HttpMethod.DELETE, getAbsolutePath(), getRequestParameters(true), getHeaders()).getResponse();
@@ -648,7 +838,6 @@ public class ReportingTaskResource extends ApplicationResource {
     }
 
     // setters
-    
     public void setServiceFacade(NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
     }

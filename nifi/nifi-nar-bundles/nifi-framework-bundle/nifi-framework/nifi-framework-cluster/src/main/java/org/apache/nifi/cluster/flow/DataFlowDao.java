@@ -19,7 +19,6 @@ package org.apache.nifi.cluster.flow;
 /**
  * A data access object for loading and saving the flow managed by the cluster.
  *
- * @author unattributed
  */
 public interface DataFlowDao {
 
@@ -36,14 +35,13 @@ public interface DataFlowDao {
      * Saves the cluster's dataflow.
      *
      *
-     * @param dataFlow
+     * @param dataFlow flow
      * @throws DaoException if the dataflow was unable to be saved
      */
     void saveDataFlow(ClusterDataFlow dataFlow) throws DaoException;
 
     /**
-     * Sets the state of the dataflow. If the dataflow does not exist, then an
-     * exception is thrown.
+     * Sets the state of the dataflow. If the dataflow does not exist, then an exception is thrown.
      *
      * @param flowState the state of the dataflow
      *

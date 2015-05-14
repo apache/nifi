@@ -20,9 +20,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 
 /**
- * A serialized representation of this class can be placed in the entity body of
- * a response to the API. This particular entity holds a reference to a 
- * controller service.
+ * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to a controller service.
  */
 @XmlRootElement(name = "controllerServiceEntity")
 public class ControllerServiceEntity extends Entity {
@@ -30,9 +28,7 @@ public class ControllerServiceEntity extends Entity {
     private ControllerServiceDTO controllerService;
 
     /**
-     * The controller service that is being serialized.
-     *
-     * @return
+     * @return controller service that is being serialized
      */
     public ControllerServiceDTO getControllerService() {
         return controllerService;

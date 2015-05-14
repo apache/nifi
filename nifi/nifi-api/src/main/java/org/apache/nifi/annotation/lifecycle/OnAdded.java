@@ -25,25 +25,24 @@ import java.lang.annotation.Target;
 
 /**
  * <p>
- * Marker annotation a {@link org.apache.nifi.processor.Processor Processor}, 
+ * Marker annotation a {@link org.apache.nifi.processor.Processor Processor},
  * {@link org.apache.nifi.controller.ControllerService ControllerService}, or
- * {@link org.apache.nifi.reporting.ReportingTask ReportingTask} 
- * implementation can use to indicate a method
- * should be called whenever the component is added to the flow. This method
- * will be called once for the entire life of a component instance.
+ * {@link org.apache.nifi.reporting.ReportingTask ReportingTask} implementation
+ * can use to indicate a method should be called whenever the component is added
+ * to the flow. This method will be called once for the entire life of a
+ * component instance.
  * </p>
- * 
+ *
  * <p>
- * Methods with this annotation are called without any arguments, as all settings
- * and properties can be assumed to be the defaults.
+ * Methods with this annotation are called without any arguments, as all
+ * settings and properties can be assumed to be the defaults.
  * </p>
- * 
+ *
  * <p>
- * If any method annotated with this annotation throws a Throwable, the component
- * will not be added to the flow.
+ * If any method annotated with this annotation throws a Throwable, the
+ * component will not be added to the flow.
  * </p>
- * 
- * @author none
+ *
  */
 @Documented
 @Target({ElementType.METHOD})

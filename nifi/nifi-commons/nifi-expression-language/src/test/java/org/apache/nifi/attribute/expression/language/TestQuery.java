@@ -55,7 +55,7 @@ public class TestQuery {
         // left here because it's convenient for looking at the output
         //System.out.println(Query.compile("").evaluate(null));
     }
-    
+
     private void assertValid(final String query) {
         try {
             Query.compile(query);
@@ -64,7 +64,7 @@ public class TestQuery {
             Assert.fail("Expected query to be valid, but it failed to compile due to " + e);
         }
     }
-    
+
     private void assertInvalid(final String query) {
         try {
             Query.compile(query);
@@ -72,63 +72,61 @@ public class TestQuery {
         } catch (final Exception e) {
         }
     }
-    
+
     @Test
     public void testIsValidExpression() {
         Query.validateExpression("${abc:substring(${xyz:length()})}", false);
         Query.isValidExpression("${now():format('yyyy-MM-dd')}");
-        
-        
+
         try {
             Query.validateExpression("$${attr}", false);
             Assert.fail("invalid query validated");
         } catch (final AttributeExpressionLanguageParsingException e) {
         }
-        
+
         Query.validateExpression("$${attr}", true);
-        
-        Query.validateExpression("${filename:startsWith('T8MTXBC')\n" 
-            + ":or( ${filename:startsWith('C4QXABC')} )\n"
-            + ":or( ${filename:startsWith('U6CXEBC')} )"
-            + ":or( ${filename:startsWith('KYM3ABC')} )}", false);
+
+        Query.validateExpression("${filename:startsWith('T8MTXBC')\n"
+                + ":or( ${filename:startsWith('C4QXABC')} )\n"
+                + ":or( ${filename:startsWith('U6CXEBC')} )"
+                + ":or( ${filename:startsWith('KYM3ABC')} )}", false);
     }
 
-    
     @Test
     public void testCompileEmbedded() {
         final String expression = "${x:equals( ${y} )}";
         final Query query = Query.compile(expression);
         final Tree tree = query.getTree();
-        System.out.println( printTree(tree) );
-        
+        System.out.println(printTree(tree));
+
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("x", "x");
         attributes.put("y", "x");
         final String result = Query.evaluateExpressions(expression, attributes, null);
         assertEquals("true", result);
-        
+
         Query.validateExpression(expression, false);
     }
-    
+
     private String printTree(final Tree tree) {
         final StringBuilder sb = new StringBuilder();
         printTree(tree, 0, sb);
-        
+
         return sb.toString();
     }
-    
+
     private void printTree(final Tree tree, final int spaces, final StringBuilder sb) {
-        for (int i=0; i < spaces; i++) {
+        for (int i = 0; i < spaces; i++) {
             sb.append(" ");
         }
-        
-        if ( tree.getText().trim().isEmpty() ) {
+
+        if (tree.getText().trim().isEmpty()) {
             sb.append(tree.toString()).append("\n");
         } else {
             sb.append(tree.getText()).append("\n");
         }
-        
-        for (int i=0; i < tree.getChildCount(); i++) {
+
+        for (int i = 0; i < tree.getChildCount(); i++) {
             printTree(tree.getChild(i), spaces + 2, sb);
         }
     }
@@ -138,7 +136,7 @@ public class TestQuery {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("attr", "My Value");
         attributes.put("${xx}", "hello");
-        
+
         assertEquals("My Value", evaluateQueryForEscape("${attr}", attributes));
         assertEquals("${attr}", evaluateQueryForEscape("$${attr}", attributes));
         assertEquals("$My Value", evaluateQueryForEscape("$$${attr}", attributes));
@@ -151,15 +149,15 @@ public class TestQuery {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("x", "C:\\test\\1.txt");
         attributes.put("y", "y\ny");
-        
+
         final String query = "${x:substringAfterLast( '/' ):substringAfterLast( '\\\\' )}";
         verifyEquals(query, attributes, "1.txt");
         attributes.put("x", "C:/test/1.txt");
         verifyEquals(query, attributes, "1.txt");
-        
+
         verifyEquals("${y:equals('y\\ny')}", attributes, Boolean.TRUE);
     }
-    
+
     @Test
     public void testWithTicksOutside() {
         final Map<String, String> attributes = new HashMap<>();
@@ -174,14 +172,13 @@ public class TestQuery {
         assertEquals("'My Value", Query.evaluateExpressions("'${attr}", attributes, null));
     }
 
-    
     @Test
     @Ignore("Depends on TimeZone")
     public void testDateToNumber() {
         final Query query = Query.compile("${dateTime:toDate('yyyy/MM/dd HH:mm:ss.SSS'):toNumber()}");
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("dateTime", "2013/11/18 10:22:27.678");
-        
+
         final QueryResult<?> result = query.evaluate(attributes);
         assertEquals(ResultType.NUMBER, result.getResultType());
         assertEquals(1384788147678L, result.getValue());
@@ -203,35 +200,34 @@ public class TestQuery {
         final Query query = Query.compile("${dateTime:format('yyyy/MM/dd HH:mm:ss.SSS')}");
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("dateTime", date.toString());
-        
+
         // the date.toString() above will end up truncating the milliseconds. So remove millis from the Date before
         // formatting it
         final SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS", Locale.US);
         final long millis = date.getTime() % 1000L;
         final Date roundedToNearestSecond = new Date(date.getTime() - millis);
         final String formatted = sdf.format(roundedToNearestSecond);
-        
+
         final QueryResult<?> result = query.evaluate(attributes);
         assertEquals(ResultType.STRING, result.getResultType());
         assertEquals(formatted, result.getValue());
     }
 
-    
     @Test
     public void testEmbeddedExpressionsAndQuotes() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("x", "abc");
         attributes.put("a", "abc");
-        
+
         verifyEquals("${x:equals(${a})}", attributes, true);
-        
+
         Query.validateExpression("${x:equals('${a}')}", false);
         assertEquals("true", Query.evaluateExpressions("${x:equals('${a}')}", attributes, null));
-        
+
         Query.validateExpression("${x:equals(\"${a}\")}", false);
         assertEquals("true", Query.evaluateExpressions("${x:equals(\"${a}\")}", attributes, null));
     }
-    
+
     @Test
     public void testJoin() {
         final Map<String, String> attributes = new HashMap<>();
@@ -243,12 +239,11 @@ public class TestQuery {
         verifyEquals("${a.a:join(', ')}", attributes, "a");
         verifyEquals("${allAttributes( 'x', 'y' ):join(',')}", attributes, ",");
     }
-    
-    @Test(expected=AttributeExpressionLanguageException.class)
+
+    @Test(expected = AttributeExpressionLanguageException.class)
     public void testCannotCombineWithNonReducingFunction() {
         Query.compileTree("${allAttributes( 'a.1' ):plus(1)}");
     }
-
 
     @Test
     public void testIsEmpty() {
@@ -263,21 +258,18 @@ public class TestQuery {
         verifyEquals("${d:isEmpty()}", attributes, true);
     }
 
-
     @Test
     public void testReplaceEmpty() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("a", "a");
         attributes.put("b", "");
         attributes.put("c", "        \n");
-            
+
         verifyEquals("${a:replaceEmpty('c')}", attributes, "a");
         verifyEquals("${b:replaceEmpty('c')}", attributes, "c");
         verifyEquals("${c:replaceEmpty('c')}", attributes, "c");
         verifyEquals("${d:replaceEmpty('c')}", attributes, "c");
     }
-
-
 
     @Test
     public void testCount() {
@@ -291,20 +283,18 @@ public class TestQuery {
 
         verifyEquals("${allMatchingAttributes( '.*' ):count()}", attributes, 6L);
         verifyEquals("${allMatchingAttributes( '.*' ):length():gt(2):count()}", attributes, 5L);
-        verifyEquals("${allMatchingAttributes( 'n.*' ):plus(1):count()}", attributes, 3L );
+        verifyEquals("${allMatchingAttributes( 'n.*' ):plus(1):count()}", attributes, 3L);
     }
-    
-    
+
     @Test
     public void testCurlyBracesInQuotes() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("attr", "My Valuee");
-        
+
         assertEquals("Val", evaluateQueryForEscape("${attr:replaceAll('My (Val)ue{1,2}', '$1')}", attributes));
         assertEquals("Val", evaluateQueryForEscape("${attr:replaceAll(\"My (Val)ue{1,2}\", '$1')}", attributes));
     }
-    
-    
+
     private String evaluateQueryForEscape(final String queryString, final Map<String, String> attributes) {
         FlowFile mockFlowFile = Mockito.mock(FlowFile.class);
         Mockito.when(mockFlowFile.getAttributes()).thenReturn(attributes);
@@ -315,15 +305,14 @@ public class TestQuery {
         Mockito.when(mockFlowFile.getLineageStartDate()).thenReturn(System.currentTimeMillis());
         return Query.evaluateExpressions(queryString, mockFlowFile);
     }
-    
-    
+
     @Test
     public void testGetAttributeValue() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("attr", "My Value");
         verifyEquals("${attr}", attributes, "My Value");
     }
-    
+
     @Test
     public void testGetAttributeValueEmbedded() {
         final Map<String, String> attributes = new HashMap<>();
@@ -331,14 +320,14 @@ public class TestQuery {
         attributes.put("XX", "My Value");
         verifyEquals("${${attr:trim()}}", attributes, "My Value");
     }
-    
+
     @Test
     public void testSimpleSubstring() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("attr", "My Value");
         verifyEquals("${attr:substring(2, 5)}", attributes, " Va");
     }
-    
+
     @Test
     public void testCallToFunctionWithSubjectResultOfAnotherFunctionCall() {
         final Map<String, String> attributes = new HashMap<>();
@@ -359,29 +348,28 @@ public class TestQuery {
         attributes.put("attr", " XX    ");
         verifyEquals("${attr:trim():equals('XX')}", attributes, true);
     }
-    
+
     @Test
     public void testDeeplyEmbedded() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("x", "false");
         attributes.put("abc", "a");
         attributes.put("a", "a");
-        
+
         verifyEquals("${x:or( ${${abc}:length():equals(1)} )}", attributes, true);
     }
-    
-    
+
     @Test
     public void testExtractExpressionRanges() {
         List<Range> ranges = Query.extractExpressionRanges("hello");
         assertTrue(ranges.isEmpty());
-        
+
         ranges = Query.extractExpressionRanges("${hello");
         assertTrue(ranges.isEmpty());
-        
+
         ranges = Query.extractExpressionRanges("hello}");
         assertTrue(ranges.isEmpty());
-        
+
         ranges = Query.extractExpressionRanges("$${hello");
         assertTrue(ranges.isEmpty());
 
@@ -393,52 +381,50 @@ public class TestQuery {
         Range range = ranges.get(0);
         assertEquals(0, range.getStart());
         assertEquals(7, range.getEnd());
-        
+
         ranges = Query.extractExpressionRanges("${hello:equals( ${goodbye} )}");
         assertEquals(1, ranges.size());
         range = ranges.get(0);
         assertEquals(0, range.getStart());
         assertEquals(28, range.getEnd());
-        
+
         ranges = Query.extractExpressionRanges("${hello:equals( $${goodbye} )}");
         assertEquals(1, ranges.size());
         range = ranges.get(0);
         assertEquals(0, range.getStart());
         assertEquals(29, range.getEnd());
-        
+
         ranges = Query.extractExpressionRanges("${hello:equals( $${goodbye} )} or just hi, ${bob:or(${jerry})}");
         assertEquals(2, ranges.size());
         range = ranges.get(0);
         assertEquals(0, range.getStart());
         assertEquals(29, range.getEnd());
-        
+
         range = ranges.get(1);
         assertEquals(43, range.getStart());
         assertEquals(61, range.getEnd());
-        
-        
+
         ranges = Query.extractExpressionRanges("${hello:equals( ${goodbye} )} or just hi, ${bob}, are you ${bob.age:toNumber()} yet? $$$${bob}");
         assertEquals(3, ranges.size());
         range = ranges.get(0);
         assertEquals(0, range.getStart());
         assertEquals(28, range.getEnd());
-        
+
         range = ranges.get(1);
         assertEquals(42, range.getStart());
         assertEquals(47, range.getEnd());
-        
+
         range = ranges.get(2);
         assertEquals(58, range.getStart());
         assertEquals(78, range.getEnd());
-        
+
         ranges = Query.extractExpressionRanges("${x:matches( '.{4}' )}");
         assertEquals(1, ranges.size());
         range = ranges.get(0);
         assertEquals(0, range.getStart());
         assertEquals(21, range.getEnd());
     }
-    
-    
+
     @Test
     public void testExtractExpressionTypes() {
         List<ResultType> types = Query.extractResultTypes("${hello:equals( ${goodbye} )} or just hi, ${bob}, are you ${bob.age:toNumber()} yet? $$$${bob}");
@@ -447,19 +433,18 @@ public class TestQuery {
         assertEquals(ResultType.STRING, types.get(1));
         assertEquals(ResultType.NUMBER, types.get(2));
     }
-    
-    
+
     @Test
     public void testEqualsEmbedded() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("x", "hello");
         attributes.put("y", "good-bye");
-        
+
         verifyEquals("${x:equals( ${y} )}", attributes, false);
-        
+
         attributes.put("y", "hello");
         verifyEquals("${x:equals( ${y} )}", attributes, true);
-        
+
         attributes.put("x", "4");
         attributes.put("y", "3");
         attributes.put("z", "1");
@@ -474,18 +459,17 @@ public class TestQuery {
         attributes.put("y", "88");
         assertEquals("true", Query.evaluateExpressions("${x:equals( '${y}' )}", attributes, null));
     }
-    
-    
+
     @Test
     public void testComplicatedEmbeddedExpressions() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("fox", "quick, brown");
         attributes.put("dog", "lazy");
-        
+
         verifyEquals("${fox:substring( ${ 'dog' :substring(2):length()}, 5 ):equals( 'ick' )}", attributes, true);
         verifyEquals("${fox:substring( ${ 'dog' :substring(2):length()}, 5 ):equals( 'ick' )}", attributes, true);
     }
-    
+
     @Test
     public void testQuotingQuotes() {
         final Map<String, String> attributes = new HashMap<>();
@@ -501,7 +485,7 @@ public class TestQuery {
         System.out.println(query);
         verifyEquals(query, attributes, "say \"hi\"");
     }
-    
+
     @Test
     public void testDoubleQuotesWithinSingleQuotes() {
         final Map<String, String> attributes = new HashMap<>();
@@ -511,30 +495,30 @@ public class TestQuery {
         System.out.println(query);
         verifyEquals(query, attributes, "say \"hello\"");
     }
-    
+
     @Test
     public void testEscapeQuotes() {
         final long timestamp = 1403620278642L;
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("date", String.valueOf(timestamp));
-        
+
         final String format = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
-        
+
         final String query = "startDateTime=\"${date:toNumber():toDate():format(\"" + format + "\")}\"";
         final String result = Query.evaluateExpressions(query, attributes, null);
-        
+
         final String expectedTime = new SimpleDateFormat(format, Locale.US).format(timestamp);
         assertEquals("startDateTime=\"" + expectedTime + "\"", result);
-        
+
         final List<Range> ranges = Query.extractExpressionRanges(query);
         assertEquals(1, ranges.size());
     }
-    
+
     @Test
     public void testDateConversion() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("date", "1403620278642");
-        
+
         verifyEquals("${date:format('yyyy')}", attributes, "2014");
         verifyEquals("${date:toDate():format('yyyy')}", attributes, "2014");
         verifyEquals("${date:toNumber():format('yyyy')}", attributes, "2014");
@@ -542,17 +526,16 @@ public class TestQuery {
         verifyEquals("${date:toDate():toNumber():format('yyyy')}", attributes, "2014");
         verifyEquals("${date:toDate():toNumber():toDate():toNumber():toDate():toNumber():format('yyyy')}", attributes, "2014");
     }
-    
+
     @Test
     public void testSingleLetterAttribute() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("A", "0123456789");
-        
+
         verifyEquals("${A}", attributes, "0123456789");
         verifyEquals("${'A'}", attributes, "0123456789");
     }
 
-    
     @Test
     public void testImplicitConversions() {
         final Map<String, String> attributes = new HashMap<>();
@@ -562,7 +545,7 @@ public class TestQuery {
         attributes.put("d", "Quick Brown Fox");
         attributes.put("F", "-48");
         attributes.put("n", "2014/04/04 00:00:00");
-        
+
         final Calendar cal = Calendar.getInstance();
         cal.set(Calendar.YEAR, 2014);
         cal.set(Calendar.MONTH, 3);
@@ -570,11 +553,10 @@ public class TestQuery {
         cal.set(Calendar.HOUR, 0);
         cal.set(Calendar.MINUTE, 0);
         cal.set(Calendar.SECOND, 45);
-        
+
         final String dateString = cal.getTime().toString();
         attributes.put("z", dateString);
 
-        
         verifyEquals("${A:plus(4)}", attributes, 123456793L);
         verifyEquals("${A:plus( ${F} )}", attributes, 123456741L);
 
@@ -582,11 +564,11 @@ public class TestQuery {
         verifyEquals("${A:substring(2,3):plus(21):substring(1,2):plus(0)}", attributes, 3L);
         verifyEquals("${n:format( 'yyyy' )}", attributes, "2014");
         verifyEquals("${z:format( 'yyyy' )}", attributes, "2014");
-        
+
         attributes.put("n", "2014/04/04 00:00:00.045");
         verifyEquals("${n:format( 'yyyy' ):append(','):append( ${n:format( 'SSS' )} )}", attributes, "2014,045");
     }
-    
+
     @Test
     public void testNewLinesAndTabsInQuery() {
         final String query = "${ abc:equals('abc'):or( \n\t${xx:isNull()}\n) }";
@@ -594,12 +576,12 @@ public class TestQuery {
         Query.validateExpression(query, false);
         assertEquals("true", Query.evaluateExpressions(query));
     }
-    
+
     @Test
     public void testAttributeReferencesWithWhiteSpace() {
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("a b c,d", "abc");
-        
+
         final String query = "${ 'a b c,d':equals('abc') }";
         verifyEquals(query, attrs, true);
     }
@@ -609,68 +591,68 @@ public class TestQuery {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("abc", "xyz");
 
-        final String expression = 
-            "# hello, world\n" + 
-            "${# ref attr\n" +
-            "\t" +
-                "abc" +
-            "\t" +
-                "#end ref attr\n" +
-            "}";
+        final String expression
+                = "# hello, world\n"
+                + "${# ref attr\n"
+                + "\t"
+                + "abc"
+                + "\t"
+                + "#end ref attr\n"
+                + "}";
 
         Query query = Query.compile(expression);
         QueryResult<?> result = query.evaluate(attributes);
         assertEquals(ResultType.STRING, result.getResultType());
         assertEquals("xyz", result.getValue());
-        
+
         query = Query.compile("${abc:append('# hello') #good-bye \n}");
         result = query.evaluate(attributes);
         assertEquals(ResultType.STRING, result.getResultType());
         assertEquals("xyz# hello", result.getValue());
     }
-    
+
     @Test
     public void testAppendPrepend() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("attr", "XX");
         attributes.put("YXXX", "bingo");
-        
+
         verifyEquals("${${attr:append('X'):prepend('Y')}}", attributes, "bingo");
     }
-    
+
     @Test
     public void testIsNull() {
         final Map<String, String> attributes = new HashMap<>();
         verifyEquals("${attr:isNull()}", attributes, true);
     }
-    
+
     @Test
     public void testNotNull() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("attr", "");
-        
+
         verifyEquals("${attr:notNull()}", attributes, true);
     }
-    
+
     @Test
     public void testIsNullOrLengthEquals0() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("abc", "");
         attributes.put("xyz", "xyz");
         attributes.put("xx", "  ");
-        
+
         verifyEquals("${abc:isNull():or( ${abc:length():equals(0)} )}", attributes, true);
         verifyEquals("${xyz:isNull():or( ${xyz:length():equals(0)} )}", attributes, false);
         verifyEquals("${none:isNull():or( ${none:length():equals(0)} )}", attributes, true);
         verifyEquals("${xx:isNull():or( ${xx:trim():length():equals(0)} )}", attributes, true);
     }
-    
+
     @Test
     public void testReplaceNull() {
         final Map<String, String> attributes = new HashMap<>();
         verifyEquals("${attr:replaceNull('hello')}", attributes, "hello");
     }
-    
+
     @Test
     public void testReplace() {
         final Map<String, String> attributes = new HashMap<>();
@@ -683,10 +665,10 @@ public class TestQuery {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("attr", "hello");
         attributes.put("xyz", "00-00TEST.2014_01_01_000000_value");
-        
+
         verifyEquals("${xyz:replaceAll(\"^([^.]+)\\.([0-9]{4})_([0-9]{2})_([0-9]{2}).*$\", \"$3\")}", attributes, "01");
         verifyEquals("${attr:replaceAll('l+', 'r')}", attributes, "hero");
-        
+
         attributes.clear();
         attributes.put("filename1", "abc.gz");
         attributes.put("filename2", "abc.g");
@@ -705,10 +687,9 @@ public class TestQuery {
         verifyEquals("${abc:replaceAll( 'xx', '$0')}", attributes, "hello world");
         verifyEquals("${abc:replaceAll( '(xx)', '$1')}", attributes, "hello world");
         verifyEquals("${abc:replaceAll( 'lo wor(ld)', '$1')}", attributes, "helld");
-        
+
     }
-    
-    
+
     @Test
     public void testReplaceAllWithOddNumberOfBackslashPairs() {
         final Map<String, String> attributes = new HashMap<>();
@@ -718,15 +699,15 @@ public class TestQuery {
         verifyEquals("${filename:replaceAll('\\\\\\\\', '/')}", attributes, "C:/temp/.txt");
         verifyEquals("${filename:replaceAll('\\\\\\.txt$', '')}", attributes, "C:\\temp");
     }
-    
+
     @Test
     public void testReplaceAllWithMatchingGroup() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("attr", "hello");
-        
+
         verifyEquals("${attr:replaceAll('.*?(l+).*', '$1')}", attributes, "ll");
     }
-    
+
     @Test
     public void testMathOperations() {
         final Map<String, String> attributes = new HashMap<>();
@@ -746,16 +727,16 @@ public class TestQuery {
         attributes.put("attr", "https://abc.go");
         verifyEquals("${attr:indexOf('/')}", attributes, 6L);
     }
-    
+
     @Test
     public void testDate() {
         final Calendar now = Calendar.getInstance();
         final int year = now.get(Calendar.YEAR);
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("entryDate", String.valueOf(now.getTimeInMillis()));
-        
+
         verifyEquals("${entryDate:toNumber():toDate():format('yyyy')}", attributes, String.valueOf(year));
-        
+
         attributes.clear();
         attributes.put("month", "3");
         attributes.put("day", "4");
@@ -765,34 +746,34 @@ public class TestQuery {
 
         verifyEquals("${year:append('/'):append(${month}):append('/'):append(${day}):toDate('yyyy/MM/dd'):format('D')}", attributes, "63");
     }
-    
+
     @Test
     public void testSystemProperty() {
         System.setProperty("hello", "good-bye");
         assertEquals("good-bye", Query.evaluateExpressions("${hello}"));
         assertEquals("good-bye", Query.compile("${hello}").evaluate().getValue());
     }
-    
+
     @Test
     public void testAnyAttribute() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("abc", "zzz");
         attributes.put("xyz", "abc");
-        
+
         verifyEquals("${anyAttribute('abc', 'xyz', 'missingAttr'):substring(1,2):equals('b')}", attributes, true);
         verifyEquals("${anyAttribute('abc', 'xyz'):substring(1,2):equals('b')}", attributes, true);
         verifyEquals("${anyAttribute('xyz', 'abc'):substring(1,2):equals('b')}", attributes, true);
         verifyEquals("${anyAttribute('zz'):substring(1,2):equals('b')}", attributes, false);
         verifyEquals("${anyAttribute('abc', 'zz'):isNull()}", attributes, true);
     }
-    
+
     @Test
     public void testAnyMatchingAttribute() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("abc", "zzz");
         attributes.put("xyz", "abc");
         attributes.put("123.cba", "hello");
-        
+
         verifyEquals("${anyMatchingAttribute('.{2}x', '.{2}z'):substring(1,2):equals('b')}", attributes, true);
         verifyEquals("${anyMatchingAttribute('.*'):substring(1,2):equals('b')}", attributes, true);
         verifyEquals("${anyMatchingAttribute('x{44}'):substring(1,2):equals('b')}", attributes, false);
@@ -804,48 +785,46 @@ public class TestQuery {
         verifyEquals("${anyMatchingAttribute('123\\.c.*'):matches('hello')}", attributes, true);
         verifyEquals("${anyMatchingAttribute('123\\.c.*|a.c'):matches('zzz')}", attributes, true);
     }
-    
-    
+
     @Test
     public void testAnyDelineatedValue() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("abc", "a,b,c");
         attributes.put("xyz", "abc");
-        
+
         final String query = "${anyDelineatedValue('${abc}', ','):equals('b')}";
         assertEquals(ResultType.BOOLEAN, Query.getResultType(query));
-        
+
         assertEquals("true", Query.evaluateExpressions(query, attributes, null));
         assertEquals("true", Query.evaluateExpressions("${anyDelineatedValue('${abc}', ','):equals('a')}", attributes, null));
         assertEquals("true", Query.evaluateExpressions("${anyDelineatedValue('${abc}', ','):equals('c')}", attributes, null));
         assertEquals("false", Query.evaluateExpressions("${anyDelineatedValue('${abc}', ','):equals('d')}", attributes, null));
-        
+
         verifyEquals("${anyDelineatedValue(${abc}, ','):equals('b')}", attributes, true);
         verifyEquals("${anyDelineatedValue(${abc}, ','):equals('a')}", attributes, true);
         verifyEquals("${anyDelineatedValue(${abc}, ','):equals('c')}", attributes, true);
         verifyEquals("${anyDelineatedValue(${abc}, ','):equals('d')}", attributes, false);
     }
-    
+
     @Test
     public void testAllDelineatedValues() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("abc", "a,b,c");
         attributes.put("xyz", "abc");
-        
+
         final String query = "${allDelineatedValues('${abc}', ','):matches('[abc]')}";
-        
+
         assertEquals(ResultType.BOOLEAN, Query.getResultType(query));
         assertEquals("true", Query.evaluateExpressions(query, attributes, null));
         assertEquals("true", Query.evaluateExpressions(query, attributes, null));
         assertEquals("false", Query.evaluateExpressions("${allDelineatedValues('${abc}', ','):matches('[abd]')}", attributes, null));
         assertEquals("false", Query.evaluateExpressions("${allDelineatedValues('${abc}', ','):equals('a'):not()}", attributes, null));
-        
+
         verifyEquals("${allDelineatedValues(${abc}, ','):matches('[abc]')}", attributes, true);
         verifyEquals("${allDelineatedValues(${abc}, ','):matches('[abd]')}", attributes, false);
         verifyEquals("${allDelineatedValues(${abc}, ','):equals('a'):not()}", attributes, false);
     }
-    
-    
+
     @Test
     public void testAllAttributes() {
         final Map<String, String> attributes = new HashMap<>();
@@ -859,7 +838,7 @@ public class TestQuery {
         verifyEquals("${allAttributes('abc', 'hello'):length():equals(4)}", attributes, false);
         verifyEquals("${allAttributes('abc', 'xyz'):length():equals(4)}", attributes, true);
         verifyEquals("${allAttributes('abc', 'xyz', 'other'):isNull()}", attributes, false);
-        
+
         try {
             Query.compile("${allAttributes('#ah'):equals('hello')");
             Assert.fail("Was able to compile with allAttributes and an invalid attribute name");
@@ -867,8 +846,7 @@ public class TestQuery {
             // expected behavior
         }
     }
-    
-    
+
     @Test
     public void testMathOperators() {
         final Map<String, String> attributes = new HashMap<>();
@@ -878,7 +856,7 @@ public class TestQuery {
 
         verifyEquals("${xyz:toNumber():gt( ${abc:toNumber()} )}", attributes, true);
     }
-    
+
     @Test
     public void testAllMatchingAttributes() {
         final Map<String, String> attributes = new HashMap<>();
@@ -887,17 +865,17 @@ public class TestQuery {
         attributes.put("hello", "world!");
         attributes.put("123.cba", "hell.o");
 
-        System.out.println( printTree(Query.compile("${allMatchingAttributes('(abc|xyz)'):matches('\\\\d+')}").getTree()) );
-        
+        System.out.println(printTree(Query.compile("${allMatchingAttributes('(abc|xyz)'):matches('\\\\d+')}").getTree()));
+
         verifyEquals("${'123.cba':matches('hell\\.o')}", attributes, true);
         verifyEquals("${allMatchingAttributes('123\\.cba'):equals('hell.o')}", attributes, true);
         verifyEquals("${allMatchingAttributes('(abc|xyz)'):matches('\\d+')}", attributes, true);
         verifyEquals("${allMatchingAttributes('[ax].*'):toNumber():lt(99999)}", attributes, true);
         verifyEquals("${allMatchingAttributes('hell.'):length():gt(3)}", attributes, true);
-        
+
         verifyEquals("${allMatchingAttributes('123\\.cba'):equals('no')}", attributes, false);
     }
-    
+
     @Test
     public void testMatches() {
         final Map<String, String> attributes = new HashMap<>();
@@ -909,15 +887,14 @@ public class TestQuery {
 
         final String evaluated = Query.evaluateExpressions("${abc:matches('1234${end}4321')}", attributes, null);
         assertEquals("true", evaluated);
-        
+
         attributes.put("end", "888");
         final String secondEvaluation = Query.evaluateExpressions("${abc:matches('1234${end}4321')}", attributes, null);
         assertEquals("false", secondEvaluation);
-        
+
         verifyEquals("${dotted:matches('abc\\.xyz')}", attributes, true);
-   }
-    
-    
+    }
+
     @Test
     public void testFind() {
         final Map<String, String> attributes = new HashMap<>();
@@ -929,68 +906,67 @@ public class TestQuery {
 
         final String evaluated = Query.evaluateExpressions("${abc:find('1234${end}4321')}", attributes, null);
         assertEquals("true", evaluated);
-        
+
         attributes.put("end", "888");
         final String secondEvaluation = Query.evaluateExpressions("${abc:find('${end}4321')}", attributes, null);
         assertEquals("false", secondEvaluation);
-        
+
         verifyEquals("${dotted:find('\\.')}", attributes, true);
-   }
-    
+    }
+
     @Test
     public void testSubstringAfter() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("filename", "file-255");
-        
+
         verifyEquals("${filename:substringAfter('')}", attributes, "file-255");
         verifyEquals("${filename:substringAfterLast('')}", attributes, "file-255");
         verifyEquals("${filename:substringBefore('')}", attributes, "file-255");
         verifyEquals("${filename:substringBeforeLast('')}", attributes, "file-255");
         verifyEquals("${filename:substringBefore('file')}", attributes, "");
-        
+
         attributes.put("uri", "sftp://some.uri");
         verifyEquals("${uri:substringAfter('sftp')}", attributes, "://some.uri");
     }
-    
+
     @Test
     public void testSubstringAfterLast() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("filename", "file-file-255");
-        
+
         verifyEquals("${filename:substringAfterLast('file-')}", attributes, "255");
         verifyEquals("${filename:substringAfterLast('5')}", attributes, "");
         verifyEquals("${filename:substringAfterLast('x')}", attributes, "file-file-255");
     }
-    
+
     @Test
     public void testSubstringBefore() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("something", "some {} or other");
-        
+
         verifyEquals("${something:substringBefore('}')}", attributes, "some {");
     }
-    
+
     @Test
     public void testSubstring() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("filename", "file-255");
-        
+
         verifyEquals("${filename:substring(1, 2)}", attributes, "i");
         verifyEquals("${filename:substring(4)}", attributes, "-255");
     }
-    
+
     @Test
     public void testToRadix() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("filename", "file-255");
         attributes.put("filename2", "file-99999");
 
-
         verifyEquals("${filename:substringAfter('-'):toNumber():toRadix(16):toUpper()}", attributes, "FF");
         verifyEquals("${filename:substringAfter('-'):toNumber():toRadix(16, 4):toUpper()}", attributes, "00FF");
         verifyEquals("${filename:substringAfter('-'):toNumber():toRadix(36, 3):toUpper()}", attributes, "073");
     }
-    
+
     @Test
     public void testDateFormatConversion() {
         final Map<String, String> attributes = new HashMap<>();
@@ -998,23 +974,22 @@ public class TestQuery {
         verifyEquals("${blue:toDate('yyyyMMddHHmmss'):format(\"yyyy/MM/dd HH:mm:ss.SSS'Z'\")}", attributes, "2013/09/17 16:26:43.000Z");
     }
 
-    
     @Test
     public void testNot() {
         verifyEquals("${ab:notNull():not()}", new HashMap<String, String>(), true);
     }
-    
+
     @Test
     public void testAttributesWithSpaces() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("ab", "abc");
         attributes.put("a  b", "abc");
-        
+
         verifyEquals("${ab}", attributes, "abc");
         verifyEquals("${'a  b'}", attributes, "abc");
         verifyEquals("${'a b':replaceNull('')}", attributes, "");
     }
-    
+
     @Test
     public void testOr() {
         final Map<String, String> attributes = new HashMap<>();
@@ -1029,7 +1004,7 @@ public class TestQuery {
         verifyEquals("${filename1:startsWith('x'):or( ${filename2:startsWith('y')} )}", attributes, true);
         verifyEquals("${filename2:startsWith('x'):or( ${filename1:startsWith('y')} )}", attributes, false);
     }
-    
+
     @Test
     public void testAnd() {
         final Map<String, String> attributes = new HashMap<>();
@@ -1046,7 +1021,7 @@ public class TestQuery {
         verifyEquals("${filename2:startsWith('x'):and( ${filename1:startsWith('y')} )}", attributes, false);
         verifyEquals("${filename1:startsWith('x'):and( ${'filename 3':endsWith('y')} )}", attributes, true);
     }
-    
+
     @Test
     public void testAndOrNot() {
         final Map<String, String> attributes = new HashMap<>();
@@ -1054,90 +1029,90 @@ public class TestQuery {
         attributes.put("filename2", "yabc");
         attributes.put("filename 3", "abcxy");
 
-        final String query = 
-            "${" +
-            "     'non-existing':notNull():not():and(" +                                        // true AND (
-            "     ${filename1:startsWith('y')" +                                                    // false
-            "     :or(" +                                                                           // or
-            "       ${ filename1:startsWith('x'):and(false) }" +                                    // false
-            "     ):or(" +                                                                          // or
-            "       ${ filename2:endsWith('xxxx'):or( ${'filename 3':length():gt(1)} ) }" +         // true )
-            "     )}" +
-            "     )" +
-            "}";
-        
+        final String query
+                = "${"
+                + "     'non-existing':notNull():not():and(" + // true AND (
+                "     ${filename1:startsWith('y')" + // false
+                "     :or(" + // or
+                "       ${ filename1:startsWith('x'):and(false) }" + // false
+                "     ):or(" + // or
+                "       ${ filename2:endsWith('xxxx'):or( ${'filename 3':length():gt(1)} ) }" + // true )
+                "     )}"
+                + "     )"
+                + "}";
+
         System.out.println(query);
         verifyEquals(query, attributes, true);
     }
-    
+
     @Test
     public void testAndOrLogicWithAnyAll() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("filename1", "xabc");
         attributes.put("filename2", "yabc");
         attributes.put("filename 3", "abcxy");
-        
+
         verifyEquals("${anyMatchingAttribute('filename.*'):contains('abc'):and( ${filename2:equals('yabc')} )}", attributes, true);
         verifyEquals("${anyMatchingAttribute('filename.*'):contains('abc'):and( ${filename2:equals('xabc')} )}", attributes, false);
         verifyEquals("${anyMatchingAttribute('filename.*'):contains('abc'):not():or( ${filename2:equals('yabc')} )}", attributes, true);
         verifyEquals("${anyMatchingAttribute('filename.*'):contains('abc'):not():or( ${filename2:equals('xabc')} )}", attributes, false);
     }
-    
+
     @Test
     public void testKeywords() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("UUID", "123");
         verifyEquals("${ 'UUID':toNumber():equals(123) }", attributes, true);
     }
-    
+
     @Test
     public void testEqualsNumber() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("abc", "123");
         verifyEquals("${ abc:toNumber():equals(123) }", attributes, true);
     }
-    
+
     @Test
     public void testSubjectAsEmbeddedExpressionWithSurroundChars() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("b", "x");
         attributes.put("abcxcba", "hello");
-        
+
         final String evaluated = Query.evaluateExpressions("${ 'abc${b}cba':substring(0, 1) }", attributes, null);
         assertEquals("h", evaluated);
     }
-    
+
     @Test
     public void testToNumberFunctionReturnsNumberType() {
         assertEquals(ResultType.NUMBER, Query.getResultType("${header.size:toNumber()}"));
     }
-    
+
     @Test
     public void testAnyAttributeEmbedded() {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("a1", "test1");
         attributes.put("b2", "2test");
         attributes.put("c3", "3test3");
-        
+
         final String query = "${a1:equals('test1'):and( ${anyAttribute('a1','b2','c3'):contains('2')})}";
         verifyEquals(query, attributes, true);
     }
-    
+
     private void verifyEquals(final String expression, final Map<String, String> attributes, final Object expectedResult) {
         Query.validateExpression(expression, false);
         assertEquals(String.valueOf(expectedResult), Query.evaluateExpressions(expression, attributes, null));
-        
+
         Query query = Query.compile(expression);
         QueryResult<?> result = query.evaluate(attributes);
-        
-        if ( expectedResult instanceof Number ) {
+
+        if (expectedResult instanceof Number) {
             assertEquals(ResultType.NUMBER, result.getResultType());
-        } else if ( expectedResult instanceof Boolean ) {
+        } else if (expectedResult instanceof Boolean) {
             assertEquals(ResultType.BOOLEAN, result.getResultType());
         } else {
             assertEquals(ResultType.STRING, result.getResultType());
         }
-        
+
         assertEquals(expectedResult, result.getValue());
     }
 }

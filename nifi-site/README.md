@@ -62,7 +62,13 @@ gem install compass
 ## Grunt Tasks
 
 To build the site run the default grunt task. This will assemble the site and 
-place the resulting site in the dist folder.
+place the resulting site in the dist folder. Part of this assembly is actually
+building the various guides and Rest Api documentation bundled in the application. 
+Because of this, Maven must be installed and available on the PATH. Additionally Java 
+must be installed in order for the Maven build to succeed. Refer to the [NiFi][] 
+documentation for minimum requirements for Maven and Java. 
+
+[NiFi]: https://nifi.incubator.apache.org/quickstart.html
 
 ```bash
 grunt
@@ -75,6 +81,35 @@ files for changes. Any changes will cause the site to be rebuilt.
 ```bash
 grunt dev
 ```
+
+To deploy new changes to the live site, run the deploy task
+
+```bash
+grunt deploy
+```
+
+This will go through each step required to deploy changes to the site. Updates
+are performed by committing to a SVN repository. This means that svn must be installed
+and available on the PATH. Additionally, it requires SVN 1.6+. The deployment
+process will show the files being committed and provide an option to view a diff,
+proceed with the commit, or abort.
+
+## Source overview
+
+### src/includes
+
+Contains fragments that will be included on all pages of the site. Most notably 
+here is the topbar.hbs that defines the Menus on the top of the site. If a new 
+page is being added or removed it is done here.
+
+### src/pages/html
+
+Contains pages that are written in HTML. Any new HTML based content should reside here.
+
+### src/pages/markdown
+
+Contains pages that are written in Markdown. Any new Markdown based content should
+reside here.
 
 ## Application Style Properties
 
@@ -115,5 +150,3 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-
-

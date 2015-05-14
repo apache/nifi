@@ -34,7 +34,6 @@ import org.apache.commons.net.ftp.FTPClient;
 
 /**
  *
- * @author developer
  */
 public class FTPUtils {
 
@@ -57,47 +56,30 @@ public class FTPUtils {
     public static final String NETWORK_SOCKET_TIMEOUT_KEY = "network.socket.timeout";
 
     /**
-     * Creates a new FTPClient connected to an FTP server. The following
-     * properties must exist:
+     * Creates a new FTPClient connected to an FTP server. The following properties must exist:
      * <ul>Required Properties:
-     * <li>remote.host - The hostname or IP address of the FTP server to connect
-     * to</li>
+     * <li>remote.host - The hostname or IP address of the FTP server to connect to</li>
      * <li>remote.user - The username of the account to authenticate with</li>
-     * <li>remote.password = The password for the username to authenticate
-     * with</li>
+     * <li>remote.password = The password for the username to authenticate with</li>
      * </ul>
      * <ul>Optional Properties:
-     * <li>remote.port - The port on the FTP server to connect to. Defaults to
-     * FTP default.</li>
-     * <li>transfer.mode - The type of transfer for this connection ('ascii',
-     * 'binary'). Defaults to 'binary'</li>
-     * <li>connection.mode - The type of FTP connection to make ('active_local',
-     * 'passive_local'). Defaults to 'active_local'. In active_local the server
-     * initiates 'data connections' to the client where in passive_local the
-     * client initiates 'data connections' to the server.</li>
-     * <li>network.data.timeout - Default is 0. Sets the timeout in milliseconds
-     * for waiting to establish a new 'data connection' (not a control
-     * connection) when in ACTIVE_LOCAL mode. Also, this establishes the amount
-     * of time to wait on read calls on the data connection in either mode. A
-     * value of zero means do not timeout. Users should probably set a value
-     * here unless using very reliable communications links or else risk
-     * indefinite hangs that require a restart.</li>
-     * <li>network.socket.timeout - Default is 0. Sets the timeout in
-     * milliseconds to use when creating a new control channel socket and also a
-     * timeout to set when reading from a control socket. A value of zero means
-     * do not timeout. Users should probably set a value here unless using very
-     * reliable communications links or else risk indefinite hangs that require
-     * a restart.</li>
+     * <li>remote.port - The port on the FTP server to connect to. Defaults to FTP default.</li>
+     * <li>transfer.mode - The type of transfer for this connection ('ascii', 'binary'). Defaults to 'binary'</li>
+     * <li>connection.mode - The type of FTP connection to make ('active_local', 'passive_local'). Defaults to 'active_local'. In active_local the server initiates 'data connections' to the client
+     * where in passive_local the client initiates 'data connections' to the server.</li>
+     * <li>network.data.timeout - Default is 0. Sets the timeout in milliseconds for waiting to establish a new 'data connection' (not a control connection) when in ACTIVE_LOCAL mode. Also, this
+     * establishes the amount of time to wait on read calls on the data connection in either mode. A value of zero means do not timeout. Users should probably set a value here unless using very
+     * reliable communications links or else risk indefinite hangs that require a restart.</li>
+     * <li>network.socket.timeout - Default is 0. Sets the timeout in milliseconds to use when creating a new control channel socket and also a timeout to set when reading from a control socket. A
+     * value of zero means do not timeout. Users should probably set a value here unless using very reliable communications links or else risk indefinite hangs that require a restart.</li>
      * </ul>
      *
-     * @param conf
-     * @param monitor if provided will be used to monitor FTP commands processed
-     * but may be null
+     * @param conf conf
+     * @param monitor if provided will be used to monitor FTP commands processed but may be null
      * @return FTPClient connected to FTP server as configured
      * @throws NullPointerException if either argument is null
      * @throws IllegalArgumentException if a required property is missing
-     * @throws NumberFormatException if any argument that must be an int cannot
-     * be converted to int
+     * @throws NumberFormatException if any argument that must be an int cannot be converted to int
      * @throws IOException if some problem occurs connecting to FTP server
      */
     public static FTPClient connect(final FTPConfiguration conf, final ProtocolCommandListener monitor) throws IOException {
@@ -194,18 +176,14 @@ public class FTPUtils {
     }
 
     /**
-     * Handles the logic required to change to the given directory RELATIVE TO
-     * THE CURRENT DIRECTORY which can include creating new directories needed.
+     * Handles the logic required to change to the given directory RELATIVE TO THE CURRENT DIRECTORY which can include creating new directories needed.
      *
-     * This will first attempt to change to the full path of the given directory
-     * outright. If that fails, then it will attempt to change from the top of
-     * the tree of the given directory all the way down to the final leaf node
-     * of the given directory.
+     * This will first attempt to change to the full path of the given directory outright. If that fails, then it will attempt to change from the top of the tree of the given directory all the way
+     * down to the final leaf node of the given directory.
      *
      * @param client - the ftp client with an already active connection
      * @param dirPath - the path to change or create directories to
-     * @param createDirs - if true will attempt to create any missing
-     * directories
+     * @param createDirs - if true will attempt to create any missing directories
      * @param processor - used solely for targetting logging output.
      * @throws IOException if any access problem occurs
      */

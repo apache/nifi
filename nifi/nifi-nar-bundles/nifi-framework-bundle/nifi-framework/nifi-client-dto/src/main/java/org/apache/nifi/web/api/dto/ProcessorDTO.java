@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +50,9 @@ public class ProcessorDTO extends NiFiComponentDTO {
      *
      * @return This processors name
      */
+    @ApiModelProperty(
+            value = "The name of the processor."
+    )
     public String getName() {
         return name;
     }
@@ -62,6 +66,9 @@ public class ProcessorDTO extends NiFiComponentDTO {
      *
      * @return This processors type
      */
+    @ApiModelProperty(
+            value = "The type of the processor."
+    )
     public String getType() {
         return type;
     }
@@ -71,11 +78,12 @@ public class ProcessorDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The state of this processor. Possible states are 'RUNNING', 'STOPPED',
-     * and 'DISABLED'.
-     *
-     * @return
+     * @return The state of this processor. Possible states are 'RUNNING', 'STOPPED', and 'DISABLED'
      */
+    @ApiModelProperty(
+            value = "The state of the processor",
+            allowableValues = "RUNNING, STOPPED, DISABLED"
+    )
     public String getState() {
         return state;
     }
@@ -85,10 +93,11 @@ public class ProcessorDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The styles for this processor. (Currently only supports color).
-     *
-     * @return
+     * @return The styles for this processor. (Currently only supports color)
      */
+    @ApiModelProperty(
+            value = "Styles for the processor (background-color => #eee)."
+    )
     public Map<String, String> getStyle() {
         return style;
     }
@@ -98,10 +107,11 @@ public class ProcessorDTO extends NiFiComponentDTO {
     }
 
     /**
-     * Whether this processor supports parallel processing.
-     *
-     * @return
+     * @return whether this processor supports parallel processing
      */
+    @ApiModelProperty(
+            value = "Whether the processor supports parallel processing."
+    )
     public Boolean getSupportsParallelProcessing() {
         return supportsParallelProcessing;
     }
@@ -111,10 +121,11 @@ public class ProcessorDTO extends NiFiComponentDTO {
     }
 
     /**
-     * Whether this processor supports event driven scheduling.
-     *
-     * @return
+     * @return whether this processor supports event driven scheduling
      */
+    @ApiModelProperty(
+            value = "Whether the processor supports event driven scheduling."
+    )
     public Boolean getSupportsEventDriven() {
         return supportsEventDriven;
     }
@@ -128,6 +139,9 @@ public class ProcessorDTO extends NiFiComponentDTO {
      *
      * @return The available relationships
      */
+    @ApiModelProperty(
+            value = "The available relationships that the processor currently supports."
+    )
     public List<RelationshipDTO> getRelationships() {
         return relationships;
     }
@@ -137,11 +151,13 @@ public class ProcessorDTO extends NiFiComponentDTO {
     }
 
     /**
-     * The configuration details for this processor. These details will be
-     * included in a response if the verbose flag is set to true.
+     * The configuration details for this processor. These details will be included in a response if the verbose flag is set to true.
      *
      * @return The processor configuration details
      */
+    @ApiModelProperty(
+            value = "The configuration details for the processor. These details will be included in a resopnse if the verbose flag is included in a request."
+    )
     public ProcessorConfigDTO getConfig() {
         return config;
     }
@@ -151,12 +167,13 @@ public class ProcessorDTO extends NiFiComponentDTO {
     }
 
     /**
-     * Gets the validation errors from this processor. These validation errors
-     * represent the problems with the processor that must be resolved before it
-     * can be started.
+     * Gets the validation errors from this processor. These validation errors represent the problems with the processor that must be resolved before it can be started.
      *
      * @return The validation errors
      */
+    @ApiModelProperty(
+            value = "The validation errors for the processor. These validation errors represent the problems with the processor that must be resolved before it can be started."
+    )
     public Collection<String> getValidationErrors() {
         return validationErrors;
     }
@@ -166,10 +183,11 @@ public class ProcessorDTO extends NiFiComponentDTO {
     }
 
     /**
-     * Gets the description for this processor.
-     *
-     * @return
+     * @return the description for this processor
      */
+    @ApiModelProperty(
+            value = "The description of the processor."
+    )
     public String getDescription() {
         return description;
     }

@@ -16,9 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-
-import static org.junit.Assert.*;
-
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
@@ -45,6 +42,8 @@ import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -61,7 +60,7 @@ public class TestInvokeHTTP {
     public static void beforeClass() throws Exception {
         // useful for verbose logging output
         // don't commit this with this property enabled, or any 'mvn test' will be really verbose
-        //		System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard", "debug");
+        // System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard", "debug");
 
         // create the SSL properties, which basically store keystore / trustore information
         // this is used by the StandardSSLContextService and the Jetty Server
@@ -441,54 +440,6 @@ public class TestInvokeHTTP {
         bundle.assertAttributeEquals("Foo", "Bar");
     }
 
-    //  @Test
-    //  public void testGetFlowfileAttributes() throws IOException {
-    //      Map<String, List<String>> input = new HashMap<>();
-    //      input.put("A", Arrays.asList("1"));
-    //      input.put("B", Arrays.asList("1", "2", "3"));
-    //      input.put("C", new ArrayList<String>());
-    //      input.put("D", null);
-    //
-    //      Map<String, String> expected = new HashMap<>();
-    //      expected.put(Config.STATUS_CODE, "200");
-    //      expected.put(Config.STATUS_MESSAGE, "OK");
-    //      expected.put(Config.STATUS_LINE, "HTTP/1.1 200 OK");
-    //      expected.put("A", "1");
-    //      expected.put("B", "1, 2, 3");
-    //
-    //      URL url = new URL("file:/dev/null");
-    //      HttpURLConnection conn = new MockHttpURLConnection(url, 200, "OK", input);
-    //
-    //      Map<String, String> actual = processor.getAttributesFromHeaders(conn);
-    //
-    //      assertEquals(expected, actual);
-    //  }
-    //  @Test
-    //  public void testCsv() {
-    //      // null input should return an empty string
-    //      assertEquals("", processor.csv(null));
-    //
-    //      // empty collection returns empty string
-    //      assertEquals("", processor.csv(new ArrayList<String>()));
-    //
-    //      // pretty normal checks
-    //      assertEquals("1", processor.csv(Arrays.asList("1")));
-    //      assertEquals("1, 2", processor.csv(Arrays.asList("1", "2")));
-    //      assertEquals("1, 2, 3", processor.csv(Arrays.asList("1", "2", "3")));
-    //
-    //      // values should be trimmed
-    //      assertEquals("1, 2, 3", processor.csv(Arrays.asList("    1", "    2       ", "3       ")));
-    //
-    //      // empty values should be skipped
-    //      assertEquals("1, 3", processor.csv(Arrays.asList("1", "", "3")));
-    //
-    //      // whitespace values should be skipped
-    //      assertEquals("1, 3", processor.csv(Arrays.asList("1", "      ", "3")));
-    //
-    //      // this (mis)behavior is currently expected, embedded comma delimiters are not escaped
-    //      // note the embedded unescaped comma in the "1, " value
-    //      assertEquals("1,, 2, 3", processor.csv(Arrays.asList("1, ", "2", "3")));
-    //  }
     @Test
     public void testConnectFailBadHost() throws Exception {
         addHandler(new GetOrHeadHandler());
@@ -514,7 +465,7 @@ public class TestInvokeHTTP {
     }
 
     private static Map<String, String> createSslProperties() {
-        Map<String, String> map = new HashMap<String, String>();
+        Map<String, String> map = new HashMap<>();
         map.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/localhost-ks.jks");
         map.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "localtest");
         map.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), "JKS");

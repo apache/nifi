@@ -19,7 +19,6 @@ package org.apache.nifi.controller.status;
 import java.util.concurrent.TimeUnit;
 
 /**
- * @author unattributed
  */
 public class ProcessorStatus implements Cloneable {
 

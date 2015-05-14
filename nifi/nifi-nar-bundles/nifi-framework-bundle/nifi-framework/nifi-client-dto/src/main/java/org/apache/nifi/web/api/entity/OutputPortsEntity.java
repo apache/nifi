@@ -22,9 +22,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.web.api.dto.PortDTO;
 
 /**
- * A serialized representation of this class can be placed in the entity body of
- * a response to the API. This particular entity holds a reference to a list of
- * output PortDTOs.
+ * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to a list of output PortDTOs.
  */
 @XmlRootElement(name = "outputPortsEntity")
 public class OutputPortsEntity extends Entity {
@@ -32,9 +30,7 @@ public class OutputPortsEntity extends Entity {
     private Set<PortDTO> outputPorts;
 
     /**
-     * The collection of output PortDTOs that are being serialized.
-     *
-     * @return
+     * @return collection of output PortDTOs that are being serialized
      */
     public Set<PortDTO> getOutputPorts() {
         return outputPorts;

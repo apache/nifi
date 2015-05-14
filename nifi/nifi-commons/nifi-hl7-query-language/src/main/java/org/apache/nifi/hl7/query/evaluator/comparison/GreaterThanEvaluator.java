@@ -18,17 +18,15 @@ package org.apache.nifi.hl7.query.evaluator.comparison;
 
 import org.apache.nifi.hl7.query.evaluator.Evaluator;
 
-
 public class GreaterThanEvaluator extends AbstractNumericComparison {
 
-	public GreaterThanEvaluator(final Evaluator<?> lhs, final Evaluator<?> rhs) {
-		super(lhs, rhs);
-	}
+    public GreaterThanEvaluator(final Evaluator<?> lhs, final Evaluator<?> rhs) {
+        super(lhs, rhs);
+    }
 
-	@Override
-	protected boolean compareNumbers(final Double lhs, final Double rhs) {
-		return lhs > rhs;
-	}
+    @Override
+    protected boolean compareNumbers(final Double lhs, final Double rhs) {
+        return lhs > rhs;
+    }
 
-	
 }

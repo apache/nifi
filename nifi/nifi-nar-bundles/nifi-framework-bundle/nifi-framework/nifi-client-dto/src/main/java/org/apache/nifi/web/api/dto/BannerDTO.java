@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import javax.xml.bind.annotation.XmlType;
 
 /**
@@ -33,6 +34,9 @@ public class BannerDTO {
      *
      * @return The footer text
      */
+    @ApiModelProperty(
+            value = "The footer text."
+    )
     public String getFooterText() {
         return footerText;
     }
@@ -46,6 +50,9 @@ public class BannerDTO {
      *
      * @return The header text
      */
+    @ApiModelProperty(
+            value = "The header text."
+    )
     public String getHeaderText() {
         return headerText;
     }

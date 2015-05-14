@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto.provenance;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
 import java.util.List;
 import javax.xml.bind.annotation.XmlType;
 
@@ -28,10 +29,11 @@ public class ProvenanceOptionsDTO {
     private List<ProvenanceSearchableFieldDTO> searchableFields;
 
     /**
-     * The available searchable fields for this NiFi instance.
-     *
-     * @return
+     * @return available searchable fields for this NiFi instance
      */
+    @ApiModelProperty(
+            value = "The available searchable field for the NiFi."
+    )
     public List<ProvenanceSearchableFieldDTO> getSearchableFields() {
         return searchableFields;
     }

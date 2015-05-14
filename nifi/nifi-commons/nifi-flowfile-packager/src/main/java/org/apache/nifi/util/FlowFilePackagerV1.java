@@ -78,7 +78,7 @@ public class FlowFilePackagerV1 implements FlowFilePackager {
         entry.setMode(tarPermissions);
         entry.setSize(fileSize);
         tarOut.putArchiveEntry(entry);
-        final byte[] buffer = new byte[512 << 10];//512KB            
+        final byte[] buffer = new byte[512 << 10];//512KB
         int bytesRead = 0;
         while ((bytesRead = inStream.read(buffer)) != -1) { //still more data to read
             if (bytesRead > 0) {

@@ -19,13 +19,14 @@ package org.apache.nifi.hl7.query.evaluator.comparison;
 import org.apache.nifi.hl7.query.evaluator.Evaluator;
 
 public class LessThanOrEqualEvaluator extends AbstractNumericComparison {
-	public LessThanOrEqualEvaluator(final Evaluator<?> lhs, final Evaluator<?> rhs) {
-		super(lhs, rhs);
-	}
 
-	@Override
-	protected boolean compareNumbers(final Double lhs, final Double rhs) {
-		return lhs <= rhs;
-	}
+    public LessThanOrEqualEvaluator(final Evaluator<?> lhs, final Evaluator<?> rhs) {
+        super(lhs, rhs);
+    }
+
+    @Override
+    protected boolean compareNumbers(final Double lhs, final Double rhs) {
+        return lhs <= rhs;
+    }
 
 }

@@ -36,9 +36,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
 /**
- * Factory bean for creating a singleton WebClusterManager instance. If the
- * application is not configured to act as the cluster manager, then null is
- * always returned as the created instance.
+ * Factory bean for creating a singleton WebClusterManager instance. If the application is not configured to act as the cluster manager, then null is always returned as the created instance.
  */
 public class WebClusterManagerFactoryBean implements FactoryBean, ApplicationContextAware {
 
@@ -49,7 +47,7 @@ public class WebClusterManagerFactoryBean implements FactoryBean, ApplicationCon
     private NiFiProperties properties;
 
     private StringEncryptor encryptor;
-    
+
     private OptimisticLockingManager optimisticLockingManager;
 
     @Override
@@ -58,8 +56,8 @@ public class WebClusterManagerFactoryBean implements FactoryBean, ApplicationCon
             throw new IllegalStateException("Application may be configured as a cluster manager or a node, but not both.");
         } else if (!properties.isClusterManager()) {
             /*
-             * If not configured for the cluster manager, then the cluster manager is never used.  
-             * null is returned so that we don't instantiate a thread pool or other resources. 
+             * If not configured for the cluster manager, then the cluster manager is never used.
+             * null is returned so that we don't instantiate a thread pool or other resources.
              */
             return null;
         } else if (clusterManager == null) {
@@ -127,7 +125,7 @@ public class WebClusterManagerFactoryBean implements FactoryBean, ApplicationCon
     public void setEncryptor(final StringEncryptor encryptor) {
         this.encryptor = encryptor;
     }
-    
+
     public void setOptimisticLockingManager(OptimisticLockingManager optimisticLockingManager) {
         this.optimisticLockingManager = optimisticLockingManager;
     }

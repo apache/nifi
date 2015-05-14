@@ -55,9 +55,9 @@ public interface FlowFileSwapManager {
      * Notifies FlowFile queues of the number of FlowFiles and content size of
      * all FlowFiles that are currently swapped out
      *
-     * @param connectionProvider
-     * @param claimManager
-     * @return
+     * @param connectionProvider provider
+     * @param claimManager manager
+     * @return how many flowfiles have been recovered
      */
     long recoverSwappedFlowFiles(QueueProvider connectionProvider, ContentClaimManager claimManager);
 }

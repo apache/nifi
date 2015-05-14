@@ -59,21 +59,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * An implementation of the <code>HttpRequestReplicator</code> interface. This
- * implementation parallelizes the node HTTP requests using the given
- * <code>ExecutorService</code> instance. Individual requests may have
- * connection and read timeouts set, which may be set during instance
- * construction. Otherwise, the default is not to timeout.
+ * An implementation of the <code>HttpRequestReplicator</code> interface. This implementation parallelizes the node HTTP requests using the given <code>ExecutorService</code> instance. Individual
+ * requests may have connection and read timeouts set, which may be set during instance construction. Otherwise, the default is not to timeout.
  *
- * If a node protocol scheme is provided during construction, then all requests
- * will be replicated using the given scheme. If null is provided as the scheme
- * (the default), then the requests will be replicated using the scheme of the
- * original URI.
+ * If a node protocol scheme is provided during construction, then all requests will be replicated using the given scheme. If null is provided as the scheme (the default), then the requests will be
+ * replicated using the scheme of the original URI.
  *
- * Clients must call start() and stop() to initialize and shutdown the instance.
- * The instance must be started before issuing any replication requests.
+ * Clients must call start() and stop() to initialize and shutdown the instance. The instance must be started before issuing any replication requests.
  *
- * @author unattributed
  */
 public class HttpRequestReplicatorImpl implements HttpRequestReplicator {
 
@@ -97,11 +90,9 @@ public class HttpRequestReplicatorImpl implements HttpRequestReplicator {
     private String nodeProtocolScheme = null;
 
     /**
-     * Creates an instance. The connection timeout and read timeout will be
-     * infinite.
+     * Creates an instance. The connection timeout and read timeout will be infinite.
      *
-     * @param numThreads the number of threads to use when parallelizing
-     * requests
+     * @param numThreads the number of threads to use when parallelizing requests
      * @param client a client for making requests
      */
     public HttpRequestReplicatorImpl(final int numThreads, final Client client) {
@@ -111,12 +102,10 @@ public class HttpRequestReplicatorImpl implements HttpRequestReplicator {
     /**
      * Creates an instance.
      *
-     * @param numThreads the number of threads to use when parallelizing
-     * requests
+     * @param numThreads the number of threads to use when parallelizing requests
      * @param client a client for making requests
-     * @param connectionTimeoutMs the connection timeout specified in
-     * milliseconds
-     * @param readTimeoutMs the read timeout specified in milliseconds
+     * @param connectionTimeout the connection timeout specified in milliseconds
+     * @param readTimeout the read timeout specified in milliseconds
      */
     public HttpRequestReplicatorImpl(final int numThreads, final Client client, final String connectionTimeout, final String readTimeout) {
 
@@ -178,9 +167,7 @@ public class HttpRequestReplicatorImpl implements HttpRequestReplicator {
     /**
      * Sets the protocol scheme to use when issuing requests to nodes.
      *
-     * @param nodeProtocolScheme the scheme. Valid values are "http", "https",
-     * or null. If null is specified, then the scheme of the originating request
-     * is used when replicating that request.
+     * @param nodeProtocolScheme the scheme. Valid values are "http", "https", or null. If null is specified, then the scheme of the originating request is used when replicating that request.
      */
     public synchronized void setNodeProtocolScheme(final String nodeProtocolScheme) {
         if (StringUtils.isNotBlank(nodeProtocolScheme)) {
@@ -368,9 +355,7 @@ public class HttpRequestReplicatorImpl implements HttpRequestReplicator {
     }
 
     /**
-     * Wraps a future node response with info from originating request. This
-     * coupling allows for futures that encountered exceptions to be linked back
-     * to the failing node and better reported.
+     * Wraps a future node response with info from originating request. This coupling allows for futures that encountered exceptions to be linked back to the failing node and better reported.
      */
     private class NodeHttpRequestFutureWrapper {
 
@@ -417,8 +402,7 @@ public class HttpRequestReplicatorImpl implements HttpRequestReplicator {
     }
 
     /**
-     * A Callable for making an HTTP request to a single node and returning its
-     * response.
+     * A Callable for making an HTTP request to a single node and returning its response.
      */
     private class NodeHttpRequestCallable implements Callable<NodeResponse> {
 

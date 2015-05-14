@@ -41,38 +41,38 @@ import org.apache.nifi.io.socket.SocketUtils;
 import org.apache.nifi.io.socket.multicast.DiscoverableService;
 
 public class NodeProtocolSenderImpl implements NodeProtocolSender {
+
     private final SocketConfiguration socketConfiguration;
     private final ClusterServiceLocator clusterManagerProtocolServiceLocator;
     private final ProtocolContext<ProtocolMessage> protocolContext;
-    
-    public NodeProtocolSenderImpl(final ClusterServiceLocator clusterManagerProtocolServiceLocator, 
+
+    public NodeProtocolSenderImpl(final ClusterServiceLocator clusterManagerProtocolServiceLocator,
             final SocketConfiguration socketConfiguration, final ProtocolContext<ProtocolMessage> protocolContext) {
-        if(clusterManagerProtocolServiceLocator == null) {
+        if (clusterManagerProtocolServiceLocator == null) {
             throw new IllegalArgumentException("Protocol Service Locator may not be null.");
-        } else if(socketConfiguration == null) {
+        } else if (socketConfiguration == null) {
             throw new IllegalArgumentException("Socket configuration may not be null.");
-        } else if(protocolContext == null) {
+        } else if (protocolContext == null) {
             throw new IllegalArgumentException("Protocol Context may not be null.");
         }
-        
+
         this.clusterManagerProtocolServiceLocator = clusterManagerProtocolServiceLocator;
         this.socketConfiguration = socketConfiguration;
         this.protocolContext = protocolContext;
     }
-    
-    
+
     @Override
     public ConnectionResponseMessage requestConnection(final ConnectionRequestMessage msg) throws ProtocolException, UnknownServiceAddressException {
         Socket socket = null;
         try {
             socket = createSocket();
-            
+
             String ncmDn = null;
-            if ( socket instanceof SSLSocket ) {
+            if (socket instanceof SSLSocket) {
                 final SSLSocket sslSocket = (SSLSocket) socket;
                 try {
                     final X509Certificate[] certChains = sslSocket.getSession().getPeerCertificateChain();
-                    if ( certChains != null && certChains.length > 0 ) {
+                    if (certChains != null && certChains.length > 0) {
                         ncmDn = certChains[0].getSubjectDN().getName();
                     }
                 } catch (final ProtocolException pe) {
@@ -81,25 +81,25 @@ public class NodeProtocolSenderImpl implements NodeProtocolSender {
                     throw new ProtocolException(e);
                 }
             }
-            
+
             try {
                 // marshal message to output stream
                 final ProtocolMessageMarshaller<ProtocolMessage> marshaller = protocolContext.createMarshaller();
                 marshaller.marshal(msg, socket.getOutputStream());
-            } catch(final IOException ioe) {
+            } catch (final IOException ioe) {
                 throw new ProtocolException("Failed marshalling '" + msg.getType() + "' protocol message due to: " + ioe, ioe);
-            } 
-            
+            }
+
             final ProtocolMessage response;
             try {
                 // unmarshall response and return
                 final ProtocolMessageUnmarshaller<ProtocolMessage> unmarshaller = protocolContext.createUnmarshaller();
                 response = unmarshaller.unmarshal(socket.getInputStream());
-            } catch(final IOException ioe) {
+            } catch (final IOException ioe) {
                 throw new ProtocolException("Failed unmarshalling '" + MessageType.CONNECTION_RESPONSE + "' protocol message due to: " + ioe, ioe);
-            } 
-            
-            if(MessageType.CONNECTION_RESPONSE == response.getType()) {
+            }
+
+            if (MessageType.CONNECTION_RESPONSE == response.getType()) {
                 final ConnectionResponseMessage connectionResponse = (ConnectionResponseMessage) response;
                 connectionResponse.setClusterManagerDN(ncmDn);
                 return connectionResponse;
@@ -110,8 +110,7 @@ public class NodeProtocolSenderImpl implements NodeProtocolSender {
             SocketUtils.closeQuietly(socket);
         }
     }
-    
-    
+
     @Override
     public void heartbeat(final HeartbeatMessage msg) throws ProtocolException, UnknownServiceAddressException {
         sendProtocolMessage(msg);
@@ -131,22 +130,22 @@ public class NodeProtocolSenderImpl implements NodeProtocolSender {
     public void notifyReconnectionFailure(ReconnectionFailureMessage msg) throws ProtocolException, UnknownServiceAddressException {
         sendProtocolMessage(msg);
     }
-    
+
     private Socket createSocket() {
         // determine the cluster manager's address
-        final DiscoverableService service = clusterManagerProtocolServiceLocator.getService(); 
-        if(service == null) {
+        final DiscoverableService service = clusterManagerProtocolServiceLocator.getService();
+        if (service == null) {
             throw new UnknownServiceAddressException("Cluster Manager's service is not known.  Verify a cluster manager is running.");
         }
-        
+
         try {
             // create a socket
-            return SocketUtils.createSocket(service.getServiceAddress(), socketConfiguration); 
-        } catch(final IOException ioe) {
+            return SocketUtils.createSocket(service.getServiceAddress(), socketConfiguration);
+        } catch (final IOException ioe) {
             throw new ProtocolException("Failed to create socket due to: " + ioe, ioe);
         }
     }
-    
+
     private void sendProtocolMessage(final ProtocolMessage msg) {
         Socket socket = null;
         try {
@@ -156,16 +155,16 @@ public class NodeProtocolSenderImpl implements NodeProtocolSender {
                 // marshal message to output stream
                 final ProtocolMessageMarshaller<ProtocolMessage> marshaller = protocolContext.createMarshaller();
                 marshaller.marshal(msg, socket.getOutputStream());
-            } catch(final IOException ioe) {
+            } catch (final IOException ioe) {
                 throw new ProtocolException("Failed marshalling '" + msg.getType() + "' protocol message due to: " + ioe, ioe);
             }
         } finally {
             SocketUtils.closeQuietly(socket);
         }
     }
-    
+
     public SocketConfiguration getSocketConfiguration() {
         return socketConfiguration;
     }
-    
+
 }

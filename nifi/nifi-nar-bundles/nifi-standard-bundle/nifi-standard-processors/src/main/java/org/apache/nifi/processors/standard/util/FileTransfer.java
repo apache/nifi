@@ -136,7 +136,10 @@ public interface FileTransfer extends Closeable {
             .build();
     public static final PropertyDescriptor REMOTE_POLL_BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("Remote Poll Batch Size")
-            .description("The value specifies how many file paths to find in a given directory on the remote system when doing a file listing. This value in general should not need to be modified but when polling against a remote system with a tremendous number of files this value can be critical.  Setting this value too high can result very poor performance and setting it too low can cause the flow to be slower than normal.")
+            .description("The value specifies how many file paths to find in a given directory on the remote system when doing a file listing. This value "
+                    + "in general should not need to be modified but when polling against a remote system with a tremendous number of files this value can "
+                    + "be critical.  Setting this value too high can result very poor performance and setting it too low can cause the flow to be slower "
+                    + "than normal.")
             .defaultValue("5000")
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .required(true)
@@ -194,41 +197,53 @@ public interface FileTransfer extends Closeable {
             .build();
     public static final PropertyDescriptor DOT_RENAME = new PropertyDescriptor.Builder()
             .name("Dot Rename")
-            .description("If true, then the filename of the sent file is prepended with a \".\" and then renamed back to the original once the file is completely sent. Otherwise, there is no rename. This property is ignored if the Temporary Filename property is set.")
+            .description("If true, then the filename of the sent file is prepended with a \".\" and then renamed back to the "
+                    + "original once the file is completely sent. Otherwise, there is no rename. This property is ignored if the "
+                    + "Temporary Filename property is set.")
             .allowableValues("true", "false")
             .defaultValue("true")
             .build();
     public static final PropertyDescriptor TEMP_FILENAME = new PropertyDescriptor.Builder()
             .name("Temporary Filename")
-            .description("If set, the filename of the sent file will be equal to the value specified during the transfer and after successful completion will be renamed to the original filename. If this value is set, the Dot Rename property is ignored.")
+            .description("If set, the filename of the sent file will be equal to the value specified during the transfer and after successful "
+                    + "completion will be renamed to the original filename. If this value is set, the Dot Rename property is ignored.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(true)
             .required(false)
             .build();
     public static final PropertyDescriptor LAST_MODIFIED_TIME = new PropertyDescriptor.Builder()
             .name("Last Modified Time")
-            .description("The lastModifiedTime to assign to the file after transferring it. If not set, the lastModifiedTime will not be changed. Format must be yyyy-MM-dd'T'HH:mm:ssZ. You may also use expression language such as ${file.lastModifiedTime}. If the value is invalid, the processor will not be invalid but will fail to change lastModifiedTime of the file.")
+            .description("The lastModifiedTime to assign to the file after transferring it. If not set, the lastModifiedTime will not be changed. "
+                    + "Format must be yyyy-MM-dd'T'HH:mm:ssZ. You may also use expression language such as ${file.lastModifiedTime}. If the value "
+                    + "is invalid, the processor will not be invalid but will fail to change lastModifiedTime of the file.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(true)
             .build();
     public static final PropertyDescriptor PERMISSIONS = new PropertyDescriptor.Builder()
             .name("Permissions")
-            .description("The permissions to assign to the file after transferring it. Format must be either UNIX rwxrwxrwx with a - in place of denied permissions (e.g. rw-r--r--) or an octal number (e.g. 644). If not set, the permissions will not be changed. You may also use expression language such as ${file.permissions}. If the value is invalid, the processor will not be invalid but will fail to change permissions of the file.")
+            .description("The permissions to assign to the file after transferring it. Format must be either UNIX rwxrwxrwx with a - in place of "
+                    + "denied permissions (e.g. rw-r--r--) or an octal number (e.g. 644). If not set, the permissions will not be changed. You may "
+                    + "also use expression language such as ${file.permissions}. If the value is invalid, the processor will not be invalid but will "
+                    + "fail to change permissions of the file.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(true)
             .build();
     public static final PropertyDescriptor REMOTE_OWNER = new PropertyDescriptor.Builder()
             .name("Remote Owner")
-            .description("Integer value representing the User ID to set on the file after transferring it. If not set, the owner will not be set. You may also use expression language such as ${file.owner}. If the value is invalid, the processor will not be invalid but will fail to change the owner of the file.")
+            .description("Integer value representing the User ID to set on the file after transferring it. If not set, the owner will not be set. "
+                    + "You may also use expression language such as ${file.owner}. If the value is invalid, the processor will not be invalid but "
+                    + "will fail to change the owner of the file.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(true)
             .build();
     public static final PropertyDescriptor REMOTE_GROUP = new PropertyDescriptor.Builder()
             .name("Remote Group")
-            .description("Integer value representing the Group ID to set on the file after transferring it. If not set, the group will not be set. You may also use expression language such as ${file.group}. If the value is invalid, the processor will not be invalid but will fail to change the group of the file.")
+            .description("Integer value representing the Group ID to set on the file after transferring it. If not set, the group will not be set. "
+                    + "You may also use expression language such as ${file.group}. If the value is invalid, the processor will not be invalid but "
+                    + "will fail to change the group of the file.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(true)

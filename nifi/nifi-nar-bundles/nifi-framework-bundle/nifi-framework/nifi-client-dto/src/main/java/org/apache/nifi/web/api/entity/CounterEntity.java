@@ -20,9 +20,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.web.api.dto.CounterDTO;
 
 /**
- * A serialized representation of this class can be placed in the entity body of
- * a response from the API. This particular entity holds a reference to a
- * CounterDTO.
+ * A serialized representation of this class can be placed in the entity body of a response from the API. This particular entity holds a reference to a CounterDTO.
  */
 @XmlRootElement(name = "counterEntity")
 public class CounterEntity extends Entity {
@@ -30,9 +28,7 @@ public class CounterEntity extends Entity {
     private CounterDTO counter;
 
     /**
-     * Get the counter.
-     *
-     * @return
+     * @return the counter
      */
     public CounterDTO getCounter() {
         return counter;

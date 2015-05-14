@@ -70,12 +70,6 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
         return processor;
     }
 
-    /**
-     * Determines if the specified processor is loaded.
-     *
-     * @param id
-     * @return
-     */
     @Override
     public boolean hasProcessor(String groupId, String id) {
         ProcessGroup group = flowController.getGroup(groupId);
@@ -87,19 +81,12 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
         return group.getProcessor(id) != null;
     }
 
-    /**
-     * Creates a new Processor.
-     *
-     * @param groupId The group id
-     * @param processorDTO The processor configuration
-     * @return The new Processor
-     */
     @Override
     public ProcessorNode createProcessor(String groupId, ProcessorDTO processorDTO) {
         if (processorDTO.getParentGroupId() != null && !flowController.areGroupsSame(groupId, processorDTO.getParentGroupId())) {
             throw new IllegalArgumentException("Cannot specify a different Parent Group ID than the Group to which the Processor is being added.");
         }
-        
+
         // ensure the type is specified
         if (processorDTO.getType() == null) {
             throw new IllegalArgumentException("The processor type must be specified.");
@@ -129,13 +116,6 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
         }
     }
 
-    /**
-     * Configures the specified processor with the specified configuration dto.
-     *
-     * @param processor
-     * @param processorDTO
-     * @return
-     */
     private void configureProcessor(ProcessorNode processor, ProcessorDTO processorDTO) {
         final ProcessorConfigDTO config = processorDTO.getConfig();
 
@@ -222,13 +202,6 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
         }
     }
 
-    /**
-     * Validates the proposed processor configuration.
-     *
-     * @param processorNode
-     * @param config
-     * @return
-     */
     private List<String> validateProposedConfiguration(ProcessorNode processorNode, ProcessorConfigDTO config) {
         List<String> validationErrors = new ArrayList<>();
 
@@ -319,22 +292,11 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
         return validationErrors;
     }
 
-    /**
-     * Gets the Processor transfer object for the specified id.
-     *
-     * @param id Id of the processor to return
-     * @return The Processor
-     */
     @Override
     public ProcessorNode getProcessor(String groupId, String id) {
         return locateProcessor(groupId, id);
     }
 
-    /**
-     * Gets all the Processors for this controller.
-     *
-     * @return List of all the Processors
-     */
     @Override
     public Set<ProcessorNode> getProcessors(String groupId) {
         ProcessGroup group = locateProcessGroup(flowController, groupId);
@@ -417,12 +379,6 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
         }
     }
 
-    /**
-     * Updates the configuration for the processor using the specified
-     * processorDTO.
-     *
-     * @param processorDTO
-     */
     @Override
     public ProcessorNode updateProcessor(String groupId, ProcessorDTO processorDTO) {
         ProcessorNode processor = locateProcessor(groupId, processorDTO.getId());
@@ -482,11 +438,6 @@ public class StandardProcessorDAO extends ComponentDAO implements ProcessorDAO {
         processor.verifyCanDelete();
     }
 
-    /**
-     * Deletes the specified processor.
-     *
-     * @param processorId The processor id to delete
-     */
     @Override
     public void deleteProcessor(String groupId, String processorId) {
         // get the group and the processor

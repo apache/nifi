@@ -22,7 +22,6 @@ import java.io.Serializable;
  * A model object representing a revision. Equality is defined as either a
  * matching version number or matching non-empty client IDs.
  *
- * @author unattributed
  * @Immutable
  * @Threadsafe
  */
@@ -37,12 +36,12 @@ public class Revision implements Serializable {
      * the client ID
      */
     private final String clientId;
-    
+
     public Revision(Long revision, String clientId) {
         this.version = revision;
         this.clientId = clientId;
     }
-    
+
     public String getClientId() {
         return clientId;
     }

@@ -22,6 +22,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
@@ -34,25 +37,15 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processors.hadoop.util.SequenceFileReader;
 import org.apache.nifi.util.StopWatch;
-import org.apache.nifi.util.Tuple;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 
 /**
- * This processor is used to pull files from HDFS. The files being pulled in
- * MUST be SequenceFile formatted files. The processor creates a flow file for
- * each key/value entry in the ingested SequenceFile. The created flow file's
- * content depends on the value of the optional configuration property FlowFile
- * Content. Currently, there are two choices: VALUE ONLY and KEY VALUE PAIR.
- * With the prior, only the SequenceFile value element is written to the flow
- * file contents. With the latter, the SequenceFile key and value are written to
- * the flow file contents as serialized objects; the format is key length (int),
- * key(String), value length(int), value(bytes). The default is VALUE ONLY.
+ * This processor is used to pull files from HDFS. The files being pulled in MUST be SequenceFile formatted files. The processor creates a flow file for each key/value entry in the ingested
+ * SequenceFile. The created flow file's content depends on the value of the optional configuration property FlowFile Content. Currently, there are two choices: VALUE ONLY and KEY VALUE PAIR. With the
+ * prior, only the SequenceFile value element is written to the flow file contents. With the latter, the SequenceFile key and value are written to the flow file contents as serialized objects; the
+ * format is key length (int), key(String), value length(int), value(bytes). The default is VALUE ONLY.
  * <p>
- * NOTE: This processor loads the entire value entry into memory. While the size
- * limit for a value entry is 2GB, this will cause memory problems if there are
- * too many concurrent tasks and the data being ingested is large.
+ * NOTE: This processor loads the entire value entry into memory. While the size limit for a value entry is 2GB, this will cause memory problems if there are too many concurrent tasks and the data
+ * being ingested is large.
  *
  */
 @TriggerWhenEmpty
@@ -86,9 +79,8 @@ public class GetHDFSSequenceFile extends GetHDFS {
 
     @Override
     protected void processBatchOfFiles(final List<Path> files, final ProcessContext context, final ProcessSession session) {
-        final Tuple<Configuration, FileSystem> hadoopResources = hdfsResources.get();
-        final Configuration conf = hadoopResources.getKey();
-        final FileSystem hdfs = hadoopResources.getValue();
+        final Configuration conf = getConfiguration();
+        final FileSystem hdfs = getFileSystem();
         final String flowFileContentValue = context.getProperty(FLOWFILE_CONTENT).getValue();
         final boolean keepSourceFiles = context.getProperty(KEEP_SOURCE_FILE).asBoolean();
         final Double bufferSizeProp = context.getProperty(BUFFER_SIZE).asDataSize(DataUnit.B);
