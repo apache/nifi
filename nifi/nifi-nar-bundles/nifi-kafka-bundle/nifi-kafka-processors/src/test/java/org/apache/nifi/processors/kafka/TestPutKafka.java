@@ -29,11 +29,11 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import kafka.common.FailedToSendMessageException;
 import kafka.javaapi.producer.Producer;
+import kafka.message.CompressionCodec;
 import kafka.producer.KeyedMessage;
 import kafka.producer.ProducerConfig;
 
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
-
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.provenance.ProvenanceReporter;
 import org.apache.nifi.util.MockFlowFile;
@@ -48,6 +48,8 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.internal.util.reflection.Whitebox;
+
+import scala.collection.Seq;
 
 public class TestPutKafka {
 
@@ -217,7 +219,25 @@ public class TestPutKafka {
         runner.setProperty(PutKafka.TIMEOUT, "3 secs");
         runner.setProperty(PutKafka.DELIVERY_GUARANTEE, PutKafka.DELIVERY_REPLICATED.getValue());
 
-        final Map<String, String> attributes = new HashMap<>();
+        keyValuePutExecute(runner);
+    }
+
+    @Test
+    @Ignore("Intended only for local testing; requires an actual running instance of Kafka & ZooKeeper...")
+    public void testKeyValuePutAsync() {
+        final TestRunner runner = TestRunners.newTestRunner(PutKafka.class);
+        runner.setProperty(PutKafka.SEED_BROKERS, "192.168.0.101:9092");
+        runner.setProperty(PutKafka.TOPIC, "${kafka.topic}");
+        runner.setProperty(PutKafka.KEY, "${kafka.key}");
+        runner.setProperty(PutKafka.TIMEOUT, "3 secs");
+        runner.setProperty(PutKafka.PRODUCER_TYPE, "async");
+        runner.setProperty(PutKafka.DELIVERY_GUARANTEE, PutKafka.DELIVERY_REPLICATED.getValue());
+
+        keyValuePutExecute(runner);
+    }
+
+    private void keyValuePutExecute(final TestRunner runner) {
+		final Map<String, String> attributes = new HashMap<>();
         attributes.put("kafka.topic", "test");
         attributes.put("kafka.key", "key3");
 
@@ -234,6 +254,68 @@ public class TestPutKafka {
         final MockFlowFile mff = mffs.get(0);
 
         assertTrue(Arrays.equals(data, mff.toByteArray()));
+	}
+
+    @Test
+    public void testProducerConfigDefault() {
+
+    	final TestableProcessor processor = new TestableProcessor();
+    	TestRunner runner = TestRunners.newTestRunner(processor);
+
+    	runner.setProperty(PutKafka.TOPIC, "topic1");
+        runner.setProperty(PutKafka.KEY, "key1");
+        runner.setProperty(PutKafka.SEED_BROKERS, "localhost:1234");
+        runner.setProperty(PutKafka.MESSAGE_DELIMITER, "\\n");
+
+        ProcessContext context = runner.getProcessContext();
+        ProducerConfig config = processor.createConfig(context);
+
+        // Check the codec
+        CompressionCodec codec = config.compressionCodec();
+        assertTrue(codec instanceof kafka.message.NoCompressionCodec$);
+
+        // Check compressed topics
+        Seq<String> compressedTopics = config.compressedTopics();
+        assertEquals(0, compressedTopics.size());
+
+        // Check the producer type
+        String actualProducerType = config.producerType();
+        assertEquals(PutKafka.PRODUCER_TYPE.getDefaultValue(), actualProducerType);
+
+    }
+
+    @Test
+    public void testProducerConfigAsyncWithCompression() {
+
+    	final TestableProcessor processor = new TestableProcessor();
+    	TestRunner runner = TestRunners.newTestRunner(processor);
+
+    	runner.setProperty(PutKafka.TOPIC, "topic1");
+        runner.setProperty(PutKafka.KEY, "key1");
+        runner.setProperty(PutKafka.SEED_BROKERS, "localhost:1234");
+        runner.setProperty(PutKafka.MESSAGE_DELIMITER, "\\n");
+        runner.setProperty(PutKafka.PRODUCER_TYPE, "async");
+        runner.setProperty(PutKafka.COMPRESSION_CODEC, "snappy");
+        runner.setProperty(PutKafka.COMPRESSED_TOPICS, "topic01,topic02,topic03");
+
+        ProcessContext context = runner.getProcessContext();
+        ProducerConfig config = processor.createConfig(context);
+
+        // Check that the codec is snappy
+        CompressionCodec codec = config.compressionCodec();
+        assertTrue(codec instanceof kafka.message.SnappyCompressionCodec$);
+
+        // Check compressed topics
+        Seq<String> compressedTopics = config.compressedTopics();
+        assertEquals(3, compressedTopics.size());
+        assertTrue(compressedTopics.contains("topic01"));
+        assertTrue(compressedTopics.contains("topic02"));
+        assertTrue(compressedTopics.contains("topic03"));
+
+        // Check the producer type
+        String actualProducerType = config.producerType();
+        assertEquals("async", actualProducerType);
+
     }
 
     private static class TestableProcessor extends PutKafka {
@@ -261,6 +343,13 @@ public class TestPutKafka {
 
         public MockProducer getProducer() {
             return producer;
+        }
+        
+        /**
+         * Exposed for test verification
+         */
+        public ProducerConfig createConfig(final ProcessContext context) {
+        	return super.createConfig(context);
         }
     }
 
