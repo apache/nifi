@@ -46,7 +46,8 @@ npm install
 The site is built using [foundation][] a responsive front end framework. 
 Consequently, the site is using [sass][] and [compass][] for CSS pre-processing.
 This will also require ruby to be installed along with sass and compass. Both
-sass and compass can be installed via ruby once it is installed.
+sass and compass can be installed via ruby once it is installed. In order to run
+gem install ruby-devel might also need to be installed.
 
 ```bash
 gem install compass
