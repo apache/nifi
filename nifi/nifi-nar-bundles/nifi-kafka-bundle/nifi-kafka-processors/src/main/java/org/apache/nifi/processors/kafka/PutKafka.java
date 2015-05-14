@@ -235,7 +235,7 @@ public class PutKafka extends AbstractProcessor {
 
     protected ProducerConfig createConfig(final ProcessContext context) {
 
-        final String brokers = context.getProperty(SEED_BROKERS).getValue();
+        final String brokers = context.getProperty(SEED_BROKERS).evaluateAttributeExpressions().getValue();
 
         final Properties properties = new Properties();
         properties.setProperty("metadata.broker.list", brokers);
