@@ -52,7 +52,7 @@ public final class ServerMain {
         ChannelListener listener = null;
         try {
             executor.scheduleWithFixedDelay(bufferPool, 0L, 5L, TimeUnit.SECONDS);
-            listener = new ChannelListener(5, new ExampleStreamConsumerFactory(executor, consumerMap), bufferPool, 5, TimeUnit.MILLISECONDS);
+            listener = new ChannelListener(5, new ExampleStreamConsumerFactory(executor, consumerMap), bufferPool, 5, TimeUnit.MILLISECONDS, false);
             listener.setChannelReaderSchedulingPeriod(50L, TimeUnit.MILLISECONDS);
             listener.addDatagramChannel(null, 20000, 32 << 20);
             LOGGER.info("Listening for UDP data on port 20000");

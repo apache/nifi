@@ -27,8 +27,12 @@ public final class DatagramChannelReader extends AbstractChannelReader {
 
     public static final int MAX_UDP_PACKET_SIZE = 65507;
 
-    public DatagramChannelReader(final String id, final SelectionKey key, final BufferPool empties, final StreamConsumerFactory consumerFactory) {
+    private final boolean readSingleDatagram;
+
+    public DatagramChannelReader(final String id, final SelectionKey key, final BufferPool empties, final StreamConsumerFactory consumerFactory,
+            final boolean readSingleDatagram) {
         super(id, key, empties, consumerFactory);
+        this.readSingleDatagram = readSingleDatagram;
     }
 
     /**
@@ -45,7 +49,7 @@ public final class DatagramChannelReader extends AbstractChannelReader {
         final DatagramChannel dChannel = (DatagramChannel) key.channel();
         final int initialBufferPosition = buffer.position();
         while (buffer.remaining() > MAX_UDP_PACKET_SIZE && key.isValid() && key.isReadable()) {
-            if (dChannel.receive(buffer) == null) {
+            if (dChannel.receive(buffer) == null || readSingleDatagram) {
                 break;
             }
         }
