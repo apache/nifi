@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.hadoop;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -33,11 +34,11 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
+import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
@@ -192,6 +193,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
         props.add(POLLING_INTERVAL);
         props.add(BATCH_SIZE);
         props.add(BUFFER_SIZE);
+        props.add(COMPRESSION_CODEC);
         localProperties = Collections.unmodifiableList(props);
     }
 
@@ -329,7 +331,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
 
     protected void processBatchOfFiles(final List<Path> files, final ProcessContext context, final ProcessSession session) {
         // process the batch of files
-        FSDataInputStream stream = null;
+        InputStream stream = null;
         Configuration conf = getConfiguration();
         FileSystem hdfs = getFileSystem();
         final boolean keepSourceFiles = context.getProperty(KEEP_SOURCE_FILE).asBoolean();
@@ -337,6 +339,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
         int bufferSize = bufferSizeProp != null ? bufferSizeProp.intValue() : conf.getInt(BUFFER_SIZE_KEY,
                 BUFFER_SIZE_DEFAULT);
         final Path rootDir = new Path(context.getProperty(DIRECTORY).getValue());
+        final CompressionCodec codec = getCompressionCodec(context, conf);
         for (final Path file : files) {
             try {
                 if (!hdfs.exists(file)) {
@@ -346,6 +349,9 @@ public class GetHDFS extends AbstractHadoopProcessor {
                 final String relativePath = getPathDifference(rootDir, file);
 
                 stream = hdfs.open(file, bufferSize);
+                if (codec != null) {
+                    stream = codec.createInputStream(stream);
+                }
                 FlowFile flowFile = session.create();
 
                 final StopWatch stopWatch = new StopWatch(true);
