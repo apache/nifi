@@ -178,10 +178,8 @@ public class PutMongo extends AbstractMongoProcessor {
 
             session.getProvenanceReporter().send(flowFile, context.getProperty(URI).getValue());
             session.transfer(flowFile, REL_SUCCESS);
-
         } catch (Exception e) {
-            e.printStackTrace();
-            logger.error("Failed to insert {} into MongoDB due to {}", new Object[] { flowFile, e }, e);
+            logger.error("Failed to insert {} into MongoDB due to {}", new Object[] {flowFile, e}, e);
             session.transfer(flowFile, REL_FAILURE);
             context.yield();
         }
