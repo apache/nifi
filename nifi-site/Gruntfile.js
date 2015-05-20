@@ -163,6 +163,7 @@ module.exports = function (grunt) {
                             message: 'SVN password (if different from configured):'
                     }],
                     then: function () {
+                        grunt.task.run('exec:add');
                         grunt.task.run('exec:commit');
                     }
                 }
@@ -203,6 +204,12 @@ module.exports = function (grunt) {
             diff: {
                 cwd: 'dist',
                 command: 'svn diff',
+                stdout: true,
+                stderr: true
+            },
+            add: {
+                cwd: 'dist',
+                command: 'svn add --force .',
                 stdout: true,
                 stderr: true
             },
@@ -254,6 +261,9 @@ module.exports = function (grunt) {
                 replacements: [{
                         from: /<div class="sub-title">.*<\/div>/g,
                         to: '<div class="sub-title">NiFi Rest Api</div>'
+                }, {
+                        from: /<title>.*<\/title>/g,
+                        to: '<title>NiFi Rest Api</title>'
                 }]
             }
         },
