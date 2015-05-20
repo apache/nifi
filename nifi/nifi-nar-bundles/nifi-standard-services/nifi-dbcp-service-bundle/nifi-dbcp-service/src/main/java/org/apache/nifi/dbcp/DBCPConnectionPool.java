@@ -46,19 +46,18 @@ import org.apache.nifi.reporting.InitializationException;
  *
  */
 @Tags({"dbcp", "jdbc", "database", "connection", "pooling", "store"})
-@CapabilityDescription("Provides Database Connection Pooling Service. Connections can be asked from pool and returned after usage."
-        )
+@CapabilityDescription("Provides Database Connection Pooling Service. Connections can be asked from pool and returned after usage.")
 public class DBCPConnectionPool extends AbstractControllerService implements DBCPService {
 
-	public static final DatabaseSystemDescriptor DEFAULT_DATABASE_SYSTEM = DatabaseSystems.getDescriptor("JavaDB");
+    public static final DatabaseSystemDescriptor DEFAULT_DATABASE_SYSTEM = DatabaseSystems.getDescriptor("JavaDB");
 
     public static final PropertyDescriptor DATABASE_SYSTEM = new PropertyDescriptor.Builder()
-    .name("Database")
+    .name("Database Type")
     .description("Database management system")
     .allowableValues(DatabaseSystems.knownDatabaseSystems)
     .defaultValue(DEFAULT_DATABASE_SYSTEM.getValue())
     .required(true)
-    .build();    
+    .build();
 
     public static final PropertyDescriptor DB_HOST = new PropertyDescriptor.Builder()
     .name("Database Host")
@@ -71,7 +70,6 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
     public static final PropertyDescriptor DB_PORT = new PropertyDescriptor.Builder()
     .name("Database Port")
     .description("Database server port")
-    .defaultValue(DEFAULT_DATABASE_SYSTEM.defaultPort.toString())
     .required(true)
     .addValidator(StandardValidators.PORT_VALIDATOR)
     .build();
@@ -119,23 +117,23 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
 
     public static final PropertyDescriptor MAX_WAIT_TIME = new PropertyDescriptor.Builder()
     .name("Max Wait Time")
-    .description("The maximum amount of time that the pool will wait (when there are no available connections) " 
-     + " for a connection to be returned before failing, or -1 to wait indefinitely. ")
-    .defaultValue("500 millis")
-    .required(true)
-    .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-    .sensitive(false)
-    .build();
+    .description("The maximum amount of time that the pool will wait (when there are no available connections) "
+        + " for a connection to be returned before failing, or -1 to wait indefinitely. ")
+        .defaultValue("500 millis")
+        .required(true)
+        .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+        .sensitive(false)
+        .build();
 
     public static final PropertyDescriptor MAX_TOTAL_CONNECTIONS = new PropertyDescriptor.Builder()
     .name("Max Total Connections")
-    .description("The maximum number of active connections that can be allocated from this pool at the same time, " 
-     + " or negative for no limit.")
-    .defaultValue("8")
-    .required(true)
-    .addValidator(StandardValidators.INTEGER_VALIDATOR)
-    .sensitive(true)
-    .build();
+    .description("The maximum number of active connections that can be allocated from this pool at the same time, "
+        + " or negative for no limit.")
+        .defaultValue("8")
+        .required(true)
+        .addValidator(StandardValidators.INTEGER_VALIDATOR)
+        .sensitive(false)
+        .build();
 
     private static final List<PropertyDescriptor> properties;
 
@@ -151,10 +149,10 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         props.add(DB_PASSWORD);
         props.add(MAX_WAIT_TIME);
         props.add(MAX_TOTAL_CONNECTIONS);
-        
+
         properties = Collections.unmodifiableList(props);
     }
-    
+
     private volatile BasicDataSource dataSource;
 
     @Override
@@ -163,81 +161,81 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
     }
 
     /**
-     *  Create new pool, open some connections ready to be used
-     * @param context
-     * @throws InitializationException
+     * Create new pool, open some connections ready to be used
+     * @param context the configuration context
+     * @throws InitializationException if unable to create a database connection
      */
     @OnEnabled
     public void onConfigured(final ConfigurationContext context) throws InitializationException {
-
         DatabaseSystemDescriptor dbsystem = DatabaseSystems.getDescriptor( context.getProperty(DATABASE_SYSTEM).getValue() );
-        
-        String host   = context.getProperty(DB_HOST).getValue();
-        Integer port  = context.getProperty(DB_PORT).asInteger();
-        String drv    = context.getProperty(DB_DRIVERNAME).getValue();
+
+        String host = context.getProperty(DB_HOST).getValue();
+        Integer port = context.getProperty(DB_PORT).asInteger();
+        String drv = context.getProperty(DB_DRIVERNAME).getValue();
         String dbname = context.getProperty(DB_NAME).getValue();
-        String user   = context.getProperty(DB_USER).getValue();
-        String passw  = context.getProperty(DB_PASSWORD).getValue();
+        String user = context.getProperty(DB_USER).getValue();
+        String passw = context.getProperty(DB_PASSWORD).getValue();
         Long maxWaitMillis = context.getProperty(MAX_WAIT_TIME).asTimePeriod(TimeUnit.MILLISECONDS);
-        Integer maxTotal  = context.getProperty(MAX_TOTAL_CONNECTIONS).asInteger();
-        
-        dataSource = new BasicDataSource();        
+        Integer maxTotal = context.getProperty(MAX_TOTAL_CONNECTIONS).asInteger();
+
+        dataSource = new BasicDataSource();
         dataSource.setDriverClassName(drv);
-        
+
         // Optional driver URL, when exist, this URL will be used to locate driver jar file location
-        String urlString	= context.getProperty(DB_DRIVER_JAR_URL).getValue();
+        String urlString = context.getProperty(DB_DRIVER_JAR_URL).getValue();
         dataSource.setDriverClassLoader( getDriverClassLoader(urlString, drv) );
-        
-        String dburl  = dbsystem.buildUrl(host, port, dbname);
-        
+
+        String dburl = dbsystem.buildUrl(host, port, dbname);
+
         dataSource.setMaxWait(maxWaitMillis);
         dataSource.setMaxActive(maxTotal);
 
         dataSource.setUrl(dburl);
         dataSource.setUsername(user);
         dataSource.setPassword(passw);
-        
+
         // verify connection can be established.
         try {
-			Connection con = dataSource.getConnection();
-			if (con==null)
-				throw new InitializationException("Connection to database cannot be established.");
-			con.close();
-		} catch (SQLException e) {
-			throw new InitializationException(e);
-		}
+            Connection con = dataSource.getConnection();
+            if (con==null) {
+                throw new InitializationException("Connection to database cannot be established.");
+            }
+            con.close();
+        } catch (SQLException e) {
+            throw new InitializationException(e);
+        }
     }
-    
-    /**	
-     * 	using Thread.currentThread().getContextClassLoader();
+
+    /**
+     * using Thread.currentThread().getContextClassLoader();
      * will ensure that you are using the ClassLoader for you NAR.
-     * @throws InitializationException 
+     * @throws InitializationException if there is a problem obtaining the ClassLoader
      */
     protected ClassLoader getDriverClassLoader(String urlString, String drvName) throws InitializationException {
         if (urlString!=null && urlString.length()>0) {
-        	try {
-				URL[] urls = new URL[] { new URL(urlString) };
-				URLClassLoader ucl = new URLClassLoader(urls);
-				
-				// Workaround which allows to use URLClassLoader for JDBC driver loading.
-				// (Because the DriverManager will refuse to use a driver not loaded by the system ClassLoader.) 
-		    	Class<?> clazz = Class.forName(drvName, true, ucl);
-		    	if (clazz==null)
-		    		throw new InitializationException("Can't load Database Driver " + drvName);
-		    	Driver driver = (Driver) clazz.newInstance();
-		    	DriverManager.registerDriver( new DriverShim(driver) );
-				
-				return ucl;
-				
-			} catch (MalformedURLException e) {
-				throw new InitializationException("Invalid Database Driver Jar Url", e);
-			} catch (Exception e) {
-				throw new InitializationException("Can't load Database Driver", e);
-			}
-        }
-        else 
-            // That will ensure that you are using the ClassLoader for you NAR. 
+            try {
+                URL[] urls = new URL[] { new URL(urlString) };
+                URLClassLoader ucl = new URLClassLoader(urls);
+
+                // Workaround which allows to use URLClassLoader for JDBC driver loading.
+                // (Because the DriverManager will refuse to use a driver not loaded by the system ClassLoader.)
+                Class<?> clazz = Class.forName(drvName, true, ucl);
+                if (clazz==null) {
+                    throw new InitializationException("Can't load Database Driver " + drvName);
+                }
+                Driver driver = (Driver) clazz.newInstance();
+                DriverManager.registerDriver( new DriverShim(driver) );
+
+                return ucl;
+            } catch (MalformedURLException e) {
+                throw new InitializationException("Invalid Database Driver Jar Url", e);
+            } catch (Exception e) {
+                throw new InitializationException("Can't load Database Driver", e);
+            }
+        } else {
+            // That will ensure that you are using the ClassLoader for you NAR.
             return Thread.currentThread().getContextClassLoader();
+        }
     }
 
     /**
@@ -245,23 +243,23 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
      */
     @OnDisabled
     public void shutdown() {
-    	try {
-			dataSource.close();
-		} catch (SQLException e) {
-			throw new ProcessException(e);
-		}
+        try {
+            dataSource.close();
+        } catch (SQLException e) {
+            throw new ProcessException(e);
+        }
     }
-    
-    
-	@Override
-	public Connection getConnection() throws ProcessException {
-		try {
-			Connection con = dataSource.getConnection();
-			return con;
-		} catch (SQLException e) {
-			throw new ProcessException(e);
-		}
-	}
+
+
+    @Override
+    public Connection getConnection() throws ProcessException {
+        try {
+            Connection con = dataSource.getConnection();
+            return con;
+        } catch (SQLException e) {
+            throw new ProcessException(e);
+        }
+    }
 
     @Override
     public String toString() {

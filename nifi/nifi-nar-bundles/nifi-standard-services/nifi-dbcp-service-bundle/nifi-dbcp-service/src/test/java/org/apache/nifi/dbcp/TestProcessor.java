@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.dbcp;
 
-import org.apache.nifi.dbcp.DBCPService;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,7 +24,6 @@ import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.StandardValidators;
 
 public class TestProcessor extends AbstractProcessor {
 
@@ -37,11 +35,11 @@ public class TestProcessor extends AbstractProcessor {
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         List<PropertyDescriptor> propDescs = new ArrayList<>();
         propDescs.add(new PropertyDescriptor.Builder()
-                .name("DBCPService test processor")
-                .description("DBCPService test processor")
-                .addValidator(StandardValidators.createControllerServiceExistsValidator(DBCPService.class))
-                .required(true)
-                .build());
+        .name("DBCPService test processor")
+        .description("DBCPService test processor")
+        .identifiesControllerService(DBCPService.class)
+        .required(true)
+        .build());
         return propDescs;
     }
 }

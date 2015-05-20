@@ -26,26 +26,25 @@ import org.apache.nifi.components.AllowableValue;
  */
 public class DatabaseSystemDescriptor extends AllowableValue {
 
-	public final String driverClassName;
-	public final Integer defaultPort;
-	public final String urlTemplate;
-	public final boolean internalDriverJar;
-	
-	public DatabaseSystemDescriptor(String value, String description,
-			String driverClassName, Integer	defaultPort, String urlTemplate, boolean internalDriverJar) {
-		super(value, value, description);
-		
-		if (defaultPort==null)
-			throw new IllegalArgumentException("defaultPort cannot be null");
+    public final String driverClassName;
+    public final Integer defaultPort;
+    public final String urlTemplate;
+    public final boolean internalDriverJar;
 
-		this.driverClassName = driverClassName;
-		this.defaultPort	 = defaultPort;
-		this.urlTemplate	 = urlTemplate;
-		this.internalDriverJar = internalDriverJar;
-	}
+    public DatabaseSystemDescriptor(String value, String description, String driverClassName, Integer defaultPort, String urlTemplate, boolean internalDriverJar) {
+        super(value, value, description);
 
-	public String buildUrl(String host, Integer port, String dbname) {
-		return MessageFormat.format(urlTemplate, host, port.toString(), dbname);
-	}
-	
+        if (defaultPort==null)
+            throw new IllegalArgumentException("defaultPort cannot be null");
+
+        this.driverClassName = driverClassName;
+        this.defaultPort = defaultPort;
+        this.urlTemplate = urlTemplate;
+        this.internalDriverJar = internalDriverJar;
+    }
+
+    public String buildUrl(String host, Integer port, String dbname) {
+        return MessageFormat.format(urlTemplate, host, port.toString(), dbname);
+    }
+
 }

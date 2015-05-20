@@ -16,22 +16,16 @@
  */
 package org.apache.nifi.dbcp;
 
-import static org.junit.Assert.*;
+import static org.apache.nifi.dbcp.DatabaseSystems.getDescriptor;
+import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
-import static org.apache.nifi.dbcp.DatabaseSystems.getDescriptor;
 
 public class TestDatabaseSystems {
 
-	@Test
-	public void testKnownDatabaseSystems() {
-		
-		assertEquals( "jdbc:postgresql://bighost:5432/Trove", getDescriptor("Postgres").buildUrl("bighost",5432,"Trove") ); 
-		
-	}
+    @Test
+    public void testKnownDatabaseSystems() {
+        assertEquals("jdbc:postgresql://bighost:5432/Trove", getDescriptor("Postgres").buildUrl("bighost",5432,"Trove"));
+    }
 
-	
-	
-	
-	
 }
