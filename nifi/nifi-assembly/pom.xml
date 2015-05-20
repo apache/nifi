@@ -165,7 +165,7 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-dbcp-service-nar</artifactId>
-	        <version>0.1.0-incubating-SNAPSHOT</version>
+	        <version>0.1.1-incubating-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
         <dependency>
