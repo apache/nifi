@@ -19,34 +19,13 @@
         <artifactId>nifi-standard-services</artifactId>
         <version>0.1.1-incubating-SNAPSHOT</version>
     </parent>
-    <artifactId>nifi-standard-services-api-nar</artifactId>
-    <packaging>nar</packaging>
+    
+    <artifactId>nifi-dbcp-service-api</artifactId>
+    <packaging>jar</packaging>
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-ssl-context-service-api</artifactId>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-distributed-cache-client-service-api</artifactId>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-load-distribution-service-api</artifactId>
-            <scope>compile</scope>
-        </dependency>
-		<dependency>
-			<groupId>org.apache.nifi</groupId>
-			<artifactId>nifi-http-context-map-api</artifactId>
-			<scope>compile</scope>
-		</dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-dbcp-service-api</artifactId>
-            <version>0.1.1-incubating-SNAPSHOT</version>
-            <scope>compile</scope>
+            <artifactId>nifi-api</artifactId>
         </dependency>
     </dependencies>
 </project>
