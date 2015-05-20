@@ -24,9 +24,11 @@ Apache NiFi is an easy to use, powerful, and reliable system to process and dist
 
 ## Getting Started
 
-- Read through the [quickstart guide for development](http://nifi.incubator.apache.org/development/quickstart.html).
+- Read through the [quickstart guide for development](http://nifi.incubator.apache.org/quickstart.html).
   It will include information on getting a local copy of the source, give pointers on issue
   tracking, and provide some warnings about common problems with development environments.
+- For a more comprehensive guide to development and information about contributing to the project
+  read through the [NiFi Developer's Guide](http://nifi.incubator.apache.org/developer-guide.html).
 - Optional: Build supporting modules. This should only be needed if the current 'nifi' module is in
   the process of updating to a new version of either the 'nifi-parent' or 'nifi-nar-maven-plugin'
   artifacts.

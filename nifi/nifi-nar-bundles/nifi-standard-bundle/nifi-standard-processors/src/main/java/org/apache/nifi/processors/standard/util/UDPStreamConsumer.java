@@ -54,11 +54,12 @@ public class UDPStreamConsumer implements StreamConsumer {
     private ProcessSession session;
     private final UDPConsumerCallback udpCallback;
 
-    public UDPStreamConsumer(final String streamId, final List<FlowFile> newFlowFiles, final long fileSizeTrigger, final ProcessorLog logger) {
+    public UDPStreamConsumer(final String streamId, final List<FlowFile> newFlowFiles, final long fileSizeTrigger, final ProcessorLog logger,
+            final boolean flowFilePerDatagram) {
         this.uniqueId = streamId;
         this.newFlowFileQueue = newFlowFiles;
         this.logger = logger;
-        this.udpCallback = new UDPConsumerCallback(filledBuffers, fileSizeTrigger);
+        this.udpCallback = new UDPConsumerCallback(filledBuffers, fileSizeTrigger, flowFilePerDatagram);
     }
 
     @Override
@@ -173,10 +174,12 @@ public class UDPStreamConsumer implements StreamConsumer {
         BufferPool bufferPool;
         final BlockingQueue<ByteBuffer> filledBuffers;
         final long fileSizeTrigger;
+        final boolean flowFilePerDatagram;
 
-        public UDPConsumerCallback(final BlockingQueue<ByteBuffer> filledBuffers, final long fileSizeTrigger) {
+        public UDPConsumerCallback(final BlockingQueue<ByteBuffer> filledBuffers, final long fileSizeTrigger, final boolean flowFilePerDatagram) {
             this.filledBuffers = filledBuffers;
             this.fileSizeTrigger = fileSizeTrigger;
+            this.flowFilePerDatagram = flowFilePerDatagram;
         }
 
         public void setBufferPool(BufferPool pool) {
@@ -196,7 +199,7 @@ public class UDPStreamConsumer implements StreamConsumer {
                                 bytesWrittenThisPass += wbc.write(buffer);
                             }
                             totalBytes += bytesWrittenThisPass;
-                            if (totalBytes > fileSizeTrigger) {
+                            if (totalBytes > fileSizeTrigger || flowFilePerDatagram) {
                                 break;// this is enough data
                             }
                         } finally {
