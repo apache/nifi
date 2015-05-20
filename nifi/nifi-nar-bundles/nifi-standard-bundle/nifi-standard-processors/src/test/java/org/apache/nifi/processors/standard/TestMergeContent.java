@@ -18,6 +18,7 @@ package org.apache.nifi.processors.standard;
 
 import static org.junit.Assert.assertEquals;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -102,9 +103,9 @@ public class TestMergeContent {
         runner.setProperty(MergeContent.MAX_BIN_AGE, "1 sec");
         runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_CONCAT);
         runner.setProperty(MergeContent.DELIMITER_STRATEGY, MergeContent.DELIMITER_STRATEGY_FILENAME);
-        runner.setProperty(MergeContent.HEADER, getClass().getResource("/TestMergeContent/head").getPath());
-        runner.setProperty(MergeContent.DEMARCATOR, getClass().getResource("/TestMergeContent/demarcate").getPath());
-        runner.setProperty(MergeContent.FOOTER, getClass().getResource("/TestMergeContent/foot").getPath());
+        runner.setProperty(MergeContent.HEADER, "src/test/resources/TestMergeContent/head");
+        runner.setProperty(MergeContent.DEMARCATOR, "src/test/resources/TestMergeContent/demarcate");
+        runner.setProperty(MergeContent.FOOTER, "src/test/resources/TestMergeContent/foot");
 
         createFlowFiles(runner);
         runner.run();
@@ -162,7 +163,7 @@ public class TestMergeContent {
 
         Assert.assertEquals(3, results.size());
         for (ValidationResult vr : results) {
-            Assert.assertTrue(vr.toString().contains("is invalid because File " + doesNotExistFile + " does not exist"));
+            Assert.assertTrue(vr.toString().contains("is invalid because File " + new File(doesNotExistFile).toString() + " does not exist"));
         }
     }
 
