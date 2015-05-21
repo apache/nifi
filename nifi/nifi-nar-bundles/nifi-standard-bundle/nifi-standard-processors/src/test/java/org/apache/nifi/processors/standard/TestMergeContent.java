@@ -18,11 +18,13 @@ package org.apache.nifi.processors.standard;
 
 import static org.junit.Assert.assertEquals;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -33,9 +35,12 @@ import java.util.zip.ZipInputStream;
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.io.IOUtils;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.stream.io.ByteArrayInputStream;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
@@ -67,6 +72,99 @@ public class TestMergeContent {
         final MockFlowFile bundle = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
         bundle.assertContentEquals("Hello, World!".getBytes("UTF-8"));
         bundle.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/plain-text");
+    }
+
+    @Test
+    public void testSimpleBinaryConcatWithTextDelimiters() throws IOException, InterruptedException {
+        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
+        runner.setProperty(MergeContent.MAX_BIN_AGE, "1 sec");
+        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_CONCAT);
+        runner.setProperty(MergeContent.DELIMITER_STRATEGY, MergeContent.DELIMITER_STRATEGY_TEXT);
+        runner.setProperty(MergeContent.HEADER, "@");
+        runner.setProperty(MergeContent.DEMARCATOR, "#");
+        runner.setProperty(MergeContent.FOOTER, "$");
+
+        createFlowFiles(runner);
+        runner.run();
+
+        runner.assertQueueEmpty();
+        runner.assertTransferCount(MergeContent.REL_MERGED, 1);
+        runner.assertTransferCount(MergeContent.REL_FAILURE, 0);
+        runner.assertTransferCount(MergeContent.REL_ORIGINAL, 3);
+
+        final MockFlowFile bundle = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
+        bundle.assertContentEquals("@Hello#, #World!$".getBytes("UTF-8"));
+        bundle.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/plain-text");
+    }
+
+    @Test
+    public void testSimpleBinaryConcatWithFileDelimiters() throws IOException, InterruptedException {
+        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
+        runner.setProperty(MergeContent.MAX_BIN_AGE, "1 sec");
+        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_CONCAT);
+        runner.setProperty(MergeContent.DELIMITER_STRATEGY, MergeContent.DELIMITER_STRATEGY_FILENAME);
+        runner.setProperty(MergeContent.HEADER, "src/test/resources/TestMergeContent/head");
+        runner.setProperty(MergeContent.DEMARCATOR, "src/test/resources/TestMergeContent/demarcate");
+        runner.setProperty(MergeContent.FOOTER, "src/test/resources/TestMergeContent/foot");
+
+        createFlowFiles(runner);
+        runner.run();
+
+        runner.assertQueueEmpty();
+        runner.assertTransferCount(MergeContent.REL_MERGED, 1);
+        runner.assertTransferCount(MergeContent.REL_FAILURE, 0);
+        runner.assertTransferCount(MergeContent.REL_ORIGINAL, 3);
+
+        final MockFlowFile bundle = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
+        bundle.assertContentEquals("(|)Hello***, ***World!___".getBytes("UTF-8"));
+        bundle.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/plain-text");
+    }
+
+    @Test
+    public void testTextDelimitersValidation() throws IOException, InterruptedException {
+        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
+        runner.setProperty(MergeContent.MAX_BIN_AGE, "1 sec");
+        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_CONCAT);
+        runner.setProperty(MergeContent.DELIMITER_STRATEGY, MergeContent.DELIMITER_STRATEGY_TEXT);
+        runner.setProperty(MergeContent.HEADER, "");
+        runner.setProperty(MergeContent.DEMARCATOR, "");
+        runner.setProperty(MergeContent.FOOTER, "");
+
+        Collection<ValidationResult> results = new HashSet<>();
+        ProcessContext context = runner.getProcessContext();
+        if (context instanceof MockProcessContext) {
+            MockProcessContext mockContext = (MockProcessContext)context;
+            results = mockContext.validate();
+        }
+
+        Assert.assertEquals(3, results.size());
+        for (ValidationResult vr : results) {
+            Assert.assertTrue(vr.toString().contains("cannot be empty"));
+        }
+    }
+
+    @Test
+    public void testFileDelimitersValidation() throws IOException, InterruptedException {
+        final String doesNotExistFile = "src/test/resources/TestMergeContent/does_not_exist";
+        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
+        runner.setProperty(MergeContent.MAX_BIN_AGE, "1 sec");
+        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_CONCAT);
+        runner.setProperty(MergeContent.DELIMITER_STRATEGY, MergeContent.DELIMITER_STRATEGY_FILENAME);
+        runner.setProperty(MergeContent.HEADER, doesNotExistFile);
+        runner.setProperty(MergeContent.DEMARCATOR, doesNotExistFile);
+        runner.setProperty(MergeContent.FOOTER, doesNotExistFile);
+
+        Collection<ValidationResult> results = new HashSet<>();
+        ProcessContext context = runner.getProcessContext();
+        if (context instanceof MockProcessContext) {
+            MockProcessContext mockContext = (MockProcessContext)context;
+            results = mockContext.validate();
+        }
+
+        Assert.assertEquals(3, results.size());
+        for (ValidationResult vr : results) {
+            Assert.assertTrue(vr.toString().contains("is invalid because File " + new File(doesNotExistFile).toString() + " does not exist"));
+        }
     }
 
     @Test

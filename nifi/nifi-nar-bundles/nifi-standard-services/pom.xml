@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>0.1.0-incubating-SNAPSHOT</version>
+        <version>0.1.1-incubating-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-standard-services</artifactId>
     <packaging>pom</packaging>
@@ -31,5 +31,7 @@
         <module>nifi-ssl-context-service-api</module>
 		<module>nifi-http-context-map-bundle</module>
         <module>nifi-standard-services-api-nar</module>
+        <module>nifi-dbcp-service-api</module>
+        <module>nifi-dbcp-service-bundle</module>
     </modules>
 </project>

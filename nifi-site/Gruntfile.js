@@ -129,7 +129,7 @@ module.exports = function (grunt) {
                     questions: [{
                             config: 'config.svn.username',
                             type: 'input',
-                            message: 'Enter SVN username if different from current user:'
+                            message: 'Enter SVN username (if different from current or configured user):'
                     }]
                 }
             },
@@ -160,9 +160,10 @@ module.exports = function (grunt) {
                     }, {
                             config: 'config.svn.password',
                             type: 'password',
-                            message: 'SVN password:'
+                            message: 'SVN password (if different from configured):'
                     }],
                     then: function () {
+                        grunt.task.run('exec:add');
                         grunt.task.run('exec:commit');
                     }
                 }
@@ -185,11 +186,11 @@ module.exports = function (grunt) {
                 command: function() {
                     var url = grunt.config('config.svn.url');
                     var username = grunt.config('config.svn.username');
-                    if (username === '') {
-                        return 'svn checkout ' + url + ' --trust-server-cert --non-interactive dist';
-                    } else {
-                        return 'svn checkout --username ' + username + ' ' + url + ' --trust-server-cert --non-interactive dist';
+                    var command = 'svn checkout';
+                    if (username !== '') {
+                        command += (' --username ' + username);
                     }
+                    return command + ' ' + url + ' --trust-server-cert --non-interactive dist';
                 },
                 stdout: true,
                 stderr: true
@@ -206,17 +207,26 @@ module.exports = function (grunt) {
                 stdout: true,
                 stderr: true
             },
+            add: {
+                cwd: 'dist',
+                command: 'svn add --force .',
+                stdout: true,
+                stderr: true
+            },
             commit: {
                 cwd: 'dist',
                 command: function() {
                     var username = grunt.config('config.svn.username');
                     var password = grunt.config('config.svn.password');
                     var message = grunt.config('config.svn.commit.message');
-                    if (username === '') {
-                        return 'svn commit --password "' + password + '" -m "' + message + '" --trust-server-cert --non-interactive .';
-                    } else {
-                        return 'svn commit --username ' + username + ' --password "' + password + '" -m "' + message + '" --trust-server-cert --non-interactive .';
+                    var command = 'svn commit';
+                    if (username !== '') {
+                        command += (' --username ' + username);
                     }
+                    if (password !== '') {
+                        command += (' --password ' + password);
+                    }
+                    return command + ' -m "' + message + '" --trust-server-cert --non-interactive .';
                 }
             }
         },
@@ -251,6 +261,9 @@ module.exports = function (grunt) {
                 replacements: [{
                         from: /<div class="sub-title">.*<\/div>/g,
                         to: '<div class="sub-title">NiFi Rest Api</div>'
+                }, {
+                        from: /<title>.*<\/title>/g,
+                        to: '<title>NiFi Rest Api</title>'
                 }]
             }
         },

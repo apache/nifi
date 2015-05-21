@@ -491,6 +491,10 @@ The following binary components are provided under the Apache Software License v
       This product includes software developed by
       Saxonica (http://www.saxonica.com/).
 
+  (ASLv2) MongoDB Java Driver
+    The following NOTICE information applies:
+      Copyright (C) 2008-2013 10gen, Inc.
+
   (ASLv2) Parquet MR
     The following NOTICE information applies:
       Parquet MR
