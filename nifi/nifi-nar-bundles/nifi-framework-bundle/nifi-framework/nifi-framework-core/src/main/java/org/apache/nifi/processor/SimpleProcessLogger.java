@@ -84,9 +84,7 @@ public class SimpleProcessLogger implements ProcessorLog {
         msg = "{} " + msg + ": {}";
 
         logger.warn(msg, os);
-        if (logger.isDebugEnabled()) {
-            logger.warn("", t);
-        }
+        logger.warn("", t);
         logRepository.addLogMessage(LogLevel.WARN, msg, os, t);
     }
 
@@ -163,9 +161,7 @@ public class SimpleProcessLogger implements ProcessorLog {
         final Object[] os = {component};
 
         logger.info(msg, os);
-        if (logger.isDebugEnabled()) {
-            logger.info("", t);
-        }
+        logger.info("", t);
         logRepository.addLogMessage(LogLevel.INFO, msg, os, t);
     }
 
@@ -193,9 +189,7 @@ public class SimpleProcessLogger implements ProcessorLog {
         msg = "{} " + msg + ": {}";
 
         logger.info(msg, os);
-        if (logger.isDebugEnabled()) {
-            logger.info("", t);
-        }
+        logger.info("", t);
         logRepository.addLogMessage(LogLevel.INFO, msg, os, t);
     }
 
@@ -210,9 +204,7 @@ public class SimpleProcessLogger implements ProcessorLog {
         final Object[] os = {component};
 
         logger.error(msg, os, t);
-        if (logger.isDebugEnabled()) {
-            logger.error("", t);
-        }
+        logger.error("", t);
         logRepository.addLogMessage(LogLevel.ERROR, msg, os, t);
     }
 
@@ -254,9 +246,7 @@ public class SimpleProcessLogger implements ProcessorLog {
         msg = "{} " + msg + ": {}";
 
         logger.error(msg, os);
-        if (logger.isDebugEnabled()) {
-            logger.error("", t);
-        }
+        logger.error("", t);
         logRepository.addLogMessage(LogLevel.ERROR, msg, os, t);
     }
 
@@ -284,9 +274,7 @@ public class SimpleProcessLogger implements ProcessorLog {
         msg = "{} " + msg + ": {}";
 
         logger.debug(msg, os);
-        if (logger.isDebugEnabled()) {
-            logger.debug("", t);
-        }
+        logger.debug("", t);
         logRepository.addLogMessage(LogLevel.DEBUG, msg, os, t);
     }
 

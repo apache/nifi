@@ -88,9 +88,7 @@ public class MockProcessorLog implements ProcessorLog {
         msg = "{} " + msg + ": {}";
 
         logger.warn(msg, os);
-        if (logger.isDebugEnabled()) {
-            logger.warn("", t);
-        }
+        logger.warn("", t);
     }
 
     @Override
@@ -160,9 +158,7 @@ public class MockProcessorLog implements ProcessorLog {
         final Object[] os = {component};
 
         logger.info(msg, os);
-        if (logger.isDebugEnabled()) {
-            logger.info("", t);
-        }
+        logger.info("", t);
     }
 
     @Override
@@ -187,9 +183,7 @@ public class MockProcessorLog implements ProcessorLog {
         msg = "{} " + msg + ": {}";
 
         logger.info(msg, os);
-        if (logger.isDebugEnabled()) {
-            logger.info("", t);
-        }
+        logger.info("", t);
     }
 
     @Override
@@ -203,9 +197,7 @@ public class MockProcessorLog implements ProcessorLog {
         final Object[] os = {component};
 
         logger.error(msg, os, t);
-        if (logger.isDebugEnabled()) {
-            logger.error("", t);
-        }
+        logger.error("", t);
     }
 
     @Override
@@ -233,9 +225,7 @@ public class MockProcessorLog implements ProcessorLog {
         msg = "{} " + msg + ": {}";
 
         logger.error(msg, os);
-        if (logger.isDebugEnabled()) {
-            logger.error("", t);
-        }
+        logger.error("", t);
     }
 
     @Override
@@ -260,9 +250,7 @@ public class MockProcessorLog implements ProcessorLog {
         msg = "{} " + msg + ": {}";
 
         logger.debug(msg, os);
-        if (logger.isDebugEnabled()) {
-            logger.debug("", t);
-        }
+        logger.debug("", t);
     }
 
     @Override
