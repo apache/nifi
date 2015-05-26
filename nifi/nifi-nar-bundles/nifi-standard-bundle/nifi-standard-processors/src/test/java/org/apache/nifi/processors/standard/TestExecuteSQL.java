@@ -16,22 +16,32 @@
  */
 package org.apache.nifi.processors.standard;
 
+import static org.junit.Assert.assertEquals;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.util.Collection;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.controller.ControllerServiceInitializationContext;
+import org.apache.avro.file.DataFileStream;
+import org.apache.avro.generic.GenericDatumReader;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.io.DatumReader;
+import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.dbcp.DBCPService;
+import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processors.standard.util.TestJdbcHugeStream;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.fusesource.hawtbuf.ByteArrayInputStream;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -58,61 +68,76 @@ public class TestExecuteSQL {
     }
     
     @Test
-    public void test1() throws InitializationException {
+    public void test1() throws InitializationException, ClassNotFoundException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(ExecuteSQL.class);
         
         final DBCPService dbcp = new DBCPServiceSimpleImpl();
         final Map<String, String> dbcpProperties = new HashMap<>();
-        dbcpProperties.put("Database Host", "NA");    // Embedded Derby don't use host
-        dbcpProperties.put("Database Port", "1");  // Embedded Derby don't use port, but must have value anyway
-        dbcpProperties.put("Database Name", DB_LOCATION);
-        dbcpProperties.put("Database User",     "tester");
-        dbcpProperties.put("Password", "testerp");
 
         runner.addControllerService("dbcp", dbcp, dbcpProperties);
         
+        runner.enableControllerService(dbcp);
         runner.setProperty(ExecuteSQL.DBCP_SERVICE, "dbcp");
         
+        // remove previous test database, if any
+        File dbLocation = new File(DB_LOCATION);
+        dbLocation.delete();
+
+        // load test data to database
+        Connection con = dbcp.getConnection();
+        TestJdbcHugeStream.loadTestData2Database(con, 100, 100, 100);
+        System.out.println("test data loaded");
+        
+        // ResultSet size will be 1x100x100 = 10000 rows
+        // because of where PER.ID = ${person.id}
+        final int nrOfRows = 10000;
         String query = "select "
         		+ "  PER.ID as PersonId, PER.NAME as PersonName, PER.CODE as PersonCode"
         		+ ", PRD.ID as ProductId,PRD.NAME as ProductName,PRD.CODE as ProductCode"
         		+ ", REL.ID as RelId,    REL.NAME as RelName,    REL.CODE as RelCode"
         		+ ", ROW_NUMBER() OVER () as rownr "
-        		+ " from persons PER, products PRD, relationships REL";
+        		+ " from persons PER, products PRD, relationships REL"
+        		+ " where PER.ID = ${person.id}";
         
         runner.setProperty(ExecuteSQL.SQL_SELECT_QUERY, query);
-        runner.enableControllerService(dbcp);
-        
-        runner.enqueue("Hello".getBytes());
+
+        // incoming FlowFile content is not used, but attributes are used
+        Map<String,String> attributes = new HashMap<String,String>();
+        attributes.put("person.id", "10");
+        runner.enqueue("Hello".getBytes(), attributes);
 
         runner.run();
         runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_SUCCESS, 1);
-        runner.clearTransferState();
+
+        // read all Avro records and verify created FlowFile contains 1000000 records
+        List<MockFlowFile> flowfiles = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS);
+        InputStream in = new ByteArrayInputStream(flowfiles.get(0).toByteArray());
+        DatumReader<GenericRecord> datumReader = new GenericDatumReader<GenericRecord>();
+        DataFileStream<GenericRecord> dataFileReader = new DataFileStream<GenericRecord>(in, datumReader);
+        GenericRecord record = null;
+        long recordsFromStream = 0;
+        while (dataFileReader.hasNext()) {
+        	// Reuse record object by passing it to next(). This saves us from
+        	// allocating and garbage collecting many objects for files with many items.
+        	record = dataFileReader.next(record);
+//   	      	System.out.println(record);
+          	recordsFromStream += 1;
+        }
+        System.out.println("total nr of records from stream: " + recordsFromStream);
+        assertEquals(nrOfRows, recordsFromStream);
+        dataFileReader.close();
     }
 
     /**
      * Simple implementation only for ExecuteSQL processor testing.
      *
      */
-    class DBCPServiceSimpleImpl implements DBCPService {
+    class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
 
 		@Override
-		public void initialize(ControllerServiceInitializationContext context) throws InitializationException { }
-
-		@Override
-		public Collection<ValidationResult> validate(ValidationContext context) { return null; }
-
-		@Override
-		public PropertyDescriptor getPropertyDescriptor(String name) { return null; }
-
-		@Override
-		public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) { }
-
-		@Override
-		public List<PropertyDescriptor> getPropertyDescriptors() { return null; }
-
-		@Override
-		public String getIdentifier() { return null; }
+		public String getIdentifier() {
+			return "dbcp";
+		}
 
 		@Override
 		public Connection getConnection() throws ProcessException {

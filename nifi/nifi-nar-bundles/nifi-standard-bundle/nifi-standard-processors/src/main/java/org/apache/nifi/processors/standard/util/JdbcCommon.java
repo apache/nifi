@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard.util;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.ResultSet;
@@ -30,9 +29,7 @@ import org.apache.avro.file.DataFileWriter;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
-import org.apache.avro.io.BinaryEncoder;
 import org.apache.avro.io.DatumWriter;
-import org.apache.avro.io.EncoderFactory;
 
 
 /**
@@ -45,9 +42,6 @@ public class JdbcCommon {
 		
 		Schema schema = createSchema(rs);
 		GenericRecord rec = new GenericData.Record(schema);
-		
-//		ByteArrayOutputStream out = new ByteArrayOutputStream();
-//		BinaryEncoder encoder = EncoderFactory.get().binaryEncoder(out, null);
 		
 		DatumWriter<GenericRecord> datumWriter  	= new GenericDatumWriter<GenericRecord>(schema);
 		DataFileWriter<GenericRecord> dataFileWriter= new DataFileWriter<GenericRecord>(datumWriter); 
@@ -67,10 +61,6 @@ public class JdbcCommon {
 
 		dataFileWriter.close();
 		return nrOfRows;
-//		encoder.flush();
-//		out.close();
-//		byte[] serializedBytes = out.toByteArray();
-//		return serializedBytes;
 	}
 	
 	public static Schema createSchema(ResultSet rs) throws SQLException {
@@ -82,7 +72,8 @@ public class JdbcCommon {
 		FieldAssembler<Schema> builder = SchemaBuilder.record(tableName).namespace("any.data").fields();
 		
 		/**
-		 * 	Type conversion is not precise and is incomplete, needs to be fixed!!!!!!
+		 * 	Some missing Avro types - Decimal, Date types.
+		 * May need some additional work.
 		 */
 		for (int i = 1; i <= nrOfColumns; i++)
 			switch (meta.getColumnType(i)) {

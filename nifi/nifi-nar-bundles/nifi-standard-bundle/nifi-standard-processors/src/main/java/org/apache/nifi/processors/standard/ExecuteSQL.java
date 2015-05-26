@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.standard;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -30,24 +29,20 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.nifi.annotation.behavior.EventDriven;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.dbcp.DBCPService;
-import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.logging.ProcessorLog;
 import org.apache.nifi.processor.AbstractProcessor;
-import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.behavior.EventDriven;
-import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.processor.exception.FlowFileAccessException;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
-import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.util.JdbcCommon;
 import org.apache.nifi.util.StopWatch;
@@ -92,6 +87,7 @@ public class ExecuteSQL extends AbstractProcessor {
         relationships = Collections.unmodifiableSet(r);
 
         ArrayList<PropertyDescriptor> pds = new ArrayList<>();
+        pds.add(DBCP_SERVICE);
         pds.add(SQL_SELECT_QUERY);
         propDescriptors = Collections.unmodifiableList(pds);
     }
@@ -108,47 +104,54 @@ public class ExecuteSQL extends AbstractProcessor {
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
-        FlowFile flowFile = session.get();
-        if (flowFile == null) {
+        FlowFile incoming = session.get();
+        if (incoming == null) {
             return;
         }
 
         final ProcessorLog logger = getLogger();
 
         final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
-        final String selectQuery = context.getProperty(SQL_SELECT_QUERY).getValue();
+        final String selectQuery = context.getProperty(SQL_SELECT_QUERY).evaluateAttributeExpressions(incoming).getValue();
+		final StopWatch stopWatch = new StopWatch(true);
         
         try {
 			final Connection con = dbcpService.getConnection();
-			final Statement st = con.createStatement();
-			
-			final StopWatch stopWatch = new StopWatch(true);
-			
-			flowFile = session.write(flowFile, new OutputStreamCallback() {
-				@Override
-				public void process(final OutputStream out) throws IOException {
-					try {
-						ResultSet resultSet = st.executeQuery(selectQuery);
-				        long nrOfRows = JdbcCommon.convertToAvroStream(resultSet, out);
-						
-						
-					} catch (SQLException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
+			try {
+				final Statement st = con.createStatement();
+				try {
+					FlowFile outgoing = session.write(incoming, new OutputStreamCallback() {
+						@Override
+						public void process(final OutputStream out) throws IOException {
+							try {
+								logger.info("start executing query {}", new Object[]{selectQuery});
+								ResultSet resultSet = st.executeQuery(selectQuery);
+						        Long nrOfRows = JdbcCommon.convertToAvroStream(resultSet, out);
+								logger.info("Result FlowFile contain {} Avro records", new Object[]{nrOfRows});
+								
+							} catch (SQLException e) {
+								throw new ProcessException(e);						
+							}
+						}
+					});
+	
+					logger.info("Transferred {} to 'success'", new Object[]{outgoing});
+					session.getProvenanceReporter().modifyContent(outgoing, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+					session.transfer(outgoing, REL_SUCCESS);
+				} finally {
+					st.close();
 				}
-			});
+			} finally {
+				// return connection to pool
+				con.close();
+			}
 
-			logger.info("Transferred {} to 'success'", new Object[]{flowFile});
-			session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-			session.transfer(flowFile, REL_SUCCESS);
-
-		} catch (FlowFileAccessException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		} catch (ProcessException e) {
+			logger.error("Unable to execute sql select query due to {}", new Object[]{e});
+			session.transfer(incoming, REL_FAILURE);
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			logger.error("Unable to execute sql select query due to {}", new Object[]{e});
+			session.transfer(incoming, REL_FAILURE);
 		}
     }
 }
