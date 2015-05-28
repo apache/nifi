@@ -18,7 +18,6 @@ package org.apache.nifi.components;
 
 /**
  *
- * @author unattributed
  */
 public interface Validator {
 

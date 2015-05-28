@@ -30,7 +30,6 @@ import java.lang.annotation.Target;
  * default, Processors are triggered only when all destinations report that they
  * have available space (i.e., none of the outgoing Connections is full).
  *
- * @author none
  */
 @Documented
 @Target({ElementType.TYPE})

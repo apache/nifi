@@ -28,7 +28,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
  * Utility methods for retrieving information about the current application
  * user.
  *
- * @author unattributed
  */
 public final class NiFiUserUtils {
 

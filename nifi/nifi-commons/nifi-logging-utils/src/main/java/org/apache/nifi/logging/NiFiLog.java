@@ -21,7 +21,6 @@ import org.slf4j.Marker;
 
 /**
  *
- * @author unattributed
  */
 public class NiFiLog implements Logger {
 

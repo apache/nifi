@@ -20,7 +20,6 @@ import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.cluster.authorization.protocol.message.ProtocolMessage.MessageType;
 
 /**
- * @author unattributed
  */
 @XmlRootElement(name = "doesDnExistMessage")
 public class DoesDnExistMessage extends ProtocolMessage {

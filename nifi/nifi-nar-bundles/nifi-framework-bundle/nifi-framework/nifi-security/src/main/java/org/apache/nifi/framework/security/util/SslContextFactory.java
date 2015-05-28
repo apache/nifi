@@ -35,7 +35,6 @@ import org.apache.commons.lang3.StringUtils;
  * A factory for creating SSL contexts using the application's security
  * properties.
  *
- * @author unattributed
  */
 public final class SslContextFactory {
 

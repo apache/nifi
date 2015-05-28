@@ -19,7 +19,6 @@ package org.apache.nifi.cluster;
 /**
  * Represents the exceptional case when disconnection from the cluster fails.
  *
- * @author unattributed
  */
 public class DisconnectionException extends RuntimeException {
 

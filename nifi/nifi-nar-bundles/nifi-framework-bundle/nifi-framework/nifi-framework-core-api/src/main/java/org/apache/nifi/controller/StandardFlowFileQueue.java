@@ -56,7 +56,6 @@ import org.slf4j.LoggerFactory;
  * A FlowFileQueue is used to queue FlowFile objects that are awaiting further
  * processing. Must be thread safe.
  *
- * @author none
  */
 public final class StandardFlowFileQueue implements FlowFileQueue {
 

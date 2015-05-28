@@ -20,7 +20,6 @@ package org.apache.nifi.cluster.manager.exception;
  * Represents the exceptional case when a HTTP request that may change a node's state is to be replicated while the cluster or connected nodes are unable to change their state (e.g., a new node is
  * connecting to the cluster).
  *
- * @author unattributed
  */
 public class MutableRequestException extends IllegalClusterStateException {
 

@@ -38,7 +38,6 @@ import java.lang.annotation.Target;
  * eligible to be scheduled in Event-Driven mode.
  * </p>
  *
- * @author none
  */
 @Documented
 @Target({ElementType.TYPE})

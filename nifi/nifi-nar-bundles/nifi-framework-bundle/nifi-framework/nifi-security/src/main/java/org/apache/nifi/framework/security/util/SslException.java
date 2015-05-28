@@ -19,7 +19,6 @@ package org.apache.nifi.framework.security.util;
 /**
  * Base class for SSL related exceptions.
  *
- * @author unattributed
  */
 public class SslException extends RuntimeException {
 

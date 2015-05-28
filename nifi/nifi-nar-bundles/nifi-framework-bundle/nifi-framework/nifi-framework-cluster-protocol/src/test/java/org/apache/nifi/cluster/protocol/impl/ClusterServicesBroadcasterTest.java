@@ -35,7 +35,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 /**
- * @author unattributed
  */
 public class ClusterServicesBroadcasterTest {
 

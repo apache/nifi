@@ -19,7 +19,6 @@ package org.apache.nifi.cluster.manager.exception;
 /**
  * Represents the exceptional case when a URI cannot be constructed from the given information. This exception is similar to Java's URISyntaxException except that it extends RuntimeException.
  *
- * @author unattributed
  */
 public class UriConstructionException extends RuntimeException {
 

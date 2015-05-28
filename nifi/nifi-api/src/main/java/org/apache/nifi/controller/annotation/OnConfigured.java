@@ -30,7 +30,6 @@ import java.lang.annotation.Target;
  * arguments or a single argument of type
  * {@link nifi.controller.ConfigurationContext ConfigurationContext}.
  *
- * @author none
  *
  * @deprecated This annotation has been replaced by those in the
  * {@link org.apache.nifi.annotation.lifecycle} package.

@@ -19,7 +19,6 @@ package org.apache.nifi.cluster.manager.exception;
 /**
  * Represents the exceptional case when a deletion request is issued to a node that cannot be deleted (e.g., the node is not disconnected).
  *
- * @author unattributed
  */
 public class IllegalNodeDeletionException extends IllegalClusterStateException {
 

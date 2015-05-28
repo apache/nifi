@@ -17,7 +17,6 @@
 package org.apache.nifi.cluster.protocol.jaxb.message;
 
 /**
- * @author unattributed
  */
 public class AdaptedNodeIdentifier {
 

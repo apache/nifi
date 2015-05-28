@@ -19,7 +19,6 @@ package org.apache.nifi.diagnostics;
 /**
  * Disk usage for a file system directory.
  *
- * @author unattributed
  */
 public class StorageUsage implements Cloneable {
 

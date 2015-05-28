@@ -32,7 +32,6 @@ import org.apache.commons.lang3.StringUtils;
 /**
  * Encapsulates an HTTP request. The toString method returns the specification-compliant request.
  *
- * @author unattributed
  */
 public class HttpRequest {
 

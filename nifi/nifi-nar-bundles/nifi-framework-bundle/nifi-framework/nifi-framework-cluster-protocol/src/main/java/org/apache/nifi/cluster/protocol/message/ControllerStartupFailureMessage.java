@@ -23,7 +23,6 @@ import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.cluster.protocol.jaxb.message.NodeIdentifierAdapter;
 
 /**
- * @author unattributed
  */
 @XmlRootElement(name = "controllerStartupFailureMessage")
 public class ControllerStartupFailureMessage extends ExceptionMessage {

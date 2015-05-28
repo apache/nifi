@@ -20,7 +20,6 @@ import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.encrypt.StringEncryptor;
 
 /**
- * @author unattributed
  */
 public interface FlowSynchronizer {
 

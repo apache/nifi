@@ -49,7 +49,6 @@ import org.apache.nifi.reporting.BulletinRepository;
  * Since only a single node may execute isolated processors, the cluster manager maintains the notion of a primary node. The primary node is chosen at cluster startup and retains the role until a user
  * requests a different node to be the primary node.
  *
- * @author unattributed
  */
 public interface ClusterManager extends NodeInformant {
 

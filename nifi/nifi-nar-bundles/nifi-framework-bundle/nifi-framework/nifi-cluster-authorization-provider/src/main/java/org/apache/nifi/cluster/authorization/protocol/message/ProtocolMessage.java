@@ -17,7 +17,6 @@
 package org.apache.nifi.cluster.authorization.protocol.message;
 
 /**
- * @author unattributed
  */
 public abstract class ProtocolMessage {
 

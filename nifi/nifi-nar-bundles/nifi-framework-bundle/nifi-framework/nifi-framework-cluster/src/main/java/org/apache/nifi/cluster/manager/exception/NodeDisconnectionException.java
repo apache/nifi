@@ -19,7 +19,6 @@ package org.apache.nifi.cluster.manager.exception;
 /**
  * Represents the exceptional case when a disconnection request to a node failed.
  *
- * @author unattributed
  */
 public class NodeDisconnectionException extends ClusterException {
 

@@ -23,7 +23,6 @@ import org.apache.nifi.io.nio.consumer.AbstractStreamConsumer;
 
 /**
  *
- * @author none
  */
 public class UselessStreamConsumer extends AbstractStreamConsumer {
 

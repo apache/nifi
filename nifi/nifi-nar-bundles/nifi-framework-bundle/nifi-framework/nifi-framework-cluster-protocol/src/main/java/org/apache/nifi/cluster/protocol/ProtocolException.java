@@ -20,7 +20,6 @@ package org.apache.nifi.cluster.protocol;
  * The base exception for problems encountered while communicating within the
  * cluster.
  *
- * @author unattributed
  */
 public class ProtocolException extends RuntimeException {
 

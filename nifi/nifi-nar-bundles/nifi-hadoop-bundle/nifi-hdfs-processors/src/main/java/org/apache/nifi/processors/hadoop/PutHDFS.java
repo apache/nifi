@@ -19,6 +19,7 @@ package org.apache.nifi.processors.hadoop;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -27,10 +28,10 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
+import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.ipc.RemoteException;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -157,6 +158,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
         props.add(UMASK);
         props.add(REMOTE_OWNER);
         props.add(REMOTE_GROUP);
+        props.add(COMPRESSION_CODEC);
         localProperties = Collections.unmodifiableList(props);
     }
 
@@ -215,6 +217,8 @@ public class PutHDFS extends AbstractHadoopProcessor {
         final short replication = replicationProp != null ? replicationProp.shortValue() : hdfs
                 .getDefaultReplication(configuredRootDirPath);
 
+        final CompressionCodec codec = getCompressionCodec(context, configuration);
+
         Path tempDotCopyFile = null;
         try {
             final Path tempCopyFile;
@@ -266,10 +270,13 @@ public class PutHDFS extends AbstractHadoopProcessor {
 
                 @Override
                 public void process(InputStream in) throws IOException {
-                    FSDataOutputStream fos = null;
+                    OutputStream fos = null;
                     Path createdFile = null;
                     try {
                         fos = hdfs.create(tempCopyFile, true, bufferSize, replication, blockSize);
+                        if (codec != null) {
+                            fos = codec.createOutputStream(fos);
+                        }
                         createdFile = tempCopyFile;
                         BufferedInputStream bis = new BufferedInputStream(in);
                         StreamUtils.copy(bis, fos);

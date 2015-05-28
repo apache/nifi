@@ -21,7 +21,6 @@ import java.net.InetSocketAddress;
 /**
  * Defines the interface for broadcasting a service via multicast.
  *
- * @author unattributed
  */
 public interface MulticastServicesBroadcaster extends ServicesBroadcaster {
 

@@ -33,7 +33,6 @@ import org.slf4j.LoggerFactory;
  *
  * This class overrides hashCode and equals and considers two instances to be equal if they have the equal NodeIdentifiers.
  *
- * @author unattributed
  */
 public class Node implements Cloneable, Comparable<Node> {
 

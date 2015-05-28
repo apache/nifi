@@ -34,7 +34,6 @@ import org.apache.nifi.processor.ProcessSession;
 /**
  * This class is thread safe
  *
- * @author none
  */
 public class BinManager {
 

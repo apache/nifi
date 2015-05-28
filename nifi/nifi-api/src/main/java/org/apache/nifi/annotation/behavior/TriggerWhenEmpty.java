@@ -32,7 +32,6 @@ import java.lang.annotation.Target;
  * only be triggered if they have work in their queue or they present this
  * annotation.
  *
- * @author none
  */
 @Documented
 @Target({ElementType.TYPE})

@@ -19,7 +19,6 @@ package org.apache.nifi.cluster;
 /**
  * Represents the exceptional case when connection to the cluster fails.
  *
- * @author unattributed
  */
 public class ConnectionException extends RuntimeException {
 

@@ -22,7 +22,6 @@ import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
 
 /**
- * @author unattributed
  */
 public class AdaptedConnectionResponse {
 

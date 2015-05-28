@@ -34,7 +34,6 @@ import org.apache.commons.net.ftp.FTPClient;
 
 /**
  *
- * @author developer
  */
 public class FTPUtils {
 

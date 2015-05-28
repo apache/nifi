@@ -29,7 +29,6 @@ import org.apache.commons.lang3.builder.ToStringStyle;
 
 /**
  *
- * @author none
  */
 public abstract class AbstractStreamConsumer implements StreamConsumer {
 

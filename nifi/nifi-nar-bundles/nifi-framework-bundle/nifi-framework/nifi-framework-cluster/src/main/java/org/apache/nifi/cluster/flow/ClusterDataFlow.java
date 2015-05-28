@@ -22,7 +22,6 @@ import org.apache.nifi.cluster.protocol.StandardDataFlow;
 /**
  * A dataflow with additional information about the cluster.
  *
- * @author unattributed
  */
 public class ClusterDataFlow {
 

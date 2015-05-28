@@ -19,7 +19,6 @@ package org.apache.nifi.controller;
 /**
  * Represents the exceptional case when a controller is to be loaded with a flow that is fundamentally different than its existing flow.
  *
- * @author unattributed
  */
 public class UninheritableFlowException extends RuntimeException {
 

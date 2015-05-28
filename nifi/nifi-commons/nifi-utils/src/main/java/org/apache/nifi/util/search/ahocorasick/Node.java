@@ -23,7 +23,6 @@ import org.apache.nifi.util.search.SearchTerm;
 
 /**
  *
- * @author
  */
 public class Node {
 

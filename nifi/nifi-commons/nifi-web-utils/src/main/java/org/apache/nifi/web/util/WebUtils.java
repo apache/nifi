@@ -51,7 +51,6 @@ import com.sun.jersey.client.urlconnection.HTTPSProperties;
 /**
  * Common utilities related to web development.
  *
- * @author unattributed
  */
 public final class WebUtils {
 

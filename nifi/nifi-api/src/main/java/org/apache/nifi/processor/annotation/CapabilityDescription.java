@@ -27,7 +27,6 @@ import java.lang.annotation.Target;
  * Annotation that may be placed on a processor allowing for a description to be
  * provided. This description can be provided to a user in logs, UI, etc.
  *
- * @author none
  * @deprecated This Annotation has been replaced by the
  * {@link org.apache.nifi.annotation.documentation.CapabilityDescription}
  * annotation.

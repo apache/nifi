@@ -20,7 +20,6 @@ import javax.xml.bind.annotation.adapters.XmlAdapter;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 
 /**
- * @author unattributed
  */
 public class NodeIdentifierAdapter extends XmlAdapter<AdaptedNodeIdentifier, NodeIdentifier> {
 

@@ -35,7 +35,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * @author unattributed
  */
 public class HttpResponseMapperImplTest {
 

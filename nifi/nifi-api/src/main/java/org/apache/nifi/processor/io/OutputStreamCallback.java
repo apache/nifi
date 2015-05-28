@@ -21,7 +21,6 @@ import java.io.OutputStream;
 
 /**
  *
- * @author unattributed
  */
 public interface OutputStreamCallback {
 

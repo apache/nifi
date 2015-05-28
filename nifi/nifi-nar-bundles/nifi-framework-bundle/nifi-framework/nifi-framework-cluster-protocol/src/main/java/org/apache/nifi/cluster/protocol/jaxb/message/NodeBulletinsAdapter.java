@@ -20,7 +20,6 @@ import javax.xml.bind.annotation.adapters.XmlAdapter;
 import org.apache.nifi.cluster.protocol.NodeBulletins;
 
 /**
- * @author unattributed
  */
 public class NodeBulletinsAdapter extends XmlAdapter<AdaptedNodeBulletins, NodeBulletins> {
 

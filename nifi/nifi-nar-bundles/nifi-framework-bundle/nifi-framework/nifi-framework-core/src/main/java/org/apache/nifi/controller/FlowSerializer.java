@@ -21,7 +21,6 @@ import java.io.OutputStream;
 /**
  * Serializes the flow configuration of a controller instance to an output stream.
  *
- * @author unattributed
  */
 public interface FlowSerializer {
 

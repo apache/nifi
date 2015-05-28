@@ -104,7 +104,6 @@ public class KeyValueReader implements SequenceFileReader<Set<FlowFile>> {
     /**
      * Serializes the key and value and writes to the flow file's output stream.
      *
-     * @author unattributed
      *
      */
     static class KeyValueWriterCallback implements OutputStreamCallback {

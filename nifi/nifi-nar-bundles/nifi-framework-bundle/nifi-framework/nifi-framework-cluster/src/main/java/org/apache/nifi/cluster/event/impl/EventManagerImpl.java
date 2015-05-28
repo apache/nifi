@@ -31,7 +31,6 @@ import org.apache.nifi.cluster.event.EventManager;
 /**
  * Implements the EventManager.
  *
- * @author unattributed
  */
 public class EventManagerImpl implements EventManager {
 

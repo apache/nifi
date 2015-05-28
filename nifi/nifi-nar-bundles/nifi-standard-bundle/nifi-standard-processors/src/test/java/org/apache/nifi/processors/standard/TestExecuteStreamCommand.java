@@ -37,7 +37,6 @@ import org.slf4j.LoggerFactory;
 
 /**
  *
- * @author
  */
 public class TestExecuteStreamCommand {
 

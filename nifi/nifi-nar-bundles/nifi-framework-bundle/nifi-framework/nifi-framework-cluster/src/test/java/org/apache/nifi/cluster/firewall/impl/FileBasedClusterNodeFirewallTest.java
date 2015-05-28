@@ -44,6 +44,8 @@ public class FileBasedClusterNodeFirewallTest {
     @Rule
     public final TemporaryFolder temp = new TemporaryFolder();
 
+    private static final String NONEXISTENT_HOSTNAME = "abc";
+
     private static boolean badHostsDoNotResolve = false;
 
     /**
@@ -55,7 +57,7 @@ public class FileBasedClusterNodeFirewallTest {
     public static void ensureBadHostsDoNotWork() {
         final InetAddress ip;
         try {
-            ip = InetAddress.getByName("I typed a search term and my browser expected a host.");
+            ip = InetAddress.getByName(NONEXISTENT_HOSTNAME);
         } catch (final UnknownHostException uhe) {
             badHostsDoNotResolve = true;
         }
@@ -80,13 +82,13 @@ public class FileBasedClusterNodeFirewallTest {
     public void ensureBadDataWasIgnored() {
         assumeTrue(badHostsDoNotResolve);
         assertFalse("firewall treated our malformed data as a host. If " +
-            "`host \"bad data should be skipped\"` works locally, this test should have been " +
-            "skipped.",
-            ipsFirewall.isPermissible("bad data should be skipped"));
+                        "`host \"bad data should be skipped\"` works locally, this test should have been " +
+                        "skipped.",
+                ipsFirewall.isPermissible("bad data should be skipped"));
         assertFalse("firewall treated our malformed data as a host. If " +
-            "`host \"more bad data\"` works locally, this test should have been " +
-            "skipped.",
-            ipsFirewall.isPermissible("more bad data"));
+                        "`host \"more bad data\"` works locally, this test should have been " +
+                        "skipped.",
+                ipsFirewall.isPermissible("more bad data"));
     }
 
     @Test
@@ -112,9 +114,9 @@ public class FileBasedClusterNodeFirewallTest {
     @Test
     public void testIsPermissibleWithMalformedData() {
         assumeTrue(badHostsDoNotResolve);
-        assertFalse("firewall allowed host 'abc' rather than rejecting as malformed. If `host abc` "
-            + "works locally, this test should have been skipped.",
-            ipsFirewall.isPermissible("abc"));
+        assertFalse("firewall allowed host '" + NONEXISTENT_HOSTNAME + "' rather than rejecting as malformed. If `host " + NONEXISTENT_HOSTNAME + "` "
+                        + "works locally, this test should have been skipped.",
+                ipsFirewall.isPermissible(NONEXISTENT_HOSTNAME));
     }
 
     @Test
@@ -125,9 +127,9 @@ public class FileBasedClusterNodeFirewallTest {
     @Test
     public void testIsPermissibleWithEmptyConfigWithMalformedData() {
         assumeTrue(badHostsDoNotResolve);
-        assertTrue("firewall did not allow malformed host 'abc' under permissive configs. If " +
-            "`host abc` works locally, this test should have been skipped.",
-            acceptAllFirewall.isPermissible("abc"));
+        assertTrue("firewall did not allow malformed host '" + NONEXISTENT_HOSTNAME + "' under permissive configs. If " +
+                        "`host " + NONEXISTENT_HOSTNAME + "` works locally, this test should have been skipped.",
+                acceptAllFirewall.isPermissible(NONEXISTENT_HOSTNAME));
     }
 
 }
