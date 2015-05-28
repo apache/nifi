@@ -16,21 +16,23 @@
  */
 package org.apache.nifi.documentation.html;
 
+import static org.apache.nifi.documentation.html.XmlValidator.assertContains;
+import static org.junit.Assert.assertEquals;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.documentation.DocumentationWriter;
+import org.apache.nifi.documentation.example.ControllerServiceWithLogger;
 import org.apache.nifi.documentation.example.FullyDocumentedControllerService;
 import org.apache.nifi.documentation.example.FullyDocumentedReportingTask;
+import org.apache.nifi.documentation.example.ReportingTaskWithLogger;
 import org.apache.nifi.documentation.mock.MockControllerServiceInitializationContext;
 import org.apache.nifi.documentation.mock.MockReportingInitializationContext;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingTask;
 import org.junit.Test;
-
-import static org.apache.nifi.documentation.html.XmlValidator.assertContains;
-import static org.junit.Assert.assertEquals;
 
 public class HtmlDocumentationWriterTest {
 
@@ -97,5 +99,37 @@ public class HtmlDocumentationWriterTest {
         assertContains(results, "Specifies whether or not to show the difference in values between the current status and the previous status");
         assertContains(results, "true");
         assertContains(results, "false");
+    }
+
+    @Test
+    public void testControllerServiceWithLogger() throws InitializationException, IOException {
+
+        ControllerService controllerService = new ControllerServiceWithLogger();
+        controllerService.initialize(new MockControllerServiceInitializationContext());
+
+        DocumentationWriter writer = new HtmlDocumentationWriter();
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        writer.write(controllerService, baos, false);
+
+        String results = new String(baos.toByteArray());
+        XmlValidator.assertXmlValid(results);
+    }
+
+    @Test
+    public void testReportingTaskWithLogger() throws InitializationException, IOException {
+
+        ReportingTask controllerService = new ReportingTaskWithLogger();
+        controllerService.initialize(new MockReportingInitializationContext());
+
+        DocumentationWriter writer = new HtmlDocumentationWriter();
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        writer.write(controllerService, baos, false);
+
+        String results = new String(baos.toByteArray());
+        XmlValidator.assertXmlValid(results);
     }
 }

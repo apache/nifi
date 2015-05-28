@@ -20,6 +20,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 
@@ -32,7 +33,7 @@ public class MockReportingInitializationContext implements ReportingInitializati
 
     @Override
     public String getIdentifier() {
-        return "";
+        return "mock-reporting-task";
     }
 
     @Override
@@ -62,6 +63,6 @@ public class MockReportingInitializationContext implements ReportingInitializati
 
     @Override
     public ComponentLog getLogger() {
-        return null;
+        return new SimpleProcessLogger(getIdentifier(), getIdentifier());
     }
 }

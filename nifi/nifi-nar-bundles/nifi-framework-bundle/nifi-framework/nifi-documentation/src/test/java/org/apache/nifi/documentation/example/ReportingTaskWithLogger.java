@@ -14,33 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.documentation.mock;
+package org.apache.nifi.documentation.example;
 
-import org.apache.nifi.controller.ControllerServiceLookup;
-import org.apache.nifi.logging.ProcessorLog;
-import org.apache.nifi.processor.ProcessorInitializationContext;
-import org.apache.nifi.processor.SimpleProcessLogger;
+import org.apache.nifi.reporting.AbstractReportingTask;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.reporting.ReportingContext;
+import org.apache.nifi.reporting.ReportingInitializationContext;
 
-/**
- * A Mock ProcessorInitializationContext that can be used so that Processors can
- * be initialized for the purpose of generating documentation.
- *
- *
- */
-public class MockProcessorInitializationContext implements ProcessorInitializationContext {
+public class ReportingTaskWithLogger extends AbstractReportingTask {
 
     @Override
-    public String getIdentifier() {
-        return "mock-processor";
+    public void init(ReportingInitializationContext config)
+            throws InitializationException {
+       config.getLogger().info("Initializing...");
     }
 
     @Override
-    public ProcessorLog getLogger() {
-        return new SimpleProcessLogger(getIdentifier(), getIdentifier());
-    }
+    public void onTrigger(ReportingContext context) {
 
-    @Override
-    public ControllerServiceLookup getControllerServiceLookup() {
-        return new MockControllerServiceLookup();
     }
 }
