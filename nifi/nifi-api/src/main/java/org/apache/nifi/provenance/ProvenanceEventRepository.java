@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.provenance;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.List;
 
@@ -31,7 +32,7 @@ import org.apache.nifi.provenance.search.SearchableField;
  * has stored, and providing query capabilities against the events.
  *
  */
-public interface ProvenanceEventRepository {
+public interface ProvenanceEventRepository extends Closeable {
 
     /**
      * Performs any initialization needed. This should be called only by the
@@ -51,9 +52,7 @@ public interface ProvenanceEventRepository {
     ProvenanceEventBuilder eventBuilder();
 
     /**
-     * Adds the given event to the repository and returns a new event for which
-     * the event id has been populated. Depending on the implementation, the
-     * returned event may or may not be the same event given
+     * Adds the given event to the repository.
      *
      * @param event to register
      */
@@ -158,13 +157,6 @@ public interface ProvenanceEventRepository {
      * identifier cannot be found
      */
     ComputeLineageSubmission submitExpandChildren(long eventId);
-
-    /**
-     * Closes the repository, freeing any resources
-     *
-     * @throws IOException if failure closing repository
-     */
-    void close() throws IOException;
 
     /**
      * @return a list of all fields that can be searched via the
