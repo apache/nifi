@@ -35,16 +35,16 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 
-@Tags({ "example" })
-@CapabilityDescription("Provide a description")
+@Tags({ "example", "resources" })
+@CapabilityDescription("This example processor loads a resource from the nar and writes it to the FlowFile content")
 public class WriteResourceToStream extends AbstractProcessor {
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("files that were successfully processed").build();
     public static final Relationship REL_FAILURE = new Relationship.Builder()
-            .name("success")
-            .description("files that were notsuccessfully processed").build();
+            .name("failure")
+            .description("files that were not successfully processed").build();
 
     private Set<Relationship> relationships;
 

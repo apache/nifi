@@ -54,6 +54,10 @@ public class DocGeneratorTest {
         Assert.assertTrue(indexHtml + " should have been generated", indexHtml.exists());
         String generatedHtml = FileUtils.readFileToString(indexHtml);
         Assert.assertNotNull(generatedHtml);
+        Assert.assertTrue(generatedHtml.contains("This example processor loads a resource from the nar and writes it to the FlowFile content"));
+        Assert.assertTrue(generatedHtml.contains("files that were successfully processed"));
+        Assert.assertTrue(generatedHtml.contains("files that were not successfully processed"));
+        Assert.assertTrue(generatedHtml.contains("resources"));
     }
 
     private NiFiProperties loadSpecifiedProperties(String propertiesFile) {
