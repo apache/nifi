@@ -7,7 +7,9 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.ExtensionMapping;
+import org.apache.nifi.nar.NarClassLoaders;
 import org.apache.nifi.nar.NarUnpacker;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.NiFiProperties;
@@ -19,7 +21,7 @@ import org.mockito.internal.util.io.IOUtil;
 public class DocGeneratorTest {
 
     @Test
-    public void testProcessorLoadsNarResources() throws IOException {
+    public void testProcessorLoadsNarResources() throws IOException, ClassNotFoundException {
         TemporaryFolder temporaryFolder = new TemporaryFolder();
         temporaryFolder.create();
 
@@ -30,11 +32,15 @@ public class DocGeneratorTest {
 
         final ExtensionMapping extensionMapping = NarUnpacker.unpackNars(properties);
 
+        NarClassLoaders.load(properties);
+
+        ExtensionManager.discoverExtensions();
+
         DocGenerator.generate(properties);      
 
-        File processorDirectory = new File(temporaryFolder.getRoot(), "org.apache.nifi.TestProcessor");
+        File processorDirectory = new File(temporaryFolder.getRoot(), "org.apache.nifi.processors.WriteResourceToStream");
         File indexHtml = new File(processorDirectory, "index.html");
-        
+        Assert.assertTrue(indexHtml + " should have been generated", indexHtml.exists());
         String generatedHtml = FileUtils.readFileToString(indexHtml);
         Assert.assertNotNull(generatedHtml);
     }

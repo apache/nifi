@@ -76,7 +76,7 @@ public class DocGenerator {
                     logger.debug("Documenting: " + componentClass);
                     document(explodedNiFiDocsDir, componentClass);
                 } catch (Exception e) {
-                    logger.warn("Unable to document: " + componentClass);
+                    logger.warn("Unable to document: " + componentClass, e);
                 }
             }
         }
