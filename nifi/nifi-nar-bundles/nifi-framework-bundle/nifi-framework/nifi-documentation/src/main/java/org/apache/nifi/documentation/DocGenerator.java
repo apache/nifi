@@ -33,6 +33,7 @@ import org.apache.nifi.documentation.init.ControllerServiceInitializer;
 import org.apache.nifi.documentation.init.ProcessorInitializer;
 import org.apache.nifi.documentation.init.ReportingTaskingInitializer;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.NarThreadContextClassLoader;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingTask;
@@ -68,17 +69,25 @@ public class DocGenerator {
         logger.debug("Generating documentation for: " + extensionClasses.size() + " components in: "
                 + explodedNiFiDocsDir);
 
-        for (final Class<?> extensionClass : extensionClasses) {
-            if (ConfigurableComponent.class.isAssignableFrom(extensionClass)) {
-                final Class<? extends ConfigurableComponent> componentClass = extensionClass
-                        .asSubclass(ConfigurableComponent.class);
-                try {
-                    logger.debug("Documenting: " + componentClass);
-                    document(explodedNiFiDocsDir, componentClass);
-                } catch (Exception e) {
-                    logger.warn("Unable to document: " + componentClass, e);
+        // save the original class loader and use a NarThreadContextClassLoader
+        final ClassLoader originalClassLoader = Thread.currentThread().getContextClassLoader();
+        try {
+            Thread.currentThread().setContextClassLoader(NarThreadContextClassLoader.getInstance());
+
+            for (final Class<?> extensionClass : extensionClasses) {
+                if (ConfigurableComponent.class.isAssignableFrom(extensionClass)) {
+                    final Class<? extends ConfigurableComponent> componentClass = extensionClass
+                            .asSubclass(ConfigurableComponent.class);
+                    try {
+                        logger.debug("Documenting: " + componentClass);
+                        document(explodedNiFiDocsDir, componentClass);
+                    } catch (Exception e) {
+                        logger.warn("Unable to document: " + componentClass, e);
+                    }
                 }
             }
+        } finally {
+            Thread.currentThread().setContextClassLoader(originalClassLoader);
         }
     }
 
