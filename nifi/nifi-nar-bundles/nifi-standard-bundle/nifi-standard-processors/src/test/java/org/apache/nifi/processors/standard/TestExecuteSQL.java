@@ -34,7 +34,6 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.dbcp.DBCPService;
-import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.standard.util.TestJdbcHugeStream;
 import org.apache.nifi.reporting.InitializationException;
@@ -68,7 +67,17 @@ public class TestExecuteSQL {
     }
     
     @Test
-    public void test1() throws InitializationException, ClassNotFoundException, SQLException, IOException {
+    public void testNoTimeLimit() throws InitializationException, ClassNotFoundException, SQLException, IOException {
+    	invokeOnTrigger(null);
+    }
+
+    @Test
+    public void testQueryTimeout() throws InitializationException, ClassNotFoundException, SQLException, IOException {
+    	// Does to seem to have any effect when using embedded Derby
+    	invokeOnTrigger(1);		// 1 second max time
+    }
+
+    public void invokeOnTrigger(Integer queryTimeout) throws InitializationException, ClassNotFoundException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(ExecuteSQL.class);
         
         final DBCPService dbcp = new DBCPServiceSimpleImpl();
@@ -79,18 +88,21 @@ public class TestExecuteSQL {
         runner.enableControllerService(dbcp);
         runner.setProperty(ExecuteSQL.DBCP_SERVICE, "dbcp");
         
+        if (queryTimeout!=null)
+        	runner.setProperty(ExecuteSQL.QUERY_TIMEOUT, queryTimeout.toString() + " secs");
+        
         // remove previous test database, if any
         File dbLocation = new File(DB_LOCATION);
         dbLocation.delete();
 
         // load test data to database
         Connection con = dbcp.getConnection();
-        TestJdbcHugeStream.loadTestData2Database(con, 100, 100, 100);
+        TestJdbcHugeStream.loadTestData2Database(con, 100, 2000, 1000);
         System.out.println("test data loaded");
         
-        // ResultSet size will be 1x100x100 = 10000 rows
+        // ResultSet size will be 1x2000x1000 = 2 000 000 rows
         // because of where PER.ID = ${person.id}
-        final int nrOfRows = 10000;
+        final int nrOfRows = 2000000;
         String query = "select "
         		+ "  PER.ID as PersonId, PER.NAME as PersonName, PER.CODE as PersonCode"
         		+ ", PRD.ID as ProductId,PRD.NAME as ProductName,PRD.CODE as ProductCode"
@@ -128,6 +140,9 @@ public class TestExecuteSQL {
         dataFileReader.close();
     }
 
+    
+    
+    
     /**
      * Simple implementation only for ExecuteSQL processor testing.
      *

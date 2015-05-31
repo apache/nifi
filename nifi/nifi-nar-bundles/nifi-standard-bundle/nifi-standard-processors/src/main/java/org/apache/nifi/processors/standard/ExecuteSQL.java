@@ -40,7 +40,6 @@ import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.exception.FlowFileAccessException;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -79,6 +78,16 @@ public class ExecuteSQL extends AbstractProcessor {
     		.expressionLanguageSupported(true)
     		.build();
 
+    public static final PropertyDescriptor QUERY_TIMEOUT = new PropertyDescriptor.Builder()
+    .name("Max Wait Time")
+    .description("The maximum amount of time allowed for a running SQL select query "
+        + " , zero means there is no limit. Max time less than 1 second will be equal to zero.")
+        .defaultValue("0 seconds")
+        .required(true)
+        .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+        .sensitive(false)
+        .build();
+
     private final List<PropertyDescriptor> propDescriptors;
 
     public ExecuteSQL() {
@@ -89,6 +98,7 @@ public class ExecuteSQL extends AbstractProcessor {
         ArrayList<PropertyDescriptor> pds = new ArrayList<>();
         pds.add(DBCP_SERVICE);
         pds.add(SQL_SELECT_QUERY);
+        pds.add(QUERY_TIMEOUT);
         propDescriptors = Collections.unmodifiableList(pds);
     }
 
@@ -113,6 +123,8 @@ public class ExecuteSQL extends AbstractProcessor {
 
         final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
         final String selectQuery = context.getProperty(SQL_SELECT_QUERY).evaluateAttributeExpressions(incoming).getValue();
+        final Integer queryTimeout = context.getProperty(QUERY_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue();
+
 		final StopWatch stopWatch = new StopWatch(true);
         
         try {
@@ -120,6 +132,7 @@ public class ExecuteSQL extends AbstractProcessor {
 			try {
 				final Statement st = con.createStatement();
 				try {
+					st.setQueryTimeout(queryTimeout);	// timeout in seconds
 					FlowFile outgoing = session.write(incoming, new OutputStreamCallback() {
 						@Override
 						public void process(final OutputStream out) throws IOException {
