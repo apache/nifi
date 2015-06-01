@@ -18,9 +18,5 @@
     z-index: 1301;
     display: none;
     width: 400px;
-    height: 270px;
-}
-
-#process-group-details div.dialog-content {
-    margin-top: -10px;
+    height: 290px;
 }

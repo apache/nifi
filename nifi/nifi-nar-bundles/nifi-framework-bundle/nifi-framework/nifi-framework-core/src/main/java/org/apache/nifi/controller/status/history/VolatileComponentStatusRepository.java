@@ -151,9 +151,7 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
 
                 history.setComponentDetail("Group Id", status.getGroupId());
                 history.setComponentDetail("Name", status.getName());
-                history.setComponentDetail("Source Id", status.getSourceId());
                 history.setComponentDetail("Source Name", status.getSourceName());
-                history.setComponentDetail("Destination Id", status.getDestinationId());
                 history.setComponentDetail("Destination Name", status.getDestinationName());
 
                 final StandardStatusSnapshot snapshot = new StandardStatusSnapshot();
