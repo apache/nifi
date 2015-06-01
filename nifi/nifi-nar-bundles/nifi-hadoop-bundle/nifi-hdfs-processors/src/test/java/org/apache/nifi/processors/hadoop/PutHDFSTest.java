@@ -149,7 +149,7 @@ public class PutHDFSTest {
         }
         Assert.assertEquals(1, results.size());
         for (ValidationResult vr : results) {
-            Assert.assertTrue(vr.toString().contains("is invalid because Given value not found in allowed set"));
+            Assert.assertTrue(vr.toString().contains("is invalid because CompressionCodec Class not found"));
         }
     }
 
