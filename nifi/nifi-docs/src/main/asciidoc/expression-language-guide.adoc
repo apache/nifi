@@ -549,6 +549,7 @@ Each of the following functions manipulates a String in some way.
 
 
 
+
 [.function]
 === urlDecode
 
@@ -564,6 +565,45 @@ Each of the following functions manipulates a String in some way.
 	"https://nifi.incubator.apache.org/some%20value%20with%20spaces", then the Expression
 	`${url:urlDecode()}` will return "https://nifi.incubator.apache.org/some value with spaces".
 
+
+
+
+
+[.function]
+=== htmlEncode
+
+*Description*: [.description]#Returns an HTML-friendly version of the Subject. This is useful, for instance, when using an
+	attribute value that may contain HTML-escaped characters.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*: No arguments
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: We can HTML-Encode an attribute named "text" by using the Expression `${text:htmlEncode()}`. If
+	the value of the "text" attribute is "here is an &", this
+	Expression will then return "here is an \&amp;".
+
+
+
+
+
+[.function]
+=== htmlDecode
+
+*Description*: [.description]#Returns an HTML-decoded version of the Subject. This is useful, for instance, when using an
+	attribute value that may contain HTML characters.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*: No arguments
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: We can HTML-Decode an attribute named "text" by using the Expression `${text:htmlDecode()}`. If
+	the value of the "text" attribute is "here is an \&amp;", this
+	Expression will then return "here is an &".
 
 
 
