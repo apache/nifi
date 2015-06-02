@@ -18,7 +18,7 @@
 
     <parent>
         <groupId>org.apache.nifi</groupId>
-        <artifactId>nifi-nar-bundles</artifactId>
+        <artifactId>nifi-external</artifactId>
         <version>0.1.1-incubating-SNAPSHOT</version>
     </parent>
 
