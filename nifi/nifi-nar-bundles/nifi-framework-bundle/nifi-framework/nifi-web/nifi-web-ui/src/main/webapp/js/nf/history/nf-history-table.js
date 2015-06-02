@@ -69,11 +69,13 @@ nf.HistoryTable = (function () {
         // filter type
         $('#history-filter-type').combo({
             options: [{
-                    text: 'by source id',
-                    value: 'by source id'
+                    text: 'by id',
+                    value: 'by id',
+                    description: 'Filters based on the id of the component that was modified'
                 }, {
                     text: 'by user',
-                    value: 'by user'
+                    value: 'by user',
+                    description: 'Filters based on the user that performed the action'
                 }]
         });
 
@@ -106,7 +108,7 @@ nf.HistoryTable = (function () {
                             var filterText = $('#history-filter').val();
                             if (filterText !== '') {
                                 var filterType = $('#history-filter-type').combo('getSelectedOption').text;
-                                if (filterType === 'by source id') {
+                                if (filterType === 'by id') {
                                     filter['sourceId'] = filterText;
                                 } else if (filterType === 'by user') {
                                     filter['userName'] = filterText;
@@ -228,6 +230,9 @@ nf.HistoryTable = (function () {
 
         // clear the current filter
         $('#clear-history-filter').click(function () {
+            // clear the filter dialog
+            $('#history-filter').val('');
+            
             // hide the overview
             $('#history-filter-overview').hide();
 
