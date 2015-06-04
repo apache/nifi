@@ -18,17 +18,11 @@
  */
 package org.apache.nifi.processors.kite;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Path;
-import java.util.List;
 
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
@@ -50,8 +44,8 @@ public class TestJSONToAvroProcessor {
             + "{\"id\": 10, \"color\": 15.23}\n" + // invalid, color as double
             "{\"id\": 2, \"color\": \"grey\", \"price\": 12.95 }";
 
-    public static final String FAILURE_CONTENT = "Cannot convert field id [Cannot convert to long: \"120V\"]\n" +
-      "Cannot convert field color [Cannot convert to string: 15.23]\n";
+    public static final String FAILURE_CONTENT = "Cannot convert field id [Cannot convert to long: \"120V\"]\n"
+            + "Cannot convert field color [Cannot convert to string: 15.23]\n";
 
     @Test
     public void testBasicConversion() throws IOException {
@@ -72,7 +66,7 @@ public class TestJSONToAvroProcessor {
         runner.assertTransferCount("failure", 1);
 
         String failureContent = Bytes.toString(runner.getContentAsByteArray(
-          runner.getFlowFilesForRelationship("failure").get(0)));
+                runner.getFlowFilesForRelationship("failure").get(0)));
         Assert.assertEquals("Should reject an invalid string and double", FAILURE_CONTENT, failureContent);
     }
 }

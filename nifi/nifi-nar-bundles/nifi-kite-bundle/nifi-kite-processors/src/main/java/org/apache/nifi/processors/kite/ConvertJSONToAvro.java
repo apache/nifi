@@ -122,7 +122,7 @@ public class ConvertJSONToAvro extends AbstractKiteProcessor {
         writer.setCodec(CodecFactory.snappyCodec());
 
         try {
-          successfulRecords = session.write(successfulRecords, new StreamCallback() {
+            successfulRecords = session.write(successfulRecords, new StreamCallback() {
                 @Override
                 public void process(InputStream in, OutputStream out) throws IOException {
                     FlowFile failedRecords = session.create();
@@ -143,8 +143,8 @@ public class ConvertJSONToAvro extends AbstractKiteProcessor {
                                     failedRecords = session.append(failedRecords, new OutputStreamCallback() {
                                         @Override
                                         public void process(OutputStream out) throws IOException {
-                                            out.write((e.getMessage() + " [" +
-                                              e.getCause().getMessage() + "]\n").getBytes());
+                                            out.write((e.getMessage() + " ["
+                                                    + e.getCause().getMessage() + "]\n").getBytes());
                                         }
                                     });
                                     errors += 1;
@@ -154,7 +154,7 @@ public class ConvertJSONToAvro extends AbstractKiteProcessor {
                         session.adjustCounter("Converted records", written,
                                 false /* update only if file transfer is successful */);
                         session.adjustCounter("Conversion errors", errors,
-                          false /* update only if file transfer is successful */);
+                                false /* update only if file transfer is successful */);
 
                         if (errors > 0L) {
                             getLogger().warn("Failed to convert " + errors + '/' + total + " records from JSON to Avro");
