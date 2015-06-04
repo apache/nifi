@@ -37,13 +37,13 @@
         <module>nifi-external</module>
     </modules>
     <properties>
-        <org.slf4j.version>1.7.10</org.slf4j.version>
-        <jetty.version>9.2.10.v20150310</jetty.version>
-        <lucene.version>4.10.3</lucene.version>
-        <spring.version>4.1.4.RELEASE</spring.version>
-        <spring.security.version>3.2.5.RELEASE</spring.security.version>
+        <org.slf4j.version>1.7.12</org.slf4j.version>
+        <jetty.version>9.2.11.v20150529</jetty.version>
+        <lucene.version>4.10.4</lucene.version>
+        <spring.version>4.1.6.RELEASE</spring.version>
+        <spring.security.version>3.2.7.RELEASE</spring.security.version>
         <jersey.version>1.19</jersey.version>
-        <hadoop.version>2.6.0</hadoop.version>
+        <hadoop.version>2.7.0</hadoop.version>
         <inceptionYear>2014</inceptionYear>
     </properties>
     <dependencyManagement>
@@ -51,12 +51,12 @@
             <dependency>
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>logback-classic</artifactId>
-                <version>1.1.2</version>
+                <version>1.1.3</version>
             </dependency>
             <dependency>
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>jcl-over-slf4j</artifactId>
-                <version>1.1.2</version>
+                <version>1.1.3</version>
                 <scope>provided</scope>
                 <exclusions>
                     <exclusion>
@@ -97,12 +97,12 @@
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-core</artifactId>
-                <version>1.10.16</version>
+                <version>1.10.19</version>
             </dependency>
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-all</artifactId>
-                <version>1.10.8</version>
+                <version>1.10.19</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
@@ -118,7 +118,7 @@
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
-                <version>3.3.2</version>
+                <version>3.4</version>
             </dependency>
             <dependency>
                 <groupId>org.antlr</groupId>
@@ -158,12 +158,12 @@
             <dependency>
                 <groupId>com.jcraft</groupId>
                 <artifactId>jsch</artifactId>
-                <version>0.1.51</version>
+                <version>0.1.52</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.httpcomponents</groupId>
                 <artifactId>httpclient</artifactId>
-                <version>4.3.6</version>
+                <version>4.4.1</version>
             </dependency>
             <dependency>
                 <groupId>javax.mail</groupId>
@@ -183,7 +183,7 @@
             <dependency>
                 <groupId>net.sf.saxon</groupId>
                 <artifactId>Saxon-HE</artifactId>
-                <version>9.6.0-4</version>
+                <version>9.6.0-5</version>
             </dependency>
             <dependency>
                 <groupId>stax</groupId>
@@ -413,7 +413,7 @@
             <dependency>
                 <groupId>org.aspectj</groupId>
                 <artifactId>aspectjweaver</artifactId>
-                <version>1.8.4</version>
+                <version>1.8.5</version>
             </dependency>
             <dependency>
                 <groupId>cglib</groupId>
@@ -428,7 +428,7 @@
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-pool2</artifactId>
-                <version>2.3</version>
+                <version>2.4.1</version>
             </dependency>
             <dependency>
                 <groupId>com.jcraft</groupId>
@@ -438,7 +438,7 @@
             <dependency>
                 <groupId>joda-time</groupId>
                 <artifactId>joda-time</artifactId>
-                <version>2.7</version>
+                <version>2.8</version>
             </dependency>
             <dependency>
                 <groupId>com.yammer.metrics</groupId>
@@ -448,12 +448,12 @@
             <dependency>
                 <groupId>javax.jms</groupId>
                 <artifactId>javax.jms-api</artifactId>
-                <version>2.0</version>
+                <version>2.0.1</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.activemq</groupId>
                 <artifactId>activemq-client</artifactId>
-                <version>5.10.0</version>
+                <version>5.11.1</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.lucene</groupId>
@@ -504,7 +504,7 @@
             <dependency>
                 <groupId>org.apache.avro</groupId>
                 <artifactId>avro</artifactId>
-                <version>1.7.6</version>
+                <version>1.7.7</version>
             </dependency>
             <dependency>
                 <groupId>com.sun.jersey</groupId>
@@ -605,6 +605,11 @@
                 <groupId>org.jasypt</groupId>
                 <artifactId>jasypt</artifactId>
                 <version>1.9.2</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.spark</groupId>
+                <artifactId>spark-streaming_2.10</artifactId>
+                <version>1.3.1</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
