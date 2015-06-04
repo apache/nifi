@@ -33,6 +33,7 @@ import org.bson.Document;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
@@ -40,6 +41,7 @@ import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.client.MongoCollection;
 
+@Ignore("Integration tests that cause failures in some environments. Require that they be run from Maven to run the embedded mongo maven plugin. Maven Plugin also fails in my CentOS 7 environment.")
 public class GetMongoTest {
     private static final String MONGO_URI = "mongodb://localhost";
     private static final String DB_NAME = GetMongoTest.class.getSimpleName().toLowerCase();
@@ -49,7 +51,7 @@ public class GetMongoTest {
         new Document("_id", "doc_1").append("a", 1).append("b", 2).append("c", 3),
         new Document("_id", "doc_2").append("a", 1).append("b", 2).append("c", 4),
         new Document("_id", "doc_3").append("a", 1).append("b", 3)
-    );
+        );
 
     private TestRunner runner;
     private MongoClient mongoClient;
