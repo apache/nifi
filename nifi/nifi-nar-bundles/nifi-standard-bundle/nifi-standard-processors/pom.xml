@@ -179,7 +179,7 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes>
+                    <excludes combine.children="append">
                         <exclude>src/test/resources/localhost.cer</exclude>
                         <exclude>src/test/resources/hello.txt</exclude>
                         <exclude>src/test/resources/CharacterSetConversionSamples/Converted.txt</exclude>

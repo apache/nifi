@@ -94,7 +94,7 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes>
+                    <excludes combine.children="append">
                         <exclude>src/main/webapp/js/hexview/hexview.default.css</exclude>
                         <exclude>src/main/webapp/js/hexview/hexview.js</exclude>
                     </excludes>
