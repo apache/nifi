@@ -48,7 +48,7 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes>
+                    <excludes combine.children="append">
                         <exclude>src/test/resources/hypoglycemia</exclude>
                         <exclude>src/test/resources/hyperglycemia</exclude>
                     </excludes>

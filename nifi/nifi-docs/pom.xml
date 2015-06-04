@@ -107,7 +107,7 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes>
+                    <excludes combine.children="append">
                         <exclude>src/main/asciidoc/asciidoc-mod.css</exclude> <!-- MIT license confirmed.  Excluding due to parse error-->
                     </excludes>
                 </configuration>
