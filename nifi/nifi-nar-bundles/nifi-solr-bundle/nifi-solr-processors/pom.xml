@@ -95,7 +95,7 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes>
+                    <excludes combine.children="append">
                         <exclude>src/test/resources/solr/solr.xml</exclude>
                         <exclude>src/test/resources/testCollection/core.properties</exclude>
                         <exclude>src/test/resources/testCollection/conf/_rest_managed.json</exclude>

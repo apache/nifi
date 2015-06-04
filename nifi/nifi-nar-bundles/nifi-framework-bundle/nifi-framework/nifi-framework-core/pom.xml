@@ -127,7 +127,7 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes>
+                    <excludes combine.children="append">
                         <exclude>src/test/resources/conf/0bytes.xml</exclude>
                         <exclude>src/test/resources/conf/termination-only.xml</exclude>
                         <exclude>src/test/resources/hello.txt</exclude>
