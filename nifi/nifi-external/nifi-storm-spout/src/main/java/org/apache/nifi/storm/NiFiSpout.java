@@ -61,7 +61,7 @@ import java.util.concurrent.LinkedBlockingQueue;
  * {@link SiteToSiteClientConfig} to provide to the constructor. This can be
  * achieved by using the {@link SiteToSiteClient.Builder}. Below is an example
  * snippet of driver code to pull data from NiFi that is running on
- * localhost:8080. This example assumes that NiFi exposes and OutputPort on the
+ * localhost:8080. This example assumes that NiFi exposes an OutputPort on the
  * root group named "Data For Storm". Additionally, it assumes that the data
  * that it will receive from this OutputPort is text data, as it will map the
  * byte array received from NiFi to a UTF-8 Encoded string.
