@@ -599,9 +599,9 @@ nf.Settings = (function () {
 
         // more details formatter
         var moreControllerServiceDetails = function (row, cell, value, columnDef, dataContext) {
-            var markup = '<img src="images/iconDetails.png" title="View Details" class="pointer view-controller-service" style="margin-top: 5px; float: left;" />&nbsp;&nbsp;';
+            var markup = '<img src="images/iconDetails.png" title="View Details" class="pointer view-controller-service" style="margin-top: 5px; float: left;" />';
             if (!nf.Common.isEmpty(dataContext.validationErrors)) {
-                markup += '<img src="images/iconAlert.png" class="has-errors" style="margin-top: 4px; float: left;" /><span class="hidden row-id">' + nf.Common.escapeHtml(dataContext.id) + '</span>';
+                markup += '<img src="images/iconAlert.png" class="has-errors" style="margin-top: 4px; margin-left: 4px; float: left;" /><span class="hidden row-id">' + nf.Common.escapeHtml(dataContext.id) + '</span>';
             }
             return markup;
         };
@@ -1197,9 +1197,9 @@ nf.Settings = (function () {
         initNewReportingTaskDialog();
 
         var moreReportingTaskDetails = function (row, cell, value, columnDef, dataContext) {
-            var markup = '<img src="images/iconDetails.png" title="View Details" class="pointer view-reporting-task" style="margin-top: 5px; float: left;" />&nbsp;&nbsp;';
+            var markup = '<img src="images/iconDetails.png" title="View Details" class="pointer view-reporting-task" style="margin-top: 5px; float: left;" />';
             if (!nf.Common.isEmpty(dataContext.validationErrors)) {
-                markup += '<img src="images/iconAlert.png" class="has-errors" style="margin-top: 4px; float: left;" /><span class="hidden row-id">' + nf.Common.escapeHtml(dataContext.id) + '</span>';
+                markup += '<img src="images/iconAlert.png" class="has-errors" style="margin-top: 4px; margin-left: 4px; float: left" /><span class="hidden row-id">' + nf.Common.escapeHtml(dataContext.id) + '</span>';
             }
             return markup;
         };
