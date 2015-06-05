@@ -20,6 +20,11 @@
 <configuration>
     <property>
         <name>fs.defaultFS</name>
+        <!--
+            Hadoop doesn't support a chroot style operation for the
+            local filesystem so there's no benefit to setting this
+            to a directory other than '/'
+        -->
         <value>file:///</value>
     </property>
 </configuration>
