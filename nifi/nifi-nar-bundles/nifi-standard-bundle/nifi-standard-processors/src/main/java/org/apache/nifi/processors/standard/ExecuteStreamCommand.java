@@ -89,7 +89,13 @@ import org.apache.nifi.stream.io.StreamUtils;
  * <li>Supports expression language: true</li>
  * </ul>
  * </li>
- *
+ * <li>Ignore STDIN
+ * <ul>
+ * <li>Indicates whether or not the flowfile's contents should be streamed as part of STDIN</li>
+ * <li>Default value: false (this means that the contents of a flowfile will be sent as STDIN to your command</li>
+ * <li>Supports expression language: false</li>
+ * </ul>
+ * </li>
  * </ul>
  *
  * <p>
@@ -177,12 +183,22 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             .required(false)
             .build();
 
+    static final PropertyDescriptor IGNORE_STDIN = new PropertyDescriptor.Builder()
+            .name("Ignore STDIN")
+            .description("If true, the contents of the incoming flowfile will not be passed to the executing command")
+            .addValidator(Validator.VALID)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .build();
+
+
     private static final List<PropertyDescriptor> PROPERTIES;
 
     static {
         List<PropertyDescriptor> props = new ArrayList<>();
         props.add(EXECUTION_ARGUMENTS);
         props.add(EXECUTION_COMMAND);
+        props.add(IGNORE_STDIN);
         props.add(WORKING_DIR);
         PROPERTIES = Collections.unmodifiableList(props);
     }
@@ -225,6 +241,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
         final String executeCommand = context.getProperty(EXECUTION_COMMAND).evaluateAttributeExpressions(flowFile).getValue();
         args.add(executeCommand);
         final String commandArguments = context.getProperty(EXECUTION_ARGUMENTS).getValue();
+        final boolean ignoreStdin = Boolean.parseBoolean(context.getProperty(IGNORE_STDIN).getValue());
         if (!StringUtils.isBlank(commandArguments)) {
             for (String arg : commandArguments.split(";")) {
                 args.add(context.newPropertyValue(arg).evaluateAttributeExpressions(flowFile).getValue());
@@ -269,7 +286,11 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             final BufferedOutputStream bos = new BufferedOutputStream(pos);
             FlowFile outputStreamFlowFile = session.create(flowFile);
             StdInWriterCallback callback = new StdInWriterCallback(bos, bis, logger, session, outputStreamFlowFile, process);
-            session.read(flowFile, callback);
+            if (ignoreStdin) {
+                session.read(outputStreamFlowFile, callback);
+            } else {
+                session.read(flowFile, callback);
+            }
             outputStreamFlowFile = callback.outputStreamFlowFile;
             exitCode = callback.exitCode;
             logger.debug("Execution complete for command: {}.  Exited with code: {}", new Object[]{executeCommand, exitCode});
