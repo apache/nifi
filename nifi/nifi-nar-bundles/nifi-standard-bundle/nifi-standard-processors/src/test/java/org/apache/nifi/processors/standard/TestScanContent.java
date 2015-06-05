@@ -18,6 +18,7 @@ package org.apache.nifi.processors.standard;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -33,6 +34,24 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 public class TestScanContent {
+
+    @Test
+    public void testBlankLineInDictionaryTextEncoding() throws IOException {
+        final String dictionaryWithBlankLine = "Line1\n\nLine3";
+        final byte[] dictionaryBytes = dictionaryWithBlankLine.getBytes(ScanContent.UTF8);
+        final Path dictionaryPath = Paths.get("target/dictionary");
+        Files.write(dictionaryPath, dictionaryBytes, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
+
+        final TestRunner runner = TestRunners.newTestRunner(new ScanContent());
+        runner.setThreadCount(1);
+        runner.setProperty(ScanContent.DICTIONARY, dictionaryPath.toString());
+        runner.setProperty(ScanContent.DICTIONARY_ENCODING, ScanContent.TEXT_ENCODING);
+
+        runner.enqueue(new byte[0]);
+        runner.run();
+        runner.assertTransferCount(ScanContent.REL_NO_MATCH, 1);
+
+    }
 
     @Ignore("This test has a race condition/ordering problem")
     @Test
