@@ -106,8 +106,7 @@ abstract class AbstractKiteProcessor extends AbstractProcessor {
     };
 
     /**
-     * Resolves a {@link Schema} for the given string, either a URI or a JSON
-     * literal.
+     * Resolves a {@link Schema} for the given string, either a URI or a JSON literal.
      */
     protected static Schema getSchema(String uriOrLiteral, Configuration conf) {
         URI uri;

@@ -243,11 +243,11 @@ language governing permissions and limitations under the License. -->
         <nifi.content.claim.max.appendable.size>10 MB</nifi.content.claim.max.appendable.size>
         <nifi.content.claim.max.flow.files>100</nifi.content.claim.max.flow.files>
         <nifi.content.repository.directory.default>./content_repository</nifi.content.repository.directory.default>
-        <nifi.content.repository.archive.max.retention.period />
-        <nifi.content.repository.archive.max.usage.percentage />
-        <nifi.content.repository.archive.enabled>false</nifi.content.repository.archive.enabled>
+        <nifi.content.repository.archive.max.retention.period>12 hours</nifi.content.repository.archive.max.retention.period>
+        <nifi.content.repository.archive.max.usage.percentage>50%</nifi.content.repository.archive.max.usage.percentage>
+        <nifi.content.repository.archive.enabled>true</nifi.content.repository.archive.enabled>
         <nifi.content.repository.always.sync>false</nifi.content.repository.always.sync>
-        <nifi.content.viewer.url />
+        <nifi.content.viewer.url>/nifi-content-viewer/</nifi.content.viewer.url>
 
         <nifi.restore.directory />
         <nifi.ui.banner.text />
@@ -267,11 +267,11 @@ language governing permissions and limitations under the License. -->
         <nifi.provenance.repository.directory.default>./provenance_repository</nifi.provenance.repository.directory.default>
         <nifi.provenance.repository.max.storage.time>24 hours</nifi.provenance.repository.max.storage.time>
         <nifi.provenance.repository.max.storage.size>1 GB</nifi.provenance.repository.max.storage.size>
-        <nifi.provenance.repository.rollover.time>5 mins</nifi.provenance.repository.rollover.time>
+        <nifi.provenance.repository.rollover.time>30 secs</nifi.provenance.repository.rollover.time>
         <nifi.provenance.repository.rollover.size>100 MB</nifi.provenance.repository.rollover.size>
         <nifi.provenance.repository.query.threads>2</nifi.provenance.repository.query.threads>
         <nifi.provenance.repository.compress.on.rollover>true</nifi.provenance.repository.compress.on.rollover>
-        <nifi.provenance.repository.indexed.fields>EventType, FlowFileUUID, Filename, ProcessorID</nifi.provenance.repository.indexed.fields> 
+        <nifi.provenance.repository.indexed.fields>EventType, FlowFileUUID, Filename, ProcessorID, Relationship</nifi.provenance.repository.indexed.fields> 
         <nifi.provenance.repository.indexed.attributes />
         <nifi.provenance.repository.index.shard.size>500 MB</nifi.provenance.repository.index.shard.size>
         <nifi.provenance.repository.always.sync>false</nifi.provenance.repository.always.sync>
@@ -282,8 +282,8 @@ language governing permissions and limitations under the License. -->
 
         <!-- Component status repository properties -->
         <nifi.components.status.repository.implementation>org.apache.nifi.controller.status.history.VolatileComponentStatusRepository</nifi.components.status.repository.implementation>
-        <nifi.components.status.repository.buffer.size>288</nifi.components.status.repository.buffer.size>
-        <nifi.components.status.snapshot.frequency>5 mins</nifi.components.status.snapshot.frequency>
+        <nifi.components.status.repository.buffer.size>1440</nifi.components.status.repository.buffer.size>
+        <nifi.components.status.snapshot.frequency>1 min</nifi.components.status.snapshot.frequency>
 
         <!-- nifi.properties: web properties -->
         <nifi.web.war.directory>./lib</nifi.web.war.directory>

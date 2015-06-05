@@ -33,6 +33,7 @@ import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -88,7 +89,13 @@ import org.apache.nifi.stream.io.StreamUtils;
  * <li>Supports expression language: true</li>
  * </ul>
  * </li>
- *
+ * <li>Ignore STDIN
+ * <ul>
+ * <li>Indicates whether or not the flowfile's contents should be streamed as part of STDIN</li>
+ * <li>Default value: false (this means that the contents of a flowfile will be sent as STDIN to your command</li>
+ * <li>Supports expression language: false</li>
+ * </ul>
+ * </li>
  * </ul>
  *
  * <p>
@@ -113,6 +120,7 @@ import org.apache.nifi.stream.io.StreamUtils;
 @SupportsBatching
 @Tags({"command execution", "command", "stream", "execute"})
 @CapabilityDescription("Executes an external command on the contents of a flow file, and creates a new flow file with the results of the command.")
+@DynamicProperty(name = "An environment variable name", value = "An environment variable value", description = "These environment variables are passed to the process spawned by this Processor")
 @WritesAttributes({
     @WritesAttribute(attribute = "execution.command", description = "The name of the command executed to create the new FlowFile"),
     @WritesAttribute(attribute = "execution.command.args", description = "The semi-colon delimited list of arguments"),
@@ -175,12 +183,22 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             .required(false)
             .build();
 
+    static final PropertyDescriptor IGNORE_STDIN = new PropertyDescriptor.Builder()
+            .name("Ignore STDIN")
+            .description("If true, the contents of the incoming flowfile will not be passed to the executing command")
+            .addValidator(Validator.VALID)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .build();
+
+
     private static final List<PropertyDescriptor> PROPERTIES;
 
     static {
         List<PropertyDescriptor> props = new ArrayList<>();
         props.add(EXECUTION_ARGUMENTS);
         props.add(EXECUTION_COMMAND);
+        props.add(IGNORE_STDIN);
         props.add(WORKING_DIR);
         PROPERTIES = Collections.unmodifiableList(props);
     }
@@ -203,6 +221,16 @@ public class ExecuteStreamCommand extends AbstractProcessor {
     }
 
     @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+        return new PropertyDescriptor.Builder()
+        .name(propertyDescriptorName)
+        .description("Sets the environment variable '" + propertyDescriptorName + "' for the process' environment")
+        .dynamic(true)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .build();
+    }
+
+    @Override
     public void onTrigger(ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         if (null == flowFile) {
@@ -213,6 +241,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
         final String executeCommand = context.getProperty(EXECUTION_COMMAND).evaluateAttributeExpressions(flowFile).getValue();
         args.add(executeCommand);
         final String commandArguments = context.getProperty(EXECUTION_ARGUMENTS).getValue();
+        final boolean ignoreStdin = Boolean.parseBoolean(context.getProperty(IGNORE_STDIN).getValue());
         if (!StringUtils.isBlank(commandArguments)) {
             for (String arg : commandArguments.split(";")) {
                 args.add(context.newPropertyValue(arg).evaluateAttributeExpressions(flowFile).getValue());
@@ -230,6 +259,13 @@ public class ExecuteStreamCommand extends AbstractProcessor {
                 logger.warn("Failed to create working directory {}, using current working directory {}", new Object[]{workingDir, System.getProperty("user.dir")});
             }
         }
+        final Map<String, String> environment = new HashMap<>();
+        for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
+            if (entry.getKey().isDynamic()) {
+                environment.put(entry.getKey().getName(), entry.getValue());
+            }
+        }
+        builder.environment().putAll(environment);
         builder.command(args);
         builder.directory(dir);
         builder.redirectInput(Redirect.PIPE);
@@ -250,7 +286,11 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             final BufferedOutputStream bos = new BufferedOutputStream(pos);
             FlowFile outputStreamFlowFile = session.create(flowFile);
             StdInWriterCallback callback = new StdInWriterCallback(bos, bis, logger, session, outputStreamFlowFile, process);
-            session.read(flowFile, callback);
+            if (ignoreStdin) {
+                session.read(outputStreamFlowFile, callback);
+            } else {
+                session.read(flowFile, callback);
+            }
             outputStreamFlowFile = callback.outputStreamFlowFile;
             exitCode = callback.exitCode;
             logger.debug("Execution complete for command: {}.  Exited with code: {}", new Object[]{executeCommand, exitCode});

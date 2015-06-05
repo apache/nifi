@@ -132,7 +132,7 @@ public class TestExecuteStreamCommand {
         String result = new String(byteArray);
 
         assertTrue(result.contains(File.separator + "nifi-standard-processors:ModifiedResult\r\n")
-                || result.contains(File.separator + "nifi-standard-processors:ModifiedResult\n"));
+          || result.contains(File.separator + "nifi-standard-processors:ModifiedResult\n"));
     }
 
     @Test
@@ -154,7 +154,30 @@ public class TestExecuteStreamCommand {
         byte[] byteArray = flowFiles.get(0).toByteArray();
         String result = new String(byteArray);
         assertTrue(result.contains(File.separator + "nifi-standard-processors" + File.separator + "target:ModifiedResult\r\n")
-                || result.contains(File.separator + "nifi-standard-processors" + File.separator + "target:ModifiedResult\n"));
+          || result.contains(File.separator + "nifi-standard-processors" + File.separator + "target:ModifiedResult\n"));
+    }
+
+    @Test
+    public void testIgnoredStdin() throws IOException {
+        File exJar = new File("src/test/resources/ExecuteCommand/TestIngestAndUpdate.jar");
+        File dummy = new File("src/test/resources/ExecuteCommand/1000bytes.txt");
+        String jarPath = exJar.getAbsolutePath();
+        exJar.setExecutable(true);
+        final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
+        controller.setValidateExpressionUsage(false);
+        controller.enqueue(dummy.toPath());
+        controller.setProperty(ExecuteStreamCommand.WORKING_DIR, "target");
+        controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "java");
+        controller.setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, "-jar;" + jarPath);
+        controller.setProperty(ExecuteStreamCommand.IGNORE_STDIN, "true");
+        controller.run(1);
+        controller.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
+        controller.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 1);
+        List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
+        byte[] byteArray = flowFiles.get(0).toByteArray();
+        String result = new String(byteArray);
+        assertTrue("TestIngestAndUpdate.jar should not have received anything to modify",
+          result.endsWith("target:ModifiedResult\n"));
     }
 
     // this is dependent on window with cygwin...so it's not enabled
@@ -181,5 +204,31 @@ public class TestExecuteStreamCommand {
         assertEquals(5, flowFiles.size());
         assertEquals(0, flowFiles.get(0).getSize());
 
+    }
+
+    @Test
+    public void testDynamicEnvironment() throws Exception {
+        File exJar = new File("src/test/resources/ExecuteCommand/TestDynamicEnvironment.jar");
+        File dummy = new File("src/test/resources/ExecuteCommand/1000bytes.txt");
+        String jarPath = exJar.getAbsolutePath();
+        exJar.setExecutable(true);
+        final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
+        controller.setProperty("NIFI_TEST_1", "testvalue1");
+        controller.setProperty("NIFI_TEST_2", "testvalue2");
+        controller.setValidateExpressionUsage(false);
+        controller.enqueue(dummy.toPath());
+        controller.setProperty(ExecuteStreamCommand.WORKING_DIR, "target");
+        controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "java");
+        controller.setProperty(ExecuteStreamCommand.EXECUTION_ARGUMENTS, "-jar;" + jarPath);
+        controller.run(1);
+        controller.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
+        controller.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 1);
+        List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
+        byte[] byteArray = flowFiles.get(0).toByteArray();
+        String result = new String(byteArray);
+        String[] dynamicEnvironment = result.split("\n");
+        assertEquals("Should contain two environment variables starting with NIFI", 2, dynamicEnvironment.length);
+        assertEquals("NIFI_TEST_2 environment variable is missing", "NIFI_TEST_2=testvalue2", dynamicEnvironment[0]);
+        assertEquals("NIFI_TEST_1 environment variable is missing", "NIFI_TEST_1=testvalue1", dynamicEnvironment[1]);
     }
 }

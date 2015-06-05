@@ -81,7 +81,7 @@ import org.xml.sax.InputSource;
 @EventDriven
 @SideEffectFree
 @SupportsBatching
-@Tags({"XML", "evaluate", "XPath", "XQuery", "experimental"})
+@Tags({"XML", "evaluate", "XPath", "XQuery"})
 @CapabilityDescription(
         "Evaluates one or more XQueries against the content of a FlowFile.  The results of those XQueries are assigned "
         + "to FlowFile Attributes or are written to the content of the FlowFile itself, depending on configuration of "

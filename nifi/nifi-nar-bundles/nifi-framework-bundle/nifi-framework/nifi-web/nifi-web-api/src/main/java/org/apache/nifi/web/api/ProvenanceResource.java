@@ -276,7 +276,7 @@ public class ProvenanceResource extends ApplicationResource {
      */
     @GET
     @Consumes(MediaType.WILDCARD)
-    @Produces(MediaType.APPLICATION_OCTET_STREAM)
+    @Produces(MediaType.WILDCARD)
     @Path("/events/{id}/content/input")
     @PreAuthorize("hasRole('ROLE_PROVENANCE')")
     @ApiOperation(
@@ -375,7 +375,7 @@ public class ProvenanceResource extends ApplicationResource {
      */
     @GET
     @Consumes(MediaType.WILDCARD)
-    @Produces(MediaType.APPLICATION_OCTET_STREAM)
+    @Produces(MediaType.WILDCARD)
     @Path("/events/{id}/content/output")
     @PreAuthorize("hasRole('ROLE_PROVENANCE')")
     @ApiOperation(
