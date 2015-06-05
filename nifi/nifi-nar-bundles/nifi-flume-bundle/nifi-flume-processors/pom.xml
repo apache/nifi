@@ -38,14 +38,14 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-flowfile-packager</artifactId>
         </dependency>
-        <dependency> 
-            <groupId>org.apache.flume</groupId> 
-            <artifactId>flume-ng-sdk</artifactId> 
+        <dependency>
+            <groupId>org.apache.flume</groupId>
+            <artifactId>flume-ng-sdk</artifactId>
             <version>1.5.2</version>
-        </dependency> 
-        <dependency> 
-            <groupId>org.apache.flume</groupId> 
-            <artifactId>flume-ng-core</artifactId> 
+        </dependency>
+        <dependency>
+            <groupId>org.apache.flume</groupId>
+            <artifactId>flume-ng-core</artifactId>
             <version>1.5.2</version>
             <exclusions>
                 <exclusion>
@@ -53,74 +53,89 @@
                     <artifactId>slf4j-log4j12</artifactId>
                 </exclusion>
             </exclusions>
-        </dependency> 
+        </dependency>
 
         <!-- Flume Sources -->
-        <dependency> 
-            <groupId>org.apache.flume.flume-ng-sources</groupId> 
-            <artifactId>flume-twitter-source</artifactId> 
+        <dependency>
+            <groupId>org.apache.flume.flume-ng-sources</groupId>
+            <artifactId>flume-twitter-source</artifactId>
             <version>1.5.2</version>
-        </dependency> 
-        <dependency> 
-            <groupId>org.apache.flume.flume-ng-sources</groupId> 
-            <artifactId>flume-jms-source</artifactId> 
+        </dependency>
+        <dependency>
+            <groupId>org.apache.flume.flume-ng-sources</groupId>
+            <artifactId>flume-jms-source</artifactId>
             <version>1.5.2</version>
-        </dependency> 
-        <dependency> 
-            <groupId>org.apache.flume.flume-ng-sources</groupId> 
-            <artifactId>flume-scribe-source</artifactId> 
+        </dependency>
+        <dependency>
+            <groupId>org.apache.flume.flume-ng-sources</groupId>
+            <artifactId>flume-scribe-source</artifactId>
             <version>1.5.2</version>
-        </dependency> 
+        </dependency>
 
         <!-- Flume Sinks -->
-        <dependency> 
-            <groupId>org.apache.flume.flume-ng-sinks</groupId> 
-            <artifactId>flume-hdfs-sink</artifactId> 
+        <dependency>
+            <groupId>org.apache.flume.flume-ng-sinks</groupId>
+            <artifactId>flume-hdfs-sink</artifactId>
             <version>1.5.2</version>
-        </dependency> 
+        </dependency>
 
         <!-- HDFS sink dependencies -->
-        <dependency> 
-            <groupId>org.apache.hadoop</groupId> 
-            <artifactId>hadoop-common</artifactId> 
-            <scope>provided</scope> 
-        </dependency> 
-        <dependency> 
-            <groupId>org.apache.hadoop</groupId> 
-            <artifactId>hadoop-hdfs</artifactId> 
-            <scope>provided</scope> 
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-common</artifactId>
+            <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
-        
-        <dependency> 
-            <groupId>org.apache.flume.flume-ng-sinks</groupId> 
-            <artifactId>flume-irc-sink</artifactId> 
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-hdfs</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.flume.flume-ng-sinks</groupId>
+            <artifactId>flume-irc-sink</artifactId>
             <version>1.5.2</version>
-        </dependency> 
-        <dependency> 
-            <groupId>org.apache.flume.flume-ng-sinks</groupId> 
-            <artifactId>flume-ng-elasticsearch-sink</artifactId> 
+        </dependency>
+        <dependency>
+            <groupId>org.apache.flume.flume-ng-sinks</groupId>
+            <artifactId>flume-ng-elasticsearch-sink</artifactId>
             <version>1.5.2</version>
-        </dependency> 
-        <dependency> 
-            <groupId>org.apache.flume.flume-ng-sinks</groupId> 
-            <artifactId>flume-ng-hbase-sink</artifactId> 
+        </dependency>
+        <dependency>
+            <groupId>org.apache.flume.flume-ng-sinks</groupId>
+            <artifactId>flume-ng-hbase-sink</artifactId>
             <version>1.5.2</version>
-        </dependency> 
-        <dependency> 
-            <groupId>org.apache.flume.flume-ng-sinks</groupId> 
-            <artifactId>flume-ng-morphline-solr-sink</artifactId> 
+        </dependency>
+        <dependency>
+            <groupId>org.apache.flume.flume-ng-sinks</groupId>
+            <artifactId>flume-ng-morphline-solr-sink</artifactId>
             <version>1.5.2</version>
-        </dependency> 
+        </dependency>
 
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-          <groupId>org.slf4j</groupId>
-          <artifactId>slf4j-simple</artifactId>
-          <scope>test</scope>
-        </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.rat</groupId>
+                <artifactId>apache-rat-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>src/test/resources/testdata/*</exclude> <!-- test data -->
+                    </excludes>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

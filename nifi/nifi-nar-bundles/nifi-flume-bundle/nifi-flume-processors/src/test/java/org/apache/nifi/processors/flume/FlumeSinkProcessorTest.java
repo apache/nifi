@@ -19,9 +19,9 @@ package org.apache.nifi.processors.flume;
 import java.io.File;
 import static org.junit.Assert.assertEquals;
 
-import java.io.FileInputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -39,15 +39,20 @@ import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.file.FileUtils;
 
 import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class FlumeSinkProcessorTest {
 
-  private static final Logger logger =
-      LoggerFactory.getLogger(FlumeSinkProcessorTest.class);
-  
+    private static final Logger logger =
+        LoggerFactory.getLogger(FlumeSinkProcessorTest.class);
+
+    @Rule
+    public final TemporaryFolder temp = new TemporaryFolder();
+
     @Test
     public void testValidators() {
         TestRunner runner = TestRunners.newTestRunner(FlumeSinkProcessor.class);
@@ -62,7 +67,7 @@ public class FlumeSinkProcessorTest {
         }
         Assert.assertEquals(1, results.size());
         for (ValidationResult vr : results) {
-            logger.error(vr.toString());
+            logger.debug(vr.toString());
             Assert.assertTrue(vr.toString().contains("is invalid because Sink Type is required"));
         }
 
@@ -76,7 +81,7 @@ public class FlumeSinkProcessorTest {
         }
         Assert.assertEquals(1, results.size());
         for (ValidationResult vr : results) {
-            logger.error(vr.toString());
+            logger.debug(vr.toString());
             Assert.assertTrue(vr.toString().contains("is invalid because unable to load sink"));
         }
 
@@ -90,7 +95,7 @@ public class FlumeSinkProcessorTest {
         }
         Assert.assertEquals(1, results.size());
         for (ValidationResult vr : results) {
-            logger.error(vr.toString());
+            logger.debug(vr.toString());
             Assert.assertTrue(vr.toString().contains("is invalid because unable to create sink"));
         }
 
@@ -109,12 +114,12 @@ public class FlumeSinkProcessorTest {
     public void testNullSink() throws IOException {
         TestRunner runner = TestRunners.newTestRunner(FlumeSinkProcessor.class);
         runner.setProperty(FlumeSinkProcessor.SINK_TYPE, NullSink.class.getName());
-        FileInputStream fis = new FileInputStream("src/test/resources/testdata/records.txt");
-        Map<String, String> attributes = new HashMap<>();
-        attributes.put(CoreAttributes.FILENAME.key(), "records.txt");
-        runner.enqueue(fis, attributes);
-        runner.run();
-        fis.close();
+        try (InputStream inputStream = getClass().getResourceAsStream("/testdata/records.txt")) {
+            Map<String, String> attributes = new HashMap<>();
+            attributes.put(CoreAttributes.FILENAME.key(), "records.txt");
+            runner.enqueue(inputStream, attributes);
+            runner.run();
+        }
     }
 
     @Test
@@ -129,15 +134,10 @@ public class FlumeSinkProcessorTest {
         }
         runner.run();
     }
-    
+
     @Test
     public void testHdfsSink() throws IOException {
-        File destDir = new File("target/hdfs");
-        if (destDir.exists()) {
-          FileUtils.deleteFilesInDir(destDir, null, logger);
-        } else {
-          destDir.mkdirs();
-        }
+        File destDir = temp.newFolder("hdfs");
 
         TestRunner runner = TestRunners.newTestRunner(FlumeSinkProcessor.class);
         runner.setProperty(FlumeSinkProcessor.SINK_TYPE, "hdfs");
@@ -147,19 +147,22 @@ public class FlumeSinkProcessorTest {
             "tier1.sinks.sink-1.hdfs.serializer = TEXT\n" +
             "tier1.sinks.sink-1.serializer.appendNewline = false"
         );
-        FileInputStream fis = new FileInputStream("src/test/resources/testdata/records.txt");
-        Map<String, String> attributes = new HashMap<>();
-        attributes.put(CoreAttributes.FILENAME.key(), "records.txt");
-        runner.enqueue(fis, attributes);
-        runner.run();
-        fis.close();
+        try (InputStream inputStream = getClass().getResourceAsStream("/testdata/records.txt")) {
+            Map<String, String> attributes = new HashMap<>();
+            attributes.put(CoreAttributes.FILENAME.key(), "records.txt");
+            runner.enqueue(inputStream, attributes);
+            runner.run();
+        }
 
         File[] files = destDir.listFiles((FilenameFilter)HiddenFileFilter.VISIBLE);
         assertEquals("Unexpected number of destination files.", 1, files.length);
         File dst = files[0];
-        byte[] expectedMd5 = FileUtils.computeMd5Digest(new File("src/test/resources/testdata/records.txt"));
+        byte[] expectedMd5;
+        try (InputStream md5Stream = getClass().getResourceAsStream("/testdata/records.txt")) {
+            expectedMd5 = FileUtils.computeMd5Digest(md5Stream);
+        }
         byte[] actualMd5 = FileUtils.computeMd5Digest(dst);
         Assert.assertArrayEquals("Destination file doesn't match source data", expectedMd5, actualMd5);
     }
- 
+
 }

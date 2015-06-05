@@ -34,15 +34,18 @@ import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.file.FileUtils;
 
 import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class FlumeSourceProcessorTest {
 
-  private static final Logger logger =
-      LoggerFactory.getLogger(FlumeSourceProcessorTest.class);
+    private static final Logger logger = LoggerFactory.getLogger(FlumeSourceProcessorTest.class);
 
+    @Rule
+    public final TemporaryFolder temp = new TemporaryFolder();
 
     @Test
     public void testValidators() {
@@ -58,7 +61,7 @@ public class FlumeSourceProcessorTest {
         }
         Assert.assertEquals(1, results.size());
         for (ValidationResult vr : results) {
-            logger.error(vr.toString());
+            logger.debug(vr.toString());
             Assert.assertTrue(vr.toString().contains("is invalid because Source Type is required"));
         }
 
@@ -72,7 +75,7 @@ public class FlumeSourceProcessorTest {
         }
         Assert.assertEquals(1, results.size());
         for (ValidationResult vr : results) {
-            logger.error(vr.toString());
+            logger.debug(vr.toString());
             Assert.assertTrue(vr.toString().contains("is invalid because unable to load source"));
         }
 
@@ -86,7 +89,7 @@ public class FlumeSourceProcessorTest {
         }
         Assert.assertEquals(1, results.size());
         for (ValidationResult vr : results) {
-            logger.error(vr.toString());
+            logger.debug(vr.toString());
             Assert.assertTrue(vr.toString().contains("is invalid because unable to create source"));
         }
 
@@ -108,22 +111,16 @@ public class FlumeSourceProcessorTest {
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(FlumeSourceProcessor.SUCCESS);
         Assert.assertEquals(1, flowFiles.size());
         for (MockFlowFile flowFile : flowFiles) {
-          logger.error(flowFile.toString());
+            logger.debug(flowFile.toString());
             Assert.assertEquals(1, flowFile.getSize());
         }
     }
 
     @Test
     public void testSourceWithConfig() throws IOException {
-        File spoolDirectory = new File("target/spooldir");
-        if (spoolDirectory.exists()) {
-          FileUtils.deleteFilesInDir(spoolDirectory, null, logger);
-        } else {
-          spoolDirectory.mkdirs();
-        }
-        File src = new File("src/test/resources/testdata/records.txt");
+        File spoolDirectory = temp.newFolder("spooldir");
         File dst = new File(spoolDirectory, "records.txt");
-        FileUtils.copyFile(src, dst, false, false, logger);
+        FileUtils.copyFile(getClass().getResourceAsStream("/testdata/records.txt"), dst, true, false);
 
         TestRunner runner = TestRunners.newTestRunner(FlumeSourceProcessor.class);
         runner.setProperty(FlumeSourceProcessor.SOURCE_TYPE, "spooldir");
