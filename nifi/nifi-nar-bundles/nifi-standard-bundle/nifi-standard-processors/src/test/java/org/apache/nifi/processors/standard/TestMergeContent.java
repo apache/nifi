@@ -73,7 +73,7 @@ public class TestMergeContent {
         bundle.assertContentEquals("Hello, World!".getBytes("UTF-8"));
         bundle.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/plain-text");
     }
-    
+
     @Test
     public void testSimpleBinaryConcatSingleBin() throws IOException, InterruptedException {
         final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
@@ -92,7 +92,7 @@ public class TestMergeContent {
         final MockFlowFile bundle = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
         bundle.assertContentEquals("Hello, World!".getBytes("UTF-8"));
         bundle.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/plain-text");
-    }    
+    }
 
     @Test
     public void testSimpleBinaryConcatWithTextDelimiters() throws IOException, InterruptedException {
