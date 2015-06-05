@@ -73,6 +73,26 @@ public class TestMergeContent {
         bundle.assertContentEquals("Hello, World!".getBytes("UTF-8"));
         bundle.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/plain-text");
     }
+    
+    @Test
+    public void testSimpleBinaryConcatSingleBin() throws IOException, InterruptedException {
+        final TestRunner runner = TestRunners.newTestRunner(new MergeContent());
+        runner.setProperty(MergeContent.MAX_BIN_AGE, "1 sec");
+        runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MERGE_FORMAT_CONCAT);
+        runner.setProperty(MergeContent.MAX_BIN_COUNT, "1");
+
+        createFlowFiles(runner);
+        runner.run();
+
+        runner.assertQueueEmpty();
+        runner.assertTransferCount(MergeContent.REL_MERGED, 1);
+        runner.assertTransferCount(MergeContent.REL_FAILURE, 0);
+        runner.assertTransferCount(MergeContent.REL_ORIGINAL, 3);
+
+        final MockFlowFile bundle = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).get(0);
+        bundle.assertContentEquals("Hello, World!".getBytes("UTF-8"));
+        bundle.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/plain-text");
+    }    
 
     @Test
     public void testSimpleBinaryConcatWithTextDelimiters() throws IOException, InterruptedException {
