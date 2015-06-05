@@ -22,8 +22,6 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -39,16 +37,12 @@ import static org.junit.Assert.assertTrue;
  *
  */
 public class TestExecuteStreamCommand {
-
-    private static Logger LOGGER;
-
     @BeforeClass
     public static void init() {
         System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "info");
         System.setProperty("org.slf4j.simpleLogger.showDateTime", "true");
         System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.ExecuteStreamCommand", "debug");
         System.setProperty("org.slf4j.simpleLogger.log.nifi.processors.standard.TestExecuteStreamCommand", "debug");
-        LOGGER = LoggerFactory.getLogger(TestExecuteStreamCommand.class);
     }
 
     @Test
@@ -177,7 +171,7 @@ public class TestExecuteStreamCommand {
         byte[] byteArray = flowFiles.get(0).toByteArray();
         String result = new String(byteArray);
         assertTrue("TestIngestAndUpdate.jar should not have received anything to modify",
-                Pattern.compile("target:ModifiedResult\r?\n$").matcher(result).find());
+            Pattern.compile("target:ModifiedResult\r?\n$").matcher(result).find());
     }
 
     // this is dependent on window with cygwin...so it's not enabled
