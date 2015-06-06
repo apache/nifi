@@ -14,33 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.documentation.mock;
+package org.apache.nifi.documentation.example;
 
-import org.apache.nifi.controller.ControllerServiceInitializationContext;
-import org.apache.nifi.controller.ControllerServiceLookup;
-import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.ProcessorInitializationContext;
+import org.apache.nifi.processor.exception.ProcessException;
 
-/**
- * A Mock ControllerServiceInitializationContext so that ControllerServices can
- * be initialized for the purpose of generating documentation.
- *
- *
- */
-public class MockControllerServiceInitializationContext implements ControllerServiceInitializationContext {
+public class ProcessorWithLogger extends AbstractProcessor {
 
     @Override
-    public String getIdentifier() {
-        return "mock-controller-service";
+    protected void init(ProcessorInitializationContext context) {
+        context.getLogger().info("Initializing...");
     }
 
     @Override
-    public ControllerServiceLookup getControllerServiceLookup() {
-        return new MockControllerServiceLookup();
-    }
+    public void onTrigger(ProcessContext context, ProcessSession session)
+            throws ProcessException {
 
-    @Override
-    public ComponentLog getLogger() {
-        return new MockProcessorLogger();
     }
-
 }
