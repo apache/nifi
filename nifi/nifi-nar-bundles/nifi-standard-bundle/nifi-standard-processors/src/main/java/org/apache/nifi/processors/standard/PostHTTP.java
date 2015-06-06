@@ -504,7 +504,7 @@ public class PostHTTP extends AbstractProcessor {
                     final int port = context.getProperty(PROXY_PORT).asInteger();
                     clientBuilder.setProxy(new HttpHost(host, port));
                 }
-                
+
                 client = clientBuilder.build();
 
                 // determine whether or not destination accepts flowfile/gzip
