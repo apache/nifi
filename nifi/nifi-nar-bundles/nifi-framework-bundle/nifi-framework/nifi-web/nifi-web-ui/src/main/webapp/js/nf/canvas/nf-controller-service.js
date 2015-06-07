@@ -656,7 +656,7 @@ nf.ControllerService = (function () {
                     deferred.resolve();
                 } else {
                     if (typeof pollCondition === 'function' && pollCondition()) {
-                        setTimeout(poll(), getTimeout());
+                        setTimeout(poll, getTimeout());
                     } else {
                         deferred.reject();
                     }
