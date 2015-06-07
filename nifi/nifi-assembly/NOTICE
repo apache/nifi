@@ -64,10 +64,10 @@ The following binary components are provided under the Apache Software License v
   (ASLv2) Apache HttpComponents
     The following NOTICE information applies:
       Apache HttpClient
-      Copyright 1999-2014 The Apache Software Foundation
+      Copyright 1999-2015 The Apache Software Foundation
       
       Apache HttpCore
-      Copyright 2005-2014 The Apache Software Foundation
+      Copyright 2005-2015 The Apache Software Foundation
 
       Apache HttpMime
       Copyright 1999-2013 The Apache Software Foundation
@@ -83,15 +83,20 @@ The following binary components are provided under the Apache Software License v
   (ASLv2) Apache Commons Logging
     The following NOTICE information applies:
       Apache Commons Logging
-      Copyright 2003-2013 The Apache Software Foundation
+      Copyright 2003-2014 The Apache Software Foundation
 
   (ASLv2) Apache Commons Lang
     The following NOTICE information applies:
       Apache Commons Lang
-      Copyright 2001-2014 The Apache Software Foundation
+      Copyright 2001-2015 The Apache Software Foundation
 
       This product includes software from the Spring Framework,
       under the Apache License 2.0 (see: StringUtils.containsWhitespace())
+
+  (ASLv2) Apache Commons Configuration
+    The following NOTICE information applies:
+      Apache Commons Configuration
+      Copyright 2001-2008 The Apache Software Foundation
 
   (ASLv2) Apache Commons JEXL
     The following NOTICE information applies:
@@ -101,7 +106,7 @@ The following binary components are provided under the Apache Software License v
   (ASLv2) Spring Framework
     The following NOTICE information applies:
       Spring Framework 4.1.4.RELEASE
-      Copyright (c) 2002-2014 Pivotal, Inc.
+      Copyright (c) 2002-2015 Pivotal, Inc.
 
   (ASLv2) Apache Commons CLI
     The following NOTICE information applies:
@@ -188,11 +193,6 @@ The following binary components are provided under the Apache Software License v
     The following NOTICE information applies:
       Apache Tika Core
       Copyright 2007-2015 The Apache Software Foundation
-
-  (ASLv2) Apache Commons Configuration
-    The following NOTICE information applies:
-      Apache Commons Configuration
-      Copyright 2001-2008 The Apache Software Foundation
 
   (ASLv2) Apache Jakarta Commons Digester
     The following NOTICE information applies:
@@ -460,7 +460,7 @@ The following binary components are provided under the Apache Software License v
   (ASLv2) Apache ActiveMQ
     The following NOTICE information applies:
       ActiveMQ :: Client
-      Copyright 2005-2014 The Apache Software Foundation
+      Copyright 2005-2015 The Apache Software Foundation
 
   (ASLv2) Apache Geronimo
     The following NOTICE information applies:
@@ -549,19 +549,88 @@ The following binary components are provided under the Apache Software License v
       - JSON parsing and utility functions from JSON.org - Copyright 2002 JSON.org.
       - PKCS#1 PEM encoded private key parsing and utility functions from oauth.googlecode.com - Copyright 1998-2010 AOL Inc.
 
+   (ASLv2) Apache Commons DBCP
+      The following NOTICE information applies:
+        Apache Commons DBCP
+        Copyright 2001-2015 The Apache Software Foundation.
+      
+   (ASLv2) Apache Commons Pool
+      The following NOTICE information applies:
+        Apache Commons Pool
+        Copyright 1999-2009 The Apache Software Foundation.
+
+    (ASLv2) Apache Derby
+      The following NOTICE information applies:
+        Apache Derby
+        Copyright 2004-2014 Apache, Apache DB, Apache Derby, Apache Torque, Apache JDO, Apache DDLUtils, 
+        the Derby hat logo, the Apache JDO logo, and the Apache feather logo are trademarks of The Apache Software Foundation.
+
+    (ASLv2) Apache Directory Server
+      The following NOTICE information applies:
+        ApacheDS Protocol Kerberos Codec
+        Copyright 2003-2013 The Apache Software Foundation
+
+        ApacheDS I18n
+        Copyright 2003-2013 The Apache Software Foundation
+
+        Apache Directory API ASN.1 API
+        Copyright 2003-2013 The Apache Software Foundation
+
+        Apache Directory LDAP API Utilities
+        Copyright 2003-2013 The Apache Software Foundation
+
+    (ASLv2) Apache Curator
+      The following NOTICE information applies:
+        Curator Framework
+        Copyright 2011-2014 The Apache Software Foundation
+
+        Curator Client
+        Copyright 2011-2014 The Apache Software Foundation
+
+        Curator Recipes
+        Copyright 2011-2014 The Apache Software Foundation
+
+    (ASLv2) The Netty Project
+      The following NOTICE information applies:
+        The Netty Project
+        Copyright 2011 The Netty Project
+
+    (ASLv2) Apache Xerces Java
+      The following NOTICE information applies:
+        Apache Xerces Java
+        Copyright 1999-2007 The Apache Software Foundation
+
+        This product includes software developed at
+        The Apache Software Foundation (http://www.apache.org/).
+
+        Portions of this software were originally based on the following:
+          - software copyright (c) 1999, IBM Corporation., http://www.ibm.com.
+          - software copyright (c) 1999, Sun Microsystems., http://www.sun.com.
+          - voluntary contributions made by Paul Eng on behalf of the 
+            Apache Software Foundation that were originally developed at iClick, Inc.,
+            software copyright (c) 1999.
+
+    (ASLv2) Google Guice
+      The following NOTICE information applies:
+        Google Guice - Core Library
+        Copyright 2006-2011 Google, Inc.
+
+        Google Guice - Extensions - Servlet
+        Copyright 2006-2011 Google, Inc.
+
 ************************
 Common Development and Distribution License 1.1
 ************************
 
 The following binary components are provided under the Common Development and Distribution License 1.1. See project link for details.
 
-    (CDDL 1.1) (GPL2 w/ CPE) jersey-client (com.sun.jersey:jersey-client:jar:1.18.3 - https://jersey.java.net/jersey-client/)
-    (CDDL 1.1) (GPL2 w/ CPE) jersey-core (com.sun.jersey:jersey-core:jar:1.18.3 - https://jersey.java.net/jersey-core/)
-    (CDDL 1.1) (GPL2 w/ CPE) jersey-spring (com.sun.jersey:jersey-spring:jar:1.18.3 - https://jersey.java.net/jersey-spring/)
-    (CDDL 1.1) (GPL2 w/ CPE) jersey-servlet (com.sun.jersey:jersey-servlet:jar:1.18.3 - https://jersey.java.net/jersey-servlet/)
-    (CDDL 1.1) (GPL2 w/ CPE) jersey-multipart (com.sun.jersey:jersey-multipart:jar:1.18.3 - https://jersey.java.net/jersey-multipart/)
-    (CDDL 1.1) (GPL2 w/ CPE) jersey-server (com.sun.jersey:jersey-server:jar:1.18.3 - https://jersey.java.net/jersey-server/)
-    (CDDL 1.1) (GPL2 w/ CPE) jersey-json (com.sun.jersey:jersey-json:jar:1.18.3 - https://jersey.java.net/jersey-json/)
+    (CDDL 1.1) (GPL2 w/ CPE) jersey-client (com.sun.jersey:jersey-client:jar:1.19 - https://jersey.java.net/jersey-client/)
+    (CDDL 1.1) (GPL2 w/ CPE) jersey-core (com.sun.jersey:jersey-core:jar:1.19 - https://jersey.java.net/jersey-core/)
+    (CDDL 1.1) (GPL2 w/ CPE) jersey-spring (com.sun.jersey:jersey-spring:jar:1.19 - https://jersey.java.net/jersey-spring/)
+    (CDDL 1.1) (GPL2 w/ CPE) jersey-servlet (com.sun.jersey:jersey-servlet:jar:1.19 - https://jersey.java.net/jersey-servlet/)
+    (CDDL 1.1) (GPL2 w/ CPE) jersey-multipart (com.sun.jersey:jersey-multipart:jar:1.19 - https://jersey.java.net/jersey-multipart/)
+    (CDDL 1.1) (GPL2 w/ CPE) jersey-server (com.sun.jersey:jersey-server:jar:1.19 - https://jersey.java.net/jersey-server/)
+    (CDDL 1.1) (GPL2 w/ CPE) jersey-json (com.sun.jersey:jersey-json:jar:1.19 - https://jersey.java.net/jersey-json/)
     (CDDL 1.1) (GPL2 w/ CPE) Old JAXB Runtime (com.sun.xml.bind:jaxb-impl:jar:2.2.3-1 - http://jaxb.java.net/)
     (CDDL 1.1) (GPL2 w/ CPE) Java Architecture For XML Binding (javax.xml.bind:jaxb-api:jar:2.2.2 - https://jaxb.dev.java.net/)
     (CDDL 1.1) (GPL2 w/ CPE) MIME Streaming Extension (org.jvnet.mimepull:mimepull:jar:1.9.3 - http://mimepull.java.net)
@@ -573,7 +642,7 @@ The following binary components are provided under the Common Development and Di
     (CDDL 1.1) (GPL2 w/ CPE) Expression Language 3.0 API  (javax.el:javax.el-api:jar:3.0.0 - http://uel-spec.java.net)
     (CDDL 1.1) (GPL2 w/ CPE) JavaServer Pages(TM) Standard Tag Library API  (javax.servlet.jsp.jstl:javax.servlet.jsp.jstl-api:jar:1.2.1 - http://jcp.org/en/jsr/detail?id=52)
     (CDDL 1.1) (GPL2 w/ CPE) Java Servlet API  (javax.servlet:javax.servlet-api:jar:3.1.0 - http://servlet-spec.java.net)
-    (CDDL 1.1) (GPL2 w/ CPE) Javax JMS Api (javax.jms:javax.jms-api:jar:2.0 - http://java.net/projects/jms-spec/pages/Home)
+    (CDDL 1.1) (GPL2 w/ CPE) Javax JMS Api (javax.jms:javax.jms-api:jar:2.0.1 - http://java.net/projects/jms-spec/pages/Home)
 
 ************************
 Common Development and Distribution License 1.0
@@ -585,6 +654,7 @@ The following binary components are provided under the Common Development and Di
     (CDDL 1.0) (GPL3) Streaming API For XML (javax.xml.stream:stax-api:jar:1.0-2 - no url provided)
     (CDDL 1.0) JavaBeans Activation Framework (JAF) (javax.activation:activation:jar:1.1 - http://java.sun.com/products/javabeans/jaf/index.jsp)
     (CDDL 1.0) JavaServer Pages(TM) API (javax.servlet.jsp:jsp-api:jar:2.1 - http://jsp.java.net)
+    (CDDL 1.0) JSR311 API (javax.ws.rs:jsr311-api:jar:1.1.1 - https://jsr311.dev.java.net)
 
 ************************
 Creative Commons Attribution-ShareAlike 3.0
@@ -600,10 +670,10 @@ Eclipse Public License 1.0
 
 The following binary components are provided under the Eclipse Public License 1.0.  See project link for details.
 
-    (EPL 1.0) AspectJ Weaver (org.aspectj:aspectjweaver:jar:1.8.4 - http://www.aspectj.org)
+    (EPL 1.0) AspectJ Weaver (org.aspectj:aspectjweaver:jar:1.8.5 - http://www.aspectj.org)
     (EPL 1.0)(MPL 2.0) H2 Database (com.h2database:h2:jar:1.3.176 - http://www.h2database.com/html/license.html)
-    (EPL 1.0)(LGPL 2.1) Logback Classic (ch.qos.logback:logback-classic:jar:1.1.2 - http://logback.qos.ch/)
-    (EPL 1.0)(LGPL 2.1) Logback Core (ch.qos.logback:logback-core:jar:1.1.2 - http://logback.qos.ch/)
+    (EPL 1.0)(LGPL 2.1) Logback Classic (ch.qos.logback:logback-classic:jar:1.1.3 - http://logback.qos.ch/)
+    (EPL 1.0)(LGPL 2.1) Logback Core (ch.qos.logback:logback-core:jar:1.1.3 - http://logback.qos.ch/)
 
 *****************
 Mozilla Public License v2.0
@@ -611,7 +681,7 @@ Mozilla Public License v2.0
 
 The following binary components are provided under the Mozilla Public License v2.0.  See project link for details.
 
-    (MPL 2.0) Saxon HE (net.sf.saxon:Saxon-HE:jar:9.6.0-4 - http://www.saxonica.com/)
+    (MPL 2.0) Saxon HE (net.sf.saxon:Saxon-HE:jar:9.6.0-5 - http://www.saxonica.com/)
 
 *****************
 Mozilla Public License v1.1
@@ -628,5 +698,5 @@ Public Domain
 
 The following binary components are provided to the 'Public Domain'.  See project link for details.
 
-    (Public Domain) XZ for Java (org.tukaani:xz:jar:1.2 - http://tukaani.org/xz/java.html
-
+    (Public Domain) XZ for Java (org.tukaani:xz:jar:1.5 - http://tukaani.org/xz/java.html
+    (Public Domain) AOP Alliance 1.0 (http://aopalliance.sourceforge.net/)

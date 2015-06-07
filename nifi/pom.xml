@@ -43,7 +43,7 @@
         <spring.version>4.1.6.RELEASE</spring.version>
         <spring.security.version>3.2.7.RELEASE</spring.security.version>
         <jersey.version>1.19</jersey.version>
-        <hadoop.version>2.7.0</hadoop.version>
+        <hadoop.version>2.6.0</hadoop.version>
         <inceptionYear>2014</inceptionYear>
     </properties>
     <dependencyManagement>
@@ -124,7 +124,12 @@
                 <groupId>org.antlr</groupId>
                 <artifactId>antlr-runtime</artifactId>
                 <version>3.5.2</version>
-            </dependency> 
+            </dependency>
+            <dependency>
+                <groupId>org.mongodb</groupId>
+                <artifactId>mongo-java-driver</artifactId>
+                <version>3.0.2</version>
+            </dependency>
             <dependency>
                 <groupId>com.wordnik</groupId>
                 <artifactId>swagger-annotations</artifactId>
