@@ -29,10 +29,14 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -226,9 +230,9 @@ public class TestExecuteStreamCommand {
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
         byte[] byteArray = flowFiles.get(0).toByteArray();
         String result = new String(byteArray);
-        String[] dynamicEnvironment = result.split("\r?\n");
-        assertEquals("Should contain two environment variables starting with NIFI", 2, dynamicEnvironment.length);
-        assertEquals("NIFI_TEST_2 environment variable is missing", "NIFI_TEST_2=testvalue2", dynamicEnvironment[0]);
-        assertEquals("NIFI_TEST_1 environment variable is missing", "NIFI_TEST_1=testvalue1", dynamicEnvironment[1]);
+        Set<String> dynamicEnvironmentVariables = new HashSet<>(Arrays.asList(result.split("\r?\n")));
+        assertFalse("Should contain at least two environment variables starting with NIFI", dynamicEnvironmentVariables.size() < 2);
+        assertTrue("NIFI_TEST_1 environment variable is missing", dynamicEnvironmentVariables.contains("NIFI_TEST_1=testvalue1"));
+        assertTrue("NIFI_TEST_2 environment variable is missing", dynamicEnvironmentVariables.contains("NIFI_TEST_2=testvalue2"));
     }
 }
