@@ -368,4 +368,22 @@ public class TestReplaceText {
         System.out.println(outContent);
     }
 
+    @Test
+    public void testReplaceWithinCurlyBraces() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new ReplaceText());
+        runner.setValidateExpressionUsage(false);
+        runner.setProperty(ReplaceText.REGEX, ".+");
+        runner.setProperty(ReplaceText.REPLACEMENT_VALUE, "{ ${filename} }");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("filename", "abc.txt");
+        runner.enqueue("Hello".getBytes(), attributes);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        out.assertContentEquals("{ abc.txt }");
+    }
+
 }
