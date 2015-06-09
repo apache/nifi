@@ -193,11 +193,6 @@ public class FileSystemRepository implements ContentRepository {
         LOG.info("Initializing FileSystemRepository with 'Always Sync' set to {}", alwaysSync);
         initializeRepository();
 
-        executor.scheduleWithFixedDelay(new BinDestructableClaims(), 1, 1, TimeUnit.SECONDS);
-        for (int i = 0; i < fileRespositoryPaths.size(); i++) {
-            executor.scheduleWithFixedDelay(new ArchiveOrDestroyDestructableClaims(), 1, 1, TimeUnit.SECONDS);
-        }
-
         final long cleanupMillis;
         if (archiveCleanupFrequency == null) {
             cleanupMillis = 1000L;
@@ -221,6 +216,15 @@ public class FileSystemRepository implements ContentRepository {
     @Override
     public void initialize(final ContentClaimManager claimManager) {
         this.contentClaimManager = claimManager;
+
+        final NiFiProperties properties = NiFiProperties.getInstance();
+
+        final Map<String, Path> fileRespositoryPaths = properties.getContentRepositoryPaths();
+
+        executor.scheduleWithFixedDelay(new BinDestructableClaims(), 1, 1, TimeUnit.SECONDS);
+        for (int i = 0; i < fileRespositoryPaths.size(); i++) {
+            executor.scheduleWithFixedDelay(new ArchiveOrDestroyDestructableClaims(), 1, 1, TimeUnit.SECONDS);
+        }
     }
 
     @Override
