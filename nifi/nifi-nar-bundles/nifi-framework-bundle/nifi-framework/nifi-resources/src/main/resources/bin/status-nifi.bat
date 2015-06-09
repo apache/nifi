@@ -40,7 +40,7 @@ set BOOTSTRAP_CONF_FILE=%CONF_DIR%\bootstrap.conf
 set JAVA_ARGS=-Dorg.apache.nifi.bootstrap.config.file=%BOOTSTRAP_CONF_FILE%
 
 set JAVA_PARAMS=-cp %LIB_DIR%\* -Xms12m -Xmx24m %JAVA_ARGS% org.apache.nifi.bootstrap.RunNiFi
-set BOOTSTRAP_ACTION=start
+set BOOTSTRAP_ACTION=status
 
 cmd.exe /C "%JAVA_EXE%" %JAVA_PARAMS% %BOOTSTRAP_ACTION%
 
