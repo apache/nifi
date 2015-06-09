@@ -20,6 +20,7 @@ import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.documentation.ConfigurableComponentInitializer;
 import org.apache.nifi.documentation.mock.MockControllerServiceInitializationContext;
+import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.reporting.InitializationException;
 
 /**
@@ -33,6 +34,9 @@ public class ControllerServiceInitializer implements ConfigurableComponentInitia
     @Override
     public void initialize(ConfigurableComponent component) throws InitializationException {
         ControllerService controllerService = (ControllerService) component;
-        controllerService.initialize(new MockControllerServiceInitializationContext());
+
+        try (NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+            controllerService.initialize(new MockControllerServiceInitializationContext());
+        }
     }
 }
