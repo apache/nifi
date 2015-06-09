@@ -57,6 +57,7 @@ public final class SslContextFactory {
      * @param truststorePasswd the truststore password
      * @param truststoreType the type of truststore (e.g., PKCS12, JKS)
      * @param clientAuth the type of client authentication
+     * @param protocol         the protocol to use for the SSL connection
      *
      * @return a SSLContext instance
      * @throws java.security.KeyStoreException if any issues accessing the keystore
@@ -69,7 +70,7 @@ public final class SslContextFactory {
     public static SSLContext createSslContext(
             final String keystore, final char[] keystorePasswd, final String keystoreType,
             final String truststore, final char[] truststorePasswd, final String truststoreType,
-            final ClientAuth clientAuth)
+            final ClientAuth clientAuth, final String protocol)
             throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException,
             UnrecoverableKeyException, KeyManagementException {
 
@@ -90,7 +91,7 @@ public final class SslContextFactory {
         trustManagerFactory.init(trustStore);
 
         // initialize the ssl context
-        final SSLContext sslContext = SSLContext.getInstance("TLS");
+        final SSLContext sslContext = SSLContext.getInstance(protocol);
         sslContext.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(), new SecureRandom());
         if (ClientAuth.REQUIRED == clientAuth) {
             sslContext.getDefaultSSLParameters().setNeedClientAuth(true);
@@ -110,6 +111,7 @@ public final class SslContextFactory {
      * @param keystore the full path to the keystore
      * @param keystorePasswd the keystore password
      * @param keystoreType the type of keystore (e.g., PKCS12, JKS)
+     * @param protocol the protocol to use for the SSL connection
      *
      * @return a SSLContext instance
      * @throws java.security.KeyStoreException if any issues accessing the keystore
@@ -120,7 +122,7 @@ public final class SslContextFactory {
      * @throws java.security.KeyManagementException if unable to manage the key
      */
     public static SSLContext createSslContext(
-            final String keystore, final char[] keystorePasswd, final String keystoreType)
+            final String keystore, final char[] keystorePasswd, final String keystoreType, final String protocol)
             throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException,
             UnrecoverableKeyException, KeyManagementException {
 
@@ -133,7 +135,7 @@ public final class SslContextFactory {
         keyManagerFactory.init(keyStore, keystorePasswd);
 
         // initialize the ssl context
-        final SSLContext ctx = SSLContext.getInstance("TLS");
+        final SSLContext ctx = SSLContext.getInstance(protocol);
         ctx.init(keyManagerFactory.getKeyManagers(), new TrustManager[0], new SecureRandom());
 
         return ctx;
@@ -146,6 +148,7 @@ public final class SslContextFactory {
      * @param truststore the full path to the truststore
      * @param truststorePasswd the truststore password
      * @param truststoreType the type of truststore (e.g., PKCS12, JKS)
+     * @param protocol the protocol to use for the SSL connection
      *
      * @return a SSLContext instance
      * @throws java.security.KeyStoreException if any issues accessing the keystore
@@ -156,7 +159,7 @@ public final class SslContextFactory {
      * @throws java.security.KeyManagementException if unable to manage the key
      */
     public static SSLContext createTrustSslContext(
-            final String truststore, final char[] truststorePasswd, final String truststoreType)
+            final String truststore, final char[] truststorePasswd, final String truststoreType, final String protocol)
             throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException,
             UnrecoverableKeyException, KeyManagementException {
 
@@ -169,7 +172,7 @@ public final class SslContextFactory {
         trustManagerFactory.init(trustStore);
 
         // initialize the ssl context
-        final SSLContext ctx = SSLContext.getInstance("TLS");
+        final SSLContext ctx = SSLContext.getInstance(protocol);
         ctx.init(new KeyManager[0], trustManagerFactory.getTrustManagers(), new SecureRandom());
 
         return ctx;

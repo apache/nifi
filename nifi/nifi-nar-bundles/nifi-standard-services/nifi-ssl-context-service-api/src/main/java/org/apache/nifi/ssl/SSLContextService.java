@@ -57,4 +57,5 @@ public interface SSLContextService extends ControllerService {
 
     public boolean isKeyStoreConfigured();
 
+    String getSslAlgorithm();
 }
