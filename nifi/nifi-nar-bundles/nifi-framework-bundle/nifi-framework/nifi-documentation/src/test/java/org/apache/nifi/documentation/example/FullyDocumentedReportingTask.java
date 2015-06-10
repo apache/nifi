@@ -20,8 +20,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnRemoved;
+import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.ReportingContext;
 
@@ -35,6 +38,12 @@ public class FullyDocumentedReportingTask extends AbstractReportingTask {
                     "Specifies whether or not to show the difference in values between the current status and the previous status")
             .required(true).allowableValues("true", "false").defaultValue("true").build();
 
+    private int onRemovedNoArgs = 0;
+    private int onRemovedArgs = 0;
+
+    private int onShutdownNoArgs = 0;
+    private int onShutdownArgs = 0;
+
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
@@ -44,7 +53,42 @@ public class FullyDocumentedReportingTask extends AbstractReportingTask {
 
     @Override
     public void onTrigger(ReportingContext context) {
-        // TODO Auto-generated method stub
 
+    }
+
+    @OnRemoved
+    public void onRemovedNoArgs() {
+        onRemovedNoArgs++;
+    }
+
+    @OnRemoved
+    public void onRemovedArgs(ConfigurationContext context) {
+        onRemovedArgs++;
+    }
+
+    @OnShutdown
+    public void onShutdownNoArgs() {
+        onShutdownNoArgs++;
+    }
+
+    @OnShutdown
+    public void onShutdownArgs(ConfigurationContext context) {
+        onShutdownArgs++;
+    }
+
+    public int getOnRemovedNoArgs() {
+        return onRemovedNoArgs;
+    }
+
+    public int getOnRemovedArgs() {
+        return onRemovedArgs;
+    }
+
+    public int getOnShutdownNoArgs() {
+        return onShutdownNoArgs;
+    }
+
+    public int getOnShutdownArgs() {
+        return onShutdownArgs;
     }
 }
