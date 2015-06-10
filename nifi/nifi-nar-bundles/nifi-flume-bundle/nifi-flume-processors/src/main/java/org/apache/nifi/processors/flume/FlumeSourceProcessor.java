@@ -165,7 +165,11 @@ public class FlumeSourceProcessor extends AbstractFlumeProcessor {
             super.onTrigger(context, sessionFactory);
         } else if (source instanceof EventDrivenSource) {
             ProcessSessionFactory old = sessionFactoryRef.getAndSet(sessionFactory);
-            if (old == null) {
+            if (old != sessionFactory) {
+                if (runnerRef.get() != null) {
+                    stopped();
+                }
+
                 runnerRef.set(new EventDrivenSourceRunner());
                 eventDrivenSourceChannelRef.set(new NifiSessionFactoryChannel(sessionFactoryRef.get(), SUCCESS));
                 eventDrivenSourceChannelRef.get().start();
