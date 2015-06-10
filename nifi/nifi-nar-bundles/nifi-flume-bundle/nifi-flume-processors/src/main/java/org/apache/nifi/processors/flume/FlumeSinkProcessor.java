@@ -104,7 +104,6 @@ public class FlumeSinkProcessor extends AbstractFlumeProcessor {
     public void onScheduled(final SchedulingContext context) {
         try {
             channel = new NifiSinkSessionChannel(SUCCESS, FAILURE);
-            Configurables.configure(channel, new Context());
             channel.start();
 
             sink = SINK_FACTORY.create(context.getProperty(SOURCE_NAME).getValue(),
@@ -135,9 +134,7 @@ public class FlumeSinkProcessor extends AbstractFlumeProcessor {
 
         channel.setSession(session);
         try {
-            if (sink.process() == Sink.Status.BACKOFF) {
-                context.yield();
-            }
+            sink.process();
         } catch (EventDeliveryException ex) {
             throw new ProcessException("Flume event delivery failed", ex);
         }
