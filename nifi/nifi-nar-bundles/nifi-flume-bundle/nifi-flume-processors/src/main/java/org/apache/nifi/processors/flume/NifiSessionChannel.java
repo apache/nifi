@@ -22,24 +22,26 @@ import org.apache.flume.channel.BasicTransactionSemantics;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 
+public class NifiSessionChannel extends BasicChannelSemantics {
 
-public class NifiChannel extends BasicChannelSemantics {
-  private final ProcessSession session;
-  private final Relationship relationship;
+    private ProcessSession session;
+    private final Relationship relationship;
 
-  public NifiChannel(ProcessSession session, Relationship relationship) {
-    this.session = session;
-    this.relationship = relationship;
-  }
+    public NifiSessionChannel(Relationship relationship) {
+        this.relationship = relationship;
+    }
 
-  @Override
-  protected BasicTransactionSemantics createTransaction() {
-    return new NifiTransaction(session, relationship);
-  }
+    public void setSession(ProcessSession session) {
+        this.session = session;
+    }
 
-  @Override
-  public void configure(Context context) {
-  }
+    @Override
+    protected BasicTransactionSemantics createTransaction() {
+        return new NifiTransaction(session, relationship);
+    }
 
+    @Override
+    public void configure(Context context) {
+    }
 
 }

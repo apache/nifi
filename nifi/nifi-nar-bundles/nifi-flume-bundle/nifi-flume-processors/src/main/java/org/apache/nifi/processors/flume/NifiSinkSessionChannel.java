@@ -16,39 +16,34 @@
  */
 package org.apache.nifi.processors.flume;
 
-import org.apache.flume.Event;
+import org.apache.flume.Context;
+import org.apache.flume.channel.BasicChannelSemantics;
 import org.apache.flume.channel.BasicTransactionSemantics;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 
-class NifiTransaction extends BasicTransactionSemantics {
+public class NifiSinkSessionChannel extends BasicChannelSemantics {
 
-    private final ProcessSession session;
-    private final Relationship relationship;
+    private ProcessSession session;
+    private final Relationship success;
+    private final Relationship failure;
 
-    public NifiTransaction(ProcessSession session, Relationship relationship) {
+    public NifiSinkSessionChannel(Relationship success, Relationship failure) {
+        this.success = success;
+        this.failure = failure;
+    }
+
+    public void setSession(ProcessSession session) {
         this.session = session;
-        this.relationship = relationship;
     }
 
     @Override
-    protected void doPut(Event event) throws InterruptedException {
-        AbstractFlumeProcessor.transferEvent(event, session, relationship);
+    protected BasicTransactionSemantics createTransaction() {
+        return new NifiSinkTransaction(session, success, failure);
     }
 
     @Override
-    protected Event doTake() throws InterruptedException {
-        throw new UnsupportedOperationException("Only put supported");
-    }
-
-    @Override
-    protected void doCommit() throws InterruptedException {
-        session.commit();
-    }
-
-    @Override
-    protected void doRollback() throws InterruptedException {
-        session.rollback();
+    public void configure(Context context) {
     }
 
 }

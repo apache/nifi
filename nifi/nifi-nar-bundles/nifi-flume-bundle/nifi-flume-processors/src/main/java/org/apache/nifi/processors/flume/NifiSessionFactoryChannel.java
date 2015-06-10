@@ -16,39 +16,36 @@
  */
 package org.apache.nifi.processors.flume;
 
-import org.apache.flume.Event;
+import org.apache.flume.ChannelFullException;
+import org.apache.flume.Context;
+import org.apache.flume.channel.BasicChannelSemantics;
 import org.apache.flume.channel.BasicTransactionSemantics;
-import org.apache.nifi.processor.ProcessSession;
+import org.apache.flume.lifecycle.LifecycleState;
+import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 
-class NifiTransaction extends BasicTransactionSemantics {
+public class NifiSessionFactoryChannel extends BasicChannelSemantics {
 
-    private final ProcessSession session;
+    private final ProcessSessionFactory sessionFactory;
     private final Relationship relationship;
 
-    public NifiTransaction(ProcessSession session, Relationship relationship) {
-        this.session = session;
+    public NifiSessionFactoryChannel(ProcessSessionFactory sessionFactory, Relationship relationship) {
+        this.sessionFactory = sessionFactory;
         this.relationship = relationship;
     }
 
     @Override
-    protected void doPut(Event event) throws InterruptedException {
-        AbstractFlumeProcessor.transferEvent(event, session, relationship);
+    protected BasicTransactionSemantics createTransaction() {
+        LifecycleState lifecycleState = getLifecycleState();
+        if (lifecycleState == LifecycleState.STOP) {
+            throw new ChannelFullException("Can't write to a stopped channel");
+            //return null;
+        }
+        return new NifiTransaction(sessionFactory.createSession(), relationship);
     }
 
     @Override
-    protected Event doTake() throws InterruptedException {
-        throw new UnsupportedOperationException("Only put supported");
-    }
-
-    @Override
-    protected void doCommit() throws InterruptedException {
-        session.commit();
-    }
-
-    @Override
-    protected void doRollback() throws InterruptedException {
-        session.rollback();
+    public void configure(Context context) {
     }
 
 }

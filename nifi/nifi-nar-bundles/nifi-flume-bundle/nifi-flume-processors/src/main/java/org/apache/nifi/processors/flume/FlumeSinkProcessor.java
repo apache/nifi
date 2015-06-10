@@ -19,16 +19,12 @@ package org.apache.nifi.processors.flume;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
 import java.util.List;
 import java.util.Set;
 import org.apache.flume.Context;
 import org.apache.flume.EventDeliveryException;
 import org.apache.flume.Sink;
-import org.apache.flume.Transaction;
-import org.apache.flume.channel.MemoryChannel;
 import org.apache.flume.conf.Configurables;
-import org.apache.jasper.compiler.JspUtil;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -36,7 +32,6 @@ import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
-import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
@@ -44,17 +39,13 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.SchedulingContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.flume.util.FlowFileEvent;
 
 /**
  * This processor runs a Flume sink
  */
 @Tags({"flume", "hadoop", "get", "sink"})
-@CapabilityDescription("Generate FlowFile data from a Flume sink")
+@CapabilityDescription("Write FlowFile data to a Flume sink")
 public class FlumeSinkProcessor extends AbstractFlumeProcessor {
-
-    private Sink sink;
-    private MemoryChannel channel;
 
     public static final PropertyDescriptor SINK_TYPE = new PropertyDescriptor.Builder()
             .name("Sink Type")
@@ -83,24 +74,19 @@ public class FlumeSinkProcessor extends AbstractFlumeProcessor {
             .defaultValue("")
             .addValidator(Validator.VALID)
             .build();
-    public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
-            .name("Batch Size")
-            .description("The number of FlowFiles to process in a single batch")
-            .required(true)
-            .defaultValue("100")
-            .addValidator(StandardValidators.INTEGER_VALIDATOR)
-            .build();
 
     public static final Relationship SUCCESS = new Relationship.Builder().name("success").build();
     public static final Relationship FAILURE = new Relationship.Builder().name("failure").build();
 
     private List<PropertyDescriptor> descriptors;
     private Set<Relationship> relationships;
-    private int batchSize;
+
+    private volatile Sink sink;
+    private volatile NifiSinkSessionChannel channel;
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
-        this.descriptors = ImmutableList.of(SINK_TYPE, AGENT_NAME, SOURCE_NAME, FLUME_CONFIG, BATCH_SIZE);
+        this.descriptors = ImmutableList.of(SINK_TYPE, AGENT_NAME, SOURCE_NAME, FLUME_CONFIG);
         this.relationships = ImmutableSet.of(SUCCESS, FAILURE);
     }
 
@@ -116,14 +102,9 @@ public class FlumeSinkProcessor extends AbstractFlumeProcessor {
 
     @OnScheduled
     public void onScheduled(final SchedulingContext context) {
-        batchSize = context.getProperty(BATCH_SIZE).asInteger();
-
         try {
-            channel = new MemoryChannel();
-            Context memoryChannelContext = new Context();
-            memoryChannelContext.put("capacity", String.valueOf(batchSize*10));
-            memoryChannelContext.put("transactionCapacity", String.valueOf(batchSize*10));
-            Configurables.configure(channel, memoryChannelContext);
+            channel = new NifiSinkSessionChannel(SUCCESS, FAILURE);
+            Configurables.configure(channel, new Context());
             channel.start();
 
             sink = SINK_FACTORY.create(context.getProperty(SOURCE_NAME).getValue(),
@@ -152,42 +133,14 @@ public class FlumeSinkProcessor extends AbstractFlumeProcessor {
     @Override
     public void onTrigger(final ProcessContext context,
             final ProcessSession session) throws ProcessException {
-        List<FlowFile> flowFiles = Lists.newArrayListWithExpectedSize(batchSize);
-        for (int i = 0; i < batchSize; i++) {
-            FlowFile flowFile = session.get();
-            if (flowFile == null) {
-              break;
-            }
 
-            flowFiles.add(flowFile);
-        }
-
-        Transaction transaction = channel.getTransaction();
+        channel.setSession(session);
         try {
-            transaction.begin();
-            for (FlowFile flowFile : flowFiles) {
-                channel.put(new FlowFileEvent(flowFile, session));
-            }
-            transaction.commit();
-        } catch (Throwable th) {
-            transaction.rollback();
-            throw Throwables.propagate(th);
-        } finally {
-            transaction.close();
-        }
-
-        try {
-            Sink.Status status;
-            do {
-              status = sink.process();
-            } while(status == Sink.Status.READY);
-            for (FlowFile flowFile : flowFiles) {
-                session.transfer(flowFile, SUCCESS);
+            if (sink.process() == Sink.Status.BACKOFF) {
+                context.yield();
             }
         } catch (EventDeliveryException ex) {
-            for (FlowFile flowFile : flowFiles) {
-                session.transfer(flowFile, FAILURE);
-            }
+            throw new ProcessException("Flume event delivery failed", ex);
         }
     }
 }
