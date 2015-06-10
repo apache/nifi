@@ -28,7 +28,7 @@ import org.apache.flume.conf.Configurables;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
@@ -124,15 +124,14 @@ public class FlumeSinkProcessor extends AbstractFlumeProcessor {
         }
     }
 
-    @OnUnscheduled
-    public void unScheduled() {
+    @OnStopped
+    public void stopped() {
         sink.stop();
         channel.stop();
     }
 
     @Override
-    public void onTrigger(final ProcessContext context,
-            final ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
 
         channel.setSession(session);
         try {

@@ -33,7 +33,6 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
-import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
@@ -93,7 +92,6 @@ public class FlumeSourceProcessor extends AbstractFlumeProcessor {
     private final AtomicReference<ProcessSessionFactory> sessionFactoryRef = new AtomicReference<>(null);
     private final AtomicReference<EventDrivenSourceRunner> runnerRef = new AtomicReference<>(null);
     private final AtomicReference<NifiSessionFactoryChannel> eventDrivenSourceChannelRef = new AtomicReference<>(null);
-    private final AtomicReference<Boolean> stopping = new AtomicReference<>(false);
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -114,7 +112,6 @@ public class FlumeSourceProcessor extends AbstractFlumeProcessor {
     @OnScheduled
     public void onScheduled(final SchedulingContext context) {
         try {
-            stopping.set(false);
             source = SOURCE_FACTORY.create(
                 context.getProperty(SOURCE_NAME)
                 .getValue(),
@@ -142,9 +139,8 @@ public class FlumeSourceProcessor extends AbstractFlumeProcessor {
         }
     }
 
-    @OnUnscheduled
-    public void unScheduled() {
-        stopping.set(true);
+    @OnStopped
+    public void stopped() {
         if (source instanceof PollableSource) {
             source.stop();
         } else {
@@ -160,10 +156,6 @@ public class FlumeSourceProcessor extends AbstractFlumeProcessor {
                 eventDrivenSourceChannelRef.compareAndSet(eventDrivenSourceChannel, null);
             }
         }
-    }
-
-    @OnStopped
-    public void stopped() {
         sessionFactoryRef.set(null);
     }
 
@@ -176,14 +168,11 @@ public class FlumeSourceProcessor extends AbstractFlumeProcessor {
             if (old == null) {
                 runnerRef.set(new EventDrivenSourceRunner());
                 eventDrivenSourceChannelRef.set(new NifiSessionFactoryChannel(sessionFactoryRef.get(), SUCCESS));
-                eventDrivenSourceChannelRef.get()
-                    .start();
-                source.setChannelProcessor(new ChannelProcessor(new NifiChannelSelector(
-                    eventDrivenSourceChannelRef.get())));
-                runnerRef.get()
-                    .setSource(source);
-                runnerRef.get()
-                    .start();
+                eventDrivenSourceChannelRef.get().start();
+                source.setChannelProcessor(new ChannelProcessor(
+                    new NifiChannelSelector(eventDrivenSourceChannelRef.get())));
+                runnerRef.get().setSource(source);
+                runnerRef.get().start();
             }
         }
     }
