@@ -21,6 +21,7 @@ import java.io.OutputStream;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import static java.sql.Types.*;
 
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
@@ -34,104 +35,102 @@ import org.apache.avro.io.DatumWriter;
 
 /**
  *  JDBC / SQL common functions.
- *
  */
 public class JdbcCommon {
 
-	public static long convertToAvroStream(ResultSet rs, OutputStream outStream) throws SQLException, IOException {
-		
-		Schema schema = createSchema(rs);
-		GenericRecord rec = new GenericData.Record(schema);
-		
-		DatumWriter<GenericRecord> datumWriter  	= new GenericDatumWriter<GenericRecord>(schema);
-		DataFileWriter<GenericRecord> dataFileWriter= new DataFileWriter<GenericRecord>(datumWriter); 
-		dataFileWriter.create(schema, outStream);
-		
-		ResultSetMetaData meta = rs.getMetaData();
-		int nrOfColumns = meta.getColumnCount();
-		long nrOfRows = 0;
-		while (rs.next()) {
-			for (int i = 1; i <= nrOfColumns; i++) {
-				Object value = rs.getObject(i);
-				rec.put(i-1, value);
-			}
-			dataFileWriter.append(rec);
-			nrOfRows += 1;
+    public static long convertToAvroStream(final ResultSet rs, final OutputStream outStream) throws SQLException, IOException {
+        final Schema schema = createSchema(rs);
+        final GenericRecord rec = new GenericData.Record(schema);
+
+        final DatumWriter<GenericRecord> datumWriter = new GenericDatumWriter<GenericRecord>(schema);
+        try (final DataFileWriter<GenericRecord> dataFileWriter = new DataFileWriter<GenericRecord>(datumWriter)) {
+            dataFileWriter.create(schema, outStream);
+
+            final ResultSetMetaData meta = rs.getMetaData();
+            final int nrOfColumns = meta.getColumnCount();
+            long nrOfRows = 0;
+            while (rs.next()) {
+                for (int i = 1; i <= nrOfColumns; i++) {
+                    final Object value = rs.getObject(i);
+                    rec.put(i - 1, value);
+                }
+                dataFileWriter.append(rec);
+                nrOfRows += 1;
+            }
+
+            return nrOfRows;
 		}
-
-		dataFileWriter.close();
-		return nrOfRows;
 	}
-	
-	public static Schema createSchema(ResultSet rs) throws SQLException {
-		
-		ResultSetMetaData meta = rs.getMetaData();
-		int nrOfColumns = meta.getColumnCount();
-		String tableName = meta.getTableName(1);
-		
-		FieldAssembler<Schema> builder = SchemaBuilder.record(tableName).namespace("any.data").fields();
-		
-		/**
-		 * 	Some missing Avro types - Decimal, Date types.
-		 * May need some additional work.
-		 */
-		for (int i = 1; i <= nrOfColumns; i++)
+
+    public static Schema createSchema(final ResultSet rs) throws SQLException {
+        final ResultSetMetaData meta = rs.getMetaData();
+        final int nrOfColumns = meta.getColumnCount();
+        final String tableName = meta.getTableName(1);
+
+        final FieldAssembler<Schema> builder = SchemaBuilder.record(tableName).namespace("any.data").fields();
+
+        /**
+         * Some missing Avro types - Decimal, Date types. May need some
+         * additional work.
+         */
+        for (int i = 1; i <= nrOfColumns; i++) {
 			switch (meta.getColumnType(i)) {
-			
-			case java.sql.Types.CHAR:
-			case java.sql.Types.LONGNVARCHAR:
-			case java.sql.Types.LONGVARCHAR:
-			case java.sql.Types.NCHAR:
-			case java.sql.Types.NVARCHAR:
-			case java.sql.Types.VARCHAR:
-				builder.name(meta.getColumnName(i)).type().stringType().noDefault();			
-				break;
+                case CHAR:
+                case LONGNVARCHAR:
+                case LONGVARCHAR:
+                case NCHAR:
+                case NVARCHAR:
+                case VARCHAR:
+                    builder.name(meta.getColumnName(i)).type().stringType().noDefault();
+                    break;
 
-			case java.sql.Types.BOOLEAN:
-				builder.name(meta.getColumnName(i)).type().booleanType().noDefault();			
-				break;
+                case BOOLEAN:
+                    builder.name(meta.getColumnName(i)).type().booleanType().noDefault();
+                    break;
 
-			case java.sql.Types.INTEGER:
-			case java.sql.Types.SMALLINT:
-			case java.sql.Types.TINYINT:
-				builder.name(meta.getColumnName(i)).type().intType().noDefault();			
-				break;
+                case INTEGER:
+                case SMALLINT:
+                case TINYINT:
+                    builder.name(meta.getColumnName(i)).type().intType().noDefault();
+                    break;
 
-			case java.sql.Types.BIGINT:
-				builder.name(meta.getColumnName(i)).type().longType().noDefault();			
-				break;
+                case BIGINT:
+                    builder.name(meta.getColumnName(i)).type().longType().noDefault();
+                    break;
 
-			// java.sql.RowId is interface, is seems to be database implementation specific, let's convert to String
-			case java.sql.Types.ROWID:
-				builder.name(meta.getColumnName(i)).type().stringType().noDefault();			
-				break;
+                // java.sql.RowId is interface, is seems to be database
+                // implementation specific, let's convert to String
+                case ROWID:
+                    builder.name(meta.getColumnName(i)).type().stringType().noDefault();
+                    break;
 
-			case java.sql.Types.FLOAT:
-			case java.sql.Types.REAL:
-				builder.name(meta.getColumnName(i)).type().floatType().noDefault();			
-				break;
+                case FLOAT:
+                case REAL:
+                    builder.name(meta.getColumnName(i)).type().floatType().noDefault();
+                    break;
 
-			case java.sql.Types.DOUBLE:
-				builder.name(meta.getColumnName(i)).type().doubleType().noDefault();			
-				break;
+                case DOUBLE:
+                    builder.name(meta.getColumnName(i)).type().doubleType().noDefault();
+                    break;
 
-			// TODO Did not find direct suitable type, need to be clarified!!!!
-			case java.sql.Types.DECIMAL:
-			case java.sql.Types.NUMERIC:
-				builder.name(meta.getColumnName(i)).type().stringType().noDefault();			
-				break;
+                // Did not find direct suitable type, need to be clarified!!!!
+                case DECIMAL:
+                case NUMERIC:
+                    builder.name(meta.getColumnName(i)).type().stringType().noDefault();
+                    break;
 
-			// TODO Did not find direct suitable type, need to be clarified!!!!
-			case java.sql.Types.DATE:
-			case java.sql.Types.TIME:
-			case java.sql.Types.TIMESTAMP:
-				builder.name(meta.getColumnName(i)).type().stringType().noDefault();			
-				break;
+                // Did not find direct suitable type, need to be clarified!!!!
+                case DATE:
+                case TIME:
+                case TIMESTAMP:
+                    builder.name(meta.getColumnName(i)).type().stringType().noDefault();
+                    break;
 
-			default:
-				break;
+                default:
+                    break;
 			}
+        }
+
 		return builder.endRecord();
 	}
-
 }

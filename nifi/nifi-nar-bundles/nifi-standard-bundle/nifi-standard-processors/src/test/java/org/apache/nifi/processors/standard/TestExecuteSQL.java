@@ -65,7 +65,7 @@ public class TestExecuteSQL {
     public static void setup() {
         System.setProperty("derby.stream.error.file", "target/derby.log");
     }
-    
+
     @Test
     public void testNoTimeLimit() throws InitializationException, ClassNotFoundException, SQLException, IOException {
     	invokeOnTrigger(null);
@@ -77,44 +77,45 @@ public class TestExecuteSQL {
     	invokeOnTrigger(1);		// 1 second max time
     }
 
-    public void invokeOnTrigger(Integer queryTimeout) throws InitializationException, ClassNotFoundException, SQLException, IOException {
+    public void invokeOnTrigger(final Integer queryTimeout) throws InitializationException, ClassNotFoundException, SQLException, IOException {
         final TestRunner runner = TestRunners.newTestRunner(ExecuteSQL.class);
-        
+
         final DBCPService dbcp = new DBCPServiceSimpleImpl();
         final Map<String, String> dbcpProperties = new HashMap<>();
 
         runner.addControllerService("dbcp", dbcp, dbcpProperties);
-        
+
         runner.enableControllerService(dbcp);
         runner.setProperty(ExecuteSQL.DBCP_SERVICE, "dbcp");
-        
-        if (queryTimeout!=null)
+
+        if (queryTimeout != null) {
         	runner.setProperty(ExecuteSQL.QUERY_TIMEOUT, queryTimeout.toString() + " secs");
-        
+        }
+
         // remove previous test database, if any
-        File dbLocation = new File(DB_LOCATION);
+        final File dbLocation = new File(DB_LOCATION);
         dbLocation.delete();
 
         // load test data to database
-        Connection con = dbcp.getConnection();
+        final Connection con = dbcp.getConnection();
         TestJdbcHugeStream.loadTestData2Database(con, 100, 2000, 1000);
-        System.out.println("test data loaded");
-        
+        LOGGER.info("test data loaded");
+
         // ResultSet size will be 1x2000x1000 = 2 000 000 rows
         // because of where PER.ID = ${person.id}
         final int nrOfRows = 2000000;
-        String query = "select "
+        final String query = "select "
         		+ "  PER.ID as PersonId, PER.NAME as PersonName, PER.CODE as PersonCode"
         		+ ", PRD.ID as ProductId,PRD.NAME as ProductName,PRD.CODE as ProductCode"
         		+ ", REL.ID as RelId,    REL.NAME as RelName,    REL.CODE as RelCode"
         		+ ", ROW_NUMBER() OVER () as rownr "
         		+ " from persons PER, products PRD, relationships REL"
         		+ " where PER.ID = ${person.id}";
-        
+
         runner.setProperty(ExecuteSQL.SQL_SELECT_QUERY, query);
 
         // incoming FlowFile content is not used, but attributes are used
-        Map<String,String> attributes = new HashMap<String,String>();
+        final Map<String,String> attributes = new HashMap<String,String>();
         attributes.put("person.id", "10");
         runner.enqueue("Hello".getBytes(), attributes);
 
@@ -122,27 +123,27 @@ public class TestExecuteSQL {
         runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_SUCCESS, 1);
 
         // read all Avro records and verify created FlowFile contains 1000000 records
-        List<MockFlowFile> flowfiles = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS);
-        InputStream in = new ByteArrayInputStream(flowfiles.get(0).toByteArray());
-        DatumReader<GenericRecord> datumReader = new GenericDatumReader<GenericRecord>();
-        DataFileStream<GenericRecord> dataFileReader = new DataFileStream<GenericRecord>(in, datumReader);
+        final List<MockFlowFile> flowfiles = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS);
+        final InputStream in = new ByteArrayInputStream(flowfiles.get(0).toByteArray());
+        final DatumReader<GenericRecord> datumReader = new GenericDatumReader<GenericRecord>();
+        final DataFileStream<GenericRecord> dataFileReader = new DataFileStream<GenericRecord>(in, datumReader);
         GenericRecord record = null;
         long recordsFromStream = 0;
         while (dataFileReader.hasNext()) {
         	// Reuse record object by passing it to next(). This saves us from
         	// allocating and garbage collecting many objects for files with many items.
         	record = dataFileReader.next(record);
-//   	      	System.out.println(record);
           	recordsFromStream += 1;
         }
-        System.out.println("total nr of records from stream: " + recordsFromStream);
+
+        LOGGER.info("total nr of records from stream: " + recordsFromStream);
         assertEquals(nrOfRows, recordsFromStream);
         dataFileReader.close();
     }
 
-    
-    
-    
+
+
+
     /**
      * Simple implementation only for ExecuteSQL processor testing.
      *
@@ -157,13 +158,13 @@ public class TestExecuteSQL {
 		@Override
 		public Connection getConnection() throws ProcessException {
 	        try {
-				Class.forName("org.apache.derby.jdbc.EmbeddedDriver");        
-				Connection con = DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";create=true");
+				Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
+				final Connection con = DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";create=true");
 				return con;
-			} catch (Exception e) {
+			} catch (final Exception e) {
 				throw new ProcessException("getConnection failed: " + e);
 			}
-		}    	
+		}
     }
-    
+
 }

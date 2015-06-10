@@ -44,6 +44,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.util.JdbcCommon;
+import org.apache.nifi.util.LongHolder;
 import org.apache.nifi.util.StopWatch;
 
 @EventDriven
@@ -62,7 +63,7 @@ public class ExecuteSQL extends AbstractProcessor {
     		.description("SQL query execution failed. Incoming FlowFile will be penalized and routed to this relationship")
     		.build();
     private final Set<Relationship> relationships;
-    
+
     public static final PropertyDescriptor DBCP_SERVICE = new PropertyDescriptor.Builder()
     		.name("Database Connection Pooling Service")
     		.description("The Controller Service that is used to obtain connection to database")
@@ -91,11 +92,11 @@ public class ExecuteSQL extends AbstractProcessor {
     private final List<PropertyDescriptor> propDescriptors;
 
     public ExecuteSQL() {
-        HashSet<Relationship> r = new HashSet<>();
+        final Set<Relationship> r = new HashSet<>();
         r.add(REL_SUCCESS);
         relationships = Collections.unmodifiableSet(r);
 
-        ArrayList<PropertyDescriptor> pds = new ArrayList<>();
+        final List<PropertyDescriptor> pds = new ArrayList<>();
         pds.add(DBCP_SERVICE);
         pds.add(SQL_SELECT_QUERY);
         pds.add(QUERY_TIMEOUT);
@@ -113,7 +114,7 @@ public class ExecuteSQL extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile incoming = session.get();
         if (incoming == null) {
             return;
@@ -126,44 +127,30 @@ public class ExecuteSQL extends AbstractProcessor {
         final Integer queryTimeout = context.getProperty(QUERY_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue();
 
 		final StopWatch stopWatch = new StopWatch(true);
-        
-        try {
-			final Connection con = dbcpService.getConnection();
-			try {
-				final Statement st = con.createStatement();
-				try {
-					st.setQueryTimeout(queryTimeout);	// timeout in seconds
-					FlowFile outgoing = session.write(incoming, new OutputStreamCallback() {
-						@Override
-						public void process(final OutputStream out) throws IOException {
-							try {
-								logger.info("start executing query {}", new Object[]{selectQuery});
-								ResultSet resultSet = st.executeQuery(selectQuery);
-						        Long nrOfRows = JdbcCommon.convertToAvroStream(resultSet, out);
-								logger.info("Result FlowFile contain {} Avro records", new Object[]{nrOfRows});
-								
-							} catch (SQLException e) {
-								throw new ProcessException(e);						
-							}
-						}
-					});
-	
-					logger.info("Transferred {} to 'success'", new Object[]{outgoing});
-					session.getProvenanceReporter().modifyContent(outgoing, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-					session.transfer(outgoing, REL_SUCCESS);
-				} finally {
-					st.close();
-				}
-			} finally {
-				// return connection to pool
-				con.close();
-			}
 
-		} catch (ProcessException e) {
-			logger.error("Unable to execute sql select query due to {}", new Object[]{e});
-			session.transfer(incoming, REL_FAILURE);
-		} catch (SQLException e) {
-			logger.error("Unable to execute sql select query due to {}", new Object[]{e});
+        try (final Connection con = dbcpService.getConnection();
+            final Statement st = con.createStatement()) {
+            st.setQueryTimeout(queryTimeout); // timeout in seconds
+            final LongHolder nrOfRows = new LongHolder(0L);
+            FlowFile outgoing = session.write(incoming, new OutputStreamCallback() {
+                @Override
+                public void process(final OutputStream out) throws IOException {
+                    try {
+                        logger.debug("Executing query {}", new Object[] { selectQuery });
+                        final ResultSet resultSet = st.executeQuery(selectQuery);
+                        nrOfRows.set(JdbcCommon.convertToAvroStream(resultSet, out));
+                    } catch (final SQLException e) {
+                        throw new ProcessException(e);
+                    }
+                }
+            });
+
+            logger.info("{} contains {} Avro records", new Object[] { nrOfRows.get() });
+            logger.info("Transferred {} to 'success'", new Object[] { outgoing });
+            session.getProvenanceReporter().modifyContent(outgoing, "Retrieved " + nrOfRows.get() + " rows", stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+            session.transfer(outgoing, REL_SUCCESS);
+        } catch (final ProcessException | SQLException e) {
+            logger.error("Unable to execute SQL select query {} for {} due to {}; routing to failure", new Object[] { selectQuery, incoming, e });
 			session.transfer(incoming, REL_FAILURE);
 		}
     }
