@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import org.apache.flume.sink.NullSink;
 import org.apache.flume.source.AvroSource;
 
@@ -126,9 +127,24 @@ public class FlumeSourceProcessorTest {
         runner.setProperty(FlumeSourceProcessor.SOURCE_TYPE, "spooldir");
         runner.setProperty(FlumeSinkProcessor.FLUME_CONFIG,
             "tier1.sources.src-1.spoolDir = " + spoolDirectory.getAbsolutePath());
-        runner.run();
-        // No data will be transfered because of how quickly the test runner
-        // starts shutting down
-        runner.assertTransferCount(FlumeSourceProcessor.SUCCESS, 0);
+        runner.run(1, false, true);
+        // Because the spool directory source is an event driven source, it may take some time for flow files to get
+        // produced. I'm willing to wait up to 5 seconds, but will bail out early if possible. If it takes longer than
+        // that then there is likely a bug.
+        int numWaits = 10;
+        while (runner.getFlowFilesForRelationship(FlumeSourceProcessor.SUCCESS).size() < 4 && --numWaits > 0) {
+            try {
+                TimeUnit.MILLISECONDS.sleep(500);
+            } catch (InterruptedException ex) {
+                logger.warn("Sleep interrupted");
+            }
+        }
+        runner.shutdown();
+        runner.assertTransferCount(FlumeSourceProcessor.SUCCESS, 4);
+        int i = 1;
+        for (MockFlowFile flowFile : runner.getFlowFilesForRelationship(FlumeSourceProcessor.SUCCESS)) {
+            flowFile.assertContentEquals("record " + i);
+            i++;
+        }
     }
 }
