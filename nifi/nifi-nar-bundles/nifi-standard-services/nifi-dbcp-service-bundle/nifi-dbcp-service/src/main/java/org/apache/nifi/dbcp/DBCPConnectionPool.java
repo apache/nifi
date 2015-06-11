@@ -49,35 +49,19 @@ import org.apache.nifi.reporting.InitializationException;
 @CapabilityDescription("Provides Database Connection Pooling Service. Connections can be asked from pool and returned after usage.")
 public class DBCPConnectionPool extends AbstractControllerService implements DBCPService {
 
-    public static final DatabaseSystemDescriptor DEFAULT_DATABASE_SYSTEM = DatabaseSystems.getDescriptor("JavaDB");
-
-    public static final PropertyDescriptor DATABASE_SYSTEM = new PropertyDescriptor.Builder()
-    .name("Database Type")
-    .description("Database management system")
-    .allowableValues(DatabaseSystems.knownDatabaseSystems)
-    .defaultValue(DEFAULT_DATABASE_SYSTEM.getValue())
-    .required(true)
-    .build();
-
-    public static final PropertyDescriptor DB_HOST = new PropertyDescriptor.Builder()
-    .name("Database Host")
-    .description("Database Host")
+    public static final PropertyDescriptor DATABASE_URL = new PropertyDescriptor.Builder()
+    .name("Database connection URL")
+    .description("A database connection URL used to connect to a database. May contain database system name, host, port, database name and some parameters."
+            + " The exact syntax of a database connection URL is specified by your DBMS.")
     .defaultValue(null)
-    .required(true)
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-    .build();
-
-    public static final PropertyDescriptor DB_PORT = new PropertyDescriptor.Builder()
-    .name("Database Port")
-    .description("Database server port")
     .required(true)
-    .addValidator(StandardValidators.PORT_VALIDATOR)
     .build();
 
     public static final PropertyDescriptor DB_DRIVERNAME = new PropertyDescriptor.Builder()
     .name("Database Driver Class Name")
     .description("Database driver class name")
-    .defaultValue(DEFAULT_DATABASE_SYSTEM.driverClassName)
+    .defaultValue(null)
     .required(true)
     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
     .build();
@@ -88,14 +72,6 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
     .defaultValue(null)
     .required(false)
     .addValidator(StandardValidators.URL_VALIDATOR)
-    .build();
-
-    public static final PropertyDescriptor DB_NAME = new PropertyDescriptor.Builder()
-    .name("Database Name")
-    .description("Database name")
-    .defaultValue(null)
-    .required(true)
-    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
     .build();
 
     public static final PropertyDescriptor DB_USER = new PropertyDescriptor.Builder()
@@ -110,9 +86,9 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
     .name("Password")
     .description("The password for the database user")
     .defaultValue(null)
-    .required(true)
-    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+    .required(false)
     .sensitive(true)
+    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
     .build();
 
     public static final PropertyDescriptor MAX_WAIT_TIME = new PropertyDescriptor.Builder()
@@ -139,12 +115,9 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
 
     static {
         List<PropertyDescriptor> props = new ArrayList<>();
-        props.add(DATABASE_SYSTEM);
-        props.add(DB_HOST);
-        props.add(DB_PORT);
+        props.add(DATABASE_URL);
         props.add(DB_DRIVERNAME);
         props.add(DB_DRIVER_JAR_URL);
-        props.add(DB_NAME);
         props.add(DB_USER);
         props.add(DB_PASSWORD);
         props.add(MAX_WAIT_TIME);
@@ -167,12 +140,8 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
      */
     @OnEnabled
     public void onConfigured(final ConfigurationContext context) throws InitializationException {
-        DatabaseSystemDescriptor dbsystem = DatabaseSystems.getDescriptor( context.getProperty(DATABASE_SYSTEM).getValue() );
-
-        String host = context.getProperty(DB_HOST).getValue();
-        Integer port = context.getProperty(DB_PORT).asInteger();
+        
         String drv = context.getProperty(DB_DRIVERNAME).getValue();
-        String dbname = context.getProperty(DB_NAME).getValue();
         String user = context.getProperty(DB_USER).getValue();
         String passw = context.getProperty(DB_PASSWORD).getValue();
         Long maxWaitMillis = context.getProperty(MAX_WAIT_TIME).asTimePeriod(TimeUnit.MILLISECONDS);
@@ -185,7 +154,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         String urlString = context.getProperty(DB_DRIVER_JAR_URL).getValue();
         dataSource.setDriverClassLoader( getDriverClassLoader(urlString, drv) );
 
-        String dburl = dbsystem.buildUrl(host, port, dbname);
+        String dburl = context.getProperty(DATABASE_URL).getValue();
 
         dataSource.setMaxWait(maxWaitMillis);
         dataSource.setMaxActive(maxTotal);

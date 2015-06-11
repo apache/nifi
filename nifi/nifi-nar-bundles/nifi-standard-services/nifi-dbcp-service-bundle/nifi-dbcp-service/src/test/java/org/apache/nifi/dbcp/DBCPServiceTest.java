@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.dbcp;
 
-import static org.apache.nifi.dbcp.DatabaseSystems.getDescriptor;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
@@ -53,21 +52,6 @@ public class DBCPServiceTest {
         System.setProperty("derby.stream.error.file", "target/derby.log");
     }
 
-
-    /**
-     *    Unknown database system.
-     *
-     */
-    @Test
-    public void testUnknownDatabaseSystem() throws InitializationException {
-        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        final DBCPConnectionPool service = new DBCPConnectionPool();
-        final Map<String, String> properties = new HashMap<String, String>();
-        properties.put(DBCPConnectionPool.DATABASE_SYSTEM.getName(), "garbage");
-        runner.addControllerService("test-bad2", service, properties);
-        runner.assertNotValid(service);
-    }
-
     /**
      *  Missing property values.
      */
@@ -95,15 +79,11 @@ public class DBCPServiceTest {
         File dbLocation = new File(DB_LOCATION);
         dbLocation.delete();
 
-        // Should setProperty call also generate DBCPConnectionPool.onPropertyModified() method call?
-        // It does not currently.
-
-        // Some properties already should have JavaDB/Derby default values, let's set only missing values.
-        runner.setProperty(service, DBCPConnectionPool.DB_HOST, "NA");    // Embedded Derby don't use host
-        runner.setProperty(service, DBCPConnectionPool.DB_PORT, "1");  // Embedded Derby don't use port, but must have value anyway
-        runner.setProperty(service, DBCPConnectionPool.DB_NAME, DB_LOCATION);
+       // set embedded Derby database connection url
+        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:derby:" + DB_LOCATION + ";create=true"); 
         runner.setProperty(service, DBCPConnectionPool.DB_USER,     "tester");
         runner.setProperty(service, DBCPConnectionPool.DB_PASSWORD, "testerp");
+        runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.apache.derby.jdbc.EmbeddedDriver");
 
         runner.enableControllerService(service);
 
@@ -134,18 +114,11 @@ public class DBCPServiceTest {
         final DBCPConnectionPool service = new DBCPConnectionPool();
         runner.addControllerService("test-external-jar", service);
 
-        DatabaseSystemDescriptor mariaDb = getDescriptor("MariaDB");
-        assertNotNull(mariaDb);
+        // set MariaDB database connection url
+        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL,        "jdbc:mariadb://localhost:3306/" + "testdb"); 
+        runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME,       "org.mariadb.jdbc.Driver");
+        runner.setProperty(service, DBCPConnectionPool.DB_DRIVER_JAR_URL,   "file:///var/tmp/mariadb-java-client-1.1.7.jar");
 
-        // Set MariaDB properties values.
-        runner.setProperty(service, DBCPConnectionPool.DATABASE_SYSTEM, mariaDb.getValue());
-        runner.setProperty(service, DBCPConnectionPool.DB_PORT,         mariaDb.defaultPort.toString());
-        runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME,     mariaDb.driverClassName);
-        runner.setProperty(service, DBCPConnectionPool.DB_DRIVER_JAR_URL, "file:///var/tmp/mariadb-java-client-1.1.7.jar");
-
-
-        runner.setProperty(service, DBCPConnectionPool.DB_HOST, "localhost");    // localhost
-        runner.setProperty(service, DBCPConnectionPool.DB_NAME, "testdb");
         runner.setProperty(service, DBCPConnectionPool.DB_USER,     "tester");
         runner.setProperty(service, DBCPConnectionPool.DB_PASSWORD, "testerp");
 
@@ -181,11 +154,10 @@ public class DBCPServiceTest {
         File dbLocation = new File(DB_LOCATION);
         dbLocation.delete();
 
-        runner.setProperty(service, DBCPConnectionPool.DB_HOST, "NA");    // Embedded Derby don't use host
-        runner.setProperty(service, DBCPConnectionPool.DB_PORT, "1");   // Embedded Derby don't use port, but must have value anyway
-        runner.setProperty(service, DBCPConnectionPool.DB_NAME, DB_LOCATION);
+        // set embedded Derby database connection url
+        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:derby:" + DB_LOCATION + ";create=true"); 
         runner.setProperty(service, DBCPConnectionPool.DB_USER, "tester");
-        runner.setProperty(service, DBCPConnectionPool.DB_PASSWORD, "testerp");
+        runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.apache.derby.jdbc.EmbeddedDriver");
 
         runner.enableControllerService(service);
 
@@ -216,11 +188,11 @@ public class DBCPServiceTest {
         File dbLocation = new File(DB_LOCATION);
         dbLocation.delete();
 
-        runner.setProperty(service, DBCPConnectionPool.DB_HOST, "NA");    // Embedded Derby don't use host
-        runner.setProperty(service, DBCPConnectionPool.DB_PORT, "1");   // Embedded Derby don't use port, but must have value anyway
-        runner.setProperty(service, DBCPConnectionPool.DB_NAME, DB_LOCATION);
+        // set embedded Derby database connection url
+        runner.setProperty(service, DBCPConnectionPool.DATABASE_URL, "jdbc:derby:" + DB_LOCATION + ";create=true"); 
         runner.setProperty(service, DBCPConnectionPool.DB_USER, "tester");
         runner.setProperty(service, DBCPConnectionPool.DB_PASSWORD, "testerp");
+        runner.setProperty(service, DBCPConnectionPool.DB_DRIVERNAME, "org.apache.derby.jdbc.EmbeddedDriver");
 
         runner.enableControllerService(service);
 
