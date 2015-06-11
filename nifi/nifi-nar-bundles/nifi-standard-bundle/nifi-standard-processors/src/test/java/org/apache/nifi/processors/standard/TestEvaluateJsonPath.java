@@ -344,4 +344,23 @@ public class TestEvaluateJsonPath {
         assertEquals("Null Value", "null", nullValue);
     }
 
+    @Test
+    public void testHandleAsciiControlCharacters() throws Exception {
+        final TestRunner testRunner = TestRunners.newTestRunner(new EvaluateJsonPath());
+        testRunner.setProperty(EvaluateJsonPath.DESTINATION, EvaluateJsonPath.DESTINATION_ATTRIBUTE);
+        testRunner.setProperty(EvaluateJsonPath.RETURN_TYPE, EvaluateJsonPath.RETURN_TYPE_JSON);
+
+        final String jsonPathControlCharKey = "evaluatejson.controlcharacterpath";
+
+        testRunner.setProperty(jsonPathControlCharKey, "$.jinxing_json.object.property");
+
+        testRunner.enqueue(Paths.get("src/test/resources/TestJson/control-characters.json"));
+        testRunner.run();
+
+        final Relationship expectedRel = EvaluateJsonPath.REL_MATCH;
+
+        testRunner.assertAllFlowFilesTransferred(expectedRel, 1);
+        final MockFlowFile out = testRunner.getFlowFilesForRelationship(expectedRel).get(0);
+        Assert.assertNotNull("Transferred flow file did not have the correct result for id attribute", out.getAttribute(jsonPathControlCharKey));
+    }
 }
