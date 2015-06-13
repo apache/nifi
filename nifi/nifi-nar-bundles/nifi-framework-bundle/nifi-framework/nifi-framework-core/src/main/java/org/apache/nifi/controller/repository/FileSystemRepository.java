@@ -130,7 +130,6 @@ public class FileSystemRepository implements ContentRepository {
         final String maxArchiveRetentionPeriod = properties.getProperty(NiFiProperties.CONTENT_ARCHIVE_MAX_RETENTION_PERIOD);
         final String maxArchiveSize = properties.getProperty(NiFiProperties.CONTENT_ARCHIVE_MAX_USAGE_PERCENTAGE);
         final String archiveBackPressureSize = properties.getProperty(NiFiProperties.CONTENT_ARCHIVE_BACK_PRESSURE_PERCENTAGE);
-        final String archiveCleanupFrequency = properties.getProperty(NiFiProperties.CONTENT_ARCHIVE_CLEANUP_FREQUENCY);
 
         if ("true".equalsIgnoreCase(enableArchiving)) {
             archiveData = true;
@@ -193,24 +192,7 @@ public class FileSystemRepository implements ContentRepository {
         LOG.info("Initializing FileSystemRepository with 'Always Sync' set to {}", alwaysSync);
         initializeRepository();
 
-        final long cleanupMillis;
-        if (archiveCleanupFrequency == null) {
-            cleanupMillis = 1000L;
-        } else {
-            try {
-                cleanupMillis = FormatUtils.getTimeDuration(archiveCleanupFrequency.trim(), TimeUnit.MILLISECONDS);
-            } catch (final Exception e) {
-                throw new RuntimeException("Invalid value set for property " + NiFiProperties.CONTENT_ARCHIVE_CLEANUP_FREQUENCY);
-            }
-        }
-
         containerCleanupExecutor = new FlowEngine(containers.size(), "Cleanup FileSystemRepository Container", true);
-        for (final Map.Entry<String, Path> containerEntry : containers.entrySet()) {
-            final String containerName = containerEntry.getKey();
-            final Path containerPath = containerEntry.getValue();
-            final Runnable cleanup = new DestroyExpiredArchiveClaims(containerName, containerPath);
-            containerCleanupExecutor.scheduleWithFixedDelay(cleanup, cleanupMillis, cleanupMillis, TimeUnit.MILLISECONDS);
-        }
     }
 
     @Override
@@ -224,6 +206,24 @@ public class FileSystemRepository implements ContentRepository {
         executor.scheduleWithFixedDelay(new BinDestructableClaims(), 1, 1, TimeUnit.SECONDS);
         for (int i = 0; i < fileRespositoryPaths.size(); i++) {
             executor.scheduleWithFixedDelay(new ArchiveOrDestroyDestructableClaims(), 1, 1, TimeUnit.SECONDS);
+        }
+
+        final String archiveCleanupFrequency = properties.getProperty(NiFiProperties.CONTENT_ARCHIVE_CLEANUP_FREQUENCY);
+        final long cleanupMillis;
+        if (archiveCleanupFrequency == null) {
+            cleanupMillis = 1000L;
+        } else {
+            try {
+                cleanupMillis = FormatUtils.getTimeDuration(archiveCleanupFrequency.trim(), TimeUnit.MILLISECONDS);
+            } catch (final Exception e) {
+                throw new RuntimeException("Invalid value set for property " + NiFiProperties.CONTENT_ARCHIVE_CLEANUP_FREQUENCY);
+            }
+        }
+        for (final Map.Entry<String, Path> containerEntry : containers.entrySet()) {
+            final String containerName = containerEntry.getKey();
+            final Path containerPath = containerEntry.getValue();
+            final Runnable cleanup = new DestroyExpiredArchiveClaims(containerName, containerPath);
+            containerCleanupExecutor.scheduleWithFixedDelay(cleanup, cleanupMillis, cleanupMillis, TimeUnit.MILLISECONDS);
         }
     }
 

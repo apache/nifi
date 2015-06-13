@@ -118,15 +118,15 @@ public class VolatileContentRepository implements ContentRepository {
         }
 
         memoryManager = new MemoryManager(maxBytes, blockSize);
-
-        for (int i = 0; i < 3; i++) {
-            executor.scheduleWithFixedDelay(new CleanupOldClaims(), 1000, 10, TimeUnit.MILLISECONDS);
-        }
     }
 
     @Override
     public void initialize(final ContentClaimManager claimManager) {
         this.claimManager = claimManager;
+
+        for (int i = 0; i < 3; i++) {
+            executor.scheduleWithFixedDelay(new CleanupOldClaims(), 1000, 10, TimeUnit.MILLISECONDS);
+        }
     }
 
     @Override
