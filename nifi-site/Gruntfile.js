@@ -13,7 +13,7 @@ module.exports = function (grunt) {
             options: {
                 force: true
             },
-            js: ['dist/js/'],
+            js: ['dist/js/*'],
             css: ['dist/css/'],
             assets: ['dist/assets/*'],
             generated: ['dist/docs'],
