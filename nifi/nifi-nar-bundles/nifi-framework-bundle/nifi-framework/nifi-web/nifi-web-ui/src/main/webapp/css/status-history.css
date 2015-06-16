@@ -45,8 +45,6 @@
     font-weight: normal;
     margin-top: 6px;
     margin-left: 3px;
-    -webkit-user-select: none;
-    -moz-user-select: none;
 }
 
 #status-history-loading-container {
@@ -110,24 +108,25 @@
 #status-history-details {
     float: left;
     width: 275px;
+    padding-top: 8px;
     padding: 3px;
     overflow: auto;
-    cursor: default;
 }
 
 div.status-history-detail {
-    margin-bottom: 8px; 
+    margin-bottom: 12px; 
+    cursor: auto;
 }
 
 div.detail-container-label {
     color: #333;
     font-size: 12px;
     font-weight: bold;
-    margin-bottom: 4px;
+    margin-bottom: 8px;
 }
 
 div.detail-item {
-    margin-bottom: 5px;
+    margin-bottom: 8px;
 }
 
 div.detail-item-label {

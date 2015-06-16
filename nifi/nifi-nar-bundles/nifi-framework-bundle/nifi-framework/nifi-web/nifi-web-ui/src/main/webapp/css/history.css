@@ -132,7 +132,7 @@
 
 #history-filter-dialog {
     display: none;
-    width: 454px;
+    width: 421px;
     height: 250px;
     z-index: 1301;
 }
@@ -160,7 +160,7 @@
 }
 
 #history-filter-type {
-    width: 127px;
+    width: 96px;
     height: 18px;
     line-height: 18px;
     float: left;

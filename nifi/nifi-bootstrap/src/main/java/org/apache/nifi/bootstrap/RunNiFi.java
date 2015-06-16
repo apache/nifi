@@ -229,7 +229,10 @@ public class RunNiFi {
             props.load(fis);
         }
 
-        logger.log(Level.FINE, "Properties: {0}", props);
+        final Map<Object, Object> modified = new HashMap<>(props);
+        modified.remove("secret.key");
+        logger.log(Level.FINE, "Properties: {0}", modified);
+
         return props;
     }
 
@@ -250,8 +253,8 @@ public class RunNiFi {
             Files.setPosixFilePermissions(statusFile.toPath(), perms);
         } catch (final Exception e) {
             logger.log(Level.WARNING, "Failed to set permissions so that only the owner can read status file {0}; "
-                    + "this may allows others to have access to the key needed to communicate with NiFi. "
-                    + "Permissions should be changed so that only the owner can read this file", statusFile);
+                + "this may allows others to have access to the key needed to communicate with NiFi. "
+                + "Permissions should be changed so that only the owner can read this file", statusFile);
         }
 
         try (final FileOutputStream fos = new FileOutputStream(statusFile)) {
@@ -328,8 +331,8 @@ public class RunNiFi {
             boolean running = false;
             String line;
             try (final InputStream in = proc.getInputStream();
-                    final Reader streamReader = new InputStreamReader(in);
-                    final BufferedReader reader = new BufferedReader(streamReader)) {
+                final Reader streamReader = new InputStreamReader(in);
+                final BufferedReader reader = new BufferedReader(streamReader)) {
 
                 while ((line = reader.readLine()) != null) {
                     if (line.trim().startsWith(pid)) {
@@ -395,7 +398,7 @@ public class RunNiFi {
         final Status status = getStatus();
         if (status.isRespondingToPing()) {
             logger.log(Level.INFO, "Apache NiFi is currently running, listening to Bootstrap on port {0}, PID={1}",
-                    new Object[]{status.getPort(), status.getPid() == null ? "unknkown" : status.getPid()});
+                new Object[]{status.getPort(), status.getPid() == null ? "unknkown" : status.getPid()});
             return;
         }
 
@@ -488,12 +491,15 @@ public class RunNiFi {
             final OutputStream out = socket.getOutputStream();
             out.write((SHUTDOWN_CMD + " " + secretKey + "\n").getBytes(StandardCharsets.UTF_8));
             out.flush();
-            out.close();
+            socket.shutdownOutput();
 
             final InputStream in = socket.getInputStream();
-            final BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-            final String response = reader.readLine();
-            reader.close();
+            int lastChar;
+            final StringBuilder sb = new StringBuilder();
+            while ((lastChar = in.read()) > -1) {
+                sb.append((char) lastChar);
+            }
+            final String response = sb.toString().trim();
 
             logger.log(Level.FINE, "Received response to SHUTDOWN command: {0}", response);
 
@@ -557,7 +563,7 @@ public class RunNiFi {
         final Process proc = Runtime.getRuntime().exec(new String[]{"ps", "-o", "pid", "--no-headers", "--ppid", ppid});
         final List<String> childPids = new ArrayList<>();
         try (final InputStream in = proc.getInputStream();
-                final BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
+            final BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
 
             String line;
             while ((line = reader.readLine()) != null) {
@@ -693,7 +699,7 @@ public class RunNiFi {
             if (javaHome != null) {
                 String fileExtension = isWindows() ? ".exe" : "";
                 File javaFile = new File(javaHome + File.separatorChar + "bin"
-                        + File.separatorChar + "java" + fileExtension);
+                    + File.separatorChar + "java" + fileExtension);
                 if (javaFile.exists() && javaFile.canExecute()) {
                     javaCmd = javaFile.getAbsolutePath();
                 }
@@ -748,12 +754,12 @@ public class RunNiFi {
                 gracefulShutdownSeconds = Integer.parseInt(gracefulShutdown);
             } catch (final NumberFormatException nfe) {
                 throw new NumberFormatException("The '" + GRACEFUL_SHUTDOWN_PROP + "' property in Bootstrap Config File "
-                        + bootstrapConfigAbsoluteFile.getAbsolutePath() + " has an invalid value. Must be a non-negative integer");
+                    + bootstrapConfigAbsoluteFile.getAbsolutePath() + " has an invalid value. Must be a non-negative integer");
             }
 
             if (gracefulShutdownSeconds < 0) {
                 throw new NumberFormatException("The '" + GRACEFUL_SHUTDOWN_PROP + "' property in Bootstrap Config File "
-                        + bootstrapConfigAbsoluteFile.getAbsolutePath() + " has an invalid value. Must be a non-negative integer");
+                    + bootstrapConfigAbsoluteFile.getAbsolutePath() + " has an invalid value. Must be a non-negative integer");
             }
 
             Process process = builder.start();

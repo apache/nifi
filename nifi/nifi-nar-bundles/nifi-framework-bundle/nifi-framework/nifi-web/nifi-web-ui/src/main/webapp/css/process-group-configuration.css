@@ -18,11 +18,7 @@
     z-index: 1301;
     display: none;
     width: 400px;
-    height: 300px;
-}
-
-#process-group-configuration div.dialog-content {
-    margin-top: -10px;
+    height: 320px;
 }
 
 .process-group-field {
@@ -31,9 +27,4 @@
 
 textarea.process-group-field {
     height: 100px;
-}
-
-div.process-group-setting {
-    margin-top: 7px;
-    width: 380px;
 }

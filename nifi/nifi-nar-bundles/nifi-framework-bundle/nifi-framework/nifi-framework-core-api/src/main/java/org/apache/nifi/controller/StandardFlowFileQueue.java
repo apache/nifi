@@ -229,7 +229,7 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
         }
 
         return new QueueSize(activeQueue.size() + swappedRecordCount + unacknowledged.getObjectCount() + preFetchCount,
-                activeQueueContentSize + swappedContentSize + unacknowledged.getByteCount() + preFetchSize);
+            activeQueueContentSize + swappedContentSize + unacknowledged.getByteCount() + preFetchSize);
     }
 
     @Override
@@ -526,9 +526,9 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
                 final QueueSize unacknowledged = unacknowledgedSizeRef.get();
 
                 logger.debug("Total Queue Size: ActiveQueue={}/{} MB, Swap Queue={}/{} MB, Unacknowledged={}/{} MB",
-                        activeQueue.size(), activeQueueContentSize / byteToMbDivisor,
-                        swappedRecordCount, swappedContentSize / byteToMbDivisor,
-                        unacknowledged.getObjectCount(), unacknowledged.getByteCount() / byteToMbDivisor);
+                    activeQueue.size(), activeQueueContentSize / byteToMbDivisor,
+                    swappedRecordCount, swappedContentSize / byteToMbDivisor,
+                    unacknowledged.getObjectCount(), unacknowledged.getByteCount() / byteToMbDivisor);
             }
 
             return swapQueue.size();
@@ -959,6 +959,11 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
      */
     public void unlock() {
         writeLock.unlock("external unlock");
+    }
+
+    @Override
+    public QueueSize getUnacknowledgedQueueSize() {
+        return unacknowledgedSizeRef.get();
     }
 
     private void updateUnacknowledgedSize(final int addToCount, final long addToSize) {

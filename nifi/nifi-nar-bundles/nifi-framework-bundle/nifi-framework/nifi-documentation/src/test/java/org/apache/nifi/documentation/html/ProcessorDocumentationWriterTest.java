@@ -26,6 +26,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.documentation.DocumentationWriter;
 import org.apache.nifi.documentation.example.FullyDocumentedProcessor;
 import org.apache.nifi.documentation.example.NakedProcessor;
+import org.apache.nifi.documentation.example.ProcessorWithLogger;
 import org.apache.nifi.documentation.mock.MockProcessorInitializationContext;
 import org.junit.Test;
 
@@ -99,4 +100,19 @@ public class ProcessorDocumentationWriterTest {
 
     }
 
+    @Test
+    public void testProcessorWithLoggerInitialization() throws IOException {
+        ProcessorWithLogger processor = new ProcessorWithLogger();
+        processor.initialize(new MockProcessorInitializationContext());
+
+        DocumentationWriter writer = new HtmlProcessorDocumentationWriter();
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        writer.write(processor, baos, false);
+
+        String results = new String(baos.toByteArray());
+        XmlValidator.assertXmlValid(results);
+
+    }
 }

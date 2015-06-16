@@ -261,7 +261,7 @@ public class ScanContent extends AbstractProcessor {
         @Override
         public SearchTerm<byte[]> nextTerm() throws IOException {
             final String nextLine = reader.readLine();
-            if (nextLine == null) {
+            if (nextLine == null || nextLine.isEmpty()) {
                 return null;
             }
             return new SearchTerm<>(nextLine.getBytes("UTF-8"));

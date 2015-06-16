@@ -50,6 +50,58 @@ nf.CanvasUtils = (function () {
 
         return mid;
     };
+    
+    var moveComponents = function (components, groupId) {
+        return $.Deferred(function (deferred) {
+            // ensure the current selection is eligible for move into the specified group
+            nf.CanvasUtils.eligibleForMove(components, groupId).done(function () {
+                // create a snippet for the specified components and link to the data flow
+                var snippetDetails = nf.Snippet.marshal(components, true);
+                nf.Snippet.create(snippetDetails).done(function (response) {
+                    var snippet = response.snippet;
+
+                    // move the snippet into the target
+                    nf.Snippet.move(snippet.id, groupId).done(function () {
+                        var componentMap = d3.map();
+
+                        // add the id to the type's array
+                        var addComponent = function (type, id) {
+                            if (!componentMap.has(type)) {
+                                componentMap.set(type, []);
+                            }
+                            componentMap.get(type).push(id);
+                        };
+
+                        // go through each component being removed
+                        components.each(function (d) {
+                            addComponent(d.type, d.component.id);
+                        });
+
+                        // refresh all component types as necessary (handle components that have been removed)
+                        componentMap.forEach(function (type, ids) {
+                            nf[type].remove(ids);
+                        });
+
+                        // refresh the birdseye
+                        nf.Birdseye.refresh();
+                        deferred.resolve();
+                    }).fail(nf.Common.handleAjaxError).fail(function () {
+                        deferred.reject();
+                    }).always(function () {
+                        // unable to acutally move the components so attempt to
+                        // unlink and remove just the snippet
+                        nf.Snippet.unlink(snippet.id).done(function () {
+                            nf.Snippet.remove(snippet.id);
+                        });
+                    });
+                }).fail(nf.Common.handleAjaxError).fail(function () {
+                    deferred.reject();
+                });
+            }).fail(function () {
+                deferred.reject();
+            });
+        }).promise();
+    };
 
     return {
         config: {
@@ -1026,6 +1078,22 @@ nf.CanvasUtils = (function () {
         },
         
         /**
+         * Moves the specified components into the current parent group.
+         * 
+         * @param {selection} components
+         */
+        moveComponentsToParent: function (components) {
+            var groupId = nf.Canvas.getParentGroupId();
+            
+            // if the group id is null, we're already in the top most group
+            if (groupId === null) {
+                nf.Dialog.showOkDialog('Components are already in the topmost group.');
+            } else {
+                moveComponents(components, groupId);
+            }
+        },
+        
+        /**
          * Moves the specified components into the specified group.
          * 
          * @param {selection} components    The components to move
@@ -1033,46 +1101,11 @@ nf.CanvasUtils = (function () {
          */
         moveComponents: function (components, group) {
             var groupData = group.datum();
-
-            // ensure the current selection is eligible for move into the specified group
-            nf.CanvasUtils.eligibleForMove(components, group).done(function () {
-                // create a snippet for the specified components and link to the data flow
-                var snippetDetails = nf.Snippet.marshal(components, true);
-                nf.Snippet.create(snippetDetails).done(function (response) {
-                    var snippet = response.snippet;
-
-                    // move the snippet into the target
-                    nf.Snippet.move(snippet.id, groupData.component.id).done(function () {
-                        var componentMap = d3.map();
-
-                        // add the id to the type's array
-                        var addComponent = function (type, id) {
-                            if (!componentMap.has(type)) {
-                                componentMap.set(type, []);
-                            }
-                            componentMap.get(type).push(id);
-                        };
-
-                        // go through each component being removed
-                        components.each(function (d) {
-                            addComponent(d.type, d.component.id);
-                        });
-
-                        // refresh all component types as necessary (handle components that have been removed)
-                        componentMap.forEach(function (type, ids) {
-                            nf[type].remove(ids);
-                        });
-
-                        // reload the target group
-                        nf.ProcessGroup.reload(groupData.component);
-                    }).fail(nf.Common.handleAjaxError).always(function () {
-                        // unable to acutally move the components so attempt to
-                        // unlink and remove just the snippet
-                        nf.Snippet.unlink(snippet.id).done(function () {
-                            nf.Snippet.remove(snippet.id);
-                        });
-                    });
-                }).fail(nf.Common.handleAjaxError);
+            
+            // move the components into the destination and...
+            moveComponents(components, groupData.component.id).done(function () {
+                // reload the target group
+                nf.ProcessGroup.reload(groupData.component);
             });
         },
         
@@ -1161,15 +1194,15 @@ nf.CanvasUtils = (function () {
         },
         
         /**
-         * Ensures components are eligible to be moved. The new target can be optionally specified.
+         * Ensures components are eligible to be moved. The new group can be optionally specified.
          *
          * 1) Ensuring that the input and output ports are not connected outside of this group
          * 2) If the target is specified; ensuring there are no port name conflicts in the target group
          *
          * @argument {selection} selection      The selection being moved
-         * @argument {selection} group          The selection containing the new group
+         * @argument {string} groupId           The id of the new group
          */
-        eligibleForMove: function (selection, group) {
+        eligibleForMove: function (selection, groupId) {
             var inputPorts = [];
             var outputPorts = [];
 
@@ -1191,7 +1224,7 @@ nf.CanvasUtils = (function () {
                             // ports in the root group cannot be moved
                             if (nf.Canvas.getParentGroupId() === null) {
                                 nf.Dialog.showOkDialog({
-                                    dialogContent: 'Ports in the root group cannot be moved into another group.',
+                                    dialogContent: 'Cannot move Ports out of the root group',
                                     overlayBackground: false
                                 });
                                 portConnectionDeferred.reject();
@@ -1245,12 +1278,11 @@ nf.CanvasUtils = (function () {
                     // create a deferred for checking port names in the target
                     var portNameCheck = function () {
                         return $.Deferred(function (portNameDeferred) {
-                            var groupData = group.datum();
 
                             // add the get request
                             $.ajax({
                                 type: 'GET',
-                                url: config.urls.controller + '/process-groups/' + encodeURIComponent(groupData.component.id),
+                                url: config.urls.controller + '/process-groups/' + encodeURIComponent(groupId),
                                 data: {
                                     verbose: true
                                 },
@@ -1294,7 +1326,7 @@ nf.CanvasUtils = (function () {
 
                     // execute the checks in order
                     portConnectionCheck().done(function () {
-                        if (nf.Common.isDefinedAndNotNull(group)) {
+                        if (nf.Common.isDefinedAndNotNull(groupId)) {
                             $.when(portNameCheck()).done(function () {
                                 deferred.resolve();
                             }).fail(function () {

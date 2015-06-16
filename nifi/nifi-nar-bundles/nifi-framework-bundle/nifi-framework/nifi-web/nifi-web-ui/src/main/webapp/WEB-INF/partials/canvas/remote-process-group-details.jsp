@@ -24,6 +24,12 @@
             </div>
         </div>
         <div class="setting">
+            <div class="setting-name">Id</div>
+            <div class="setting-field">
+                <span id="read-only-remote-process-group-id"></span>
+            </div>
+        </div>
+        <div class="setting">
             <div class="setting-name">URL</div>
             <div class="setting-field">
                 <span id="read-only-remote-process-group-url"></span>

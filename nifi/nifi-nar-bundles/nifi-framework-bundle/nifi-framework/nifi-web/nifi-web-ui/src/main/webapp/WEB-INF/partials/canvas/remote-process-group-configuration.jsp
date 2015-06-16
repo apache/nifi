@@ -17,12 +17,16 @@
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <div id="remote-process-group-configuration">
     <div class="dialog-content">
-        <span id="remote-process-group-configuration-id" class="hidden"></span>
         <div class="setting">
             <div class="setting-name">Name</div>
             <div class="setting-field">
-                <span id="remote-process-group-id" class="hidden"></span>
                 <span id="remote-process-group-name"></span>
+            </div>
+        </div>
+        <div class="setting">
+            <div class="setting-name">Id</div>
+            <div class="setting-field">
+                <span id="remote-process-group-id"></span>
             </div>
         </div>
         <div class="setting">
