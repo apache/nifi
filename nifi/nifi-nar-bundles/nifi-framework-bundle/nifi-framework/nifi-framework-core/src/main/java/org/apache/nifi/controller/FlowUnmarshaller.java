@@ -54,8 +54,9 @@ public class FlowUnmarshaller {
         }
 
         final DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-        final DocumentBuilder docBuilder = dbf.newDocumentBuilder();
+        dbf.setNamespaceAware(true);
 
+        final DocumentBuilder docBuilder = dbf.newDocumentBuilder();
         final Document document = docBuilder.parse(new ByteArrayInputStream(flowContents));
         final FlowSnippetDTO flowDto = new FlowSnippetDTO();
 

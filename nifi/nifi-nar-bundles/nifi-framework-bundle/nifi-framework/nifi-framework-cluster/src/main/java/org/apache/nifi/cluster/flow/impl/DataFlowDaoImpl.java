@@ -406,7 +406,9 @@ public class DataFlowDaoImpl implements DataFlowDao {
 
     private byte[] getEmptyFlowBytes() throws IOException {
         try {
-            final DocumentBuilder docBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+            final DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
+            docBuilderFactory.setNamespaceAware(true);
+            final DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
             final Document document = docBuilder.newDocument();
 
             final Element controller = document.createElement("flowController");

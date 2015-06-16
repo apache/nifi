@@ -99,10 +99,10 @@ nf.BulletinBoard = (function () {
                     text: 'by message',
                     value: 'message'
                 }, {
-                    text: 'by source name',
+                    text: 'by name',
                     value: 'sourceName'
                 }, {
-                    text: 'by source id',
+                    text: 'by id',
                     value: 'sourceId'
                 }, {
                     text: 'by group id',

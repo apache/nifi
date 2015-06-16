@@ -16,12 +16,11 @@
  */
 package org.apache.nifi.processors.standard;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
-import com.jayway.jsonpath.spi.json.JsonProvider;
 import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
+import com.jayway.jsonpath.spi.json.JsonProvider;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -45,22 +44,12 @@ import java.util.Objects;
  * Provides common functionality used for processors interacting and manipulating JSON data via JsonPath.
  *
  * @see <a href="http://json.org">http://json.org</a>
- * @see <a href="https://github.com/jayway/JsonPath">https://github.com/jayway/JsonPath</a>
+ * @see
+ * <a href="https://github.com/jayway/JsonPath">https://github.com/jayway/JsonPath</a>
  */
 public abstract class AbstractJsonPathProcessor extends AbstractProcessor {
 
-    // JsonSmart (default)
-    // private static final Configuration STRICT_PROVIDER_CONFIGURATION = Configuration.builder().jsonProvider(new JsonSmartJsonProvider(JSONParser.MODE_RFC4627)).build();
-
-    // Faster XML Jackson
-    private static final ObjectMapper jsonObjectMapper = new ObjectMapper();
-    private static final Configuration STRICT_PROVIDER_CONFIGURATION = Configuration.builder().jsonProvider(new JacksonJsonProvider(jsonObjectMapper)).build();
-
-    // Faster XML Jackson with Mapping Provider
-    // private static final Configuration STRICT_PROVIDER_CONFIGURATION = Configuration.builder().jsonProvider(new JacksonJsonProvider()).mappingProvider(new JacksonMappingProvider()).build();
-
-    // GSON
-    // private static final Configuration STRICT_PROVIDER_CONFIGURATION = Configuration.builder().jsonProvider(new GsonJsonProvider()).build();
+    private static final Configuration STRICT_PROVIDER_CONFIGURATION = Configuration.builder().jsonProvider(new JacksonJsonProvider()).build();
 
     private static final JsonProvider JSON_PROVIDER = STRICT_PROVIDER_CONFIGURATION.jsonProvider();
 
@@ -143,5 +132,4 @@ public abstract class AbstractJsonPathProcessor extends AbstractProcessor {
          */
         abstract boolean isStale(String subject, String input);
     }
-
 }

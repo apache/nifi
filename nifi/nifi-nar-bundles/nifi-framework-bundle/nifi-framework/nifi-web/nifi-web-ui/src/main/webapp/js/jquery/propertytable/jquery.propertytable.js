@@ -1142,11 +1142,10 @@
                 
                 var target = $(e.target);
                 if (target.hasClass('delete-property')) {
-                    // mark the property in question for removal
-                    property.hidden = true;
-
-                    // refresh the table
-                    propertyData.updateItem(property.id, property);
+                    // mark the property in question for removal and refresh the table
+                    propertyData.updateItem(property.id, $.extend(property, {
+                        hidden: true
+                    }));
 
                     // prevents standard edit logic
                     e.stopImmediatePropagation();
@@ -1381,15 +1380,15 @@
                                 var propertyData = propertyGrid.getData();
                                 
                                 // ensure the property name is unique
-                                var existingPropertyId = null;
+                                var existingItem = null;
                                 $.each(propertyData.getItems(), function (_, item) {
                                     if (propertyName === item.property) {
-                                        existingPropertyId = item.id;
+                                        existingItem = item;
                                         return false;
                                     }
                                 });
                                 
-                                if (existingPropertyId === null) {
+                                if (existingItem === null) {
                                     // load the descriptor and add the property
                                     options.descriptorDeferred(propertyName).done(function(response) {
                                         var descriptor = response.propertyDescriptor;
@@ -1418,15 +1417,29 @@
                                         propertyGrid.editActiveCell();
                                     });
                                 } else {
-                                    nf.Dialog.showOkDialog({
-                                        dialogContent: 'A property with this name already exists.',
-                                        overlayBackground: false
-                                    });
-                                    
-                                    // select the existing properties row
-                                    var row = propertyData.getRowById(existingPropertyId);
-                                    propertyGrid.setSelectedRows([row]);
-                                    propertyGrid.scrollRowIntoView(row);
+                                    // if this row is currently hidden, clear the value and show it
+                                    if (existingItem.hidden === true) {
+                                        propertyData.updateItem(existingItem.id, $.extend(existingItem, {
+                                            hidden: false,
+                                            previousValue: null,
+                                            value: null
+                                        }));
+                                        
+                                        // select the new properties row
+                                        var row = propertyData.getRowById(existingItem.id);
+                                        propertyGrid.setActiveCell(row, propertyGrid.getColumnIndex('value'));
+                                        propertyGrid.editActiveCell();
+                                    } else {
+                                        nf.Dialog.showOkDialog({
+                                            dialogContent: 'A property with this name already exists.',
+                                            overlayBackground: false
+                                        });
+                                        
+                                        // select the existing properties row
+                                        var row = propertyData.getRowById(existingItem.id);
+                                        propertyGrid.setSelectedRows([row]);
+                                        propertyGrid.scrollRowIntoView(row);
+                                    }
                                 }
                             } else {
                                 nf.Dialog.showOkDialog({
@@ -1448,6 +1461,10 @@
                             var code = e.keyCode ? e.keyCode : e.which;
                             if (code === $.ui.keyCode.ENTER) {
                                 add();
+                                
+                                // prevents the enter from propagating into the field for editing the new property value
+                                e.stopImmediatePropagation();
+                                e.preventDefault();
                             }
                         });
 

@@ -1165,7 +1165,7 @@ nf.StatusHistory = (function () {
 
             // make the new property dialog draggable
             $('#status-history-dialog').draggable({
-                cancel: '#status-history-chart-container, #status-history-chart-control-container, #status-history-details, div.detail-item-value',
+                cancel: '#status-history-chart-container, #status-history-chart-control-container, div.status-history-detail, div.button, div.combo, div.summary-refresh',
                 containment: 'parent'
             }).on('click', '#status-history-close', function () {
                 // remove the current status history

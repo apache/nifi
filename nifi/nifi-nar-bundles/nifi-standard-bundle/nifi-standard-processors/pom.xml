@@ -21,7 +21,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-standard-bundle</artifactId>
-        <version>0.1.1-incubating-SNAPSHOT</version>
+        <version>0.2.0-incubating-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-standard-processors</artifactId>
     <packaging>jar</packaging>
@@ -191,6 +191,11 @@
             <artifactId>tika-core</artifactId>
             <version>1.7</version>
         </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.4.5</version>
+        </dependency>
     </dependencies>
     <build>
         <plugins>
@@ -198,7 +203,7 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes>
+                    <excludes combine.children="append">
                         <exclude>src/test/resources/localhost.cer</exclude>
                         <exclude>src/test/resources/hello.txt</exclude>
                         <exclude>src/test/resources/CharacterSetConversionSamples/Converted.txt</exclude>
@@ -214,6 +219,7 @@
                         <exclude>src/test/resources/TestEncryptContent/text.txt.asc</exclude>
                         <exclude>src/test/resources/TestIdentifyMimeType/1.txt</exclude>
                         <exclude>src/test/resources/TestJson/json-sample.json</exclude>
+                        <exclude>src/test/resources/TestJson/control-characters.json</exclude>
                         <exclude>src/test/resources/TestMergeContent/demarcate</exclude>
                         <exclude>src/test/resources/TestMergeContent/foot</exclude>
                         <exclude>src/test/resources/TestMergeContent/head</exclude>
@@ -267,6 +273,7 @@
                         <exclude>src/test/resources/CompressedData/SampleFileConcat.txt.bz2</exclude>
                         <exclude>src/test/resources/ExecuteCommand/TestIngestAndUpdate.jar</exclude>
                         <exclude>src/test/resources/ExecuteCommand/TestSuccess.jar</exclude>
+                        <exclude>src/test/resources/ExecuteCommand/TestDynamicEnvironment.jar</exclude>
                         <exclude>src/test/resources/TestIdentifyMimeType/1.jar</exclude>
                         <exclude>src/test/resources/TestIdentifyMimeType/1.tar</exclude>
                         <exclude>src/test/resources/TestIdentifyMimeType/1.tar.gz</exclude>
@@ -280,5 +287,5 @@
                 </configuration>
             </plugin>
         </plugins>
-    </build>    
+    </build>
 </project>
