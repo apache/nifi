@@ -172,6 +172,11 @@
             <artifactId>tika-core</artifactId>
             <version>1.7</version>
         </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.4.5</version>
+        </dependency>
     </dependencies>
     <build>
         <plugins>
@@ -195,6 +200,7 @@
                         <exclude>src/test/resources/TestEncryptContent/text.txt.asc</exclude>
                         <exclude>src/test/resources/TestIdentifyMimeType/1.txt</exclude>
                         <exclude>src/test/resources/TestJson/json-sample.json</exclude>
+                        <exclude>src/test/resources/TestJson/control-characters.json</exclude>
                         <exclude>src/test/resources/TestMergeContent/demarcate</exclude>
                         <exclude>src/test/resources/TestMergeContent/foot</exclude>
                         <exclude>src/test/resources/TestMergeContent/head</exclude>
@@ -262,5 +268,5 @@
                 </configuration>
             </plugin>
         </plugins>
-    </build>    
+    </build>
 </project>
