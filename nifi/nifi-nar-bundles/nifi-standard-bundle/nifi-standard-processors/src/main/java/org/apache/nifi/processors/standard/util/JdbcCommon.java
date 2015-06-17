@@ -52,7 +52,21 @@ public class JdbcCommon {
             while (rs.next()) {
                 for (int i = 1; i <= nrOfColumns; i++) {
                     final Object value = rs.getObject(i);
-                    rec.put(i - 1, value);
+
+                    // The different types that we support are numbers (int,
+                    // long, double, float), as well
+                    // as boolean values and Strings. Since Avro doesn't provide
+                    // timestamp types, we want to
+                    // convert those to Strings. So we will cast anything other
+                    // than numbers or booleans to
+                    // strings by using to toString() method.
+                    if (value == null) {
+                        rec.put(i - 1, null);
+                    } else if (value instanceof Number || value instanceof Boolean) {
+                        rec.put(i - 1, value);
+                    } else {
+                        rec.put(i - 1, value.toString());
+                    }
                 }
                 dataFileWriter.append(rec);
                 nrOfRows += 1;
