@@ -428,7 +428,7 @@ public class TemplateResource extends ApplicationResource {
         }
 
         // generate the response
-        return generateOkResponse(template).header("Content-Disposition", String.format("attachment; filename=%s.xml", attachmentName)).build();
+        return generateOkResponse(template).header("Content-Disposition", String.format("attachment; filename=\"%s.xml\"", attachmentName)).build();
     }
 
     /**

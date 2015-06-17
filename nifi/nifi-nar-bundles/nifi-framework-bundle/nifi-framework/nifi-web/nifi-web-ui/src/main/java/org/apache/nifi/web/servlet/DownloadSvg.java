@@ -70,7 +70,7 @@ public class DownloadSvg extends HttpServlet {
             }
 
             response.setContentType("image/svg+xml");
-            response.setHeader("Content-Disposition", "attachment; filename=" + filename);
+            response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
             response.setStatus(HttpServletResponse.SC_OK);
 
             response.getWriter().print(svg);
