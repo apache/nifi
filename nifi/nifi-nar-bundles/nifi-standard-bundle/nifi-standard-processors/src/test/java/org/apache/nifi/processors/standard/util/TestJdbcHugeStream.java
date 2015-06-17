@@ -43,16 +43,15 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 /**
- *  Test streaming using large number of result set rows.
- * 1. Read data from database.
- * 2. Create Avro schema from ResultSet meta data.
- * 3. Read rows from ResultSet and write rows to Avro writer stream
- *    (Avro will create record for each row).
- * 4. And finally read records from Avro stream to verify all data is present in Avro stream.
+ * Test streaming using large number of result set rows. 1. Read data from
+ * database. 2. Create Avro schema from ResultSet meta data. 3. Read rows from
+ * ResultSet and write rows to Avro writer stream (Avro will create record for
+ * each row). 4. And finally read records from Avro stream to verify all data is
+ * present in Avro stream.
  *
  *
- * Sql query will return all combinations from 3 table.
- * For example when each table contain 1000 rows, result set will be 1 000 000 000 rows.
+ * Sql query will return all combinations from 3 table. For example when each
+ * table contain 1000 rows, result set will be 1 000 000 000 rows.
  *
  */
 public class TestJdbcHugeStream {
@@ -65,18 +64,21 @@ public class TestJdbcHugeStream {
     }
 
     /**
-     * 	In case of large record set this will fail with
-     * java.lang.OutOfMemoryError: Java heap space
-	 * at java.util.Arrays.copyOf(Arrays.java:2271)
-	 * at java.io.ByteArrayOutputStream.grow(ByteArrayOutputStream.java:113)
-	 * at java.io.ByteArrayOutputStream.ensureCapacity(ByteArrayOutputStream.java:93)
-	 * at java.io.ByteArrayOutputStream.write(ByteArrayOutputStream.java:140)
-	 * at org.apache.avro.file.DataFileWriter$BufferedFileOutputStream$PositionFilter.write(DataFileWriter.java:446)
+     * In case of large record set this will fail with
+     * java.lang.OutOfMemoryError: Java heap space at
+     * java.util.Arrays.copyOf(Arrays.java:2271) at
+     * java.io.ByteArrayOutputStream.grow(ByteArrayOutputStream.java:113) at
+     * java
+     * .io.ByteArrayOutputStream.ensureCapacity(ByteArrayOutputStream.java:93)
+     * at java.io.ByteArrayOutputStream.write(ByteArrayOutputStream.java:140) at
+     * org .apache.avro.file.
+     * DataFileWriter$BufferedFileOutputStream$PositionFilter
+     * .write(DataFileWriter.java:446)
      *
      */
     @Test
     @Ignore
-	public void readSend2StreamHuge_InMemory() throws ClassNotFoundException, SQLException, IOException {
+    public void readSend2StreamHuge_InMemory() throws ClassNotFoundException, SQLException, IOException {
 
         // remove previous test database, if any
         final File dbLocation = new File(DB_LOCATION);
@@ -127,17 +129,17 @@ public class TestJdbcHugeStream {
                 }
             }
         }
-	}
+    }
 
-	@Test
-	public void readSend2StreamHuge_FileBased() throws ClassNotFoundException, SQLException, IOException {
+    @Test
+    public void readSend2StreamHuge_FileBased() throws ClassNotFoundException, SQLException, IOException {
 
         // remove previous test database, if any
         final File dbLocation = new File(DB_LOCATION);
         dbLocation.delete();
 
         try (final Connection con = createConnection()) {
-        loadTestData2Database(con, 300, 300, 300);
+            loadTestData2Database(con, 300, 300, 300);
 
             try (final Statement st = con.createStatement()) {
                 // Notice!
@@ -174,9 +176,10 @@ public class TestJdbcHugeStream {
                 }
             }
         }
-	}
+    }
 
-	//================================================  helpers  ===============================================
+    // ================================================ helpers
+    // ===============================================
 
     static String dropPersons = "drop table persons";
     static String dropProducts = "drop table products";
@@ -185,75 +188,80 @@ public class TestJdbcHugeStream {
     static String createProducts = "create table products (id integer, name varchar(100), code integer)";
     static String createRelationships = "create table relationships (id integer,name varchar(100), code integer)";
 
-	static public void loadTestData2Database(Connection con, int nrOfPersons, int nrOfProducts, int nrOfRels) throws ClassNotFoundException, SQLException {
+    static public void loadTestData2Database(Connection con, int nrOfPersons, int nrOfProducts, int nrOfRels) throws ClassNotFoundException, SQLException {
 
-		System.out.println(createRandomName());
-		System.out.println(createRandomName());
-		System.out.println(createRandomName());
+        System.out.println(createRandomName());
+        System.out.println(createRandomName());
+        System.out.println(createRandomName());
 
         final Statement st = con.createStatement();
 
         // tables may not exist, this is not serious problem.
-        try { st.executeUpdate(dropPersons);
-        } catch (final Exception e) { }
+        try {
+            st.executeUpdate(dropPersons);
+        } catch (final Exception e) {
+        }
 
-        try { st.executeUpdate(dropProducts);
-        } catch (final Exception e) { }
+        try {
+            st.executeUpdate(dropProducts);
+        } catch (final Exception e) {
+        }
 
-        try { st.executeUpdate(dropRelationships);
-        } catch (final Exception e) { }
+        try {
+            st.executeUpdate(dropRelationships);
+        } catch (final Exception e) {
+        }
 
         st.executeUpdate(createPersons);
         st.executeUpdate(createProducts);
         st.executeUpdate(createRelationships);
 
         for (int i = 0; i < nrOfPersons; i++)
-     		loadPersons(st, i);
+            loadPersons(st, i);
 
         for (int i = 0; i < nrOfProducts; i++)
-        	loadProducts(st, i);
+            loadProducts(st, i);
 
         for (int i = 0; i < nrOfRels; i++)
-        	loadRelationships(st, i);
+            loadRelationships(st, i);
 
         st.close();
-	}
+    }
 
-	static Random rng = new Random(53495);
+    static Random rng = new Random(53495);
 
-	static private void loadPersons(Statement st, int nr) throws SQLException {
-        st.executeUpdate("insert into persons values (" + nr + ", '" + createRandomName() +  "', " + rng.nextInt(469946) + ")" );
-	}
+    static private void loadPersons(Statement st, int nr) throws SQLException {
+        st.executeUpdate("insert into persons values (" + nr + ", '" + createRandomName() + "', " + rng.nextInt(469946) + ")");
+    }
 
-	static private void loadProducts(Statement st, int nr) throws SQLException {
-        st.executeUpdate("insert into products values (" + nr + ", '" + createRandomName() +  "', " + rng.nextInt(469946) + ")" );
-	}
+    static private void loadProducts(Statement st, int nr) throws SQLException {
+        st.executeUpdate("insert into products values (" + nr + ", '" + createRandomName() + "', " + rng.nextInt(469946) + ")");
+    }
 
-	static private void loadRelationships(Statement st, int nr) throws SQLException {
-        st.executeUpdate("insert into relationships values (" + nr + ", '" + createRandomName() +  "', " + rng.nextInt(469946) + ")" );
-	}
+    static private void loadRelationships(Statement st, int nr) throws SQLException {
+        st.executeUpdate("insert into relationships values (" + nr + ", '" + createRandomName() + "', " + rng.nextInt(469946) + ")");
+    }
 
-	static private String createRandomName() {
-		return createRandomString() + " " + createRandomString();
-	}
+    static private String createRandomName() {
+        return createRandomString() + " " + createRandomString();
+    }
 
-	static private String createRandomString() {
+    static private String createRandomString() {
 
-		final int length = rng.nextInt(19);
-		final String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        final int length = rng.nextInt(19);
+        final String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-		final char[] text = new char[length];
-	    for (int i = 0; i < length; i++)
-	    {
-	        text[i] = characters.charAt(rng.nextInt(characters.length()));
-	    }
-	    return new String(text);
-	}
+        final char[] text = new char[length];
+        for (int i = 0; i < length; i++) {
+            text[i] = characters.charAt(rng.nextInt(characters.length()));
+        }
+        return new String(text);
+    }
 
-	private Connection createConnection() throws ClassNotFoundException, SQLException {
+    private Connection createConnection() throws ClassNotFoundException, SQLException {
         Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
         final Connection con = DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";create=true");
-		return con;
-	}
+        return con;
+    }
 
 }

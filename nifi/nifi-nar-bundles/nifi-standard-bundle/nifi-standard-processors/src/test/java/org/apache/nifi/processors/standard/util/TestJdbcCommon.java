@@ -16,7 +16,8 @@
  */
 package org.apache.nifi.processors.standard.util;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -30,7 +31,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 import org.apache.avro.Schema;
-import org.apache.avro.file.DataFileReader;
 import org.apache.avro.file.DataFileStream;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
@@ -50,19 +50,19 @@ public class TestJdbcCommon {
     String createTable = "create table restaurants(id integer, name varchar(20), city varchar(50))";
     String dropTable = "drop table restaurants";
 
-	@Test
-	public void testCreateSchema() throws ClassNotFoundException, SQLException {
-		
+    @Test
+    public void testCreateSchema() throws ClassNotFoundException, SQLException {
+
         // remove previous test database, if any
-        File dbLocation = new File(DB_LOCATION);
+        final File dbLocation = new File(DB_LOCATION);
         dbLocation.delete();
 
-        Connection con = createConnection();
-        Statement st = con.createStatement();
+        final Connection con = createConnection();
+        final Statement st = con.createStatement();
 
         try {
             st.executeUpdate(dropTable);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             // table may not exist, this is not serious problem.
         }
 
@@ -71,13 +71,14 @@ public class TestJdbcCommon {
         st.executeUpdate("insert into restaurants values (2, 'Estradas', 'Daly City')");
         st.executeUpdate("insert into restaurants values (3, 'Prime Rib House', 'San Francisco')");
 
-        ResultSet resultSet = st.executeQuery("select * from restaurants");
-        
-        Schema schema = JdbcCommon.createSchema(resultSet);
+        final ResultSet resultSet = st.executeQuery("select * from restaurants");
+
+        final Schema schema = JdbcCommon.createSchema(resultSet);
         assertNotNull(schema);
-        
+
         // records name, should be result set first column table name
-        // Notice! sql select may join data from different tables, other columns may have different table names
+        // Notice! sql select may join data from different tables, other columns
+        // may have different table names
         assertEquals("RESTAURANTS", schema.getName());
         assertNotNull(schema.getField("ID"));
         assertNotNull(schema.getField("NAME"));
@@ -85,20 +86,20 @@ public class TestJdbcCommon {
 
         st.close();
         con.close();
-	}
+    }
 
-	@Test
-	public void testConvertToBytes() throws ClassNotFoundException, SQLException, IOException {
+    @Test
+    public void testConvertToBytes() throws ClassNotFoundException, SQLException, IOException {
         // remove previous test database, if any
-        File dbLocation = new File(DB_LOCATION);
+        final File dbLocation = new File(DB_LOCATION);
         dbLocation.delete();
 
-        Connection con = createConnection();    
-        Statement st = con.createStatement();
+        final Connection con = createConnection();
+        final Statement st = con.createStatement();
 
         try {
             st.executeUpdate(dropTable);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             // table may not exist, this is not serious problem.
         }
 
@@ -108,46 +109,47 @@ public class TestJdbcCommon {
         st.executeUpdate("insert into restaurants values (2, 'Estradas', 'Daly City')");
         st.executeUpdate("insert into restaurants values (3, 'Prime Rib House', 'San Francisco')");
 
-        ResultSet resultSet = st.executeQuery("select R.*, ROW_NUMBER() OVER () as rownr from restaurants R");
-        
-        ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+        final ResultSet resultSet = st.executeQuery("select R.*, ROW_NUMBER() OVER () as rownr from restaurants R");
+
+        final ByteArrayOutputStream outStream = new ByteArrayOutputStream();
         JdbcCommon.convertToAvroStream(resultSet, outStream);
-        
-        byte[] serializedBytes = outStream.toByteArray();
+
+        final byte[] serializedBytes = outStream.toByteArray();
         assertNotNull(serializedBytes);
         System.out.println("Avro serialized result size in bytes: " + serializedBytes.length);
 
         st.close();
         con.close();
-        
+
         // Deserialize bytes to records
-        
-        InputStream instream = new ByteArrayInputStream(serializedBytes);
-        
-        DatumReader<GenericRecord> datumReader = new GenericDatumReader<GenericRecord>();
-        DataFileStream<GenericRecord> dataFileReader = new DataFileStream<GenericRecord>(instream, datumReader);
-        GenericRecord record = null;
-        while (dataFileReader.hasNext()) {
-        	// Reuse record object by passing it to next(). This saves us from
-        	// allocating and garbage collecting many objects for files with many items.
-        	record = dataFileReader.next(record);
-        	System.out.println(record);
-        }   
-	}
-	
-	// many test use Derby as database, so ensure driver is available  
+
+        final InputStream instream = new ByteArrayInputStream(serializedBytes);
+
+        final DatumReader<GenericRecord> datumReader = new GenericDatumReader<GenericRecord>();
+        try (final DataFileStream<GenericRecord> dataFileReader = new DataFileStream<GenericRecord>(instream, datumReader)) {
+            GenericRecord record = null;
+            while (dataFileReader.hasNext()) {
+                // Reuse record object by passing it to next(). This saves us from
+                // allocating and garbage collecting many objects for files with
+                // many items.
+                record = dataFileReader.next(record);
+                System.out.println(record);
+            }
+        }
+    }
+
+    // many test use Derby as database, so ensure driver is available
     @Test
     public void testDriverLoad() throws ClassNotFoundException {
-        Class<?> clazz = Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
+        final Class<?> clazz = Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
         assertNotNull(clazz);
     }
 
-	private Connection createConnection() throws ClassNotFoundException, SQLException {
-		
-        Class.forName("org.apache.derby.jdbc.EmbeddedDriver");        
-        Connection con = DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";create=true");
-		return con;
-	}
+    private Connection createConnection() throws ClassNotFoundException, SQLException {
 
+        Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
+        final Connection con = DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";create=true");
+        return con;
+    }
 
 }

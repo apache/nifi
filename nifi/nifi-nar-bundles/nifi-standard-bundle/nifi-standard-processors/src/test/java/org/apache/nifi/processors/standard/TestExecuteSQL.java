@@ -68,13 +68,13 @@ public class TestExecuteSQL {
 
     @Test
     public void testNoTimeLimit() throws InitializationException, ClassNotFoundException, SQLException, IOException {
-    	invokeOnTrigger(null);
+        invokeOnTrigger(null);
     }
 
     @Test
     public void testQueryTimeout() throws InitializationException, ClassNotFoundException, SQLException, IOException {
-    	// Does to seem to have any effect when using embedded Derby
-    	invokeOnTrigger(1);		// 1 second max time
+        // Does to seem to have any effect when using embedded Derby
+        invokeOnTrigger(1); // 1 second max time
     }
 
     public void invokeOnTrigger(final Integer queryTimeout) throws InitializationException, ClassNotFoundException, SQLException, IOException {
@@ -89,7 +89,7 @@ public class TestExecuteSQL {
         runner.setProperty(ExecuteSQL.DBCP_SERVICE, "dbcp");
 
         if (queryTimeout != null) {
-        	runner.setProperty(ExecuteSQL.QUERY_TIMEOUT, queryTimeout.toString() + " secs");
+            runner.setProperty(ExecuteSQL.QUERY_TIMEOUT, queryTimeout.toString() + " secs");
         }
 
         // remove previous test database, if any
@@ -105,24 +105,25 @@ public class TestExecuteSQL {
         // because of where PER.ID = ${person.id}
         final int nrOfRows = 2000000;
         final String query = "select "
-        		+ "  PER.ID as PersonId, PER.NAME as PersonName, PER.CODE as PersonCode"
-        		+ ", PRD.ID as ProductId,PRD.NAME as ProductName,PRD.CODE as ProductCode"
-        		+ ", REL.ID as RelId,    REL.NAME as RelName,    REL.CODE as RelCode"
-        		+ ", ROW_NUMBER() OVER () as rownr "
-        		+ " from persons PER, products PRD, relationships REL"
-        		+ " where PER.ID = ${person.id}";
+            + "  PER.ID as PersonId, PER.NAME as PersonName, PER.CODE as PersonCode"
+            + ", PRD.ID as ProductId,PRD.NAME as ProductName,PRD.CODE as ProductCode"
+            + ", REL.ID as RelId,    REL.NAME as RelName,    REL.CODE as RelCode"
+            + ", ROW_NUMBER() OVER () as rownr "
+            + " from persons PER, products PRD, relationships REL"
+            + " where PER.ID = ${person.id}";
 
         runner.setProperty(ExecuteSQL.SQL_SELECT_QUERY, query);
 
         // incoming FlowFile content is not used, but attributes are used
-        final Map<String,String> attributes = new HashMap<String,String>();
+        final Map<String, String> attributes = new HashMap<String, String>();
         attributes.put("person.id", "10");
         runner.enqueue("Hello".getBytes(), attributes);
 
         runner.run();
         runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_SUCCESS, 1);
 
-        // read all Avro records and verify created FlowFile contains 1000000 records
+        // read all Avro records and verify created FlowFile contains 1000000
+        // records
         final List<MockFlowFile> flowfiles = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS);
         final InputStream in = new ByteArrayInputStream(flowfiles.get(0).toByteArray());
         final DatumReader<GenericRecord> datumReader = new GenericDatumReader<GenericRecord>();
@@ -130,10 +131,11 @@ public class TestExecuteSQL {
         GenericRecord record = null;
         long recordsFromStream = 0;
         while (dataFileReader.hasNext()) {
-        	// Reuse record object by passing it to next(). This saves us from
-        	// allocating and garbage collecting many objects for files with many items.
-        	record = dataFileReader.next(record);
-          	recordsFromStream += 1;
+            // Reuse record object by passing it to next(). This saves us from
+            // allocating and garbage collecting many objects for files with
+            // many items.
+            record = dataFileReader.next(record);
+            recordsFromStream += 1;
         }
 
         LOGGER.info("total nr of records from stream: " + recordsFromStream);
@@ -141,30 +143,27 @@ public class TestExecuteSQL {
         dataFileReader.close();
     }
 
-
-
-
     /**
      * Simple implementation only for ExecuteSQL processor testing.
      *
      */
     class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
 
-		@Override
-		public String getIdentifier() {
-			return "dbcp";
-		}
+        @Override
+        public String getIdentifier() {
+            return "dbcp";
+        }
 
-		@Override
-		public Connection getConnection() throws ProcessException {
-	        try {
-				Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
-				final Connection con = DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";create=true");
-				return con;
-			} catch (final Exception e) {
-				throw new ProcessException("getConnection failed: " + e);
-			}
-		}
+        @Override
+        public Connection getConnection() throws ProcessException {
+            try {
+                Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
+                final Connection con = DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";create=true");
+                return con;
+            } catch (final Exception e) {
+                throw new ProcessException("getConnection failed: " + e);
+            }
+        }
     }
 
 }

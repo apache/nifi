@@ -16,12 +16,32 @@
  */
 package org.apache.nifi.processors.standard.util;
 
+import static java.sql.Types.BIGINT;
+import static java.sql.Types.BOOLEAN;
+import static java.sql.Types.CHAR;
+import static java.sql.Types.DATE;
+import static java.sql.Types.DECIMAL;
+import static java.sql.Types.DOUBLE;
+import static java.sql.Types.FLOAT;
+import static java.sql.Types.INTEGER;
+import static java.sql.Types.LONGNVARCHAR;
+import static java.sql.Types.LONGVARCHAR;
+import static java.sql.Types.NCHAR;
+import static java.sql.Types.NUMERIC;
+import static java.sql.Types.NVARCHAR;
+import static java.sql.Types.REAL;
+import static java.sql.Types.ROWID;
+import static java.sql.Types.SMALLINT;
+import static java.sql.Types.TIME;
+import static java.sql.Types.TIMESTAMP;
+import static java.sql.Types.TINYINT;
+import static java.sql.Types.VARCHAR;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import static java.sql.Types.*;
 
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
@@ -32,9 +52,8 @@ import org.apache.avro.generic.GenericDatumWriter;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumWriter;
 
-
 /**
- *  JDBC / SQL common functions.
+ * JDBC / SQL common functions.
  */
 public class JdbcCommon {
 
@@ -53,13 +72,10 @@ public class JdbcCommon {
                 for (int i = 1; i <= nrOfColumns; i++) {
                     final Object value = rs.getObject(i);
 
-                    // The different types that we support are numbers (int,
-                    // long, double, float), as well
-                    // as boolean values and Strings. Since Avro doesn't provide
-                    // timestamp types, we want to
-                    // convert those to Strings. So we will cast anything other
-                    // than numbers or booleans to
-                    // strings by using to toString() method.
+                    // The different types that we support are numbers (int, long, double, float),
+                    // as well as boolean values and Strings. Since Avro doesn't provide
+                    // timestamp types, we want to convert those to Strings. So we will cast anything other
+                    // than numbers or booleans to strings by using to toString() method.
                     if (value == null) {
                         rec.put(i - 1, null);
                     } else if (value instanceof Number || value instanceof Boolean) {
@@ -73,8 +89,8 @@ public class JdbcCommon {
             }
 
             return nrOfRows;
-		}
-	}
+        }
+    }
 
     public static Schema createSchema(final ResultSet rs) throws SQLException {
         final ResultSetMetaData meta = rs.getMetaData();
@@ -84,11 +100,10 @@ public class JdbcCommon {
         final FieldAssembler<Schema> builder = SchemaBuilder.record(tableName).namespace("any.data").fields();
 
         /**
-         * Some missing Avro types - Decimal, Date types. May need some
-         * additional work.
+         * Some missing Avro types - Decimal, Date types. May need some additional work.
          */
         for (int i = 1; i <= nrOfColumns; i++) {
-			switch (meta.getColumnType(i)) {
+            switch (meta.getColumnType(i)) {
                 case CHAR:
                 case LONGNVARCHAR:
                 case LONGVARCHAR:
@@ -142,9 +157,9 @@ public class JdbcCommon {
 
                 default:
                     break;
-			}
+            }
         }
 
-		return builder.endRecord();
-	}
+        return builder.endRecord();
+    }
 }

@@ -182,6 +182,14 @@
 			<groupId>org.apache.nifi</groupId>
 			<artifactId>nifi-dbcp-service-api</artifactId>
 		</dependency>
+
+		<dependency>
+			<groupId>org.apache.derby</groupId>
+			<artifactId>derby</artifactId>
+			<version>10.11.1.1</version>
+			<scope>test</scope>
+		</dependency>
+
 	</dependencies>
 	<build>
 		<plugins>
