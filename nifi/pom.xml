@@ -848,10 +848,20 @@
                 <version>0.2.0-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-dbcp-service-api</artifactId>
+                <version>0.2.0-incubating-SNAPSHOT</version>
+            </dependency>
+            <dependency>
                 <groupId>com.jayway.jsonpath</groupId>
                 <artifactId>json-path</artifactId>
                 <version>2.0.0</version>
             </dependency>
+            <dependency>
+			    <groupId>org.apache.derby</groupId>
+			    <artifactId>derby</artifactId>
+			    <version>10.11.1.1</version>
+		    </dependency>
         </dependencies>
     </dependencyManagement>
     <dependencies>
