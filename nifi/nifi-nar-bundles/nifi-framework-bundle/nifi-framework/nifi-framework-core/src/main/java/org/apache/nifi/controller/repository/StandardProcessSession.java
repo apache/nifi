@@ -178,7 +178,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             throw new AssertionError("Connectable type is " + connectable.getConnectableType());
         }
 
-        this.provenanceReporter = new StandardProvenanceReporter(connectable.getIdentifier(), componentType, context.getProvenanceRepository(), this);
+        this.provenanceReporter = new StandardProvenanceReporter(this, connectable.getIdentifier(), componentType,
+            context.getProvenanceRepository(), this);
         this.sessionId = idGenerator.getAndIncrement();
         this.connectableDescription = description;
 
@@ -324,7 +325,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 }
                 final long flowFileLife = System.currentTimeMillis() - flowFile.getEntryDate();
                 final Connectable connectable = context.getConnectable();
-                final Object terminator = (connectable instanceof ProcessorNode) ? ((ProcessorNode) connectable).getProcessor() : connectable;
+                final Object terminator = connectable instanceof ProcessorNode ? ((ProcessorNode) connectable).getProcessor() : connectable;
                 LOG.info("{} terminated by {}; life of FlowFile = {} ms", new Object[]{flowFile, terminator, flowFileLife});
             } else if (record.isWorking() && record.getWorkingClaim() != record.getOriginalClaim()) {
                 //records which have been updated - remove original if exists
@@ -651,7 +652,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 return new Iterator<ProvenanceEventRecord>() {
                     @Override
                     public boolean hasNext() {
-                        return recordsToSubmitIterator.hasNext() || (autoTermIterator != null && autoTermIterator.hasNext());
+                        return recordsToSubmitIterator.hasNext() || autoTermIterator != null && autoTermIterator.hasNext();
                     }
 
                     @Override
@@ -1056,8 +1057,8 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
     }
 
     private void formatNanos(final long nanos, final StringBuilder sb) {
-        final long seconds = (nanos > 1000000000L) ? (nanos / 1000000000L) : 0L;
-        long millis = (nanos > 1000000L) ? (nanos / 1000000L) : 0L;;
+        final long seconds = nanos > 1000000000L ? nanos / 1000000000L : 0L;
+        long millis = nanos > 1000000L ? nanos / 1000000L : 0L;;
         final long nanosLeft = nanos % 1000000L;
 
         if (seconds > 0) {
@@ -1609,7 +1610,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             processorType = connectable.getClass().getSimpleName();
         }
 
-        final StandardProvenanceReporter expiredReporter = new StandardProvenanceReporter(connectable.getIdentifier(),
+        final StandardProvenanceReporter expiredReporter = new StandardProvenanceReporter(this, connectable.getIdentifier(),
             processorType, context.getProvenanceRepository(), this);
 
         final Map<String, FlowFileRecord> recordIdMap = new HashMap<>();
@@ -1623,7 +1624,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             removeContent(flowFile.getContentClaim());
 
             final long flowFileLife = System.currentTimeMillis() - flowFile.getEntryDate();
-            final Object terminator = (connectable instanceof ProcessorNode) ? ((ProcessorNode) connectable).getProcessor() : connectable;
+            final Object terminator = connectable instanceof ProcessorNode ? ((ProcessorNode) connectable).getProcessor() : connectable;
             LOG.info("{} terminated by {} due to FlowFile expiration; life of FlowFile = {} ms", new Object[]{flowFile, terminator, flowFileLife});
         }
 
@@ -1828,7 +1829,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                     readCount += copied;
 
                     // don't add demarcator after the last claim
-                    if (useDemarcator && (++objectIndex < numSources)) {
+                    if (useDemarcator && ++objectIndex < numSources) {
                         out.write(demarcator);
                         writtenCount += demarcator.length;
                     }
@@ -2486,6 +2487,16 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         for (final FlowFile flowFile : flowFiles) {
             validateRecordState(flowFile);
         }
+    }
+
+    /**
+     * Checks if a FlowFile is known in this session.
+     *
+     * @param flowFile the FlowFile to check
+     * @return <code>true</code> if the FlowFile is known in this session, <code>false</code> otherwise.
+     */
+    boolean isFlowFileKnown(final FlowFile flowFile) {
+        return records.containsKey(flowFile);
     }
 
     @Override

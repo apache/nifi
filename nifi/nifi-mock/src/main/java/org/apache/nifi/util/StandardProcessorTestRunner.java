@@ -64,11 +64,10 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.QueueSize;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceReporter;
 import org.apache.nifi.reporting.InitializationException;
 import org.junit.Assert;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class StandardProcessorTestRunner implements TestRunner {
 
@@ -83,7 +82,6 @@ public class StandardProcessorTestRunner implements TestRunner {
     private int numThreads = 1;
     private final AtomicInteger invocations = new AtomicInteger(0);
 
-    private static final Logger logger = LoggerFactory.getLogger(StandardProcessorTestRunner.class);
     private static final Set<Class<? extends Annotation>> deprecatedTypeAnnotations = new HashSet<>();
     private static final Set<Class<? extends Annotation>> deprecatedMethodAnnotations = new HashSet<>();
 
@@ -99,7 +97,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         this.idGenerator = new AtomicLong(0L);
         this.sharedState = new SharedSessionState(processor, idGenerator);
         this.flowFileQueue = sharedState.getFlowFileQueue();
-        this.sessionFactory = new MockSessionFactory(sharedState);
+        this.sessionFactory = new MockSessionFactory(sharedState, processor);
         this.context = new MockProcessContext(processor);
 
         detectDeprecatedAnnotations(processor);
@@ -109,7 +107,7 @@ public class StandardProcessorTestRunner implements TestRunner {
 
         try {
             ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, processor);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             Assert.fail("Could not invoke methods annotated with @OnAdded annotation due to: " + e);
         }
 
@@ -194,7 +192,7 @@ public class StandardProcessorTestRunner implements TestRunner {
             if (initialize) {
                 try {
                     ReflectionUtils.invokeMethodsWithAnnotation(OnScheduled.class, processor, context);
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     e.printStackTrace();
                     Assert.fail("Could not invoke methods annotated with @OnScheduled annotation due to: " + e);
                 }
@@ -223,7 +221,7 @@ public class StandardProcessorTestRunner implements TestRunner {
                         unscheduledRun = true;
                         try {
                             ReflectionUtils.invokeMethodsWithAnnotation(OnUnscheduled.class, processor, context);
-                        } catch (Exception e) {
+                        } catch (final Exception e) {
                             Assert.fail("Could not invoke methods annotated with @OnUnscheduled annotation due to: " + e);
                         }
                     }
@@ -234,7 +232,7 @@ public class StandardProcessorTestRunner implements TestRunner {
             if (!unscheduledRun) {
                 try {
                     ReflectionUtils.invokeMethodsWithAnnotation(OnUnscheduled.class, processor, context);
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     Assert.fail("Could not invoke methods annotated with @OnUnscheduled annotation due to: " + e);
                 }
             }
@@ -242,7 +240,7 @@ public class StandardProcessorTestRunner implements TestRunner {
             if (stopOnFinish) {
                 try {
                     ReflectionUtils.invokeMethodsWithAnnotation(OnStopped.class, processor);
-                } catch (Exception e) {
+                } catch (final Exception e) {
                     Assert.fail("Could not invoke methods annotated with @OnStopped annotation due to: " + e);
                 }
             }
@@ -255,7 +253,7 @@ public class StandardProcessorTestRunner implements TestRunner {
     public void shutdown() {
         try {
             ReflectionUtils.invokeMethodsWithAnnotation(OnShutdown.class, processor);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             Assert.fail("Could not invoke methods annotated with @OnShutdown annotation due to: " + e);
         }
     }
@@ -388,7 +386,7 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public void enqueue(final InputStream data, final Map<String, String> attributes) {
-        final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, idGenerator));
+        final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, idGenerator), processor);
         MockFlowFile flowFile = session.create();
         flowFile = session.importFrom(data, flowFile);
         flowFile = session.putAllAttributes(flowFile, attributes);
@@ -423,7 +421,11 @@ public class StandardProcessorTestRunner implements TestRunner {
         return flowFiles;
     }
 
+    /**
+     * @deprecated The ProvenanceReporter should not be accessed through the test runner, as it does not expose the events that were emitted.
+     */
     @Override
+    @Deprecated
     public ProvenanceReporter getProvenanceReporter() {
         return sharedState.getProvenanceReporter();
     }
@@ -701,6 +703,16 @@ public class StandardProcessorTestRunner implements TestRunner {
     @Override
     public boolean removeProperty(PropertyDescriptor descriptor) {
         return context.removeProperty(descriptor);
+    }
+
+    @Override
+    public List<ProvenanceEventRecord> getProvenanceEvents() {
+        return sharedState.getProvenanceEvents();
+    }
+
+    @Override
+    public void clearProvenanceEvents() {
+        sharedState.clearProvenanceEvents();
     }
 
 }
