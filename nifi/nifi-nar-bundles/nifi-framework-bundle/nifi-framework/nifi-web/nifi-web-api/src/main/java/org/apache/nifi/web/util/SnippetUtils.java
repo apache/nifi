@@ -72,9 +72,10 @@ public final class SnippetUtils {
      *
      * @param snippet snippet
      * @param recurse recurse
+     * @param includeControllerServices whether or not to include controller services in the flow snippet dto
      * @return snippet
      */
-    public FlowSnippetDTO populateFlowSnippet(Snippet snippet, boolean recurse) {
+    public FlowSnippetDTO populateFlowSnippet(Snippet snippet, boolean recurse, boolean includeControllerServices) {
         final FlowSnippetDTO snippetDto = new FlowSnippetDTO();
         final String groupId = snippet.getParentGroupId();
         final ProcessGroup processGroup = flowController.getGroup(groupId);
@@ -188,7 +189,9 @@ public final class SnippetUtils {
             snippetDto.setRemoteProcessGroups(remoteProcessGroups);
         }
 
-        addControllerServicesToSnippet(snippetDto);
+        if (includeControllerServices) {
+            addControllerServicesToSnippet(snippetDto);
+        }
 
         return snippetDto;
     }
@@ -570,8 +573,12 @@ public final class SnippetUtils {
                         continue;
                     }
 
-                    final String newServiceId = serviceIdMap.get(currentServiceId);
-                    properties.put(descriptor.getName(), newServiceId);
+                    // if this is a copy/paste action, we can continue to reference the same service, in this case
+                    // the serviceIdMap will be empty
+                    if (serviceIdMap.containsKey(currentServiceId)) {
+                        final String newServiceId = serviceIdMap.get(currentServiceId);
+                        properties.put(descriptor.getName(), newServiceId);
+                    }
                 }
             }
         }

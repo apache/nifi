@@ -76,7 +76,7 @@ public class StandardSnippetDAO implements SnippetDAO {
             }
 
             // generate the snippet contents
-            FlowSnippetDTO snippetContents = snippetUtils.populateFlowSnippet(existingSnippet, true);
+            FlowSnippetDTO snippetContents = snippetUtils.populateFlowSnippet(existingSnippet, true, false);
 
             // resolve sensitive properties
             lookupSensitiveProperties(snippetContents);
