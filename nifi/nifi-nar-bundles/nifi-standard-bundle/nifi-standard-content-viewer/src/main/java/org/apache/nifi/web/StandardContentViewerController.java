@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -33,7 +34,6 @@ import javax.xml.transform.TransformerFactoryConfigurationError;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 import org.apache.nifi.web.ViewableContent.DisplayMode;
-import org.codehaus.jackson.map.ObjectMapper;
 
 @WebServlet(name = "StandardContentViewer", urlPatterns = {"/view-content"})
 public class StandardContentViewerController extends HttpServlet {
@@ -60,7 +60,7 @@ public class StandardContentViewerController extends HttpServlet {
                 if ("application/json".equals(content.getContentType())) {
                     // format json
                     final ObjectMapper mapper = new ObjectMapper();
-                    final Object objectJson = mapper.readValue(content.getContent(), Object.class);
+                    final Object objectJson = mapper.readValue(content.getContentStream(), Object.class);
                     formatted = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(objectJson);
                 } else if ("application/xml".equals(content.getContentType())) {
                     // format xml
