@@ -20,22 +20,21 @@ import java.util.Arrays;
 import java.util.Map;
 
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.NumberEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
 
 public class ToRadixEvaluator extends StringEvaluator {
 
-    private final NumberEvaluator numberEvaluator;
-    private final NumberEvaluator radixEvaluator;
-    private final NumberEvaluator minimumWidthEvaluator;
+    private final Evaluator<Long> numberEvaluator;
+    private final Evaluator<Long> radixEvaluator;
+    private final Evaluator<Long> minimumWidthEvaluator;
 
-    public ToRadixEvaluator(final NumberEvaluator subject, final NumberEvaluator radixEvaluator) {
+    public ToRadixEvaluator(final Evaluator<Long> subject, final Evaluator<Long> radixEvaluator) {
         this(subject, radixEvaluator, null);
     }
 
-    public ToRadixEvaluator(final NumberEvaluator subject, final NumberEvaluator radixEvaluator, final NumberEvaluator minimumWidthEvaluator) {
+    public ToRadixEvaluator(final Evaluator<Long> subject, final Evaluator<Long> radixEvaluator, final Evaluator<Long> minimumWidthEvaluator) {
         this.numberEvaluator = subject;
         this.radixEvaluator = radixEvaluator;
         this.minimumWidthEvaluator = minimumWidthEvaluator;

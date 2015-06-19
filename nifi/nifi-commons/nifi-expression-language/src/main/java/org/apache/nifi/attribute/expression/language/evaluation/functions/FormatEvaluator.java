@@ -30,9 +30,9 @@ import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResul
 public class FormatEvaluator extends StringEvaluator {
 
     private final DateEvaluator subject;
-    private final StringEvaluator format;
+    private final Evaluator<String> format;
 
-    public FormatEvaluator(final DateEvaluator subject, final StringEvaluator format) {
+    public FormatEvaluator(final DateEvaluator subject, final Evaluator<String> format) {
         this.subject = subject;
         this.format = format;
     }

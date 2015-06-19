@@ -29,4 +29,16 @@ public interface Evaluator<T> {
     int getEvaluationsRemaining();
 
     Evaluator<?> getSubjectEvaluator();
+
+    /**
+     * Sets the token that was used in the query to cause this Evaluator to be created
+     *
+     * @param token the token that caused this Evaluator to be created
+     */
+    void setToken(String token);
+
+    /**
+     * @return the token that caused this Evaluator to be created
+     */
+    String getToken();
 }

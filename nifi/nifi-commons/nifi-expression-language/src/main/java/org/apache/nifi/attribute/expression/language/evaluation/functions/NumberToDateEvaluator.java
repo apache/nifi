@@ -22,14 +22,13 @@ import java.util.Map;
 import org.apache.nifi.attribute.expression.language.evaluation.DateEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.DateQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.NumberEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 
 public class NumberToDateEvaluator extends DateEvaluator {
 
-    private final NumberEvaluator subject;
+    private final Evaluator<Long> subject;
 
-    public NumberToDateEvaluator(final NumberEvaluator subject) {
+    public NumberToDateEvaluator(final Evaluator<Long> subject) {
         this.subject = subject;
     }
 

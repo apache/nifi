@@ -95,12 +95,14 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.UuidEv
 import org.apache.nifi.attribute.expression.language.evaluation.literals.BooleanLiteralEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.literals.NumberLiteralEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.literals.StringLiteralEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.literals.ToLiteralEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.reduce.CountEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.reduce.JoinEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.reduce.ReduceEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.selection.AllAttributesEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.selection.AnyAttributeEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.selection.DelineatedAttributeEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.selection.IteratingEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.selection.MultiAttributeEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.selection.MultiMatchAttributeEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.selection.MultiNamedAttributeEvaluator;
@@ -114,6 +116,7 @@ import org.antlr.runtime.ANTLRStringStream;
 import org.antlr.runtime.CharStream;
 import org.antlr.runtime.CommonTokenStream;
 import org.antlr.runtime.tree.Tree;
+
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ALL_ATTRIBUTES;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ALL_DELINEATED_VALUES;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.ALL_MATCHING_ATTRIBUTES;
@@ -171,6 +174,7 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.SUBSTRING_BEFORE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.SUBSTRING_BEFORE_LAST;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TO_DATE;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TO_LITERAL;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TO_LOWER;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TO_NUMBER;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.TO_RADIX;
@@ -181,6 +185,7 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.URL_DECODE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.URL_ENCODE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.UUID;
+
 import org.apache.nifi.attribute.expression.language.evaluation.selection.MappingEvaluator;
 
 /**
@@ -205,7 +210,7 @@ public class Query {
         try {
             validateExpression(value, false);
             return true;
-        } catch (final ProcessException e) {
+        } catch (final AttributeExpressionLanguageParsingException | ProcessException e) {
             return false;
         }
     }
@@ -341,7 +346,7 @@ public class Query {
 
             if (c == '\\') {
                 backslashCount++;
-            } else if (c == quoteChar && ((backslashCount % 2 == 0) || lastChar != '\\')) {
+            } else if (c == quoteChar && (backslashCount % 2 == 0 || lastChar != '\\')) {
                 return i;
             }
 
@@ -359,7 +364,7 @@ public class Query {
 
         final String value = evaluated.toString();
         final String escaped = value.replace("$$", "$");
-        return (decorator == null) ? escaped : decorator.decorate(escaped);
+        return decorator == null ? escaped : decorator.decorate(escaped);
     }
 
     static String evaluateExpressions(final String rawValue, Map<String, String> expressionMap) throws ProcessException {
@@ -631,6 +636,25 @@ public class Query {
     }
 
     private static void verifyMappingEvaluatorReduced(final Evaluator<?> evaluator) {
+        final Evaluator<?> rightMostEvaluator;
+        if (evaluator instanceof IteratingEvaluator) {
+            rightMostEvaluator = ((IteratingEvaluator<?>) evaluator).getLogicEvaluator();
+        } else {
+            rightMostEvaluator = evaluator;
+        }
+
+        Evaluator<?> eval = rightMostEvaluator.getSubjectEvaluator();
+        Evaluator<?> lastEval = rightMostEvaluator;
+        while (eval != null) {
+            if (eval instanceof ReduceEvaluator) {
+                throw new AttributeExpressionLanguageParsingException("Expression attempts to call function '" + lastEval.getToken() + "' on the result of '" + eval.getToken() +
+                    "'. This is not allowed. Instead, use \"${literal( ${<embedded expression>} ):" + lastEval.getToken() + "(...)}\"");
+            }
+
+            lastEval = eval;
+            eval = eval.getSubjectEvaluator();
+        }
+
         // if the result type of the evaluator is BOOLEAN, then it will always
         // be reduced when evaluator.
         final ResultType resultType = evaluator.getResultType();
@@ -691,7 +715,7 @@ public class Query {
         return "Query [" + query + "]";
     }
 
-    private static StringEvaluator newStringLiteralEvaluator(final String literalValue) {
+    private static Evaluator<String> newStringLiteralEvaluator(final String literalValue) {
         if (literalValue == null || literalValue.length() < 2) {
             return new StringLiteralEvaluator(literalValue);
         }
@@ -724,7 +748,7 @@ public class Query {
             return toStringEvaluator(evaluators.get(0));
         }
 
-        StringEvaluator lastEvaluator = toStringEvaluator(evaluators.get(0));
+        Evaluator<String> lastEvaluator = toStringEvaluator(evaluators.get(0));
         for (int i = 1; i < evaluators.size(); i++) {
             lastEvaluator = new AppendEvaluator(lastEvaluator, toStringEvaluator(evaluators.get(i)));
         }
@@ -749,8 +773,8 @@ public class Query {
                 final Tree functionTypeTree = tree.getChild(0);
                 final int multiAttrType = functionTypeTree.getType();
                 if (multiAttrType == ANY_DELINEATED_VALUE || multiAttrType == ALL_DELINEATED_VALUES) {
-                    final StringEvaluator delineatedValueEvaluator = toStringEvaluator(buildEvaluator(tree.getChild(1)));
-                    final StringEvaluator delimiterEvaluator = toStringEvaluator(buildEvaluator(tree.getChild(2)));
+                    final Evaluator<String> delineatedValueEvaluator = toStringEvaluator(buildEvaluator(tree.getChild(1)));
+                    final Evaluator<String> delimiterEvaluator = toStringEvaluator(buildEvaluator(tree.getChild(2)));
 
                     return new DelineatedAttributeEvaluator(delineatedValueEvaluator, delimiterEvaluator, multiAttrType);
                 }
@@ -807,6 +831,10 @@ public class Query {
             case NOW: {
                 return new NowEvaluator();
             }
+            case TO_LITERAL: {
+                final Evaluator<?> argEvaluator = buildEvaluator(tree.getChild(0));
+                return new ToLiteralEvaluator(argEvaluator);
+            }
             case IP: {
                 try {
                     return new IPEvaluator();
@@ -818,7 +846,7 @@ public class Query {
                 if (tree.getChildCount() == 0) {
                     try {
                         return new HostnameEvaluator(false);
-                    } catch (UnknownHostException e) {
+                    } catch (final UnknownHostException e) {
                         throw new AttributeExpressionLanguageException(e);
                     }
                 } else if (tree.getChildCount() == 1) {
@@ -832,7 +860,7 @@ public class Query {
                             default:
                                 throw new AttributeExpressionLanguageParsingException("Call to hostname() must take 0 or 1 (boolean) parameter");
                         }
-                    } catch (UnknownHostException e) {
+                    } catch (final UnknownHostException e) {
                         throw new AttributeExpressionLanguageException(e);
                     }
                 } else {
@@ -847,16 +875,22 @@ public class Query {
         }
     }
 
+    private static <T> Evaluator<T> addToken(final Evaluator<T> evaluator, final String token) {
+        evaluator.setToken(token);
+        return evaluator;
+    }
+
     private static Evaluator<Boolean> buildBooleanEvaluator(final Tree tree) {
         switch (tree.getType()) {
             case TRUE:
-                return new BooleanLiteralEvaluator(true);
+                return addToken(new BooleanLiteralEvaluator(true), "true");
             case FALSE:
-                return new BooleanLiteralEvaluator(false);
+                return addToken(new BooleanLiteralEvaluator(false), "true");
         }
         throw new AttributeExpressionLanguageParsingException("Cannot build Boolean evaluator from tree " + tree.toString());
     }
 
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     private static Evaluator<?> buildExpressionEvaluator(final Tree tree) {
         if (tree.getChildCount() == 0) {
             throw new AttributeExpressionLanguageParsingException("EXPRESSION tree node has no children");
@@ -901,6 +935,27 @@ public class Query {
                         break;
                     }
                 }
+
+                switch (multiAttrEval.getEvaluationType()) {
+                    case ANY_ATTRIBUTE:
+                        chosenEvaluator.setToken("anyAttribute");
+                        break;
+                    case ANY_MATCHING_ATTRIBUTE:
+                        chosenEvaluator.setToken("anyMatchingAttribute");
+                        break;
+                    case ANY_DELINEATED_VALUE:
+                        chosenEvaluator.setToken("anyDelineatedValue");
+                        break;
+                    case ALL_ATTRIBUTES:
+                        chosenEvaluator.setToken("allAttributes");
+                        break;
+                    case ALL_MATCHING_ATTRIBUTES:
+                        chosenEvaluator.setToken("allMatchingAttributes");
+                        break;
+                    case ALL_DELINEATED_VALUES:
+                        chosenEvaluator.setToken("allDelineatedValues");
+                        break;
+                }
             }
         }
 
@@ -934,24 +989,25 @@ public class Query {
         return args;
     }
 
-    private static StringEvaluator toStringEvaluator(final Evaluator<?> evaluator) {
+    private static Evaluator<String> toStringEvaluator(final Evaluator<?> evaluator) {
         return toStringEvaluator(evaluator, null);
     }
 
-    private static StringEvaluator toStringEvaluator(final Evaluator<?> evaluator, final String location) {
+    private static Evaluator<String> toStringEvaluator(final Evaluator<?> evaluator, final String location) {
         if (evaluator.getResultType() == ResultType.STRING) {
             return (StringEvaluator) evaluator;
         }
 
-        return new StringCastEvaluator(evaluator);
+        return addToken(new StringCastEvaluator(evaluator), evaluator.getToken());
     }
 
-    private static BooleanEvaluator toBooleanEvaluator(final Evaluator<?> evaluator, final String location) {
+    @SuppressWarnings("unchecked")
+    private static Evaluator<Boolean> toBooleanEvaluator(final Evaluator<?> evaluator, final String location) {
         switch (evaluator.getResultType()) {
             case BOOLEAN:
-                return (BooleanEvaluator) evaluator;
+                return (Evaluator<Boolean>) evaluator;
             case STRING:
-                return new BooleanCastEvaluator((StringEvaluator) evaluator);
+                return addToken(new BooleanCastEvaluator((StringEvaluator) evaluator), evaluator.getToken());
             default:
                 throw new AttributeExpressionLanguageParsingException("Cannot implicitly convert Data Type " + evaluator.getResultType() + " to " + ResultType.BOOLEAN
                     + (location == null ? "" : " at location [" + location + "]"));
@@ -959,22 +1015,23 @@ public class Query {
 
     }
 
-    private static BooleanEvaluator toBooleanEvaluator(final Evaluator<?> evaluator) {
+    private static Evaluator<Boolean> toBooleanEvaluator(final Evaluator<?> evaluator) {
         return toBooleanEvaluator(evaluator, null);
     }
 
-    private static NumberEvaluator toNumberEvaluator(final Evaluator<?> evaluator) {
+    private static Evaluator<Long> toNumberEvaluator(final Evaluator<?> evaluator) {
         return toNumberEvaluator(evaluator, null);
     }
 
-    private static NumberEvaluator toNumberEvaluator(final Evaluator<?> evaluator, final String location) {
+    @SuppressWarnings("unchecked")
+    private static Evaluator<Long> toNumberEvaluator(final Evaluator<?> evaluator, final String location) {
         switch (evaluator.getResultType()) {
             case NUMBER:
-                return (NumberEvaluator) evaluator;
+                return (Evaluator<Long>) evaluator;
             case STRING:
-                return new NumberCastEvaluator(evaluator);
+                return addToken(new NumberCastEvaluator(evaluator), evaluator.getToken());
             case DATE:
-                return new DateToNumberEvaluator((DateEvaluator) evaluator);
+                return addToken(new DateToNumberEvaluator((DateEvaluator) evaluator), evaluator.getToken());
             default:
                 throw new AttributeExpressionLanguageParsingException("Cannot implicitly convert Data Type " + evaluator.getResultType() + " to " + ResultType.NUMBER
                     + (location == null ? "" : " at location [" + location + "]"));
@@ -997,233 +1054,233 @@ public class Query {
         switch (tree.getType()) {
             case TRIM: {
                 verifyArgCount(argEvaluators, 0, "trim");
-                return new TrimEvaluator(toStringEvaluator(subjectEvaluator));
+                return addToken(new TrimEvaluator(toStringEvaluator(subjectEvaluator)), "trim");
             }
             case TO_STRING: {
                 verifyArgCount(argEvaluators, 0, "toString");
-                return new ToStringEvaluator(subjectEvaluator);
+                return addToken(new ToStringEvaluator(subjectEvaluator), "toString");
             }
             case TO_LOWER: {
                 verifyArgCount(argEvaluators, 0, "toLower");
-                return new ToLowerEvaluator(toStringEvaluator(subjectEvaluator));
+                return addToken(new ToLowerEvaluator(toStringEvaluator(subjectEvaluator)), "toLower");
             }
             case TO_UPPER: {
                 verifyArgCount(argEvaluators, 0, "toUpper");
-                return new ToUpperEvaluator(toStringEvaluator(subjectEvaluator));
+                return addToken(new ToUpperEvaluator(toStringEvaluator(subjectEvaluator)), "toUpper");
             }
             case URL_ENCODE: {
                 verifyArgCount(argEvaluators, 0, "urlEncode");
-                return new UrlEncodeEvaluator(toStringEvaluator(subjectEvaluator));
+                return addToken(new UrlEncodeEvaluator(toStringEvaluator(subjectEvaluator)), "urlEncode");
             }
             case URL_DECODE: {
                 verifyArgCount(argEvaluators, 0, "urlDecode");
-                return new UrlDecodeEvaluator(toStringEvaluator(subjectEvaluator));
+                return addToken(new UrlDecodeEvaluator(toStringEvaluator(subjectEvaluator)), "urlDecode");
             }
             case SUBSTRING_BEFORE: {
                 verifyArgCount(argEvaluators, 1, "substringBefore");
-                return new SubstringBeforeEvaluator(toStringEvaluator(subjectEvaluator),
-                    toStringEvaluator(argEvaluators.get(0), "first argument to substringBefore"));
+                return addToken(new SubstringBeforeEvaluator(toStringEvaluator(subjectEvaluator),
+                    toStringEvaluator(argEvaluators.get(0), "first argument to substringBefore")), "substringBefore");
             }
             case SUBSTRING_BEFORE_LAST: {
                 verifyArgCount(argEvaluators, 1, "substringBeforeLast");
-                return new SubstringBeforeLastEvaluator(toStringEvaluator(subjectEvaluator),
-                    toStringEvaluator(argEvaluators.get(0), "first argument to substringBeforeLast"));
+                return addToken(new SubstringBeforeLastEvaluator(toStringEvaluator(subjectEvaluator),
+                    toStringEvaluator(argEvaluators.get(0), "first argument to substringBeforeLast")), "substringBeforeLast");
             }
             case SUBSTRING_AFTER: {
                 verifyArgCount(argEvaluators, 1, "substringAfter");
-                return new SubstringAfterEvaluator(toStringEvaluator(subjectEvaluator),
-                    toStringEvaluator(argEvaluators.get(0), "first argument to substringAfter"));
+                return addToken(new SubstringAfterEvaluator(toStringEvaluator(subjectEvaluator),
+                    toStringEvaluator(argEvaluators.get(0), "first argument to substringAfter")), "substringAfter");
             }
             case SUBSTRING_AFTER_LAST: {
                 verifyArgCount(argEvaluators, 1, "substringAfterLast");
-                return new SubstringAfterLastEvaluator(toStringEvaluator(subjectEvaluator),
-                    toStringEvaluator(argEvaluators.get(0), "first argument to substringAfterLast"));
+                return addToken(new SubstringAfterLastEvaluator(toStringEvaluator(subjectEvaluator),
+                    toStringEvaluator(argEvaluators.get(0), "first argument to substringAfterLast")), "substringAfterLast");
             }
             case REPLACE_NULL: {
                 verifyArgCount(argEvaluators, 1, "replaceNull");
-                return new ReplaceNullEvaluator(toStringEvaluator(subjectEvaluator),
-                    toStringEvaluator(argEvaluators.get(0), "first argument to replaceNull"));
+                return addToken(new ReplaceNullEvaluator(toStringEvaluator(subjectEvaluator),
+                    toStringEvaluator(argEvaluators.get(0), "first argument to replaceNull")), "replaceNull");
             }
             case REPLACE_EMPTY: {
                 verifyArgCount(argEvaluators, 1, "replaceEmtpy");
-                return new ReplaceEmptyEvaluator(toStringEvaluator(subjectEvaluator), toStringEvaluator(argEvaluators.get(0), "first argumen to replaceEmpty"));
+                return addToken(new ReplaceEmptyEvaluator(toStringEvaluator(subjectEvaluator), toStringEvaluator(argEvaluators.get(0), "first argument to replaceEmpty")), "replaceEmpty");
             }
             case REPLACE: {
                 verifyArgCount(argEvaluators, 2, "replace");
-                return new ReplaceEvaluator(toStringEvaluator(subjectEvaluator),
+                return addToken(new ReplaceEvaluator(toStringEvaluator(subjectEvaluator),
                     toStringEvaluator(argEvaluators.get(0), "first argument to replace"),
-                    toStringEvaluator(argEvaluators.get(1), "second argument to replace"));
+                    toStringEvaluator(argEvaluators.get(1), "second argument to replace")), "replace");
             }
             case REPLACE_ALL: {
                 verifyArgCount(argEvaluators, 2, "replaceAll");
-                return new ReplaceAllEvaluator(toStringEvaluator(subjectEvaluator),
+                return addToken(new ReplaceAllEvaluator(toStringEvaluator(subjectEvaluator),
                     toStringEvaluator(argEvaluators.get(0), "first argument to replaceAll"),
-                    toStringEvaluator(argEvaluators.get(1), "second argument to replaceAll"));
+                    toStringEvaluator(argEvaluators.get(1), "second argument to replaceAll")), "replaceAll");
             }
             case APPEND: {
                 verifyArgCount(argEvaluators, 1, "append");
-                return new AppendEvaluator(toStringEvaluator(subjectEvaluator),
-                    toStringEvaluator(argEvaluators.get(0), "first argument to append"));
+                return addToken(new AppendEvaluator(toStringEvaluator(subjectEvaluator),
+                    toStringEvaluator(argEvaluators.get(0), "first argument to append")), "append");
             }
             case PREPEND: {
                 verifyArgCount(argEvaluators, 1, "prepend");
-                return new PrependEvaluator(toStringEvaluator(subjectEvaluator),
-                    toStringEvaluator(argEvaluators.get(0), "first argument to prepend"));
+                return addToken(new PrependEvaluator(toStringEvaluator(subjectEvaluator),
+                    toStringEvaluator(argEvaluators.get(0), "first argument to prepend")), "prepend");
             }
             case SUBSTRING: {
                 final int numArgs = argEvaluators.size();
                 if (numArgs == 1) {
-                    return new SubstringEvaluator(toStringEvaluator(subjectEvaluator),
-                        toNumberEvaluator(argEvaluators.get(0), "first argument to substring"));
+                    return addToken(new SubstringEvaluator(toStringEvaluator(subjectEvaluator),
+                        toNumberEvaluator(argEvaluators.get(0), "first argument to substring")), "substring");
                 } else if (numArgs == 2) {
-                    return new SubstringEvaluator(toStringEvaluator(subjectEvaluator),
+                    return addToken(new SubstringEvaluator(toStringEvaluator(subjectEvaluator),
                         toNumberEvaluator(argEvaluators.get(0), "first argument to substring"),
-                        toNumberEvaluator(argEvaluators.get(1), "second argument to substring"));
+                        toNumberEvaluator(argEvaluators.get(1), "second argument to substring")), "substring");
                 } else {
                     throw new AttributeExpressionLanguageParsingException("substring() function can take either 1 or 2 arguments but cannot take " + numArgs + " arguments");
                 }
             }
             case JOIN: {
                 verifyArgCount(argEvaluators, 1, "join");
-                return new JoinEvaluator(toStringEvaluator(subjectEvaluator), toStringEvaluator(argEvaluators.get(0)));
+                return addToken(new JoinEvaluator(toStringEvaluator(subjectEvaluator), toStringEvaluator(argEvaluators.get(0))), "join");
             }
             case COUNT: {
                 verifyArgCount(argEvaluators, 0, "count");
-                return new CountEvaluator(subjectEvaluator);
+                return addToken(new CountEvaluator(subjectEvaluator), "count");
             }
             case IS_NULL: {
                 verifyArgCount(argEvaluators, 0, "isNull");
-                return new IsNullEvaluator(toStringEvaluator(subjectEvaluator));
+                return addToken(new IsNullEvaluator(toStringEvaluator(subjectEvaluator)), "isNull");
             }
             case IS_EMPTY: {
                 verifyArgCount(argEvaluators, 0, "isNull");
-                return new IsEmptyEvaluator(toStringEvaluator(subjectEvaluator));
+                return addToken(new IsEmptyEvaluator(toStringEvaluator(subjectEvaluator)), "isEmpty");
             }
             case NOT_NULL: {
                 verifyArgCount(argEvaluators, 0, "notNull");
-                return new NotNullEvaluator(toStringEvaluator(subjectEvaluator));
+                return addToken(new NotNullEvaluator(toStringEvaluator(subjectEvaluator)), "notNull");
             }
             case STARTS_WITH: {
                 verifyArgCount(argEvaluators, 1, "startsWith");
-                return new StartsWithEvaluator(toStringEvaluator(subjectEvaluator),
-                    toStringEvaluator(argEvaluators.get(0), "first argument to startsWith"));
+                return addToken(new StartsWithEvaluator(toStringEvaluator(subjectEvaluator),
+                    toStringEvaluator(argEvaluators.get(0), "first argument to startsWith")), "startsWith");
             }
             case ENDS_WITH: {
                 verifyArgCount(argEvaluators, 1, "endsWith");
-                return new EndsWithEvaluator(toStringEvaluator(subjectEvaluator),
-                    toStringEvaluator(argEvaluators.get(0), "first argument to endsWith"));
+                return addToken(new EndsWithEvaluator(toStringEvaluator(subjectEvaluator),
+                    toStringEvaluator(argEvaluators.get(0), "first argument to endsWith")), "endsWith");
             }
             case CONTAINS: {
                 verifyArgCount(argEvaluators, 1, "contains");
-                return new ContainsEvaluator(toStringEvaluator(subjectEvaluator),
-                    toStringEvaluator(argEvaluators.get(0), "first argument to contains"));
+                return addToken(new ContainsEvaluator(toStringEvaluator(subjectEvaluator),
+                    toStringEvaluator(argEvaluators.get(0), "first argument to contains")), "contains");
             }
             case FIND: {
                 verifyArgCount(argEvaluators, 1, "find");
-                return new FindEvaluator(toStringEvaluator(subjectEvaluator),
-                    toStringEvaluator(argEvaluators.get(0), "first argument to find"));
+                return addToken(new FindEvaluator(toStringEvaluator(subjectEvaluator),
+                    toStringEvaluator(argEvaluators.get(0), "first argument to find")), "find");
             }
             case MATCHES: {
                 verifyArgCount(argEvaluators, 1, "matches");
-                return new MatchesEvaluator(toStringEvaluator(subjectEvaluator),
-                    toStringEvaluator(argEvaluators.get(0), "first argument to matches"));
+                return addToken(new MatchesEvaluator(toStringEvaluator(subjectEvaluator),
+                    toStringEvaluator(argEvaluators.get(0), "first argument to matches")), "matches");
             }
             case EQUALS: {
                 verifyArgCount(argEvaluators, 1, "equals");
-                return new EqualsEvaluator(subjectEvaluator, argEvaluators.get(0));
+                return addToken(new EqualsEvaluator(subjectEvaluator, argEvaluators.get(0)), "equals");
             }
             case EQUALS_IGNORE_CASE: {
                 verifyArgCount(argEvaluators, 1, "equalsIgnoreCase");
-                return new EqualsIgnoreCaseEvaluator(toStringEvaluator(subjectEvaluator),
-                    toStringEvaluator(argEvaluators.get(0), "first argument to equalsIgnoreCase"));
+                return addToken(new EqualsIgnoreCaseEvaluator(toStringEvaluator(subjectEvaluator),
+                    toStringEvaluator(argEvaluators.get(0), "first argument to equalsIgnoreCase")), "equalsIgnoreCase");
             }
             case GREATER_THAN: {
                 verifyArgCount(argEvaluators, 1, "gt");
-                return new GreaterThanEvaluator(toNumberEvaluator(subjectEvaluator),
-                    toNumberEvaluator(argEvaluators.get(0), "first argument to gt"));
+                return addToken(new GreaterThanEvaluator(toNumberEvaluator(subjectEvaluator),
+                    toNumberEvaluator(argEvaluators.get(0), "first argument to gt")), "gt");
             }
             case GREATER_THAN_OR_EQUAL: {
                 verifyArgCount(argEvaluators, 1, "ge");
-                return new GreaterThanOrEqualEvaluator(toNumberEvaluator(subjectEvaluator),
-                    toNumberEvaluator(argEvaluators.get(0), "first argument to ge"));
+                return addToken(new GreaterThanOrEqualEvaluator(toNumberEvaluator(subjectEvaluator),
+                    toNumberEvaluator(argEvaluators.get(0), "first argument to ge")), "ge");
             }
             case LESS_THAN: {
                 verifyArgCount(argEvaluators, 1, "lt");
-                return new LessThanEvaluator(toNumberEvaluator(subjectEvaluator),
-                    toNumberEvaluator(argEvaluators.get(0), "first argument to lt"));
+                return addToken(new LessThanEvaluator(toNumberEvaluator(subjectEvaluator),
+                    toNumberEvaluator(argEvaluators.get(0), "first argument to lt")), "lt");
             }
             case LESS_THAN_OR_EQUAL: {
                 verifyArgCount(argEvaluators, 1, "le");
-                return new LessThanOrEqualEvaluator(toNumberEvaluator(subjectEvaluator),
-                    toNumberEvaluator(argEvaluators.get(0), "first argument to le"));
+                return addToken(new LessThanOrEqualEvaluator(toNumberEvaluator(subjectEvaluator),
+                    toNumberEvaluator(argEvaluators.get(0), "first argument to le")), "le");
             }
             case LENGTH: {
                 verifyArgCount(argEvaluators, 0, "length");
-                return new LengthEvaluator(toStringEvaluator(subjectEvaluator));
+                return addToken(new LengthEvaluator(toStringEvaluator(subjectEvaluator)), "length");
             }
             case TO_DATE: {
                 if (argEvaluators.isEmpty()) {
-                    return new NumberToDateEvaluator(toNumberEvaluator(subjectEvaluator));
+                    return addToken(new NumberToDateEvaluator(toNumberEvaluator(subjectEvaluator)), "toDate");
                 } else if (subjectEvaluator.getResultType() == ResultType.STRING) {
-                    return new StringToDateEvaluator(toStringEvaluator(subjectEvaluator), toStringEvaluator(argEvaluators.get(0)));
+                    return addToken(new StringToDateEvaluator(toStringEvaluator(subjectEvaluator), toStringEvaluator(argEvaluators.get(0))), "toDate");
                 } else {
-                    return new NumberToDateEvaluator(toNumberEvaluator(subjectEvaluator));
+                    return addToken(new NumberToDateEvaluator(toNumberEvaluator(subjectEvaluator)), "toDate");
                 }
             }
             case TO_NUMBER: {
                 verifyArgCount(argEvaluators, 0, "toNumber");
                 switch (subjectEvaluator.getResultType()) {
                     case STRING:
-                        return new ToNumberEvaluator((StringEvaluator) subjectEvaluator);
+                        return addToken(new ToNumberEvaluator((StringEvaluator) subjectEvaluator), "toNumber");
                     case DATE:
-                        return new DateToNumberEvaluator((DateEvaluator) subjectEvaluator);
+                        return addToken(new DateToNumberEvaluator((DateEvaluator) subjectEvaluator), "toNumber");
                     default:
                         throw new AttributeExpressionLanguageParsingException(subjectEvaluator + " returns type " + subjectEvaluator.getResultType() + " but expected to get " + ResultType.STRING);
                 }
             }
             case TO_RADIX: {
                 if (argEvaluators.size() == 1) {
-                    return new ToRadixEvaluator((NumberEvaluator) subjectEvaluator, toNumberEvaluator(argEvaluators.get(0)));
+                    return addToken(new ToRadixEvaluator((NumberEvaluator) subjectEvaluator, toNumberEvaluator(argEvaluators.get(0))), "toRadix");
                 } else {
-                    return new ToRadixEvaluator((NumberEvaluator) subjectEvaluator, toNumberEvaluator(argEvaluators.get(0)), toNumberEvaluator(argEvaluators.get(1)));
+                    return addToken(new ToRadixEvaluator((NumberEvaluator) subjectEvaluator, toNumberEvaluator(argEvaluators.get(0)), toNumberEvaluator(argEvaluators.get(1))), "toRadix");
                 }
             }
             case MOD: {
-                return new ModEvaluator(toNumberEvaluator(subjectEvaluator), toNumberEvaluator(argEvaluators.get(0)));
+                return addToken(new ModEvaluator(toNumberEvaluator(subjectEvaluator), toNumberEvaluator(argEvaluators.get(0))), "mod");
             }
             case PLUS: {
-                return new PlusEvaluator(toNumberEvaluator(subjectEvaluator), toNumberEvaluator(argEvaluators.get(0)));
+                return addToken(new PlusEvaluator(toNumberEvaluator(subjectEvaluator), toNumberEvaluator(argEvaluators.get(0))), "plus");
             }
             case MINUS: {
-                return new MinusEvaluator(toNumberEvaluator(subjectEvaluator), toNumberEvaluator(argEvaluators.get(0)));
+                return addToken(new MinusEvaluator(toNumberEvaluator(subjectEvaluator), toNumberEvaluator(argEvaluators.get(0))), "minus");
             }
             case MULTIPLY: {
-                return new MultiplyEvaluator(toNumberEvaluator(subjectEvaluator), toNumberEvaluator(argEvaluators.get(0)));
+                return addToken(new MultiplyEvaluator(toNumberEvaluator(subjectEvaluator), toNumberEvaluator(argEvaluators.get(0))), "multiply");
             }
             case DIVIDE: {
-                return new DivideEvaluator(toNumberEvaluator(subjectEvaluator), toNumberEvaluator(argEvaluators.get(0)));
+                return addToken(new DivideEvaluator(toNumberEvaluator(subjectEvaluator), toNumberEvaluator(argEvaluators.get(0))), "divide");
             }
             case INDEX_OF: {
                 verifyArgCount(argEvaluators, 1, "indexOf");
-                return new IndexOfEvaluator(toStringEvaluator(subjectEvaluator),
-                    toStringEvaluator(argEvaluators.get(0), "first argument to indexOf"));
+                return addToken(new IndexOfEvaluator(toStringEvaluator(subjectEvaluator),
+                    toStringEvaluator(argEvaluators.get(0), "first argument to indexOf")), "indexOf");
             }
             case LAST_INDEX_OF: {
                 verifyArgCount(argEvaluators, 1, "lastIndexOf");
-                return new LastIndexOfEvaluator(toStringEvaluator(subjectEvaluator),
-                    toStringEvaluator(argEvaluators.get(0), "first argument to lastIndexOf"));
+                return addToken(new LastIndexOfEvaluator(toStringEvaluator(subjectEvaluator),
+                    toStringEvaluator(argEvaluators.get(0), "first argument to lastIndexOf")), "lastIndexOf");
             }
             case FORMAT: {
-                return new FormatEvaluator(toDateEvaluator(subjectEvaluator), toStringEvaluator(argEvaluators.get(0), "first argument of format"));
+                return addToken(new FormatEvaluator(toDateEvaluator(subjectEvaluator), toStringEvaluator(argEvaluators.get(0), "first argument of format")), "format");
             }
             case OR: {
-                return new OrEvaluator(toBooleanEvaluator(subjectEvaluator), toBooleanEvaluator(argEvaluators.get(0)));
+                return addToken(new OrEvaluator(toBooleanEvaluator(subjectEvaluator), toBooleanEvaluator(argEvaluators.get(0))), "or");
             }
             case AND: {
-                return new AndEvaluator(toBooleanEvaluator(subjectEvaluator), toBooleanEvaluator(argEvaluators.get(0)));
+                return addToken(new AndEvaluator(toBooleanEvaluator(subjectEvaluator), toBooleanEvaluator(argEvaluators.get(0))), "and");
             }
             case NOT: {
-                return new NotEvaluator(toBooleanEvaluator(subjectEvaluator));
+                return addToken(new NotEvaluator(toBooleanEvaluator(subjectEvaluator)), "not");
             }
             default:
                 throw new AttributeExpressionLanguageParsingException("Expected a Function-type expression but got " + tree.toString());
