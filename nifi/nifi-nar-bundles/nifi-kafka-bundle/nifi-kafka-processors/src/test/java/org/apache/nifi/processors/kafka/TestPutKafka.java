@@ -205,7 +205,7 @@ public class TestPutKafka {
         runner.setProperty(PutKafka.TOPIC, "${kafka.topic}");
         runner.setProperty(PutKafka.KEY, "${kafka.key}");
         runner.setProperty(PutKafka.TIMEOUT, "3 secs");
-        runner.setProperty(PutKafka.PRODUCER_TYPE, "async");
+        runner.setProperty(PutKafka.PRODUCER_TYPE, PutKafka.PRODUCTER_TYPE_ASYNCHRONOUS.getValue());
         runner.setProperty(PutKafka.DELIVERY_GUARANTEE, PutKafka.DELIVERY_REPLICATED.getValue());
 
         keyValuePutExecute(runner);
@@ -269,8 +269,8 @@ public class TestPutKafka {
         runner.setProperty(PutKafka.KEY, "key1");
         runner.setProperty(PutKafka.SEED_BROKERS, "localhost:1234");
         runner.setProperty(PutKafka.MESSAGE_DELIMITER, "\\n");
-        runner.setProperty(PutKafka.PRODUCER_TYPE, "async");
-        runner.setProperty(PutKafka.COMPRESSION_CODEC, "snappy");
+        runner.setProperty(PutKafka.PRODUCER_TYPE, PutKafka.PRODUCTER_TYPE_ASYNCHRONOUS.getValue());
+        runner.setProperty(PutKafka.COMPRESSION_CODEC, PutKafka.COMPRESSION_CODEC_SNAPPY.getValue());
         runner.setProperty(PutKafka.COMPRESSED_TOPICS, "topic01,topic02,topic03");
 
         ProcessContext context = runner.getProcessContext();
@@ -286,6 +286,78 @@ public class TestPutKafka {
         assertTrue(compressedTopics.contains("topic01"));
         assertTrue(compressedTopics.contains("topic02"));
         assertTrue(compressedTopics.contains("topic03"));
+
+        // Check the producer type
+        String actualProducerType = config.producerType();
+        assertEquals("async", actualProducerType);
+
+    }
+    
+    @Test
+    public void testProducerConfigAsyncQueueThresholds() {
+
+    	final TestableProcessor processor = new TestableProcessor();
+    	TestRunner runner = TestRunners.newTestRunner(processor);
+
+    	runner.setProperty(PutKafka.TOPIC, "topic1");
+        runner.setProperty(PutKafka.KEY, "key1");
+        runner.setProperty(PutKafka.SEED_BROKERS, "localhost:1234");
+        runner.setProperty(PutKafka.MESSAGE_DELIMITER, "\\n");
+        runner.setProperty(PutKafka.PRODUCER_TYPE, PutKafka.PRODUCTER_TYPE_ASYNCHRONOUS.getValue());
+        runner.setProperty(PutKafka.QUEUE_BUFFERING_MAX, "7 secs");
+        runner.setProperty(PutKafka.QUEUE_BUFFERING_MAX_MESSAGES, "535");
+        runner.setProperty(PutKafka.QUEUE_ENQUEUE_TIMEOUT, "200 ms");
+
+        ProcessContext context = runner.getProcessContext();
+        ProducerConfig config = processor.createConfig(context);
+
+        // Check that the queue thresholds were properly translated
+        assertEquals(7000, config.queueBufferingMaxMs());
+        assertEquals(535, config.queueBufferingMaxMessages());
+        assertEquals(200, config.queueEnqueueTimeoutMs());
+        
+        // Check the producer type
+        String actualProducerType = config.producerType();
+        assertEquals("async", actualProducerType);
+
+    }
+    
+    @Test
+    public void testProducerConfigInvalidBatchSize() {
+
+    	final TestableProcessor processor = new TestableProcessor();
+    	TestRunner runner = TestRunners.newTestRunner(processor);
+
+    	runner.setProperty(PutKafka.TOPIC, "topic1");
+        runner.setProperty(PutKafka.KEY, "key1");
+        runner.setProperty(PutKafka.SEED_BROKERS, "localhost:1234");
+        runner.setProperty(PutKafka.MESSAGE_DELIMITER, "\\n");
+        runner.setProperty(PutKafka.PRODUCER_TYPE, PutKafka.PRODUCTER_TYPE_ASYNCHRONOUS.getValue());
+        runner.setProperty(PutKafka.BATCH_NUM_MESSAGES, "200");
+        runner.setProperty(PutKafka.QUEUE_BUFFERING_MAX_MESSAGES, "100");
+
+        runner.assertNotValid();
+
+    }
+    
+    @Test
+    public void testProducerConfigAsyncDefaultEnqueueTimeout() {
+
+    	final TestableProcessor processor = new TestableProcessor();
+    	TestRunner runner = TestRunners.newTestRunner(processor);
+
+    	runner.setProperty(PutKafka.TOPIC, "topic1");
+        runner.setProperty(PutKafka.KEY, "key1");
+        runner.setProperty(PutKafka.SEED_BROKERS, "localhost:1234");
+        runner.setProperty(PutKafka.MESSAGE_DELIMITER, "\\n");
+        runner.setProperty(PutKafka.PRODUCER_TYPE, PutKafka.PRODUCTER_TYPE_ASYNCHRONOUS.getValue());
+        // Do not set QUEUE_ENQUEUE_TIMEOUT
+
+        ProcessContext context = runner.getProcessContext();
+        ProducerConfig config = processor.createConfig(context);
+
+        // Check that the enqueue timeout defaults to -1
+        assertEquals(-1, config.queueEnqueueTimeoutMs());
 
         // Check the producer type
         String actualProducerType = config.producerType();
