@@ -79,19 +79,6 @@ div.controller-service-configuration-tab-container {
     float: left;
 }
 
-#controller-service-enabled {
-    width: 12px;
-    height: 12px;
-    float: left;
-    margin-right: 4px;
-}
-
-div.controller-service-enabled-container {
-    float: left;
-    margin-top: 5px;
-    margin-left: 10px;
-}
-
 div.availability-setting {
     float: left;
     width: 140px;
