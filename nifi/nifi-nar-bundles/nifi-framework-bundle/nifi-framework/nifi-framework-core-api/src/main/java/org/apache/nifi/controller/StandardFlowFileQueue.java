@@ -363,7 +363,7 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
             return true;
         }
 
-        if (maxBytes > 0 && (queueSize.getByteCount() >= maxBytes)) {
+        if (maxBytes > 0 && queueSize.getByteCount() >= maxBytes) {
             return true;
         }
 
@@ -437,7 +437,7 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
             final List<FlowFileRecord> swapRecords = new ArrayList<>(Math.min(SWAP_RECORD_POLL_SIZE, swapQueue.size()));
             final Iterator<FlowFileRecord> itr = swapQueue.iterator();
             while (itr.hasNext() && swapRecords.size() < SWAP_RECORD_POLL_SIZE) {
-                FlowFileRecord record = itr.next();
+                final FlowFileRecord record = itr.next();
                 swapRecords.add(record);
                 itr.remove();
             }
@@ -606,7 +606,7 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
         boolean isExpired;
 
         migrateSwapToActive();
-        boolean queueFullAtStart = queueFullRef.get();
+        final boolean queueFullAtStart = queueFullRef.get();
 
         do {
             flowFile = this.activeQueue.poll();
@@ -794,15 +794,19 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
         writeLock.lock();
         try {
             migrateSwapToActive();
-            if (activeQueue.isEmpty()) {
-                return Collections.emptyList();
-            }
 
             final long expirationMillis = this.flowFileExpirationMillis.get();
             final boolean queueFullAtStart = queueFullRef.get();
 
             final List<FlowFileRecord> selectedFlowFiles = new ArrayList<>();
             final List<FlowFileRecord> unselected = new ArrayList<>();
+
+            // the prefetch doesn't allow us to add records back. So when this method is used,
+            // if there are prefetched records, we have to requeue them into the active queue first.
+            final PreFetch prefetch = preFetchRef.get();
+            if (prefetch != null) {
+                requeueExpiredPrefetch(prefetch);
+            }
 
             while (true) {
                 FlowFileRecord flowFile = this.activeQueue.poll();
@@ -970,7 +974,7 @@ public final class StandardFlowFileQueue implements FlowFileQueue {
         boolean updated = false;
 
         do {
-            QueueSize queueSize = unacknowledgedSizeRef.get();
+            final QueueSize queueSize = unacknowledgedSizeRef.get();
             final QueueSize newSize = new QueueSize(queueSize.getObjectCount() + addToCount, queueSize.getByteCount() + addToSize);
             updated = unacknowledgedSizeRef.compareAndSet(queueSize, newSize);
         } while (!updated);
