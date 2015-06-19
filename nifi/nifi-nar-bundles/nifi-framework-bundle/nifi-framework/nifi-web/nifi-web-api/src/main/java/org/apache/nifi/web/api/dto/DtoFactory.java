@@ -797,6 +797,11 @@ public final class DtoFactory {
                 copySnippet.getRemoteProcessGroups().add(copy(remoteGroup));
             }
         }
+        if (originalSnippet.getControllerServices() != null) {
+            for (final ControllerServiceDTO controllerService : originalSnippet.getControllerServices()) {
+                copySnippet.getControllerServices().add(copy(controllerService));
+            }
+        }
 
         return copySnippet;
     }
