@@ -33,6 +33,7 @@ import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -88,7 +89,13 @@ import org.apache.nifi.stream.io.StreamUtils;
  * <li>Supports expression language: true</li>
  * </ul>
  * </li>
- *
+ * <li>Ignore STDIN
+ * <ul>
+ * <li>Indicates whether or not the flowfile's contents should be streamed as part of STDIN</li>
+ * <li>Default value: false (this means that the contents of a flowfile will be sent as STDIN to your command</li>
+ * <li>Supports expression language: false</li>
+ * </ul>
+ * </li>
  * </ul>
  *
  * <p>
@@ -113,6 +120,7 @@ import org.apache.nifi.stream.io.StreamUtils;
 @SupportsBatching
 @Tags({"command execution", "command", "stream", "execute"})
 @CapabilityDescription("Executes an external command on the contents of a flow file, and creates a new flow file with the results of the command.")
+@DynamicProperty(name = "An environment variable name", value = "An environment variable value", description = "These environment variables are passed to the process spawned by this Processor")
 @WritesAttributes({
     @WritesAttribute(attribute = "execution.command", description = "The name of the command executed to create the new FlowFile"),
     @WritesAttribute(attribute = "execution.command.args", description = "The semi-colon delimited list of arguments"),
@@ -175,12 +183,22 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             .required(false)
             .build();
 
+    static final PropertyDescriptor IGNORE_STDIN = new PropertyDescriptor.Builder()
+            .name("Ignore STDIN")
+            .description("If true, the contents of the incoming flowfile will not be passed to the executing command")
+            .addValidator(Validator.VALID)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .build();
+
+
     private static final List<PropertyDescriptor> PROPERTIES;
 
     static {
         List<PropertyDescriptor> props = new ArrayList<>();
         props.add(EXECUTION_ARGUMENTS);
         props.add(EXECUTION_COMMAND);
+        props.add(IGNORE_STDIN);
         props.add(WORKING_DIR);
         PROPERTIES = Collections.unmodifiableList(props);
     }
@@ -203,22 +221,33 @@ public class ExecuteStreamCommand extends AbstractProcessor {
     }
 
     @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+        return new PropertyDescriptor.Builder()
+        .name(propertyDescriptorName)
+        .description("Sets the environment variable '" + propertyDescriptorName + "' for the process' environment")
+        .dynamic(true)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .build();
+    }
+
+    @Override
     public void onTrigger(ProcessContext context, final ProcessSession session) throws ProcessException {
-        FlowFile flowFile = session.get();
-        if (null == flowFile) {
+        FlowFile inputFlowFile = session.get();
+        if (null == inputFlowFile) {
             return;
         }
 
         final ArrayList<String> args = new ArrayList<>();
-        final String executeCommand = context.getProperty(EXECUTION_COMMAND).evaluateAttributeExpressions(flowFile).getValue();
+        final String executeCommand = context.getProperty(EXECUTION_COMMAND).evaluateAttributeExpressions(inputFlowFile).getValue();
         args.add(executeCommand);
         final String commandArguments = context.getProperty(EXECUTION_ARGUMENTS).getValue();
+        final boolean ignoreStdin = Boolean.parseBoolean(context.getProperty(IGNORE_STDIN).getValue());
         if (!StringUtils.isBlank(commandArguments)) {
             for (String arg : commandArguments.split(";")) {
-                args.add(context.newPropertyValue(arg).evaluateAttributeExpressions(flowFile).getValue());
+                args.add(context.newPropertyValue(arg).evaluateAttributeExpressions(inputFlowFile).getValue());
             }
         }
-        final String workingDir = context.getProperty(WORKING_DIR).evaluateAttributeExpressions(flowFile).getValue();
+        final String workingDir = context.getProperty(WORKING_DIR).evaluateAttributeExpressions(inputFlowFile).getValue();
 
         final ProcessBuilder builder = new ProcessBuilder();
 
@@ -230,6 +259,13 @@ public class ExecuteStreamCommand extends AbstractProcessor {
                 logger.warn("Failed to create working directory {}, using current working directory {}", new Object[]{workingDir, System.getProperty("user.dir")});
             }
         }
+        final Map<String, String> environment = new HashMap<>();
+        for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
+            if (entry.getKey().isDynamic()) {
+                environment.put(entry.getKey().getName(), entry.getValue());
+            }
+        }
+        builder.environment().putAll(environment);
         builder.command(args);
         builder.directory(dir);
         builder.redirectInput(Redirect.PIPE);
@@ -248,9 +284,9 @@ public class ExecuteStreamCommand extends AbstractProcessor {
                 final BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(pes))) {
             int exitCode = -1;
             final BufferedOutputStream bos = new BufferedOutputStream(pos);
-            FlowFile outputStreamFlowFile = session.create(flowFile);
-            StdInWriterCallback callback = new StdInWriterCallback(bos, bis, logger, session, outputStreamFlowFile, process);
-            session.read(flowFile, callback);
+            FlowFile outputStreamFlowFile = session.create(inputFlowFile);
+            ProcessStreamWriterCallback callback = new ProcessStreamWriterCallback(ignoreStdin, bos, bis, logger, session, outputStreamFlowFile, process);
+            session.read(inputFlowFile, callback);
             outputStreamFlowFile = callback.outputStreamFlowFile;
             exitCode = callback.exitCode;
             logger.debug("Execution complete for command: {}.  Exited with code: {}", new Object[]{executeCommand, exitCode});
@@ -281,9 +317,9 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             attributes.put("execution.command.args", commandArguments);
             outputStreamFlowFile = session.putAllAttributes(outputStreamFlowFile, attributes);
             session.transfer(outputStreamFlowFile, OUTPUT_STREAM_RELATIONSHIP);
-            logger.info("Transferring flow file {} to original", new Object[]{flowFile});
-            flowFile = session.putAllAttributes(flowFile, attributes);
-            session.transfer(flowFile, ORIGINAL_RELATIONSHIP);
+            logger.info("Transferring flow file {} to original", new Object[]{inputFlowFile});
+            inputFlowFile = session.putAllAttributes(inputFlowFile, attributes);
+            session.transfer(inputFlowFile, ORIGINAL_RELATIONSHIP);
 
         } catch (final IOException ex) {
             // could not close Process related streams
@@ -293,8 +329,9 @@ public class ExecuteStreamCommand extends AbstractProcessor {
         }
     }
 
-    static class StdInWriterCallback implements InputStreamCallback {
+    static class ProcessStreamWriterCallback implements InputStreamCallback {
 
+        final boolean ignoreStdin;
         final OutputStream stdInWritable;
         final InputStream stdOutReadable;
         final ProcessorLog logger;
@@ -303,7 +340,9 @@ public class ExecuteStreamCommand extends AbstractProcessor {
         FlowFile outputStreamFlowFile;
         int exitCode;
 
-        public StdInWriterCallback(OutputStream stdInWritable, InputStream stdOutReadable, ProcessorLog logger, ProcessSession session, FlowFile outputStreamFlowFile, Process process) {
+        public ProcessStreamWriterCallback(boolean ignoreStdin, OutputStream stdInWritable, InputStream stdOutReadable,
+                                           ProcessorLog logger, ProcessSession session, FlowFile outputStreamFlowFile, Process process) {
+            this.ignoreStdin = ignoreStdin;
             this.stdInWritable = stdInWritable;
             this.stdOutReadable = stdOutReadable;
             this.logger = logger;
@@ -318,14 +357,17 @@ public class ExecuteStreamCommand extends AbstractProcessor {
 
                 @Override
                 public void process(OutputStream out) throws IOException {
+
                     Thread writerThread = new Thread(new Runnable() {
 
                         @Override
                         public void run() {
-                            try {
-                                StreamUtils.copy(incomingFlowFileIS, stdInWritable);
-                            } catch (IOException e) {
-                                logger.error("Failed to write flow file to stdIn due to {}", new Object[]{e}, e);
+                            if (!ignoreStdin) {
+                                try {
+                                    StreamUtils.copy(incomingFlowFileIS, stdInWritable);
+                                } catch (IOException e) {
+                                    logger.error("Failed to write flow file to stdIn due to {}", new Object[]{e}, e);
+                                }
                             }
                             // MUST close the output stream to the stdIn so that whatever is reading knows
                             // there is no more data

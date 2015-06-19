@@ -45,17 +45,19 @@ public final class ChannelDispatcher implements Runnable {
     private final StreamConsumerFactory factory;
     private final AtomicLong channelReaderFrequencyMilliseconds = new AtomicLong(DEFAULT_CHANNEL_READER_PERIOD_MILLISECONDS);
     private final long timeout;
+    private final boolean readSingleDatagram;
     private volatile boolean stop = false;
     public static final long DEFAULT_CHANNEL_READER_PERIOD_MILLISECONDS = 100L;
 
     public ChannelDispatcher(final Selector serverSocketSelector, final Selector socketChannelSelector, final ScheduledExecutorService service,
-            final StreamConsumerFactory factory, final BufferPool buffers, final long timeout, final TimeUnit unit) {
+            final StreamConsumerFactory factory, final BufferPool buffers, final long timeout, final TimeUnit unit, final boolean readSingleDatagram) {
         this.serverSocketSelector = serverSocketSelector;
         this.socketChannelSelector = socketChannelSelector;
         this.executor = service;
         this.factory = factory;
         emptyBuffers = buffers;
         this.timeout = TimeUnit.MILLISECONDS.convert(timeout, unit);
+        this.readSingleDatagram = readSingleDatagram;
     }
 
     public void setChannelReaderFrequency(final long period, final TimeUnit timeUnit) {
@@ -136,7 +138,7 @@ public final class ChannelDispatcher implements Runnable {
             // for a DatagramChannel we don't want to create a new reader unless it is a new DatagramChannel. The only
             // way to tell if it's new is the lack of an attachment.
             if (channel instanceof DatagramChannel && socketChannelKey.attachment() == null) {
-                reader = new DatagramChannelReader(UUID.randomUUID().toString(), socketChannelKey, emptyBuffers, factory);
+                reader = new DatagramChannelReader(UUID.randomUUID().toString(), socketChannelKey, emptyBuffers, factory, readSingleDatagram);
                 socketChannelKey.attach(reader);
                 final ScheduledFuture<?> readerFuture = executor.scheduleWithFixedDelay(reader, 10L, channelReaderFrequencyMilliseconds.get(),
                         TimeUnit.MILLISECONDS);

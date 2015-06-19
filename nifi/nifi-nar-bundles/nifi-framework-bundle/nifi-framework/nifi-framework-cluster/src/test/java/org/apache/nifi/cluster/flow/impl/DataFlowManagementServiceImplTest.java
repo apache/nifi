@@ -131,7 +131,10 @@ public class DataFlowManagementServiceImplTest {
 
     private void verifyFlow() throws ParserConfigurationException, SAXException, IOException {
         final byte[] flowBytes = service.loadDataFlow().getDataFlow().getFlow();
-        final DocumentBuilder docBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+        final DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+        docFactory.setNamespaceAware(true);
+
+        final DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
         final Document doc = docBuilder.parse(new ByteArrayInputStream(flowBytes));
         final Element controller = (Element) doc.getElementsByTagName("flowController").item(0);
         final Element rootGroup = (Element) controller.getElementsByTagName("rootGroup").item(0);

@@ -345,7 +345,9 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             final SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
             final Schema schema = schemaFactory.newSchema(FLOW_XSD_RESOURCE);
             final DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+            docFactory.setNamespaceAware(true);
             docFactory.setSchema(schema);
+
             final DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
 
             // parse flow

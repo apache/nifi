@@ -49,6 +49,8 @@
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <includes>
             	<include>nifi-bootstrap</include>
+            	<include>slf4j-api</include>
+            	<include>logback-classic</include>
             </includes>
         </dependencySet>
         

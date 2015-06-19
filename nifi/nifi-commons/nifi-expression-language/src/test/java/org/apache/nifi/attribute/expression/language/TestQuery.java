@@ -87,9 +87,9 @@ public class TestQuery {
         Query.validateExpression("$${attr}", true);
 
         Query.validateExpression("${filename:startsWith('T8MTXBC')\n"
-                + ":or( ${filename:startsWith('C4QXABC')} )\n"
-                + ":or( ${filename:startsWith('U6CXEBC')} )"
-                + ":or( ${filename:startsWith('KYM3ABC')} )}", false);
+            + ":or( ${filename:startsWith('C4QXABC')} )\n"
+            + ":or( ${filename:startsWith('U6CXEBC')} )"
+            + ":or( ${filename:startsWith('KYM3ABC')} )}", false);
     }
 
     @Test
@@ -361,6 +361,8 @@ public class TestQuery {
 
     @Test
     public void testExtractExpressionRanges() {
+        assertEquals(29, Query.extractExpressionRanges("${hello:equals( $${goodbye} )}").get(0).getEnd());
+
         List<Range> ranges = Query.extractExpressionRanges("hello");
         assertTrue(ranges.isEmpty());
 
@@ -592,13 +594,13 @@ public class TestQuery {
         attributes.put("abc", "xyz");
 
         final String expression
-                = "# hello, world\n"
-                + "${# ref attr\n"
-                + "\t"
-                + "abc"
-                + "\t"
-                + "#end ref attr\n"
-                + "}";
+        = "# hello, world\n"
+            + "${# ref attr\n"
+            + "\t"
+            + "abc"
+            + "\t"
+            + "#end ref attr\n"
+            + "}";
 
         Query query = Query.compile(expression);
         QueryResult<?> result = query.evaluate(attributes);
@@ -1030,16 +1032,16 @@ public class TestQuery {
         attributes.put("filename 3", "abcxy");
 
         final String query
-                = "${"
-                + "     'non-existing':notNull():not():and(" + // true AND (
-                "     ${filename1:startsWith('y')" + // false
-                "     :or(" + // or
-                "       ${ filename1:startsWith('x'):and(false) }" + // false
-                "     ):or(" + // or
-                "       ${ filename2:endsWith('xxxx'):or( ${'filename 3':length():gt(1)} ) }" + // true )
-                "     )}"
-                + "     )"
-                + "}";
+        = "${"
+            + "     'non-existing':notNull():not():and(" + // true AND (
+            "     ${filename1:startsWith('y')" + // false
+            "     :or(" + // or
+            "       ${ filename1:startsWith('x'):and(false) }" + // false
+            "     ):or(" + // or
+            "       ${ filename2:endsWith('xxxx'):or( ${'filename 3':length():gt(1)} ) }" + // true )
+            "     )}"
+            + "     )"
+            + "}";
 
         System.out.println(query);
         verifyEquals(query, attributes, true);
@@ -1096,6 +1098,18 @@ public class TestQuery {
 
         final String query = "${a1:equals('test1'):and( ${anyAttribute('a1','b2','c3'):contains('2')})}";
         verifyEquals(query, attributes, true);
+    }
+
+    @Test
+    public void testEvaluateWithinCurlyBraces() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("abc", "xyz");
+
+        final String query = "{ ${abc} }";
+        final List<String> expressions = Query.extractExpressions(query);
+        assertEquals(1, expressions.size());
+        assertEquals("${abc}", expressions.get(0));
+        assertEquals("{ xyz }", Query.evaluateExpressions(query, attributes));
     }
 
     private void verifyEquals(final String expression, final Map<String, String> attributes, final Object expectedResult) {

@@ -24,4 +24,6 @@ public interface CacheServer {
 
     void stop() throws IOException;
 
+    int getPort();
+
 }

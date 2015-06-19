@@ -64,6 +64,9 @@ public class ContentViewerController extends HttpServlet {
      */
     @Override
     protected void doGet(final HttpServletRequest request, final HttpServletResponse response) throws ServletException, IOException {
+        // specify the charset in a response header
+        response.addHeader("Content-Type", "text/html; charset=UTF-8");
+
         // get the content
         final ServletContext servletContext = request.getServletContext();
         final ContentAccess contentAccess = (ContentAccess) servletContext.getAttribute("nifi-content-access");
@@ -132,130 +135,138 @@ public class ContentViewerController extends HttpServlet {
         }
 
         // buffer the content to support reseting in case we need to detect the content type or char encoding
-        final BufferedInputStream bis = new BufferedInputStream(downloadableContent.getContent());
+        try (final BufferedInputStream bis = new BufferedInputStream(downloadableContent.getContent());) {
+            final String mimeType;
 
-        // detect the content type
-        final DefaultDetector detector = new DefaultDetector();
+            // when standalone and we don't know the type is null as we were able to directly access the content bypassing the rest endpoint,
+            // when clustered and we don't know the type set to octet stream since the content was retrieved from the node's rest endpoint
+            if (downloadableContent.getType() == null || downloadableContent.getType().equals(MediaType.OCTET_STREAM.toString())) {
+                // attempt to detect the content stream if we don't know what it is ()
+                final DefaultDetector detector = new DefaultDetector();
 
-        // create the stream for tika to process, buffered to support reseting
-        final TikaInputStream tikaStream = TikaInputStream.get(bis);
+                // create the stream for tika to process, buffered to support reseting
+                final TikaInputStream tikaStream = TikaInputStream.get(bis);
 
-        // provide a hint based on the filename
-        final Metadata metadata = new Metadata();
-        metadata.set(Metadata.RESOURCE_NAME_KEY, downloadableContent.getFilename());
+                // provide a hint based on the filename
+                final Metadata metadata = new Metadata();
+                metadata.set(Metadata.RESOURCE_NAME_KEY, downloadableContent.getFilename());
 
-        // Get mime type
-        final MediaType mediatype = detector.detect(tikaStream, metadata);
-        final String mimeType = mediatype.toString();
-
-        // add attributes needed for the header
-        request.setAttribute("filename", downloadableContent.getFilename());
-        request.setAttribute("contentType", mimeType);
-
-        // generate the header
-        request.getRequestDispatcher("/WEB-INF/jsp/header.jsp").include(request, response);
-
-        // remove the attributes needed for the header
-        request.removeAttribute("filename");
-        request.removeAttribute("contentType");
-
-        // generate the markup for the content based on the display mode
-        if (DisplayMode.Hex.equals(displayMode)) {
-            final byte[] buffer = new byte[BUFFER_LENGTH];
-            final int read = StreamUtils.fillBuffer(bis, buffer, false);
-
-            // trim the byte array if necessary
-            byte[] bytes = buffer;
-            if (read != buffer.length) {
-                bytes = new byte[read];
-                System.arraycopy(buffer, 0, bytes, 0, read);
+                // Get mime type
+                final MediaType mediatype = detector.detect(tikaStream, metadata);
+                mimeType = mediatype.toString();
+            } else {
+                mimeType = downloadableContent.getType();
             }
 
-            // convert bytes into the base 64 bytes
-            final String base64 = Base64.encodeBase64String(bytes);
+            // add attributes needed for the header
+            request.setAttribute("filename", downloadableContent.getFilename());
+            request.setAttribute("contentType", mimeType);
 
-            // defer to the jsp
-            request.setAttribute("content", base64);
-            request.getRequestDispatcher("/WEB-INF/jsp/hexview.jsp").include(request, response);
-        } else {
-            // lookup a viewer for the content
-            final String contentViewerUri = servletContext.getInitParameter(mimeType);
+            // generate the header
+            request.getRequestDispatcher("/WEB-INF/jsp/header.jsp").include(request, response);
 
-            // handle no viewer for content type
-            if (contentViewerUri == null) {
-                request.getRequestDispatcher("/WEB-INF/jsp/no-viewer.jsp").include(request, response);
-            } else {
-                // create a request attribute for accessing the content
-                request.setAttribute(ViewableContent.CONTENT_REQUEST_ATTRIBUTE, new ViewableContent() {
-                    @Override
-                    public InputStream getContentStream() {
-                        return bis;
-                    }
+            // remove the attributes needed for the header
+            request.removeAttribute("filename");
+            request.removeAttribute("contentType");
 
-                    @Override
-                    public String getContent() throws IOException {
-                        // detect the charset
-                        final CharsetDetector detector = new CharsetDetector();
-                        detector.setText(bis);
-                        detector.enableInputFilter(true);
-                        final CharsetMatch match = detector.detect();
+            // generate the markup for the content based on the display mode
+            if (DisplayMode.Hex.equals(displayMode)) {
+                final byte[] buffer = new byte[BUFFER_LENGTH];
+                final int read = StreamUtils.fillBuffer(bis, buffer, false);
 
-                        // ensure we were able to detect the charset
-                        if (match == null) {
-                            throw new IOException("Unable to detect character encoding.");
-                        }
-
-                        // convert the stream using the detected charset
-                        return IOUtils.toString(bis, match.getName());
-                    }
-
-                    @Override
-                    public ViewableContent.DisplayMode getDisplayMode() {
-                        return displayMode;
-                    }
-
-                    @Override
-                    public String getFileName() {
-                        return downloadableContent.getFilename();
-                    }
-
-                    @Override
-                    public String getContentType() {
-                        return mimeType;
-                    }
-                });
-
-                try {
-                    // generate the content
-                    final ServletContext viewerContext = servletContext.getContext(contentViewerUri);
-                    viewerContext.getRequestDispatcher("/view-content").include(request, response);
-                } catch (final Exception e) {
-                    String message = e.getMessage() != null ? e.getMessage() : e.toString();
-                    message = "Unable to generate view of data: " + message;
-
-                    // log the error
-                    logger.error(message);
-                    if (logger.isDebugEnabled()) {
-                        logger.error(StringUtils.EMPTY, e);
-                    }
-
-                    // populate the request attributes
-                    request.setAttribute("title", "Error");
-                    request.setAttribute("messages", message);
-
-                    // forward to the error page
-                    final ServletContext viewerContext = servletContext.getContext("/nifi");
-                    viewerContext.getRequestDispatcher("/message").forward(request, response);
-                    return;
+                // trim the byte array if necessary
+                byte[] bytes = buffer;
+                if (read != buffer.length) {
+                    bytes = new byte[read];
+                    System.arraycopy(buffer, 0, bytes, 0, read);
                 }
 
-                // remove the request attribute
-                request.removeAttribute(ViewableContent.CONTENT_REQUEST_ATTRIBUTE);
-            }
-        }
+                // convert bytes into the base 64 bytes
+                final String base64 = Base64.encodeBase64String(bytes);
 
-        // generate footer
-        request.getRequestDispatcher("/WEB-INF/jsp/footer.jsp").include(request, response);
+                // defer to the jsp
+                request.setAttribute("content", base64);
+                request.getRequestDispatcher("/WEB-INF/jsp/hexview.jsp").include(request, response);
+            } else {
+                // lookup a viewer for the content
+                final String contentViewerUri = servletContext.getInitParameter(mimeType);
+
+                // handle no viewer for content type
+                if (contentViewerUri == null) {
+                    request.getRequestDispatcher("/WEB-INF/jsp/no-viewer.jsp").include(request, response);
+                } else {
+                    // create a request attribute for accessing the content
+                    request.setAttribute(ViewableContent.CONTENT_REQUEST_ATTRIBUTE, new ViewableContent() {
+                        @Override
+                        public InputStream getContentStream() {
+                            return bis;
+                        }
+
+                        @Override
+                        public String getContent() throws IOException {
+                            // detect the charset
+                            final CharsetDetector detector = new CharsetDetector();
+                            detector.setText(bis);
+                            detector.enableInputFilter(true);
+                            final CharsetMatch match = detector.detect();
+
+                            // ensure we were able to detect the charset
+                            if (match == null) {
+                                throw new IOException("Unable to detect character encoding.");
+                            }
+
+                            // convert the stream using the detected charset
+                            return IOUtils.toString(bis, match.getName());
+                        }
+
+                        @Override
+                        public ViewableContent.DisplayMode getDisplayMode() {
+                            return displayMode;
+                        }
+
+                        @Override
+                        public String getFileName() {
+                            return downloadableContent.getFilename();
+                        }
+
+                        @Override
+                        public String getContentType() {
+                            return mimeType;
+                        }
+                    });
+
+                    try {
+                        // generate the content
+                        final ServletContext viewerContext = servletContext.getContext(contentViewerUri);
+                        viewerContext.getRequestDispatcher("/view-content").include(request, response);
+                    } catch (final Exception e) {
+                        String message = e.getMessage() != null ? e.getMessage() : e.toString();
+                        message = "Unable to generate view of data: " + message;
+
+                        // log the error
+                        logger.error(message);
+                        if (logger.isDebugEnabled()) {
+                            logger.error(StringUtils.EMPTY, e);
+                        }
+
+                        // populate the request attributes
+                        request.setAttribute("title", "Error");
+                        request.setAttribute("messages", message);
+
+                        // forward to the error page
+                        final ServletContext viewerContext = servletContext.getContext("/nifi");
+                        viewerContext.getRequestDispatcher("/message").forward(request, response);
+                        return;
+                    }
+
+                    // remove the request attribute
+                    request.removeAttribute(ViewableContent.CONTENT_REQUEST_ATTRIBUTE);
+                }
+            }
+
+            // generate footer
+            request.getRequestDispatcher("/WEB-INF/jsp/footer.jsp").include(request, response);
+        }
     }
 
     /**

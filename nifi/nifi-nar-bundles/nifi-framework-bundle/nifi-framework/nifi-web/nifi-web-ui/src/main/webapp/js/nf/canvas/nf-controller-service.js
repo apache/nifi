@@ -70,12 +70,6 @@ nf.ControllerService = (function () {
             return true;
         }
         
-        if ($('#controller-service-enabled').hasClass('checkbox-checked') && details['state'] === 'DISABLED') {
-            return true;
-        } else if ($('#controller-service-enabled').hasClass('checkbox-unchecked') && details['state'] === 'ENABLED') {
-            return true;
-        }
-        
         // defer to the properties
         return $('#controller-service-properties').propertytable('isSaveRequired');
     };
@@ -98,13 +92,6 @@ nf.ControllerService = (function () {
             controllerServiceDto['properties'] = properties;
         }
         
-        // mark the controller service enabled if appropriate
-        if ($('#controller-service-enabled').hasClass('checkbox-unchecked')) {
-            controllerServiceDto['state'] = 'DISABLED';
-        } else if ($('#controller-service-enabled').hasClass('checkbox-checked')) {
-            controllerServiceDto['state'] = 'ENABLED';
-        }
-
         // create the controller service entity
         var controllerServiceEntity = {};
         controllerServiceEntity['revision'] = nf.Client.getRevision();
@@ -656,7 +643,7 @@ nf.ControllerService = (function () {
                     deferred.resolve();
                 } else {
                     if (typeof pollCondition === 'function' && pollCondition()) {
-                        setTimeout(poll(), getTimeout());
+                        setTimeout(poll, getTimeout());
                     } else {
                         deferred.reject();
                     }
@@ -1438,17 +1425,10 @@ nf.ControllerService = (function () {
                 // record the controller service details
                 controllerServiceDialog.data('controllerServiceDetails', controllerService);
 
-                // determine if the enabled checkbox is checked or not
-                var controllerServiceEnableStyle = 'checkbox-checked';
-                if (controllerService['state'] === 'DISABLED') {
-                    controllerServiceEnableStyle = 'checkbox-unchecked';
-                }
-
                 // populate the controller service settings
                 nf.Common.populateField('controller-service-id', controllerService['id']);
                 nf.Common.populateField('controller-service-type', nf.Common.substringAfterLast(controllerService['type'], '.'));
                 $('#controller-service-name').val(controllerService['name']);
-                $('#controller-service-enabled').removeClass('checkbox-checked checkbox-unchecked').addClass(controllerServiceEnableStyle);
                 $('#controller-service-comments').val(controllerService['comments']);
 
                 // select the availability when appropriate

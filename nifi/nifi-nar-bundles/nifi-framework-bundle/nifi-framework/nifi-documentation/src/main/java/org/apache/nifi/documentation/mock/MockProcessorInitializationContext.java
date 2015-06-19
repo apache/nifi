@@ -30,12 +30,12 @@ public class MockProcessorInitializationContext implements ProcessorInitializati
 
     @Override
     public String getIdentifier() {
-        return "";
+        return "mock-processor";
     }
 
     @Override
     public ProcessorLog getLogger() {
-        return null;
+        return new MockProcessorLogger();
     }
 
     @Override

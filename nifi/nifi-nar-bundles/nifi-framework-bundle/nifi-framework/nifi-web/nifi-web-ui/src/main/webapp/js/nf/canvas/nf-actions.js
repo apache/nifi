@@ -915,6 +915,21 @@ nf.Actions = (function () {
         },
         
         /**
+         * Moves the currently selected component into the current parent group.
+         */
+        moveIntoParent: function () {
+            var selection = nf.CanvasUtils.getSelection();
+
+            // ensure that components have been specified
+            if (selection.empty()) {
+                return;
+            }
+            
+            // move the current selection into the parent group
+            nf.CanvasUtils.moveComponentsToParent(selection);
+        },
+        
+        /**
          * Creates a new template based off the currently selected components. If no components
          * are selected, a template of the entire canvas is made.
          */

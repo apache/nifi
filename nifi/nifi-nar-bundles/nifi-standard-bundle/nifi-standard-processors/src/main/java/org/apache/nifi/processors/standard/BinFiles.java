@@ -171,17 +171,17 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
 
     @Override
     public final void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
-        int binsAdded = binFlowFiles(context, sessionFactory);
-        getLogger().debug("Binned {} FlowFiles", new Object[]{binsAdded});
+        final int flowFilesBinned = binFlowFiles(context, sessionFactory);
+        getLogger().debug("Binned {} FlowFiles", new Object[]{flowFilesBinned});
 
         if (!isScheduled()) {
             return;
         }
 
-        binsAdded += migrateBins(context);
-
+        final int binsMigrated = migrateBins(context);
         final int binsProcessed = processBins(context, sessionFactory);
-        if (binsProcessed == 0 && binsAdded == 0) {
+        //If we accomplished nothing then let's yield
+        if (flowFilesBinned == 0 && binsMigrated == 0 && binsProcessed == 0) {
             context.yield();
         }
     }
@@ -203,7 +203,6 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
                 this.readyBins.add(bin);
             }
         }
-
         return added;
     }
 
@@ -251,16 +250,16 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
     }
 
     private int binFlowFiles(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
-        int binsAdded = 0;
-        while (binManager.getBinCount() < context.getProperty(MAX_BIN_COUNT).asInteger().intValue()) {
+        int flowFilesBinned = 0;
+        while (binManager.getBinCount() <= context.getProperty(MAX_BIN_COUNT).asInteger().intValue()) {
             if (!isScheduled()) {
-                return binsAdded;
+                break;
             }
 
             final ProcessSession session = sessionFactory.createSession();
             FlowFile flowFile = session.get();
             if (flowFile == null) {
-                return binsAdded;
+                break;
             }
 
             flowFile = this.preprocessFlowFile(context, session, flowFile);
@@ -276,10 +275,10 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
                 this.readyBins.add(bin);
             }
 
-            binsAdded++;
+            flowFilesBinned++;
         }
 
-        return binsAdded;
+        return flowFilesBinned;
     }
 
     @OnScheduled

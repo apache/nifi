@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.controller.repository;
 
-import org.apache.nifi.controller.repository.StandardProvenanceReporter;
-import org.apache.nifi.controller.repository.StandardFlowFileRecord;
 import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
@@ -27,7 +25,6 @@ import java.util.Set;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
-
 import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -38,7 +35,7 @@ public class TestStandardProvenanceReporter {
     @Ignore
     public void testDuplicatesIgnored() {
         final ProvenanceEventRepository mockRepo = Mockito.mock(ProvenanceEventRepository.class);
-        final StandardProvenanceReporter reporter = new StandardProvenanceReporter("1234", "TestProc", mockRepo, null);
+        final StandardProvenanceReporter reporter = new StandardProvenanceReporter(null, "1234", "TestProc", mockRepo, null);
 
         final List<FlowFile> parents = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
@@ -51,7 +48,7 @@ public class TestStandardProvenanceReporter {
         reporter.fork(flowFile, parents);
         reporter.fork(flowFile, parents);
 
-        Set<ProvenanceEventRecord> records = reporter.getEvents();
+        final Set<ProvenanceEventRecord> records = reporter.getEvents();
         assertEquals(11, records.size());   // 1 for each parent in the spawn and 1 for the spawn itself
 
         final FlowFile firstParent = parents.get(0);

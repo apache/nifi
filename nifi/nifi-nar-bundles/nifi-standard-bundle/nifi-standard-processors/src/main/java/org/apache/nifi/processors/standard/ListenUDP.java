@@ -147,6 +147,14 @@ public class ListenUDP extends AbstractSessionFactoryProcessor {
             .required(true)
             .build();
 
+    public static final PropertyDescriptor FLOW_FILE_PER_DATAGRAM = new PropertyDescriptor.Builder()
+            .name("FlowFile Per Datagram")
+            .description("Determines if this processor emits each datagram as a FlowFile, or if multiple datagrams can be placed in a single FlowFile.")
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .required(true)
+            .build();
+
     public static final PropertyDescriptor MAX_BUFFER_SIZE = new PropertyDescriptor.Builder()
             .name("Max Buffer Size")
             .description("Determines the size each receive buffer may be")
@@ -273,6 +281,7 @@ public class ListenUDP extends AbstractSessionFactoryProcessor {
         props.add(RECV_BUFFER_COUNT);
         props.add(FLOW_FILES_PER_SESSION);
         props.add(RECV_TIMEOUT);
+        props.add(FLOW_FILE_PER_DATAGRAM);
         properties = Collections.unmodifiableList(props);
     }
     // defaults
@@ -429,18 +438,19 @@ public class ListenUDP extends AbstractSessionFactoryProcessor {
                 final String nicIPAddressStr = context.getProperty(NETWORK_INTF_NAME).evaluateAttributeExpressions().getValue();
                 final Double flowFileSizeTrigger = context.getProperty(FLOW_FILE_SIZE_TRIGGER).asDataSize(DataUnit.B);
                 final int recvTimeoutMS = context.getProperty(RECV_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+                final boolean flowFilePerDatagram = context.getProperty(FLOW_FILE_PER_DATAGRAM).asBoolean();
                 final StreamConsumerFactory consumerFactory = new StreamConsumerFactory() {
 
                     @Override
                     public StreamConsumer newInstance(final String streamId) {
-                        final UDPStreamConsumer consumer = new UDPStreamConsumer(streamId, newFlowFiles, flowFileSizeTrigger.intValue(), getLogger());
+                        final UDPStreamConsumer consumer = new UDPStreamConsumer(streamId, newFlowFiles, flowFileSizeTrigger.intValue(), getLogger(), flowFilePerDatagram);
                         consumerRef.set(consumer);
                         return consumer;
                     }
                 };
                 final int readerMilliseconds = context.getProperty(CHANNEL_READER_PERIOD).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
                 final BufferPool bufferPool = new BufferPool(bufferCount, bufferSize.intValue(), false, Integer.MAX_VALUE);
-                channelListener = new ChannelListener(DEFAULT_LISTENING_THREADS, consumerFactory, bufferPool, recvTimeoutMS, TimeUnit.MILLISECONDS);
+                channelListener = new ChannelListener(DEFAULT_LISTENING_THREADS, consumerFactory, bufferPool, recvTimeoutMS, TimeUnit.MILLISECONDS, flowFilePerDatagram);
                 // specifying a sufficiently low number for each stream to be fast enough though very efficient
                 channelListener.setChannelReaderSchedulingPeriod(readerMilliseconds, TimeUnit.MILLISECONDS);
                 InetAddress nicIPAddress = null;

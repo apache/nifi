@@ -4,7 +4,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi</artifactId>
-        <version>0.1.0-incubating-SNAPSHOT</version>
+        <version>0.2.0-incubating-SNAPSHOT</version>
     </parent>
     <packaging>pom</packaging>
     <artifactId>nifi-docs</artifactId>
@@ -107,7 +107,7 @@
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
-                    <excludes>
+                    <excludes combine.children="append">
                         <exclude>src/main/asciidoc/asciidoc-mod.css</exclude> <!-- MIT license confirmed.  Excluding due to parse error-->
                     </excludes>
                 </configuration>

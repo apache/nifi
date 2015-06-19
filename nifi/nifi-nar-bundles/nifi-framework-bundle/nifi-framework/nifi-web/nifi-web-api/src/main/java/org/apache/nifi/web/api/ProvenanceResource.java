@@ -276,7 +276,7 @@ public class ProvenanceResource extends ApplicationResource {
      */
     @GET
     @Consumes(MediaType.WILDCARD)
-    @Produces(MediaType.APPLICATION_OCTET_STREAM)
+    @Produces(MediaType.WILDCARD)
     @Path("/events/{id}/content/input")
     @PreAuthorize("hasRole('ROLE_PROVENANCE')")
     @ApiOperation(
@@ -362,7 +362,7 @@ public class ProvenanceResource extends ApplicationResource {
             contentType = MediaType.APPLICATION_OCTET_STREAM;
         }
 
-        return generateOkResponse(response).type(contentType).header("Content-Disposition", String.format("attachment; filename=%s", content.getFilename())).build();
+        return generateOkResponse(response).type(contentType).header("Content-Disposition", String.format("attachment; filename=\"%s\"", content.getFilename())).build();
     }
 
     /**
@@ -375,7 +375,7 @@ public class ProvenanceResource extends ApplicationResource {
      */
     @GET
     @Consumes(MediaType.WILDCARD)
-    @Produces(MediaType.APPLICATION_OCTET_STREAM)
+    @Produces(MediaType.WILDCARD)
     @Path("/events/{id}/content/output")
     @PreAuthorize("hasRole('ROLE_PROVENANCE')")
     @ApiOperation(
@@ -461,7 +461,7 @@ public class ProvenanceResource extends ApplicationResource {
             contentType = MediaType.APPLICATION_OCTET_STREAM;
         }
 
-        return generateOkResponse(response).type(contentType).header("Content-Disposition", String.format("attachment; filename=%s", content.getFilename())).build();
+        return generateOkResponse(response).type(contentType).header("Content-Disposition", String.format("attachment; filename=\"%s\"", content.getFilename())).build();
     }
 
     /**

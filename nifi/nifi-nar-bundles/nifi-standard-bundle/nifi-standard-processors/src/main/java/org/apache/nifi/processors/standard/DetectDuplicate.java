@@ -51,7 +51,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 @EventDriven
 @SupportsBatching
-@Tags({"experimental", "hash", "dupe", "duplicate", "dedupe"})
+@Tags({"hash", "dupe", "duplicate", "dedupe"})
 @CapabilityDescription("Caches a value, computed from FlowFile attributes, for each incoming FlowFile and determines if the cached value has already been seen. "
         + "If so, routes the FlowFile to 'duplicate' with an attribute named 'original.identifier' that specifies the original FlowFile's"
         + "\"description\", which is specified in the <FlowFile Description> property. If the FlowFile is not determined to be a duplicate, the Processor "

@@ -17,13 +17,19 @@
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
 <div id="process-group-details">
     <div class="dialog-content">
-        <div class="process-group-setting">
-            <div class="setting-name">Process group name</div>
+        <div class="setting">
+            <div class="setting-name">Name</div>
             <div class="setting-field">
                 <span id="read-only-process-group-name"></span>
             </div>
         </div>
-        <div class="process-group-setting">
+        <div class="setting">
+            <div class="setting-name">Id</div>
+            <div class="setting-field">
+                <span id="read-only-process-group-id"></span>
+            </div>
+        </div>
+        <div class="setting">
             <div class="setting-name">Comments</div>
             <div class="setting-field">
                 <div id="read-only-process-group-comments"></div>
