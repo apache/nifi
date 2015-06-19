@@ -475,8 +475,13 @@ public class VolatileContentRepository implements ContentRepository {
                 @Override
                 public void write(int b) throws IOException {
                     try {
+                        final long bufferLengthBefore = getBufferLength();
                         super.write(b);
-                        repoSizeCounter.incrementAndGet();
+                        final long bufferLengthAfter = getBufferLength();
+                        final long bufferSpaceAdded = bufferLengthAfter - bufferLengthBefore;
+                        if (bufferSpaceAdded > 0) {
+                            repoSizeCounter.addAndGet(bufferSpaceAdded);
+                        }
                     } catch (final IOException e) {
                         final byte[] buff = new byte[1];
                         buff[0] = (byte) (b & 0xFF);
@@ -492,8 +497,13 @@ public class VolatileContentRepository implements ContentRepository {
                 @Override
                 public void write(byte[] b, int off, int len) throws IOException {
                     try {
+                        final long bufferLengthBefore = getBufferLength();
                         super.write(b, off, len);
-                        repoSizeCounter.addAndGet(len);
+                        final long bufferLengthAfter = getBufferLength();
+                        final long bufferSpaceAdded = bufferLengthAfter - bufferLengthBefore;
+                        if (bufferSpaceAdded > 0) {
+                            repoSizeCounter.addAndGet(bufferSpaceAdded);
+                        }
                     } catch (final IOException e) {
                         redirect(b, off, len);
                     }
