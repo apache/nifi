@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.cluster.protocol;
 
-import org.apache.nifi.cluster.protocol.DataFlow;
 import java.io.Serializable;
 import java.util.Arrays;
 
@@ -41,12 +40,15 @@ public class StandardDataFlow implements Serializable, DataFlow {
      * Constructs an instance.
      *
      * @param flow a valid flow as bytes, which cannot be null
-     * @param templateBytes an XML representation of templates
-     * @param snippetBytes an XML representation of snippets
+     * @param templateBytes an XML representation of templates.  May be null.
+     * @param snippetBytes an XML representation of snippets.  May be null.
      *
-     * @throws NullPointerException if any argument is null
+     * @throws NullPointerException if flow is null
      */
     public StandardDataFlow(final byte[] flow, final byte[] templateBytes, final byte[] snippetBytes) {
+        if(flow == null){
+            throw new NullPointerException("Flow cannot be null");
+        }
         this.flow = flow;
         this.templateBytes = templateBytes;
         this.snippetBytes = snippetBytes;
@@ -63,31 +65,22 @@ public class StandardDataFlow implements Serializable, DataFlow {
         return bytes == null ? null : Arrays.copyOf(bytes, bytes.length);
     }
 
-    /**
-     * @return the raw byte array of the flow
-     */
+    @Override
     public byte[] getFlow() {
         return flow;
     }
 
-    /**
-     * @return the raw byte array of the templates
-     */
+    @Override
     public byte[] getTemplates() {
         return templateBytes;
     }
 
-    /**
-     * @return the raw byte array of the snippets
-     */
+    @Override
     public byte[] getSnippets() {
         return snippetBytes;
     }
 
-    /**
-     * @return true if processors should be automatically started at application
-     * startup; false otherwise
-     */
+    @Override
     public boolean isAutoStartProcessors() {
         return autoStartProcessors;
     }

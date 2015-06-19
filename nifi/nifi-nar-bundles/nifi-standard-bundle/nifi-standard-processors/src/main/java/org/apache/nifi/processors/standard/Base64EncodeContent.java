@@ -49,7 +49,7 @@ import org.apache.nifi.util.StopWatch;
 @EventDriven
 @SideEffectFree
 @SupportsBatching
-@Tags({"experimental", "encode", "base64"})
+@Tags({"encode", "base64"})
 @CapabilityDescription("Encodes or decodes content to and from base64")
 public class Base64EncodeContent extends AbstractProcessor {
 

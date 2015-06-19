@@ -25,7 +25,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
 
 import kafka.common.FailedToSendMessageException;
 import kafka.javaapi.producer.Producer;
@@ -33,21 +32,14 @@ import kafka.producer.KeyedMessage;
 import kafka.producer.ProducerConfig;
 
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
-
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.provenance.ProvenanceReporter;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.MockFlowFileQueue;
-import org.apache.nifi.util.MockProcessSession;
-import org.apache.nifi.util.MockProvenanceReporter;
-import org.apache.nifi.util.MockSessionFactory;
-import org.apache.nifi.util.SharedSessionState;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.mockito.Mockito;
-import org.mockito.internal.util.reflection.Whitebox;
 
 public class TestPutKafka {
 
@@ -150,19 +142,7 @@ public class TestPutKafka {
     public void testProvenanceReporterMessagesCount() {
         final TestableProcessor processor = new TestableProcessor();
 
-        ProvenanceReporter spyProvenanceReporter = Mockito.spy(new MockProvenanceReporter());
-
-        AtomicLong idGenerator = new AtomicLong(0L);
-        SharedSessionState sharedState = new SharedSessionState(processor, idGenerator);
-        Whitebox.setInternalState(sharedState, "provenanceReporter", spyProvenanceReporter);
-        MockFlowFileQueue flowFileQueue = sharedState.getFlowFileQueue();
-        MockSessionFactory sessionFactory = Mockito.mock(MockSessionFactory.class);
-        MockProcessSession mockProcessSession = new MockProcessSession(sharedState);
-        Mockito.when(sessionFactory.createSession()).thenReturn(mockProcessSession);
-
         final TestRunner runner = TestRunners.newTestRunner(processor);
-        Whitebox.setInternalState(runner, "flowFileQueue", flowFileQueue);
-        Whitebox.setInternalState(runner, "sessionFactory", sessionFactory);
 
         runner.setProperty(PutKafka.TOPIC, "topic1");
         runner.setProperty(PutKafka.KEY, "key1");
@@ -173,28 +153,19 @@ public class TestPutKafka {
         runner.enqueue(bytes);
         runner.run();
 
-        MockFlowFile mockFlowFile = mockProcessSession.getFlowFilesForRelationship(PutKafka.REL_SUCCESS).get(0);
-        Mockito.verify(spyProvenanceReporter, Mockito.atLeastOnce()).send(mockFlowFile, "kafka://topic1", "Sent 4 messages");
+        final List<ProvenanceEventRecord> events = runner.getProvenanceEvents();
+        assertEquals(1, events.size());
+        final ProvenanceEventRecord event = events.get(0);
+        assertEquals(ProvenanceEventType.SEND, event.getEventType());
+        assertEquals("kafka://topic1", event.getTransitUri());
+        assertEquals("Sent 4 messages", event.getDetails());
     }
 
     @Test
     public void testProvenanceReporterWithoutDelimiterMessagesCount() {
         final TestableProcessor processor = new TestableProcessor();
 
-        ProvenanceReporter spyProvenanceReporter = Mockito.spy(new MockProvenanceReporter());
-
-        AtomicLong idGenerator = new AtomicLong(0L);
-        SharedSessionState sharedState = new SharedSessionState(processor, idGenerator);
-        Whitebox.setInternalState(sharedState, "provenanceReporter", spyProvenanceReporter);
-        MockFlowFileQueue flowFileQueue = sharedState.getFlowFileQueue();
-        MockSessionFactory sessionFactory = Mockito.mock(MockSessionFactory.class);
-        MockProcessSession mockProcessSession = new MockProcessSession(sharedState);
-        Mockito.when(sessionFactory.createSession()).thenReturn(mockProcessSession);
-
         final TestRunner runner = TestRunners.newTestRunner(processor);
-        Whitebox.setInternalState(runner, "flowFileQueue", flowFileQueue);
-        Whitebox.setInternalState(runner, "sessionFactory", sessionFactory);
-
         runner.setProperty(PutKafka.TOPIC, "topic1");
         runner.setProperty(PutKafka.KEY, "key1");
         runner.setProperty(PutKafka.SEED_BROKERS, "localhost:1234");
@@ -203,8 +174,11 @@ public class TestPutKafka {
         runner.enqueue(bytes);
         runner.run();
 
-        MockFlowFile mockFlowFile = mockProcessSession.getFlowFilesForRelationship(PutKafka.REL_SUCCESS).get(0);
-        Mockito.verify(spyProvenanceReporter, Mockito.atLeastOnce()).send(mockFlowFile, "kafka://topic1");
+        final List<ProvenanceEventRecord> events = runner.getProvenanceEvents();
+        assertEquals(1, events.size());
+        final ProvenanceEventRecord event = events.get(0);
+        assertEquals(ProvenanceEventType.SEND, event.getEventType());
+        assertEquals("kafka://topic1", event.getTransitUri());
     }
 
     @Test

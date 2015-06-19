@@ -181,6 +181,10 @@ public final class StandardConnection implements Connection {
             throw new IllegalStateException("Cannot change destination of Connection because the current destination is running");
         }
 
+        if (getFlowFileQueue().getUnacknowledgedQueueSize().getObjectCount() > 0) {
+            throw new IllegalStateException("Cannot change destination of Connection because FlowFiles from this Connection are currently held by " + previousDestination);
+        }
+
         try {
             previousDestination.removeConnection(this);
             this.destination.set(newDestination);

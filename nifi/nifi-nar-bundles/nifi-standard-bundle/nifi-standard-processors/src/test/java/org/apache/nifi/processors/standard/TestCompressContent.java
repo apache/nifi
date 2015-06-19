@@ -20,6 +20,8 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -68,6 +70,54 @@ public class TestCompressContent {
         flowFile.assertContentEquals(Paths.get("src/test/resources/CompressedData/SampleFile.txt"));
         flowFile.assertAttributeEquals("filename", "SampleFile1.txt");
     }
+
+    @Test
+    public void testProperMimeTypeFromBzip2() throws Exception {
+        final TestRunner runner = TestRunners.newTestRunner(CompressContent.class);
+        runner.setProperty(CompressContent.MODE, "compress");
+        runner.setProperty(CompressContent.COMPRESSION_FORMAT, "bzip2");
+        runner.setProperty(CompressContent.UPDATE_FILENAME, "false");
+
+        runner.enqueue(Paths.get("src/test/resources/CompressedData/SampleFile.txt"));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(CompressContent.REL_SUCCESS, 1);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(CompressContent.REL_SUCCESS).get(0);
+        flowFile.assertAttributeEquals("mime.type", "application/x-bzip2");
+    }
+
+    @Test
+    public void testBzip2DecompressWithBothMimeTypes() throws Exception {
+        final TestRunner runner = TestRunners.newTestRunner(CompressContent.class);
+        runner.setProperty(CompressContent.MODE, "decompress");
+        runner.setProperty(CompressContent.COMPRESSION_FORMAT, CompressContent.COMPRESSION_FORMAT_ATTRIBUTE);
+        runner.setProperty(CompressContent.UPDATE_FILENAME, "true");
+
+        // ensure that we can decompress with a mime type of application/x-bzip2
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("mime.type", "application/x-bzip2");
+        runner.enqueue(Paths.get("src/test/resources/CompressedData/SampleFile.txt.bz2"), attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(CompressContent.REL_SUCCESS, 1);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(CompressContent.REL_SUCCESS).get(0);
+        flowFile.assertContentEquals(Paths.get("src/test/resources/CompressedData/SampleFile.txt"));
+        flowFile.assertAttributeEquals("filename", "SampleFile.txt");
+
+        // ensure that we can decompress with a mime type of application/bzip2. The appropriate mime type is
+        // application/x-bzip2, but we used to use application/bzip2. We want to ensure that we are still
+        // backward compatible.
+        runner.clearTransferState();
+        attributes.put("mime.type", "application/bzip2");
+        runner.enqueue(Paths.get("src/test/resources/CompressedData/SampleFile1.txt.bz2"), attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(CompressContent.REL_SUCCESS, 1);
+        flowFile = runner.getFlowFilesForRelationship(CompressContent.REL_SUCCESS).get(0);
+        flowFile.assertContentEquals(Paths.get("src/test/resources/CompressedData/SampleFile.txt"));
+        flowFile.assertAttributeEquals("filename", "SampleFile1.txt");
+    }
+
 
     @Test
     public void testGzipDecompress() throws Exception {

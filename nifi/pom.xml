@@ -22,7 +22,7 @@
         <relativePath />
     </parent>
     <artifactId>nifi</artifactId>
-    <version>0.1.1-incubating-SNAPSHOT</version>
+    <version>0.2.0-incubating-SNAPSHOT</version>
     <packaging>pom</packaging>
     <description>Apache NiFi(incubating) is an easy to use, powerful, and reliable system to process and distribute data.</description>
     <modules>
@@ -37,11 +37,11 @@
         <module>nifi-external</module>
     </modules>
     <properties>
-        <org.slf4j.version>1.7.10</org.slf4j.version>
-        <jetty.version>9.2.10.v20150310</jetty.version>
-        <lucene.version>4.10.3</lucene.version>
-        <spring.version>4.1.4.RELEASE</spring.version>
-        <spring.security.version>3.2.5.RELEASE</spring.security.version>
+        <org.slf4j.version>1.7.12</org.slf4j.version>
+        <jetty.version>9.2.11.v20150529</jetty.version>
+        <lucene.version>4.10.4</lucene.version>
+        <spring.version>4.1.6.RELEASE</spring.version>
+        <spring.security.version>3.2.7.RELEASE</spring.security.version>
         <jersey.version>1.19</jersey.version>
         <hadoop.version>2.6.0</hadoop.version>
         <inceptionYear>2014</inceptionYear>
@@ -51,12 +51,12 @@
             <dependency>
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>logback-classic</artifactId>
-                <version>1.1.2</version>
+                <version>1.1.3</version>
             </dependency>
             <dependency>
                 <groupId>ch.qos.logback</groupId>
                 <artifactId>jcl-over-slf4j</artifactId>
-                <version>1.1.2</version>
+                <version>1.1.3</version>
                 <scope>provided</scope>
                 <exclusions>
                     <exclusion>
@@ -97,12 +97,12 @@
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-core</artifactId>
-                <version>1.10.16</version>
+                <version>1.10.19</version>
             </dependency>
             <dependency>
                 <groupId>org.mockito</groupId>
                 <artifactId>mockito-all</artifactId>
-                <version>1.10.8</version>
+                <version>1.10.19</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
@@ -118,13 +118,18 @@
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
-                <version>3.3.2</version>
+                <version>3.4</version>
             </dependency>
             <dependency>
                 <groupId>org.antlr</groupId>
                 <artifactId>antlr-runtime</artifactId>
                 <version>3.5.2</version>
-            </dependency> 
+            </dependency>
+            <dependency>
+                <groupId>org.mongodb</groupId>
+                <artifactId>mongo-java-driver</artifactId>
+                <version>3.0.2</version>
+            </dependency>
             <dependency>
                 <groupId>com.wordnik</groupId>
                 <artifactId>swagger-annotations</artifactId>
@@ -158,12 +163,12 @@
             <dependency>
                 <groupId>com.jcraft</groupId>
                 <artifactId>jsch</artifactId>
-                <version>0.1.51</version>
+                <version>0.1.52</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.httpcomponents</groupId>
                 <artifactId>httpclient</artifactId>
-                <version>4.3.6</version>
+                <version>4.4.1</version>
             </dependency>
             <dependency>
                 <groupId>javax.mail</groupId>
@@ -183,7 +188,7 @@
             <dependency>
                 <groupId>net.sf.saxon</groupId>
                 <artifactId>Saxon-HE</artifactId>
-                <version>9.6.0-4</version>
+                <version>9.6.0-5</version>
             </dependency>
             <dependency>
                 <groupId>stax</groupId>
@@ -413,7 +418,7 @@
             <dependency>
                 <groupId>org.aspectj</groupId>
                 <artifactId>aspectjweaver</artifactId>
-                <version>1.8.4</version>
+                <version>1.8.5</version>
             </dependency>
             <dependency>
                 <groupId>cglib</groupId>
@@ -428,7 +433,7 @@
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-pool2</artifactId>
-                <version>2.3</version>
+                <version>2.4.1</version>
             </dependency>
             <dependency>
                 <groupId>com.jcraft</groupId>
@@ -438,7 +443,7 @@
             <dependency>
                 <groupId>joda-time</groupId>
                 <artifactId>joda-time</artifactId>
-                <version>2.7</version>
+                <version>2.8</version>
             </dependency>
             <dependency>
                 <groupId>com.yammer.metrics</groupId>
@@ -448,12 +453,12 @@
             <dependency>
                 <groupId>javax.jms</groupId>
                 <artifactId>javax.jms-api</artifactId>
-                <version>2.0</version>
+                <version>2.0.1</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.activemq</groupId>
                 <artifactId>activemq-client</artifactId>
-                <version>5.10.0</version>
+                <version>5.11.1</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.lucene</groupId>
@@ -504,7 +509,7 @@
             <dependency>
                 <groupId>org.apache.avro</groupId>
                 <artifactId>avro</artifactId>
-                <version>1.7.6</version>
+                <version>1.7.7</version>
             </dependency>
             <dependency>
                 <groupId>com.sun.jersey</groupId>
@@ -607,69 +612,74 @@
                 <version>1.9.2</version>
             </dependency>
             <dependency>
+                <groupId>org.apache.spark</groupId>
+                <artifactId>spark-streaming_2.10</artifactId>
+                <version>1.3.1</version>
+            </dependency>
+            <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-api</artifactId>
-                <version>0.1.1-incubating-SNAPSHOT</version>
+                <version>0.2.0-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-utils</artifactId>
-                <version>0.1.1-incubating-SNAPSHOT</version>
+                <version>0.2.0-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-site-to-site-client</artifactId>
-                <version>0.1.1-incubating-SNAPSHOT</version>
+                <version>0.2.0-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-web-utils</artifactId>
-                <version>0.1.1-incubating-SNAPSHOT</version>
+                <version>0.2.0-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-expression-language</artifactId>
-                <version>0.1.1-incubating-SNAPSHOT</version>
+                <version>0.2.0-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-custom-ui-utilities</artifactId>
-                <version>0.1.1-incubating-SNAPSHOT</version>
+                <version>0.2.0-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-ui-extension</artifactId>
-                <version>0.1.1-incubating-SNAPSHOT</version>
+                <version>0.2.0-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-flowfile-packager</artifactId>
-                <version>0.1.1-incubating-SNAPSHOT</version>
+                <version>0.2.0-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-socket-utils</artifactId>
-                <version>0.1.1-incubating-SNAPSHOT</version>
+                <version>0.2.0-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-data-provenance-utils</artifactId>
-                <version>0.1.1-incubating-SNAPSHOT</version>
+                <version>0.2.0-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-runtime</artifactId>
-                <version>0.1.1-incubating-SNAPSHOT</version>
+                <version>0.2.0-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-bootstrap</artifactId>
-                <version>0.1.1-incubating-SNAPSHOT</version>
+                <version>0.2.0-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-resources</artifactId>
-                <version>0.1.1-incubating-SNAPSHOT</version>
+                <version>0.2.0-incubating-SNAPSHOT</version>
                 <classifier>resources</classifier>
                 <scope>runtime</scope>
                 <type>zip</type>
@@ -677,7 +687,7 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-docs</artifactId>
-                <version>0.1.1-incubating-SNAPSHOT</version>
+                <version>0.2.0-incubating-SNAPSHOT</version>
                 <classifier>resources</classifier>
                 <scope>runtime</scope>
                 <type>zip</type>
@@ -685,163 +695,173 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-framework-nar</artifactId>
-                <version>0.1.1-incubating-SNAPSHOT</version>
+                <version>0.2.0-incubating-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-provenance-repository-nar</artifactId>
-                <version>0.1.1-incubating-SNAPSHOT</version>
+                <version>0.2.0-incubating-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-services-api-nar</artifactId>
-                <version>0.1.1-incubating-SNAPSHOT</version>
+                <version>0.2.0-incubating-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-ssl-context-service-nar</artifactId>
-                <version>0.1.1-incubating-SNAPSHOT</version>
+                <version>0.2.0-incubating-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-distributed-cache-services-nar</artifactId>
-                <version>0.1.1-incubating-SNAPSHOT</version>
+                <version>0.2.0-incubating-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-standard-nar</artifactId>
-                <version>0.1.1-incubating-SNAPSHOT</version>
+                <version>0.2.0-incubating-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-jetty-bundle</artifactId>
-                <version>0.1.1-incubating-SNAPSHOT</version>
+                <version>0.2.0-incubating-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-update-attribute-nar</artifactId>
-                <version>0.1.1-incubating-SNAPSHOT</version>
+                <version>0.2.0-incubating-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-hadoop-libraries-nar</artifactId>
-                <version>0.1.1-incubating-SNAPSHOT</version>
+                <version>0.2.0-incubating-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-hadoop-nar</artifactId>
-                <version>0.1.1-incubating-SNAPSHOT</version>
+                <version>0.2.0-incubating-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-kite-nar</artifactId>
-                <version>0.1.1-incubating-SNAPSHOT</version>
+                <version>0.2.0-incubating-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-mongodb-nar</artifactId>
-                <version>0.1.1-incubating-SNAPSHOT</version>
+                <version>0.2.0-incubating-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-solr-nar</artifactId>
-                <version>0.1.1-incubating-SNAPSHOT</version>
+                <version>0.2.0-incubating-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-kafka-nar</artifactId>
-                <version>0.1.1-incubating-SNAPSHOT</version>
+                <version>0.2.0-incubating-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-http-context-map-nar</artifactId>
-                <version>0.1.1-incubating-SNAPSHOT</version>
+                <version>0.2.0-incubating-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-social-media-nar</artifactId>
-                <version>0.1.1-incubating-SNAPSHOT</version>
+                <version>0.2.0-incubating-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-hl7-nar</artifactId>
-                <version>0.1.1-incubating-SNAPSHOT</version>
+                <version>0.2.0-incubating-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-language-translation-nar</artifactId>
-                <version>0.1.1-incubating-SNAPSHOT</version>
+                <version>0.2.0-incubating-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-geo-nar</artifactId>
-                <version>0.1.1-incubating-SNAPSHOT</version>
+                <version>0.2.0-incubating-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-properties</artifactId>
-                <version>0.1.1-incubating-SNAPSHOT</version>
+                <version>0.2.0-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-security-utils</artifactId>
-                <version>0.1.1-incubating-SNAPSHOT</version>
+                <version>0.2.0-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-logging-utils</artifactId>
-                <version>0.1.1-incubating-SNAPSHOT</version>
+                <version>0.2.0-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-nar-utils</artifactId>
-                <version>0.1.1-incubating-SNAPSHOT</version>
+                <version>0.2.0-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-processor-utils</artifactId>
-                <version>0.1.1-incubating-SNAPSHOT</version>
+                <version>0.2.0-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-mock</artifactId>
-                <version>0.1.1-incubating-SNAPSHOT</version>
+                <version>0.2.0-incubating-SNAPSHOT</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-write-ahead-log</artifactId>
-                <version>0.1.1-incubating-SNAPSHOT</version>
+                <version>0.2.0-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-dbcp-service</artifactId>
-                <version>0.1.1-incubating-SNAPSHOT</version>
+                <version>0.2.0-incubating-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-dbcp-service-api</artifactId>
+                <version>0.2.0-incubating-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>com.jayway.jsonpath</groupId>
                 <artifactId>json-path</artifactId>
                 <version>2.0.0</version>
             </dependency>
+            <dependency>
+			    <groupId>org.apache.derby</groupId>
+			    <artifactId>derby</artifactId>
+			    <version>10.11.1.1</version>
+		    </dependency>
         </dependencies>
     </dependencyManagement>
     <dependencies>

@@ -32,7 +32,7 @@ public class MockReportingInitializationContext implements ReportingInitializati
 
     @Override
     public String getIdentifier() {
-        return "";
+        return "mock-reporting-task";
     }
 
     @Override
@@ -62,6 +62,6 @@ public class MockReportingInitializationContext implements ReportingInitializati
 
     @Override
     public ComponentLog getLogger() {
-        return null;
+        return new MockProcessorLogger();
     }
 }

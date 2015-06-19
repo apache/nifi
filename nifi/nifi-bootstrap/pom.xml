@@ -17,8 +17,15 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi</artifactId>
-        <version>0.1.1-incubating-SNAPSHOT</version>
+        <version>0.2.0-incubating-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-bootstrap</artifactId>
     <packaging>jar</packaging>
+    
+    <dependencies>
+    	<dependency>
+    		<groupId>org.slf4j</groupId>
+    		<artifactId>slf4j-api</artifactId>
+    	</dependency>
+    </dependencies>
 </project>

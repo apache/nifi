@@ -357,7 +357,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
                                     if (bulletinRepo != null) {
                                         bulletinRepo.addBulletin(BulletinFactory.createBulletin(
-                                                "Controller Service", Severity.ERROR.name(), "Could not start " + serviceNode + " due to " + e));
+                                            "Controller Service", Severity.ERROR.name(), "Could not start " + serviceNode + " due to " + e));
                                     }
                                 }
                             }
@@ -391,10 +391,6 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         final List<List<ControllerServiceNode>> orderedNodeLists = new ArrayList<>();
 
         for (final ControllerServiceNode node : serviceNodeMap.values()) {
-            if (orderedNodeLists.contains(node)) {
-                continue;   // this node is already in the list.
-            }
-
             final List<ControllerServiceNode> branch = new ArrayList<>();
             determineEnablingOrder(serviceNodeMap, node, branch, new HashSet<ControllerServiceNode>());
             orderedNodeLists.add(branch);
@@ -404,10 +400,10 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     }
 
     private static void determineEnablingOrder(
-            final Map<String, ControllerServiceNode> serviceNodeMap,
-            final ControllerServiceNode contextNode,
-            final List<ControllerServiceNode> orderedNodes,
-            final Set<ControllerServiceNode> visited) {
+        final Map<String, ControllerServiceNode> serviceNodeMap,
+        final ControllerServiceNode contextNode,
+        final List<ControllerServiceNode> orderedNodes,
+        final Set<ControllerServiceNode> visited) {
         if (visited.contains(contextNode)) {
             return;
         }

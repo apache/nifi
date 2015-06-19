@@ -16,33 +16,62 @@
  */
 package org.apache.nifi.processors.hl7;
 
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import org.apache.nifi.processors.hl7.ExtractHL7Attributes;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Test;
-
 public class TestExtractHL7Attributes {
+
+    @BeforeClass
+    public static void setup() {
+        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi", "DEBUG");
+    }
 
     @Test
     public void testExtract() throws IOException {
-        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi", "DEBUG");
         final TestRunner runner = TestRunners.newTestRunner(ExtractHL7Attributes.class);
         runner.enqueue(Paths.get("src/test/resources/hypoglycemia.hl7"));
 
         runner.run();
         runner.assertAllFlowFilesTransferred(ExtractHL7Attributes.REL_SUCCESS, 1);
+
         final MockFlowFile out = runner.getFlowFilesForRelationship(ExtractHL7Attributes.REL_SUCCESS).get(0);
         final SortedMap<String, String> sortedAttrs = new TreeMap<>(out.getAttributes());
-        for (final Map.Entry<String, String> entry : sortedAttrs.entrySet()) {
-            System.out.println(entry.getKey() + " : " + entry.getValue());
-        }
-    }
 
+        int mshSegmentCount = 0;
+        int obrSegmentCount = 0;
+        int obxSegmentCount = 0;
+        int pidSegmentCount = 0;
+
+        for (final Map.Entry<String, String> entry : sortedAttrs.entrySet()) {
+            final String entryKey = entry.getKey();
+            if (entryKey.startsWith("MSH")) {
+                mshSegmentCount++;
+                continue;
+            } else if (entryKey.startsWith("OBR")) {
+                obrSegmentCount++;
+                continue;
+            } else if (entryKey.startsWith("OBX")) {
+                obxSegmentCount++;
+                continue;
+            } else if (entryKey.startsWith("PID")) {
+                pidSegmentCount++;
+                continue;
+            }
+        }
+
+        Assert.assertEquals("Did not have the proper number of MSH segments", 8, mshSegmentCount);
+        Assert.assertEquals("Did not have the proper number of OBR segments", 9, obrSegmentCount);
+        Assert.assertEquals("Did not have the proper number of OBX segments", 9, obxSegmentCount);
+        Assert.assertEquals("Did not have the proper number of PID segments", 6, pidSegmentCount);
+    }
 }

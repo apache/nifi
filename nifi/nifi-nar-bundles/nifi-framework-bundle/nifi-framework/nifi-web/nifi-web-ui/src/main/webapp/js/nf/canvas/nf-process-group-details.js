@@ -37,6 +37,7 @@ nf.ProcessGroupDetails = (function () {
                 handler: {
                     close: function () {
                         // clear the processor details
+                        nf.Common.clearField('read-only-process-group-id');
                         nf.Common.clearField('read-only-process-group-name');
                         nf.Common.clearField('read-only-process-group-comments');
                     }
@@ -53,6 +54,7 @@ nf.ProcessGroupDetails = (function () {
                 var selectionData = selection.datum();
 
                 // populate the port settings
+                nf.Common.populateField('read-only-process-group-id', selectionData.component.id);
                 nf.Common.populateField('read-only-process-group-name', selectionData.component.name);
                 nf.Common.populateField('read-only-process-group-comments', selectionData.component.comments);
 

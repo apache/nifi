@@ -35,7 +35,9 @@ public class XmlValidator {
 
     public static void assertXmlValid(String xml) {
         try {
-            DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(new InputSource(new StringReader(xml)));
+            final DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+            dbf.setNamespaceAware(true);
+            dbf.newDocumentBuilder().parse(new InputSource(new StringReader(xml)));
         } catch (SAXException | IOException | ParserConfigurationException e) {
             Assert.fail(e.getMessage());
         }

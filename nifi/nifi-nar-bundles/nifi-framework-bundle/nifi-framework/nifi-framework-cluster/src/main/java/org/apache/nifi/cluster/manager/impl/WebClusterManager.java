@@ -1085,8 +1085,9 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
 
     private Document parse(final byte[] serialized) throws SAXException, ParserConfigurationException, IOException {
         final DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
-        final DocumentBuilder builder = docFactory.newDocumentBuilder();
+        docFactory.setNamespaceAware(true);
 
+        final DocumentBuilder builder = docFactory.newDocumentBuilder();
         builder.setErrorHandler(new org.xml.sax.ErrorHandler() {
             @Override
             public void fatalError(final SAXParseException err) throws SAXException {
@@ -1483,6 +1484,8 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
 
     private byte[] serializeControllerServices() throws ParserConfigurationException, TransformerException {
         final DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+        docFactory.setNamespaceAware(true);
+
         final DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
         final Document document = docBuilder.newDocument();
         final Element rootElement = document.createElement("controllerServices");
@@ -1497,6 +1500,8 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
 
     private byte[] serializeReportingTasks() throws ParserConfigurationException, TransformerException {
         final DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+        docFactory.setNamespaceAware(true);
+
         final DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
         final Document document = docBuilder.newDocument();
         final Element rootElement = document.createElement("reportingTasks");

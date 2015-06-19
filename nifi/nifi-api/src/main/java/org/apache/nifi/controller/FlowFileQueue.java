@@ -100,6 +100,15 @@ public interface FlowFileQueue {
 
     QueueSize getActiveQueueSize();
 
+    /**
+     * Returns a QueueSize that represents all FlowFiles that are 'unacknowledged'. A FlowFile
+     * is considered to be unacknowledged if it has been pulled from the queue by some component
+     * but the session that pulled the FlowFile has not yet been committed or rolled back.
+     *
+     * @return a QueueSize that represents all FlowFiles that are 'unacknowledged'.
+     */
+    QueueSize getUnacknowledgedQueueSize();
+
     void acknowledge(FlowFileRecord flowFile);
 
     void acknowledge(Collection<FlowFileRecord> flowFiles);

@@ -24,6 +24,7 @@ import org.apache.nifi.components.AllowableValue;
  * An immutable object for holding information about a database system.
  *
  */
+@Deprecated
 public class DatabaseSystemDescriptor extends AllowableValue {
 
     public final String driverClassName;

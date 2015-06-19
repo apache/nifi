@@ -163,6 +163,8 @@ public class SSLProperties {
         KEYSTORE, TRUSTSTORE
     }
 
+    private static final String DEFAULT_SSL_PROTOCOL_ALGORITHM = "TLS";
+
     public static List<PropertyDescriptor> getKeystoreDescriptors(final boolean required) {
         final List<PropertyDescriptor> descriptors = new ArrayList<>();
         for (final PropertyDescriptor descriptor : KEYSTORE_DESCRIPTORS) {
@@ -196,14 +198,15 @@ public class SSLProperties {
             return SslContextFactory.createTrustSslContext(
                     context.getProperty(TRUSTSTORE).getValue(),
                     context.getProperty(TRUSTSTORE_PASSWORD).getValue().toCharArray(),
-                    context.getProperty(TRUSTSTORE_TYPE).getValue());
+                    context.getProperty(TRUSTSTORE_TYPE).getValue(),
+                    DEFAULT_SSL_PROTOCOL_ALGORITHM);
         } else {
             final String truststoreFile = context.getProperty(TRUSTSTORE).getValue();
             if (truststoreFile == null) {
                 return SslContextFactory.createSslContext(
                         context.getProperty(KEYSTORE).getValue(),
                         context.getProperty(KEYSTORE_PASSWORD).getValue().toCharArray(),
-                        context.getProperty(KEYSTORE_TYPE).getValue());
+                        context.getProperty(KEYSTORE_TYPE).getValue(), DEFAULT_SSL_PROTOCOL_ALGORITHM);
             } else {
                 return SslContextFactory.createSslContext(
                         context.getProperty(KEYSTORE).getValue(),
@@ -212,7 +215,8 @@ public class SSLProperties {
                         context.getProperty(TRUSTSTORE).getValue(),
                         context.getProperty(TRUSTSTORE_PASSWORD).getValue().toCharArray(),
                         context.getProperty(TRUSTSTORE_TYPE).getValue(),
-                        clientAuth);
+                        clientAuth,
+                        DEFAULT_SSL_PROTOCOL_ALGORITHM);
             }
         }
     }

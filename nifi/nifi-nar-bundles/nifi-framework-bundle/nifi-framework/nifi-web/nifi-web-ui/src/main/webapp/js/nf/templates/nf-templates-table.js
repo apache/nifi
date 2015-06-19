@@ -86,6 +86,9 @@ nf.TemplatesTable = (function () {
             var templatesGrid = $('#templates-table').data('gridInstance');
             var templatesData = templatesGrid.getData();
             templatesData.deleteItem(templateId);
+            
+            // update the total number of templates
+            $('#total-templates').text(templatesData.getItems().length);
         }).fail(nf.Common.handleAjaxError);
     };
 

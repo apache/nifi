@@ -30,7 +30,7 @@ public class MockControllerServiceInitializationContext implements ControllerSer
 
     @Override
     public String getIdentifier() {
-        return "";
+        return "mock-controller-service";
     }
 
     @Override
@@ -40,7 +40,7 @@ public class MockControllerServiceInitializationContext implements ControllerSer
 
     @Override
     public ComponentLog getLogger() {
-        return null;
+        return new MockProcessorLogger();
     }
 
 }

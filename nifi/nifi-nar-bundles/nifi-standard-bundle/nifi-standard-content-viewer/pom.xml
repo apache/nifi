@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-standard-bundle</artifactId>
-        <version>0.1.1-incubating-SNAPSHOT</version>
+        <version>0.2.0-incubating-SNAPSHOT</version>
     </parent>
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-standard-content-viewer</artifactId>
@@ -44,9 +44,8 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.codehaus.jackson</groupId>
-            <artifactId>jackson-mapper-asl</artifactId>
-            <version>1.9.13</version>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>

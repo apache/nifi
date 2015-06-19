@@ -34,10 +34,11 @@ nf.RemoteProcessGroupDetails = (function () {
                 handler: {
                     close: function () {
                         // clear the remote process group details
-                        $('#read-only-remote-process-group-name').text('');
-                        $('#read-only-remote-process-group-url').text('');
-                        $('#read-only-remote-process-group-timeout').val('');
-                        $('#read-only-remote-process-group-yield-duration').val('');
+                        nf.Common.clearField('read-only-remote-process-group-id');
+                        nf.Common.clearField('read-only-remote-process-group-name');
+                        nf.Common.clearField('read-only-remote-process-group-url');
+                        nf.Common.clearField('read-only-remote-process-group-timeout');
+                        nf.Common.clearField('read-only-remote-process-group-yield-duration');
                     }
                 }
             }).draggable({
@@ -57,10 +58,11 @@ nf.RemoteProcessGroupDetails = (function () {
                 var selectionData = selection.datum();
 
                 // populate the port settings
-                $('#read-only-remote-process-group-name').text(selectionData.component.name);
-                $('#read-only-remote-process-group-url').text(selectionData.component.targetUri);
-                $('#read-only-remote-process-group-timeout').text(selectionData.component.communicationsTimeout);
-                $('#read-only-remote-process-group-yield-duration').text(selectionData.component.yieldDuration);
+                nf.Common.populateField('read-only-remote-process-group-id', selectionData.component.id);
+                nf.Common.populateField('read-only-remote-process-group-name', selectionData.component.name);
+                nf.Common.populateField('read-only-remote-process-group-url', selectionData.component.targetUri);
+                nf.Common.populateField('read-only-remote-process-group-timeout', selectionData.component.communicationsTimeout);
+                nf.Common.populateField('read-only-remote-process-group-yield-duration', selectionData.component.yieldDuration);
 
                 // show the details
                 $('#remote-process-group-details').modal('show');

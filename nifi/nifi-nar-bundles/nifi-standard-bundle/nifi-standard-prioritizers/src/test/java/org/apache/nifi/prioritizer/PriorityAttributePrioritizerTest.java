@@ -17,6 +17,7 @@
 package org.apache.nifi.prioritizer;
 
 import org.apache.nifi.prioritizer.PriorityAttributePrioritizer;
+
 import static org.junit.Assert.assertEquals;
 
 import java.util.HashMap;
@@ -31,9 +32,9 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessSession;
 import org.apache.nifi.util.SharedSessionState;
-
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 public class PriorityAttributePrioritizerTest {
 
@@ -58,27 +59,27 @@ public class PriorityAttributePrioritizerTest {
 
     @Test
     public void testPrioritizer() throws InstantiationException, IllegalAccessException {
-        Processor processor = new SimpleProcessor();
-        AtomicLong idGenerator = new AtomicLong(0L);
-        MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, idGenerator));
+        final Processor processor = new SimpleProcessor();
+        final AtomicLong idGenerator = new AtomicLong(0L);
+        final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, idGenerator), Mockito.mock(Processor.class));
 
-        MockFlowFile ffNoPriority = session.create();
-        MockFlowFile ffPri1 = session.create();
+        final MockFlowFile ffNoPriority = session.create();
+        final MockFlowFile ffPri1 = session.create();
         ffPri1.putAttributes(attrsPri1);
-        MockFlowFile ffPri2 = session.create();
+        final MockFlowFile ffPri2 = session.create();
         ffPri2.putAttributes(attrsPri2);
-        MockFlowFile ffPrin1 = session.create();
+        final MockFlowFile ffPrin1 = session.create();
         ffPrin1.putAttributes(attrsPrin1);
-        MockFlowFile ffPriA = session.create();
+        final MockFlowFile ffPriA = session.create();
         ffPriA.putAttributes(attrsPriA);
-        MockFlowFile ffPriB = session.create();
+        final MockFlowFile ffPriB = session.create();
         ffPriB.putAttributes(attrsPriB);
-        MockFlowFile ffPriLP = session.create();
+        final MockFlowFile ffPriLP = session.create();
         ffPriLP.putAttributes(attrsPriLP);
-        MockFlowFile ffPriLN = session.create();
+        final MockFlowFile ffPriLN = session.create();
         ffPriLN.putAttributes(attrsPriLN);
 
-        PriorityAttributePrioritizer prioritizer = new PriorityAttributePrioritizer();
+        final PriorityAttributePrioritizer prioritizer = new PriorityAttributePrioritizer();
         assertEquals(0, prioritizer.compare(null, null));
         assertEquals(-1, prioritizer.compare(ffNoPriority, null));
         assertEquals(1, prioritizer.compare(null, ffNoPriority));

@@ -252,7 +252,7 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
 
     @Override
     public boolean isValid() {
-        return (getConnectableType() == ConnectableType.INPUT_PORT) ? !getConnections(Relationship.ANONYMOUS).isEmpty() : true;
+        return getConnectableType() == ConnectableType.INPUT_PORT ? !getConnections(Relationship.ANONYMOUS).isEmpty() : true;
     }
 
     @Override
@@ -275,12 +275,8 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
             return false;
         }
 
-        if (processScheduler.getActiveThreadCount(this) > 0) {
+        if (!requestQueue.isEmpty()) {
             return true;
-        }
-
-        if (requestQueue.isEmpty()) {
-            return false;
         }
 
         requestLock.lock();

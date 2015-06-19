@@ -13,7 +13,7 @@ module.exports = function (grunt) {
             options: {
                 force: true
             },
-            js: ['dist/js/'],
+            js: ['dist/js/*'],
             css: ['dist/css/'],
             assets: ['dist/assets/*'],
             generated: ['dist/docs'],
@@ -72,28 +72,28 @@ module.exports = function (grunt) {
             }
         },
         copy: {
-            generated: {
-                files: [{
-                        expand: true,
-                        cwd: '../nifi/nifi-docs/target/generated-docs',
-                        src: ['*.html', 'images/*'],
-                        dest: 'dist/docs/'
-                    }, {
-                        expand: true,
-                        cwd: '../nifi/nifi-nar-bundles/nifi-framework-bundle/nifi-framework/nifi-web/nifi-web-api',
-                        src: ['target/nifi-web-api-*/docs/rest-api/index.html', 'target/nifi-web-api-*/docs/rest-api/images/*'],
-                        dest: 'dist/docs/',
-                        rename: function (dest, src) {
-                            var path = require('path');
-
-                            if (src.indexOf('images') > 0) {
-                                return path.join(dest, 'rest-api/images', path.basename(src));
-                            } else {
-                                return path.join(dest, 'rest-api', path.basename(src));
-                            }
-                        }
-                    }]
-            },
+//            generated: {
+//                files: [{
+//                        expand: true,
+//                        cwd: '../nifi/nifi-docs/target/generated-docs',
+//                        src: ['*.html', 'images/*'],
+//                        dest: 'dist/docs/'
+//                    }, {
+//                        expand: true,
+//                        cwd: '../nifi/nifi-nar-bundles/nifi-framework-bundle/nifi-framework/nifi-web/nifi-web-api',
+//                        src: ['target/nifi-web-api-*/docs/rest-api/index.html', 'target/nifi-web-api-*/docs/rest-api/images/*'],
+//                        dest: 'dist/docs/',
+//                        rename: function (dest, src) {
+//                            var path = require('path');
+//
+//                            if (src.indexOf('images') > 0) {
+//                                return path.join(dest, 'rest-api/images', path.basename(src));
+//                            } else {
+//                                return path.join(dest, 'rest-api', path.basename(src));
+//                            }
+//                        }
+//                    }]
+//            },
             dist: {
                 files: [{
                         expand: true,
@@ -305,9 +305,10 @@ module.exports = function (grunt) {
     grunt.registerTask('img', ['newer:copy']);
     grunt.registerTask('css', ['clean:css', 'compass']);
     grunt.registerTask('js', ['clean:js', 'concat']);
-    grunt.registerTask('generate-docs', ['clean:generated', 'exec:generateDocs', 'exec:generateRestApiDocs', 'copy:generated', 'replace:addGoogleAnalytics', 'replace:moveTearDrop', 'replace:removeVersion']);
+//    grunt.registerTask('generate-docs', ['clean:generated', 'exec:generateDocs', 'exec:generateRestApiDocs', 'copy:generated', 'replace:addGoogleAnalytics', 'replace:moveTearDrop', 'replace:removeVersion']);
 
-    grunt.registerTask('build', ['assemble', 'css', 'js', 'img', 'generate-docs', 'copy:dist']);
+    grunt.registerTask('build', ['assemble', 'css', 'js', 'img', 'copy:dist']);
+//    grunt.registerTask('build', ['assemble', 'css', 'js', 'img', 'generate-docs', 'copy:dist']);
     grunt.registerTask('deploy', ['clean:all', 'prompt:username', 'exec:checkout', 'build', 'exec:status', 'prompt:commit']);
     grunt.registerTask('dev', ['default', 'watch']);
     

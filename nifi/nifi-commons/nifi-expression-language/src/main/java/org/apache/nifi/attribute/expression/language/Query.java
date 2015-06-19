@@ -244,51 +244,58 @@ public class Query {
         int backslashCount = 0;
 
         charLoop:
-        for (int i = 0; i < value.length(); i++) {
-            final char c = value.charAt(i);
+            for (int i = 0; i < value.length(); i++) {
+                final char c = value.charAt(i);
 
-            if (expressionStart > -1 && (c == '\'' || c == '"') && (lastChar != '\\' || backslashCount % 2 == 0)) {
-                final int endQuoteIndex = findEndQuoteChar(value, i);
-                if (endQuoteIndex < 0) {
-                    break charLoop;
-                }
-
-                i = endQuoteIndex;
-                continue;
-            }
-
-            if (c == '{') {
-                if (oddDollarCount && lastChar == '$') {
-                    if (embeddedCount == 0) {
-                        expressionStart = i - 1;
+                if (expressionStart > -1 && (c == '\'' || c == '"') && (lastChar != '\\' || backslashCount % 2 == 0)) {
+                    final int endQuoteIndex = findEndQuoteChar(value, i);
+                    if (endQuoteIndex < 0) {
+                        break charLoop;
                     }
-                }
 
-                embeddedCount++;
-            } else if (c == '}') {
-                if (embeddedCount <= 0) {
+                    i = endQuoteIndex;
                     continue;
                 }
 
-                if (--embeddedCount == 0) {
-                    if (expressionStart > -1) {
-                        // ended expression. Add a new range.
-                        final Range range = new Range(expressionStart, i);
-                        ranges.add(range);
+                if (c == '{') {
+                    if (oddDollarCount && lastChar == '$') {
+                        if (embeddedCount == 0) {
+                            expressionStart = i - 1;
+                        }
                     }
 
-                    expressionStart = -1;
-                }
-            } else if (c == '$') {
-                oddDollarCount = !oddDollarCount;
-            } else if (c == '\\') {
-                backslashCount++;
-            } else {
-                oddDollarCount = false;
-            }
+                    // Keep track of the number of opening curly braces that we are embedded within,
+                    // if we are within an Expression. If we are outside of an Expression, we can just ignore
+                    // curly braces. This allows us to ignore the first character if the value is something
+                    // like: { ${abc} }
+                    // However, we will count the curly braces if we have something like: ${ $${abc} }
+                    if (expressionStart > -1) {
+                        embeddedCount++;
+                    }
+                } else if (c == '}') {
+                    if (embeddedCount <= 0) {
+                        continue;
+                    }
 
-            lastChar = c;
-        }
+                    if (--embeddedCount == 0) {
+                        if (expressionStart > -1) {
+                            // ended expression. Add a new range.
+                            final Range range = new Range(expressionStart, i);
+                            ranges.add(range);
+                        }
+
+                        expressionStart = -1;
+                    }
+                } else if (c == '$') {
+                    oddDollarCount = !oddDollarCount;
+                } else if (c == '\\') {
+                    backslashCount++;
+                } else {
+                    oddDollarCount = false;
+                }
+
+                lastChar = c;
+            }
 
         return ranges;
     }
@@ -420,7 +427,7 @@ public class Query {
     }
 
     private static Map<String, String> wrap(final Map<String, String> attributes, final Map<String, String> flowFileProps,
-            final Map<String, String> env, final Map<?, ?> sysProps) {
+        final Map<String, String> env, final Map<?, ?> sysProps) {
         @SuppressWarnings("rawtypes")
         final Map[] maps = new Map[]{attributes, flowFileProps, env, sysProps};
 
@@ -947,7 +954,7 @@ public class Query {
                 return new BooleanCastEvaluator((StringEvaluator) evaluator);
             default:
                 throw new AttributeExpressionLanguageParsingException("Cannot implicitly convert Data Type " + evaluator.getResultType() + " to " + ResultType.BOOLEAN
-                        + (location == null ? "" : " at location [" + location + "]"));
+                    + (location == null ? "" : " at location [" + location + "]"));
         }
 
     }
@@ -965,12 +972,12 @@ public class Query {
             case NUMBER:
                 return (NumberEvaluator) evaluator;
             case STRING:
-                return new NumberCastEvaluator((StringEvaluator) evaluator);
+                return new NumberCastEvaluator(evaluator);
             case DATE:
                 return new DateToNumberEvaluator((DateEvaluator) evaluator);
             default:
                 throw new AttributeExpressionLanguageParsingException("Cannot implicitly convert Data Type " + evaluator.getResultType() + " to " + ResultType.NUMBER
-                        + (location == null ? "" : " at location [" + location + "]"));
+                    + (location == null ? "" : " at location [" + location + "]"));
         }
     }
 
@@ -1015,27 +1022,27 @@ public class Query {
             case SUBSTRING_BEFORE: {
                 verifyArgCount(argEvaluators, 1, "substringBefore");
                 return new SubstringBeforeEvaluator(toStringEvaluator(subjectEvaluator),
-                        toStringEvaluator(argEvaluators.get(0), "first argument to substringBefore"));
+                    toStringEvaluator(argEvaluators.get(0), "first argument to substringBefore"));
             }
             case SUBSTRING_BEFORE_LAST: {
                 verifyArgCount(argEvaluators, 1, "substringBeforeLast");
                 return new SubstringBeforeLastEvaluator(toStringEvaluator(subjectEvaluator),
-                        toStringEvaluator(argEvaluators.get(0), "first argument to substringBeforeLast"));
+                    toStringEvaluator(argEvaluators.get(0), "first argument to substringBeforeLast"));
             }
             case SUBSTRING_AFTER: {
                 verifyArgCount(argEvaluators, 1, "substringAfter");
                 return new SubstringAfterEvaluator(toStringEvaluator(subjectEvaluator),
-                        toStringEvaluator(argEvaluators.get(0), "first argument to substringAfter"));
+                    toStringEvaluator(argEvaluators.get(0), "first argument to substringAfter"));
             }
             case SUBSTRING_AFTER_LAST: {
                 verifyArgCount(argEvaluators, 1, "substringAfterLast");
                 return new SubstringAfterLastEvaluator(toStringEvaluator(subjectEvaluator),
-                        toStringEvaluator(argEvaluators.get(0), "first argument to substringAfterLast"));
+                    toStringEvaluator(argEvaluators.get(0), "first argument to substringAfterLast"));
             }
             case REPLACE_NULL: {
                 verifyArgCount(argEvaluators, 1, "replaceNull");
                 return new ReplaceNullEvaluator(toStringEvaluator(subjectEvaluator),
-                        toStringEvaluator(argEvaluators.get(0), "first argument to replaceNull"));
+                    toStringEvaluator(argEvaluators.get(0), "first argument to replaceNull"));
             }
             case REPLACE_EMPTY: {
                 verifyArgCount(argEvaluators, 1, "replaceEmtpy");
@@ -1044,34 +1051,34 @@ public class Query {
             case REPLACE: {
                 verifyArgCount(argEvaluators, 2, "replace");
                 return new ReplaceEvaluator(toStringEvaluator(subjectEvaluator),
-                        toStringEvaluator(argEvaluators.get(0), "first argument to replace"),
-                        toStringEvaluator(argEvaluators.get(1), "second argument to replace"));
+                    toStringEvaluator(argEvaluators.get(0), "first argument to replace"),
+                    toStringEvaluator(argEvaluators.get(1), "second argument to replace"));
             }
             case REPLACE_ALL: {
                 verifyArgCount(argEvaluators, 2, "replaceAll");
                 return new ReplaceAllEvaluator(toStringEvaluator(subjectEvaluator),
-                        toStringEvaluator(argEvaluators.get(0), "first argument to replaceAll"),
-                        toStringEvaluator(argEvaluators.get(1), "second argument to replaceAll"));
+                    toStringEvaluator(argEvaluators.get(0), "first argument to replaceAll"),
+                    toStringEvaluator(argEvaluators.get(1), "second argument to replaceAll"));
             }
             case APPEND: {
                 verifyArgCount(argEvaluators, 1, "append");
                 return new AppendEvaluator(toStringEvaluator(subjectEvaluator),
-                        toStringEvaluator(argEvaluators.get(0), "first argument to append"));
+                    toStringEvaluator(argEvaluators.get(0), "first argument to append"));
             }
             case PREPEND: {
                 verifyArgCount(argEvaluators, 1, "prepend");
                 return new PrependEvaluator(toStringEvaluator(subjectEvaluator),
-                        toStringEvaluator(argEvaluators.get(0), "first argument to prepend"));
+                    toStringEvaluator(argEvaluators.get(0), "first argument to prepend"));
             }
             case SUBSTRING: {
                 final int numArgs = argEvaluators.size();
                 if (numArgs == 1) {
                     return new SubstringEvaluator(toStringEvaluator(subjectEvaluator),
-                            toNumberEvaluator(argEvaluators.get(0), "first argument to substring"));
+                        toNumberEvaluator(argEvaluators.get(0), "first argument to substring"));
                 } else if (numArgs == 2) {
                     return new SubstringEvaluator(toStringEvaluator(subjectEvaluator),
-                            toNumberEvaluator(argEvaluators.get(0), "first argument to substring"),
-                            toNumberEvaluator(argEvaluators.get(1), "second argument to substring"));
+                        toNumberEvaluator(argEvaluators.get(0), "first argument to substring"),
+                        toNumberEvaluator(argEvaluators.get(1), "second argument to substring"));
                 } else {
                     throw new AttributeExpressionLanguageParsingException("substring() function can take either 1 or 2 arguments but cannot take " + numArgs + " arguments");
                 }
@@ -1099,27 +1106,27 @@ public class Query {
             case STARTS_WITH: {
                 verifyArgCount(argEvaluators, 1, "startsWith");
                 return new StartsWithEvaluator(toStringEvaluator(subjectEvaluator),
-                        toStringEvaluator(argEvaluators.get(0), "first argument to startsWith"));
+                    toStringEvaluator(argEvaluators.get(0), "first argument to startsWith"));
             }
             case ENDS_WITH: {
                 verifyArgCount(argEvaluators, 1, "endsWith");
                 return new EndsWithEvaluator(toStringEvaluator(subjectEvaluator),
-                        toStringEvaluator(argEvaluators.get(0), "first argument to endsWith"));
+                    toStringEvaluator(argEvaluators.get(0), "first argument to endsWith"));
             }
             case CONTAINS: {
                 verifyArgCount(argEvaluators, 1, "contains");
                 return new ContainsEvaluator(toStringEvaluator(subjectEvaluator),
-                        toStringEvaluator(argEvaluators.get(0), "first argument to contains"));
+                    toStringEvaluator(argEvaluators.get(0), "first argument to contains"));
             }
             case FIND: {
                 verifyArgCount(argEvaluators, 1, "find");
                 return new FindEvaluator(toStringEvaluator(subjectEvaluator),
-                        toStringEvaluator(argEvaluators.get(0), "first argument to find"));
+                    toStringEvaluator(argEvaluators.get(0), "first argument to find"));
             }
             case MATCHES: {
                 verifyArgCount(argEvaluators, 1, "matches");
                 return new MatchesEvaluator(toStringEvaluator(subjectEvaluator),
-                        toStringEvaluator(argEvaluators.get(0), "first argument to matches"));
+                    toStringEvaluator(argEvaluators.get(0), "first argument to matches"));
             }
             case EQUALS: {
                 verifyArgCount(argEvaluators, 1, "equals");
@@ -1128,27 +1135,27 @@ public class Query {
             case EQUALS_IGNORE_CASE: {
                 verifyArgCount(argEvaluators, 1, "equalsIgnoreCase");
                 return new EqualsIgnoreCaseEvaluator(toStringEvaluator(subjectEvaluator),
-                        toStringEvaluator(argEvaluators.get(0), "first argument to equalsIgnoreCase"));
+                    toStringEvaluator(argEvaluators.get(0), "first argument to equalsIgnoreCase"));
             }
             case GREATER_THAN: {
                 verifyArgCount(argEvaluators, 1, "gt");
                 return new GreaterThanEvaluator(toNumberEvaluator(subjectEvaluator),
-                        toNumberEvaluator(argEvaluators.get(0), "first argument to gt"));
+                    toNumberEvaluator(argEvaluators.get(0), "first argument to gt"));
             }
             case GREATER_THAN_OR_EQUAL: {
                 verifyArgCount(argEvaluators, 1, "ge");
                 return new GreaterThanOrEqualEvaluator(toNumberEvaluator(subjectEvaluator),
-                        toNumberEvaluator(argEvaluators.get(0), "first argument to ge"));
+                    toNumberEvaluator(argEvaluators.get(0), "first argument to ge"));
             }
             case LESS_THAN: {
                 verifyArgCount(argEvaluators, 1, "lt");
                 return new LessThanEvaluator(toNumberEvaluator(subjectEvaluator),
-                        toNumberEvaluator(argEvaluators.get(0), "first argument to lt"));
+                    toNumberEvaluator(argEvaluators.get(0), "first argument to lt"));
             }
             case LESS_THAN_OR_EQUAL: {
                 verifyArgCount(argEvaluators, 1, "le");
                 return new LessThanOrEqualEvaluator(toNumberEvaluator(subjectEvaluator),
-                        toNumberEvaluator(argEvaluators.get(0), "first argument to le"));
+                    toNumberEvaluator(argEvaluators.get(0), "first argument to le"));
             }
             case LENGTH: {
                 verifyArgCount(argEvaluators, 0, "length");
@@ -1199,12 +1206,12 @@ public class Query {
             case INDEX_OF: {
                 verifyArgCount(argEvaluators, 1, "indexOf");
                 return new IndexOfEvaluator(toStringEvaluator(subjectEvaluator),
-                        toStringEvaluator(argEvaluators.get(0), "first argument to indexOf"));
+                    toStringEvaluator(argEvaluators.get(0), "first argument to indexOf"));
             }
             case LAST_INDEX_OF: {
                 verifyArgCount(argEvaluators, 1, "lastIndexOf");
                 return new LastIndexOfEvaluator(toStringEvaluator(subjectEvaluator),
-                        toStringEvaluator(argEvaluators.get(0), "first argument to lastIndexOf"));
+                    toStringEvaluator(argEvaluators.get(0), "first argument to lastIndexOf"));
             }
             case FORMAT: {
                 return new FormatEvaluator(toDateEvaluator(subjectEvaluator), toStringEvaluator(argEvaluators.get(0), "first argument of format"));
