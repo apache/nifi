@@ -23,7 +23,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -44,11 +43,10 @@ import org.apache.nifi.controller.repository.claim.StandardContentClaim;
 import org.apache.nifi.controller.repository.io.ArrayManagedOutputStream;
 import org.apache.nifi.controller.repository.io.MemoryManager;
 import org.apache.nifi.engine.FlowEngine;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.stream.io.ByteArrayInputStream;
 import org.apache.nifi.stream.io.StreamUtils;
-import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.util.NiFiProperties;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -372,20 +370,16 @@ public class VolatileContentRepository implements ContentRepository {
             return 0L;
         }
 
-        if (append) {
-            try (final InputStream in = read(claim);
-                    final OutputStream destinationStream = Files.newOutputStream(destination, StandardOpenOption.APPEND)) {
+        final StandardOpenOption openOption = append ? StandardOpenOption.APPEND : StandardOpenOption.CREATE;
+        try (final InputStream in = read(claim);
+            final OutputStream destinationStream = Files.newOutputStream(destination, openOption)) {
 
-                if (offset > 0) {
-                    StreamUtils.skip(in, offset);
-                }
-
-                StreamUtils.copy(in, destinationStream, length);
-                return length;
+            if (offset > 0) {
+                StreamUtils.skip(in, offset);
             }
-        } else {
-            Files.copy(read(claim), destination, StandardCopyOption.REPLACE_EXISTING);
-            return Files.size(destination);
+
+            StreamUtils.copy(in, destinationStream, length);
+            return length;
         }
     }
 
@@ -419,7 +413,7 @@ public class VolatileContentRepository implements ContentRepository {
         }
 
         final ContentClaim backupClaim = getBackupClaim(claim);
-        return (backupClaim == null) ? getContent(claim).getSize() : getBackupRepository().size(claim);
+        return backupClaim == null ? getContent(claim).getSize() : getBackupRepository().size(claim);
     }
 
     @Override
@@ -429,13 +423,13 @@ public class VolatileContentRepository implements ContentRepository {
         }
 
         final ContentClaim backupClaim = getBackupClaim(claim);
-        return (backupClaim == null) ? getContent(claim).read() : getBackupRepository().read(backupClaim);
+        return backupClaim == null ? getContent(claim).read() : getBackupRepository().read(backupClaim);
     }
 
     @Override
     public OutputStream write(final ContentClaim claim) throws IOException {
         final ContentClaim backupClaim = getBackupClaim(claim);
-        return (backupClaim == null) ? getContent(claim).write() : getBackupRepository().write(backupClaim);
+        return backupClaim == null ? getContent(claim).write() : getBackupRepository().write(backupClaim);
     }
 
     @Override
