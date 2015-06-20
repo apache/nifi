@@ -47,18 +47,20 @@ public class StandardRecordReader implements RecordReader {
     private final boolean compressed;
     private final TocReader tocReader;
     private final int headerLength;
+    private final int maxAttributeChars;
 
     private DataInputStream dis;
     private ByteCountingInputStream byteCountingIn;
 
-    public StandardRecordReader(final InputStream in, final String filename) throws IOException {
-        this(in, filename, null);
+    public StandardRecordReader(final InputStream in, final String filename, final int maxAttributeChars) throws IOException {
+        this(in, filename, null, maxAttributeChars);
     }
 
-    public StandardRecordReader(final InputStream in, final String filename, final TocReader tocReader) throws IOException {
+    public StandardRecordReader(final InputStream in, final String filename, final TocReader tocReader, final int maxAttributeChars) throws IOException {
         logger.trace("Creating RecordReader for {}", filename);
 
         rawInputStream = new ByteCountingInputStream(in);
+        this.maxAttributeChars = maxAttributeChars;
 
         final InputStream limitedStream;
         if ( tocReader == null ) {
@@ -367,7 +369,8 @@ public class StandardRecordReader implements RecordReader {
         for (int i = 0; i < numAttributes; i++) {
             final String key = readLongString(dis);
             final String value = valueNullable ? readLongNullableString(dis) : readLongString(dis);
-            attrs.put(key, value);
+            final String truncatedValue = value.length() > maxAttributeChars ? value.substring(0, maxAttributeChars) : value;
+            attrs.put(key, truncatedValue);
         }
 
         return attrs;
@@ -429,7 +432,7 @@ public class StandardRecordReader implements RecordReader {
             byteCountingIn.reset();
         }
 
-        return (nextByte >= 0);
+        return nextByte >= 0;
     }
 
     @Override
@@ -451,7 +454,7 @@ public class StandardRecordReader implements RecordReader {
             // committed, so we can just process the FlowFile again.
         }
 
-        return (lastRecord == null) ? -1L : lastRecord.getEventId();
+        return lastRecord == null ? -1L : lastRecord.getEventId();
     }
 
     @Override

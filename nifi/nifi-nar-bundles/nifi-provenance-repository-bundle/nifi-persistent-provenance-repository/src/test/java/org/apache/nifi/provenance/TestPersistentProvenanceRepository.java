@@ -252,7 +252,7 @@ public class TestPersistentProvenanceRepository {
         assertEquals(10, recoveredRecords.size());
         for (int i = 0; i < 10; i++) {
             final ProvenanceEventRecord recovered = recoveredRecords.get(i);
-            assertEquals((long) i, recovered.getEventId());
+            assertEquals(i, recovered.getEventId());
             assertEquals("nifi://unit-test", recovered.getTransitUri());
             assertEquals(ProvenanceEventType.RECEIVE, recovered.getEventType());
             assertEquals(attributes, recovered.getAttributes());
@@ -283,7 +283,7 @@ public class TestPersistentProvenanceRepository {
         builder.fromFlowFile(createFlowFile(3L, 3000L, attributes));
         builder.setComponentId("1234");
         builder.setComponentType("dummy processor");
-        ProvenanceEventRecord record = builder.build();
+        final ProvenanceEventRecord record = builder.build();
 
         for (int i = 0; i < 10; i++) {
             repo.registerEvent(record);
@@ -1106,7 +1106,7 @@ public class TestPersistentProvenanceRepository {
 
             final Query q = new Query("");
             q.setMaxResults(1000);
-            TopDocs topDocs = searcher.search(luceneQuery, 1000);
+            final TopDocs topDocs = searcher.search(luceneQuery, 1000);
 
             final List<Document> docs = new ArrayList<>();
             for (int i = 0; i < topDocs.scoreDocs.length; i++) {
@@ -1157,7 +1157,7 @@ public class TestPersistentProvenanceRepository {
         for (final File file : storageDir.listFiles()) {
             if (file.isFile()) {
 
-                try (RecordReader reader = RecordReaders.newRecordReader(file, null)) {
+                try (RecordReader reader = RecordReaders.newRecordReader(file, null, 2048)) {
                     ProvenanceEventRecord r = null;
 
                     while ((r = reader.nextRecord()) != null) {
@@ -1169,4 +1169,35 @@ public class TestPersistentProvenanceRepository {
 
         assertEquals(10000, counter);
     }
+
+    @Test
+    public void testTruncateAttributes() throws IOException, InterruptedException {
+        final RepositoryConfiguration config = createConfiguration();
+        config.setMaxAttributeChars(50);
+        config.setMaxEventFileLife(3, TimeUnit.SECONDS);
+        repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS);
+        repo.initialize(getEventReporter());
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("75chars", "123456789012345678901234567890123456789012345678901234567890123456789012345");
+
+        final ProvenanceEventBuilder builder = new StandardProvenanceEventRecord.Builder();
+        builder.setEventTime(System.currentTimeMillis());
+        builder.setEventType(ProvenanceEventType.RECEIVE);
+        builder.setTransitUri("nifi://unit-test");
+        attributes.put("uuid", "12345678-0000-0000-0000-012345678912");
+        builder.fromFlowFile(createFlowFile(3L, 3000L, attributes));
+        builder.setComponentId("1234");
+        builder.setComponentType("dummy processor");
+
+        final ProvenanceEventRecord record = builder.build();
+        repo.registerEvent(record);
+        repo.waitForRollover();
+
+        final ProvenanceEventRecord retrieved = repo.getEvent(0L);
+        assertNotNull(retrieved);
+        assertEquals("12345678-0000-0000-0000-012345678912", retrieved.getAttributes().get("uuid"));
+        assertEquals("12345678901234567890123456789012345678901234567890", retrieved.getAttributes().get("75chars"));
+    }
+
 }

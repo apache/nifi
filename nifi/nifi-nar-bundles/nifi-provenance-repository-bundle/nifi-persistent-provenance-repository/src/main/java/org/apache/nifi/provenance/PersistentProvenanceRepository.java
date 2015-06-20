@@ -134,6 +134,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
     private final IndexManager indexManager;
     private final boolean alwaysSync;
     private final int rolloverCheckMillis;
+    private final int maxAttributeChars;
 
     private final ScheduledExecutorService scheduledExecService;
     private final ScheduledExecutorService rolloverExecutor;
@@ -167,6 +168,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
         }
 
         this.configuration = configuration;
+        this.maxAttributeChars = configuration.getMaxAttributeChars();
 
         for (final File file : configuration.getStorageDirectories()) {
             final Path storageDirectory = file.toPath();
@@ -289,6 +291,21 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
 
         final Boolean alwaysSync = Boolean.parseBoolean(properties.getProperty("nifi.provenance.repository.always.sync", "false"));
 
+        final int defaultMaxAttrChars = 65536;
+        final String maxAttrLength = properties.getProperty("nifi.provenance.repository.max.attribute.length", String.valueOf(defaultMaxAttrChars));
+        int maxAttrChars;
+        try {
+            maxAttrChars = Integer.parseInt(maxAttrLength);
+            // must be at least 36 characters because that's the length of the uuid attribute,
+            // which must be kept intact
+            if (maxAttrChars < 36) {
+                maxAttrChars = 36;
+                logger.warn("Found max attribute length property set to " + maxAttrLength + " but minimum length is 36; using 36 instead");
+            }
+        } catch (final Exception e) {
+            maxAttrChars = defaultMaxAttrChars;
+        }
+
         final List<SearchableField> searchableFields = SearchableFieldParser.extractSearchableFields(indexedFieldString, true);
         final List<SearchableField> searchableAttributes = SearchableFieldParser.extractSearchableFields(indexedAttrString, false);
 
@@ -310,6 +327,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
         config.setMaxStorageCapacity(maxStorageBytes);
         config.setQueryThreadPoolSize(queryThreads);
         config.setJournalCount(journalCount);
+        config.setMaxAttributeChars(maxAttrChars);
 
         if (shardSize != null) {
             config.setDesiredIndexSize(DataUnit.parseDataSize(shardSize, DataUnit.B).longValue());
@@ -337,6 +355,14 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
         return writers;
     }
 
+    /**
+     * @return the maximum number of characters that any Event attribute should contain. If the event contains
+     *         more characters than this, the attribute may be truncated on retrieval
+     */
+    public int getMaxAttributeCharacters() {
+        return maxAttributeChars;
+    }
+
     @Override
     public StandardProvenanceEventRecord.Builder eventBuilder() {
         return new StandardProvenanceEventRecord.Builder();
@@ -362,7 +388,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
         }
 
         for (final Path path : paths) {
-            try (RecordReader reader = RecordReaders.newRecordReader(path.toFile(), getAllLogFiles())) {
+            try (RecordReader reader = RecordReaders.newRecordReader(path.toFile(), getAllLogFiles(), maxAttributeChars)) {
                 // if this is the first record, try to find out the block index and jump directly to
                 // the block index. This avoids having to read through a lot of data that we don't care about
                 // just to get to the first record that we want.
@@ -377,7 +403,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                 }
 
                 StandardProvenanceEventRecord record;
-                while (records.size() < maxRecords && ((record = reader.nextRecord()) != null)) {
+                while (records.size() < maxRecords && (record = reader.nextRecord()) != null) {
                     if (record.getEventId() >= firstRecordId) {
                         records.add(record);
                     }
@@ -507,7 +533,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
 
         if (maxIdFile != null) {
             // Determine the max ID in the last file.
-            try (final RecordReader reader = RecordReaders.newRecordReader(maxIdFile, getAllLogFiles())) {
+            try (final RecordReader reader = RecordReaders.newRecordReader(maxIdFile, getAllLogFiles(), maxAttributeChars)) {
                 final long eventId = reader.getMaxEventId();
                 if (eventId > maxId) {
                     maxId = eventId;
@@ -571,7 +597,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
 
             // Read the records in the last file to find its max id
             if (greatestMinIdFile != null) {
-                try (final RecordReader recordReader = RecordReaders.newRecordReader(greatestMinIdFile, Collections.<Path>emptyList())) {
+                try (final RecordReader recordReader = RecordReaders.newRecordReader(greatestMinIdFile, Collections.<Path> emptyList(), maxAttributeChars)) {
                     maxId = recordReader.getMaxEventId();
                 }
             }
@@ -1224,7 +1250,10 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
         try {
             for (final File journalFile : journalFiles) {
                 try {
-                    readers.add(RecordReaders.newRecordReader(journalFile, null));
+                    // Use MAX_VALUE for number of chars because we don't want to truncate the value as we write it
+                    // out. This allows us to later decide that we want more characters and still be able to retrieve
+                    // the entire event.
+                    readers.add(RecordReaders.newRecordReader(journalFile, null, Integer.MAX_VALUE));
                 } catch (final EOFException eof) {
                     // there's nothing here. Skip over it.
                 } catch (final IOException ioe) {
@@ -1314,7 +1343,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                         indexingAction.index(record, indexWriter, blockIndex);
                         maxId = record.getEventId();
 
-                        latestRecords.add(record);
+                        latestRecords.add(truncateAttributes(record));
                         records++;
 
                         // Remove this entry from the map
@@ -1381,6 +1410,39 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
         }
 
         return writerFile;
+    }
+
+    private StandardProvenanceEventRecord truncateAttributes(final StandardProvenanceEventRecord original) {
+        boolean requireTruncation = false;
+
+        for (final Map.Entry<String, String> entry : original.getAttributes().entrySet()) {
+            if (entry.getValue().length() > maxAttributeChars) {
+                requireTruncation = true;
+                break;
+            }
+        }
+
+        if (!requireTruncation) {
+            return original;
+        }
+
+        final StandardProvenanceEventRecord.Builder builder = new StandardProvenanceEventRecord.Builder().fromEvent(original);
+        builder.setAttributes(truncateAttributes(original.getPreviousAttributes()), truncateAttributes(original.getUpdatedAttributes()));
+        final StandardProvenanceEventRecord truncated = builder.build();
+        truncated.setEventId(original.getEventId());
+        return truncated;
+    }
+
+    private Map<String, String> truncateAttributes(final Map<String, String> original) {
+        final Map<String, String> truncatedAttrs = new HashMap<>();
+        for (final Map.Entry<String, String> entry : original.entrySet()) {
+            if (entry.getValue().length() > maxAttributeChars) {
+                truncatedAttrs.put(entry.getKey(), entry.getValue().substring(0, maxAttributeChars));
+            } else {
+                truncatedAttrs.put(entry.getKey(), entry.getValue());
+            }
+        }
+        return truncatedAttrs;
     }
 
     @Override
@@ -1612,7 +1674,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
 
                         for (final File file : potentialFiles) {
                             try {
-                                reader = RecordReaders.newRecordReader(file, allLogFiles);
+                                reader = RecordReaders.newRecordReader(file, allLogFiles, maxAttributeChars);
                             } catch (final IOException ioe) {
                                 continue;
                             }
@@ -1788,7 +1850,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
             return true;
         }
 
-        if (repoDirty.get() || (writtenSinceRollover > 0 && System.currentTimeMillis() > streamStartTime.get() + maxPartitionMillis)) {
+        if (repoDirty.get() || writtenSinceRollover > 0 && System.currentTimeMillis() > streamStartTime.get() + maxPartitionMillis) {
             return true;
         }
 
@@ -1797,7 +1859,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
 
     public Collection<Path> getAllLogFiles() {
         final SortedMap<Long, Path> map = idToPathMap.get();
-        return (map == null) ? new ArrayList<Path>() : map.values();
+        return map == null ? new ArrayList<Path>() : map.values();
     }
 
     private static class PathMapComparator implements Comparator<Long> {
@@ -1885,7 +1947,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
         @Override
         public void run() {
             try {
-                final IndexSearch search = new IndexSearch(PersistentProvenanceRepository.this, indexDir, indexManager);
+                final IndexSearch search = new IndexSearch(PersistentProvenanceRepository.this, indexDir, indexManager, maxAttributeChars);
                 final StandardQueryResult queryResult = search.search(query, retrievalCount);
                 submission.getResult().update(queryResult.getMatchingEvents(), queryResult.getTotalHitCount());
                 if (queryResult.isFinished()) {
@@ -1926,7 +1988,9 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
             }
 
             try {
-                final Set<ProvenanceEventRecord> matchingRecords = LineageQuery.computeLineageForFlowFiles(PersistentProvenanceRepository.this, indexManager, indexDir, null, flowFileUuids);
+                final Set<ProvenanceEventRecord> matchingRecords = LineageQuery.computeLineageForFlowFiles(PersistentProvenanceRepository.this,
+                    indexManager, indexDir, null, flowFileUuids, maxAttributeChars);
+
                 final StandardLineageResult result = submission.getResult();
                 result.update(matchingRecords);
 
@@ -1959,7 +2023,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                     final Map.Entry<String, AsyncQuerySubmission> entry = queryIterator.next();
 
                     final StandardQueryResult result = entry.getValue().getResult();
-                    if (entry.getValue().isCanceled() || (result.isFinished() && result.getExpiration().before(now))) {
+                    if (entry.getValue().isCanceled() || result.isFinished() && result.getExpiration().before(now)) {
                         queryIterator.remove();
                     }
                 }
@@ -1969,7 +2033,7 @@ public class PersistentProvenanceRepository implements ProvenanceEventRepository
                     final Map.Entry<String, AsyncLineageSubmission> entry = lineageIterator.next();
 
                     final StandardLineageResult result = entry.getValue().getResult();
-                    if (entry.getValue().isCanceled() || (result.isFinished() && result.getExpiration().before(now))) {
+                    if (entry.getValue().isCanceled() || result.isFinished() && result.getExpiration().before(now)) {
                         lineageIterator.remove();
                     }
                 }
