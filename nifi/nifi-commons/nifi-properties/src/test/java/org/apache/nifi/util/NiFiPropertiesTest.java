@@ -23,6 +23,7 @@ import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
@@ -84,9 +85,15 @@ public class NiFiPropertiesTest {
 
     private NiFiProperties loadSpecifiedProperties(String propertiesFile) {
 
-        String file = NiFiPropertiesTest.class.getResource(propertiesFile).getFile();
+        String filePath;
+        try {
+            filePath = NiFiPropertiesTest.class.getResource(propertiesFile).toURI().getPath();
+        } catch (URISyntaxException ex) {
+            throw new RuntimeException("Cannot load properties file due to "
+                    + ex.getLocalizedMessage(), ex);
+        }
 
-        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, file);
+        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, filePath);
 
         NiFiProperties properties = NiFiProperties.getInstance();
 
@@ -97,7 +104,7 @@ public class NiFiPropertiesTest {
 
         InputStream inStream = null;
         try {
-            inStream = new BufferedInputStream(new FileInputStream(file));
+            inStream = new BufferedInputStream(new FileInputStream(filePath));
             properties.load(inStream);
         } catch (final Exception ex) {
             throw new RuntimeException("Cannot load properties file due to "

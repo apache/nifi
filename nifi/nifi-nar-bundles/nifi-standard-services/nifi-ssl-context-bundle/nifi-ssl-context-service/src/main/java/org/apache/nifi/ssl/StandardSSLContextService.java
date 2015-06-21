@@ -16,19 +16,10 @@
  */
 package org.apache.nifi.ssl;
 
-import java.io.File;
-import java.net.MalformedURLException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
-import javax.net.ssl.SSLContext;
-
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -41,6 +32,19 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.security.util.SslContextFactory;
+
+import javax.net.ssl.SSLContext;
+import java.io.File;
+import java.net.MalformedURLException;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Tags({"ssl", "secure", "certificate", "keystore", "truststore", "jks", "p12", "pkcs12", "pkcs"})
 @CapabilityDescription("Standard implementation of the SSLContextService. Provides the ability to configure "
@@ -92,6 +96,15 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(true)
             .build();
+    public static final PropertyDescriptor SSL_ALGORITHM = new PropertyDescriptor.Builder()
+            .name("SSL Protocol")
+            .defaultValue("TLS")
+            .required(false)
+            .allowableValues(buildAlgorithmAllowableValues())
+            .description("The algorithm to use for this SSL context")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .sensitive(false)
+            .build();
 
     private static final List<PropertyDescriptor> properties;
     private ConfigurationContext configContext;
@@ -104,6 +117,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
         props.add(TRUSTSTORE);
         props.add(TRUSTSTORE_PASSWORD);
         props.add(TRUSTSTORE_TYPE);
+        props.add(SSL_ALGORITHM);
         properties = Collections.unmodifiableList(props);
     }
 
@@ -207,13 +221,15 @@ public class StandardSSLContextService extends AbstractControllerService impleme
     }
 
     private void verifySslConfig(final ValidationContext validationContext) throws ProcessException {
+        final String protocol = validationContext.getProperty(SSL_ALGORITHM).getValue();
         try {
             final String keystoreFile = validationContext.getProperty(KEYSTORE).getValue();
             if (keystoreFile == null) {
                 SslContextFactory.createTrustSslContext(
                         validationContext.getProperty(TRUSTSTORE).getValue(),
                         validationContext.getProperty(TRUSTSTORE_PASSWORD).getValue().toCharArray(),
-                        validationContext.getProperty(TRUSTSTORE_TYPE).getValue());
+                        validationContext.getProperty(TRUSTSTORE_TYPE).getValue(),
+                        protocol);
                 return;
             }
             final String truststoreFile = validationContext.getProperty(TRUSTSTORE).getValue();
@@ -221,7 +237,8 @@ public class StandardSSLContextService extends AbstractControllerService impleme
                 SslContextFactory.createSslContext(
                         validationContext.getProperty(KEYSTORE).getValue(),
                         validationContext.getProperty(KEYSTORE_PASSWORD).getValue().toCharArray(),
-                        validationContext.getProperty(KEYSTORE_TYPE).getValue());
+                        validationContext.getProperty(KEYSTORE_TYPE).getValue(),
+                        protocol);
                 return;
             }
 
@@ -232,7 +249,8 @@ public class StandardSSLContextService extends AbstractControllerService impleme
                     validationContext.getProperty(TRUSTSTORE).getValue(),
                     validationContext.getProperty(TRUSTSTORE_PASSWORD).getValue().toCharArray(),
                     validationContext.getProperty(TRUSTSTORE_TYPE).getValue(),
-                    org.apache.nifi.security.util.SslContextFactory.ClientAuth.REQUIRED);
+                    org.apache.nifi.security.util.SslContextFactory.ClientAuth.REQUIRED,
+                    protocol);
         } catch (final Exception e) {
             throw new ProcessException(e);
         }
@@ -240,20 +258,23 @@ public class StandardSSLContextService extends AbstractControllerService impleme
 
     @Override
     public SSLContext createSSLContext(final ClientAuth clientAuth) throws ProcessException {
+        final String protocol = configContext.getProperty(SSL_ALGORITHM).getValue();
         try {
             final String keystoreFile = configContext.getProperty(KEYSTORE).getValue();
             if (keystoreFile == null) {
                 return SslContextFactory.createTrustSslContext(
                         configContext.getProperty(TRUSTSTORE).getValue(),
                         configContext.getProperty(TRUSTSTORE_PASSWORD).getValue().toCharArray(),
-                        configContext.getProperty(TRUSTSTORE_TYPE).getValue());
+                        configContext.getProperty(TRUSTSTORE_TYPE).getValue(),
+                        protocol);
             }
             final String truststoreFile = configContext.getProperty(TRUSTSTORE).getValue();
             if (truststoreFile == null) {
                 return SslContextFactory.createSslContext(
                         configContext.getProperty(KEYSTORE).getValue(),
                         configContext.getProperty(KEYSTORE_PASSWORD).getValue().toCharArray(),
-                        configContext.getProperty(KEYSTORE_TYPE).getValue());
+                        configContext.getProperty(KEYSTORE_TYPE).getValue(),
+                        protocol);
             }
 
             return SslContextFactory.createSslContext(
@@ -263,7 +284,8 @@ public class StandardSSLContextService extends AbstractControllerService impleme
                     configContext.getProperty(TRUSTSTORE).getValue(),
                     configContext.getProperty(TRUSTSTORE_PASSWORD).getValue().toCharArray(),
                     configContext.getProperty(TRUSTSTORE_TYPE).getValue(),
-                    org.apache.nifi.security.util.SslContextFactory.ClientAuth.valueOf(clientAuth.name()));
+                    org.apache.nifi.security.util.SslContextFactory.ClientAuth.valueOf(clientAuth.name()),
+                    protocol);
         } catch (final Exception e) {
             throw new ProcessException(e);
         }
@@ -309,8 +331,13 @@ public class StandardSSLContextService extends AbstractControllerService impleme
         return getKeyStoreFile() != null && getKeyStorePassword() != null && getKeyStoreType() != null;
     }
 
+    @Override
+    public String getSslAlgorithm() {
+        return configContext.getProperty(SSL_ALGORITHM).getValue();
+    }
+
     private static Collection<ValidationResult> validateStore(final Map<PropertyDescriptor, String> properties,
-            final KeystoreValidationGroup keyStoreOrTrustStore) {
+                                                              final KeystoreValidationGroup keyStoreOrTrustStore) {
         final Collection<ValidationResult> results = new ArrayList<>();
 
         final String filename;
@@ -380,6 +407,36 @@ public class StandardSSLContextService extends AbstractControllerService impleme
     public static enum KeystoreValidationGroup {
 
         KEYSTORE, TRUSTSTORE
+    }
+
+    private static AllowableValue[] buildAlgorithmAllowableValues() {
+        final Set<String> supportedProtocols = new HashSet<>();
+
+        /*
+         * Prepopulate protocols with generic instance types commonly used
+         * see: http://docs.oracle.com/javase/7/docs/technotes/guides/security/StandardNames.html#SSLContext
+         */
+        supportedProtocols.add("SSL");
+        supportedProtocols.add("TLS");
+
+        // Determine those provided by the JVM on the system
+        try {
+            supportedProtocols.addAll(Arrays.asList(SSLContext.getDefault().createSSLEngine().getSupportedProtocols()));
+        } catch (NoSuchAlgorithmException e) {
+            // ignored as default is used
+        }
+
+        final int numProtocols = supportedProtocols.size();
+
+        // Sort for consistent presentation in configuraiton views
+        final List<String> supportedProtocolList = new ArrayList<>(supportedProtocols);
+        Collections.sort(supportedProtocolList);
+
+        final List<AllowableValue> protocolAllowableValues = new ArrayList<>();
+        for (final String protocol : supportedProtocolList) {
+            protocolAllowableValues.add(new AllowableValue(protocol));
+        }
+        return protocolAllowableValues.toArray(new AllowableValue[numProtocols]);
     }
 
     @Override

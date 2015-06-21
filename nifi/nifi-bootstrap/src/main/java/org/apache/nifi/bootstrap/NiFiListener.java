@@ -23,6 +23,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.bootstrap.util.LimitingInputStream;
@@ -40,6 +41,7 @@ public class NiFiListener {
         listener = new Listener(serverSocket, runner);
         final Thread listenThread = new Thread(listener);
         listenThread.setName("Listen to NiFi");
+        listenThread.setDaemon(true);
         listenThread.start();
         return localPort;
     }
@@ -62,7 +64,16 @@ public class NiFiListener {
 
         public Listener(final ServerSocket serverSocket, final RunNiFi runner) {
             this.serverSocket = serverSocket;
-            this.executor = Executors.newFixedThreadPool(2);
+            this.executor = Executors.newFixedThreadPool(2, new ThreadFactory() {
+                @Override
+                public Thread newThread(final Runnable runnable) {
+                    final Thread t = Executors.defaultThreadFactory().newThread(runnable);
+                    t.setDaemon(true);
+                    t.setName("NiFi Bootstrap Command Listener");
+                    return t;
+                }
+            });
+
             this.runner = runner;
         }
 

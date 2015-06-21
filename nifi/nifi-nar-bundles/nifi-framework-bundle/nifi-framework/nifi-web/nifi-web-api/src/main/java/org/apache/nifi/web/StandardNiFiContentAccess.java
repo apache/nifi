@@ -107,7 +107,7 @@ public class StandardNiFiContentAccess implements ContentAccess {
 
             // get the file name
             final String contentDisposition = responseHeaders.getFirst("Content-Disposition");
-            final String filename = StringUtils.substringAfterLast(contentDisposition, "filename=");
+            final String filename = StringUtils.substringBetween(contentDisposition, "filename=\"", "\"");
 
             // get the content type
             final String contentType = responseHeaders.getFirst("Content-Type");

@@ -32,6 +32,7 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.QueueSize;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceReporter;
 import org.apache.nifi.reporting.InitializationException;
 
@@ -702,4 +703,18 @@ public interface TestRunner {
      * @return true if removed
      */
     boolean removeProperty(PropertyDescriptor descriptor);
+
+    /**
+     * Returns a {@link List} of all {@link ProvenanceEventRecord}s that were
+     * emitted by the Processor
+     *
+     * @return a List of all Provenance Events that were emitted by the
+     *         Processor
+     */
+    List<ProvenanceEventRecord> getProvenanceEvents();
+
+    /**
+     * Clears the Provenance Events that have been emitted by the Processor
+     */
+    void clearProvenanceEvents();
 }

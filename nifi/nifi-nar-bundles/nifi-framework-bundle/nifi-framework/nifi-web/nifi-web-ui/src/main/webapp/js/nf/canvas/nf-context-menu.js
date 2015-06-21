@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-/* global nf */
+/* global nf, d3 */
 
 nf.ContextMenu = (function () {
 
@@ -276,6 +276,15 @@ nf.ContextMenu = (function () {
     var canStopTransmission = function (selection) {
         return nf.Common.isDFM() && nf.CanvasUtils.canAllStopTransmitting(selection);
     };
+    
+    /**
+     * Determines if the components in the specified selection can be moved into a parent group.
+     * 
+     * @param {type} selection
+     */
+    var canMoveToParent = function (selection) {
+        return !selection.empty() && nf.CanvasUtils.isDisconnected(selection) && nf.Canvas.getParentGroupId() !== null;
+    };
 
     /**
      * Adds a menu item to the context menu.
@@ -363,6 +372,7 @@ nf.ContextMenu = (function () {
         {condition: isNotConnection, menuItem: {img: 'images/iconCenterView.png', text: 'Center in view', action: 'center'}},
         {condition: isCopyable, menuItem: {img: 'images/iconCopy.png', text: 'Copy', action: 'copy'}},
         {condition: isPastable, menuItem: {img: 'images/iconPaste.png', text: 'Paste', action: 'paste'}},
+        {condition: canMoveToParent, menuItem: {img: 'images/iconMoveToParent.png', text: 'Move to parent group', action: 'moveIntoParent'}},
         {condition: isDeletable, menuItem: {img: 'images/iconDelete.png', text: 'Delete', action: 'delete'}}
     ];
 

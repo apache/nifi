@@ -22,20 +22,22 @@ import java.util.concurrent.CopyOnWriteArraySet;
 
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.processor.Processor;
 
 public class MockSessionFactory implements ProcessSessionFactory {
 
+    private final Processor processor;
     private final SharedSessionState sharedState;
-
     private final Set<MockProcessSession> createdSessions = new CopyOnWriteArraySet<>();
 
-    MockSessionFactory(final SharedSessionState sharedState) {
+    MockSessionFactory(final SharedSessionState sharedState, final Processor processor) {
         this.sharedState = sharedState;
+        this.processor = processor;
     }
 
     @Override
     public ProcessSession createSession() {
-        final MockProcessSession session = new MockProcessSession(sharedState);
+        final MockProcessSession session = new MockProcessSession(sharedState, processor);
         createdSessions.add(session);
         return session;
     }

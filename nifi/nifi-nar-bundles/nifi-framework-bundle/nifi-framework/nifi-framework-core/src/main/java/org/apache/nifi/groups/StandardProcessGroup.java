@@ -1685,7 +1685,11 @@ public final class StandardProcessGroup implements ProcessGroup {
             }
 
             if (isRootGroup() && (!snippet.getInputPorts().isEmpty() || !snippet.getOutputPorts().isEmpty())) {
-                throw new IllegalStateException("Cannot move Ports from the Root Group to a Non-Root Group");
+                throw new IllegalStateException("Cannot move Ports out of the root group");
+            }
+
+            if (destination.isRootGroup() && (!snippet.getInputPorts().isEmpty() || !snippet.getOutputPorts().isEmpty())) {
+                throw new IllegalStateException("Cannot move Ports into the root group");
             }
 
             for (final String id : replaceNullWithEmptySet(snippet.getInputPorts())) {

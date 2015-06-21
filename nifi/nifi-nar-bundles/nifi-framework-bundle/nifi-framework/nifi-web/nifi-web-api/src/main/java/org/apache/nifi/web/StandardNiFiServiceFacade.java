@@ -472,7 +472,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
                 // build the snippet dto
                 final SnippetDTO responseSnippetDto = dtoFactory.createSnippetDto(snippet);
-                responseSnippetDto.setContents(snippetUtils.populateFlowSnippet(snippet, false));
+                responseSnippetDto.setContents(snippetUtils.populateFlowSnippet(snippet, false, false));
 
                 // save updated controller if applicable
                 if (snippetDto.getParentGroupId() != null && snippet.isLinked()) {
@@ -995,7 +995,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 // add the snippet
                 final Snippet snippet = snippetDAO.createSnippet(snippetDTO);
                 final SnippetDTO responseSnippetDTO = dtoFactory.createSnippetDto(snippet);
-                responseSnippetDTO.setContents(snippetUtils.populateFlowSnippet(snippet, false));
+                responseSnippetDTO.setContents(snippetUtils.populateFlowSnippet(snippet, false, false));
 
                 return responseSnippetDTO;
             }
@@ -1092,7 +1092,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         templateDTO.setName(name);
         templateDTO.setDescription(description);
         templateDTO.setTimestamp(new Date());
-        templateDTO.setSnippet(snippetUtils.populateFlowSnippet(snippet, true));
+        templateDTO.setSnippet(snippetUtils.populateFlowSnippet(snippet, true, true));
 
         // set the id based on the specified seed
         final ClusterContext clusterContext = ClusterContextThreadLocal.getContext();
@@ -1972,7 +1972,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public SnippetDTO getSnippet(String snippetId) {
         final Snippet snippet = snippetDAO.getSnippet(snippetId);
         final SnippetDTO snippetDTO = dtoFactory.createSnippetDto(snippet);
-        snippetDTO.setContents(snippetUtils.populateFlowSnippet(snippet, false));
+        snippetDTO.setContents(snippetUtils.populateFlowSnippet(snippet, false, false));
         return snippetDTO;
     }
 

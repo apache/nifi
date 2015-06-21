@@ -29,7 +29,7 @@
         <module>nifi-standard-reporting-tasks</module>
         <module>nifi-standard-content-viewer</module>
         <module>nifi-standard-nar</module>
-  </modules>
+    </modules>
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -52,6 +52,11 @@
                 <artifactId>nifi-standard-content-viewer</artifactId>
                 <type>war</type>
                 <version>0.2.0-incubating-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>2.4.5</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

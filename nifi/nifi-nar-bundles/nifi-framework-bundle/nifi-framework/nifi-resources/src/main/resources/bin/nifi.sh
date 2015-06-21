@@ -159,7 +159,19 @@ run() {
     echo "Bootstrap Config File: $BOOTSTRAP_CONF"
     echo
 
-    exec "$JAVA" -cp "$NIFI_HOME"/lib/bootstrap/* -Xms12m -Xmx24m -Dorg.apache.nifi.bootstrap.config.file="$BOOTSTRAP_CONF" org.apache.nifi.bootstrap.RunNiFi $@
+    # run 'start' in the background because the process will continue to run, monitoring NiFi.
+    # all other commands will terminate quickly so want to just wait for them
+    if [ "$1" = "start" ]; then
+        ("$JAVA" -cp "$NIFI_HOME"/conf/:"$NIFI_HOME"/lib/bootstrap/* -Xms12m -Xmx24m -Dorg.apache.nifi.bootstrap.config.file="$BOOTSTRAP_CONF" org.apache.nifi.bootstrap.RunNiFi $@ &)
+    else
+        "$JAVA" -cp "$NIFI_HOME"/conf/:"$NIFI_HOME"/lib/bootstrap/* -Xms12m -Xmx24m -Dorg.apache.nifi.bootstrap.config.file="$BOOTSTRAP_CONF" org.apache.nifi.bootstrap.RunNiFi $@
+    fi
+
+    # Wait just a bit (3 secs) to wait for the logging to finish and then echo a new-line.
+    # We do this to avoid having logs spewed on the console after running the command and then not giving
+    # control back to the user
+    sleep 3
+    echo
 }
 
 main() {
@@ -172,9 +184,14 @@ case "$1" in
     install)
         install "$@"
         ;;
-    start|stop|run|restart|status|dump)
+    start|stop|run|status|dump)
         main "$@"
         ;;
+    restart)
+        init
+	run "stop"
+	run "start"
+	;;
     *)
         echo "Usage nifi {start|stop|run|restart|status|dump|install}"
         ;;
