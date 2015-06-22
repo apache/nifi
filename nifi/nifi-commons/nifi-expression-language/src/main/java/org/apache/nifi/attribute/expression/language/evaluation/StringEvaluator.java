@@ -19,6 +19,7 @@ package org.apache.nifi.attribute.expression.language.evaluation;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
 
 public abstract class StringEvaluator implements Evaluator<String> {
+    private String token;
 
     @Override
     public ResultType getResultType() {
@@ -28,5 +29,15 @@ public abstract class StringEvaluator implements Evaluator<String> {
     @Override
     public int getEvaluationsRemaining() {
         return 0;
+    }
+
+    @Override
+    public String getToken() {
+        return token;
+    }
+
+    @Override
+    public void setToken(final String token) {
+        this.token = token;
     }
 }

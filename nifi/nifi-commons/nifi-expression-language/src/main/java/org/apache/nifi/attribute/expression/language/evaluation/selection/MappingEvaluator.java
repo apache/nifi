@@ -24,9 +24,9 @@ import org.apache.nifi.attribute.expression.language.evaluation.reduce.ReduceEva
 import org.apache.nifi.expression.AttributeExpression.ResultType;
 
 public class MappingEvaluator<T> implements Evaluator<T> {
-
     private final ReduceEvaluator<T> mappingEvaluator;
     private final MultiAttributeEvaluator multiAttributeEvaluator;
+    private String token;
 
     public MappingEvaluator(final ReduceEvaluator<T> mappingEvaluator, final MultiAttributeEvaluator multiAttributeEval) {
         this.mappingEvaluator = mappingEvaluator;
@@ -59,4 +59,13 @@ public class MappingEvaluator<T> implements Evaluator<T> {
         return null;
     }
 
+    @Override
+    public String getToken() {
+        return token;
+    }
+
+    @Override
+    public void setToken(final String token) {
+        this.token = token;
+    }
 }

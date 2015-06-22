@@ -1317,9 +1317,9 @@ Expressions will provide the following results:
 	and Midnight GMT on January 1, 2014. The Expression `${time:toDate("yyyy/MM/dd HH:mm:ss.SSS'Z'")}` will result in the
 	number of milliseconds between Midnight GMT on January 1, 1970 and 15:36:03.264 GMT on December 31, 2014.
 	
-	Often, this function is used in conjunction with the <<format>> function to change the format of a date/time. For example,
-	if the attribute "date" has the value "12-24-2014" and we want to change the format to "2014/12/24", we can do so by
-	chaining together the two functions: `${date:toDate('MM-dd-yyyy'):format('yyyy/MM/dd')}`.
+Often, this function is used in conjunction with the <<format>> function to change the format of a date/time. For example,
+if the attribute "date" has the value "12-24-2014" and we want to change the format to "2014/12/24", we can do so by
+chaining together the two functions: `${date:toDate('MM-dd-yyyy'):format('yyyy/MM/dd')}`.
 
 
 
@@ -1404,7 +1404,7 @@ an error when validating the function.
 
 *Return Type*: [.returnType]#String#
 
-*Examples*: The IP address of the machine can be obtained by using the Expresison `${ip()}`.
+*Examples*: The IP address of the machine can be obtained by using the Expression `${ip()}`.
 
 
 
@@ -1471,8 +1471,26 @@ an error when validating the function.
 
 
 
+[.function]
+=== literal
 
+*Description*: [.description]#Returns its argument as a literal String value. This is useful in order to treat a string or a number
+	at the beginning of an Expression as an actual value, rather than treating it as an attribute name. Additionally, it
+	can be used when the argument is an embedded Expression that we would then like to evaluate additional functions against.#
+	
+*Subject Type*: [.subjectless]#No Subject#
 
+*Arguments*: 
+
+	- [.argName]#_value_# : [.argDesc]#The value to be treated as a literal string, number, or boolean value.#
+	
+*Return Type*: [.returnType]#String#
+
+*Examples*: `${literal(2):gt(1)}` returns `true`
+
+`${literal( ${allMatchingAttributes('a.*'):count()} ):gt(3)}` returns true if there are more than 3 attributes whose
+names begin with the letter `a`.
+			
 
 [[multi]]
 == Evaluating Multiple Attributes

@@ -24,10 +24,10 @@ import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
 
 public class ReplaceEmptyEvaluator extends StringEvaluator {
 
-    private final StringEvaluator subjectEvaluator;
-    private final StringEvaluator replacementEvaluator;
+    private final Evaluator<String> subjectEvaluator;
+    private final Evaluator<String> replacementEvaluator;
 
-    public ReplaceEmptyEvaluator(final StringEvaluator subjectEvaluator, final StringEvaluator replacementEvaluator) {
+    public ReplaceEmptyEvaluator(final Evaluator<String> subjectEvaluator, final Evaluator<String> replacementEvaluator) {
         this.subjectEvaluator = subjectEvaluator;
         this.replacementEvaluator = replacementEvaluator;
     }

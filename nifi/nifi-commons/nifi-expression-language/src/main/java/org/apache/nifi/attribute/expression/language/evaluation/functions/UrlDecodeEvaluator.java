@@ -27,9 +27,9 @@ import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResul
 
 public class UrlDecodeEvaluator extends StringEvaluator {
 
-    private final StringEvaluator subject;
+    private final Evaluator<String> subject;
 
-    public UrlDecodeEvaluator(final StringEvaluator subject) {
+    public UrlDecodeEvaluator(final Evaluator<String> subject) {
         this.subject = subject;
     }
 
@@ -42,7 +42,7 @@ public class UrlDecodeEvaluator extends StringEvaluator {
 
         try {
             return new StringQueryResult(URLDecoder.decode(subjectValue, "UTF-8"));
-        } catch (UnsupportedEncodingException e) {
+        } catch (final UnsupportedEncodingException e) {
             return null;    // won't happen. It's UTF-8
         }
     }

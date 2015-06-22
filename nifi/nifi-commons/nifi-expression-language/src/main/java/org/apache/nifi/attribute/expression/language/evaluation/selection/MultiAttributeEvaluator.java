@@ -18,7 +18,6 @@ package org.apache.nifi.attribute.expression.language.evaluation.selection;
 
 import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
 
-public abstract class MultiAttributeEvaluator extends StringEvaluator {
-
+public abstract class MultiAttributeEvaluator extends StringEvaluator implements IteratingEvaluator<String> {
     public abstract int getEvaluationType();
 }
