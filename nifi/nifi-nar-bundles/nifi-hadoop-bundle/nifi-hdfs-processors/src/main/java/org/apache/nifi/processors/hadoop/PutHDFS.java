@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -32,6 +33,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.io.compress.CompressionCodec;
+import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.hadoop.ipc.RemoteException;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -140,6 +142,21 @@ public class PutHDFS extends AbstractHadoopProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor COMPRESSION_CODEC = new PropertyDescriptor.Builder()
+            .name("CompressionCodec Class")
+            .description("Fully qualified classname of the Hadoop CompressionCodec to use when writing files.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor APPEND_COMPRESSION_FILE_EXTENSION = new PropertyDescriptor.Builder()
+            .name("Append CompressionCodec File Extention")
+            .description("Append CompressionCodec file extension to the filename.")
+            .required(true)
+            .defaultValue("true")
+            .allowableValues("true", "false")
+            .build();
+
     private static final Set<Relationship> relationships;
     private static final List<PropertyDescriptor> localProperties;
 
@@ -159,6 +176,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
         props.add(REMOTE_OWNER);
         props.add(REMOTE_GROUP);
         props.add(COMPRESSION_CODEC);
+        props.add(APPEND_COMPRESSION_FILE_EXTENSION);
         localProperties = Collections.unmodifiableList(props);
     }
 
@@ -170,6 +188,33 @@ public class PutHDFS extends AbstractHadoopProcessor {
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return localProperties;
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext context) {
+        final List<ValidationResult> problems = new ArrayList<>();
+        final String codecClass = context.getProperty(COMPRESSION_CODEC).getValue();
+        if (codecClass != null) {
+            final String configResources = context.getProperty(HADOOP_CONFIGURATION_RESOURCES).getValue();
+            String dir = context.getProperty(DIRECTORY).getValue();
+            dir = dir == null ? "/" : dir;
+            try {
+                final Configuration conf = resetHDFSResources(configResources, dir).getKey();
+                final CompressionCodecFactory codecFactory = new CompressionCodecFactory(conf);
+
+                if (codecFactory.getCodecByClassName(codecClass) == null) {
+                    problems.add(new ValidationResult.Builder().valid(false).subject("GetHDFS Configuration")
+                          .explanation(COMPRESSION_CODEC.getName() + " not found; available codecs: "
+                                  + CompressionCodecFactory.getCodecClasses(conf)).build());
+                }
+            } catch (IOException ex) {
+                getLogger().error("HDFS Configuration error - {}", new Object[]{ex});
+                problems.add(new ValidationResult.Builder().valid(false).subject("GetHDFS Configuration")
+                        .explanation(COMPRESSION_CODEC.getName() + " not found").build());
+            }
+        }
+
+        return problems;
     }
 
     @OnScheduled
@@ -219,13 +264,14 @@ public class PutHDFS extends AbstractHadoopProcessor {
 
         final CompressionCodec codec = getCompressionCodec(context, configuration);
 
+        final String filename = (codec != null && context.getProperty(APPEND_COMPRESSION_FILE_EXTENSION).asBoolean())
+                ? flowFile.getAttribute(CoreAttributes.FILENAME.key()) + codec.getDefaultExtension()
+                : flowFile.getAttribute(CoreAttributes.FILENAME.key());
+
         Path tempDotCopyFile = null;
         try {
-            final Path tempCopyFile;
-            final Path copyFile;
-
-            tempCopyFile = new Path(configuredRootDirPath, "." + flowFile.getAttribute(CoreAttributes.FILENAME.key()));
-            copyFile = new Path(configuredRootDirPath, flowFile.getAttribute(CoreAttributes.FILENAME.key()));
+            final Path tempCopyFile = new Path(configuredRootDirPath, "." + filename);
+            final Path copyFile = new Path(configuredRootDirPath, filename);
 
             // Create destination directory if it does not exist
             try {
@@ -327,8 +373,8 @@ public class PutHDFS extends AbstractHadoopProcessor {
             getLogger().info("copied {} to HDFS at {} in {} milliseconds at a rate of {}",
                     new Object[]{flowFile, copyFile, millis, dataRate});
 
-            final String filename = copyFile.toString();
-            final String transitUri = (filename.startsWith("/")) ? "hdfs:/" + filename : "hdfs://" + filename;
+            final String outputPath = copyFile.toString();
+            final String transitUri = (outputPath.startsWith("/")) ? "hdfs:/" + outputPath : "hdfs://" + outputPath;
             session.getProvenanceReporter().send(flowFile, transitUri);
             session.transfer(flowFile, REL_SUCCESS);
 
@@ -344,6 +390,24 @@ public class PutHDFS extends AbstractHadoopProcessor {
             session.rollback();
             context.yield();
         }
+    }
+
+    /**
+     * Returns the configured CompressionCodec, or null if none is configured.
+     *
+     * @param context the ProcessContext
+     * @param configuration the Hadoop Configuration
+     * @return CompressionCodec or null
+     */
+    protected CompressionCodec getCompressionCodec(ProcessContext context, Configuration configuration) {
+        CompressionCodec codec = null;
+        if (context.getProperty(COMPRESSION_CODEC).isSet()) {
+            String compressionClassname = context.getProperty(COMPRESSION_CODEC).getValue();
+            CompressionCodecFactory ccf = new CompressionCodecFactory(configuration);
+            codec = ccf.getCodecByClassName(compressionClassname);
+        }
+
+        return codec;
     }
 
     protected void changeOwner(final ProcessContext context, final FileSystem hdfs, final Path name) {
