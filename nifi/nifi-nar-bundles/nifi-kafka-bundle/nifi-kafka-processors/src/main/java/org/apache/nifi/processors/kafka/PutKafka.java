@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
@@ -39,6 +40,8 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
@@ -73,6 +76,32 @@ public class PutKafka extends AbstractProcessor {
     public static final AllowableValue DELIVERY_BEST_EFFORT = new AllowableValue("0", "Best Effort", "FlowFile will be routed to success after"
             + " successfully writing the content to a Kafka node, without waiting for a response. This provides the best performance but may result"
             + " in data loss.");
+
+    /**
+     * AllowableValue for a Producer Type that synchronously sends messages to Kafka
+     */
+    public static final AllowableValue PRODUCTER_TYPE_SYNCHRONOUS = new AllowableValue("sync", "Synchronous", "Send FlowFiles to Kafka immediately.");
+
+    /**
+     * AllowableValue for a Producer Type that asynchronously sends messages to Kafka
+     */
+    public static final AllowableValue PRODUCTER_TYPE_ASYNCHRONOUS = new AllowableValue("async", "Asynchronous", "Batch messages before sending them to Kafka."
+    	    + " While this will improve throughput, it opens the possibility that a failure on the client machine will drop unsent data.");
+
+    /**
+     * AllowableValue for sending messages to Kafka without compression
+     */
+    public static final AllowableValue COMPRESSION_CODEC_NONE = new AllowableValue("none", "None", "Compression will not be used for any topic.");
+
+    /**
+     * AllowableValue for sending messages to Kafka with GZIP compression
+     */
+    public static final AllowableValue COMPRESSION_CODEC_GZIP = new AllowableValue("gzip", "GZIP", "Compress messages using GZIP");
+
+    /**
+     * AllowableValue for sending messages to Kafka with Snappy compression
+     */
+    public static final AllowableValue COMPRESSION_CODEC_SNAPPY = new AllowableValue("snappy", "Snappy", "Compress messages using Snappy");
 
     public static final PropertyDescriptor SEED_BROKERS = new PropertyDescriptor.Builder()
             .name("Known Brokers")
@@ -136,6 +165,70 @@ public class PutKafka extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(false)
             .build();
+    public static final PropertyDescriptor PRODUCER_TYPE = new PropertyDescriptor.Builder()
+            .name("Producer Type")
+            .description("This parameter specifies whether the messages are sent asynchronously in a background thread.")
+            .required(true)
+            .allowableValues(PRODUCTER_TYPE_SYNCHRONOUS, PRODUCTER_TYPE_ASYNCHRONOUS)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(false)
+            .defaultValue(PRODUCTER_TYPE_SYNCHRONOUS.getValue())
+            .build();
+        public static final PropertyDescriptor BATCH_NUM_MESSAGES = new PropertyDescriptor.Builder()
+            .name("Async Batch Size")
+            .description("Used only if Producer Type is set to \"" + PRODUCTER_TYPE_ASYNCHRONOUS.getDisplayName() + "\"."
+            		+ " The number of messages to send in one batch when using " + PRODUCTER_TYPE_ASYNCHRONOUS.getDisplayName() + " mode."
+                    + " The producer will wait until either this number of messages are ready"
+                    + " to send or \"Queue Buffering Max Time\" is reached.")
+            .required(true)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .defaultValue("200").build();
+        public static final PropertyDescriptor QUEUE_BUFFERING_MAX = new PropertyDescriptor.Builder()
+            .name("Queue Buffering Max Time")
+            .description("Used only if Producer Type is set to \"" + PRODUCTER_TYPE_ASYNCHRONOUS.getDisplayName() + "\"."
+            		+ " Maximum time to buffer data when using " + PRODUCTER_TYPE_ASYNCHRONOUS.getDisplayName() + " mode. For example a setting of 100 ms"
+                    + " will try to batch together 100ms of messages to send at once. This will improve"
+                    + " throughput but adds message delivery latency due to the buffering.")
+            .required(true)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .defaultValue("5 secs").build();
+        public static final PropertyDescriptor QUEUE_BUFFERING_MAX_MESSAGES = new PropertyDescriptor.Builder()
+            .name("Queue Buffer Max Count")
+            .description("Used only if Producer Type is set to \"" + PRODUCTER_TYPE_ASYNCHRONOUS.getDisplayName() + "\"."
+            		+ " The maximum number of unsent messages that can be queued up in the producer when"
+                    + " using " + PRODUCTER_TYPE_ASYNCHRONOUS.getDisplayName() + " mode before either the producer must be blocked or data must be dropped.")
+            .required(true)
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .defaultValue("10000").build();
+        public static final PropertyDescriptor QUEUE_ENQUEUE_TIMEOUT = new PropertyDescriptor.Builder()
+            .name("Queue Enqueue Timeout")
+            .description("Used only if Producer Type is set to \"" + PRODUCTER_TYPE_ASYNCHRONOUS.getDisplayName() + "\"."
+            		+ " The amount of time to block before dropping messages when running in "
+            		+ PRODUCTER_TYPE_ASYNCHRONOUS.getDisplayName() + " mode"
+                    + " and the buffer has reached the \"Queue Buffer Max Count\". If set to 0, events will"
+                    + " be enqueued immediately or dropped if the queue is full (the producer send call will"
+                    + " never block). If not set, the producer will block indefinitely and never willingly"
+                    + " drop a send.")
+            .required(false)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .build();
+        public static final PropertyDescriptor COMPRESSION_CODEC = new PropertyDescriptor.Builder()
+            .name("Compression Codec")
+            .description("This parameter allows you to specify the compression codec for all"
+                    + " data generated by this producer.")
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .allowableValues(COMPRESSION_CODEC_NONE, COMPRESSION_CODEC_GZIP, COMPRESSION_CODEC_SNAPPY)
+            .defaultValue(COMPRESSION_CODEC_NONE.getValue()).build();
+        public static final PropertyDescriptor COMPRESSED_TOPICS = new PropertyDescriptor.Builder()
+            .name("Compressed Topics")
+            .description("This parameter allows you to set whether compression should be turned on"
+                    + " for particular topics. If the compression codec is anything other than"
+                    + " \"" + COMPRESSION_CODEC_NONE.getDisplayName() + "\", enable compression only for specified topics if any."
+                    + " If the list of compressed topics is empty, then enable the specified"
+                    + " compression codec for all topics. If the compression codec is " + COMPRESSION_CODEC_NONE.getDisplayName() + ","
+                    + " compression is disabled for all topics")
+            .required(false).build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -163,8 +256,29 @@ public class PutKafka extends AbstractProcessor {
         props.add(MESSAGE_DELIMITER);
         props.add(MAX_BUFFER_SIZE);
         props.add(TIMEOUT);
+        props.add(PRODUCER_TYPE);
+        props.add(BATCH_NUM_MESSAGES);
+        props.add(QUEUE_BUFFERING_MAX_MESSAGES);
+        props.add(QUEUE_BUFFERING_MAX);
+        props.add(QUEUE_ENQUEUE_TIMEOUT);
+        props.add(COMPRESSION_CODEC);
+        props.add(COMPRESSED_TOPICS);
         props.add(clientName);
         return props;
+    }
+
+    @Override
+    public Collection<ValidationResult> customValidate(final ValidationContext context) {
+    	final List<ValidationResult> errors = new ArrayList<>(super.customValidate(context));
+
+        final Integer batchMessages = context.getProperty(BATCH_NUM_MESSAGES).asInteger();
+        final Integer bufferMaxMessages = context.getProperty(QUEUE_BUFFERING_MAX_MESSAGES).asInteger();
+
+        if (batchMessages > bufferMaxMessages) {
+            errors.add(new ValidationResult.Builder().subject("Batch Size, Queue Buffer").valid(false).explanation("Batch Size (" + batchMessages + ") must be equal to or less than the Queue Buffer Max Count (" + bufferMaxMessages + ")").build());
+        }
+
+        return errors;
     }
 
     @Override
@@ -194,7 +308,27 @@ public class PutKafka extends AbstractProcessor {
         properties.setProperty("request.timeout.ms", String.valueOf(context.getProperty(TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).longValue()));
 
         properties.setProperty("message.send.max.retries", "1");
-        properties.setProperty("producer.type", "sync");
+        properties.setProperty("producer.type", context.getProperty(PRODUCER_TYPE).getValue());
+        properties.setProperty("batch.num.messages", context.getProperty(BATCH_NUM_MESSAGES).getValue());
+
+        Long queueBufferingMillis = context.getProperty(QUEUE_BUFFERING_MAX).asTimePeriod(TimeUnit.MILLISECONDS);
+        if(queueBufferingMillis != null) {
+        	properties.setProperty("queue.buffering.max.ms", String.valueOf(queueBufferingMillis));
+        }
+        properties.setProperty("queue.buffering.max.messages", context.getProperty(QUEUE_BUFFERING_MAX_MESSAGES).getValue());
+
+        Long queueEnqueueTimeoutMillis = context.getProperty(QUEUE_ENQUEUE_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS);
+        if(queueEnqueueTimeoutMillis != null) {
+        	properties.setProperty("queue.enqueue.timeout.ms", String.valueOf(queueEnqueueTimeoutMillis));
+        }
+
+        String compressionCodec = context.getProperty(COMPRESSION_CODEC).getValue();
+        properties.setProperty("compression.codec", compressionCodec);
+        
+        String compressedTopics = context.getProperty(COMPRESSED_TOPICS).getValue();
+        if(compressedTopics != null) {
+        	properties.setProperty("compressed.topics", compressedTopics);
+        }
 
         return new ProducerConfig(properties);
     }
