@@ -210,7 +210,7 @@ Here is an example entry using the name John Smith:
 
 ----
 <users>
-    <user dn="[cn=John Smith,ou=people,dc=example,dc=com]">
+    <user dn="cn=John Smith,ou=people,dc=example,dc=com">
         <role name="ROLE_ADMIN"/>
     </user>
 </users>
