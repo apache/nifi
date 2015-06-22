@@ -33,18 +33,20 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.io.compress.CompressionCodec;
+import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.behavior.WritesAttribute;
-import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -172,6 +174,15 @@ public class GetHDFS extends AbstractHadoopProcessor {
     .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
     .build();
 
+    public static final PropertyDescriptor INFER_COMPRESSION_CODEC = new PropertyDescriptor.Builder()
+    .name("Infer CompressionCodec")
+    .description(
+            "Infer CompressionCodec use to by looking at the filename extension. If false will not attempt to decompress files.")
+    .required(true)
+    .defaultValue("true")
+    .allowableValues("true", "false")
+    .build();
+
     private static final Set<Relationship> relationships;
     protected static final List<PropertyDescriptor> localProperties;
 
@@ -193,7 +204,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
         props.add(POLLING_INTERVAL);
         props.add(BATCH_SIZE);
         props.add(BUFFER_SIZE);
-        props.add(COMPRESSION_CODEC);
+        props.add(INFER_COMPRESSION_CODEC);
         localProperties = Collections.unmodifiableList(props);
     }
 
@@ -332,6 +343,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
     protected void processBatchOfFiles(final List<Path> files, final ProcessContext context, final ProcessSession session) {
         // process the batch of files
         InputStream stream = null;
+        CompressionCodec codec = null;
         Configuration conf = getConfiguration();
         FileSystem hdfs = getFileSystem();
         final boolean keepSourceFiles = context.getProperty(KEEP_SOURCE_FILE).asBoolean();
@@ -339,19 +351,31 @@ public class GetHDFS extends AbstractHadoopProcessor {
         int bufferSize = bufferSizeProp != null ? bufferSizeProp.intValue() : conf.getInt(BUFFER_SIZE_KEY,
                 BUFFER_SIZE_DEFAULT);
         final Path rootDir = new Path(context.getProperty(DIRECTORY).getValue());
-        final CompressionCodec codec = getCompressionCodec(context, conf);
+        final boolean inferCompressionCodec = context.getProperty(INFER_COMPRESSION_CODEC).asBoolean();
+        final CompressionCodecFactory compressionCodecFactory = new CompressionCodecFactory(conf);
         for (final Path file : files) {
             try {
                 if (!hdfs.exists(file)) {
                     continue; // if file is no longer there then move on
                 }
-                final String filename = file.getName();
+                final String originalFilename = file.getName();
                 final String relativePath = getPathDifference(rootDir, file);
 
                 stream = hdfs.open(file, bufferSize);
-                if (codec != null) {
-                    stream = codec.createInputStream(stream);
+
+                final String outputFilename;
+                if (inferCompressionCodec) {
+                    codec = compressionCodecFactory.getCodec(file);
+                    if (codec != null) {
+                        stream = codec.createInputStream(stream);
+                        outputFilename = StringUtils.removeEnd(originalFilename, codec.getDefaultExtension());
+                    } else {
+                        outputFilename = originalFilename;
+                    }
+                } else {
+                    outputFilename = originalFilename;
                 }
+
                 FlowFile flowFile = session.create();
 
                 final StopWatch stopWatch = new StopWatch(true);
@@ -361,7 +385,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
                 final long millis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
 
                 flowFile = session.putAttribute(flowFile, CoreAttributes.PATH.key(), relativePath);
-                flowFile = session.putAttribute(flowFile, CoreAttributes.FILENAME.key(), filename);
+                flowFile = session.putAttribute(flowFile, CoreAttributes.FILENAME.key(), outputFilename);
 
                 if (!keepSourceFiles && !hdfs.delete(file, false)) {
                     getLogger().warn("Could not remove {} from HDFS. Not ingesting this file ...",
@@ -370,7 +394,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
                     continue;
                 }
 
-                final String transitUri = (filename.startsWith("/")) ? "hdfs:/" + filename : "hdfs://" + filename;
+                final String transitUri = (originalFilename.startsWith("/")) ? "hdfs:/" + originalFilename : "hdfs://" + originalFilename;
                 session.getProvenanceReporter().receive(flowFile, transitUri);
                 session.transfer(flowFile, REL_SUCCESS);
                 getLogger().info("retrieved {} from HDFS {} in {} milliseconds at a rate of {}",

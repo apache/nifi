@@ -219,13 +219,14 @@ public class PutHDFS extends AbstractHadoopProcessor {
 
         final CompressionCodec codec = getCompressionCodec(context, configuration);
 
+        final String filename = codec != null
+                ? flowFile.getAttribute(CoreAttributes.FILENAME.key()) + codec.getDefaultExtension()
+                : flowFile.getAttribute(CoreAttributes.FILENAME.key());
+
         Path tempDotCopyFile = null;
         try {
-            final Path tempCopyFile;
-            final Path copyFile;
-
-            tempCopyFile = new Path(configuredRootDirPath, "." + flowFile.getAttribute(CoreAttributes.FILENAME.key()));
-            copyFile = new Path(configuredRootDirPath, flowFile.getAttribute(CoreAttributes.FILENAME.key()));
+            final Path tempCopyFile = new Path(configuredRootDirPath, "." + filename);
+            final Path copyFile = new Path(configuredRootDirPath, filename);
 
             // Create destination directory if it does not exist
             try {
@@ -327,8 +328,8 @@ public class PutHDFS extends AbstractHadoopProcessor {
             getLogger().info("copied {} to HDFS at {} in {} milliseconds at a rate of {}",
                     new Object[]{flowFile, copyFile, millis, dataRate});
 
-            final String filename = copyFile.toString();
-            final String transitUri = (filename.startsWith("/")) ? "hdfs:/" + filename : "hdfs://" + filename;
+            final String outputPath = copyFile.toString();
+            final String transitUri = (outputPath.startsWith("/")) ? "hdfs:/" + outputPath : "hdfs://" + outputPath;
             session.getProvenanceReporter().send(flowFile, transitUri);
             session.transfer(flowFile, REL_SUCCESS);
 
