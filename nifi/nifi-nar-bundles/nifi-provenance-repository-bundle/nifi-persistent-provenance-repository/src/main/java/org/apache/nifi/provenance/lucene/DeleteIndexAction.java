@@ -46,9 +46,9 @@ public class DeleteIndexAction implements ExpirationAction {
     @Override
     public File execute(final File expiredFile) throws IOException {
         // count the number of records and determine the max event id that we are deleting.
-        long numDeleted = 0;
+        final long numDeleted = 0;
         long maxEventId = -1L;
-        try (final RecordReader reader = RecordReaders.newRecordReader(expiredFile, repository.getAllLogFiles())) {
+        try (final RecordReader reader = RecordReaders.newRecordReader(expiredFile, repository.getAllLogFiles(), Integer.MAX_VALUE)) {
             maxEventId = reader.getMaxEventId();
         } catch (final IOException ioe) {
             logger.warn("Failed to obtain max ID present in journal file {}", expiredFile.getAbsolutePath());
@@ -65,7 +65,7 @@ public class DeleteIndexAction implements ExpirationAction {
                 writer.deleteDocuments(term);
                 writer.commit();
                 final int docsLeft = writer.numDocs();
-                deleteDir = (docsLeft <= 0);
+                deleteDir = docsLeft <= 0;
                 logger.debug("After expiring {}, there are {} docs left for index {}", expiredFile, docsLeft, indexingDirectory);
             } finally {
                 indexManager.returnIndexWriter(indexingDirectory, writer);
