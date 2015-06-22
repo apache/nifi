@@ -327,7 +327,13 @@ public class StandardProvenanceReporter implements ProvenanceReporter {
 
     @Override
     public void clone(final FlowFile parent, final FlowFile child) {
-        verifyFlowFileKnown(child);
+        clone(parent, child, true);
+    }
+
+    void clone(final FlowFile parent, final FlowFile child, final boolean verifyFlowFile) {
+        if (verifyFlowFile) {
+            verifyFlowFileKnown(child);
+        }
 
         try {
             final ProvenanceEventBuilder eventBuilder = build(parent, ProvenanceEventType.CLONE);
