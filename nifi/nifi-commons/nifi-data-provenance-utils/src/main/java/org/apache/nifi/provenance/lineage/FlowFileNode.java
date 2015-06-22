@@ -39,6 +39,7 @@ public class FlowFileNode implements LineageNode {
         return creationTime;
     }
 
+    @Deprecated
     @Override
     public String getClusterNodeIdentifier() {
         return clusterNodeIdentifier;

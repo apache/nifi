@@ -22,6 +22,7 @@ public interface LineageNode {
      * @return the identifier of the Clustered NiFi Node that generated the
      * event
      */
+    @Deprecated
     String getClusterNodeIdentifier();
 
     /**
