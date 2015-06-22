@@ -212,7 +212,7 @@ public class TestPutKafka {
     }
 
     private void keyValuePutExecute(final TestRunner runner) {
-		final Map<String, String> attributes = new HashMap<>();
+        final Map<String, String> attributes = new HashMap<>();
         attributes.put("kafka.topic", "test");
         attributes.put("kafka.key", "key3");
 
@@ -229,32 +229,32 @@ public class TestPutKafka {
         final MockFlowFile mff = mffs.get(0);
 
         assertTrue(Arrays.equals(data, mff.toByteArray()));
-	}
+    }
 
     @Test
     public void testProducerConfigDefault() {
 
-    	final TestableProcessor processor = new TestableProcessor();
-    	TestRunner runner = TestRunners.newTestRunner(processor);
+        final TestableProcessor processor = new TestableProcessor();
+        final TestRunner runner = TestRunners.newTestRunner(processor);
 
-    	runner.setProperty(PutKafka.TOPIC, "topic1");
+        runner.setProperty(PutKafka.TOPIC, "topic1");
         runner.setProperty(PutKafka.KEY, "key1");
         runner.setProperty(PutKafka.SEED_BROKERS, "localhost:1234");
         runner.setProperty(PutKafka.MESSAGE_DELIMITER, "\\n");
 
-        ProcessContext context = runner.getProcessContext();
-        ProducerConfig config = processor.createConfig(context);
+        final ProcessContext context = runner.getProcessContext();
+        final ProducerConfig config = processor.createConfig(context);
 
         // Check the codec
-        CompressionCodec codec = config.compressionCodec();
+        final CompressionCodec codec = config.compressionCodec();
         assertTrue(codec instanceof kafka.message.NoCompressionCodec$);
 
         // Check compressed topics
-        Seq<String> compressedTopics = config.compressedTopics();
+        final Seq<String> compressedTopics = config.compressedTopics();
         assertEquals(0, compressedTopics.size());
 
         // Check the producer type
-        String actualProducerType = config.producerType();
+        final String actualProducerType = config.producerType();
         assertEquals(PutKafka.PRODUCER_TYPE.getDefaultValue(), actualProducerType);
 
     }
@@ -262,10 +262,10 @@ public class TestPutKafka {
     @Test
     public void testProducerConfigAsyncWithCompression() {
 
-    	final TestableProcessor processor = new TestableProcessor();
-    	TestRunner runner = TestRunners.newTestRunner(processor);
+        final TestableProcessor processor = new TestableProcessor();
+        final TestRunner runner = TestRunners.newTestRunner(processor);
 
-    	runner.setProperty(PutKafka.TOPIC, "topic1");
+        runner.setProperty(PutKafka.TOPIC, "topic1");
         runner.setProperty(PutKafka.KEY, "key1");
         runner.setProperty(PutKafka.SEED_BROKERS, "localhost:1234");
         runner.setProperty(PutKafka.MESSAGE_DELIMITER, "\\n");
@@ -273,33 +273,33 @@ public class TestPutKafka {
         runner.setProperty(PutKafka.COMPRESSION_CODEC, PutKafka.COMPRESSION_CODEC_SNAPPY.getValue());
         runner.setProperty(PutKafka.COMPRESSED_TOPICS, "topic01,topic02,topic03");
 
-        ProcessContext context = runner.getProcessContext();
-        ProducerConfig config = processor.createConfig(context);
+        final ProcessContext context = runner.getProcessContext();
+        final ProducerConfig config = processor.createConfig(context);
 
         // Check that the codec is snappy
-        CompressionCodec codec = config.compressionCodec();
+        final CompressionCodec codec = config.compressionCodec();
         assertTrue(codec instanceof kafka.message.SnappyCompressionCodec$);
 
         // Check compressed topics
-        Seq<String> compressedTopics = config.compressedTopics();
+        final Seq<String> compressedTopics = config.compressedTopics();
         assertEquals(3, compressedTopics.size());
         assertTrue(compressedTopics.contains("topic01"));
         assertTrue(compressedTopics.contains("topic02"));
         assertTrue(compressedTopics.contains("topic03"));
 
         // Check the producer type
-        String actualProducerType = config.producerType();
+        final String actualProducerType = config.producerType();
         assertEquals("async", actualProducerType);
 
     }
-    
+
     @Test
     public void testProducerConfigAsyncQueueThresholds() {
 
-    	final TestableProcessor processor = new TestableProcessor();
-    	TestRunner runner = TestRunners.newTestRunner(processor);
+        final TestableProcessor processor = new TestableProcessor();
+        final TestRunner runner = TestRunners.newTestRunner(processor);
 
-    	runner.setProperty(PutKafka.TOPIC, "topic1");
+        runner.setProperty(PutKafka.TOPIC, "topic1");
         runner.setProperty(PutKafka.KEY, "key1");
         runner.setProperty(PutKafka.SEED_BROKERS, "localhost:1234");
         runner.setProperty(PutKafka.MESSAGE_DELIMITER, "\\n");
@@ -308,27 +308,27 @@ public class TestPutKafka {
         runner.setProperty(PutKafka.QUEUE_BUFFERING_MAX_MESSAGES, "535");
         runner.setProperty(PutKafka.QUEUE_ENQUEUE_TIMEOUT, "200 ms");
 
-        ProcessContext context = runner.getProcessContext();
-        ProducerConfig config = processor.createConfig(context);
+        final ProcessContext context = runner.getProcessContext();
+        final ProducerConfig config = processor.createConfig(context);
 
         // Check that the queue thresholds were properly translated
         assertEquals(7000, config.queueBufferingMaxMs());
         assertEquals(535, config.queueBufferingMaxMessages());
         assertEquals(200, config.queueEnqueueTimeoutMs());
-        
+
         // Check the producer type
-        String actualProducerType = config.producerType();
+        final String actualProducerType = config.producerType();
         assertEquals("async", actualProducerType);
 
     }
-    
+
     @Test
     public void testProducerConfigInvalidBatchSize() {
 
-    	final TestableProcessor processor = new TestableProcessor();
-    	TestRunner runner = TestRunners.newTestRunner(processor);
+        final TestableProcessor processor = new TestableProcessor();
+        final TestRunner runner = TestRunners.newTestRunner(processor);
 
-    	runner.setProperty(PutKafka.TOPIC, "topic1");
+        runner.setProperty(PutKafka.TOPIC, "topic1");
         runner.setProperty(PutKafka.KEY, "key1");
         runner.setProperty(PutKafka.SEED_BROKERS, "localhost:1234");
         runner.setProperty(PutKafka.MESSAGE_DELIMITER, "\\n");
@@ -339,28 +339,28 @@ public class TestPutKafka {
         runner.assertNotValid();
 
     }
-    
+
     @Test
     public void testProducerConfigAsyncDefaultEnqueueTimeout() {
 
-    	final TestableProcessor processor = new TestableProcessor();
-    	TestRunner runner = TestRunners.newTestRunner(processor);
+        final TestableProcessor processor = new TestableProcessor();
+        final TestRunner runner = TestRunners.newTestRunner(processor);
 
-    	runner.setProperty(PutKafka.TOPIC, "topic1");
+        runner.setProperty(PutKafka.TOPIC, "topic1");
         runner.setProperty(PutKafka.KEY, "key1");
         runner.setProperty(PutKafka.SEED_BROKERS, "localhost:1234");
         runner.setProperty(PutKafka.MESSAGE_DELIMITER, "\\n");
         runner.setProperty(PutKafka.PRODUCER_TYPE, PutKafka.PRODUCTER_TYPE_ASYNCHRONOUS.getValue());
         // Do not set QUEUE_ENQUEUE_TIMEOUT
 
-        ProcessContext context = runner.getProcessContext();
-        ProducerConfig config = processor.createConfig(context);
+        final ProcessContext context = runner.getProcessContext();
+        final ProducerConfig config = processor.createConfig(context);
 
         // Check that the enqueue timeout defaults to -1
         assertEquals(-1, config.queueEnqueueTimeoutMs());
 
         // Check the producer type
-        String actualProducerType = config.producerType();
+        final String actualProducerType = config.producerType();
         assertEquals("async", actualProducerType);
 
     }
@@ -391,12 +391,13 @@ public class TestPutKafka {
         public MockProducer getProducer() {
             return producer;
         }
-        
+
         /**
          * Exposed for test verification
          */
+        @Override
         public ProducerConfig createConfig(final ProcessContext context) {
-        	return super.createConfig(context);
+            return super.createConfig(context);
         }
     }
 
