@@ -61,6 +61,7 @@ import org.apache.nifi.remote.exception.TransmissionDisabledException;
 import org.apache.nifi.remote.protocol.CommunicationsSession;
 import org.apache.nifi.remote.protocol.ServerProtocol;
 import org.apache.nifi.reporting.BulletinRepository;
+import org.apache.nifi.reporting.ComponentType;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.user.NiFiUser;
@@ -108,7 +109,8 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
                 final String groupId = StandardRootGroupPort.this.getProcessGroup().getIdentifier();
                 final String sourceId = StandardRootGroupPort.this.getIdentifier();
                 final String sourceName = StandardRootGroupPort.this.getName();
-                bulletinRepository.addBulletin(BulletinFactory.createBulletin(groupId, sourceId, sourceName, category, severity.name(), message));
+                final ComponentType componentType = direction == TransferDirection.RECEIVE ? ComponentType.INPUT_PORT : ComponentType.OUTPUT_PORT;
+                bulletinRepository.addBulletin(BulletinFactory.createBulletin(groupId, sourceId, componentType, sourceName, category, severity.name(), message));
             }
         };
 

@@ -17,6 +17,7 @@
 package org.apache.nifi.events;
 
 import org.apache.nifi.reporting.Bulletin;
+import org.apache.nifi.reporting.ComponentType;
 
 /**
  *
@@ -25,6 +26,7 @@ public class SystemBulletin extends Bulletin {
 
     SystemBulletin(final long id) {
         super(id);
+        setSourceType(ComponentType.FLOW_CONTROLLER);
     }
 
 }

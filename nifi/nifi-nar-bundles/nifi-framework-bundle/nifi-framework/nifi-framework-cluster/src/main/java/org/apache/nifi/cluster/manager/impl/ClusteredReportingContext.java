@@ -24,15 +24,18 @@ import org.apache.nifi.attribute.expression.language.PreparedQuery;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
+import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.processor.StandardPropertyValue;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinRepository;
+import org.apache.nifi.reporting.ComponentType;
 import org.apache.nifi.reporting.EventAccess;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.Severity;
@@ -85,8 +88,9 @@ public class ClusteredReportingContext implements ReportingContext {
         final ProcessGroupStatus rootGroupStatus = eventAccess.getControllerStatus();
         final String groupId = findGroupId(rootGroupStatus, componentId);
         final String componentName = findComponentName(rootGroupStatus, componentId);
+        final ComponentType componentType = findComponentType(rootGroupStatus, componentId);
 
-        return BulletinFactory.createBulletin(groupId, componentId, componentName, category, severity.name(), message);
+        return BulletinFactory.createBulletin(groupId, componentId, componentType, componentName, category, severity.name(), message);
     }
 
     @Override
@@ -129,6 +133,46 @@ public class ClusteredReportingContext implements ReportingContext {
             if (groupId != null) {
                 return groupId;
             }
+        }
+
+        return null;
+    }
+
+    private ComponentType findComponentType(final ProcessGroupStatus groupStatus, final String componentId) {
+        for (final ProcessorStatus procStatus : groupStatus.getProcessorStatus()) {
+            if (procStatus.getId().equals(componentId)) {
+                return ComponentType.PROCESSOR;
+            }
+        }
+
+        for (final PortStatus portStatus : groupStatus.getInputPortStatus()) {
+            if (portStatus.getId().equals(componentId)) {
+                return ComponentType.INPUT_PORT;
+            }
+        }
+
+        for (final PortStatus portStatus : groupStatus.getOutputPortStatus()) {
+            if (portStatus.getId().equals(componentId)) {
+                return ComponentType.OUTPUT_PORT;
+            }
+        }
+
+        for (final RemoteProcessGroupStatus remoteStatus : groupStatus.getRemoteProcessGroupStatus()) {
+            if (remoteStatus.getId().equals(componentId)) {
+                return ComponentType.REMOTE_PROCESS_GROUP;
+            }
+        }
+
+        for (final ProcessGroupStatus childGroup : groupStatus.getProcessGroupStatus()) {
+            final ComponentType type = findComponentType(childGroup, componentId);
+            if (type != null) {
+                return type;
+            }
+        }
+
+        final ControllerService service = serviceProvider.getControllerService(componentId);
+        if (service != null) {
+            return ComponentType.CONTROLLER_SERVICE;
         }
 
         return null;

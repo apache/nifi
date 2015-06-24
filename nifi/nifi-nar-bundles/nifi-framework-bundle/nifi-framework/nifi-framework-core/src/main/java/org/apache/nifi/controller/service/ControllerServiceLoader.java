@@ -48,11 +48,12 @@ public class ControllerServiceLoader {
     private static final Logger logger = LoggerFactory.getLogger(ControllerServiceLoader.class);
 
     public static List<ControllerServiceNode> loadControllerServices(
-            final ControllerServiceProvider provider,
-            final InputStream serializedStream,
-            final StringEncryptor encryptor,
-            final BulletinRepository bulletinRepo,
-            final boolean autoResumeState) throws IOException {
+        final ControllerServiceProvider provider,
+        final InputStream serializedStream,
+        final StringEncryptor encryptor,
+        final BulletinRepository bulletinRepo,
+        final boolean autoResumeState) throws IOException {
+
         final DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
         documentBuilderFactory.setNamespaceAware(true);
 

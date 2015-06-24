@@ -18,6 +18,8 @@ package org.apache.nifi.jaxb;
 
 import java.util.Date;
 
+import org.apache.nifi.reporting.ComponentType;
+
 /**
  *
  */
@@ -32,6 +34,7 @@ public class AdaptedBulletin {
     private String groupId;
     private String sourceId;
     private String sourceName;
+    private ComponentType sourceType;
 
     public String getCategory() {
         return category;
@@ -97,4 +100,11 @@ public class AdaptedBulletin {
         this.timestamp = timestamp;
     }
 
+    public ComponentType getSourceType() {
+        return sourceType;
+    }
+
+    public void setSourceType(ComponentType sourceType) {
+        this.sourceType = sourceType;
+    }
 }
