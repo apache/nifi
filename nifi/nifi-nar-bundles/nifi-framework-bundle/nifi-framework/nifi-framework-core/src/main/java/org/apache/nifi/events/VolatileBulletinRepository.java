@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinQuery;
 import org.apache.nifi.reporting.BulletinRepository;
+import org.apache.nifi.reporting.ComponentType;
 import org.apache.nifi.util.RingBuffer;
 import org.apache.nifi.util.RingBuffer.Filter;
 
@@ -167,7 +168,7 @@ public class VolatileBulletinRepository implements BulletinRepository {
         }
 
         final RingBuffer<Bulletin> buffer = componentMap.get(CONTROLLER_BULLETIN_STORE_KEY);
-        return (buffer == null) ? Collections.<Bulletin>emptyList() : buffer.getSelectedElements(new Filter<Bulletin>() {
+        return buffer == null ? Collections.<Bulletin>emptyList() : buffer.getSelectedElements(new Filter<Bulletin>() {
             @Override
             public boolean select(final Bulletin bulletin) {
                 return bulletin.getTimestamp().getTime() >= fiveMinutesAgo;
@@ -194,12 +195,12 @@ public class VolatileBulletinRepository implements BulletinRepository {
     }
 
     private RingBuffer<Bulletin> getBulletinBuffer(final Bulletin bulletin) {
-        final String groupId = getBulletinStoreKey(bulletin);
+        final String storageKey = getBulletinStoreKey(bulletin);
 
-        ConcurrentMap<String, RingBuffer<Bulletin>> componentMap = bulletinStoreMap.get(groupId);
+        ConcurrentMap<String, RingBuffer<Bulletin>> componentMap = bulletinStoreMap.get(storageKey);
         if (componentMap == null) {
             componentMap = new ConcurrentHashMap<>();
-            ConcurrentMap<String, RingBuffer<Bulletin>> existing = bulletinStoreMap.putIfAbsent(groupId, componentMap);
+            final ConcurrentMap<String, RingBuffer<Bulletin>> existing = bulletinStoreMap.putIfAbsent(storageKey, componentMap);
             if (existing != null) {
                 componentMap = existing;
             }
@@ -221,11 +222,16 @@ public class VolatileBulletinRepository implements BulletinRepository {
     }
 
     private String getBulletinStoreKey(final Bulletin bulletin) {
-        return isControllerBulletin(bulletin) ? CONTROLLER_BULLETIN_STORE_KEY : bulletin.getGroupId();
+        if (isControllerBulletin(bulletin)) {
+            return CONTROLLER_BULLETIN_STORE_KEY;
+        }
+
+        final String groupId = bulletin.getGroupId();
+        return groupId == null ? bulletin.getSourceId() : groupId;
     }
 
     private boolean isControllerBulletin(final Bulletin bulletin) {
-        return bulletin.getGroupId() == null;
+        return ComponentType.FLOW_CONTROLLER.equals(bulletin.getSourceType());
     }
 
     private class DefaultBulletinProcessingStrategy implements BulletinProcessingStrategy {

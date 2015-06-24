@@ -129,6 +129,7 @@ import org.apache.nifi.controller.Heartbeater;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.StandardFlowSerializer;
+import org.apache.nifi.controller.StandardProcessorNode;
 import org.apache.nifi.controller.ValidationContextFactory;
 import org.apache.nifi.controller.exception.ComponentLifeCycleException;
 import org.apache.nifi.controller.reporting.ClusteredReportingTaskNode;
@@ -159,7 +160,12 @@ import org.apache.nifi.events.VolatileBulletinRepository;
 import org.apache.nifi.framework.security.util.SslContextFactory;
 import org.apache.nifi.io.socket.multicast.DiscoverableService;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.logging.ControllerServiceLogObserver;
+import org.apache.nifi.logging.LogLevel;
+import org.apache.nifi.logging.LogRepository;
+import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.logging.NiFiLog;
+import org.apache.nifi.logging.ReportingTaskLogObserver;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.nar.NarThreadContextClassLoader;
@@ -929,7 +935,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
             //optional properties for all ReportingTasks
             for (final Element taskElement : DomUtils.getChildElementsByTagName(tasksElement, "reportingTask")) {
                 //add global properties common to all tasks
-                Map<String, String> properties = new HashMap<>();
+                final Map<String, String> properties = new HashMap<>();
 
                 //get properties for the specific reporting task - id, name, class,
                 //and schedulingPeriod must be set
@@ -1079,6 +1085,11 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                 throw new ComponentLifeCycleException("Failed to invoke On-Added Lifecycle methods of " + task, e);
             }
         }
+
+        // Register log observer to provide bulletins when reporting task logs anything at WARN level or above
+        final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
+        logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, LogLevel.WARN,
+            new ReportingTaskLogObserver(getBulletinRepository(), taskNode));
 
         return taskNode;
     }
@@ -1368,7 +1379,14 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
 
     @Override
     public ControllerServiceNode createControllerService(final String type, final String id, final boolean firstTimeAdded) {
-        return controllerServiceProvider.createControllerService(type, id, firstTimeAdded);
+        final ControllerServiceNode serviceNode = controllerServiceProvider.createControllerService(type, id, firstTimeAdded);
+
+        // Register log observer to provide bulletins when reporting task logs anything at WARN level or above
+        final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
+        logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, LogLevel.WARN,
+            new ControllerServiceLogObserver(getBulletinRepository(), serviceNode));
+
+        return serviceNode;
     }
 
     @Override
@@ -1630,7 +1648,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         final String nodeAddress = nodeIdentifier.getApiAddress() + ":" + nodeIdentifier.getApiPort();
 
         // unmarshal the message
-        BulletinsPayload payload = BulletinsPayload.unmarshal(bulletins.getPayload());
+        final BulletinsPayload payload = BulletinsPayload.unmarshal(bulletins.getPayload());
         for (final Bulletin bulletin : payload.getBulletins()) {
             bulletin.setNodeAddress(nodeAddress);
             bulletinRepository.addBulletin(bulletin);
@@ -1688,7 +1706,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
 
             final int numPendingHeartbeats = mostRecentHeartbeats.size();
             if (heartbeatLogger.isDebugEnabled()) {
-                heartbeatLogger.debug(String.format("Handling %s heartbeat%s", numPendingHeartbeats, (numPendingHeartbeats > 1) ? "s" : ""));
+                heartbeatLogger.debug(String.format("Handling %s heartbeat%s", numPendingHeartbeats, numPendingHeartbeats > 1 ? "s" : ""));
             }
 
             for (final Heartbeat mostRecentHeartbeat : mostRecentHeartbeats) {
@@ -2130,7 +2148,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         readLock.lock();
         try {
             final ClusterServicesBroadcaster broadcaster = this.servicesBroadcaster;
-            return (broadcaster != null && broadcaster.isRunning());
+            return broadcaster != null && broadcaster.isRunning();
         } finally {
             readLock.unlock("isBroadcasting");
         }
@@ -2323,7 +2341,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                                 if (auditService != null) {
                                     try {
                                         auditService.addActions(clusterContext.getActions());
-                                    } catch (Throwable t) {
+                                    } catch (final Throwable t) {
                                         logger.warn("Unable to record actions: " + t.getMessage());
                                         if (logger.isDebugEnabled()) {
                                             logger.warn(StringUtils.EMPTY, t);
@@ -2834,7 +2852,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                     continue;
                 }
 
-                final ProcessorEntity nodeResponseEntity = (nodeResponse == clientResponse) ? responseEntity : nodeResponse.getClientResponse().getEntity(ProcessorEntity.class);
+                final ProcessorEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(ProcessorEntity.class);
                 final ProcessorDTO nodeProcessor = nodeResponseEntity.getProcessor();
                 processorMap.put(nodeResponse.getNodeId(), nodeProcessor);
             }
@@ -2851,7 +2869,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                     continue;
                 }
 
-                final ProcessorsEntity nodeResponseEntity = (nodeResponse == clientResponse) ? responseEntity : nodeResponse.getClientResponse().getEntity(ProcessorsEntity.class);
+                final ProcessorsEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(ProcessorsEntity.class);
                 final Set<ProcessorDTO> nodeProcessors = nodeResponseEntity.getProcessors();
 
                 for (final ProcessorDTO nodeProcessor : nodeProcessors) {
@@ -2892,7 +2910,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                         continue;
                     }
 
-                    final ProcessGroupEntity nodeResponseEntity = (nodeResponse == clientResponse) ? responseEntity : nodeResponse.getClientResponse().getEntity(ProcessGroupEntity.class);
+                    final ProcessGroupEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(ProcessGroupEntity.class);
                     final ProcessGroupDTO nodeProcessGroup = nodeResponseEntity.getProcessGroup();
 
                     for (final ProcessorDTO nodeProcessor : nodeProcessGroup.getContents().getProcessors()) {
@@ -2952,7 +2970,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                         continue;
                     }
 
-                    final FlowSnippetEntity nodeResponseEntity = (nodeResponse == clientResponse) ? responseEntity : nodeResponse.getClientResponse().getEntity(FlowSnippetEntity.class);
+                    final FlowSnippetEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(FlowSnippetEntity.class);
                     final FlowSnippetDTO nodeContents = nodeResponseEntity.getContents();
 
                     for (final ProcessorDTO nodeProcessor : nodeContents.getProcessors()) {
@@ -2995,7 +3013,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
 
             // create a new client response
             clientResponse = new NodeResponse(clientResponse, responseEntity);
-        } else if (hasSuccessfulClientResponse && (isRemoteProcessGroupEndpoint(uri, method))) {
+        } else if (hasSuccessfulClientResponse && isRemoteProcessGroupEndpoint(uri, method)) {
             final RemoteProcessGroupEntity responseEntity = clientResponse.getClientResponse().getEntity(RemoteProcessGroupEntity.class);
             final RemoteProcessGroupDTO remoteProcessGroup = responseEntity.getRemoteProcessGroup();
 
@@ -3005,7 +3023,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                     continue;
                 }
 
-                final RemoteProcessGroupEntity nodeResponseEntity = (nodeResponse == clientResponse) ? responseEntity : nodeResponse.getClientResponse().getEntity(RemoteProcessGroupEntity.class);
+                final RemoteProcessGroupEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(RemoteProcessGroupEntity.class);
                 final RemoteProcessGroupDTO nodeRemoteProcessGroup = nodeResponseEntity.getRemoteProcessGroup();
 
                 remoteProcessGroupMap.put(nodeResponse.getNodeId(), nodeRemoteProcessGroup);
@@ -3013,7 +3031,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
             mergeRemoteProcessGroup(remoteProcessGroup, remoteProcessGroupMap);
 
             clientResponse = new NodeResponse(clientResponse, responseEntity);
-        } else if (hasSuccessfulClientResponse && (isRemoteProcessGroupsEndpoint(uri, method))) {
+        } else if (hasSuccessfulClientResponse && isRemoteProcessGroupsEndpoint(uri, method)) {
             final RemoteProcessGroupsEntity responseEntity = clientResponse.getClientResponse().getEntity(RemoteProcessGroupsEntity.class);
             final Set<RemoteProcessGroupDTO> remoteProcessGroups = responseEntity.getRemoteProcessGroups();
 
@@ -3023,7 +3041,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                     continue;
                 }
 
-                final RemoteProcessGroupsEntity nodeResponseEntity = (nodeResponse == clientResponse) ? responseEntity : nodeResponse.getClientResponse().getEntity(RemoteProcessGroupsEntity.class);
+                final RemoteProcessGroupsEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(RemoteProcessGroupsEntity.class);
                 final Set<RemoteProcessGroupDTO> nodeRemoteProcessGroups = nodeResponseEntity.getRemoteProcessGroups();
 
                 for (final RemoteProcessGroupDTO nodeRemoteProcessGroup : nodeRemoteProcessGroups) {
@@ -3056,7 +3074,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                     continue;
                 }
 
-                final ProvenanceEntity nodeResponseEntity = (nodeResponse == clientResponse) ? responseEntity : nodeResponse.getClientResponse().getEntity(ProvenanceEntity.class);
+                final ProvenanceEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(ProvenanceEntity.class);
                 final ProvenanceDTO nodeQuery = nodeResponseEntity.getProvenance();
 
                 resultsMap.put(nodeResponse.getNodeId(), nodeQuery);
@@ -3084,7 +3102,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                     continue;
                 }
 
-                final ControllerServiceEntity nodeResponseEntity = (nodeResponse == clientResponse) ? responseEntity : nodeResponse.getClientResponse().getEntity(ControllerServiceEntity.class);
+                final ControllerServiceEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(ControllerServiceEntity.class);
                 final ControllerServiceDTO nodeControllerService = nodeResponseEntity.getControllerService();
 
                 resultsMap.put(nodeResponse.getNodeId(), nodeControllerService);
@@ -3102,7 +3120,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                     continue;
                 }
 
-                final ControllerServicesEntity nodeResponseEntity = (nodeResponse == clientResponse) ? responseEntity : nodeResponse.getClientResponse().getEntity(ControllerServicesEntity.class);
+                final ControllerServicesEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(ControllerServicesEntity.class);
                 final Set<ControllerServiceDTO> nodeControllerServices = nodeResponseEntity.getControllerServices();
 
                 for (final ControllerServiceDTO nodeControllerService : nodeControllerServices) {
@@ -3136,7 +3154,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                 }
 
                 final ControllerServiceReferencingComponentsEntity nodeResponseEntity =
-                        (nodeResponse == clientResponse) ? responseEntity : nodeResponse.getClientResponse().getEntity(ControllerServiceReferencingComponentsEntity.class);
+                        nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(ControllerServiceReferencingComponentsEntity.class);
                 final Set<ControllerServiceReferencingComponentDTO> nodeReferencingComponents = nodeResponseEntity.getControllerServiceReferencingComponents();
 
                 resultsMap.put(nodeResponse.getNodeId(), nodeReferencingComponents);
@@ -3154,7 +3172,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                     continue;
                 }
 
-                final ReportingTaskEntity nodeResponseEntity = (nodeResponse == clientResponse) ? responseEntity : nodeResponse.getClientResponse().getEntity(ReportingTaskEntity.class);
+                final ReportingTaskEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(ReportingTaskEntity.class);
                 final ReportingTaskDTO nodeReportingTask = nodeResponseEntity.getReportingTask();
 
                 resultsMap.put(nodeResponse.getNodeId(), nodeReportingTask);
@@ -3172,7 +3190,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
                     continue;
                 }
 
-                final ReportingTasksEntity nodeResponseEntity = (nodeResponse == clientResponse) ? responseEntity : nodeResponse.getClientResponse().getEntity(ReportingTasksEntity.class);
+                final ReportingTasksEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().getEntity(ReportingTasksEntity.class);
                 final Set<ReportingTaskDTO> nodeReportingTasks = nodeResponseEntity.getReportingTasks();
 
                 for (final ReportingTaskDTO nodeReportingTask : nodeReportingTasks) {
@@ -3428,7 +3446,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
     }
 
     private boolean canChangeNodeState(final String method, final URI uri) {
-        return (HttpMethod.DELETE.equalsIgnoreCase(method) || HttpMethod.POST.equalsIgnoreCase(method) || HttpMethod.PUT.equalsIgnoreCase(method));
+        return HttpMethod.DELETE.equalsIgnoreCase(method) || HttpMethod.POST.equalsIgnoreCase(method) || HttpMethod.PUT.equalsIgnoreCase(method);
     }
 
     private void notifyDataFlowManagementServiceOfNodeStatusChange() {
@@ -3477,7 +3495,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
             public void run() {
                 logger.info("Entering safe mode...");
                 final int safeModeSeconds = (int) FormatUtils.getTimeDuration(properties.getClusterManagerSafeModeDuration(), TimeUnit.SECONDS);
-                final long timeToElect = (safeModeSeconds <= 0) ? Long.MAX_VALUE : threadStartTime + TimeUnit.MILLISECONDS.convert(safeModeSeconds, TimeUnit.SECONDS);
+                final long timeToElect = safeModeSeconds <= 0 ? Long.MAX_VALUE : threadStartTime + TimeUnit.MILLISECONDS.convert(safeModeSeconds, TimeUnit.SECONDS);
                 boolean exitSafeMode = false;
                 while (isRunning()) {
 
@@ -3819,7 +3837,7 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
 
     public static Date normalizeStatusSnapshotDate(final Date toNormalize, final long numMillis) {
         final long time = toNormalize.getTime();
-        return new Date(time - (time % numMillis));
+        return new Date(time - time % numMillis);
     }
 
     private NodeDTO createNodeDTO(final Node node) {
@@ -3861,8 +3879,8 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         final List<NodeStatusHistoryDTO> nodeHistories = new ArrayList<>();
 
         StatusHistoryDTO lastStatusHistory = null;
-        Set<MetricDescriptor<?>> processorDescriptors = new LinkedHashSet<>();
-        Map<Date, List<StatusSnapshot>> snapshotsToAggregate = new TreeMap<>();
+        final Set<MetricDescriptor<?>> processorDescriptors = new LinkedHashSet<>();
+        final Map<Date, List<StatusSnapshot>> snapshotsToAggregate = new TreeMap<>();
 
         for (final Node node : getRawNodes()) {
             final ComponentStatusRepository statusRepository = componentMetricsRepositoryMap.get(node.getNodeId());
@@ -3942,8 +3960,8 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         final List<NodeStatusHistoryDTO> nodeHistories = new ArrayList<>();
 
         StatusHistoryDTO lastStatusHistory = null;
-        Set<MetricDescriptor<?>> connectionDescriptors = new LinkedHashSet<>();
-        Map<Date, List<StatusSnapshot>> snapshotsToAggregate = new TreeMap<>();
+        final Set<MetricDescriptor<?>> connectionDescriptors = new LinkedHashSet<>();
+        final Map<Date, List<StatusSnapshot>> snapshotsToAggregate = new TreeMap<>();
 
         for (final Node node : getRawNodes()) {
             final ComponentStatusRepository statusRepository = componentMetricsRepositoryMap.get(node.getNodeId());
@@ -4006,8 +4024,8 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         final List<NodeStatusHistoryDTO> nodeHistories = new ArrayList<>();
 
         StatusHistoryDTO lastStatusHistory = null;
-        Set<MetricDescriptor<?>> processGroupDescriptors = new LinkedHashSet<>();
-        Map<Date, List<StatusSnapshot>> snapshotsToAggregate = new TreeMap<>();
+        final Set<MetricDescriptor<?>> processGroupDescriptors = new LinkedHashSet<>();
+        final Map<Date, List<StatusSnapshot>> snapshotsToAggregate = new TreeMap<>();
 
         for (final Node node : getRawNodes()) {
             final ComponentStatusRepository statusRepository = componentMetricsRepositoryMap.get(node.getNodeId());
@@ -4070,8 +4088,8 @@ public class WebClusterManager implements HttpClusterManager, ProtocolHandler, C
         final List<NodeStatusHistoryDTO> nodeHistories = new ArrayList<>();
 
         StatusHistoryDTO lastStatusHistory = null;
-        Set<MetricDescriptor<?>> remoteProcessGroupDescriptors = new LinkedHashSet<>();
-        Map<Date, List<StatusSnapshot>> snapshotsToAggregate = new TreeMap<>();
+        final Set<MetricDescriptor<?>> remoteProcessGroupDescriptors = new LinkedHashSet<>();
+        final Map<Date, List<StatusSnapshot>> snapshotsToAggregate = new TreeMap<>();
 
         for (final Node node : getRawNodes()) {
             final ComponentStatusRepository statusRepository = componentMetricsRepositoryMap.get(node.getNodeId());
