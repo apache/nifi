@@ -186,7 +186,7 @@ nf.Common = {
     handleAjaxError: function (xhr, status, error) {
         // if an error occurs while the splash screen is visible close the canvas show the error message
         if ($('#splash').is(':visible')) {
-            $('#message-title').text('An unexcepted error has occurred');
+            $('#message-title').text('An unexpected error has occurred');
             if ($.trim(xhr.responseText) === '') {
                 $('#message-content').text('Please check the logs.');
             } else {
