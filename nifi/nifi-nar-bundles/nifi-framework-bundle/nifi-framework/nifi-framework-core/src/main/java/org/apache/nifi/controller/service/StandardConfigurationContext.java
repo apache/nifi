@@ -18,6 +18,7 @@ package org.apache.nifi.controller.service;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.attribute.expression.language.PreparedQuery;
 import org.apache.nifi.attribute.expression.language.Query;
@@ -27,16 +28,29 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ConfiguredComponent;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.processor.StandardPropertyValue;
+import org.apache.nifi.util.FormatUtils;
 
 public class StandardConfigurationContext implements ConfigurationContext {
 
     private final ConfiguredComponent component;
     private final ControllerServiceLookup serviceLookup;
     private final Map<PropertyDescriptor, PreparedQuery> preparedQueries;
+    private final String schedulingPeriod;
+    private final Long schedulingNanos;
 
-    public StandardConfigurationContext(final ConfiguredComponent component, final ControllerServiceLookup serviceLookup) {
+    public StandardConfigurationContext(final ConfiguredComponent component, final ControllerServiceLookup serviceLookup, final String schedulingPeriod) {
         this.component = component;
         this.serviceLookup = serviceLookup;
+        this.schedulingPeriod = schedulingPeriod;
+        if (schedulingPeriod == null) {
+            schedulingNanos = null;
+        } else {
+            if (FormatUtils.TIME_DURATION_PATTERN.matcher(schedulingPeriod).matches()) {
+                schedulingNanos = FormatUtils.getTimeDuration(schedulingPeriod, TimeUnit.NANOSECONDS);
+            } else {
+                schedulingNanos = null;
+            }
+        }
 
         preparedQueries = new HashMap<>();
         for (final Map.Entry<PropertyDescriptor, String> entry : component.getProperties().entrySet()) {
@@ -60,5 +74,15 @@ public class StandardConfigurationContext implements ConfigurationContext {
     @Override
     public Map<PropertyDescriptor, String> getProperties() {
         return component.getProperties();
+    }
+
+    @Override
+    public String getSchedulingPeriod() {
+        return schedulingPeriod;
+    }
+
+    @Override
+    public Long getSchedulingPeriod(final TimeUnit timeUnit) {
+        return schedulingNanos == null ? null : timeUnit.convert(schedulingNanos, TimeUnit.NANOSECONDS);
     }
 }

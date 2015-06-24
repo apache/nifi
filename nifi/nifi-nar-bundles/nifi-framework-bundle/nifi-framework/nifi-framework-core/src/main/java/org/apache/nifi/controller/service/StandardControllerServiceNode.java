@@ -125,7 +125,7 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
     @SuppressWarnings("deprecation")
     private void onConfigured() {
         try (final NarCloseable x = NarCloseable.withNarLoader()) {
-            final ConfigurationContext configContext = new StandardConfigurationContext(this, serviceProvider);
+            final ConfigurationContext configContext = new StandardConfigurationContext(this, serviceProvider, null);
             ReflectionUtils.invokeMethodsWithAnnotation(OnConfigured.class, implementation, configContext);
         } catch (final Exception e) {
             throw new ComponentLifeCycleException("Failed to invoke On-Configured Lifecycle methods of " + implementation, e);

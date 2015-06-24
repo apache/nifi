@@ -38,7 +38,6 @@ import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingContext;
-import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.FormatUtils;
 import org.slf4j.Logger;
@@ -131,13 +130,6 @@ public class MonitorMemory extends AbstractReportingTask {
     public MonitorMemory() {
     }
 
-    private long schedulingPeriodMillis;
-
-    @Override
-    protected void init(final ReportingInitializationContext config) throws InitializationException {
-        schedulingPeriodMillis = config.getSchedulingPeriod(TimeUnit.MILLISECONDS);
-    }
-
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> descriptors = new ArrayList<>(3);
@@ -156,7 +148,7 @@ public class MonitorMemory extends AbstractReportingTask {
         // validate reporting interval
         final Long reportingIntervalValue = config.getProperty(REPORTING_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
         if (reportingIntervalValue == null) {
-            reportingIntervalMillis = schedulingPeriodMillis;
+            reportingIntervalMillis = config.getSchedulingPeriod(TimeUnit.MILLISECONDS);
         } else {
             reportingIntervalMillis = reportingIntervalValue;
         }
@@ -174,7 +166,7 @@ public class MonitorMemory extends AbstractReportingTask {
                 } else {
                     final String percentage = thresholdValue.substring(0, thresholdValue.length() - 1);
                     final double pct = Double.parseDouble(percentage) / 100D;
-                    final long calculatedThreshold = (long) ((double) bean.getUsage().getMax() * pct);
+                    final long calculatedThreshold = (long) (bean.getUsage().getMax() * pct);
                     if (bean.isCollectionUsageThresholdSupported()) {
                         bean.setCollectionUsageThreshold(calculatedThreshold);
                     }
@@ -201,7 +193,7 @@ public class MonitorMemory extends AbstractReportingTask {
         } else {
             final String percentage = threshold.substring(0, threshold.length() - 1);
             final double pct = Double.parseDouble(percentage) / 100D;
-            return (long) ((double) maxBytes * pct);
+            return (long) (maxBytes * pct);
         }
     }
 
