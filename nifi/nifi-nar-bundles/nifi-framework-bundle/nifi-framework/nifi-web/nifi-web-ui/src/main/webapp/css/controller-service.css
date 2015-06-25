@@ -124,6 +124,15 @@ div.referencing-component-state {
     margin-top: -2px;
 }
 
+div.referencing-component-bulletins {
+    float: left;
+    margin-left: 5px;
+    width: 12px;
+    height: 12px;
+    background-color: transparent;
+    display: none;
+}
+
 span.service.expansion-button {
     margin-right: 4px;
     margin-top: 2px;
@@ -186,6 +195,19 @@ div.referencing-component-references {
     margin-right: 40px;
 }
 
+#disable-controller-service-name {
+    float: left;
+}
+
+#disable-controller-service-bulletins {
+    float: left;
+    margin-left: 5px;
+    width: 12px;
+    height: 12px;
+    background-color: transparent;
+    display: none;
+}
+
 #disable-controller-service-referencing-components {
     border: 0 solid #CCCCCC;
     padding: 2px;
@@ -220,6 +242,19 @@ div.referencing-component-references {
 #enable-controller-service-dialog div.spacer {
     float: left;
     margin-right: 40px;
+}
+
+#enable-controller-service-name {
+    float: left;
+}
+
+#enable-controller-service-bulletins {
+    float: left;
+    margin-left: 5px;
+    width: 12px;
+    height: 12px;
+    background-color: transparent;
+    display: none;
 }
 
 #enable-controller-service-scope {
