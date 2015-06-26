@@ -25,10 +25,10 @@ import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResul
 
 public class SubstringAfterLastEvaluator extends StringEvaluator {
 
-    private final StringEvaluator subject;
-    private final StringEvaluator afterEvaluator;
+    private final Evaluator<String> subject;
+    private final Evaluator<String> afterEvaluator;
 
-    public SubstringAfterLastEvaluator(final StringEvaluator subject, final StringEvaluator afterEvaluator) {
+    public SubstringAfterLastEvaluator(final Evaluator<String> subject, final Evaluator<String> afterEvaluator) {
         this.subject = subject;
         this.afterEvaluator = afterEvaluator;
     }

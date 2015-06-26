@@ -20,19 +20,18 @@ import java.util.Map;
 
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
-import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
 
 public class DelineatedAttributeEvaluator extends MultiAttributeEvaluator {
 
-    private final StringEvaluator subjectEvaluator;
-    private final StringEvaluator delimiterEvaluator;
+    private final Evaluator<String> subjectEvaluator;
+    private final Evaluator<String> delimiterEvaluator;
     private final int evaluationType;
     private String[] delineatedValues;
     private int evaluationCount = 0;
     private int evaluationsLeft = 1;
 
-    public DelineatedAttributeEvaluator(final StringEvaluator subjectEvaluator, final StringEvaluator delimiterEvaluator, final int evaluationType) {
+    public DelineatedAttributeEvaluator(final Evaluator<String> subjectEvaluator, final Evaluator<String> delimiterEvaluator, final int evaluationType) {
         this.subjectEvaluator = subjectEvaluator;
         this.delimiterEvaluator = delimiterEvaluator;
         this.evaluationType = evaluationType;
@@ -64,6 +63,11 @@ public class DelineatedAttributeEvaluator extends MultiAttributeEvaluator {
         evaluationsLeft = delineatedValues.length - evaluationCount - 1;
 
         return new StringQueryResult(delineatedValues[evaluationCount++]);
+    }
+
+    @Override
+    public Evaluator<?> getLogicEvaluator() {
+        return subjectEvaluator;
     }
 
     @Override

@@ -25,10 +25,10 @@ import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResul
 
 public class AppendEvaluator extends StringEvaluator {
 
-    private final StringEvaluator subject;
-    private final StringEvaluator appendEvaluator;
+    private final Evaluator<String> subject;
+    private final Evaluator<String> appendEvaluator;
 
-    public AppendEvaluator(final StringEvaluator subject, final StringEvaluator append) {
+    public AppendEvaluator(final Evaluator<String> subject, final Evaluator<String> append) {
         this.subject = subject;
         this.appendEvaluator = append;
     }

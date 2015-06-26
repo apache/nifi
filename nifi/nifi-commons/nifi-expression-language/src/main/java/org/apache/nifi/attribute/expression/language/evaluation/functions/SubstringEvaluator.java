@@ -19,24 +19,23 @@ package org.apache.nifi.attribute.expression.language.evaluation.functions;
 import java.util.Map;
 
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.NumberEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
 
 public class SubstringEvaluator extends StringEvaluator {
 
-    private final StringEvaluator subject;
-    private final NumberEvaluator startIndex;
-    private final NumberEvaluator endIndex;
+    private final Evaluator<String> subject;
+    private final Evaluator<Long> startIndex;
+    private final Evaluator<Long> endIndex;
 
-    public SubstringEvaluator(final StringEvaluator subject, final NumberEvaluator startIndex, final NumberEvaluator endIndex) {
+    public SubstringEvaluator(final Evaluator<String> subject, final Evaluator<Long> startIndex, final Evaluator<Long> endIndex) {
         this.subject = subject;
         this.startIndex = startIndex;
         this.endIndex = endIndex;
     }
 
-    public SubstringEvaluator(final StringEvaluator subject, final NumberEvaluator startIndex) {
+    public SubstringEvaluator(final Evaluator<String> subject, final Evaluator<Long> startIndex) {
         this.subject = subject;
         this.startIndex = startIndex;
         this.endIndex = null;

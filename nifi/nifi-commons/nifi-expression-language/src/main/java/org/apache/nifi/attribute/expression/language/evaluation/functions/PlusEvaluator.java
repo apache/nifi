@@ -25,10 +25,10 @@ import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 
 public class PlusEvaluator extends NumberEvaluator {
 
-    private final NumberEvaluator subject;
-    private final NumberEvaluator plusValue;
+    private final Evaluator<Long> subject;
+    private final Evaluator<Long> plusValue;
 
-    public PlusEvaluator(final NumberEvaluator subject, final NumberEvaluator plusValue) {
+    public PlusEvaluator(final Evaluator<Long> subject, final Evaluator<Long> plusValue) {
         this.subject = subject;
         this.plusValue = plusValue;
     }

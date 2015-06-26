@@ -39,6 +39,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -182,6 +183,11 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public void run(final int iterations, final boolean stopOnFinish, final boolean initialize) {
+        run(iterations, stopOnFinish, initialize, 5000);
+    }
+
+    @Override
+    public void run(final int iterations, final boolean stopOnFinish, final boolean initialize, final long runWait) {
         if (iterations < 1) {
             throw new IllegalArgumentException();
         }
@@ -207,6 +213,10 @@ public class StandardProcessorTestRunner implements TestRunner {
             }
 
             executorService.shutdown();
+            try {
+                executorService.awaitTermination(runWait, TimeUnit.MILLISECONDS);
+            } catch (final InterruptedException e1) {
+            }
 
             int finishedCount = 0;
             boolean unscheduledRun = false;
@@ -599,7 +609,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         }
 
         try {
-            final ConfigurationContext configContext = new MockConfigurationContext(configuration.getProperties(), context);
+            final ConfigurationContext configContext = new MockConfigurationContext(service, configuration.getProperties(), context);
             ReflectionUtils.invokeMethodsWithAnnotation(OnEnabled.class, service, configContext);
         } catch (final InvocationTargetException ite) {
             ite.getCause().printStackTrace();

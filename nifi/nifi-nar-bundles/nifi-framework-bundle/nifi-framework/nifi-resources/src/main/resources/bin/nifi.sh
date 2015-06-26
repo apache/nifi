@@ -140,6 +140,10 @@ install() {
         cp $0 $SVC_FILE
         sed -i s:NIFI_HOME=.*:NIFI_HOME="$NIFI_HOME": $SVC_FILE
         sed -i s:PROGNAME=.*:PROGNAME=$(basename "$0"): $SVC_FILE
+        rm -f /etc/rc2.d/S65${SVC_NAME}
+        ln -s /etc/init.d/$SVC_NAME /etc/rc2.d/S65${SVC_NAME}
+        rm -f /etc/rc2.d/K65${SVC_NAME}
+        ln -s /etc/init.d/$SVC_NAME /etc/rc2.d/K65${SVC_NAME}
         echo Service $SVC_NAME installed
 }
 

@@ -85,7 +85,7 @@ public class IndexConfiguration {
     }
 
     private Long getFirstEntryTime(final File provenanceLogFile) {
-        try (final RecordReader reader = RecordReaders.newRecordReader(provenanceLogFile, null)) {
+        try (final RecordReader reader = RecordReaders.newRecordReader(provenanceLogFile, null, Integer.MAX_VALUE)) {
             final StandardProvenanceEventRecord firstRecord = reader.nextRecord();
             if (firstRecord == null) {
                 return provenanceLogFile.lastModified();

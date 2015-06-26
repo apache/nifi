@@ -25,16 +25,16 @@ import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResul
 
 public class ToLowerEvaluator extends StringEvaluator {
 
-    private final StringEvaluator subject;
+    private final Evaluator<String> subject;
 
-    public ToLowerEvaluator(final StringEvaluator subject) {
+    public ToLowerEvaluator(final Evaluator<String> subject) {
         this.subject = subject;
     }
 
     @Override
     public QueryResult<String> evaluate(final Map<String, String> attributes) {
         final String subjectValue = subject.evaluate(attributes).getValue();
-        return new StringQueryResult((subjectValue == null) ? null : subjectValue.toLowerCase());
+        return new StringQueryResult(subjectValue == null ? null : subjectValue.toLowerCase());
     }
 
     @Override

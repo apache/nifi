@@ -188,7 +188,7 @@ public class DataFlowDaoImpl implements DataFlowDao {
                 return;
             }
 
-            if ((primaryEntry == null && restoreEntry != null) || (primaryEntry != null && restoreEntry == null)) {
+            if (primaryEntry == null && restoreEntry != null || primaryEntry != null && restoreEntry == null) {
                 throw new IllegalStateException(String.format("Primary file '%s' is different than restore file '%s'",
                         primaryFile.getAbsoluteFile(), restoreFile.getAbsolutePath()));
             }
@@ -352,7 +352,7 @@ public class DataFlowDaoImpl implements DataFlowDao {
         final File[] files = dir.listFiles(new FilenameFilter() {
             @Override
             public boolean accept(File dir, String name) {
-                return (name.equals(FLOW_PACKAGE) || name.endsWith(STALE_EXT) || name.endsWith(UNKNOWN_EXT));
+                return name.equals(FLOW_PACKAGE) || name.endsWith(STALE_EXT) || name.endsWith(UNKNOWN_EXT);
             }
         });
 
@@ -515,19 +515,10 @@ public class DataFlowDaoImpl implements DataFlowDao {
         final StandardDataFlow dataFlow = new StandardDataFlow(flowBytes, templateBytes, snippetBytes);
         dataFlow.setAutoStartProcessors(autoStart);
 
-        return new ClusterDataFlow(dataFlow, (clusterMetadata == null) ? null : clusterMetadata.getPrimaryNodeId(), controllerServiceBytes, reportingTaskBytes);
+        return new ClusterDataFlow(dataFlow, clusterMetadata == null ? null : clusterMetadata.getPrimaryNodeId(), controllerServiceBytes, reportingTaskBytes);
     }
 
     private void writeDataFlow(final File file, final ClusterDataFlow clusterDataFlow) throws IOException, JAXBException {
-
-        // get the data flow
-        DataFlow dataFlow = clusterDataFlow.getDataFlow();
-
-        // if no dataflow, then write a new dataflow
-        if (dataFlow == null) {
-            dataFlow = new StandardDataFlow(new byte[0], new byte[0], new byte[0]);
-        }
-
         // setup the cluster metadata
         final ClusterMetadata clusterMetadata = new ClusterMetadata();
         clusterMetadata.setPrimaryNodeId(clusterDataFlow.getPrimaryNodeId());

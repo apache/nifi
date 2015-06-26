@@ -25,10 +25,10 @@ import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 
 public class AndEvaluator extends BooleanEvaluator {
 
-    private final BooleanEvaluator subjectEvaluator;
-    private final BooleanEvaluator rhsEvaluator;
+    private final Evaluator<Boolean> subjectEvaluator;
+    private final Evaluator<Boolean> rhsEvaluator;
 
-    public AndEvaluator(final BooleanEvaluator subjectEvaluator, final BooleanEvaluator rhsEvaluator) {
+    public AndEvaluator(final Evaluator<Boolean> subjectEvaluator, final Evaluator<Boolean> rhsEvaluator) {
         this.subjectEvaluator = subjectEvaluator;
         this.rhsEvaluator = rhsEvaluator;
     }
