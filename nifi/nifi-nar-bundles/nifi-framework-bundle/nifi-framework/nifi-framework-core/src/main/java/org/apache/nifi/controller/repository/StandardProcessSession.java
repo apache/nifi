@@ -260,7 +260,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
 
                     final FlowFileRecord clone = builder.build();
                     final StandardRepositoryRecord newRecord = new StandardRepositoryRecord(destination.getFlowFileQueue());
-                    getProvenanceReporter().clone(currRec, clone);
+                    provenanceReporter.clone(currRec, clone, false);
 
                     final ContentClaim claim = clone.getContentClaim();
                     if (claim != null) {
