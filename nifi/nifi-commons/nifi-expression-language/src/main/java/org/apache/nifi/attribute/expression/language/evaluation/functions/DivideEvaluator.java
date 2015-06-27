@@ -25,10 +25,10 @@ import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 
 public class DivideEvaluator extends NumberEvaluator {
 
-    private final NumberEvaluator subject;
-    private final NumberEvaluator divideValue;
+    private final Evaluator<Long> subject;
+    private final Evaluator<Long> divideValue;
 
-    public DivideEvaluator(final NumberEvaluator subject, final NumberEvaluator divideValue) {
+    public DivideEvaluator(final Evaluator<Long> subject, final Evaluator<Long> divideValue) {
         this.subject = subject;
         this.divideValue = divideValue;
     }

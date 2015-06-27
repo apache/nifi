@@ -67,9 +67,10 @@ import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.conn.BasicHttpClientConnectionManager;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -91,7 +92,10 @@ import org.apache.nifi.util.StopWatch;
 
 @Tags({"get", "fetch", "poll", "http", "https", "ingest", "source", "input"})
 @CapabilityDescription("Fetches a file via HTTP")
-@WritesAttribute(attribute = "filename", description = "the filename is set to the name of the file on the remote server")
+@WritesAttributes({
+    @WritesAttribute(attribute = "filename", description = "The filename is set to the name of the file on the remote server"),
+    @WritesAttribute(attribute = "mime.type", description = "The MIME Type of the FlowFile, as reported by the HTTP Content-Type header")
+})
 public class GetHTTP extends AbstractSessionFactoryProcessor {
 
     static final int PERSISTENCE_INTERVAL_MSEC = 10000;
@@ -413,6 +417,15 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
                 flowFile = session.putAttribute(flowFile, CoreAttributes.FILENAME.key(), context.getProperty(FILENAME).getValue());
                 flowFile = session.putAttribute(flowFile, this.getClass().getSimpleName().toLowerCase() + ".remote.source", source);
                 flowFile = session.importFrom(response.getEntity().getContent(), flowFile);
+
+                final Header contentTypeHeader = response.getFirstHeader("Content-Type");
+                if (contentTypeHeader != null) {
+                    final String contentType = contentTypeHeader.getValue();
+                    if (!contentType.trim().isEmpty()) {
+                        flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), contentType.trim());
+                    }
+                }
+
                 final long flowFileSize = flowFile.getSize();
                 stopWatch.stop();
                 final String dataRate = stopWatch.calculateDataRate(flowFileSize);

@@ -25,9 +25,9 @@ import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResul
 
 public class AttributeEvaluator extends StringEvaluator {
 
-    private final StringEvaluator nameEvaluator;
+    private final Evaluator<String> nameEvaluator;
 
-    public AttributeEvaluator(final StringEvaluator nameEvaluator) {
+    public AttributeEvaluator(final Evaluator<String> nameEvaluator) {
         this.nameEvaluator = nameEvaluator;
     }
 

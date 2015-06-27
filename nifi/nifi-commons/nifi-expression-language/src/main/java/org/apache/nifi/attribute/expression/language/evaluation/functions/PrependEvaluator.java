@@ -25,10 +25,10 @@ import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResul
 
 public class PrependEvaluator extends StringEvaluator {
 
-    private final StringEvaluator subject;
-    private final StringEvaluator prependEvaluator;
+    private final Evaluator<String> subject;
+    private final Evaluator<String> prependEvaluator;
 
-    public PrependEvaluator(final StringEvaluator subject, final StringEvaluator prepend) {
+    public PrependEvaluator(final Evaluator<String> subject, final Evaluator<String> prepend) {
         this.subject = subject;
         this.prependEvaluator = prepend;
     }

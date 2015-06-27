@@ -25,10 +25,10 @@ import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 
 public class MultiplyEvaluator extends NumberEvaluator {
 
-    private final NumberEvaluator subject;
-    private final NumberEvaluator multiplyValue;
+    private final Evaluator<Long> subject;
+    private final Evaluator<Long> multiplyValue;
 
-    public MultiplyEvaluator(final NumberEvaluator subject, final NumberEvaluator multiplyValue) {
+    public MultiplyEvaluator(final Evaluator<Long> subject, final Evaluator<Long> multiplyValue) {
         this.subject = subject;
         this.multiplyValue = multiplyValue;
     }

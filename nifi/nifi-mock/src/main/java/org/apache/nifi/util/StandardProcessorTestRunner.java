@@ -214,8 +214,8 @@ public class StandardProcessorTestRunner implements TestRunner {
 
             executorService.shutdown();
             try {
-                executorService.awaitTermination(runWait, TimeUnit.SECONDS);
-            } catch (InterruptedException e1) {
+                executorService.awaitTermination(runWait, TimeUnit.MILLISECONDS);
+            } catch (final InterruptedException e1) {
             }
 
             int finishedCount = 0;
@@ -609,7 +609,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         }
 
         try {
-            final ConfigurationContext configContext = new MockConfigurationContext(configuration.getProperties(), context);
+            final ConfigurationContext configContext = new MockConfigurationContext(service, configuration.getProperties(), context);
             ReflectionUtils.invokeMethodsWithAnnotation(OnEnabled.class, service, configContext);
         } catch (final InvocationTargetException ite) {
             ite.getCause().printStackTrace();

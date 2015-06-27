@@ -26,5 +26,7 @@
     <modules>
         <module>nifi-spark-receiver</module>
         <module>nifi-storm-spout</module>
+        <module>nifi-example-bundle</module>
     </modules>
 </project>
+

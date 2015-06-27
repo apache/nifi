@@ -21,15 +21,14 @@ import java.util.Map;
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
-import org.apache.nifi.attribute.expression.language.evaluation.NumberEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 
 public class LessThanEvaluator extends BooleanEvaluator {
 
-    private final NumberEvaluator subject;
-    private final NumberEvaluator comparison;
+    private final Evaluator<Long> subject;
+    private final Evaluator<Long> comparison;
 
-    public LessThanEvaluator(final NumberEvaluator subject, final NumberEvaluator comparison) {
+    public LessThanEvaluator(final Evaluator<Long> subject, final Evaluator<Long> comparison) {
         this.subject = subject;
         this.comparison = comparison;
     }

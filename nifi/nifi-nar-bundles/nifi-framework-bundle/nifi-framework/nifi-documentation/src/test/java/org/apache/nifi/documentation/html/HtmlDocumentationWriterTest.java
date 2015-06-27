@@ -28,26 +28,30 @@ import org.apache.nifi.documentation.example.ControllerServiceWithLogger;
 import org.apache.nifi.documentation.example.FullyDocumentedControllerService;
 import org.apache.nifi.documentation.example.FullyDocumentedReportingTask;
 import org.apache.nifi.documentation.example.ReportingTaskWithLogger;
+import org.apache.nifi.documentation.init.ControllerServiceInitializer;
+import org.apache.nifi.documentation.init.ReportingTaskingInitializer;
 import org.apache.nifi.documentation.mock.MockControllerServiceInitializationContext;
 import org.apache.nifi.documentation.mock.MockReportingInitializationContext;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingTask;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class HtmlDocumentationWriterTest {
 
     @Test
     public void testJoin() {
-        assertEquals("a, b, c", HtmlDocumentationWriter.join(new String[]{"a", "b", "c"}, ", "));
-        assertEquals("a, b", HtmlDocumentationWriter.join(new String[]{"a", "b"}, ", "));
-        assertEquals("a", HtmlDocumentationWriter.join(new String[]{"a"}, ", "));
+        assertEquals("a, b, c", HtmlDocumentationWriter.join(new String[] { "a", "b", "c" }, ", "));
+        assertEquals("a, b", HtmlDocumentationWriter.join(new String[] { "a", "b" }, ", "));
+        assertEquals("a", HtmlDocumentationWriter.join(new String[] { "a" }, ", "));
     }
 
     @Test
     public void testDocumentControllerService() throws InitializationException, IOException {
 
-        ControllerService controllerService = new FullyDocumentedControllerService();
-        controllerService.initialize(new MockControllerServiceInitializationContext());
+        FullyDocumentedControllerService controllerService = new FullyDocumentedControllerService();
+        ControllerServiceInitializer initializer = new ControllerServiceInitializer();
+        initializer.initialize(controllerService);
 
         DocumentationWriter writer = new HtmlDocumentationWriter();
 
@@ -71,13 +75,21 @@ public class HtmlDocumentationWriterTest {
         assertContains(results, "JKS");
         assertContains(results, "PKCS12");
         assertContains(results, "Sensitive Property: true");
+
+        // verify the right OnRemoved and OnShutdown methods were called
+        Assert.assertEquals(1, controllerService.getOnRemovedArgs());
+        Assert.assertEquals(1, controllerService.getOnRemovedNoArgs());
+
+        Assert.assertEquals(1, controllerService.getOnShutdownArgs());
+        Assert.assertEquals(1, controllerService.getOnShutdownNoArgs());
     }
 
     @Test
     public void testDocumentReportingTask() throws InitializationException, IOException {
 
-        ReportingTask reportingTask = new FullyDocumentedReportingTask();
-        reportingTask.initialize(new MockReportingInitializationContext());
+        FullyDocumentedReportingTask reportingTask = new FullyDocumentedReportingTask();
+        ReportingTaskingInitializer initializer = new ReportingTaskingInitializer();
+        initializer.initialize(reportingTask);
 
         DocumentationWriter writer = new HtmlDocumentationWriter();
 
@@ -99,6 +111,13 @@ public class HtmlDocumentationWriterTest {
         assertContains(results, "Specifies whether or not to show the difference in values between the current status and the previous status");
         assertContains(results, "true");
         assertContains(results, "false");
+
+        // verify the right OnRemoved and OnShutdown methods were called
+        Assert.assertEquals(1, reportingTask.getOnRemovedArgs());
+        Assert.assertEquals(1, reportingTask.getOnRemovedNoArgs());
+
+        Assert.assertEquals(1, reportingTask.getOnShutdownArgs());
+        Assert.assertEquals(1, reportingTask.getOnShutdownNoArgs());
     }
 
     @Test

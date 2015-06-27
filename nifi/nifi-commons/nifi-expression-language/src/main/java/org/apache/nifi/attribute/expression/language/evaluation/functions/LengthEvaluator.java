@@ -22,20 +22,19 @@ import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.NumberEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.NumberQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
-import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
 
 public class LengthEvaluator extends NumberEvaluator {
 
-    private final StringEvaluator subject;
+    private final Evaluator<String> subject;
 
-    public LengthEvaluator(final StringEvaluator subject) {
+    public LengthEvaluator(final Evaluator<String> subject) {
         this.subject = subject;
     }
 
     @Override
     public QueryResult<Long> evaluate(final Map<String, String> attributes) {
         final String subjectValue = subject.evaluate(attributes).getValue();
-        return new NumberQueryResult((long) ((subjectValue == null) ? 0 : subjectValue.length()));
+        return new NumberQueryResult((long) (subjectValue == null ? 0 : subjectValue.length()));
     }
 
     @Override

@@ -36,11 +36,13 @@ public class EventNode implements ProvenanceEventLineageNode {
         return String.valueOf(getEventIdentifier());
     }
 
+    @Deprecated
     @Override
     public String getClusterNodeIdentifier() {
         return clusterNodeIdentifier;
     }
 
+    @Deprecated
     public void setClusterNodeIdentifier(final String nodeIdentifier) {
         this.clusterNodeIdentifier = nodeIdentifier;
     }

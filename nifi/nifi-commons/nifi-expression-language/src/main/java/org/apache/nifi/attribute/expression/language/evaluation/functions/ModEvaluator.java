@@ -25,10 +25,10 @@ import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 
 public class ModEvaluator extends NumberEvaluator {
 
-    private final NumberEvaluator subject;
-    private final NumberEvaluator modValue;
+    private final Evaluator<Long> subject;
+    private final Evaluator<Long> modValue;
 
-    public ModEvaluator(final NumberEvaluator subject, final NumberEvaluator modValue) {
+    public ModEvaluator(final Evaluator<Long> subject, final Evaluator<Long> modValue) {
         this.subject = subject;
         this.modValue = modValue;
     }

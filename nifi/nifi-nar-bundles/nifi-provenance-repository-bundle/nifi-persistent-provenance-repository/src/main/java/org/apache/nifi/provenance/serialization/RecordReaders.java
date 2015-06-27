@@ -32,7 +32,18 @@ import org.apache.nifi.provenance.toc.TocUtil;
 
 public class RecordReaders {
 
-    public static RecordReader newRecordReader(File file, final Collection<Path> provenanceLogFiles) throws IOException {
+    /**
+     * Creates a new Record Reader that is capable of reading Provenance Event Journals
+     *
+     * @param file the Provenance Event Journal to read data from
+     * @param provenanceLogFiles collection of all provenance journal files
+     * @param maxAttributeChars the maximum number of characters to retrieve for any one attribute. This allows us to avoid
+     *            issues where a FlowFile has an extremely large attribute and reading events
+     *            for that FlowFile results in loading that attribute into memory many times, exhausting the Java Heap
+     * @return a Record Reader capable of reading Provenance Event Journals
+     * @throws IOException if unable to create a Record Reader for the given file
+     */
+    public static RecordReader newRecordReader(File file, final Collection<Path> provenanceLogFiles, final int maxAttributeChars) throws IOException {
         final File originalFile = file;
         InputStream fis = null;
 
@@ -92,9 +103,9 @@ public class RecordReaders {
             final File tocFile = TocUtil.getTocFile(file);
             if ( tocFile.exists() ) {
                 final TocReader tocReader = new StandardTocReader(tocFile);
-                return new StandardRecordReader(fis, filename, tocReader);
+                return new StandardRecordReader(fis, filename, tocReader, maxAttributeChars);
             } else {
-                return new StandardRecordReader(fis, filename);
+                return new StandardRecordReader(fis, filename, maxAttributeChars);
             }
         } catch (final IOException ioe) {
             if ( fis != null ) {

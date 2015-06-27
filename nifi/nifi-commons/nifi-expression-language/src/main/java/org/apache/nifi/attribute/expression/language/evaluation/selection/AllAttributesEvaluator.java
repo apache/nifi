@@ -23,7 +23,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.BooleanQueryResu
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 
-public class AllAttributesEvaluator extends BooleanEvaluator {
+public class AllAttributesEvaluator extends BooleanEvaluator implements IteratingEvaluator<Boolean> {
 
     private final BooleanEvaluator booleanEvaluator;
     private final MultiAttributeEvaluator multiAttributeEvaluator;
@@ -64,5 +64,10 @@ public class AllAttributesEvaluator extends BooleanEvaluator {
     @Override
     public Evaluator<?> getSubjectEvaluator() {
         return null;
+    }
+
+    @Override
+    public Evaluator<?> getLogicEvaluator() {
+        return booleanEvaluator;
     }
 }

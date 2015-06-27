@@ -17,10 +17,12 @@
 package org.apache.nifi.attribute.expression.language;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -52,6 +54,8 @@ public class TestQuery {
         assertValid("${now():format('yyyy/MM/dd')}");
         assertInvalid("${attr:times(3)}");
         assertValid("${attr:toNumber():multiply(3)}");
+        assertValid("${hostname()}");
+        assertValid("${literal(3)}");
         // left here because it's convenient for looking at the output
         //System.out.println(Query.compile("").evaluate(null));
     }
@@ -296,7 +300,7 @@ public class TestQuery {
     }
 
     private String evaluateQueryForEscape(final String queryString, final Map<String, String> attributes) {
-        FlowFile mockFlowFile = Mockito.mock(FlowFile.class);
+        final FlowFile mockFlowFile = Mockito.mock(FlowFile.class);
         Mockito.when(mockFlowFile.getAttributes()).thenReturn(attributes);
         Mockito.when(mockFlowFile.getId()).thenReturn(1L);
         Mockito.when(mockFlowFile.getEntryDate()).thenReturn(System.currentTimeMillis());
@@ -429,7 +433,7 @@ public class TestQuery {
 
     @Test
     public void testExtractExpressionTypes() {
-        List<ResultType> types = Query.extractResultTypes("${hello:equals( ${goodbye} )} or just hi, ${bob}, are you ${bob.age:toNumber()} yet? $$$${bob}");
+        final List<ResultType> types = Query.extractResultTypes("${hello:equals( ${goodbye} )} or just hi, ${bob}, are you ${bob.age:toNumber()} yet? $$$${bob}");
         assertEquals(3, types.size());
         assertEquals(ResultType.BOOLEAN, types.get(0));
         assertEquals(ResultType.STRING, types.get(1));
@@ -493,7 +497,7 @@ public class TestQuery {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("xx", "say 'hi'");
 
-        String query = "${xx:replace( \"'hi'\", '\\\"hello\\\"' )}";
+        final String query = "${xx:replace( \"'hi'\", '\\\"hello\\\"' )}";
         System.out.println(query);
         verifyEquals(query, attributes, "say \"hello\"");
     }
@@ -1112,12 +1116,52 @@ public class TestQuery {
         assertEquals("{ xyz }", Query.evaluateExpressions(query, attributes));
     }
 
+    @Test
+    public void testLiteralFunction() {
+        final Map<String, String> attrs = Collections.<String, String> emptyMap();
+        verifyEquals("${literal(2):gt(1)}", attrs, true);
+        verifyEquals("${literal('hello'):substring(0, 1):equals('h')}", attrs, true);
+    }
+
+    @Test
+    public void testFunctionAfterReduce() {
+        // Cannot call gt(2) after count() because count() is a 'reducing function'
+        // and must be the last function in an expression.
+        assertFalse(Query.isValidExpression("${allMatchingAttributes('a.*'):contains('2'):count():gt(2)}"));
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("a.1", "245");
+        attributes.put("a.2", "123");
+        attributes.put("a.3", "732");
+        attributes.put("a.4", "343");
+        attributes.put("a.5", "553");
+
+        final String endsWithCount = "${allMatchingAttributes('a.*'):contains('2'):count()}";
+        assertTrue(Query.isValidExpression(endsWithCount));
+        verifyEquals(endsWithCount, attributes, 3L);
+
+        // in order to check if value is greater than 2, need to first evaluate the
+        // 'aggregate' and 'reducing' functions as an inner expression. Then we can
+        // use the literal() function to make the result of the inner expression the subject
+        // of the function gt()
+        final String usingLiteral = "${literal(" + endsWithCount + "):gt(2)}";
+        assertTrue(Query.isValidExpression(usingLiteral));
+        verifyEquals(usingLiteral, attributes, true);
+
+        attributes.clear();
+        attributes.put("a1", "123");
+        attributes.put("a2", "321");
+        verifyEquals("${allMatchingAttributes('a.*'):contains('2')}", attributes, true);
+        verifyEquals("${allMatchingAttributes('a.*'):contains('2'):toUpper():equals('TRUE')}", attributes, true);
+        verifyEquals("${allMatchingAttributes('a.*'):contains('2'):equals('true'):and( ${literal(true)} )}", attributes, true);
+    }
+
     private void verifyEquals(final String expression, final Map<String, String> attributes, final Object expectedResult) {
         Query.validateExpression(expression, false);
         assertEquals(String.valueOf(expectedResult), Query.evaluateExpressions(expression, attributes, null));
 
-        Query query = Query.compile(expression);
-        QueryResult<?> result = query.evaluate(attributes);
+        final Query query = Query.compile(expression);
+        final QueryResult<?> result = query.evaluate(attributes);
 
         if (expectedResult instanceof Number) {
             assertEquals(ResultType.NUMBER, result.getResultType());

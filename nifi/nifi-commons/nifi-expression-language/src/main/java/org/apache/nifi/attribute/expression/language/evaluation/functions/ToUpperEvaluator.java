@@ -25,16 +25,16 @@ import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResul
 
 public class ToUpperEvaluator extends StringEvaluator {
 
-    private final StringEvaluator subject;
+    private final Evaluator<String> subject;
 
-    public ToUpperEvaluator(final StringEvaluator subject) {
+    public ToUpperEvaluator(final Evaluator<String> subject) {
         this.subject = subject;
     }
 
     @Override
     public QueryResult<String> evaluate(final Map<String, String> attributes) {
         final String subjectValue = subject.evaluate(attributes).getValue();
-        return new StringQueryResult((subjectValue == null) ? null : subjectValue.toUpperCase());
+        return new StringQueryResult(subjectValue == null ? null : subjectValue.toUpperCase());
     }
 
     @Override

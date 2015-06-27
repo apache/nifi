@@ -51,7 +51,7 @@ public class DocsReader {
     }
 
     public Set<ProvenanceEventRecord> read(final TopDocs topDocs, final IndexReader indexReader, final Collection<Path> allProvenanceLogFiles,
-            final AtomicInteger retrievalCount, final int maxResults) throws IOException {
+            final AtomicInteger retrievalCount, final int maxResults, final int maxAttributeChars) throws IOException {
         if (retrievalCount.get() >= maxResults) {
             return Collections.emptySet();
         }
@@ -68,7 +68,7 @@ public class DocsReader {
 
         final long readDocuments = System.nanoTime() - start;
         logger.debug("Reading {} Lucene Documents took {} millis", docs.size(), TimeUnit.NANOSECONDS.toMillis(readDocuments));
-        return read(docs, allProvenanceLogFiles, retrievalCount, maxResults);
+        return read(docs, allProvenanceLogFiles, retrievalCount, maxResults, maxAttributeChars);
     }
 
 
@@ -108,7 +108,8 @@ public class DocsReader {
     }
 
 
-    public Set<ProvenanceEventRecord> read(final List<Document> docs, final Collection<Path> allProvenanceLogFiles, final AtomicInteger retrievalCount, final int maxResults) throws IOException {
+    public Set<ProvenanceEventRecord> read(final List<Document> docs, final Collection<Path> allProvenanceLogFiles,
+        final AtomicInteger retrievalCount, final int maxResults, final int maxAttributeChars) throws IOException {
         if (retrievalCount.get() >= maxResults) {
             return Collections.emptySet();
         }
@@ -161,7 +162,7 @@ public class DocsReader {
 
                         for (final File file : potentialFiles) {
                             try {
-                                reader = RecordReaders.newRecordReader(file, allProvenanceLogFiles);
+                                reader = RecordReaders.newRecordReader(file, allProvenanceLogFiles, maxAttributeChars);
                                 matchingRecords.add(getRecord(d, reader));
 
                                 if ( retrievalCount.incrementAndGet() >= maxResults ) {

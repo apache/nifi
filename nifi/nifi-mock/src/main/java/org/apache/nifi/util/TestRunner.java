@@ -165,7 +165,7 @@ public interface TestRunner {
      * @param stopOnFinish whether or not to run the Processor methods that are
      * annotated with {@link nifi.processor.annotation.OnStopped @OnStopped}
      * @param initialize true if must initialize
-     * @param runWait indiciates the amount of time in milliseconds that the framework should wait for
+     * @param runWait indicates the amount of time in milliseconds that the framework should wait for
      * processors to stop running before calling the {@link nifi.processor.annotation.OnUnscheduled @OnUnscheduled} annotation
      */
     void run(int iterations, boolean stopOnFinish, final boolean initialize, final long runWait);
