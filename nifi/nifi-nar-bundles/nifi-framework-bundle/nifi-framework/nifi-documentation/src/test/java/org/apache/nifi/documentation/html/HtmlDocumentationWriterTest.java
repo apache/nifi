@@ -58,6 +58,7 @@ public class HtmlDocumentationWriterTest {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
         writer.write(controllerService, baos, false);
+        initializer.teardown(controllerService);
 
         String results = new String(baos.toByteArray());
         XmlValidator.assertXmlValid(results);
@@ -96,6 +97,7 @@ public class HtmlDocumentationWriterTest {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
         writer.write(reportingTask, baos, false);
+        initializer.teardown(reportingTask);
 
         String results = new String(baos.toByteArray());
         XmlValidator.assertXmlValid(results);

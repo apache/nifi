@@ -40,11 +40,18 @@ public class ProcessorInitializer implements ConfigurableComponentInitializer {
         Processor processor = (Processor) component;
         try (NarCloseable narCloseable = NarCloseable.withNarLoader()) {
             processor.initialize(new MockProcessorInitializationContext());
+        }
+    }
+
+    @Override
+    public void teardown(ConfigurableComponent component) {
+        Processor processor = (Processor) component;
+        try (NarCloseable narCloseable = NarCloseable.withNarLoader()) {
 
             final ProcessorLog logger = new MockProcessorLogger();
             final MockProcessContext context = new MockProcessContext();
-            ReflectionUtils.quietlyInvokeMethodsWithAnnotations(OnRemoved.class, null, processor, logger, context);
-            ReflectionUtils.quietlyInvokeMethodsWithAnnotations(OnShutdown.class, null, processor, logger, context);
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotations(OnRemoved.class, org.apache.nifi.processor.annotation.OnRemoved.class, processor, logger, context);
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotations(OnShutdown.class, org.apache.nifi.processor.annotation.OnShutdown.class, processor, logger, context);
         }
     }
 }

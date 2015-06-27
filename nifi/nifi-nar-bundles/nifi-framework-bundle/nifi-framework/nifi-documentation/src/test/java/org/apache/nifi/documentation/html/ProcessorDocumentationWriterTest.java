@@ -44,6 +44,7 @@ public class ProcessorDocumentationWriterTest {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
         writer.write(processor, baos, false);
+        initializer.teardown(processor);
 
         String results = new String(baos.toByteArray());
         XmlValidator.assertXmlValid(results);
@@ -92,6 +93,7 @@ public class ProcessorDocumentationWriterTest {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
         writer.write(processor, baos, false);
+        initializer.teardown(processor);
 
         String results = new String(baos.toByteArray());
         XmlValidator.assertXmlValid(results);
@@ -121,6 +123,7 @@ public class ProcessorDocumentationWriterTest {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
         writer.write(processor, baos, false);
+        initializer.teardown(processor);
 
         String results = new String(baos.toByteArray());
         XmlValidator.assertXmlValid(results);

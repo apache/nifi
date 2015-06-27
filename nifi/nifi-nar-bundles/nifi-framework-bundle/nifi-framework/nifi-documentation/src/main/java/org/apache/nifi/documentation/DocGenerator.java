@@ -114,6 +114,8 @@ public class DocGenerator {
         try (final OutputStream output = new BufferedOutputStream(new FileOutputStream(baseDocumenationFile))) {
             writer.write(component, output, hasAdditionalInfo(directory));
         }
+
+        initializer.teardown(component);
     }
 
     /**

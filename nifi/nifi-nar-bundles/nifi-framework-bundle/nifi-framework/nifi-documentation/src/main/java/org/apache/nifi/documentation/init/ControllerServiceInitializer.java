@@ -42,11 +42,18 @@ public class ControllerServiceInitializer implements ConfigurableComponentInitia
 
         try (NarCloseable narCloseable = NarCloseable.withNarLoader()) {
             controllerService.initialize(new MockControllerServiceInitializationContext());
+        }
+    }
+
+    @Override
+    public void teardown(ConfigurableComponent component) {
+        try (NarCloseable narCloseable = NarCloseable.withNarLoader()) {
+            ControllerService controllerService = (ControllerService) component;
 
             final ProcessorLog logger = new MockProcessorLogger();
             final MockConfigurationContext context = new MockConfigurationContext();
-            ReflectionUtils.quietlyInvokeMethodsWithAnnotations(OnRemoved.class, null, controllerService, logger, context);
-            ReflectionUtils.quietlyInvokeMethodsWithAnnotations(OnShutdown.class, null, controllerService, logger, context);
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotations(OnRemoved.class, org.apache.nifi.processor.annotation.OnRemoved.class, controllerService, logger, context);
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotations(OnShutdown.class, org.apache.nifi.processor.annotation.OnShutdown.class, controllerService, logger, context);
         }
     }
 }
