@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-external</artifactId>
-        <version>0.1.1-incubating-SNAPSHOT</version>
+        <version>0.2.0-incubating-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-example-bundle</artifactId>
@@ -30,4 +30,13 @@
         <module>nifi-nifi-example-nar</module>
     </modules>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-nifi-example-processors</artifactId>
+                <version>0.2.0-incubating-SNAPSHOT</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 </project>

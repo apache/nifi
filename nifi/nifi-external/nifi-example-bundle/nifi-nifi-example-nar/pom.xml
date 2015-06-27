@@ -19,17 +19,16 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-example-bundle</artifactId>
-        <version>0.1.1-incubating-SNAPSHOT</version>
+        <version>0.2.0-incubating-SNAPSHOT</version>
     </parent>
 
-    <artifactId>nifi-nifi-example-nar</artifactId>
+    <artifactId>nifi-example-nar</artifactId>
     <packaging>nar</packaging>
 
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-nifi-example-processors</artifactId>
-            <version>${project.version}</version>
         </dependency>
     </dependencies>
 
