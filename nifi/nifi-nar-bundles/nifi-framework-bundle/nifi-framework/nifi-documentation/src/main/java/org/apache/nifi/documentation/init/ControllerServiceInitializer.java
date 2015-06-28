@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.documentation.init;
 
-import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.controller.ControllerService;
@@ -52,7 +51,6 @@ public class ControllerServiceInitializer implements ConfigurableComponentInitia
 
             final ProcessorLog logger = new MockProcessorLogger();
             final MockConfigurationContext context = new MockConfigurationContext();
-            ReflectionUtils.quietlyInvokeMethodsWithAnnotations(OnRemoved.class, org.apache.nifi.processor.annotation.OnRemoved.class, controllerService, logger, context);
             ReflectionUtils.quietlyInvokeMethodsWithAnnotations(OnShutdown.class, org.apache.nifi.processor.annotation.OnShutdown.class, controllerService, logger, context);
         }
     }
