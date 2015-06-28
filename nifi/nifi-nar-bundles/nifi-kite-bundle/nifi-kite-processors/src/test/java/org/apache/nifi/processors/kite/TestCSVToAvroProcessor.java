@@ -20,9 +20,11 @@ package org.apache.nifi.processors.kite;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
@@ -43,6 +45,12 @@ public class TestCSVToAvroProcessor {
             + ",blue,\n" + // invalid, ID is missing
             "2,grey,12.95";
 
+    public static final String FAILURE_CONTENT = ""
+            + ",blue,\n"; // invalid, ID is missing
+
+    public static final String FAILURE_SUMMARY = "" +
+            "Field id: cannot make \"long\" value: '': Field id type:LONG pos:0 not set and has no default value";
+
     @Test
     public void testBasicConversion() throws IOException {
         TestRunner runner = TestRunners.newTestRunner(ConvertCSVToAvro.class);
@@ -58,7 +66,17 @@ public class TestCSVToAvroProcessor {
         Assert.assertEquals("Should convert 2 rows", 2, converted);
         Assert.assertEquals("Should reject 1 row", 1, errors);
 
-        runner.assertAllFlowFilesTransferred("success", 1);
+        runner.assertTransferCount("success", 1);
+        runner.assertTransferCount("failure", 0);
+        runner.assertTransferCount("incompatible", 1);
+
+        MockFlowFile incompatible = runner.getFlowFilesForRelationship("incompatible").get(0);
+        String failureContent = new String(runner.getContentAsByteArray(incompatible),
+                StandardCharsets.UTF_8);
+        Assert.assertEquals("Should reject an invalid string and double",
+                CSV_CONTENT, failureContent);
+        Assert.assertEquals("Should accumulate error messages",
+                FAILURE_SUMMARY, incompatible.getAttribute("errors"));
     }
 
     @Test
@@ -76,7 +94,61 @@ public class TestCSVToAvroProcessor {
         Assert.assertEquals("Should convert 2 rows", 2, converted);
         Assert.assertEquals("Should reject 1 row", 1, errors);
 
-        runner.assertAllFlowFilesTransferred("success", 1);
+        runner.assertTransferCount("success", 1);
+        runner.assertTransferCount("failure", 0);
+        runner.assertTransferCount("incompatible", 1);
+
+        MockFlowFile incompatible = runner.getFlowFilesForRelationship("incompatible").get(0);
+        Assert.assertEquals("Should accumulate error messages",
+                FAILURE_SUMMARY, incompatible.getAttribute("errors"));
+    }
+
+    @Test
+    public void testOnlyErrors() throws IOException {
+        TestRunner runner = TestRunners.newTestRunner(ConvertCSVToAvro.class);
+        runner.assertNotValid();
+        runner.setProperty(ConvertCSVToAvro.SCHEMA, SCHEMA.toString());
+        runner.assertValid();
+
+        runner.enqueue(streamFor(FAILURE_CONTENT));
+        runner.run();
+
+        long converted = runner.getCounterValue("Converted records");
+        long errors = runner.getCounterValue("Conversion errors");
+        Assert.assertEquals("Should convert 0 rows", 0, converted);
+        Assert.assertEquals("Should reject 1 row", 1, errors);
+
+        runner.assertTransferCount("success", 0);
+        runner.assertTransferCount("failure", 1);
+        runner.assertTransferCount("incompatible", 0);
+
+        MockFlowFile incompatible = runner.getFlowFilesForRelationship("failure").get(0);
+        Assert.assertEquals("Should set an error message",
+                FAILURE_SUMMARY, incompatible.getAttribute("errors"));
+    }
+
+    @Test
+    public void testEmptyContent() throws IOException {
+        TestRunner runner = TestRunners.newTestRunner(ConvertCSVToAvro.class);
+        runner.assertNotValid();
+        runner.setProperty(ConvertCSVToAvro.SCHEMA, SCHEMA.toString());
+        runner.assertValid();
+
+        runner.enqueue(streamFor(""));
+        runner.run();
+
+        long converted = runner.getCounterValue("Converted records");
+        long errors = runner.getCounterValue("Conversion errors");
+        Assert.assertEquals("Should convert 0 rows", 0, converted);
+        Assert.assertEquals("Should reject 0 row", 0, errors);
+
+        runner.assertTransferCount("success", 0);
+        runner.assertTransferCount("failure", 1);
+        runner.assertTransferCount("incompatible", 0);
+
+        MockFlowFile incompatible = runner.getFlowFilesForRelationship("failure").get(0);
+        Assert.assertEquals("Should set an error message",
+                "No incoming records", incompatible.getAttribute("errors"));
     }
 
     @Test
@@ -121,5 +193,25 @@ public class TestCSVToAvroProcessor {
                 true, processor.props.useHeader);
         Assert.assertEquals("Lines to skip should match",
                 2, processor.props.linesToSkip);
+    }
+
+    @Test
+    public void testBasicConversionNoErrors() throws IOException {
+        TestRunner runner = TestRunners.newTestRunner(ConvertCSVToAvro.class);
+        runner.assertNotValid();
+        runner.setProperty(ConvertCSVToAvro.SCHEMA, SCHEMA.toString());
+        runner.assertValid();
+
+        runner.enqueue(streamFor("1,green\n2,blue,\n3,grey,12.95"));
+        runner.run();
+
+        long converted = runner.getCounterValue("Converted records");
+        long errors = runner.getCounterValue("Conversion errors");
+        Assert.assertEquals("Should convert 3 rows", 3, converted);
+        Assert.assertEquals("Should reject 0 row", 0, errors);
+
+        runner.assertTransferCount("success", 1);
+        runner.assertTransferCount("failure", 0);
+        runner.assertTransferCount("incompatible", 0);
     }
 }
