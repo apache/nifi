@@ -24,6 +24,7 @@ import org.apache.nifi.reporting.ComponentType;
 import org.apache.nifi.reporting.Severity;
 
 public class ControllerServiceLogObserver implements LogObserver {
+
     private final BulletinRepository bulletinRepository;
     private final ControllerServiceNode serviceNode;
 
@@ -38,8 +39,8 @@ public class ControllerServiceLogObserver implements LogObserver {
         // the LogLevel is (INFO and ERROR map directly and all others we will just accept as they are).
         final String bulletinLevel = message.getLevel() == LogLevel.WARN ? Severity.WARNING.name() : message.getLevel().toString();
 
-        final Bulletin bulletin = BulletinFactory.createBulletin(null, serviceNode.getIdentifier(), ComponentType.REPORTING_TASK,
-            serviceNode.getName(), "Log Message", bulletinLevel, message.getMessage());
+        final Bulletin bulletin = BulletinFactory.createBulletin(null, serviceNode.getIdentifier(), ComponentType.CONTROLLER_SERVICE,
+                serviceNode.getName(), "Log Message", bulletinLevel, message.getMessage());
         bulletinRepository.addBulletin(bulletin);
     }
 }

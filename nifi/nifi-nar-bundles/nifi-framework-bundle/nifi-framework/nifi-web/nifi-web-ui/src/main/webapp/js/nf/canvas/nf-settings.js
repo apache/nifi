@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-/* global nf, Slick */
+/* global nf, Slick, d3 */
 
 nf.Settings = (function () {
 
@@ -600,9 +600,21 @@ nf.Settings = (function () {
         // more details formatter
         var moreControllerServiceDetails = function (row, cell, value, columnDef, dataContext) {
             var markup = '<img src="images/iconDetails.png" title="View Details" class="pointer view-controller-service" style="margin-top: 5px; float: left;" />';
-            if (!nf.Common.isEmpty(dataContext.validationErrors)) {
-                markup += '<img src="images/iconAlert.png" class="has-errors" style="margin-top: 4px; margin-left: 4px; float: left;" /><span class="hidden row-id">' + nf.Common.escapeHtml(dataContext.id) + '</span>';
+            var hasErrors = !nf.Common.isEmpty(dataContext.validationErrors);
+            var hasBulletins = !nf.Common.isEmpty(dataContext.bulletins);
+            
+            if (hasErrors) {
+                markup += '<img src="images/iconAlert.png" class="has-errors" style="margin-top: 4px; margin-left: 1px; float: left;" />';
             }
+            
+            if (hasBulletins) {
+                markup += '<img src="images/iconBulletin.png" class="has-bulletins" style="margin-top: 5px; margin-left: 5px; float: left;"/>';
+            }
+            
+            if (hasErrors || hasBulletins) {
+                markup += '<span class="hidden row-id">' + nf.Common.escapeHtml(dataContext.id) + '</span>';
+            }
+            
             return markup;
         };
         
@@ -642,7 +654,12 @@ nf.Settings = (function () {
                     markup += '<img src="images/iconDisable.png" title="Disable" class="pointer disable-controller-service" style="margin-top: 2px;" />&nbsp;';
                 } else if (dataContext.state === 'DISABLED') {
                     markup += '<img src="images/iconEdit.png" title="Edit" class="pointer edit-controller-service" style="margin-top: 2px;" />&nbsp;';
-                    markup += '<img src="images/iconEnable.png" title="Enable" class="pointer enable-controller-service" style="margin-top: 2px;"/>&nbsp;';
+                    
+                    // if there are no validation errors allow enabling
+                    if (nf.Common.isEmpty(dataContext.validationErrors)) {
+                        markup += '<img src="images/iconEnable.png" title="Enable" class="pointer enable-controller-service" style="margin-top: 2px;"/>&nbsp;';
+                    }
+                    
                     markup += '<img src="images/iconDelete.png" title="Remove" class="pointer delete-controller-service" style="margin-top: 2px;" />&nbsp;';
                 }
             }
@@ -655,7 +672,7 @@ nf.Settings = (function () {
 
         // define the column model for the controller services table
         var controllerServicesColumns = [
-            {id: 'moreDetails', name: '&nbsp;', resizable: false, formatter: moreControllerServiceDetails, sortable: false, width: 50, maxWidth: 50},
+            {id: 'moreDetails', name: '&nbsp;', resizable: false, formatter: moreControllerServiceDetails, sortable: false, width: 65, maxWidth: 65},
             {id: 'name', field: 'name', name: 'Name', sortable: true, resizable: true},
             {id: 'type', field: 'type', name: 'Type', formatter: typeFormatter, sortable: true, resizable: true},
             {id: 'state', field: 'state', name: 'State', formatter: controllerServiceStateFormatter, sortable: true, resizeable: true}
@@ -767,6 +784,34 @@ nf.Settings = (function () {
                     }, nf.Common.config.tooltipConfig));
                 }
             }
+            
+            var bulletinIcon = $(this).find('img.has-bulletins');
+            if (bulletinIcon.length && !bulletinIcon.data('qtip')) {
+                var taskId = $(this).find('span.row-id').text();
+
+                // get the task item
+                var item = controllerServicesData.getItemById(taskId);
+                
+                // format the tooltip
+                var bulletins = nf.Common.getFormattedBulletins(item.bulletins);
+                var tooltip = nf.Common.formatUnorderedList(bulletins);
+
+                // show the tooltip
+                if (nf.Common.isDefinedAndNotNull(tooltip)) {
+                    bulletinIcon.qtip($.extend({}, nf.Common.config.tooltipConfig, {
+                        content: tooltip,
+                        position: {
+                            target: 'mouse',
+                            viewport: $(window),
+                            adjust: {
+                                x: 8,
+                                y: 8,
+                                method: 'flipinvert flipinvert'
+                            }
+                        }
+                    }));
+                }
+            }
         });
     };
 
@@ -785,7 +830,9 @@ nf.Settings = (function () {
             var nodeServices = response.controllerServices;
             if (nf.Common.isDefinedAndNotNull(nodeServices)) {
                 $.each(nodeServices, function (_, nodeService) {
-                    services.push(nodeService);
+                    services.push($.extend({
+                        bulletins: []
+                    }, nodeService));
                 });
             }
         });
@@ -801,7 +848,9 @@ nf.Settings = (function () {
                     var ncmServices = response.controllerServices;
                     if (nf.Common.isDefinedAndNotNull(ncmServices)) {
                         $.each(ncmServices, function (_, ncmService) {
-                            services.push(ncmService);
+                            services.push($.extend({
+                                bulletins: []
+                            }, ncmService));
                         });
                     }
                     deferred.resolve();
@@ -817,6 +866,7 @@ nf.Settings = (function () {
         return $.when(nodeControllerServices, ncmControllerServices).done(function () {
             var controllerServicesElement = $('#controller-services-table');
             nf.Common.cleanUpTooltips(controllerServicesElement, 'img.has-errors');
+            nf.Common.cleanUpTooltips(controllerServicesElement, 'img.has-bulletins');
 
             var controllerServicesGrid = controllerServicesElement.data('gridInstance');
             var controllerServicesData = controllerServicesGrid.getData();
@@ -1198,9 +1248,21 @@ nf.Settings = (function () {
 
         var moreReportingTaskDetails = function (row, cell, value, columnDef, dataContext) {
             var markup = '<img src="images/iconDetails.png" title="View Details" class="pointer view-reporting-task" style="margin-top: 5px; float: left;" />';
-            if (!nf.Common.isEmpty(dataContext.validationErrors)) {
-                markup += '<img src="images/iconAlert.png" class="has-errors" style="margin-top: 4px; margin-left: 4px; float: left" /><span class="hidden row-id">' + nf.Common.escapeHtml(dataContext.id) + '</span>';
+            var hasErrors = !nf.Common.isEmpty(dataContext.validationErrors);
+            var hasBulletins = !nf.Common.isEmpty(dataContext.bulletins);
+            
+            if (hasErrors) {
+                markup += '<img src="images/iconAlert.png" class="has-errors" style="margin-top: 4px; margin-left: 1px; float: left;" />';
             }
+            
+            if (hasBulletins) {
+                markup += '<img src="images/iconBulletin.png" class="has-bulletins" style="margin-top: 5px; margin-left: 5px; float: left;"/>';
+            }
+            
+            if (hasErrors || hasBulletins) {
+                markup += '<span class="hidden row-id">' + nf.Common.escapeHtml(dataContext.id) + '</span>';
+            }
+            
             return markup;
         };
         
@@ -1239,7 +1301,12 @@ nf.Settings = (function () {
                     markup += '<img src="images/iconStop.png" title="Stop" class="pointer stop-reporting-task" style="margin-top: 2px;" />&nbsp;';
                 } else if (dataContext.state === 'STOPPED' || dataContext.state === 'DISABLED') {
                     markup += '<img src="images/iconEdit.png" title="Edit" class="pointer edit-reporting-task" style="margin-top: 2px;" />&nbsp;';
-                    markup += '<img src="images/iconRun.png" title="Start" class="pointer start-reporting-task" style="margin-top: 2px;"/>&nbsp;';
+                 
+                    // support starting when stopped and no validation errors
+                    if (dataContext.state === 'STOPPED' && nf.Common.isEmpty(dataContext.validationErrors)) {
+                        markup += '<img src="images/iconRun.png" title="Start" class="pointer start-reporting-task" style="margin-top: 2px;"/>&nbsp;';
+                    }
+                    
                     markup += '<img src="images/iconDelete.png" title="Remove" class="pointer delete-reporting-task" style="margin-top: 2px;" />&nbsp;';
                 }
             }
@@ -1252,7 +1319,7 @@ nf.Settings = (function () {
 
         // define the column model for the reporting tasks table
         var reportingTasksColumnModel = [
-            {id: 'moreDetails', field: 'moreDetails', name: '&nbsp;', resizable: false, formatter: moreReportingTaskDetails, sortable: true, width: 50, maxWidth: 50},
+            {id: 'moreDetails', field: 'moreDetails', name: '&nbsp;', resizable: false, formatter: moreReportingTaskDetails, sortable: true, width: 65, maxWidth: 65},
             {id: 'name', field: 'name', name: 'Name', sortable: true, resizable: true},
             {id: 'type', field: 'type', name: 'Type', sortable: true, resizable: true, formatter: typeFormatter},
             {id: 'state', field: 'state', name: 'Run Status', sortable: true, resizeable: true, formatter: reportingTaskRunStatusFormatter}
@@ -1342,7 +1409,7 @@ nf.Settings = (function () {
             if (errorIcon.length && !errorIcon.data('qtip')) {
                 var taskId = $(this).find('span.row-id').text();
 
-                // get the service item
+                // get the task item
                 var item = reportingTasksData.getItemById(taskId);
 
                 // format the errors
@@ -1364,6 +1431,34 @@ nf.Settings = (function () {
                     }, nf.Common.config.tooltipConfig));
                 }
             }
+            
+            var bulletinIcon = $(this).find('img.has-bulletins');
+            if (bulletinIcon.length && !bulletinIcon.data('qtip')) {
+                var taskId = $(this).find('span.row-id').text();
+
+                // get the task item
+                var item = reportingTasksData.getItemById(taskId);
+                
+                // format the tooltip
+                var bulletins = nf.Common.getFormattedBulletins(item.bulletins);
+                var tooltip = nf.Common.formatUnorderedList(bulletins);
+
+                // show the tooltip
+                if (nf.Common.isDefinedAndNotNull(tooltip)) {
+                    bulletinIcon.qtip($.extend({}, nf.Common.config.tooltipConfig, {
+                        content: tooltip,
+                        position: {
+                            target: 'mouse',
+                            viewport: $(window),
+                            adjust: {
+                                x: 8,
+                                y: 8,
+                                method: 'flipinvert flipinvert'
+                            }
+                        }
+                    }));
+                }
+            }
         });
     };
 
@@ -1382,7 +1477,9 @@ nf.Settings = (function () {
             var nodeTasks = response.reportingTasks;
             if (nf.Common.isDefinedAndNotNull(nodeTasks)) {
                 $.each(nodeTasks, function (_, nodeTask) {
-                    tasks.push(nodeTask);
+                    tasks.push($.extend({
+                        bulletins: []
+                    }, nodeTask));
                 });
             }
         });
@@ -1414,6 +1511,7 @@ nf.Settings = (function () {
         return $.when(nodeReportingTasks, ncmReportingTasks).done(function () {
             var reportingTasksElement = $('#reporting-tasks-table');
             nf.Common.cleanUpTooltips(reportingTasksElement, 'img.has-errors');
+            nf.Common.cleanUpTooltips(reportingTasksElement, 'img.has-bulletins');
 
             var reportingTasksGrid = reportingTasksElement.data('gridInstance');
             var reportingTasksData = reportingTasksGrid.getData();
@@ -1580,7 +1678,75 @@ nf.Settings = (function () {
             var reportingTasks = loadReportingTasks();
 
             // return a deferred for all parts of the settings
-            return $.when(settings, controllerServices, reportingTasks).fail(nf.Common.handleAjaxError);
+            return $.when(settings, controllerServices, reportingTasks).done(nf.Canvas.reloadStatus).fail(nf.Common.handleAjaxError);
+        },
+        
+        /**
+         * Sets the controller service and reporting task bulletins in their respective tables.
+         * 
+         * @param {object} controllerServiceBulletins
+         * @param {object} reportingTaskBulletins
+         */
+        setBulletins: function(controllerServiceBulletins, reportingTaskBulletins) {
+            // controller services
+            var controllerServicesGrid = $('#controller-services-table').data('gridInstance');
+            var controllerServicesData = controllerServicesGrid.getData();
+            controllerServicesData.beginUpdate();
+
+            // if there are some bulletins process them
+            if (!nf.Common.isEmpty(controllerServiceBulletins)) {
+                var controllerServiceBulletinsBySource = d3.nest()
+                    .key(function(d) { return d.sourceId; })
+                    .map(controllerServiceBulletins, d3.map);
+            
+                controllerServiceBulletinsBySource.forEach(function(sourceId, sourceBulletins) {
+                    var controllerService = controllerServicesData.getItemById(sourceId);
+                    if (nf.Common.isDefinedAndNotNull(controllerService)) {
+                        controllerServicesData.updateItem(sourceId, $.extend(controllerService, {
+                            bulletins: sourceBulletins
+                        }));
+                    }
+                });
+            } else {
+                // if there are no bulletins clear all
+                var controllerServices = controllerServicesData.getItems();
+                $.each(controllerServices, function(_, controllerService) {
+                    controllerServicesData.updateItem(controllerService.id, $.extend(controllerService, {
+                        bulletins: []
+                    }));
+                });
+            }
+            controllerServicesData.endUpdate();
+
+            // reporting tasks
+            var reportingTasksGrid = $('#reporting-tasks-table').data('gridInstance');
+            var reportingTasksData = reportingTasksGrid.getData();
+            reportingTasksData.beginUpdate();
+            
+            // if there are some bulletins process them
+            if (!nf.Common.isEmpty(reportingTaskBulletins)) {
+                var reportingTaskBulletinsBySource = d3.nest()
+                    .key(function(d) { return d.sourceId; })
+                    .map(reportingTaskBulletins, d3.map);
+
+                reportingTaskBulletinsBySource.forEach(function(sourceId, sourceBulletins) {
+                    var reportingTask = reportingTasksData.getItemById(sourceId);
+                    if (nf.Common.isDefinedAndNotNull(reportingTask)) {
+                        reportingTasksData.updateItem(sourceId, $.extend(reportingTask, {
+                            bulletins: sourceBulletins
+                        }));
+                    }
+                });
+            } else {
+                // if there are no bulletins clear all
+                var reportingTasks = reportingTasksData.getItems();
+                $.each(reportingTasks, function(_, reportingTask) {
+                    controllerServicesData.updateItem(reportingTask.id, $.extend(reportingTask, {
+                        bulletins: []
+                    }));
+                });
+            }
+            reportingTasksData.endUpdate();
         }
     };
 }());

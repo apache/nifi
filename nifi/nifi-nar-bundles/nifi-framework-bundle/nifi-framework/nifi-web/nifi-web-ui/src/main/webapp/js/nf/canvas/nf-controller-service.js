@@ -149,7 +149,10 @@ nf.ControllerService = (function () {
         // get the table and update the row accordingly
         var controllerServiceGrid = $('#controller-services-table').data('gridInstance');
         var controllerServiceData = controllerServiceGrid.getData();
-        controllerServiceData.updateItem(controllerService.id, controllerService);
+        var currentControllerService = controllerServiceData.getItemById(controllerService.id);
+        controllerServiceData.updateItem(controllerService.id, $.extend({
+            bulletins: currentControllerService.bulletins
+        }, controllerService));
     };
     
     /**
@@ -426,7 +429,7 @@ nf.ControllerService = (function () {
                 
                 // container for this service's references
                 var referencingServiceReferencesContainer = $('<div class="referencing-component-references hidden"></div>');
-                var serviceTwist = $('<span class="service expansion-button collapsed pointer"></span>').on('click', function() {
+                var serviceTwist = $('<div class="service expansion-button collapsed pointer"></div>').on('click', function() {
                     if (serviceTwist.hasClass('collapsed')) {
                         var controllerServiceGrid = $('#controller-services-table').data('gridInstance');
                         var controllerServiceData = controllerServiceGrid.getData();
@@ -511,7 +514,7 @@ nf.ControllerService = (function () {
                 return;
             }
             
-            var twist = $('<span class="expansion-button expanded"></span>');
+            var twist = $('<div class="expansion-button expanded"></div>');
             var title = $('<span class="referencing-component-title"></span>').text(titleText);
             var count = $('<span class="referencing-component-count"></span>').text('(' + list.children().length + ')');
             

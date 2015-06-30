@@ -833,6 +833,9 @@ nf.Canvas = (function () {
                         bulletinIcon.show();
                     }
                 }
+                
+                // update controller service and reporting task bulletins
+                nf.Settings.setBulletins(controllerStatus.controllerServiceBulletins, controllerStatus.reportingTaskBulletins);
 
                 // handle any pending user request
                 if (controllerStatus.hasPendingAccounts === true) {

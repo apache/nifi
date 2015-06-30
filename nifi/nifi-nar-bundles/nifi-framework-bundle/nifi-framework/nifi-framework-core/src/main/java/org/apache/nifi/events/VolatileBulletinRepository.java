@@ -102,6 +102,14 @@ public class VolatileBulletinRepository implements BulletinRepository {
                     }
                 }
 
+                // if a source component type was specified see if it should be excluded
+                if (bulletinQuery.getSourceType() != null) {
+                    // exclude if this bulletin source type doesn't match
+                    if (bulletin.getSourceType() == null || !bulletinQuery.getSourceType().equals(bulletin.getSourceType())) {
+                        return false;
+                    }
+                }
+
                 return true;
             }
         };
@@ -177,8 +185,9 @@ public class VolatileBulletinRepository implements BulletinRepository {
     }
 
     /**
-     * Overrides the default bulletin processing strategy. When a custom bulletin strategy is employed, bulletins will not be persisted in this repository and will sent to the specified strategy
-     * instead.
+     * Overrides the default bulletin processing strategy. When a custom
+     * bulletin strategy is employed, bulletins will not be persisted in this
+     * repository and will sent to the specified strategy instead.
      *
      * @param strategy bulletin strategy
      */

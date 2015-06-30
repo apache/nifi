@@ -133,9 +133,12 @@ div.referencing-component-bulletins {
     display: none;
 }
 
-span.service.expansion-button {
+div.service.expansion-button {
+    float: left;
     margin-right: 4px;
     margin-top: 2px;
+    width: 10px;
+    height: 10px;
 }
 
 span.referencing-component-active-thread-count {
@@ -197,6 +200,8 @@ div.referencing-component-references {
 
 #disable-controller-service-name {
     float: left;
+    max-width: 280px;
+    text-overflow: ellipsis;
 }
 
 #disable-controller-service-bulletins {
@@ -246,6 +251,8 @@ div.referencing-component-references {
 
 #enable-controller-service-name {
     float: left;
+    max-width: 280px;
+    text-overflow: ellipsis;
 }
 
 #enable-controller-service-bulletins {

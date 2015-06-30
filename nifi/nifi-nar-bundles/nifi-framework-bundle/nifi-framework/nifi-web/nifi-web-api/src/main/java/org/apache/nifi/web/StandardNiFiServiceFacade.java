@@ -159,6 +159,7 @@ import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceReference;
 import org.apache.nifi.controller.service.ControllerServiceState;
+import org.apache.nifi.reporting.ComponentType;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceReferencingComponentDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
@@ -1578,12 +1579,15 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
             // get the bulletins for the controller
             final BulletinRepository bulletinRepository = clusterManager.getBulletinRepository();
-            final List<Bulletin> results = bulletinRepository.findBulletinsForController();
-            final List<BulletinDTO> bulletinDtos = new ArrayList<>(results.size());
-            for (final Bulletin bulletin : results) {
-                bulletinDtos.add(dtoFactory.createBulletinDto(bulletin));
-            }
-            controllerStatus.setBulletins(bulletinDtos);
+            controllerStatus.setBulletins(dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForController()));
+
+            // get the controller service bulletins
+            final BulletinQuery controllerServiceQuery = new BulletinQuery.Builder().sourceType(ComponentType.CONTROLLER_SERVICE).build();
+            controllerStatus.setControllerServiceBulletins(dtoFactory.createBulletinDtos(bulletinRepository.findBulletins(controllerServiceQuery)));
+
+            // get the reporting task bulletins
+            final BulletinQuery reportingTaskQuery = new BulletinQuery.Builder().sourceType(ComponentType.REPORTING_TASK).build();
+            controllerStatus.setReportingTaskBulletins(dtoFactory.createBulletinDtos(bulletinRepository.findBulletins(reportingTaskQuery)));
 
             // get the component counts by extracting them from the roots' group status
             final ProcessGroupStatus status = clusterManager.getProcessGroupStatus("root");
@@ -3019,7 +3023,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     /**
-     * Utility method for extracting component counts from the specified group status.
+     * Utility method for extracting component counts from the specified group
+     * status.
      */
     private ProcessGroupCounts extractProcessGroupCounts(ProcessGroupStatus groupStatus) {
         int running = 0;
