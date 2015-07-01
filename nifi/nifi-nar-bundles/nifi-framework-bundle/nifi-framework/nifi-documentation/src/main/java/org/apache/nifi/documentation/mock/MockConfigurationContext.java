@@ -18,6 +18,7 @@ package org.apache.nifi.documentation.mock;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -35,4 +36,13 @@ public class MockConfigurationContext implements ConfigurationContext {
         return Collections.emptyMap();
     }
 
+    @Override
+    public String getSchedulingPeriod() {
+        return "0 secs";
+    }
+
+    @Override
+    public Long getSchedulingPeriod(final TimeUnit timeUnit) {
+        return 0L;
+    }
 }

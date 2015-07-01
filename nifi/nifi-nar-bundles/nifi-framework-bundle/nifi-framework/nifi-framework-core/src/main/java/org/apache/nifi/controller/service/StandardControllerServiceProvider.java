@@ -142,7 +142,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
                     final ControllerServiceNode node = serviceNodeHolder.get();
                     final ControllerServiceState state = node.getState();
-                    final boolean disabled = (state != ControllerServiceState.ENABLED); // only allow method call if service state is ENABLED.
+                    final boolean disabled = state != ControllerServiceState.ENABLED; // only allow method call if service state is ENABLED.
                     if (disabled && !validDisabledMethods.contains(method)) {
                         // Use nar class loader here because we are implicitly calling toString() on the original implementation.
                         try (final NarCloseable narCloseable = NarCloseable.withNarLoader()) {
@@ -435,7 +435,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     @Override
     public ControllerService getControllerService(final String serviceIdentifier) {
         final ControllerServiceNode node = controllerServices.get(serviceIdentifier);
-        return (node == null) ? null : node.getProxiedControllerService();
+        return node == null ? null : node.getProxiedControllerService();
     }
 
     @Override
@@ -446,13 +446,13 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     @Override
     public boolean isControllerServiceEnabled(final String serviceIdentifier) {
         final ControllerServiceNode node = controllerServices.get(serviceIdentifier);
-        return (node == null) ? false : (ControllerServiceState.ENABLED == node.getState());
+        return node == null ? false : ControllerServiceState.ENABLED == node.getState();
     }
 
     @Override
     public boolean isControllerServiceEnabling(final String serviceIdentifier) {
         final ControllerServiceNode node = controllerServices.get(serviceIdentifier);
-        return (node == null) ? false : (ControllerServiceState.ENABLING == node.getState());
+        return node == null ? false : ControllerServiceState.ENABLING == node.getState();
     }
 
     @Override
@@ -488,7 +488,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         serviceNode.verifyCanDelete();
 
         try (final NarCloseable x = NarCloseable.withNarLoader()) {
-            final ConfigurationContext configurationContext = new StandardConfigurationContext(serviceNode, this);
+            final ConfigurationContext configurationContext = new StandardConfigurationContext(serviceNode, this, null);
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, serviceNode.getControllerServiceImplementation(), configurationContext);
         }
 

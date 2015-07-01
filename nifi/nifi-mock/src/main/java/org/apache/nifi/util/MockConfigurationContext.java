@@ -18,6 +18,7 @@ package org.apache.nifi.util;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -62,5 +63,15 @@ public class MockConfigurationContext implements ConfigurationContext {
 
         final PropertyDescriptor resolved = service.getPropertyDescriptor(property.getName());
         return resolved == null ? property : resolved;
+    }
+
+    @Override
+    public String getSchedulingPeriod() {
+        return "0 secs";
+    }
+
+    @Override
+    public Long getSchedulingPeriod(final TimeUnit timeUnit) {
+        return 0L;
     }
 }
