@@ -591,9 +591,9 @@ nf.ControllerService = (function () {
                         }
                     }
                     
-                    // the condition is met once the service is ENABLED/DISABLED
+                    // the condition is met once the service is (ENABLING or ENABLED)/DISABLED
                     if (enabled) {
-                        return service.state === 'ENABLED';
+                        return service.state === 'ENABLING' || service.state === 'ENABLED';
                     } else {
                         return service.state === 'DISABLED';
                     }
@@ -828,7 +828,7 @@ nf.ControllerService = (function () {
             var notEnabled = false;
             $.each(referencingComponents, function(_, referencingComponent) {
                 if (referencingComponent.referenceType === 'ControllerService') {
-                    if (referencingComponent.state !== 'ENABLED') {
+                    if (referencingComponent.state !== 'ENABLING' && referencingComponent.state !== 'ENABLED') {
                         notEnabled = true;
                     } 
                         

@@ -1741,7 +1741,7 @@ nf.Settings = (function () {
                 // if there are no bulletins clear all
                 var reportingTasks = reportingTasksData.getItems();
                 $.each(reportingTasks, function(_, reportingTask) {
-                    controllerServicesData.updateItem(reportingTask.id, $.extend(reportingTask, {
+                    reportingTasksData.updateItem(reportingTask.id, $.extend(reportingTask, {
                         bulletins: []
                     }));
                 });
