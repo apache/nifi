@@ -161,6 +161,12 @@ div.referencing-component-references {
     clear: left;
 }
 
+div.controller-service-canceling {
+    position: absolute;
+    bottom: 10px;
+    right: 8px;
+}
+
 /*
     Comments
 */

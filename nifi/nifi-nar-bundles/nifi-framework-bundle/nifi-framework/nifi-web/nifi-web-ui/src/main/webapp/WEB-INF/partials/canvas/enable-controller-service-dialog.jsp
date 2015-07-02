@@ -69,4 +69,7 @@
             </div>
         </div>
     </div>
+    <div class="controller-service-canceling hidden unset">
+        Canceling...
+    </div>
 </div>

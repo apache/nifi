@@ -1032,6 +1032,8 @@ nf.ControllerService = (function () {
             handler: {
                 click: function () {
                     canceled = true;
+                    disableDialog.modal('setButtonModel', []);
+                    $('#disable-controller-service-dialog div.controller-service-canceling').show();
                 }
             }
         }]);
@@ -1053,6 +1055,7 @@ nf.ControllerService = (function () {
         
         // sets the close button on the dialog
         var setCloseButton = function () {
+            $('#disable-controller-service-dialog div.controller-service-canceling').hide();
             disableDialog.modal('setButtonModel', [{
                 buttonText: 'Close',
                 handler: {
@@ -1100,6 +1103,15 @@ nf.ControllerService = (function () {
         }).always(function () {
             reloadControllerServiceAndReferencingComponents(controllerService);
             setCloseButton();
+            
+            // inform the user if the action was canceled
+            if (canceled === true && $('#nf-ok-dialog').not(':visible')) {
+                nf.Dialog.showOkDialog({
+                    overlayBackground: false,
+                    headerText: 'Action Canceled',
+                    dialogContent: 'The request to disable has been canceled. Parts of this request may have already completed. Please verify the state of this service and all referencing components.'
+                });
+            }
         });
     };
     
@@ -1116,6 +1128,8 @@ nf.ControllerService = (function () {
             handler: {
                 click: function () {
                     canceled = true;
+                    enableDialog.modal('setButtonModel', []);
+                    $('#enable-controller-service-dialog div.controller-service-canceling').show();
                 }
             }
         }]);
@@ -1143,6 +1157,7 @@ nf.ControllerService = (function () {
 
         // sets the button to close
         var setCloseButton = function () {
+            $('#enable-controller-service-dialog div.controller-service-canceling').hide();
             enableDialog.modal('setButtonModel', [{
                 buttonText: 'Close',
                 handler: {
@@ -1200,6 +1215,15 @@ nf.ControllerService = (function () {
         }).always(function () {
             reloadControllerServiceAndReferencingComponents(controllerService);
             setCloseButton();
+            
+            // inform the user if the action was canceled
+            if (canceled === true && $('#nf-ok-dialog').not(':visible')) {
+                nf.Dialog.showOkDialog({
+                    overlayBackground: false,
+                    headerText: 'Action Canceled',
+                    dialogContent: 'The request to enable has been canceled. Parts of this request may have already completed. Please verify the state of this service and all referencing components.'
+                });
+            }
         });
     };
     
