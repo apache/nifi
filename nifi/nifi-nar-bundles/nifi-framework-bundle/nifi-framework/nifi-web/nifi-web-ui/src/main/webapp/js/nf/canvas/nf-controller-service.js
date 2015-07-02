@@ -301,7 +301,7 @@ nf.ControllerService = (function () {
                     }, nf.CanvasUtils.config.systemTooltipConfig));
                 }
             } else if (icon.data('qtip')) {
-                icon.qtip('destroy');
+                icon.qtip('api').destroy(true);
             }
             return state;
         });
@@ -331,7 +331,7 @@ nf.ControllerService = (function () {
                     }, nf.CanvasUtils.config.systemTooltipConfig));
                 }
             } else if (icon.data('qtip')) {
-                icon.qtip('destroy');
+                icon.qtip('api').destroy(true);
             }
             return state;
         });

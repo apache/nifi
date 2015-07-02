@@ -70,13 +70,12 @@ public class DocGenerator {
 
         for (final Class<?> extensionClass : extensionClasses) {
             if (ConfigurableComponent.class.isAssignableFrom(extensionClass)) {
-                final Class<? extends ConfigurableComponent> componentClass = extensionClass
-                        .asSubclass(ConfigurableComponent.class);
+                final Class<? extends ConfigurableComponent> componentClass = extensionClass.asSubclass(ConfigurableComponent.class);
                 try {
                     logger.debug("Documenting: " + componentClass);
                     document(explodedNiFiDocsDir, componentClass);
                 } catch (Exception e) {
-                    logger.warn("Unable to document: " + componentClass);
+                    logger.warn("Unable to document: " + componentClass, e);
                 }
             }
         }

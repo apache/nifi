@@ -44,6 +44,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.util.LongHolder;
 import org.kitesdk.data.DatasetException;
 import org.kitesdk.data.DatasetIOException;
 import org.kitesdk.data.DatasetRecordException;
@@ -76,12 +77,17 @@ public class ConvertCSVToAvro extends AbstractKiteProcessor {
 
     private static final Relationship SUCCESS = new Relationship.Builder()
             .name("success")
-            .description("FlowFile content has been successfully saved")
+            .description("Avro content that was converted successfully from CSV")
             .build();
 
     private static final Relationship FAILURE = new Relationship.Builder()
             .name("failure")
-            .description("FlowFile content could not be processed")
+            .description("CSV content that could not be processed")
+            .build();
+
+    private static final Relationship INCOMPATIBLE = new Relationship.Builder()
+            .name("incompatible")
+            .description("CSV content that could not be converted")
             .build();
 
     @VisibleForTesting
@@ -164,6 +170,7 @@ public class ConvertCSVToAvro extends AbstractKiteProcessor {
             = ImmutableSet.<Relationship>builder()
             .add(SUCCESS)
             .add(FAILURE)
+            .add(INCOMPATIBLE)
             .build();
 
     // Immutable configuration
@@ -197,20 +204,20 @@ public class ConvertCSVToAvro extends AbstractKiteProcessor {
     @Override
     public void onTrigger(ProcessContext context, final ProcessSession session)
             throws ProcessException {
-        FlowFile flowFile = session.get();
-        if (flowFile == null) {
+        FlowFile incomingCSV = session.get();
+        if (incomingCSV == null) {
             return;
         }
 
         String schemaProperty = context.getProperty(SCHEMA)
-                .evaluateAttributeExpressions(flowFile)
+                .evaluateAttributeExpressions(incomingCSV)
                 .getValue();
         final Schema schema;
         try {
             schema = getSchema(schemaProperty, DefaultConfiguration.get());
         } catch (SchemaNotFoundException e) {
             getLogger().error("Cannot find schema: " + schemaProperty);
-            session.transfer(flowFile, FAILURE);
+            session.transfer(incomingCSV, FAILURE);
             return;
         }
 
@@ -219,11 +226,13 @@ public class ConvertCSVToAvro extends AbstractKiteProcessor {
         writer.setCodec(CodecFactory.snappyCodec());
 
         try {
-            flowFile = session.write(flowFile, new StreamCallback() {
+            final LongHolder written = new LongHolder(0L);
+            final FailureTracker failures = new FailureTracker();
+
+            FlowFile badRecords = session.clone(incomingCSV);
+            FlowFile outgoingAvro = session.write(incomingCSV, new StreamCallback() {
                 @Override
                 public void process(InputStream in, OutputStream out) throws IOException {
-                    long written = 0L;
-                    long errors = 0L;
                     try (CSVFileReader<Record> reader = new CSVFileReader<>(
                             in, props, schema, Record.class)) {
                         reader.initialize();
@@ -232,29 +241,58 @@ public class ConvertCSVToAvro extends AbstractKiteProcessor {
                                 try {
                                     Record record = reader.next();
                                     w.append(record);
-                                    written += 1;
+                                    written.incrementAndGet();
                                 } catch (DatasetRecordException e) {
-                                    errors += 1;
+                                    failures.add(e);
                                 }
                             }
                         }
                     }
-                    session.adjustCounter("Converted records", written,
-                            false /* update only if file transfer is successful */);
-                    session.adjustCounter("Conversion errors", errors,
-                            false /* update only if file transfer is successful */);
                 }
             });
 
-            session.transfer(flowFile, SUCCESS);
+            long errors = failures.count();
 
-            //session.getProvenanceReporter().send(flowFile, target.getUri().toString());
+            session.adjustCounter("Converted records", written.get(),
+                    false /* update only if file transfer is successful */);
+            session.adjustCounter("Conversion errors", errors,
+                    false /* update only if file transfer is successful */);
+
+            if (written.get() > 0L) {
+                session.transfer(outgoingAvro, SUCCESS);
+
+                if (errors > 0L) {
+                    getLogger().warn("Failed to convert {}/{} records from CSV to Avro",
+                            new Object[] { errors, errors + written.get() });
+                    badRecords = session.putAttribute(
+                            badRecords, "errors", failures.summary());
+                    session.transfer(badRecords, INCOMPATIBLE);
+                } else {
+                    session.remove(badRecords);
+                }
+
+            } else {
+                session.remove(outgoingAvro);
+
+                if (errors > 0L) {
+                    getLogger().warn("Failed to convert {}/{} records from CSV to Avro",
+                            new Object[] { errors, errors });
+                    badRecords = session.putAttribute(
+                            badRecords, "errors", failures.summary());
+                } else {
+                    badRecords = session.putAttribute(
+                            badRecords, "errors", "No incoming records");
+                }
+
+                session.transfer(badRecords, FAILURE);
+            }
+
         } catch (ProcessException | DatasetIOException e) {
             getLogger().error("Failed reading or writing", e);
-            session.transfer(flowFile, FAILURE);
+            session.transfer(incomingCSV, FAILURE);
         } catch (DatasetException e) {
             getLogger().error("Failed to read FlowFile", e);
-            session.transfer(flowFile, FAILURE);
+            session.transfer(incomingCSV, FAILURE);
         }
     }
 }

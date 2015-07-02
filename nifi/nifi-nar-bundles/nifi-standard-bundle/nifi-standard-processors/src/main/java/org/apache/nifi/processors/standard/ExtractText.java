@@ -60,7 +60,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
         + "Regular Expressions are entered by adding user-defined properties; "
         + "the name of the property maps to the Attribute Name into which the result will be placed.  "
         + "The first capture group, if any found, will be placed into that attribute name."
-        + "But all catpure groups, including the matching string sequence itself will also be "
+        + "But all capture groups, including the matching string sequence itself will also be "
         + "provided at that attribute name with an index value provided."
         + "The value of the property must be a valid Regular Expressions with one or more capturing groups.  "
         + "If the Regular Expression matches more than once, only the first match will be used.  "
@@ -69,7 +69,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
         + "and no attributes will be applied to the FlowFile.")
 @DynamicProperty(name = "A FlowFile attribute", value = "A Regular Expression with one or more capturing group",
         description = "The first capture group, if any found, will be placed into that attribute name."
-        + "But all catpure groups, including the matching string sequence itself will also be "
+        + "But all capture groups, including the matching string sequence itself will also be "
         + "provided at that attribute name with an index value provided.")
 public class ExtractText extends AbstractProcessor {
 

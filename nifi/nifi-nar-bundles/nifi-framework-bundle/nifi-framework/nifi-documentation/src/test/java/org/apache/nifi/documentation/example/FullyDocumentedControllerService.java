@@ -22,25 +22,31 @@ import java.util.List;
 
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnRemoved;
+import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processor.util.StandardValidators;
 
 @CapabilityDescription("A documented controller service that can help you do things")
-@Tags({"one", "two", "three"})
-public class FullyDocumentedControllerService extends AbstractControllerService implements SampleService{
+@Tags({ "one", "two", "three" })
+public class FullyDocumentedControllerService extends AbstractControllerService implements SampleService {
 
-    public static final PropertyDescriptor KEYSTORE = new PropertyDescriptor.Builder().name("Keystore Filename")
-            .description("The fully-qualified filename of the Keystore").defaultValue(null)
+    public static final PropertyDescriptor KEYSTORE = new PropertyDescriptor.Builder().name("Keystore Filename").description("The fully-qualified filename of the Keystore").defaultValue(null)
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR).sensitive(false).build();
-    public static final PropertyDescriptor KEYSTORE_TYPE = new PropertyDescriptor.Builder().name("Keystore Type")
-            .description("The Type of the Keystore").allowableValues("JKS", "PKCS12")
+    public static final PropertyDescriptor KEYSTORE_TYPE = new PropertyDescriptor.Builder().name("Keystore Type").description("The Type of the Keystore").allowableValues("JKS", "PKCS12")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).defaultValue("JKS").sensitive(false).build();
-    public static final PropertyDescriptor KEYSTORE_PASSWORD = new PropertyDescriptor.Builder()
-            .name("Keystore Password").defaultValue(null).description("The password for the Keystore")
+    public static final PropertyDescriptor KEYSTORE_PASSWORD = new PropertyDescriptor.Builder().name("Keystore Password").defaultValue(null).description("The password for the Keystore")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).sensitive(true).build();
 
     private static final List<PropertyDescriptor> properties;
+
+    private int onRemovedNoArgs = 0;
+    private int onRemovedArgs = 0;
+
+    private int onShutdownNoArgs = 0;
+    private int onShutdownArgs = 0;
 
     static {
         List<PropertyDescriptor> props = new ArrayList<>();
@@ -57,6 +63,41 @@ public class FullyDocumentedControllerService extends AbstractControllerService 
 
     @Override
     public void doSomething() {
-        // TODO Auto-generated method stub
+    }
+
+    @OnRemoved
+    public void onRemovedNoArgs() {
+        onRemovedNoArgs++;
+    }
+
+    @OnRemoved
+    public void onRemovedArgs(ConfigurationContext context) {
+        onRemovedArgs++;
+    }
+
+    @OnShutdown
+    public void onShutdownNoArgs() {
+        onShutdownNoArgs++;
+    }
+
+    @OnShutdown
+    public void onShutdownArgs(ConfigurationContext context) {
+        onShutdownArgs++;
+    }
+
+    public int getOnRemovedNoArgs() {
+        return onRemovedNoArgs;
+    }
+
+    public int getOnRemovedArgs() {
+        return onRemovedArgs;
+    }
+
+    public int getOnShutdownNoArgs() {
+        return onShutdownNoArgs;
+    }
+
+    public int getOnShutdownArgs() {
+        return onShutdownArgs;
     }
 }

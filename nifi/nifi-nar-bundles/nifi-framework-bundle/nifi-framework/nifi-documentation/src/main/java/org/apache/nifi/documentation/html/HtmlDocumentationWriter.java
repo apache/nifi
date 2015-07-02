@@ -268,25 +268,38 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
      */
     protected void writeProperties(final ConfigurableComponent configurableComponent,
             final XMLStreamWriter xmlStreamWriter) throws XMLStreamException {
-        writeSimpleElement(xmlStreamWriter, "h3", "Properties: ");
-        xmlStreamWriter.writeStartElement("p");
-        xmlStreamWriter.writeCharacters("In the list below, the names of required properties appear in ");
-        writeSimpleElement(xmlStreamWriter, "strong", "bold");
-        xmlStreamWriter.writeCharacters(". Any "
-                + "other properties (not in bold) are considered optional. The table also "
-                + "indicates any default values, whether a property supports the ");
-        writeLink(xmlStreamWriter, "NiFi Expression Language", "../../html/expression-language-guide.html");
-        xmlStreamWriter.writeCharacters(", and whether a property is considered "
-                + "\"sensitive\", meaning that its value will be encrypted. Before entering a "
-                + "value in a sensitive property, ensure that the ");
-        writeSimpleElement(xmlStreamWriter, "strong", "nifi.properties");
-        xmlStreamWriter.writeCharacters(" file has " + "an entry for the property ");
-        writeSimpleElement(xmlStreamWriter, "strong", "nifi.sensitive.props.key");
-        xmlStreamWriter.writeCharacters(".");
-        xmlStreamWriter.writeEndElement();
 
-        List<PropertyDescriptor> properties = configurableComponent.getPropertyDescriptors();
+        final List<PropertyDescriptor> properties = configurableComponent.getPropertyDescriptors();
+        writeSimpleElement(xmlStreamWriter, "h3", "Properties: ");
+
         if (properties.size() > 0) {
+            final boolean containsExpressionLanguage = containsExpressionLanguage(configurableComponent);
+            final boolean containsSensitiveProperties = containsSensitiveProperties(configurableComponent);
+            xmlStreamWriter.writeStartElement("p");
+            xmlStreamWriter.writeCharacters("In the list below, the names of required properties appear in ");
+            writeSimpleElement(xmlStreamWriter, "strong", "bold");
+            xmlStreamWriter.writeCharacters(". Any other properties (not in bold) are considered optional. " +
+                    "The table also indicates any default values");
+            if (containsExpressionLanguage) {
+                if (!containsSensitiveProperties) {
+                    xmlStreamWriter.writeCharacters(", and ");
+                } else {
+                    xmlStreamWriter.writeCharacters(", ");
+                }
+                xmlStreamWriter.writeCharacters("whether a property supports the ");
+                writeLink(xmlStreamWriter, "NiFi Expression Language", "../../html/expression-language-guide.html");
+            }
+            if (containsSensitiveProperties) {
+                xmlStreamWriter.writeCharacters(", and whether a property is considered " + "\"sensitive\", meaning that its value will be encrypted. Before entering a "
+                        + "value in a sensitive property, ensure that the ");
+
+                writeSimpleElement(xmlStreamWriter, "strong", "nifi.properties");
+                xmlStreamWriter.writeCharacters(" file has " + "an entry for the property ");
+                writeSimpleElement(xmlStreamWriter, "strong", "nifi.sensitive.props.key");
+            }
+            xmlStreamWriter.writeCharacters(".");
+            xmlStreamWriter.writeEndElement();
+
             xmlStreamWriter.writeStartElement("table");
             xmlStreamWriter.writeAttribute("id", "properties");
 
@@ -343,6 +356,36 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
         } else {
             writeSimpleElement(xmlStreamWriter, "p", "This component has no required or optional properties.");
         }
+    }
+
+    /**
+     * Indicates whether or not the component contains at least one sensitive property.
+     *
+     * @param component the component to interogate
+     * @return whether or not the component contains at least one sensitive property.
+     */
+    private boolean containsSensitiveProperties(final ConfigurableComponent component) {
+        for (PropertyDescriptor descriptor : component.getPropertyDescriptors()) {
+            if (descriptor.isSensitive()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Indicates whether or not the component contains at least one property that supports Expression Language.
+     *
+     * @param component the component to interogate
+     * @return whether or not the component contains at least one sensitive property.
+     */
+    private boolean containsExpressionLanguage(final ConfigurableComponent component) {
+        for (PropertyDescriptor descriptor : component.getPropertyDescriptors()) {
+            if (descriptor.isExpressionLanguageSupported()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void writeDynamicProperties(final ConfigurableComponent configurableComponent,

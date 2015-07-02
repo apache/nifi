@@ -811,7 +811,7 @@ nf.Canvas = (function () {
                     // bulletins for this processor are now gone
                     if (bulletins.length === 0) {
                         if (bulletinIcon.data('qtip')) {
-                            bulletinIcon.removeClass('has-bulletins').qtip('destroy');
+                            bulletinIcon.removeClass('has-bulletins').qtip('api').destroy(true);
                         }
 
                         // hide the icon
