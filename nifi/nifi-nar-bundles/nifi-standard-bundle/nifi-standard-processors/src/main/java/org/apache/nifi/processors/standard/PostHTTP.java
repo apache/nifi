@@ -49,7 +49,11 @@ import javax.net.ssl.SSLSession;
 import javax.security.cert.X509Certificate;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.http.*;
+import org.apache.http.Header;
+import org.apache.http.HttpException;
+import org.apache.http.HttpHost;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpResponseInterceptor;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
@@ -78,9 +82,9 @@ import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpCoreContext;
 import org.apache.http.util.EntityUtils;
+import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
@@ -378,7 +382,7 @@ public class PostHTTP extends AbstractProcessor {
         config = new Config(conMan);
         final Config existingConfig = configMap.putIfAbsent(baseUrl, config);
 
-        return (existingConfig == null) ? config : existingConfig;
+        return existingConfig == null ? config : existingConfig;
     }
 
     private SSLContext createSSLContext(final SSLContextService service)
@@ -402,7 +406,7 @@ public class PostHTTP extends AbstractProcessor {
             builder = builder.loadKeyMaterial(keystore, service.getKeyStorePassword().toCharArray());
         }
 
-        SSLContext sslContext = builder.build();
+        final SSLContext sslContext = builder.build();
         return sslContext;
     }
 
@@ -468,13 +472,13 @@ public class PostHTTP extends AbstractProcessor {
                 clientBuilder.addInterceptorFirst(new HttpResponseInterceptor() {
                     @Override
                     public void process(final HttpResponse response, final HttpContext httpContext) throws HttpException, IOException {
-                        HttpCoreContext coreContext = HttpCoreContext.adapt(httpContext);
-                        ManagedHttpClientConnection conn = coreContext.getConnection(ManagedHttpClientConnection.class);
+                        final HttpCoreContext coreContext = HttpCoreContext.adapt(httpContext);
+                        final ManagedHttpClientConnection conn = coreContext.getConnection(ManagedHttpClientConnection.class);
                         if (!conn.isOpen()) {
                             return;
                         }
 
-                        SSLSession sslSession = conn.getSSLSession();
+                        final SSLSession sslSession = conn.getSSLSession();
 
                         if (sslSession != null) {
                             final X509Certificate[] certChain = sslSession.getPeerCertificateChain();
@@ -524,7 +528,7 @@ public class PostHTTP extends AbstractProcessor {
                         }
 
                         config.setDestinationAccepts(destinationAccepts);
-                    } catch (IOException e) {
+                    } catch (final IOException e) {
                         flowFile = session.penalize(flowFile);
                         session.transfer(flowFile, REL_FAILURE);
                         logger.error("Unable to communicate with destination {} to determine whether or not it can accept "
@@ -537,7 +541,7 @@ public class PostHTTP extends AbstractProcessor {
 
             // if we are not sending as flowfile, or if the destination doesn't accept V3 or V2 (streaming) format,
             // then only use a single FlowFile
-            if (!sendAsFlowFile || (!destinationAccepts.isFlowFileV3Accepted() && !destinationAccepts.isFlowFileV2Accepted())) {
+            if (!sendAsFlowFile || !destinationAccepts.isFlowFileV3Accepted() && !destinationAccepts.isFlowFileV2Accepted()) {
                 break;
             }
 
@@ -560,7 +564,7 @@ public class PostHTTP extends AbstractProcessor {
         final EntityTemplate entity = new EntityTemplate(new ContentProducer() {
             @Override
             public void writeTo(final OutputStream rawOut) throws IOException {
-                final OutputStream throttled = (throttler == null) ? rawOut : throttler.newThrottledOutputStream(rawOut);
+                final OutputStream throttled = throttler == null ? rawOut : throttler.newThrottledOutputStream(rawOut);
                 OutputStream wrappedOut = new BufferedOutputStream(throttled);
                 if (compressionLevel > 0 && accepts.isGzipAccepted()) {
                     wrappedOut = new GZIPOutputStream(wrappedOut, compressionLevel);
@@ -634,7 +638,7 @@ public class PostHTTP extends AbstractProcessor {
             }
         } else {
             final String attributeValue = toSend.get(0).getAttribute(CoreAttributes.MIME_TYPE.key());
-            contentType = (attributeValue == null) ? DEFAULT_CONTENT_TYPE : attributeValue;
+            contentType = attributeValue == null ? DEFAULT_CONTENT_TYPE : attributeValue;
         }
 
         final String attributeHeaderRegex = context.getProperty(ATTRIBUTES_AS_HEADERS_REGEX).getValue();
@@ -686,7 +690,7 @@ public class PostHTTP extends AbstractProcessor {
             if (response != null) {
                 try {
                     response.close();
-                } catch (IOException e) {
+                } catch (final IOException e) {
                     getLogger().warn("Failed to close HTTP Response due to {}", new Object[]{e});
                 }
             }
@@ -802,7 +806,7 @@ public class PostHTTP extends AbstractProcessor {
 
                 logger.info("Successfully Posted {} to {} in {} milliseconds at a rate of {}", new Object[]{flowFileDescription, url, uploadMillis, uploadDataRate});
 
-                for (FlowFile flowFile : toSend) {
+                for (final FlowFile flowFile : toSend) {
                     session.getProvenanceReporter().send(flowFile, url);
                     session.transfer(flowFile, REL_SUCCESS);
                 }
