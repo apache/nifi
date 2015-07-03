@@ -36,11 +36,11 @@ import org.apache.nifi.controller.ConfigurationContext;
  * Methods using this annotation are permitted to take zero arguments or to take
  * a single argument of type {@link ConfigurationContext}. If a method with this
  * annotation throws a Throwable, a log message and bulletin will be issued for
- * the service, and the service will remain in a 'DISABLING' state. When this
- * occurs, the method with this annotation will be called again after some
- * period of time. This will continue until the method returns without throwing
- * any Throwable. Until that time, the service will remain in a 'DISABLING'
- * state and cannot be enabled again.
+ * the service, but the service will still be marked as Disabled. The failing
+ * method will not be called again until the service is enabled and disabled again.
+ * This is done in order to prevent a ControllerService from continually failing
+ * in such a way that the service could not be disabled and updated without
+ * restarting the instance of NiFi.
  * </p>
  *
  * <p>

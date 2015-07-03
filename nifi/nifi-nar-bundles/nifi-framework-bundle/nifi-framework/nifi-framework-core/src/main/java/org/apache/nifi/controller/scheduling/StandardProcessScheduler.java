@@ -685,33 +685,28 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                 try (final NarCloseable x = NarCloseable.withNarLoader()) {
                     final ConfigurationContext configContext = new StandardConfigurationContext(service, controllerServiceProvider, null);
 
-                    while (true) {
-                        try {
-                            ReflectionUtils.invokeMethodsWithAnnotation(OnDisabled.class, service.getControllerServiceImplementation(), configContext);
-                            heartbeater.heartbeat();
-                            service.setState(ControllerServiceState.DISABLED);
-                            return;
-                        } catch (final Exception e) {
-                            final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
-                            final ComponentLog componentLog = new SimpleProcessLogger(service.getIdentifier(), service);
-                            componentLog.error("Failed to invoke @OnDisabled method due to {}", cause);
+                    try {
+                        ReflectionUtils.invokeMethodsWithAnnotation(OnDisabled.class, service.getControllerServiceImplementation(), configContext);
+                    } catch (final Exception e) {
+                        final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
+                        final ComponentLog componentLog = new SimpleProcessLogger(service.getIdentifier(), service);
+                        componentLog.error("Failed to invoke @OnDisabled method due to {}", cause);
 
-                            LOG.error("Failed to invoke @OnDisabled method of {} due to {}", service.getControllerServiceImplementation(), cause.toString());
-                            if (LOG.isDebugEnabled()) {
-                                LOG.error("", cause);
-                            }
-
-                            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnDisabled.class, service.getControllerServiceImplementation(), configContext);
-                            try {
-                                Thread.sleep(administrativeYieldMillis);
-                            } catch (final InterruptedException ie) {
-                            }
-
-                            continue;
+                        LOG.error("Failed to invoke @OnDisabled method of {} due to {}", service.getControllerServiceImplementation(), cause.toString());
+                        if (LOG.isDebugEnabled()) {
+                            LOG.error("", cause);
                         }
+
+                        ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnDisabled.class, service.getControllerServiceImplementation(), configContext);
+                        try {
+                            Thread.sleep(administrativeYieldMillis);
+                        } catch (final InterruptedException ie) {
+                        }
+                    } finally {
+                        service.setState(ControllerServiceState.DISABLED);
+                        heartbeater.heartbeat();
                     }
                 }
-
             }
         };
 
