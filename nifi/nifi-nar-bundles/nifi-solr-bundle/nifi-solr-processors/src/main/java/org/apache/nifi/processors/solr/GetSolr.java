@@ -21,7 +21,8 @@ package org.apache.nifi.processors.solr;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnShutdown;
+import org.apache.nifi.annotation.lifecycle.OnRemoved;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ProcessorLog;
@@ -157,9 +158,17 @@ public class GetSolr extends SolrProcessor {
         lastEndDatedRef.set(UNINITIALIZED_LAST_END_DATE_VALUE);
     }
 
-    @OnShutdown
-    public void onShutdown() {
+    @OnStopped
+    public void onStopped() {
         writeLastEndDate();
+    }
+
+    @OnRemoved
+    public void onRemoved() {
+        final File lastEndDateCache = new File(FILE_PREFIX + getIdentifier());
+        if (lastEndDateCache.exists()) {
+            lastEndDateCache.delete();
+        }
     }
 
     @Override

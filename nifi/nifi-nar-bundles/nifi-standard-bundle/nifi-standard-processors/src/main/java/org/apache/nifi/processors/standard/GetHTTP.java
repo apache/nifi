@@ -73,7 +73,8 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnShutdown;
+import org.apache.nifi.annotation.lifecycle.OnRemoved;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -267,8 +268,8 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
         lastModifiedRef.set(UNINITIALIZED_LAST_MODIFIED_VALUE);
     }
 
-    @OnShutdown
-    public void onShutdown() {
+    @OnStopped
+    public void onStopped() {
         final File httpCache = new File(HTTP_CACHE_FILE_PREFIX + getIdentifier());
         try (FileOutputStream fos = new FileOutputStream(httpCache)) {
             final Properties props = new Properties();
@@ -278,6 +279,14 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
         } catch (final IOException swallow) {
         }
 
+    }
+
+    @OnRemoved
+    public void onRemoved() {
+        final File httpCache = new File(HTTP_CACHE_FILE_PREFIX + getIdentifier());
+        if (httpCache.exists()) {
+            httpCache.delete();
+        }
     }
 
     @Override
