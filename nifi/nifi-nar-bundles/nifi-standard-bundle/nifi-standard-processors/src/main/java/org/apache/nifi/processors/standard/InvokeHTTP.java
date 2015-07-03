@@ -27,6 +27,7 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -47,6 +48,7 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
 
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
@@ -244,6 +246,34 @@ public final class InvokeHTTP extends AbstractProcessor {
                 .identifiesControllerService(SSLContextService.class)
                 .build();
 
+        // Per RFC 7235, 2617, and 2616.
+        //      basic-credentials   = base64-user-pass
+        //      base64-user-pass    = userid ":" password
+        //      userid              = *<TEXT excluding ":">
+        //      password            = *TEXT
+        //
+        //      OCTET          = <any 8-bit sequence of data>
+        //      CTL            = <any US-ASCII control character (octets 0 - 31) and DEL (127)>
+        //      LWS            = [CRLF] 1*( SP | HT )
+        //      TEXT           = <any OCTET except CTLs but including LWS>
+        //
+        // Per RFC 7230, username & password in URL are now disallowed in HTTP and HTTPS URIs.
+        public static final PropertyDescriptor PROP_BASIC_AUTH_USERNAME = new PropertyDescriptor.Builder()
+                .name("Basic Authentication Username")
+                .displayName("Basic Authentication Username")
+                .description("The username to be used by the client to authenticate against the Remote URL.  Cannot include control characters (0-31), ':', or DEL (127).")
+                .required(false)
+                .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x39\\x3b-\\x7e\\x80-\\xff]+$")))
+                .build();
+
+        public static final PropertyDescriptor PROP_BASIC_AUTH_PASSWORD = new PropertyDescriptor.Builder()
+                .name("Basic Authentication Password")
+                .displayName("Basic Authentication Password")
+                .description("The password to be used by the client to authenticate against the Remote URL.")
+                .required(false)
+                .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x7e\\x80-\\xff]+$")))
+                .build();
+
         public static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
                 PROP_METHOD,
                 PROP_URL,
@@ -252,7 +282,9 @@ public final class InvokeHTTP extends AbstractProcessor {
                 PROP_READ_TIMEOUT,
                 PROP_DATE_HEADER,
                 PROP_FOLLOW_REDIRECTS,
-                PROP_ATTRIBUTES_TO_SEND
+                PROP_ATTRIBUTES_TO_SEND,
+                PROP_BASIC_AUTH_USERNAME,
+                PROP_BASIC_AUTH_PASSWORD
         ));
 
         // property to allow the hostname verifier to be overridden
@@ -383,9 +415,21 @@ public final class InvokeHTTP extends AbstractProcessor {
             // read the url property from the context
             String urlstr = trimToEmpty(context.getProperty(PROP_URL).evaluateAttributeExpressions(request).getValue());
             URL url = new URL(urlstr);
+            String authuser = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_USERNAME).getValue());
+            String authpass = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_PASSWORD).getValue());
+
+            String authstrencoded = null;
+            if (!authuser.isEmpty()) {
+                String authstr = authuser + ":" + authpass;
+                byte[] bytestrencoded = Base64.encodeBase64(authstr.getBytes(StandardCharsets.UTF_8));
+                authstrencoded = new String(bytestrencoded, StandardCharsets.UTF_8);
+            }
 
             // create the connection
             conn = (HttpURLConnection) url.openConnection();
+            if (authstrencoded != null) {
+                conn.setRequestProperty("Authorization", "Basic " + authstrencoded);
+            }
 
             // set the request method
             String method = trimToEmpty(context.getProperty(PROP_METHOD).evaluateAttributeExpressions(request).getValue()).toUpperCase();
