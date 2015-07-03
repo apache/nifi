@@ -50,6 +50,7 @@ import java.util.regex.Pattern;
 import javax.net.ssl.SSLContext;
 
 import org.apache.http.Header;
+import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -61,6 +62,7 @@ import org.apache.http.config.Registry;
 import org.apache.http.config.RegistryBuilder;
 import org.apache.http.conn.HttpClientConnectionManager;
 import org.apache.http.conn.socket.ConnectionSocketFactory;
+import org.apache.http.conn.socket.PlainConnectionSocketFactory;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.conn.ssl.SSLContexts;
 import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
@@ -171,6 +173,18 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
             .required(false)
             .identifiesControllerService(SSLContextService.class)
             .build();
+    public static final PropertyDescriptor PROXY_HOST = new PropertyDescriptor.Builder()
+            .name("Proxy Host")
+            .description("The fully qualified hostname or IP address of the proxy server")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+    public static final PropertyDescriptor PROXY_PORT = new PropertyDescriptor.Builder()
+            .name("Proxy Port")
+            .description("The port of the proxy server")
+            .required(false)
+            .addValidator(StandardValidators.PORT_VALIDATOR)
+            .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -222,6 +236,8 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
         properties.add(USER_AGENT);
         properties.add(ACCEPT_CONTENT_TYPE);
         properties.add(FOLLOW_REDIRECTS);
+        properties.add(PROXY_HOST);
+        properties.add(PROXY_PORT);
         this.properties = Collections.unmodifiableList(properties);
 
         // load etag and lastModified from file
@@ -273,6 +289,14 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
                     .explanation("URL is set to HTTPS protocol but no SSLContext has been specified")
                     .valid(false)
                     .subject("SSL Context")
+                    .build());
+        }
+
+        if (context.getProperty(PROXY_HOST).isSet() && !context.getProperty(PROXY_PORT).isSet()) {
+            results.add(new ValidationResult.Builder()
+                    .explanation("Proxy Host was set but no Proxy Port was specified")
+                    .valid(false)
+                    .subject("Proxy server configuration")
                     .build());
         }
 
@@ -335,7 +359,12 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
 
             final SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext, new String[]{"TLSv1"}, null, SSLConnectionSocketFactory.BROWSER_COMPATIBLE_HOSTNAME_VERIFIER);
 
-            final Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory>create().register("https", sslsf).build();
+            // Also include a plain socket factory for regular http connections (especially proxies)
+            final Registry<ConnectionSocketFactory> socketFactoryRegistry =
+                    RegistryBuilder.<ConnectionSocketFactory>create()
+                            .register("https", sslsf)
+                            .register("http", PlainConnectionSocketFactory.getSocketFactory())
+                            .build();
 
             conMan = new BasicHttpClientConnectionManager(socketFactoryRegistry);
         }
@@ -376,6 +405,13 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
                     credentialsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(username, password));
                 }
                 clientBuilder.setDefaultCredentialsProvider(credentialsProvider);
+            }
+
+            // Set the proxy if specified
+            if (context.getProperty(PROXY_HOST).isSet() && context.getProperty(PROXY_PORT).isSet()) {
+                final String host = context.getProperty(PROXY_HOST).getValue();
+                final int port = context.getProperty(PROXY_PORT).asInteger();
+                clientBuilder.setProxy(new HttpHost(host, port));
             }
 
             // create the http client
