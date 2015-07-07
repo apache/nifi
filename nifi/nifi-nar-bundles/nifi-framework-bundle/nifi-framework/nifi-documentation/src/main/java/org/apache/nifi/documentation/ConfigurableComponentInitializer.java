@@ -20,7 +20,7 @@ import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.reporting.InitializationException;
 
 /**
- * An interface for initializing a ConfigurableComponent. It is up to the
+ * An interface for initializing and tearing down a ConfigurableComponent. It is up to the
  * implementer to call "init" so that you can call
  * ConfigurableComponent.getPropertyDescriptors()
  *
@@ -35,4 +35,11 @@ public interface ConfigurableComponentInitializer {
      * @throws InitializationException if the component could not be initialized
      */
     void initialize(ConfigurableComponent component) throws InitializationException;
+
+    /**
+     * Calls the lifecycle methods that should be called when a flow is shutdown.
+     *
+     * @param component the component to initialize
+     */
+    void teardown(ConfigurableComponent component);
 }

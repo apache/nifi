@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.documentation.init;
 
-import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.documentation.ConfigurableComponentInitializer;
@@ -40,10 +39,16 @@ public class ReportingTaskingInitializer implements ConfigurableComponentInitial
         ReportingTask reportingTask = (ReportingTask) component;
         try (NarCloseable narCloseable = NarCloseable.withNarLoader()) {
             reportingTask.initialize(new MockReportingInitializationContext());
+        }
+    }
+
+    @Override
+    public void teardown(ConfigurableComponent component) {
+        ReportingTask reportingTask = (ReportingTask) component;
+        try (NarCloseable narCloseable = NarCloseable.withNarLoader()) {
 
             final MockConfigurationContext context = new MockConfigurationContext();
-            ReflectionUtils.quietlyInvokeMethodsWithAnnotations(OnRemoved.class, null, reportingTask, new MockProcessorLogger(), context);
-            ReflectionUtils.quietlyInvokeMethodsWithAnnotations(OnShutdown.class, null, reportingTask, new MockProcessorLogger(), context);
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotations(OnShutdown.class, org.apache.nifi.processor.annotation.OnShutdown.class, reportingTask, new MockProcessorLogger(), context);
         }
     }
 }
