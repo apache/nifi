@@ -44,6 +44,7 @@ public class ProcessorDocumentationWriterTest {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
         writer.write(processor, baos, false);
+        initializer.teardown(processor);
 
         String results = new String(baos.toByteArray());
         XmlValidator.assertXmlValid(results);
@@ -74,8 +75,8 @@ public class ProcessorDocumentationWriterTest {
         assertNotContains(results, "Additional Details...");
 
         // verify the right OnRemoved and OnShutdown methods were called
-        Assert.assertEquals(1, processor.getOnRemovedArgs());
-        Assert.assertEquals(1, processor.getOnRemovedNoArgs());
+        Assert.assertEquals(0, processor.getOnRemovedArgs());
+        Assert.assertEquals(0, processor.getOnRemovedNoArgs());
 
         Assert.assertEquals(1, processor.getOnShutdownArgs());
         Assert.assertEquals(1, processor.getOnShutdownNoArgs());
@@ -92,6 +93,7 @@ public class ProcessorDocumentationWriterTest {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
         writer.write(processor, baos, false);
+        initializer.teardown(processor);
 
         String results = new String(baos.toByteArray());
         XmlValidator.assertXmlValid(results);
@@ -121,6 +123,7 @@ public class ProcessorDocumentationWriterTest {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
         writer.write(processor, baos, false);
+        initializer.teardown(processor);
 
         String results = new String(baos.toByteArray());
         XmlValidator.assertXmlValid(results);

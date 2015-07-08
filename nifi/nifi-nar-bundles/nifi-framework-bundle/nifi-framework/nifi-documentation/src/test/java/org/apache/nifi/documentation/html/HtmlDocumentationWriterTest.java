@@ -58,6 +58,7 @@ public class HtmlDocumentationWriterTest {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
         writer.write(controllerService, baos, false);
+        initializer.teardown(controllerService);
 
         String results = new String(baos.toByteArray());
         XmlValidator.assertXmlValid(results);
@@ -77,8 +78,8 @@ public class HtmlDocumentationWriterTest {
         assertContains(results, "Sensitive Property: true");
 
         // verify the right OnRemoved and OnShutdown methods were called
-        Assert.assertEquals(1, controllerService.getOnRemovedArgs());
-        Assert.assertEquals(1, controllerService.getOnRemovedNoArgs());
+        Assert.assertEquals(0, controllerService.getOnRemovedArgs());
+        Assert.assertEquals(0, controllerService.getOnRemovedNoArgs());
 
         Assert.assertEquals(1, controllerService.getOnShutdownArgs());
         Assert.assertEquals(1, controllerService.getOnShutdownNoArgs());
@@ -96,6 +97,7 @@ public class HtmlDocumentationWriterTest {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
         writer.write(reportingTask, baos, false);
+        initializer.teardown(reportingTask);
 
         String results = new String(baos.toByteArray());
         XmlValidator.assertXmlValid(results);
@@ -113,8 +115,8 @@ public class HtmlDocumentationWriterTest {
         assertContains(results, "false");
 
         // verify the right OnRemoved and OnShutdown methods were called
-        Assert.assertEquals(1, reportingTask.getOnRemovedArgs());
-        Assert.assertEquals(1, reportingTask.getOnRemovedNoArgs());
+        Assert.assertEquals(0, reportingTask.getOnRemovedArgs());
+        Assert.assertEquals(0, reportingTask.getOnRemovedNoArgs());
 
         Assert.assertEquals(1, reportingTask.getOnShutdownArgs());
         Assert.assertEquals(1, reportingTask.getOnShutdownNoArgs());

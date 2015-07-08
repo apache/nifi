@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.documentation.init;
 
-import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.documentation.ConfigurableComponentInitializer;
@@ -40,11 +39,17 @@ public class ProcessorInitializer implements ConfigurableComponentInitializer {
         Processor processor = (Processor) component;
         try (NarCloseable narCloseable = NarCloseable.withNarLoader()) {
             processor.initialize(new MockProcessorInitializationContext());
+        }
+    }
+
+    @Override
+    public void teardown(ConfigurableComponent component) {
+        Processor processor = (Processor) component;
+        try (NarCloseable narCloseable = NarCloseable.withNarLoader()) {
 
             final ProcessorLog logger = new MockProcessorLogger();
             final MockProcessContext context = new MockProcessContext();
-            ReflectionUtils.quietlyInvokeMethodsWithAnnotations(OnRemoved.class, null, processor, logger, context);
-            ReflectionUtils.quietlyInvokeMethodsWithAnnotations(OnShutdown.class, null, processor, logger, context);
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotations(OnShutdown.class, org.apache.nifi.processor.annotation.OnShutdown.class, processor, logger, context);
         }
     }
 }
