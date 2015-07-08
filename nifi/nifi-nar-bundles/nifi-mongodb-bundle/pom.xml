@@ -19,12 +19,12 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>0.2.0-incubating</version>
+        <version>0.2.1-incubating-SNAPSHOT</version>
     </parent>
 
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-mongodb-bundle</artifactId>
-    <version>0.2.0-incubating</version>
+    <version>0.2.1-incubating-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <modules>
