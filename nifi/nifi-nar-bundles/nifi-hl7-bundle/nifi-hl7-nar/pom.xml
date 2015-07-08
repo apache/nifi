@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-hl7-bundle</artifactId>
-        <version>0.2.0-incubating-SNAPSHOT</version>
+        <version>0.2.0-incubating</version>
     </parent>
 
     <artifactId>nifi-hl7-nar</artifactId>
@@ -29,7 +29,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hl7-processors</artifactId>
-            <version>0.2.0-incubating-SNAPSHOT</version>
+            <version>0.2.0-incubating</version>
         </dependency>
     </dependencies>
 
