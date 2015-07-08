@@ -29,6 +29,57 @@ Then checkout the 'develop' branch
 git checkout develop
 ```
 <br/>
+
+### Linux Operating System Configuration
+
+_NOTE_: If you are building on Linux, consider these best practices. Typical Linux defaults are not necessarily well tuned for the needs of an IO intensive application like NiFi. 
+For all of these areas, your distribution's requirements may vary.  Use these sections as advice, but consult your distribution-specific documentation for how best to achieve these recommendations.
+
+
+#### Maximum File Handles
+
+NiFi will at any one time potentially have a very large number of file handles open.  Increase the limits by
+editing '/etc/security/limits.conf' to add something like
+
+    *  hard  nofile  50000
+    *  soft  nofile  50000
+
+#### Maximum Forked Processes
+
+NiFi may be configured to generate a significant number of threads.  To increase the allowable number edit '/etc/security/limits.conf'
+    *  hard  nproc  10000
+    *  soft  nproc  10000
+
+And your distribution may require an edit to /etc/security/limits.d/90-nproc.conf by adding
+    *  soft  nproc  10000
+
+#### Increase the number of TCP socket ports available
+This is particularly important if your flow will be setting up and tearing down a large number of sockets in small period of time.
+
+    sudo sysctl -w net.ipv4.ip_local_port_range="10000 65000"
+
+#### Set how long sockets stay in a TIMED_WAIT state when closed
+You don't want your sockets to sit and linger too long given that you want to be able to quickly setup and teardown new sockets.  It is a good idea to read more about
+it but to adjust do something like
+
+    sudo sysctl -w net.ipv4.netfilter.ip_conntrack_tcp_timeout_time_wait="1"
+
+
+#### Tell Linux you never want NiFi to swap
+Swapping is fantastic for some applications.  It isn't good for something like
+NiFi that always wants to be running.  To tell Linux you'd like swapping off you
+can edit '/etc/sysctl.conf' to add the following line
+
+    vm.swappiness = 0
+
+#### Disable partition atime
+For the partitions handling the various NiFi repos turn off things like 'atime'.
+Doing so can cause a surprising bump in throughput.  Edit the '/etc/fstab' file
+and for the partition(s) of interest add the 'noatime' option.
+
+#### Additional guidance
+Additional information on system administration and settings can be located in our [Administrator's Guide][adminguide].
+
 ### Build steps
 
 1. You need a recent Java 7 (or newer) JDK.
@@ -86,7 +137,7 @@ is ready for use:
 
     2014-12-09 00:42:03,540 INFO [main] org.apache.nifi.web.server.JettyServer NiFi has started. The UI is available at the following URLs:
 
-
+[adminguide]: https://nifi.incubator.apache.org/docs/nifi-docs/html/administration-guide.html
 [maven]: http://maven.apache.org/
 [jira]: https://issues.apache.org/jira/browse/NIFI
 [git]: http://git-scm.com/
