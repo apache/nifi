@@ -809,7 +809,7 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-flume-nar</artifactId>
-                <version>0.1.0-incubating-SNAPSHOT</version>
+                <version>0.2.0-incubating-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
@@ -864,10 +864,10 @@
                 <version>2.0.0</version>
             </dependency>
             <dependency>
-			    <groupId>org.apache.derby</groupId>
-			    <artifactId>derby</artifactId>
-			    <version>10.11.1.1</version>
-		    </dependency>
+                <groupId>org.apache.derby</groupId>
+                <artifactId>derby</artifactId>
+                <version>10.11.1.1</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
     <dependencies>

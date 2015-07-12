@@ -77,7 +77,7 @@ public abstract class AbstractFlumeProcessor extends AbstractSessionFactoryProce
             public ValidationResult validate(final String subject, final String value, final ValidationContext context) {
                 String reason = null;
                 try {
-                    FlumeSourceProcessor.SOURCE_FACTORY.create("NiFi Source", value);
+                    ExecuteFlumeSource.SOURCE_FACTORY.create("NiFi Source", value);
                 } catch (Exception ex) {
                     reason = ex.getLocalizedMessage();
                     reason = Character.toLowerCase(reason.charAt(0)) + reason.substring(1);
@@ -97,7 +97,7 @@ public abstract class AbstractFlumeProcessor extends AbstractSessionFactoryProce
             public ValidationResult validate(final String subject, final String value, final ValidationContext context) {
                 String reason = null;
                 try {
-                    FlumeSinkProcessor.SINK_FACTORY.create("NiFi Sink", value);
+                    ExecuteFlumeSink.SINK_FACTORY.create("NiFi Sink", value);
                 } catch (Exception ex) {
                     reason = ex.getLocalizedMessage();
                     reason = Character.toLowerCase(reason.charAt(0)) + reason.substring(1);
