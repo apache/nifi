@@ -45,17 +45,17 @@ import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class FlumeSinkProcessorTest {
+public class ExecuteFlumeSinkTest {
 
     private static final Logger logger =
-        LoggerFactory.getLogger(FlumeSinkProcessorTest.class);
+        LoggerFactory.getLogger(ExecuteFlumeSinkTest.class);
 
     @Rule
     public final TemporaryFolder temp = new TemporaryFolder();
 
     @Test
     public void testValidators() {
-        TestRunner runner = TestRunners.newTestRunner(FlumeSinkProcessor.class);
+        TestRunner runner = TestRunners.newTestRunner(ExecuteFlumeSink.class);
         Collection<ValidationResult> results;
         ProcessContext pc;
 
@@ -73,7 +73,7 @@ public class FlumeSinkProcessorTest {
 
         // non-existent class
         results = new HashSet<>();
-        runner.setProperty(FlumeSinkProcessor.SINK_TYPE, "invalid.class.name");
+        runner.setProperty(ExecuteFlumeSink.SINK_TYPE, "invalid.class.name");
         runner.enqueue(new byte[0]);
         pc = runner.getProcessContext();
         if (pc instanceof MockProcessContext) {
@@ -87,7 +87,7 @@ public class FlumeSinkProcessorTest {
 
         // class doesn't implement Sink
         results = new HashSet<>();
-        runner.setProperty(FlumeSinkProcessor.SINK_TYPE, AvroSource.class.getName());
+        runner.setProperty(ExecuteFlumeSink.SINK_TYPE, AvroSource.class.getName());
         runner.enqueue(new byte[0]);
         pc = runner.getProcessContext();
         if (pc instanceof MockProcessContext) {
@@ -100,7 +100,7 @@ public class FlumeSinkProcessorTest {
         }
 
         results = new HashSet<>();
-        runner.setProperty(FlumeSinkProcessor.SINK_TYPE, NullSink.class.getName());
+        runner.setProperty(ExecuteFlumeSink.SINK_TYPE, NullSink.class.getName());
         runner.enqueue(new byte[0]);
         pc = runner.getProcessContext();
         if (pc instanceof MockProcessContext) {
@@ -112,8 +112,8 @@ public class FlumeSinkProcessorTest {
 
     @Test
     public void testNullSink() throws IOException {
-        TestRunner runner = TestRunners.newTestRunner(FlumeSinkProcessor.class);
-        runner.setProperty(FlumeSinkProcessor.SINK_TYPE, NullSink.class.getName());
+        TestRunner runner = TestRunners.newTestRunner(ExecuteFlumeSink.class);
+        runner.setProperty(ExecuteFlumeSink.SINK_TYPE, NullSink.class.getName());
         try (InputStream inputStream = getClass().getResourceAsStream("/testdata/records.txt")) {
             Map<String, String> attributes = new HashMap<>();
             attributes.put(CoreAttributes.FILENAME.key(), "records.txt");
@@ -124,9 +124,9 @@ public class FlumeSinkProcessorTest {
 
     @Test
     public void testBatchSize() throws IOException {
-        TestRunner runner = TestRunners.newTestRunner(FlumeSinkProcessor.class);
-        runner.setProperty(FlumeSinkProcessor.SINK_TYPE, NullSink.class.getName());
-        runner.setProperty(FlumeSinkProcessor.FLUME_CONFIG,
+        TestRunner runner = TestRunners.newTestRunner(ExecuteFlumeSink.class);
+        runner.setProperty(ExecuteFlumeSink.SINK_TYPE, NullSink.class.getName());
+        runner.setProperty(ExecuteFlumeSink.FLUME_CONFIG,
             "tier1.sinks.sink-1.batchSize = 1000\n");
         for (int i = 0; i < 100000; i++) {
           runner.enqueue(String.valueOf(i).getBytes());
@@ -138,9 +138,9 @@ public class FlumeSinkProcessorTest {
     public void testHdfsSink() throws IOException {
         File destDir = temp.newFolder("hdfs");
 
-        TestRunner runner = TestRunners.newTestRunner(FlumeSinkProcessor.class);
-        runner.setProperty(FlumeSinkProcessor.SINK_TYPE, "hdfs");
-        runner.setProperty(FlumeSinkProcessor.FLUME_CONFIG,
+        TestRunner runner = TestRunners.newTestRunner(ExecuteFlumeSink.class);
+        runner.setProperty(ExecuteFlumeSink.SINK_TYPE, "hdfs");
+        runner.setProperty(ExecuteFlumeSink.FLUME_CONFIG,
             "tier1.sinks.sink-1.hdfs.path = " + destDir.toURI().toString() + "\n" +
             "tier1.sinks.sink-1.hdfs.fileType = DataStream\n" +
             "tier1.sinks.sink-1.hdfs.serializer = TEXT\n" +

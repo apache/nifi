@@ -25,6 +25,7 @@ import org.apache.flume.Context;
 import org.apache.flume.EventDeliveryException;
 import org.apache.flume.Sink;
 import org.apache.flume.conf.Configurables;
+import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -45,7 +46,8 @@ import org.apache.nifi.processor.util.StandardValidators;
  */
 @Tags({"flume", "hadoop", "get", "sink"})
 @CapabilityDescription("Write FlowFile data to a Flume sink")
-public class FlumeSinkProcessor extends AbstractFlumeProcessor {
+@TriggerSerially
+public class ExecuteFlumeSink extends AbstractFlumeProcessor {
 
     public static final PropertyDescriptor SINK_TYPE = new PropertyDescriptor.Builder()
             .name("Sink Type")

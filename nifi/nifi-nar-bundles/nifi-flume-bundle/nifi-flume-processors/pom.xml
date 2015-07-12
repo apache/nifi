@@ -21,6 +21,11 @@
     </parent>
     <artifactId>nifi-flume-processors</artifactId>
     <packaging>jar</packaging>
+
+    <properties>
+        <flume.version>1.6.0</flume.version>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -41,12 +46,12 @@
         <dependency>
             <groupId>org.apache.flume</groupId>
             <artifactId>flume-ng-sdk</artifactId>
-            <version>1.5.2</version>
+            <version>${flume.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.flume</groupId>
             <artifactId>flume-ng-core</artifactId>
-            <version>1.5.2</version>
+            <version>${flume.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
@@ -56,27 +61,38 @@
         </dependency>
 
         <!-- Flume Sources -->
-        <dependency>
-            <groupId>org.apache.flume.flume-ng-sources</groupId>
-            <artifactId>flume-twitter-source</artifactId>
-            <version>1.5.2</version>
-        </dependency>
+
         <dependency>
             <groupId>org.apache.flume.flume-ng-sources</groupId>
             <artifactId>flume-jms-source</artifactId>
-            <version>1.5.2</version>
+            <version>${flume.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.flume.flume-ng-sources</groupId>
+            <artifactId>flume-kafka-source</artifactId>
+            <version>${flume.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.flume.flume-ng-sources</groupId>
             <artifactId>flume-scribe-source</artifactId>
-            <version>1.5.2</version>
+            <version>${flume.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.flume.flume-ng-sources</groupId>
+            <artifactId>flume-twitter-source</artifactId>
+            <version>${flume.version}</version>
         </dependency>
 
         <!-- Flume Sinks -->
         <dependency>
             <groupId>org.apache.flume.flume-ng-sinks</groupId>
+            <artifactId>flume-dataset-sink</artifactId>
+            <version>${flume.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.flume.flume-ng-sinks</groupId>
             <artifactId>flume-hdfs-sink</artifactId>
-            <version>1.5.2</version>
+            <version>${flume.version}</version>
         </dependency>
 
         <!-- HDFS sink dependencies -->
@@ -99,23 +115,33 @@
 
         <dependency>
             <groupId>org.apache.flume.flume-ng-sinks</groupId>
+            <artifactId>flume-hive-sink</artifactId>
+            <version>${flume.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.flume.flume-ng-sinks</groupId>
             <artifactId>flume-irc-sink</artifactId>
-            <version>1.5.2</version>
+            <version>${flume.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.flume.flume-ng-sinks</groupId>
             <artifactId>flume-ng-elasticsearch-sink</artifactId>
-            <version>1.5.2</version>
+            <version>${flume.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.flume.flume-ng-sinks</groupId>
             <artifactId>flume-ng-hbase-sink</artifactId>
-            <version>1.5.2</version>
+            <version>${flume.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.flume.flume-ng-sinks</groupId>
+            <artifactId>flume-ng-kafka-sink</artifactId>
+            <version>${flume.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.flume.flume-ng-sinks</groupId>
             <artifactId>flume-ng-morphline-solr-sink</artifactId>
-            <version>1.5.2</version>
+            <version>${flume.version}</version>
         </dependency>
 
         <dependency>

@@ -39,7 +39,6 @@ public class NifiSessionFactoryChannel extends BasicChannelSemantics {
         LifecycleState lifecycleState = getLifecycleState();
         if (lifecycleState == LifecycleState.STOP) {
             throw new ChannelFullException("Can't write to a stopped channel");
-            //return null;
         }
         return new NifiTransaction(sessionFactory.createSession(), relationship);
     }

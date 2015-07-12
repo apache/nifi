@@ -41,16 +41,16 @@ import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class FlumeSourceProcessorTest {
+public class ExecuteFlumeSourceTest {
 
-    private static final Logger logger = LoggerFactory.getLogger(FlumeSourceProcessorTest.class);
+    private static final Logger logger = LoggerFactory.getLogger(ExecuteFlumeSourceTest.class);
 
     @Rule
     public final TemporaryFolder temp = new TemporaryFolder();
 
     @Test
     public void testValidators() {
-        TestRunner runner = TestRunners.newTestRunner(FlumeSourceProcessor.class);
+        TestRunner runner = TestRunners.newTestRunner(ExecuteFlumeSource.class);
         Collection<ValidationResult> results;
         ProcessContext pc;
 
@@ -68,7 +68,7 @@ public class FlumeSourceProcessorTest {
 
         // non-existent class
         results = new HashSet<>();
-        runner.setProperty(FlumeSourceProcessor.SOURCE_TYPE, "invalid.class.name");
+        runner.setProperty(ExecuteFlumeSource.SOURCE_TYPE, "invalid.class.name");
         runner.enqueue(new byte[0]);
         pc = runner.getProcessContext();
         if (pc instanceof MockProcessContext) {
@@ -82,7 +82,7 @@ public class FlumeSourceProcessorTest {
 
         // class doesn't implement Source
         results = new HashSet<>();
-        runner.setProperty(FlumeSourceProcessor.SOURCE_TYPE, NullSink.class.getName());
+        runner.setProperty(ExecuteFlumeSource.SOURCE_TYPE, NullSink.class.getName());
         runner.enqueue(new byte[0]);
         pc = runner.getProcessContext();
         if (pc instanceof MockProcessContext) {
@@ -95,7 +95,7 @@ public class FlumeSourceProcessorTest {
         }
 
         results = new HashSet<>();
-        runner.setProperty(FlumeSourceProcessor.SOURCE_TYPE, AvroSource.class.getName());
+        runner.setProperty(ExecuteFlumeSource.SOURCE_TYPE, AvroSource.class.getName());
         runner.enqueue(new byte[0]);
         pc = runner.getProcessContext();
         if (pc instanceof MockProcessContext) {
@@ -106,10 +106,10 @@ public class FlumeSourceProcessorTest {
 
     @Test
     public void testSequenceSource() {
-        TestRunner runner = TestRunners.newTestRunner(FlumeSourceProcessor.class);
-        runner.setProperty(FlumeSourceProcessor.SOURCE_TYPE, "seq");
+        TestRunner runner = TestRunners.newTestRunner(ExecuteFlumeSource.class);
+        runner.setProperty(ExecuteFlumeSource.SOURCE_TYPE, "seq");
         runner.run();
-        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(FlumeSourceProcessor.SUCCESS);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteFlumeSource.SUCCESS);
         Assert.assertEquals(1, flowFiles.size());
         for (MockFlowFile flowFile : flowFiles) {
             logger.debug(flowFile.toString());
@@ -123,16 +123,16 @@ public class FlumeSourceProcessorTest {
         File dst = new File(spoolDirectory, "records.txt");
         FileUtils.copyFile(getClass().getResourceAsStream("/testdata/records.txt"), dst, true, false);
 
-        TestRunner runner = TestRunners.newTestRunner(FlumeSourceProcessor.class);
-        runner.setProperty(FlumeSourceProcessor.SOURCE_TYPE, "spooldir");
-        runner.setProperty(FlumeSinkProcessor.FLUME_CONFIG,
+        TestRunner runner = TestRunners.newTestRunner(ExecuteFlumeSource.class);
+        runner.setProperty(ExecuteFlumeSource.SOURCE_TYPE, "spooldir");
+        runner.setProperty(ExecuteFlumeSink.FLUME_CONFIG,
             "tier1.sources.src-1.spoolDir = " + spoolDirectory.getAbsolutePath());
         runner.run(1, false, true);
         // Because the spool directory source is an event driven source, it may take some time for flow files to get
         // produced. I'm willing to wait up to 5 seconds, but will bail out early if possible. If it takes longer than
         // that then there is likely a bug.
         int numWaits = 10;
-        while (runner.getFlowFilesForRelationship(FlumeSourceProcessor.SUCCESS).size() < 4 && --numWaits > 0) {
+        while (runner.getFlowFilesForRelationship(ExecuteFlumeSource.SUCCESS).size() < 4 && --numWaits > 0) {
             try {
                 TimeUnit.MILLISECONDS.sleep(500);
             } catch (InterruptedException ex) {
@@ -140,9 +140,9 @@ public class FlumeSourceProcessorTest {
             }
         }
         runner.shutdown();
-        runner.assertTransferCount(FlumeSourceProcessor.SUCCESS, 4);
+        runner.assertTransferCount(ExecuteFlumeSource.SUCCESS, 4);
         int i = 1;
-        for (MockFlowFile flowFile : runner.getFlowFilesForRelationship(FlumeSourceProcessor.SUCCESS)) {
+        for (MockFlowFile flowFile : runner.getFlowFilesForRelationship(ExecuteFlumeSource.SUCCESS)) {
             flowFile.assertContentEquals("record " + i);
             i++;
         }

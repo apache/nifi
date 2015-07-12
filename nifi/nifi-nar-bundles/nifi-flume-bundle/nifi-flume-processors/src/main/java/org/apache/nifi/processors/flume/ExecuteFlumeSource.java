@@ -29,6 +29,7 @@ import org.apache.flume.Source;
 import org.apache.flume.channel.ChannelProcessor;
 import org.apache.flume.conf.Configurables;
 import org.apache.flume.source.EventDrivenSourceRunner;
+import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -50,7 +51,8 @@ import org.apache.nifi.processor.util.StandardValidators;
  */
 @Tags({"flume", "hadoop", "get", "source"})
 @CapabilityDescription("Generate FlowFile data from a Flume source")
-public class FlumeSourceProcessor extends AbstractFlumeProcessor {
+@TriggerSerially
+public class ExecuteFlumeSource extends AbstractFlumeProcessor {
 
     public static final PropertyDescriptor SOURCE_TYPE = new PropertyDescriptor.Builder()
         .name("Source Type")
@@ -113,17 +115,12 @@ public class FlumeSourceProcessor extends AbstractFlumeProcessor {
     public void onScheduled(final SchedulingContext context) {
         try {
             source = SOURCE_FACTORY.create(
-                context.getProperty(SOURCE_NAME)
-                .getValue(),
-                context.getProperty(SOURCE_TYPE)
-                .getValue());
+                    context.getProperty(SOURCE_NAME).getValue(),
+                    context.getProperty(SOURCE_TYPE).getValue());
 
-            String flumeConfig = context.getProperty(FLUME_CONFIG)
-                .getValue();
-            String agentName = context.getProperty(AGENT_NAME)
-                .getValue();
-            String sourceName = context.getProperty(SOURCE_NAME)
-                .getValue();
+            String flumeConfig = context.getProperty(FLUME_CONFIG).getValue();
+            String agentName = context.getProperty(AGENT_NAME).getValue();
+            String sourceName = context.getProperty(SOURCE_NAME).getValue();
             Configurables.configure(source,
                 getFlumeSourceContext(flumeConfig, agentName, sourceName));
 
@@ -133,8 +130,7 @@ public class FlumeSourceProcessor extends AbstractFlumeProcessor {
                 source.start();
             }
         } catch (Throwable th) {
-            getLogger()
-                .error("Error creating source", th);
+            getLogger().error("Error creating source", th);
             throw Throwables.propagate(th);
         }
     }
@@ -191,6 +187,8 @@ public class FlumeSourceProcessor extends AbstractFlumeProcessor {
             } catch (EventDeliveryException ex) {
                 throw new ProcessException("Error processing pollable source", ex);
             }
+        } else {
+            throw new ProcessException("Invalid source type: " + source.getClass().getSimpleName());
         }
     }
 }
