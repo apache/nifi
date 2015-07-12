@@ -174,31 +174,45 @@ public final class StandardProcessScheduler implements ProcessScheduler {
             @SuppressWarnings("deprecation")
             @Override
             public void run() {
+                final long lastStopTime = scheduleState.getLastStopTime();
+                final ReportingTask reportingTask = taskNode.getReportingTask();
+
                 // Continually attempt to start the Reporting Task, and if we fail sleep for a bit each time.
                 while (true) {
-                    final ReportingTask reportingTask = taskNode.getReportingTask();
-
                     try {
-                        try (final NarCloseable x = NarCloseable.withNarLoader()) {
-                            ReflectionUtils.invokeMethodsWithAnnotations(OnScheduled.class, OnConfigured.class, reportingTask, taskNode.getConfigurationContext());
-                        }
+                        synchronized (scheduleState) {
+                            // if no longer scheduled to run, then we're finished. This can happen, for example,
+                            // if the @OnScheduled method throws an Exception and the user stops the reporting task
+                            // while we're administratively yielded.
+                            // we also check if the schedule state's last start time is equal to what it was before.
+                            // if not, then means that the reporting task has been stopped and started again, so we should just
+                            // bail; another thread will be responsible for invoking the @OnScheduled methods.
+                            if (!scheduleState.isScheduled() || scheduleState.getLastStopTime() != lastStopTime) {
+                                return;
+                            }
 
-                        break;
+                            try (final NarCloseable x = NarCloseable.withNarLoader()) {
+                                ReflectionUtils.invokeMethodsWithAnnotations(OnScheduled.class, OnConfigured.class, reportingTask, taskNode.getConfigurationContext());
+                            }
+
+                            agent.schedule(taskNode, scheduleState);
+                            return;
+                        }
                     } catch (final Exception e) {
-                        final Throwable cause = (e instanceof InvocationTargetException) ? e.getCause() : e;
+                        final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
                         final ComponentLog componentLog = new SimpleProcessLogger(reportingTask.getIdentifier(), reportingTask);
                         componentLog.error("Failed to invoke @OnEnabled method due to {}", cause);
 
-                        LOG.error("Failed to invoke the On-Scheduled Lifecycle methods of {} due to {}; administratively yielding this ReportingTask and will attempt to schedule it again after {}",
-                                new Object[]{reportingTask, e.toString(), administrativeYieldDuration}, e);
+                        LOG.error("Failed to invoke the On-Scheduled Lifecycle methods of {} due to {}; administratively yielding this "
+                            + "ReportingTask and will attempt to schedule it again after {}",
+                            new Object[] { reportingTask, e.toString(), administrativeYieldDuration }, e);
+
                         try {
                             Thread.sleep(administrativeYieldMillis);
                         } catch (final InterruptedException ie) {
                         }
                     }
                 }
-
-                agent.schedule(taskNode, scheduleState);
             }
         };
 
@@ -216,7 +230,6 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         taskNode.verifyCanStop();
         final SchedulingAgent agent = getSchedulingAgent(taskNode.getSchedulingStrategy());
         final ReportingTask reportingTask = taskNode.getReportingTask();
-        scheduleState.setScheduled(false);
         taskNode.setScheduledState(ScheduledState.STOPPED);
 
         final Runnable unscheduleReportingTaskRunnable = new Runnable() {
@@ -225,29 +238,33 @@ public final class StandardProcessScheduler implements ProcessScheduler {
             public void run() {
                 final ConfigurationContext configurationContext = taskNode.getConfigurationContext();
 
-                try {
-                    try (final NarCloseable x = NarCloseable.withNarLoader()) {
-                        ReflectionUtils.invokeMethodsWithAnnotations(OnUnscheduled.class, org.apache.nifi.processor.annotation.OnUnscheduled.class, reportingTask, configurationContext);
-                    }
-                } catch (final Exception e) {
-                    final Throwable cause = (e instanceof InvocationTargetException) ? e.getCause() : e;
-                    final ComponentLog componentLog = new SimpleProcessLogger(reportingTask.getIdentifier(), reportingTask);
-                    componentLog.error("Failed to invoke @OnUnscheduled method due to {}", cause);
-
-                    LOG.error("Failed to invoke the @OnUnscheduled methods of {} due to {}; administratively yielding this ReportingTask and will attempt to schedule it again after {}",
-                            reportingTask, cause.toString(), administrativeYieldDuration);
-                    LOG.error("", cause);
+                synchronized (scheduleState) {
+                    scheduleState.setScheduled(false);
 
                     try {
-                        Thread.sleep(administrativeYieldMillis);
-                    } catch (final InterruptedException ie) {
+                        try (final NarCloseable x = NarCloseable.withNarLoader()) {
+                            ReflectionUtils.invokeMethodsWithAnnotations(OnUnscheduled.class, org.apache.nifi.processor.annotation.OnUnscheduled.class, reportingTask, configurationContext);
+                        }
+                    } catch (final Exception e) {
+                        final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
+                        final ComponentLog componentLog = new SimpleProcessLogger(reportingTask.getIdentifier(), reportingTask);
+                        componentLog.error("Failed to invoke @OnUnscheduled method due to {}", cause);
+
+                        LOG.error("Failed to invoke the @OnUnscheduled methods of {} due to {}; administratively yielding this ReportingTask and will attempt to schedule it again after {}",
+                            reportingTask, cause.toString(), administrativeYieldDuration);
+                        LOG.error("", cause);
+
+                        try {
+                            Thread.sleep(administrativeYieldMillis);
+                        } catch (final InterruptedException ie) {
+                        }
                     }
-                }
 
-                agent.unschedule(taskNode, scheduleState);
+                    agent.unschedule(taskNode, scheduleState);
 
-                if (scheduleState.getActiveThreadCount() == 0 && scheduleState.mustCallOnStoppedMethods()) {
-                    ReflectionUtils.quietlyInvokeMethodsWithAnnotations(OnStopped.class, org.apache.nifi.processor.annotation.OnStopped.class, reportingTask, configurationContext);
+                    if (scheduleState.getActiveThreadCount() == 0 && scheduleState.mustCallOnStoppedMethods()) {
+                        ReflectionUtils.quietlyInvokeMethodsWithAnnotations(OnStopped.class, org.apache.nifi.processor.annotation.OnStopped.class, reportingTask, configurationContext);
+                    }
                 }
             }
         };
@@ -284,7 +301,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
             @SuppressWarnings("deprecation")
             public void run() {
                 try (final NarCloseable x = NarCloseable.withNarLoader()) {
-                    long lastStopTime = scheduleState.getLastStopTime();
+                    final long lastStopTime = scheduleState.getLastStopTime();
                     final StandardProcessContext processContext = new StandardProcessContext(procNode, controllerServiceProvider, encryptor);
 
                     final Set<String> serviceIds = new HashSet<>();
@@ -330,7 +347,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                                 return;
                             }
                         } catch (final Exception e) {
-                            final Throwable cause = (e instanceof InvocationTargetException) ? e.getCause() : e;
+                            final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
                             final ProcessorLog procLog = new SimpleProcessLogger(procNode.getIdentifier(), procNode.getProcessor());
 
                             procLog.error("{} failed to invoke @OnScheduled method due to {}; processor will not be scheduled to run for {}",
@@ -569,7 +586,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     @Override
     public boolean isScheduled(final Object scheduled) {
         final ScheduleState scheduleState = scheduleStates.get(scheduled);
-        return (scheduleState == null) ? false : scheduleState.isScheduled();
+        return scheduleState == null ? false : scheduleState.isScheduled();
     }
 
     /**
@@ -582,7 +599,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         ScheduleState scheduleState = scheduleStates.get(schedulable);
         if (scheduleState == null) {
             scheduleState = new ScheduleState();
-            ScheduleState previous = scheduleStates.putIfAbsent(schedulable, scheduleState);
+            final ScheduleState previous = scheduleStates.putIfAbsent(schedulable, scheduleState);
             if (previous != null) {
                 scheduleState = previous;
             }
@@ -599,8 +616,8 @@ public final class StandardProcessScheduler implements ProcessScheduler {
             @Override
             public void run() {
                 try (final NarCloseable x = NarCloseable.withNarLoader()) {
-                    long lastStopTime = scheduleState.getLastStopTime();
-                    final ConfigurationContext configContext = new StandardConfigurationContext(service, controllerServiceProvider);
+                    final long lastStopTime = scheduleState.getLastStopTime();
+                    final ConfigurationContext configContext = new StandardConfigurationContext(service, controllerServiceProvider, null);
 
                     while (true) {
                         try {
@@ -622,7 +639,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                                 return;
                             }
                         } catch (final Exception e) {
-                            final Throwable cause = (e instanceof InvocationTargetException) ? e.getCause() : e;
+                            final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
 
                             final ComponentLog componentLog = new SimpleProcessLogger(service.getIdentifier(), service);
                             componentLog.error("Failed to invoke @OnEnabled method due to {}", cause);
@@ -637,7 +654,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                         }
                     }
                 } catch (final Throwable t) {
-                    final Throwable cause = (t instanceof InvocationTargetException) ? t.getCause() : t;
+                    final Throwable cause = t instanceof InvocationTargetException ? t.getCause() : t;
                     final ComponentLog componentLog = new SimpleProcessLogger(service.getIdentifier(), service);
                     componentLog.error("Failed to invoke @OnEnabled method due to {}", cause);
 
@@ -666,32 +683,28 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                 }
 
                 try (final NarCloseable x = NarCloseable.withNarLoader()) {
-                    final ConfigurationContext configContext = new StandardConfigurationContext(service, controllerServiceProvider);
+                    final ConfigurationContext configContext = new StandardConfigurationContext(service, controllerServiceProvider, null);
 
-                    while (true) {
-                        try {
-                            ReflectionUtils.invokeMethodsWithAnnotation(OnDisabled.class, service.getControllerServiceImplementation(), configContext);
-                            heartbeater.heartbeat();
-                            service.setState(ControllerServiceState.DISABLED);
-                            return;
-                        } catch (final Exception e) {
-                            final Throwable cause = (e instanceof InvocationTargetException) ? e.getCause() : e;
-                            final ComponentLog componentLog = new SimpleProcessLogger(service.getIdentifier(), service);
-                            componentLog.error("Failed to invoke @OnDisabled method due to {}", cause);
+                    try {
+                        ReflectionUtils.invokeMethodsWithAnnotation(OnDisabled.class, service.getControllerServiceImplementation(), configContext);
+                    } catch (final Exception e) {
+                        final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
+                        final ComponentLog componentLog = new SimpleProcessLogger(service.getIdentifier(), service);
+                        componentLog.error("Failed to invoke @OnDisabled method due to {}", cause);
 
-                            LOG.error("Failed to invoke @OnDisabled method of {} due to {}", service.getControllerServiceImplementation(), cause.toString());
-                            if (LOG.isDebugEnabled()) {
-                                LOG.error("", cause);
-                            }
-
-                            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnDisabled.class, service.getControllerServiceImplementation(), configContext);
-                            try {
-                                Thread.sleep(administrativeYieldMillis);
-                            } catch (final InterruptedException ie) {
-                            }
-
-                            continue;
+                        LOG.error("Failed to invoke @OnDisabled method of {} due to {}", service.getControllerServiceImplementation(), cause.toString());
+                        if (LOG.isDebugEnabled()) {
+                            LOG.error("", cause);
                         }
+
+                        ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnDisabled.class, service.getControllerServiceImplementation(), configContext);
+                        try {
+                            Thread.sleep(administrativeYieldMillis);
+                        } catch (final InterruptedException ie) {
+                        }
+                    } finally {
+                        service.setState(ControllerServiceState.DISABLED);
+                        heartbeater.heartbeat();
                     }
                 }
             }

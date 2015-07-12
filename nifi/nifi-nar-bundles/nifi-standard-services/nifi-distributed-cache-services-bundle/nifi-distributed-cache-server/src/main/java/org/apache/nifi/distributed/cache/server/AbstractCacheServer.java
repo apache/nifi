@@ -52,7 +52,6 @@ public abstract class AbstractCacheServer implements CacheServer {
     private final SSLContext sslContext;
     protected volatile boolean stopped = false;
     private final Set<Thread> processInputThreads = new CopyOnWriteArraySet<>();
-    ;
 
     private volatile ServerSocketChannel serverSocketChannel;
 
@@ -60,6 +59,11 @@ public abstract class AbstractCacheServer implements CacheServer {
         this.identifier = identifier;
         this.port = port;
         this.sslContext = sslContext;
+    }
+
+    @Override
+    public int getPort() {
+        return serverSocketChannel == null ? this.port : serverSocketChannel.socket().getLocalPort();
     }
 
     @Override
@@ -117,7 +121,7 @@ public abstract class AbstractCacheServer implements CacheServer {
                                 return;
                             }
                             try (final InputStream in = new BufferedInputStream(rawInputStream);
-                                    final OutputStream out = new BufferedOutputStream(rawOutputStream)) {
+                                final OutputStream out = new BufferedOutputStream(rawOutputStream)) {
 
                                 final VersionNegotiator versionNegotiator = new StandardVersionNegotiator(1);
 

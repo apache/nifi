@@ -35,6 +35,11 @@ language governing permissions and limitations under the License. -->
                         </goals>
                         <phase>package</phase>
                         <configuration>
+                            <archiverConfig>
+                                <defaultDirectoryMode>0775</defaultDirectoryMode>
+                                <directoryMode>0775</directoryMode>
+                                <fileMode>0664</fileMode>
+                            </archiverConfig>
                             <descriptors>
                                 <descriptor>src/main/assembly/dependencies.xml</descriptor>
                             </descriptors>
@@ -276,6 +281,7 @@ language governing permissions and limitations under the License. -->
         <nifi.provenance.repository.index.shard.size>500 MB</nifi.provenance.repository.index.shard.size>
         <nifi.provenance.repository.always.sync>false</nifi.provenance.repository.always.sync>
         <nifi.provenance.repository.journal.count>16</nifi.provenance.repository.journal.count>
+        <nifi.provenance.repository.max.attribute.length>65536</nifi.provenance.repository.max.attribute.length>
 
         <!-- volatile provenance repository properties -->
         <nifi.provenance.repository.buffer.size>100000</nifi.provenance.repository.buffer.size>

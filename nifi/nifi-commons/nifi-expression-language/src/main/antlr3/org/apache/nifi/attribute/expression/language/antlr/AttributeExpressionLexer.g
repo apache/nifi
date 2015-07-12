@@ -152,6 +152,7 @@ TO_RADIX : 'toRadix';
 OR : 'or';
 AND : 'and';
 JOIN : 'join';
+TO_LITERAL : 'literal';
 
 // 2 arg functions
 SUBSTRING	: 'substring';

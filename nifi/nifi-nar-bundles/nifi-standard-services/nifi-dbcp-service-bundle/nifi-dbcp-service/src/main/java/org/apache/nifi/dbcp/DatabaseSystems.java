@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.dbcp;
 
+@Deprecated
 public class DatabaseSystems {
 
     /**

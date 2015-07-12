@@ -177,7 +177,10 @@ nf.ReportingTask = (function () {
         // get the table and update the row accordingly
         var reportingTaskGrid = $('#reporting-tasks-table').data('gridInstance');
         var reportingTaskData = reportingTaskGrid.getData();
-        reportingTaskData.updateItem(reportingTask.id, reportingTask);
+        var currentReportingTask = reportingTaskData.getItemById(reportingTask.id);
+        reportingTaskData.updateItem(reportingTask.id, $.extend({
+            bulletins: currentReportingTask.bulletins
+        }, reportingTask));
     };
     
     /**

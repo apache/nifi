@@ -22,14 +22,13 @@ import org.apache.nifi.attribute.expression.language.evaluation.BooleanEvaluator
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
-import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
 
 public class StartsWithEvaluator extends BooleanEvaluator {
 
-    private final StringEvaluator subject;
-    private final StringEvaluator search;
+    private final Evaluator<String> subject;
+    private final Evaluator<String> search;
 
-    public StartsWithEvaluator(final StringEvaluator subject, final StringEvaluator search) {
+    public StartsWithEvaluator(final Evaluator<String> subject, final Evaluator<String> search) {
         this.subject = subject;
         this.search = search;
     }

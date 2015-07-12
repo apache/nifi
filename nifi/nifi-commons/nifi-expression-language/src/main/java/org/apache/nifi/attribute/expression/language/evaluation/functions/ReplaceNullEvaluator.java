@@ -25,10 +25,10 @@ import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResul
 
 public class ReplaceNullEvaluator extends StringEvaluator {
 
-    private final StringEvaluator subject;
-    private final StringEvaluator resultEvaluator;
+    private final Evaluator<String> subject;
+    private final Evaluator<String> resultEvaluator;
 
-    public ReplaceNullEvaluator(final StringEvaluator subject, final StringEvaluator resultEvaluator) {
+    public ReplaceNullEvaluator(final Evaluator<String> subject, final Evaluator<String> resultEvaluator) {
         this.subject = subject;
         this.resultEvaluator = resultEvaluator;
     }

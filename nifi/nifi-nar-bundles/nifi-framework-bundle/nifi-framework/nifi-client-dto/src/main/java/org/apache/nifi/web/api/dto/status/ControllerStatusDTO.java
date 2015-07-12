@@ -40,6 +40,8 @@ public class ControllerStatusDTO {
     private Integer inactiveRemotePortCount;
 
     private List<BulletinDTO> bulletins;
+    private List<BulletinDTO> controllerServiceBulletins;
+    private List<BulletinDTO> reportingTaskBulletins;
 
     /**
      * The active thread count.
@@ -72,7 +74,8 @@ public class ControllerStatusDTO {
     }
 
     /**
-     * @return Used in clustering, will report the number of nodes connected vs the number of nodes in the cluster
+     * @return Used in clustering, will report the number of nodes connected vs
+     * the number of nodes in the cluster
      */
     @ApiModelProperty(
             value = "When clustered, reports the number of nodes connected vs the number of nodes in the cluster."
@@ -97,6 +100,34 @@ public class ControllerStatusDTO {
 
     public void setBulletins(List<BulletinDTO> bulletins) {
         this.bulletins = bulletins;
+    }
+
+    /**
+     * @return Controller service bulletins to be reported to the user
+     */
+    @ApiModelProperty(
+            value = "Controller service bulletins to be reported to the user."
+    )
+    public List<BulletinDTO> getControllerServiceBulletins() {
+        return controllerServiceBulletins;
+    }
+
+    public void setControllerServiceBulletins(List<BulletinDTO> controllerServiceBulletins) {
+        this.controllerServiceBulletins = controllerServiceBulletins;
+    }
+
+    /**
+     * @return Reporting task bulletins to be reported to the user
+     */
+    @ApiModelProperty(
+            value = "Reporting task bulletins to be reported to the user."
+    )
+    public List<BulletinDTO> getReportingTaskBulletins() {
+        return reportingTaskBulletins;
+    }
+
+    public void setReportingTaskBulletins(List<BulletinDTO> reportingTaskBulletins) {
+        this.reportingTaskBulletins = reportingTaskBulletins;
     }
 
     /**

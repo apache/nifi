@@ -40,11 +40,11 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
-import org.junit.Assert;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.FlowFileFilter;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.QueueSize;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.FlowFileAccessException;
@@ -54,6 +54,7 @@ import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.provenance.ProvenanceReporter;
+import org.junit.Assert;
 
 public class MockProcessSession implements ProcessSession {
 
@@ -65,14 +66,16 @@ public class MockProcessSession implements ProcessSession {
     private final Map<Long, MockFlowFile> originalVersions = new HashMap<>();
     private final SharedSessionState sharedState;
     private final Map<String, Long> counterMap = new HashMap<>();
+    private final ProvenanceReporter provenanceReporter;
 
     private boolean committed = false;
     private boolean rolledback = false;
     private int removedCount = 0;
 
-    public MockProcessSession(final SharedSessionState sharedState) {
+    public MockProcessSession(final SharedSessionState sharedState, final Processor processor) {
         this.sharedState = sharedState;
         this.processorQueue = sharedState.getFlowFileQueue();
+        provenanceReporter = new MockProvenanceReporter(this, sharedState, processor.getIdentifier(), processor.getClass().getSimpleName());
     }
 
     @Override
@@ -194,7 +197,7 @@ public class MockProcessSession implements ProcessSession {
 
         try {
             out.write(mock.getData());
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new FlowFileAccessException(e.toString(), e);
         }
     }
@@ -409,7 +412,7 @@ public class MockProcessSession implements ProcessSession {
         final ByteArrayInputStream bais = new ByteArrayInputStream(mock.getData());
         try {
             callback.process(bais);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new ProcessException(e.toString(), e);
         }
     }
@@ -766,7 +769,7 @@ public class MockProcessSession implements ProcessSession {
         if (source == null || destination == null || source == destination) {
             return destination; //don't need to inherit from ourselves
         }
-        FlowFile updated = putAllAttributes(destination, source.getAttributes());
+        final FlowFile updated = putAllAttributes(destination, source.getAttributes());
         getProvenanceReporter().fork(source, Collections.singletonList(updated));
         return updated;
     }
@@ -803,7 +806,7 @@ public class MockProcessSession implements ProcessSession {
             }
         }
 
-        FlowFile updated = putAllAttributes(destination, intersectAttributes(sources));
+        final FlowFile updated = putAllAttributes(destination, intersectAttributes(sources));
         getProvenanceReporter().join(sources, updated);
         return updated;
     }
@@ -982,7 +985,7 @@ public class MockProcessSession implements ProcessSession {
 
     @Override
     public ProvenanceReporter getProvenanceReporter() {
-        return sharedState.getProvenanceReporter();
+        return provenanceReporter;
     }
 
     @Override
@@ -996,5 +999,28 @@ public class MockProcessSession implements ProcessSession {
     public byte[] getContentAsByteArray(final MockFlowFile flowFile) {
         validateState(flowFile);
         return flowFile.getData();
+    }
+
+    /**
+     * Checks if a FlowFile is known in this session.
+     *
+     * @param flowFile
+     *            the FlowFile to check
+     * @return <code>true</code> if the FlowFile is known in this session,
+     *         <code>false</code> otherwise.
+     */
+    boolean isFlowFileKnown(final FlowFile flowFile) {
+        final FlowFile curFlowFile = currentVersions.get(flowFile.getId());
+        if (curFlowFile == null) {
+            return false;
+        }
+
+        final String curUuid = curFlowFile.getAttribute(CoreAttributes.UUID.key());
+        final String providedUuid = curFlowFile.getAttribute(CoreAttributes.UUID.key());
+        if (!curUuid.equals(providedUuid)) {
+            return false;
+        }
+
+        return true;
     }
 }

@@ -50,6 +50,7 @@ import java.util.regex.Pattern;
 import javax.net.ssl.SSLContext;
 
 import org.apache.http.Header;
+import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -61,16 +62,19 @@ import org.apache.http.config.Registry;
 import org.apache.http.config.RegistryBuilder;
 import org.apache.http.conn.HttpClientConnectionManager;
 import org.apache.http.conn.socket.ConnectionSocketFactory;
+import org.apache.http.conn.socket.PlainConnectionSocketFactory;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.conn.ssl.SSLContexts;
 import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.conn.BasicHttpClientConnectionManager;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.behavior.WritesAttribute;
-import org.apache.nifi.annotation.lifecycle.OnShutdown;
+import org.apache.nifi.annotation.lifecycle.OnRemoved;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -91,7 +95,10 @@ import org.apache.nifi.util.StopWatch;
 
 @Tags({"get", "fetch", "poll", "http", "https", "ingest", "source", "input"})
 @CapabilityDescription("Fetches a file via HTTP")
-@WritesAttribute(attribute = "filename", description = "the filename is set to the name of the file on the remote server")
+@WritesAttributes({
+    @WritesAttribute(attribute = "filename", description = "The filename is set to the name of the file on the remote server"),
+    @WritesAttribute(attribute = "mime.type", description = "The MIME Type of the FlowFile, as reported by the HTTP Content-Type header")
+})
 public class GetHTTP extends AbstractSessionFactoryProcessor {
 
     static final int PERSISTENCE_INTERVAL_MSEC = 10000;
@@ -167,6 +174,18 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
             .required(false)
             .identifiesControllerService(SSLContextService.class)
             .build();
+    public static final PropertyDescriptor PROXY_HOST = new PropertyDescriptor.Builder()
+            .name("Proxy Host")
+            .description("The fully qualified hostname or IP address of the proxy server")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+    public static final PropertyDescriptor PROXY_PORT = new PropertyDescriptor.Builder()
+            .name("Proxy Port")
+            .description("The port of the proxy server")
+            .required(false)
+            .addValidator(StandardValidators.PORT_VALIDATOR)
+            .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -218,6 +237,8 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
         properties.add(USER_AGENT);
         properties.add(ACCEPT_CONTENT_TYPE);
         properties.add(FOLLOW_REDIRECTS);
+        properties.add(PROXY_HOST);
+        properties.add(PROXY_PORT);
         this.properties = Collections.unmodifiableList(properties);
 
         // load etag and lastModified from file
@@ -247,8 +268,8 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
         lastModifiedRef.set(UNINITIALIZED_LAST_MODIFIED_VALUE);
     }
 
-    @OnShutdown
-    public void onShutdown() {
+    @OnStopped
+    public void onStopped() {
         final File httpCache = new File(HTTP_CACHE_FILE_PREFIX + getIdentifier());
         try (FileOutputStream fos = new FileOutputStream(httpCache)) {
             final Properties props = new Properties();
@@ -260,6 +281,14 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
 
     }
 
+    @OnRemoved
+    public void onRemoved() {
+        final File httpCache = new File(HTTP_CACHE_FILE_PREFIX + getIdentifier());
+        if (httpCache.exists()) {
+            httpCache.delete();
+        }
+    }
+
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext context) {
         final Collection<ValidationResult> results = new ArrayList<>();
@@ -269,6 +298,14 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
                     .explanation("URL is set to HTTPS protocol but no SSLContext has been specified")
                     .valid(false)
                     .subject("SSL Context")
+                    .build());
+        }
+
+        if (context.getProperty(PROXY_HOST).isSet() && !context.getProperty(PROXY_PORT).isSet()) {
+            results.add(new ValidationResult.Builder()
+                    .explanation("Proxy Host was set but no Proxy Port was specified")
+                    .valid(false)
+                    .subject("Proxy server configuration")
                     .build());
         }
 
@@ -331,7 +368,12 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
 
             final SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext, new String[]{"TLSv1"}, null, SSLConnectionSocketFactory.BROWSER_COMPATIBLE_HOSTNAME_VERIFIER);
 
-            final Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory>create().register("https", sslsf).build();
+            // Also include a plain socket factory for regular http connections (especially proxies)
+            final Registry<ConnectionSocketFactory> socketFactoryRegistry =
+                    RegistryBuilder.<ConnectionSocketFactory>create()
+                            .register("https", sslsf)
+                            .register("http", PlainConnectionSocketFactory.getSocketFactory())
+                            .build();
 
             conMan = new BasicHttpClientConnectionManager(socketFactoryRegistry);
         }
@@ -374,6 +416,13 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
                 clientBuilder.setDefaultCredentialsProvider(credentialsProvider);
             }
 
+            // Set the proxy if specified
+            if (context.getProperty(PROXY_HOST).isSet() && context.getProperty(PROXY_PORT).isSet()) {
+                final String host = context.getProperty(PROXY_HOST).getValue();
+                final int port = context.getProperty(PROXY_PORT).asInteger();
+                clientBuilder.setProxy(new HttpHost(host, port));
+            }
+
             // create the http client
             final HttpClient client = clientBuilder.build();
 
@@ -413,6 +462,15 @@ public class GetHTTP extends AbstractSessionFactoryProcessor {
                 flowFile = session.putAttribute(flowFile, CoreAttributes.FILENAME.key(), context.getProperty(FILENAME).getValue());
                 flowFile = session.putAttribute(flowFile, this.getClass().getSimpleName().toLowerCase() + ".remote.source", source);
                 flowFile = session.importFrom(response.getEntity().getContent(), flowFile);
+
+                final Header contentTypeHeader = response.getFirstHeader("Content-Type");
+                if (contentTypeHeader != null) {
+                    final String contentType = contentTypeHeader.getValue();
+                    if (!contentType.trim().isEmpty()) {
+                        flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), contentType.trim());
+                    }
+                }
+
                 final long flowFileSize = flowFile.getSize();
                 stopWatch.stop();
                 final String dataRate = stopWatch.calculateDataRate(flowFileSize);

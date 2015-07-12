@@ -23,6 +23,7 @@ import java.util.regex.Pattern;
  */
 public class BulletinQuery {
 
+    private final ComponentType sourceType;
     private final Pattern sourceIdPattern;
     private final Pattern groupIdPattern;
     private final Pattern namePattern;
@@ -31,12 +32,17 @@ public class BulletinQuery {
     private final Integer limit;
 
     private BulletinQuery(final Builder builder) {
+        this.sourceType = builder.sourceType;
         this.sourceIdPattern = builder.sourceIdPattern == null ? null : Pattern.compile(builder.sourceIdPattern);
         this.groupIdPattern = builder.groupIdPattern == null ? null : Pattern.compile(builder.groupIdPattern);
         this.namePattern = builder.namePattern == null ? null : Pattern.compile(builder.namePattern);
         this.messagePattern = builder.messagePattern == null ? null : Pattern.compile(builder.messagePattern);
         this.after = builder.after;
         this.limit = builder.limit;
+    }
+
+    public ComponentType getSourceType() {
+        return sourceType;
     }
 
     public Pattern getSourceIdPattern() {
@@ -65,6 +71,7 @@ public class BulletinQuery {
 
     public static class Builder {
 
+        private ComponentType sourceType;
         private String sourceIdPattern;
         private String groupIdPattern;
         private String namePattern;
@@ -84,6 +91,11 @@ public class BulletinQuery {
 
         public Builder sourceIdMatches(String sourceId) {
             this.sourceIdPattern = sourceId;
+            return this;
+        }
+
+        public Builder sourceType(ComponentType sourceType) {
+            this.sourceType = sourceType;
             return this;
         }
 

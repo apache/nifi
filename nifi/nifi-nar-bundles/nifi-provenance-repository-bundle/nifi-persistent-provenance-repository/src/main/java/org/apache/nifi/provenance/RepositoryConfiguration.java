@@ -34,6 +34,7 @@ public class RepositoryConfiguration {
     private long desiredIndexBytes = 1024L * 1024L * 500L; // 500 MB
     private int journalCount = 16;
     private int compressionBlockBytes = 1024 * 1024;
+    private int maxAttributeChars = 65536;
 
     private List<SearchableField> searchableFields = new ArrayList<>();
     private List<SearchableField> searchableAttributes = new ArrayList<>();
@@ -278,4 +279,21 @@ public class RepositoryConfiguration {
     public void setAlwaysSync(boolean alwaysSync) {
         this.alwaysSync = alwaysSync;
     }
+
+    /**
+     * @return the maximum number of characters to include in any attribute. If an attribute in a Provenance
+     *         Event has more than this number of characters, it will be truncated when the event is retrieved.
+     */
+    public int getMaxAttributeChars() {
+        return maxAttributeChars;
+    }
+
+    /**
+     * Sets the maximum number of characters to include in any attribute. If an attribute in a Provenance
+     * Event has more than this number of characters, it will be truncated when it is retrieved.
+     */
+    public void setMaxAttributeChars(int maxAttributeChars) {
+        this.maxAttributeChars = maxAttributeChars;
+    }
+
 }

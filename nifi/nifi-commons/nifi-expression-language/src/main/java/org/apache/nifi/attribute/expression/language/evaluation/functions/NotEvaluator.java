@@ -25,9 +25,9 @@ import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 
 public class NotEvaluator extends BooleanEvaluator {
 
-    private final BooleanEvaluator subjectEvaluator;
+    private final Evaluator<Boolean> subjectEvaluator;
 
-    public NotEvaluator(final BooleanEvaluator subjectEvaluator) {
+    public NotEvaluator(final Evaluator<Boolean> subjectEvaluator) {
         this.subjectEvaluator = subjectEvaluator;
     }
 

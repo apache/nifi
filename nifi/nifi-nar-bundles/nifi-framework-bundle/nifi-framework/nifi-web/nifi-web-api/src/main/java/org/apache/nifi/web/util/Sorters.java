@@ -1,8 +1,8 @@
 package org.apache.nifi.web.util;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.List;
 
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ProcessorNode;
@@ -17,7 +17,7 @@ public class Sorters {
 		return nullSafeStringComparator.compare(o1, o2);
 	}
 
-	public static ArrayList<Port> sortPorts(ArrayList<Port> list) {
+	public static List<Port> sortPorts(List<Port> list) {
 		Collections.sort(list, new Comparator<Port>() {
 
 			@Override
@@ -32,7 +32,7 @@ public class Sorters {
 		return list;
 	}
 
-	public static ArrayList<RemoteProcessGroup> sortRemoteProcessGroups(ArrayList<RemoteProcessGroup> list) {
+	public static List<RemoteProcessGroup> sortRemoteProcessGroups(List<RemoteProcessGroup> list) {
 		Collections.sort(list, new Comparator<RemoteProcessGroup>() {
 
 			@Override
@@ -46,7 +46,7 @@ public class Sorters {
 		return list;
 	}
 
-	public static ArrayList<ProcessorNode> sortProcessorNodes(ArrayList<ProcessorNode> list) {
+	public static List<ProcessorNode> sortProcessorNodes(List<ProcessorNode> list) {
 		Collections.sort(list, new Comparator<ProcessorNode>() {
 
 			@Override
@@ -60,7 +60,7 @@ public class Sorters {
 		return list;
 	}
 
-	public static ArrayList<Label> sortLabels(ArrayList<Label> list) {
+	public static List<Label> sortLabels(List<Label> list) {
 		Collections.sort(list, new Comparator<Label>() {
 
 			@Override
@@ -74,7 +74,7 @@ public class Sorters {
 		return list;
 	}
 
-	public static ArrayList<ProcessGroup> sortProcessGroups(ArrayList<ProcessGroup> list) {
+	public static List<ProcessGroup> sortProcessGroups(List<ProcessGroup> list) {
 		Collections.sort(list, new Comparator<ProcessGroup>() {
 
 			@Override

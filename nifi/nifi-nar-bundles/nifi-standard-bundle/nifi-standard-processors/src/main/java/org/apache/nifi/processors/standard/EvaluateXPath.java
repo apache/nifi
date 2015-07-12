@@ -89,7 +89,7 @@ import org.xml.sax.InputSource;
         + "Name into which the result will be placed (if the Destination is flowfile-attribute; otherwise, the property name is ignored). "
         + "The value of the property must be a valid XPath expression. If the XPath evaluates to more than one node and the Return Type is "
         + "set to 'nodeset' (either directly, or via 'auto-detect' with a Destination of "
-        + "'flowfile-content', the FlowFile will be unmodified and will be routed to failure. If the XPath does not "
+        + "'flowfile-content'), the FlowFile will be unmodified and will be routed to failure. If the XPath does not "
         + "evaluate to a Node, the FlowFile will be routed to 'unmatched' without having its contents modified. If Destination is "
         + "flowfile-attribute and the expression matches nothing, attributes will be created with empty strings as the value, and the "
         + "FlowFile will always be routed to 'matched'")

@@ -184,6 +184,23 @@ nf.Common = {
      * @argument {string} error     The error
      */
     handleAjaxError: function (xhr, status, error) {
+        // if an error occurs while the splash screen is visible close the canvas show the error message
+        if ($('#splash').is(':visible')) {
+            $('#message-title').text('An unexpected error has occurred');
+            if ($.trim(xhr.responseText) === '') {
+                $('#message-content').text('Please check the logs.');
+            } else {
+                $('#message-content').text(xhr.responseText);
+            }
+
+            // show the error pane
+            $('#message-pane').show();
+
+            // close the canvas
+            nf.Common.closeCanvas();
+            return;
+        }
+        
         // status code 400, 404, and 409 are expected response codes for common errors.
         if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409) {
             nf.Dialog.showOkDialog({

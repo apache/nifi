@@ -21,6 +21,7 @@ import java.util.Date;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
 
 public abstract class DateEvaluator implements Evaluator<Date> {
+    private String token;
 
     @Override
     public ResultType getResultType() {
@@ -30,5 +31,15 @@ public abstract class DateEvaluator implements Evaluator<Date> {
     @Override
     public int getEvaluationsRemaining() {
         return 0;
+    }
+
+    @Override
+    public String getToken() {
+        return token;
+    }
+
+    @Override
+    public void setToken(final String token) {
+        this.token = token;
     }
 }

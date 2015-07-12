@@ -233,8 +233,7 @@ public class NiFiProperties extends Properties {
      * obtained.
      *
      * @return the NiFiProperties object to use
-     * @throws RuntimeException
-     *             if unable to load properties file
+     * @throws RuntimeException if unable to load properties file
      */
     public static synchronized NiFiProperties getInstance() {
         if (null == instance) {
@@ -794,7 +793,7 @@ public class NiFiProperties extends Properties {
         final String scheme = (rawScheme == null) ? "http" : rawScheme;
 
         final String host;
-        final int port;
+        final Integer port;
         if ("http".equalsIgnoreCase(scheme)) {
             // get host
             if (StringUtils.isBlank(getProperty(WEB_HTTP_HOST))) {
@@ -804,6 +803,10 @@ public class NiFiProperties extends Properties {
             }
             // get port
             port = getPort();
+
+            if (port == null) {
+                throw new RuntimeException(String.format("The %s must be specified if running in a cluster with %s set to false.", WEB_HTTP_PORT, CLUSTER_PROTOCOL_IS_SECURE));
+            }
         } else {
             // get host
             if (StringUtils.isBlank(getProperty(WEB_HTTPS_HOST))) {
@@ -813,6 +816,10 @@ public class NiFiProperties extends Properties {
             }
             // get port
             port = getSslPort();
+
+            if (port == null) {
+                throw new RuntimeException(String.format("The %s must be specified if running in a cluster with %s set to true.", WEB_HTTPS_PORT, CLUSTER_PROTOCOL_IS_SECURE));
+            }
         }
 
         return InetSocketAddress.createUnresolved(host, port);
@@ -824,8 +831,7 @@ public class NiFiProperties extends Properties {
      * configured. No directories will be created as a result of this operation.
      *
      * @return database repository path
-     * @throws InvalidPathException
-     *             If the configured path is invalid
+     * @throws InvalidPathException If the configured path is invalid
      */
     public Path getDatabaseRepositoryPath() {
         return Paths.get(getProperty(REPOSITORY_DATABASE_DIRECTORY));
@@ -836,8 +842,7 @@ public class NiFiProperties extends Properties {
      * configured. No directories will be created as a result of this operation.
      *
      * @return database repository path
-     * @throws InvalidPathException
-     *             If the configured path is invalid
+     * @throws InvalidPathException If the configured path is invalid
      */
     public Path getFlowFileRepositoryPath() {
         return Paths.get(getProperty(FLOWFILE_REPOSITORY_DIRECTORY));
@@ -850,8 +855,7 @@ public class NiFiProperties extends Properties {
      * operation.
      *
      * @return file repositories paths
-     * @throws InvalidPathException
-     *             If any of the configured paths are invalid
+     * @throws InvalidPathException If any of the configured paths are invalid
      */
     public Map<String, Path> getContentRepositoryPaths() {
         final Map<String, Path> contentRepositoryPaths = new HashMap<>();

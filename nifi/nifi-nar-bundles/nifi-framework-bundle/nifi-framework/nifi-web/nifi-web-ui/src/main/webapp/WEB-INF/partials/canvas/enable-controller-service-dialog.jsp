@@ -22,7 +22,9 @@
                 <div class="setting-name">Service</div>
                 <div class="setting-field">
                     <span id="enable-controller-service-id" class="hidden"></span>
-                    <span id="enable-controller-service-name"></span>
+                    <div id="enable-controller-service-name"></div>
+                    <div id="enable-controller-service-bulletins"></div>
+                    <div class="clear"></div>
                 </div>
             </div>
             <div id="enable-controller-service-scope-container" class="setting">
@@ -66,5 +68,8 @@
                 </div>
             </div>
         </div>
+    </div>
+    <div class="controller-service-canceling hidden unset">
+        Canceling...
     </div>
 </div>

@@ -25,9 +25,9 @@ import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResul
 
 public class TrimEvaluator extends StringEvaluator {
 
-    private final StringEvaluator subject;
+    private final Evaluator<String> subject;
 
-    public TrimEvaluator(final StringEvaluator subject) {
+    public TrimEvaluator(final Evaluator<String> subject) {
         this.subject = subject;
     }
 
