@@ -50,13 +50,13 @@ import org.apache.nifi.processor.util.StandardValidators;
  * This processor runs a Flume source
  */
 @Tags({"flume", "hadoop", "get", "source"})
-@CapabilityDescription("Generate FlowFile data from a Flume source")
+@CapabilityDescription("Execute a Flume source. Each Flume Event is sent to the success relationship as a FlowFile")
 @TriggerSerially
 public class ExecuteFlumeSource extends AbstractFlumeProcessor {
 
     public static final PropertyDescriptor SOURCE_TYPE = new PropertyDescriptor.Builder()
         .name("Source Type")
-        .description("The fully-qualified name of the Source class")
+        .description("The component type name for the source. For some sources, this is a short, symbolic name (e.g. spooldir). For others, it's the fully-qualified name of the Source class. See the Flume User Guide for details.")
         .required(true)
         .addValidator(createSourceValidator())
         .build();
