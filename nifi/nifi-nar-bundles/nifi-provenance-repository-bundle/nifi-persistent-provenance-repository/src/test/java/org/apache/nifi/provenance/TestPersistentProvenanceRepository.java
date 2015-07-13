@@ -135,6 +135,8 @@ public class TestPersistentProvenanceRepository {
 
     private EventReporter getEventReporter() {
         return new EventReporter() {
+            private static final long serialVersionUID = 1L;
+
             @Override
             public void reportEvent(Severity severity, String category, String message) {
                 System.out.println(severity + " : " + category + " : " + message);

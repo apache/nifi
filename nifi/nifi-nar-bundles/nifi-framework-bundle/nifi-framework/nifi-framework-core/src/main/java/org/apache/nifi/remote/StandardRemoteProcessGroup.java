@@ -160,6 +160,8 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
 
         final BulletinRepository bulletinRepository = flowController.getBulletinRepository();
         eventReporter = new EventReporter() {
+            private static final long serialVersionUID = 1L;
+
             @Override
             public void reportEvent(final Severity severity, final String category, final String message) {
                 final String groupId = StandardRemoteProcessGroup.this.getProcessGroup().getIdentifier();

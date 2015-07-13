@@ -528,6 +528,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
     private static EventReporter createEventReporter(final BulletinRepository bulletinRepository) {
         return new EventReporter() {
+            private static final long serialVersionUID = 1L;
+
             @Override
             public void reportEvent(final Severity severity, final String category, final String message) {
                 final Bulletin bulletin = BulletinFactory.createBulletin(category, severity.name(), message);

@@ -104,6 +104,8 @@ public class StandardRootGroupPort extends AbstractPort implements RootGroupPort
         this.scheduler = scheduler;
         setYieldPeriod("100 millis");
         eventReporter = new EventReporter() {
+            private static final long serialVersionUID = 1L;
+
             @Override
             public void reportEvent(final Severity severity, final String category, final String message) {
                 final String groupId = StandardRootGroupPort.this.getProcessGroup().getIdentifier();
