@@ -485,7 +485,7 @@ Methods with this annotation will be called when a Processor or
 ReportingTask is no longer scheduled to run
 and all threads have returned from the `onTrigger` method. If such a
 method throws an Exception,
-a lot message will be generated, and the Exception will otherwise be
+a log message will be generated, and the Exception will otherwise be
 ignored; other methods with
 this annotation will still be invoked. Methods with this annotation
 must take zero arguments.

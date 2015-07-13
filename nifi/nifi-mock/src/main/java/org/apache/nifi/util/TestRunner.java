@@ -32,6 +32,7 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.QueueSize;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceReporter;
 import org.apache.nifi.reporting.InitializationException;
 
@@ -123,6 +124,51 @@ public interface TestRunner {
      * @param initialize true if must initialize
      */
     void run(int iterations, boolean stopOnFinish, final boolean initialize);
+
+    /**
+     * This method runs the {@link Processor} <code>iterations</code> times,
+     * using the sequence of steps below:
+     * <ul>
+     * <li>
+     * If {@code initialize} is true, run all methods on the Processor that are
+     * annotated with the
+     * {@link nifi.processor.annotation.OnScheduled @OnScheduled} annotation. If
+     * any of these methods throws an Exception, the Unit Test will fail.
+     * </li>
+     * <li>
+     * Schedule the
+     * {@link Processor#onTrigger(ProcessContext, ProcessSessionFactory) onTrigger}
+     * method to be invoked <code>iterations</code> times. The number of threads
+     * used to run these iterations is determined by the ThreadCount of this
+     * <code>TestRunner</code>. By default, the value is set to 1, but it can be
+     * modified by calling the {@link #setThreadCount(int)} method.
+     * </li>
+     * <li>
+     * As soon as the first thread finishes its execution of
+     * {@link Processor#onTrigger(ProcessContext, ProcessSessionFactory) onTrigger},
+     * all methods on the Processor that are annotated with the
+     * {@link nifi.processor.annotation.OnUnscheduled @OnUnscheduled} annotation
+     * are invoked. If any of these methods throws an Exception, the Unit Test
+     * will fail.
+     * </li>
+     * <li>
+     * Waits for all threads to finish execution.
+     * </li>
+     * <li>
+     * If and only if the value of <code>shutdown</code> is true: Call all
+     * methods on the Processor that is annotated with the
+     * {@link nifi.processor.annotation.OnStopped @OnStopped} annotation.
+     * </li>
+     * </ul>
+     *
+     * @param iterations number of iterations
+     * @param stopOnFinish whether or not to run the Processor methods that are
+     * annotated with {@link nifi.processor.annotation.OnStopped @OnStopped}
+     * @param initialize true if must initialize
+     * @param runWait indicates the amount of time in milliseconds that the framework should wait for
+     * processors to stop running before calling the {@link nifi.processor.annotation.OnUnscheduled @OnUnscheduled} annotation
+     */
+    void run(int iterations, boolean stopOnFinish, final boolean initialize, final long runWait);
 
     /**
      * Invokes all methods on the Processor that are annotated with the
@@ -702,4 +748,18 @@ public interface TestRunner {
      * @return true if removed
      */
     boolean removeProperty(PropertyDescriptor descriptor);
+
+    /**
+     * Returns a {@link List} of all {@link ProvenanceEventRecord}s that were
+     * emitted by the Processor
+     *
+     * @return a List of all Provenance Events that were emitted by the
+     *         Processor
+     */
+    List<ProvenanceEventRecord> getProvenanceEvents();
+
+    /**
+     * Clears the Provenance Events that have been emitted by the Processor
+     */
+    void clearProvenanceEvents();
 }

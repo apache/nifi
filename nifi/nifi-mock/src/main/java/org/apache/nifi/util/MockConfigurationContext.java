@@ -18,18 +18,26 @@ package org.apache.nifi.util;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 
 public class MockConfigurationContext implements ConfigurationContext {
 
     private final Map<PropertyDescriptor, String> properties;
     private final ControllerServiceLookup serviceLookup;
+    private final ControllerService service;
 
     public MockConfigurationContext(final Map<PropertyDescriptor, String> properties, final ControllerServiceLookup serviceLookup) {
+        this(null, properties, serviceLookup);
+    }
+
+    public MockConfigurationContext(final ControllerService service, final Map<PropertyDescriptor, String> properties, final ControllerServiceLookup serviceLookup) {
+        this.service = service;
         this.properties = properties;
         this.serviceLookup = serviceLookup;
     }
@@ -38,7 +46,7 @@ public class MockConfigurationContext implements ConfigurationContext {
     public PropertyValue getProperty(final PropertyDescriptor property) {
         String value = properties.get(property);
         if (value == null) {
-            value = property.getDefaultValue();
+            value = getActualDescriptor(property).getDefaultValue();
         }
         return new MockPropertyValue(value, serviceLookup);
     }
@@ -46,5 +54,24 @@ public class MockConfigurationContext implements ConfigurationContext {
     @Override
     public Map<PropertyDescriptor, String> getProperties() {
         return new HashMap<>(this.properties);
+    }
+
+    private PropertyDescriptor getActualDescriptor(final PropertyDescriptor property) {
+        if (service == null) {
+            return property;
+        }
+
+        final PropertyDescriptor resolved = service.getPropertyDescriptor(property.getName());
+        return resolved == null ? property : resolved;
+    }
+
+    @Override
+    public String getSchedulingPeriod() {
+        return "0 secs";
+    }
+
+    @Override
+    public Long getSchedulingPeriod(final TimeUnit timeUnit) {
+        return 0L;
     }
 }

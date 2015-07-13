@@ -26,28 +26,24 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicLong;
 
 import kafka.common.FailedToSendMessageException;
 import kafka.javaapi.producer.Producer;
+import kafka.message.CompressionCodec;
 import kafka.producer.KeyedMessage;
 import kafka.producer.ProducerConfig;
 
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.provenance.ProvenanceReporter;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.MockFlowFileQueue;
-import org.apache.nifi.util.MockProcessSession;
-import org.apache.nifi.util.MockProvenanceReporter;
-import org.apache.nifi.util.MockSessionFactory;
-import org.apache.nifi.util.SharedSessionState;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.mockito.Mockito;
-import org.mockito.internal.util.reflection.Whitebox;
+
+import scala.collection.Seq;
 
 public class TestPutKafka {
 
@@ -169,19 +165,7 @@ public class TestPutKafka {
     public void testProvenanceReporterMessagesCount() {
         final TestableProcessor processor = new TestableProcessor();
 
-        ProvenanceReporter spyProvenanceReporter = Mockito.spy(new MockProvenanceReporter());
-
-        AtomicLong idGenerator = new AtomicLong(0L);
-        SharedSessionState sharedState = new SharedSessionState(processor, idGenerator);
-        Whitebox.setInternalState(sharedState, "provenanceReporter", spyProvenanceReporter);
-        MockFlowFileQueue flowFileQueue = sharedState.getFlowFileQueue();
-        MockSessionFactory sessionFactory = Mockito.mock(MockSessionFactory.class);
-        MockProcessSession mockProcessSession = new MockProcessSession(sharedState);
-        Mockito.when(sessionFactory.createSession()).thenReturn(mockProcessSession);
-
         final TestRunner runner = TestRunners.newTestRunner(processor);
-        Whitebox.setInternalState(runner, "flowFileQueue", flowFileQueue);
-        Whitebox.setInternalState(runner, "sessionFactory", sessionFactory);
 
         runner.setProperty(PutKafka.TOPIC, "topic1");
         runner.setProperty(PutKafka.KEY, "key1");
@@ -192,28 +176,19 @@ public class TestPutKafka {
         runner.enqueue(bytes);
         runner.run();
 
-        MockFlowFile mockFlowFile = mockProcessSession.getFlowFilesForRelationship(PutKafka.REL_SUCCESS).get(0);
-        Mockito.verify(spyProvenanceReporter, Mockito.atLeastOnce()).send(mockFlowFile, "kafka://topic1", "Sent 4 messages");
+        final List<ProvenanceEventRecord> events = runner.getProvenanceEvents();
+        assertEquals(1, events.size());
+        final ProvenanceEventRecord event = events.get(0);
+        assertEquals(ProvenanceEventType.SEND, event.getEventType());
+        assertEquals("kafka://topic1", event.getTransitUri());
+        assertEquals("Sent 4 messages", event.getDetails());
     }
 
     @Test
     public void testProvenanceReporterWithoutDelimiterMessagesCount() {
         final TestableProcessor processor = new TestableProcessor();
 
-        ProvenanceReporter spyProvenanceReporter = Mockito.spy(new MockProvenanceReporter());
-
-        AtomicLong idGenerator = new AtomicLong(0L);
-        SharedSessionState sharedState = new SharedSessionState(processor, idGenerator);
-        Whitebox.setInternalState(sharedState, "provenanceReporter", spyProvenanceReporter);
-        MockFlowFileQueue flowFileQueue = sharedState.getFlowFileQueue();
-        MockSessionFactory sessionFactory = Mockito.mock(MockSessionFactory.class);
-        MockProcessSession mockProcessSession = new MockProcessSession(sharedState);
-        Mockito.when(sessionFactory.createSession()).thenReturn(mockProcessSession);
-
         final TestRunner runner = TestRunners.newTestRunner(processor);
-        Whitebox.setInternalState(runner, "flowFileQueue", flowFileQueue);
-        Whitebox.setInternalState(runner, "sessionFactory", sessionFactory);
-
         runner.setProperty(PutKafka.TOPIC, "topic1");
         runner.setProperty(PutKafka.KEY, "key1");
         runner.setProperty(PutKafka.SEED_BROKERS, "localhost:1234");
@@ -222,8 +197,11 @@ public class TestPutKafka {
         runner.enqueue(bytes);
         runner.run();
 
-        MockFlowFile mockFlowFile = mockProcessSession.getFlowFilesForRelationship(PutKafka.REL_SUCCESS).get(0);
-        Mockito.verify(spyProvenanceReporter, Mockito.atLeastOnce()).send(mockFlowFile, "kafka://topic1");
+        final List<ProvenanceEventRecord> events = runner.getProvenanceEvents();
+        assertEquals(1, events.size());
+        final ProvenanceEventRecord event = events.get(0);
+        assertEquals(ProvenanceEventType.SEND, event.getEventType());
+        assertEquals("kafka://topic1", event.getTransitUri());
     }
 
     @Test
@@ -236,6 +214,24 @@ public class TestPutKafka {
         runner.setProperty(PutKafka.TIMEOUT, "3 secs");
         runner.setProperty(PutKafka.DELIVERY_GUARANTEE, PutKafka.DELIVERY_REPLICATED.getValue());
 
+        keyValuePutExecute(runner);
+    }
+
+    @Test
+    @Ignore("Intended only for local testing; requires an actual running instance of Kafka & ZooKeeper...")
+    public void testKeyValuePutAsync() {
+        final TestRunner runner = TestRunners.newTestRunner(PutKafka.class);
+        runner.setProperty(PutKafka.SEED_BROKERS, "192.168.0.101:9092");
+        runner.setProperty(PutKafka.TOPIC, "${kafka.topic}");
+        runner.setProperty(PutKafka.KEY, "${kafka.key}");
+        runner.setProperty(PutKafka.TIMEOUT, "3 secs");
+        runner.setProperty(PutKafka.PRODUCER_TYPE, PutKafka.PRODUCTER_TYPE_ASYNCHRONOUS.getValue());
+        runner.setProperty(PutKafka.DELIVERY_GUARANTEE, PutKafka.DELIVERY_REPLICATED.getValue());
+
+        keyValuePutExecute(runner);
+    }
+
+    private void keyValuePutExecute(final TestRunner runner) {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("kafka.topic", "test");
         attributes.put("kafka.key", "key3");
@@ -253,6 +249,140 @@ public class TestPutKafka {
         final MockFlowFile mff = mffs.get(0);
 
         assertTrue(Arrays.equals(data, mff.toByteArray()));
+    }
+
+    @Test
+    public void testProducerConfigDefault() {
+
+        final TestableProcessor processor = new TestableProcessor();
+        final TestRunner runner = TestRunners.newTestRunner(processor);
+
+        runner.setProperty(PutKafka.TOPIC, "topic1");
+        runner.setProperty(PutKafka.KEY, "key1");
+        runner.setProperty(PutKafka.SEED_BROKERS, "localhost:1234");
+        runner.setProperty(PutKafka.MESSAGE_DELIMITER, "\\n");
+
+        final ProcessContext context = runner.getProcessContext();
+        final ProducerConfig config = processor.createConfig(context);
+
+        // Check the codec
+        final CompressionCodec codec = config.compressionCodec();
+        assertTrue(codec instanceof kafka.message.NoCompressionCodec$);
+
+        // Check compressed topics
+        final Seq<String> compressedTopics = config.compressedTopics();
+        assertEquals(0, compressedTopics.size());
+
+        // Check the producer type
+        final String actualProducerType = config.producerType();
+        assertEquals(PutKafka.PRODUCER_TYPE.getDefaultValue(), actualProducerType);
+
+    }
+
+    @Test
+    public void testProducerConfigAsyncWithCompression() {
+
+        final TestableProcessor processor = new TestableProcessor();
+        final TestRunner runner = TestRunners.newTestRunner(processor);
+
+        runner.setProperty(PutKafka.TOPIC, "topic1");
+        runner.setProperty(PutKafka.KEY, "key1");
+        runner.setProperty(PutKafka.SEED_BROKERS, "localhost:1234");
+        runner.setProperty(PutKafka.MESSAGE_DELIMITER, "\\n");
+        runner.setProperty(PutKafka.PRODUCER_TYPE, PutKafka.PRODUCTER_TYPE_ASYNCHRONOUS.getValue());
+        runner.setProperty(PutKafka.COMPRESSION_CODEC, PutKafka.COMPRESSION_CODEC_SNAPPY.getValue());
+        runner.setProperty(PutKafka.COMPRESSED_TOPICS, "topic01,topic02,topic03");
+
+        final ProcessContext context = runner.getProcessContext();
+        final ProducerConfig config = processor.createConfig(context);
+
+        // Check that the codec is snappy
+        final CompressionCodec codec = config.compressionCodec();
+        assertTrue(codec instanceof kafka.message.SnappyCompressionCodec$);
+
+        // Check compressed topics
+        final Seq<String> compressedTopics = config.compressedTopics();
+        assertEquals(3, compressedTopics.size());
+        assertTrue(compressedTopics.contains("topic01"));
+        assertTrue(compressedTopics.contains("topic02"));
+        assertTrue(compressedTopics.contains("topic03"));
+
+        // Check the producer type
+        final String actualProducerType = config.producerType();
+        assertEquals("async", actualProducerType);
+
+    }
+
+    @Test
+    public void testProducerConfigAsyncQueueThresholds() {
+
+        final TestableProcessor processor = new TestableProcessor();
+        final TestRunner runner = TestRunners.newTestRunner(processor);
+
+        runner.setProperty(PutKafka.TOPIC, "topic1");
+        runner.setProperty(PutKafka.KEY, "key1");
+        runner.setProperty(PutKafka.SEED_BROKERS, "localhost:1234");
+        runner.setProperty(PutKafka.MESSAGE_DELIMITER, "\\n");
+        runner.setProperty(PutKafka.PRODUCER_TYPE, PutKafka.PRODUCTER_TYPE_ASYNCHRONOUS.getValue());
+        runner.setProperty(PutKafka.QUEUE_BUFFERING_MAX, "7 secs");
+        runner.setProperty(PutKafka.QUEUE_BUFFERING_MAX_MESSAGES, "535");
+        runner.setProperty(PutKafka.QUEUE_ENQUEUE_TIMEOUT, "200 ms");
+
+        final ProcessContext context = runner.getProcessContext();
+        final ProducerConfig config = processor.createConfig(context);
+
+        // Check that the queue thresholds were properly translated
+        assertEquals(7000, config.queueBufferingMaxMs());
+        assertEquals(535, config.queueBufferingMaxMessages());
+        assertEquals(200, config.queueEnqueueTimeoutMs());
+
+        // Check the producer type
+        final String actualProducerType = config.producerType();
+        assertEquals("async", actualProducerType);
+
+    }
+
+    @Test
+    public void testProducerConfigInvalidBatchSize() {
+
+        final TestableProcessor processor = new TestableProcessor();
+        final TestRunner runner = TestRunners.newTestRunner(processor);
+
+        runner.setProperty(PutKafka.TOPIC, "topic1");
+        runner.setProperty(PutKafka.KEY, "key1");
+        runner.setProperty(PutKafka.SEED_BROKERS, "localhost:1234");
+        runner.setProperty(PutKafka.MESSAGE_DELIMITER, "\\n");
+        runner.setProperty(PutKafka.PRODUCER_TYPE, PutKafka.PRODUCTER_TYPE_ASYNCHRONOUS.getValue());
+        runner.setProperty(PutKafka.BATCH_NUM_MESSAGES, "200");
+        runner.setProperty(PutKafka.QUEUE_BUFFERING_MAX_MESSAGES, "100");
+
+        runner.assertNotValid();
+
+    }
+
+    @Test
+    public void testProducerConfigAsyncDefaultEnqueueTimeout() {
+
+        final TestableProcessor processor = new TestableProcessor();
+        final TestRunner runner = TestRunners.newTestRunner(processor);
+
+        runner.setProperty(PutKafka.TOPIC, "topic1");
+        runner.setProperty(PutKafka.KEY, "key1");
+        runner.setProperty(PutKafka.SEED_BROKERS, "localhost:1234");
+        runner.setProperty(PutKafka.MESSAGE_DELIMITER, "\\n");
+        runner.setProperty(PutKafka.PRODUCER_TYPE, PutKafka.PRODUCTER_TYPE_ASYNCHRONOUS.getValue());
+        // Do not set QUEUE_ENQUEUE_TIMEOUT
+
+        final ProcessContext context = runner.getProcessContext();
+        final ProducerConfig config = processor.createConfig(context);
+
+        // Check that the enqueue timeout defaults to -1
+        assertEquals(-1, config.queueEnqueueTimeoutMs());
+
+        // Check the producer type
+        final String actualProducerType = config.producerType();
+        assertEquals("async", actualProducerType);
+
     }
 
     private static class TestableProcessor extends PutKafka {
@@ -280,6 +410,14 @@ public class TestPutKafka {
 
         public MockProducer getProducer() {
             return producer;
+        }
+
+        /**
+         * Exposed for test verification
+         */
+        @Override
+        public ProducerConfig createConfig(final ProcessContext context) {
+            return super.createConfig(context);
         }
     }
 

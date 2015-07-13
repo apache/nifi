@@ -79,4 +79,9 @@ public class MultiMatchAttributeEvaluator extends MultiAttributeEvaluator {
     public int getEvaluationType() {
         return evaluationType;
     }
+
+    @Override
+    public Evaluator<?> getLogicEvaluator() {
+        return this;
+    }
 }

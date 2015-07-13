@@ -26,15 +26,14 @@ import org.apache.nifi.attribute.expression.language.evaluation.DateEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.DateQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
-import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
 import org.apache.nifi.attribute.expression.language.exception.IllegalAttributeException;
 
 public class StringToDateEvaluator extends DateEvaluator {
 
-    private final StringEvaluator subject;
-    private final StringEvaluator format;
+    private final Evaluator<String> subject;
+    private final Evaluator<String> format;
 
-    public StringToDateEvaluator(final StringEvaluator subject, final StringEvaluator format) {
+    public StringToDateEvaluator(final Evaluator<String> subject, final Evaluator<String> format) {
         this.subject = subject;
         this.format = format;
     }

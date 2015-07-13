@@ -42,8 +42,12 @@ import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
+
+import static org.apache.commons.codec.binary.Base64.encodeBase64;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -101,7 +105,7 @@ public class TestInvokeHTTP {
 
     @Test
     public void testDateGeneration() throws Exception {
-        DateHandler dh = new DateHandler();
+        final DateHandler dh = new DateHandler();
         addHandler(dh);
 
         runner.setProperty(Config.PROP_URL, url);
@@ -110,8 +114,8 @@ public class TestInvokeHTTP {
 
         // extract the date string sent to the server
         // and store it as a java.util.Date
-        SimpleDateFormat sdf = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.US);
-        Date date = sdf.parse(dh.dateString);
+        final SimpleDateFormat sdf = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.US);
+        final Date date = sdf.parse(dh.dateString);
 
         // calculate the difference between the date string sent by the client and
         // the current system time -- these should be within a second or two
@@ -119,8 +123,8 @@ public class TestInvokeHTTP {
         //
         // If the difference is more like in hours, it's likely that a timezone
         // conversion caused a problem.
-        long diff = Math.abs(System.currentTimeMillis() - date.getTime());
-        long threshold = 15000; // 15 seconds
+        final long diff = Math.abs(System.currentTimeMillis() - date.getTime());
+        final long threshold = 15000; // 15 seconds
         if (diff > threshold) {
             fail("Difference (" + diff + ") was greater than threshold (" + threshold + ")");
         }
@@ -167,6 +171,87 @@ public class TestInvokeHTTP {
         final String expected1 = "/status/200";
         Assert.assertEquals(expected1, actual1);
 
+    }
+
+    @Test
+    public void test200auth() throws Exception {
+        addHandler(new BasicAuthHandler());
+
+        final String username = "basic_user";
+        final String password = "basic_password";
+
+        runner.setProperty(Config.PROP_URL, url + "/status/200");
+        runner.setProperty(Config.PROP_BASIC_AUTH_USERNAME, username);
+        runner.setProperty(Config.PROP_BASIC_AUTH_PASSWORD, password);
+        final byte[] creds = String.format("%s:%s", username, password).getBytes(StandardCharsets.UTF_8);
+        final String expAuth = String.format("Basic %s", new String(encodeBase64(creds)));
+
+        createFlowFiles(runner);
+
+        runner.run();
+
+        runner.assertTransferCount(Config.REL_SUCCESS_REQ, 1);
+        runner.assertTransferCount(Config.REL_SUCCESS_RESP, 1);
+        runner.assertTransferCount(Config.REL_RETRY, 0);
+        runner.assertTransferCount(Config.REL_NO_RETRY, 0);
+        runner.assertTransferCount(Config.REL_FAILURE, 0);
+
+        //expected in request status.code and status.message
+        //original flow file (+attributes)??????????
+        final MockFlowFile bundle = runner.getFlowFilesForRelationship(Config.REL_SUCCESS_REQ).get(0);
+        bundle.assertAttributeEquals(Config.STATUS_CODE, "200");
+        bundle.assertAttributeEquals(Config.STATUS_MESSAGE, "OK");
+        bundle.assertAttributeEquals("Foo", "Bar");
+        final String actual = new String(bundle.toByteArray(), StandardCharsets.UTF_8);
+        final String expected = "Hello";
+        Assert.assertEquals(expected, actual);
+
+        //expected in response
+        //status code, status message, all headers from server response --> ff attributes
+        //server response message body into payload of ff
+        //should not contain any original ff attributes
+        final MockFlowFile bundle1 = runner.getFlowFilesForRelationship(Config.REL_SUCCESS_RESP).get(0);
+        final String bundle1Content = new String(bundle1.toByteArray(), StandardCharsets.UTF_8);
+        assertTrue(bundle1Content.startsWith(expAuth)); // use startsWith instead of equals so we can ignore line endings
+        bundle1.assertAttributeEquals(Config.STATUS_CODE, "200");
+        bundle1.assertAttributeEquals(Config.STATUS_MESSAGE, "OK");
+        bundle1.assertAttributeEquals("Foo", "Bar");
+        bundle1.assertAttributeEquals("Content-Type", "text/plain; charset=ISO-8859-1");
+    }
+
+    @Test
+    public void test401notauth() throws Exception {
+        addHandler(new BasicAuthHandler());
+
+        final String username = "basic_user";
+        final String password = "basic_password";
+
+        runner.setProperty(Config.PROP_URL, url + "/status/401");
+        runner.setProperty(Config.PROP_BASIC_AUTH_USERNAME, username);
+        runner.setProperty(Config.PROP_BASIC_AUTH_PASSWORD, password);
+
+        createFlowFiles(runner);
+
+        runner.run();
+
+        runner.assertTransferCount(Config.REL_SUCCESS_REQ, 0);
+        runner.assertTransferCount(Config.REL_SUCCESS_RESP, 0);
+        runner.assertTransferCount(Config.REL_RETRY, 0);
+        runner.assertTransferCount(Config.REL_NO_RETRY, 1);
+        runner.assertTransferCount(Config.REL_FAILURE, 0);
+
+        //expected in request status.code and status.message
+        //original flow file (+attributes)??????????
+        final MockFlowFile bundle = runner.getFlowFilesForRelationship(Config.REL_NO_RETRY).get(0);
+        bundle.assertAttributeEquals(Config.STATUS_CODE, "401");
+        bundle.assertAttributeEquals(Config.STATUS_MESSAGE, "Unauthorized");
+        bundle.assertAttributeEquals("Foo", "Bar");
+        final String actual = new String(bundle.toByteArray(), StandardCharsets.UTF_8);
+        final String expected = "Hello";
+        Assert.assertEquals(expected, actual);
+
+        final String response = bundle.getAttribute(Config.RESPONSE_BODY);
+        assertEquals(response, "Get off my lawn!");
     }
 
     @Test
@@ -420,7 +505,7 @@ public class TestInvokeHTTP {
         addHandler(new GetOrHeadHandler());
 
         // this is the bad urls
-        String badurlport = "https://localhost:" + 445;
+        final String badurlport = "https://localhost:" + 445;
 
         runner.setProperty(Config.PROP_URL, badurlport + "/doesnotExist");
         createFlowFiles(runner);
@@ -444,7 +529,7 @@ public class TestInvokeHTTP {
     public void testConnectFailBadHost() throws Exception {
         addHandler(new GetOrHeadHandler());
 
-        String badurlhost = "https://localhOOst:" + 445;
+        final String badurlhost = "https://localhOOst:" + 445;
 
         runner.setProperty(Config.PROP_URL, badurlhost + "/doesnotExist");
         createFlowFiles(runner);
@@ -465,7 +550,7 @@ public class TestInvokeHTTP {
     }
 
     private static Map<String, String> createSslProperties() {
-        Map<String, String> map = new HashMap<>();
+        final Map<String, String> map = new HashMap<>();
         map.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/localhost-ks.jks");
         map.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "localtest");
         map.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), "JKS");
@@ -498,7 +583,7 @@ public class TestInvokeHTTP {
 
             assertEquals("/post", target);
 
-            String body = request.getReader().readLine();
+            final String body = request.getReader().readLine();
             assertEquals("Hello", body);
 
         }
@@ -510,7 +595,7 @@ public class TestInvokeHTTP {
         public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
             baseRequest.setHandled(true);
 
-            int status = Integer.valueOf(target.substring("/status".length() + 1));
+            final int status = Integer.valueOf(target.substring("/status".length() + 1));
             response.setStatus(status);
 
             response.setContentType("text/plain");
@@ -540,6 +625,30 @@ public class TestInvokeHTTP {
             response.setStatus(200);
             response.setContentType("text/plain");
             response.getWriter().println("Way to go!");
+        }
+    }
+
+    private static class BasicAuthHandler extends AbstractHandler {
+
+        private String authString;
+
+        @Override
+        public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+            baseRequest.setHandled(true);
+
+            authString = request.getHeader("Authorization");
+
+            final int status = Integer.valueOf(target.substring("/status".length() + 1));
+
+            if (status == 200) {
+                response.setStatus(status);
+                response.setContentType("text/plain");
+                response.getWriter().println(authString);
+            } else {
+                response.setStatus(status);
+                response.setContentType("text/plain");
+                response.getWriter().println("Get off my lawn!");
+            }
         }
     }
 

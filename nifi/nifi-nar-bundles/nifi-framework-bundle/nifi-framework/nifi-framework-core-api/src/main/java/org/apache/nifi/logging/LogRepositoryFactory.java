@@ -41,8 +41,8 @@ public class LogRepositoryFactory {
         logRepositoryClass = clazz;
     }
 
-    public static LogRepository getRepository(final String processorId) {
-        LogRepository repository = repositoryMap.get(requireNonNull(processorId));
+    public static LogRepository getRepository(final String componentId) {
+        LogRepository repository = repositoryMap.get(requireNonNull(componentId));
         if (repository == null) {
             try {
                 repository = logRepositoryClass.newInstance();
@@ -50,7 +50,7 @@ public class LogRepositoryFactory {
                 throw new RuntimeException(e);
             }
 
-            final LogRepository oldRepository = repositoryMap.putIfAbsent(processorId, repository);
+            final LogRepository oldRepository = repositoryMap.putIfAbsent(componentId, repository);
             if (oldRepository != null) {
                 repository = oldRepository;
             }

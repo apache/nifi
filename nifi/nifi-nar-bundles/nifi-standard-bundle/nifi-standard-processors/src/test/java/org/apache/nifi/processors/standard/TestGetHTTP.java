@@ -65,9 +65,10 @@ public class TestGetHTTP {
         File confDir = new File("conf");
         assertTrue(confDir.exists());
         File[] files = confDir.listFiles();
-        assertTrue(files.length > 0);
-        for (File file : files) {
-            assertTrue("Failed to delete " + file.getName(), file.delete());
+        if (files.length > 0) {
+            for (File file : files) {
+                assertTrue("Failed to delete " + file.getName(), file.delete());
+            }
         }
         assertTrue(confDir.delete());
     }
@@ -234,6 +235,9 @@ public class TestGetHTTP {
             fis.close();
             assertEquals(etag, props.getProperty(GetHTTP.ETAG));
             assertEquals(lastMod, props.getProperty(GetHTTP.LAST_MODIFIED));
+
+            getHTTPProcessor.onRemoved();
+            assertFalse(file.exists());
 
             // shutdown web service
         } finally {

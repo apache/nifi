@@ -22,14 +22,13 @@ import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.NumberEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.NumberQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
-import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
 
 public class LastIndexOfEvaluator extends NumberEvaluator {
 
-    private final StringEvaluator subject;
-    private final StringEvaluator indexEvaluator;
+    private final Evaluator<String> subject;
+    private final Evaluator<String> indexEvaluator;
 
-    public LastIndexOfEvaluator(final StringEvaluator subject, final StringEvaluator indexEvaluator) {
+    public LastIndexOfEvaluator(final Evaluator<String> subject, final Evaluator<String> indexEvaluator) {
         this.subject = subject;
         this.indexEvaluator = indexEvaluator;
     }

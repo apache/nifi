@@ -25,11 +25,11 @@ import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResul
 
 public class ReplaceEvaluator extends StringEvaluator {
 
-    private final StringEvaluator subject;
-    private final StringEvaluator search;
-    private final StringEvaluator replacement;
+    private final Evaluator<String> subject;
+    private final Evaluator<String> search;
+    private final Evaluator<String> replacement;
 
-    public ReplaceEvaluator(final StringEvaluator subject, final StringEvaluator search, final StringEvaluator replacement) {
+    public ReplaceEvaluator(final Evaluator<String> subject, final Evaluator<String> search, final Evaluator<String> replacement) {
         this.subject = subject;
         this.search = search;
         this.replacement = replacement;

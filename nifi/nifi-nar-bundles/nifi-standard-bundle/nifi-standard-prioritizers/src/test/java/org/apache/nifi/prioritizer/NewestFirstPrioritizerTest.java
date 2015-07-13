@@ -27,25 +27,25 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessSession;
 import org.apache.nifi.util.SharedSessionState;
 import org.junit.Assert;
-
 import org.junit.Test;
+import org.mockito.Mockito;
 
 public class NewestFirstPrioritizerTest {
 
     @Test
     public void testPrioritizer() throws InstantiationException, IllegalAccessException {
-        Processor processor = new SimpleProcessor();
-        AtomicLong idGenerator = new AtomicLong(0L);
-        MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, idGenerator));
+        final Processor processor = new SimpleProcessor();
+        final AtomicLong idGenerator = new AtomicLong(0L);
+        final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, idGenerator), Mockito.mock(Processor.class));
 
-        MockFlowFile flowFile1 = session.create();
+        final MockFlowFile flowFile1 = session.create();
         try {
             Thread.sleep(2); // guarantee the FlowFile entryDate for flowFile2 is different than flowFile1
-        } catch (InterruptedException e) {
+        } catch (final InterruptedException e) {
         }
-        MockFlowFile flowFile2 = session.create();
+        final MockFlowFile flowFile2 = session.create();
 
-        NewestFlowFileFirstPrioritizer prioritizer = new NewestFlowFileFirstPrioritizer();
+        final NewestFlowFileFirstPrioritizer prioritizer = new NewestFlowFileFirstPrioritizer();
         Assert.assertEquals(0, prioritizer.compare(null, null));
         Assert.assertEquals(-1, prioritizer.compare(flowFile1, null));
         Assert.assertEquals(1, prioritizer.compare(null, flowFile1));

@@ -70,12 +70,6 @@ nf.ControllerService = (function () {
             return true;
         }
         
-        if ($('#controller-service-enabled').hasClass('checkbox-checked') && details['state'] === 'DISABLED') {
-            return true;
-        } else if ($('#controller-service-enabled').hasClass('checkbox-unchecked') && details['state'] === 'ENABLED') {
-            return true;
-        }
-        
         // defer to the properties
         return $('#controller-service-properties').propertytable('isSaveRequired');
     };
@@ -98,13 +92,6 @@ nf.ControllerService = (function () {
             controllerServiceDto['properties'] = properties;
         }
         
-        // mark the controller service enabled if appropriate
-        if ($('#controller-service-enabled').hasClass('checkbox-unchecked')) {
-            controllerServiceDto['state'] = 'DISABLED';
-        } else if ($('#controller-service-enabled').hasClass('checkbox-checked')) {
-            controllerServiceDto['state'] = 'ENABLED';
-        }
-
         // create the controller service entity
         var controllerServiceEntity = {};
         controllerServiceEntity['revision'] = nf.Client.getRevision();
@@ -162,7 +149,10 @@ nf.ControllerService = (function () {
         // get the table and update the row accordingly
         var controllerServiceGrid = $('#controller-services-table').data('gridInstance');
         var controllerServiceData = controllerServiceGrid.getData();
-        controllerServiceData.updateItem(controllerService.id, controllerService);
+        var currentControllerService = controllerServiceData.getItemById(controllerService.id);
+        controllerServiceData.updateItem(controllerService.id, $.extend({
+            bulletins: currentControllerService.bulletins
+        }, controllerService));
     };
     
     /**
@@ -254,6 +244,40 @@ nf.ControllerService = (function () {
     };
     
     /**
+     * Updates the specified bulletinIcon with the specified bulletins if necessary.
+     * 
+     * @param {array} bulletins
+     * @param {jQuery} bulletinIcon
+     */
+    var updateBulletins = function (bulletins, bulletinIcon) {
+        var currentBulletins = bulletinIcon.data('bulletins');
+        
+        // update the bulletins if necessary
+        if (nf.Common.doBulletinsDiffer(currentBulletins, bulletins)) {
+            bulletinIcon.data('bulletins', bulletins);
+            
+            // format the new bulletins
+            var formattedBulletins = nf.Common.getFormattedBulletins(bulletins);
+            
+            // if there are bulletins update them
+            if (bulletins.length > 0) {
+                var list = nf.Common.formatUnorderedList(formattedBulletins);
+
+                // update existing tooltip or initialize a new one if appropriate
+                if (bulletinIcon.data('qtip')) {
+                    bulletinIcon.qtip('option', 'content.text', list);
+                } else {
+                    bulletinIcon.addClass('has-bulletins').show().qtip($.extend({
+                        content: list
+                    }, nf.CanvasUtils.config.systemTooltipConfig));
+                }
+            } else if (bulletinIcon.data('qtip')) {
+                bulletinIcon.removeClass('has-bulletins').removeData('bulletins').hide().qtip('api').destroy(true);
+            }
+        }
+    };
+    
+    /**
      * Updates the referencingComponentState using the specified referencingComponent.
      * 
      * @param {jQuery} referencingComponentState
@@ -277,7 +301,7 @@ nf.ControllerService = (function () {
                     }, nf.CanvasUtils.config.systemTooltipConfig));
                 }
             } else if (icon.data('qtip')) {
-                icon.qtip('destroy');
+                icon.qtip('api').destroy(true);
             }
             return state;
         });
@@ -307,9 +331,26 @@ nf.ControllerService = (function () {
                     }, nf.CanvasUtils.config.systemTooltipConfig));
                 }
             } else if (icon.data('qtip')) {
-                icon.qtip('destroy');
+                icon.qtip('api').destroy(true);
             }
             return state;
+        });
+    };
+    
+    /**
+     * Updates the bulletins for all referencing components.
+     * 
+     * @param {array} bulletins
+     */
+    var updateReferencingComponentBulletins = function(bulletins) {
+        var bulletinsBySource = d3.nest()
+            .key(function(d) { return d.sourceId; })
+            .map(bulletins, d3.map);
+
+        bulletinsBySource.forEach(function(sourceId, sourceBulletins) {
+            $('div.' + sourceId + '-bulletins').each(function() {
+                updateBulletins(sourceBulletins, $(this));
+            });
         });
     };
     
@@ -336,10 +377,13 @@ nf.ControllerService = (function () {
             }
         };
         
+        var referencingComponentIds = [];
         var processors = $('<ul class="referencing-component-listing clear"></ul>');
         var services = $('<ul class="referencing-component-listing clear"></ul>');
         var tasks = $('<ul class="referencing-component-listing clear"></ul>');
         $.each(referencingComponents, function (_, referencingComponent) {
+            referencingComponentIds.push(referencingComponent.id);
+            
             if (referencingComponent.referenceType === 'Processor') {
                 var processorLink = $('<span class="referencing-component-name link"></span>').text(referencingComponent.name).on('click', function () {
                     // show the component
@@ -353,6 +397,9 @@ nf.ControllerService = (function () {
                 // state
                 var processorState = $('<div class="referencing-component-state"></div>').addClass(referencingComponent.id + '-state');
                 updateReferencingSchedulableComponentState(processorState, referencingComponent);
+
+                // bulletin
+                var processorBulletins = $('<div class="referencing-component-bulletins"></div>').addClass(referencingComponent.id + '-bulletins');
                 
                 // type
                 var processorType = $('<span class="referencing-component-type"></span>').text(nf.Common.substringAfterLast(referencingComponent.type, '.'));
@@ -364,7 +411,7 @@ nf.ControllerService = (function () {
                 }
                 
                 // processor
-                var processorItem = $('<li></li>').append(processorState).append(processorLink).append(processorType).append(processorActiveThreadCount);
+                var processorItem = $('<li></li>').append(processorState).append(processorBulletins).append(processorLink).append(processorType).append(processorActiveThreadCount);
                 processors.append(processorItem);
             } else if (referencingComponent.referenceType === 'ControllerService') {
                 var serviceLink = $('<span class="referencing-component-name link"></span>').text(referencingComponent.name).on('click', function () {
@@ -382,7 +429,7 @@ nf.ControllerService = (function () {
                 
                 // container for this service's references
                 var referencingServiceReferencesContainer = $('<div class="referencing-component-references hidden"></div>');
-                var serviceTwist = $('<span class="service expansion-button collapsed pointer"></span>').on('click', function() {
+                var serviceTwist = $('<div class="service expansion-button collapsed pointer"></div>').on('click', function() {
                     if (serviceTwist.hasClass('collapsed')) {
                         var controllerServiceGrid = $('#controller-services-table').data('gridInstance');
                         var controllerServiceData = controllerServiceGrid.getData();
@@ -405,11 +452,14 @@ nf.ControllerService = (function () {
                 var serviceState = $('<div class="referencing-component-state"></div>').addClass(referencingComponent.id + '-state');
                 updateReferencingServiceState(serviceState, referencingComponent);
                 
+                // bulletin
+                var serviceBulletins = $('<div class="referencing-component-bulletins"></div>').addClass(referencingComponent.id + '-bulletins');
+                
                 // type
                 var serviceType = $('<span class="referencing-component-type"></span>').text(nf.Common.substringAfterLast(referencingComponent.type, '.'));
                 
                 // service
-                var serviceItem = $('<li></li>').append(serviceTwist).append(serviceState).append(serviceLink).append(serviceType).append(referencingServiceReferencesContainer);
+                var serviceItem = $('<li></li>').append(serviceTwist).append(serviceState).append(serviceBulletins).append(serviceLink).append(serviceType).append(referencingServiceReferencesContainer);
                 
                 services.append(serviceItem);
             } else if (referencingComponent.referenceType === 'ReportingTask') {
@@ -433,6 +483,9 @@ nf.ControllerService = (function () {
                 var reportingTaskState = $('<div class="referencing-component-state"></div>').addClass(referencingComponent.id + '-state');
                 updateReferencingSchedulableComponentState(reportingTaskState, referencingComponent);
                 
+                // bulletins
+                var reportingTaskBulletins = $('<div class="referencing-component-bulletins"></div>').addClass(referencingComponent.id + '-bulletins');
+                
                 // type
                 var reportingTaskType = $('<span class="referencing-component-type"></span>').text(nf.Common.substringAfterLast(referencingComponent.type, '.'));
                 
@@ -443,9 +496,15 @@ nf.ControllerService = (function () {
                 }
                 
                 // reporting task
-                var reportingTaskItem = $('<li></li>').append(reportingTaskState).append(reportingTaskLink).append(reportingTaskType).append(reportingTaskActiveThreadCount);
+                var reportingTaskItem = $('<li></li>').append(reportingTaskState).append(reportingTaskBulletins).append(reportingTaskLink).append(reportingTaskType).append(reportingTaskActiveThreadCount);
                 tasks.append(reportingTaskItem);
             }
+        });
+        
+        // query for the bulletins
+        queryBulletins(referencingComponentIds).done(function(response) {
+            var bulletins = response.bulletinBoard.bulletins;
+            updateReferencingComponentBulletins(bulletins);
         });
         
         // create the collapsable listing for each type
@@ -455,7 +514,7 @@ nf.ControllerService = (function () {
                 return;
             }
             
-            var twist = $('<span class="expansion-button expanded"></span>');
+            var twist = $('<div class="expansion-button expanded"></div>');
             var title = $('<span class="referencing-component-title"></span>').text(titleText);
             var count = $('<span class="referencing-component-count"></span>').text('(' + list.children().length + ')');
             
@@ -476,6 +535,25 @@ nf.ControllerService = (function () {
         createReferenceBlock('Processors', processors);
         createReferenceBlock('Reporting Tasks', tasks);
         createReferenceBlock('Controller Services', services);
+    };
+    
+    /**
+     * Queries for bulletins for the specified components.
+     * 
+     * @param {array} componentIds
+     * @returns {deferred}
+     */
+    var queryBulletins = function(componentIds) {
+        var ids = componentIds.join('|');
+        
+        return $.ajax({
+            type: 'GET',
+            url: '../nifi-api/controller/bulletin-board',
+            data: {
+                sourceId: ids
+            },
+            dataType: 'json'
+        }).fail(nf.Common.handleAjaxError);
     };
     
     /**
@@ -504,13 +582,23 @@ nf.ControllerService = (function () {
         // wait unil the polling of each service finished
         return $.Deferred(function(deferred) {
             updated.done(function() {
-                var serviceUpdated = pollService(controllerService, function (service) {
-                    // the condition is met once the service is ENABLED/DISABLED
+                var serviceUpdated = pollService(controllerService, function (service, bulletins) {
+                    if ($.isArray(bulletins)) {
+                        if (enabled) {
+                            updateBulletins(bulletins, $('#enable-controller-service-bulletins'));
+                        } else {
+                            updateBulletins(bulletins, $('#disable-controller-service-bulletins'));
+                        }
+                    }
+                    
+                    // the condition is met once the service is (ENABLING or ENABLED)/DISABLED
                     if (enabled) {
-                        return service.state === 'ENABLED';
+                        return service.state === 'ENABLING' || service.state === 'ENABLED';
                     } else {
                         return service.state === 'DISABLED';
                     }
+                }, function(service) {
+                    return queryBulletins([service.id]);
                 }, pollCondition);
 
                 // once the service has updated, resolve and render the updated service
@@ -621,9 +709,10 @@ nf.ControllerService = (function () {
      * 
      * @param {object} controllerService
      * @param {function} completeCondition
+     * @param {function} bulletinDeferred
      * @param {function} pollCondition
      */
-    var pollService = function (controllerService, completeCondition, pollCondition) {
+    var pollService = function (controllerService, completeCondition, bulletinDeferred, pollCondition) {
         // we want to keep polling until the condition is met
         return $.Deferred(function(deferred) {
             var current = 2;
@@ -631,19 +720,24 @@ nf.ControllerService = (function () {
                 var val = current;
                 
                 // update the current timeout for the next time
-                current = Math.max(current * 2, 8);
+                current = Math.min(current * 2, 4);
                 
                 return val * 1000;
             };
             
             // polls for the current status of the referencing components
             var poll = function() {
-                $.ajax({
+                var bulletins = bulletinDeferred(controllerService);
+                var service =  $.ajax({
                     type: 'GET',
                     url: controllerService.uri,
                     dataType: 'json'
-                }).done(function (response) {
-                    conditionMet(response.controllerService);
+                });
+                
+                $.when(bulletins, service).done(function (bulletinResult, serviceResult) {
+                    var bulletinResponse = bulletinResult[0];
+                    var serviceResponse = serviceResult[0];
+                    conditionMet(serviceResponse.controllerService, bulletinResponse.bulletinBoard.bulletins);
                 }).fail(function (xhr, status, error) {
                     deferred.reject();
                     nf.Common.handleAjaxError(xhr, status, error);
@@ -651,8 +745,8 @@ nf.ControllerService = (function () {
             };
             
             // tests to if the condition has been met
-            var conditionMet = function (service) {
-                if (completeCondition(service)) {
+            var conditionMet = function (service, bulletins) {
+                if (completeCondition(service, bulletins)) {
                     deferred.resolve();
                 } else {
                     if (typeof pollCondition === 'function' && pollCondition()) {
@@ -664,7 +758,12 @@ nf.ControllerService = (function () {
             };
             
             // poll for the status of the referencing components
-            conditionMet(controllerService);
+            bulletinDeferred(controllerService).done(function(response) {
+                conditionMet(controllerService, response.bulletinBoard.bulletins);
+            }).fail(function (xhr, status, error) {
+                deferred.reject();
+                nf.Common.handleAjaxError(xhr, status, error);
+            });
         }).promise();
     };
     
@@ -677,7 +776,7 @@ nf.ControllerService = (function () {
      */
     var stopReferencingSchedulableComponents = function (controllerService, pollCondition) {
         // continue to poll the service until all schedulable components have stopped
-        return pollService(controllerService, function (service) {
+        return pollService(controllerService, function (service, bulletins) {
             var referencingComponents = service.referencingComponents;
             
             var stillRunning = false;
@@ -695,9 +794,23 @@ nf.ControllerService = (function () {
                     updateReferencingSchedulableComponentState(referencingComponentState, referencingComponent);
                 }
             });
+            
+            // query for the bulletins
+            updateReferencingComponentBulletins(bulletins);
 
             // condition is met once all referencing are not running
             return stillRunning === false;
+        }, function(service) {
+            var referencingSchedulableComponents = [];
+            
+            var referencingComponents = service.referencingComponents;
+            $.each(referencingComponents, function(_, referencingComponent) {
+                if (referencingComponent.referenceType === 'Processor' || referencingComponent.referenceType === 'ReportingTask') {
+                    referencingSchedulableComponents.push(referencingComponent.id);
+                }
+            });
+            
+            return queryBulletins(referencingSchedulableComponents);
         }, pollCondition);
     };
     
@@ -709,13 +822,13 @@ nf.ControllerService = (function () {
      */
     var enableReferencingServices = function (controllerService, pollCondition) {
         // continue to poll the service until all referencing services are enabled
-        return pollService(controllerService, function (service) {
+        return pollService(controllerService, function (service, bulletins) {
             var referencingComponents = service.referencingComponents;
             
             var notEnabled = false;
             $.each(referencingComponents, function(_, referencingComponent) {
                 if (referencingComponent.referenceType === 'ControllerService') {
-                    if (referencingComponent.state !== 'ENABLED') {
+                    if (referencingComponent.state !== 'ENABLING' && referencingComponent.state !== 'ENABLED') {
                         notEnabled = true;
                     } 
                         
@@ -724,9 +837,23 @@ nf.ControllerService = (function () {
                     updateReferencingServiceState(referencingServiceState, referencingComponent);
                 }
             });
+            
+            // query for the bulletins
+            updateReferencingComponentBulletins(bulletins);
 
             // condition is met once all referencing are not disabled
             return notEnabled === false;
+        }, function(service) {
+            var referencingSchedulableComponents = [];
+            
+            var referencingComponents = service.referencingComponents;
+            $.each(referencingComponents, function(_, referencingComponent) {
+                if (referencingComponent.referenceType === 'ControllerService') {
+                    referencingSchedulableComponents.push(referencingComponent.id);
+                }
+            });
+            
+            return queryBulletins(referencingSchedulableComponents);
         }, pollCondition);
     };
     
@@ -738,7 +865,7 @@ nf.ControllerService = (function () {
      */
     var disableReferencingServices = function (controllerService, pollCondition) {
         // continue to poll the service until all referencing services are disabled
-        return pollService(controllerService, function (service) {
+        return pollService(controllerService, function (service, bulletins) {
             var referencingComponents = service.referencingComponents;
             
             var notDisabled = false;
@@ -753,9 +880,23 @@ nf.ControllerService = (function () {
                     updateReferencingServiceState(referencingServiceState, referencingComponent);
                 }
             });
+            
+            // query for the bulletins
+            updateReferencingComponentBulletins(bulletins);
 
             // condition is met once all referencing are not enabled
             return notDisabled === false;
+        }, function(service) {
+            var referencingSchedulableComponents = [];
+            
+            var referencingComponents = service.referencingComponents;
+            $.each(referencingComponents, function(_, referencingComponent) {
+                if (referencingComponent.referenceType === 'ControllerService') {
+                    referencingSchedulableComponents.push(referencingComponent.id);
+                }
+            });
+            
+            return queryBulletins(referencingSchedulableComponents);
         }, pollCondition);
     };
     
@@ -836,6 +977,11 @@ nf.ControllerService = (function () {
         // show the dialog
         $('#disable-controller-service-dialog').modal('show');
         
+        // load the bulletins
+        queryBulletins([controllerService.id]).done(function(response) {
+            updateBulletins(response.bulletinBoard.bulletins, $('#disable-controller-service-bulletins'));
+        });
+        
         // update the border if necessary
         updateReferencingComponentsBorder(referencingComponentsContainer);
     };
@@ -856,6 +1002,11 @@ nf.ControllerService = (function () {
         
         // show the dialog
         $('#enable-controller-service-dialog').modal('show');
+        
+        // load the bulletins
+        queryBulletins([controllerService.id]).done(function(response) {
+            updateBulletins(response.bulletinBoard.bulletins, $('#enable-controller-service-bulletins'));
+        });
         
         // update the border if necessary
         updateReferencingComponentsBorder(referencingComponentsContainer);
@@ -881,12 +1032,13 @@ nf.ControllerService = (function () {
             handler: {
                 click: function () {
                     canceled = true;
+                    disableDialog.modal('setButtonModel', []);
+                    $('#disable-controller-service-dialog div.controller-service-canceling').show();
                 }
             }
         }]);
 
         // show the progress
-        $('#disable-controller-service-service-container').hide();
         $('#disable-controller-service-scope-container').hide();
         $('#disable-controller-service-progress-container').show();
 
@@ -903,6 +1055,7 @@ nf.ControllerService = (function () {
         
         // sets the close button on the dialog
         var setCloseButton = function () {
+            $('#disable-controller-service-dialog div.controller-service-canceling').hide();
             disableDialog.modal('setButtonModel', [{
                 buttonText: 'Close',
                 handler: {
@@ -950,6 +1103,15 @@ nf.ControllerService = (function () {
         }).always(function () {
             reloadControllerServiceAndReferencingComponents(controllerService);
             setCloseButton();
+            
+            // inform the user if the action was canceled
+            if (canceled === true && $('#nf-ok-dialog').not(':visible')) {
+                nf.Dialog.showOkDialog({
+                    overlayBackground: false,
+                    headerText: 'Action Canceled',
+                    dialogContent: 'The request to disable has been canceled. Parts of this request may have already completed. Please verify the state of this service and all referencing components.'
+                });
+            }
         });
     };
     
@@ -966,6 +1128,8 @@ nf.ControllerService = (function () {
             handler: {
                 click: function () {
                     canceled = true;
+                    enableDialog.modal('setButtonModel', []);
+                    $('#enable-controller-service-dialog div.controller-service-canceling').show();
                 }
             }
         }]);
@@ -977,7 +1141,6 @@ nf.ControllerService = (function () {
         }
 
         // show the progress
-        $('#enable-controller-service-service-container').hide();
         $('#enable-controller-service-scope-container').hide();
         $('#enable-controller-service-progress-container').show();
 
@@ -994,6 +1157,7 @@ nf.ControllerService = (function () {
 
         // sets the button to close
         var setCloseButton = function () {
+            $('#enable-controller-service-dialog div.controller-service-canceling').hide();
             enableDialog.modal('setButtonModel', [{
                 buttonText: 'Close',
                 handler: {
@@ -1051,6 +1215,15 @@ nf.ControllerService = (function () {
         }).always(function () {
             reloadControllerServiceAndReferencingComponents(controllerService);
             setCloseButton();
+            
+            // inform the user if the action was canceled
+            if (canceled === true && $('#nf-ok-dialog').not(':visible')) {
+                nf.Dialog.showOkDialog({
+                    overlayBackground: false,
+                    headerText: 'Action Canceled',
+                    dialogContent: 'The request to enable has been canceled. Parts of this request may have already completed. Please verify the state of this service and all referencing components.'
+                });
+            }
         });
     };
     
@@ -1236,6 +1409,7 @@ nf.ControllerService = (function () {
                         // empty the referencing components list
                         var referencingComponents = $('#controller-service-referencing-components');
                         nf.Common.cleanUpTooltips(referencingComponents, 'div.referencing-component-state');
+                        nf.Common.cleanUpTooltips(referencingComponents, 'div.referencing-component-bulletins');
                         referencingComponents.css('border-width', '0').empty();
                         
                         // cancel any active edits
@@ -1284,7 +1458,6 @@ nf.ControllerService = (function () {
                         var disableDialog = $(this);
                         
                         // reset visibility
-                        $('#disable-controller-service-service-container').show();
                         $('#disable-controller-service-scope-container').show();
                         $('#disable-controller-service-progress-container').hide();
                         
@@ -1292,12 +1465,17 @@ nf.ControllerService = (function () {
                         $('#disable-controller-service-id').text('');
                         $('#disable-controller-service-name').text('');
                         
+                        // bulletins
+                        $('#disable-controller-service-bulletins').removeClass('has-bulletins').removeData('bulletins').hide();
+                        nf.Common.cleanUpTooltips($('#disable-controller-service-service-container'), '#disable-controller-service-bulletins');
+                        
                         // reset progress
                         $('div.disable-referencing-components').removeClass('ajax-loading ajax-complete ajax-error');
                         
                         // referencing components
                         var referencingComponents = $('#disable-controller-service-referencing-components');
                         nf.Common.cleanUpTooltips(referencingComponents, 'div.referencing-component-state');
+                        nf.Common.cleanUpTooltips(referencingComponents, 'div.referencing-component-bulletins');
                         referencingComponents.css('border-width', '0').empty();
                         
                         // reset dialog
@@ -1352,7 +1530,6 @@ nf.ControllerService = (function () {
                         var enableDialog = $(this);
                         
                         // reset visibility
-                        $('#enable-controller-service-service-container').show();
                         $('#enable-controller-service-scope-container').show();
                         $('#enable-controller-service-progress-container').hide();
                         $('#enable-controller-service-progress li.referencing-component').show();
@@ -1361,12 +1538,17 @@ nf.ControllerService = (function () {
                         $('#enable-controller-service-id').text('');
                         $('#enable-controller-service-name').text('');
                         
+                        // bulletins
+                        $('#enable-controller-service-bulletins').removeClass('has-bulletins').removeData('bulletins').hide();
+                        nf.Common.cleanUpTooltips($('#enable-controller-service-service-container'), '#enable-controller-service-bulletins');
+                        
                         // reset progress
                         $('div.enable-referencing-components').removeClass('ajax-loading ajax-complete ajax-error');
                         
                         // referencing components
                         var referencingComponents = $('#enable-controller-service-referencing-components');
                         nf.Common.cleanUpTooltips(referencingComponents, 'div.referencing-component-state');
+                        nf.Common.cleanUpTooltips(referencingComponents, 'div.referencing-component-bulletins');
                         referencingComponents.css('border-width', '0').empty();
                         
                         // reset dialog
@@ -1438,17 +1620,10 @@ nf.ControllerService = (function () {
                 // record the controller service details
                 controllerServiceDialog.data('controllerServiceDetails', controllerService);
 
-                // determine if the enabled checkbox is checked or not
-                var controllerServiceEnableStyle = 'checkbox-checked';
-                if (controllerService['state'] === 'DISABLED') {
-                    controllerServiceEnableStyle = 'checkbox-unchecked';
-                }
-
                 // populate the controller service settings
                 nf.Common.populateField('controller-service-id', controllerService['id']);
                 nf.Common.populateField('controller-service-type', nf.Common.substringAfterLast(controllerService['type'], '.'));
                 $('#controller-service-name').val(controllerService['name']);
-                $('#controller-service-enabled').removeClass('checkbox-checked checkbox-unchecked').addClass(controllerServiceEnableStyle);
                 $('#controller-service-comments').val(controllerService['comments']);
 
                 // select the availability when appropriate
@@ -1674,13 +1849,7 @@ nf.ControllerService = (function () {
          * @param {object} controllerService
          */
         enable: function(controllerService) {
-            if (nf.Common.isEmpty(controllerService.referencingComponents)) {
-                setEnabled(controllerService, true).always(function () {
-                    reloadControllerServiceAndReferencingComponents(controllerService);
-                });
-            } else {
-                showEnableControllerServiceDialog(controllerService);
-            }
+            showEnableControllerServiceDialog(controllerService);
         },
         
         /**
@@ -1689,13 +1858,7 @@ nf.ControllerService = (function () {
          * @param {object} controllerService
          */
         disable: function(controllerService) {
-            if (nf.Common.isEmpty(controllerService.referencingComponents)) {
-                setEnabled(controllerService, false).always(function () {
-                    reloadControllerServiceAndReferencingComponents(controllerService);
-                });
-            } else {
-                showDisableControllerServiceDialog(controllerService);
-            }
+            showDisableControllerServiceDialog(controllerService);
         },
         
         /**

@@ -23,13 +23,15 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.nifi.annotation.behavior.DynamicProperty;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.behavior.DynamicRelationship;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
-import org.apache.nifi.annotation.documentation.SeeAlso;
-import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnRemoved;
+import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -88,6 +90,12 @@ public class FullyDocumentedProcessor extends AbstractProcessor {
     private List<PropertyDescriptor> properties;
     private Set<Relationship> relationships;
 
+    private int onRemovedNoArgs = 0;
+    private int onRemovedArgs = 0;
+
+    private int onShutdownNoArgs = 0;
+    private int onShutdownArgs = 0;
+
     @Override
     protected void init(ProcessorInitializationContext context) {
         final List<PropertyDescriptor> properties = new ArrayList<>();
@@ -126,4 +134,39 @@ public class FullyDocumentedProcessor extends AbstractProcessor {
                 .description("This is a property you can use or not").dynamic(true).build();
     }
 
+    @OnRemoved
+    public void onRemovedNoArgs() {
+        onRemovedNoArgs++;
+    }
+
+    @OnRemoved
+    public void onRemovedArgs(ProcessContext context) {
+        onRemovedArgs++;
+    }
+
+    @OnShutdown
+    public void onShutdownNoArgs() {
+        onShutdownNoArgs++;
+    }
+
+    @OnShutdown
+    public void onShutdownArgs(ProcessContext context) {
+        onShutdownArgs++;
+    }
+
+    public int getOnRemovedNoArgs() {
+        return onRemovedNoArgs;
+    }
+
+    public int getOnRemovedArgs() {
+        return onRemovedArgs;
+    }
+
+    public int getOnShutdownNoArgs() {
+        return onShutdownNoArgs;
+    }
+
+    public int getOnShutdownArgs() {
+        return onShutdownArgs;
+    }
 }

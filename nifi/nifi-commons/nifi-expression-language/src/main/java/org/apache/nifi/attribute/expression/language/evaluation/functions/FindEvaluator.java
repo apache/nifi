@@ -23,17 +23,16 @@ import org.apache.nifi.attribute.expression.language.evaluation.BooleanEvaluator
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
-import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.literals.StringLiteralEvaluator;
 
 public class FindEvaluator extends BooleanEvaluator {
 
-    private final StringEvaluator subject;
-    private final StringEvaluator search;
+    private final Evaluator<String> subject;
+    private final Evaluator<String> search;
 
     private final Pattern compiledPattern;
 
-    public FindEvaluator(final StringEvaluator subject, final StringEvaluator search) {
+    public FindEvaluator(final Evaluator<String> subject, final Evaluator<String> search) {
         this.subject = subject;
         this.search = search;
 

@@ -75,7 +75,6 @@ import org.apache.nifi.provenance.search.SearchTerm;
 import org.apache.nifi.provenance.search.SearchTerms;
 import org.apache.nifi.provenance.search.SearchableField;
 import org.apache.nifi.remote.RootGroupPort;
-import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
@@ -88,7 +87,6 @@ import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
-import org.apache.nifi.web.api.dto.BulletinDTO;
 import org.apache.nifi.web.api.dto.DocumentedTypeDTO;
 import org.apache.nifi.web.api.dto.DtoFactory;
 import org.apache.nifi.web.api.dto.provenance.AttributeDTO;
@@ -113,6 +111,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.admin.service.UserService;
 import org.apache.nifi.authorization.DownloadAuthorization;
 import org.apache.nifi.processor.DataUnit;
+import org.apache.nifi.reporting.BulletinQuery;
+import org.apache.nifi.reporting.ComponentType;
 import org.apache.nifi.web.security.user.NiFiUserUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -441,12 +441,15 @@ public class ControllerFacade {
         controllerStatus.setQueued(FormatUtils.formatCount(controllerQueueSize.getObjectCount()) + " / " + FormatUtils.formatDataSize(controllerQueueSize.getByteCount()));
 
         final BulletinRepository bulletinRepository = getBulletinRepository();
-        final List<Bulletin> results = bulletinRepository.findBulletinsForController();
-        final List<BulletinDTO> bulletinDtos = new ArrayList<>(results.size());
-        for (final Bulletin bulletin : results) {
-            bulletinDtos.add(dtoFactory.createBulletinDto(bulletin));
-        }
-        controllerStatus.setBulletins(bulletinDtos);
+        controllerStatus.setBulletins(dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForController()));
+
+        // get the controller service bulletins
+        final BulletinQuery controllerServiceQuery = new BulletinQuery.Builder().sourceType(ComponentType.CONTROLLER_SERVICE).build();
+        controllerStatus.setControllerServiceBulletins(dtoFactory.createBulletinDtos(bulletinRepository.findBulletins(controllerServiceQuery)));
+
+        // get the reporting task bulletins
+        final BulletinQuery reportingTaskQuery = new BulletinQuery.Builder().sourceType(ComponentType.REPORTING_TASK).build();
+        controllerStatus.setReportingTaskBulletins(dtoFactory.createBulletinDtos(bulletinRepository.findBulletins(reportingTaskQuery)));
 
         final ProcessGroupCounts counts = rootGroup.getCounts();
         controllerStatus.setRunningCount(counts.getRunningCount());
@@ -494,36 +497,44 @@ public class ControllerFacade {
     }
 
     /**
-     * Returns the socket port that the Cluster Manager is listening on for Site-to-Site communications
+     * Returns the socket port that the Cluster Manager is listening on for
+     * Site-to-Site communications
      *
-     * @return the socket port that the Cluster Manager is listening on for Site-to-Site communications
+     * @return the socket port that the Cluster Manager is listening on for
+     * Site-to-Site communications
      */
     public Integer getClusterManagerRemoteSiteListeningPort() {
         return flowController.getClusterManagerRemoteSiteListeningPort();
     }
 
     /**
-     * Indicates whether or not Site-to-Site communications with the Cluster Manager are secure
+     * Indicates whether or not Site-to-Site communications with the Cluster
+     * Manager are secure
      *
-     * @return whether or not Site-to-Site communications with the Cluster Manager are secure
+     * @return whether or not Site-to-Site communications with the Cluster
+     * Manager are secure
      */
     public Boolean isClusterManagerRemoteSiteCommsSecure() {
         return flowController.isClusterManagerRemoteSiteCommsSecure();
     }
 
     /**
-     * Returns the socket port that the local instance is listening on for Site-to-Site communications
+     * Returns the socket port that the local instance is listening on for
+     * Site-to-Site communications
      *
-     * @return the socket port that the local instance is listening on for Site-to-Site communications
+     * @return the socket port that the local instance is listening on for
+     * Site-to-Site communications
      */
     public Integer getRemoteSiteListeningPort() {
         return flowController.getRemoteSiteListeningPort();
     }
 
     /**
-     * Indicates whether or not Site-to-Site communications with the local instance are secure
+     * Indicates whether or not Site-to-Site communications with the local
+     * instance are secure
      *
-     * @return whether or not Site-to-Site communications with the local instance are secure
+     * @return whether or not Site-to-Site communications with the local
+     * instance are secure
      */
     public Boolean isRemoteSiteCommsSecure() {
         return flowController.isRemoteSiteCommsSecure();

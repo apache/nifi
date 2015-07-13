@@ -29,8 +29,8 @@
             <scope>runtime</scope>
             <useProjectArtifact>false</useProjectArtifact>
             <outputDirectory>lib</outputDirectory>
-            <directoryMode>0750</directoryMode>
-            <fileMode>0640</fileMode>
+            <directoryMode>0770</directoryMode>
+            <fileMode>0660</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <excludes>
             	<exclude>nifi-bootstrap</exclude>
@@ -44,11 +44,13 @@
             <scope>runtime</scope>
             <useProjectArtifact>false</useProjectArtifact>
             <outputDirectory>lib/bootstrap</outputDirectory>
-            <directoryMode>0750</directoryMode>
-            <fileMode>0640</fileMode>
+            <directoryMode>0770</directoryMode>
+            <fileMode>0660</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <includes>
             	<include>nifi-bootstrap</include>
+            	<include>slf4j-api</include>
+            	<include>logback-classic</include>
             </includes>
         </dependencySet>
         
@@ -57,8 +59,8 @@
             <scope>runtime</scope>
             <useProjectArtifact>false</useProjectArtifact>
             <outputDirectory>./</outputDirectory>
-            <directoryMode>0750</directoryMode>
-            <fileMode>0640</fileMode>
+            <directoryMode>0770</directoryMode>
+            <fileMode>0664</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <includes>
             	<include>nifi-resources</include>
@@ -77,8 +79,8 @@
             <scope>runtime</scope>
             <useProjectArtifact>false</useProjectArtifact>
             <outputDirectory>./</outputDirectory>
-            <directoryMode>0750</directoryMode>
-            <fileMode>0750</fileMode>
+            <directoryMode>0770</directoryMode>
+            <fileMode>0770</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <includes>
             	<include>nifi-resources</include>

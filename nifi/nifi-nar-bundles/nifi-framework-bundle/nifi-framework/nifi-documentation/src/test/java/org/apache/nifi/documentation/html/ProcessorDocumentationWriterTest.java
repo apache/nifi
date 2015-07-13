@@ -27,7 +27,8 @@ import org.apache.nifi.documentation.DocumentationWriter;
 import org.apache.nifi.documentation.example.FullyDocumentedProcessor;
 import org.apache.nifi.documentation.example.NakedProcessor;
 import org.apache.nifi.documentation.example.ProcessorWithLogger;
-import org.apache.nifi.documentation.mock.MockProcessorInitializationContext;
+import org.apache.nifi.documentation.init.ProcessorInitializer;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class ProcessorDocumentationWriterTest {
@@ -35,13 +36,15 @@ public class ProcessorDocumentationWriterTest {
     @Test
     public void testFullyDocumentedProcessor() throws IOException {
         FullyDocumentedProcessor processor = new FullyDocumentedProcessor();
-        processor.initialize(new MockProcessorInitializationContext());
+        ProcessorInitializer initializer = new ProcessorInitializer();
+        initializer.initialize(processor);
 
         DocumentationWriter writer = new HtmlProcessorDocumentationWriter();
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
         writer.write(processor, baos, false);
+        initializer.teardown(processor);
 
         String results = new String(baos.toByteArray());
         XmlValidator.assertXmlValid(results);
@@ -70,18 +73,27 @@ public class ProcessorDocumentationWriterTest {
         assertNotContains(results, "No description provided.");
         assertNotContains(results, "No Tags provided.");
         assertNotContains(results, "Additional Details...");
+
+        // verify the right OnRemoved and OnShutdown methods were called
+        Assert.assertEquals(0, processor.getOnRemovedArgs());
+        Assert.assertEquals(0, processor.getOnRemovedNoArgs());
+
+        Assert.assertEquals(1, processor.getOnShutdownArgs());
+        Assert.assertEquals(1, processor.getOnShutdownNoArgs());
     }
 
     @Test
     public void testNakedProcessor() throws IOException {
         NakedProcessor processor = new NakedProcessor();
-        processor.initialize(new MockProcessorInitializationContext());
+        ProcessorInitializer initializer = new ProcessorInitializer();
+        initializer.initialize(processor);
 
         DocumentationWriter writer = new HtmlProcessorDocumentationWriter();
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
         writer.write(processor, baos, false);
+        initializer.teardown(processor);
 
         String results = new String(baos.toByteArray());
         XmlValidator.assertXmlValid(results);
@@ -103,13 +115,15 @@ public class ProcessorDocumentationWriterTest {
     @Test
     public void testProcessorWithLoggerInitialization() throws IOException {
         ProcessorWithLogger processor = new ProcessorWithLogger();
-        processor.initialize(new MockProcessorInitializationContext());
+        ProcessorInitializer initializer = new ProcessorInitializer();
+        initializer.initialize(processor);
 
         DocumentationWriter writer = new HtmlProcessorDocumentationWriter();
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
         writer.write(processor, baos, false);
+        initializer.teardown(processor);
 
         String results = new String(baos.toByteArray());
         XmlValidator.assertXmlValid(results);

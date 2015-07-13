@@ -362,7 +362,7 @@ public class ProvenanceResource extends ApplicationResource {
             contentType = MediaType.APPLICATION_OCTET_STREAM;
         }
 
-        return generateOkResponse(response).type(contentType).header("Content-Disposition", String.format("attachment; filename=%s", content.getFilename())).build();
+        return generateOkResponse(response).type(contentType).header("Content-Disposition", String.format("attachment; filename=\"%s\"", content.getFilename())).build();
     }
 
     /**
@@ -461,7 +461,7 @@ public class ProvenanceResource extends ApplicationResource {
             contentType = MediaType.APPLICATION_OCTET_STREAM;
         }
 
-        return generateOkResponse(response).type(contentType).header("Content-Disposition", String.format("attachment; filename=%s", content.getFilename())).build();
+        return generateOkResponse(response).type(contentType).header("Content-Disposition", String.format("attachment; filename=\"%s\"", content.getFilename())).build();
     }
 
     /**

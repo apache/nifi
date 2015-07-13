@@ -26,9 +26,9 @@ import java.util.Map;
 
 public class HtmlDecodeEvaluator extends StringEvaluator {
 
-    private final StringEvaluator subject;
+    private final Evaluator<String> subject;
 
-    public HtmlDecodeEvaluator(final StringEvaluator subject) {
+    public HtmlDecodeEvaluator(final Evaluator<String> subject) {
         this.subject = subject;
     }
 
@@ -40,11 +40,6 @@ public class HtmlDecodeEvaluator extends StringEvaluator {
         }
 
         return new StringQueryResult(StringEscapeUtils.unescapeHtml4(subjectValue));
-//        try {
-//            return new StringQueryResult(URLEncoder.encode(subjectValue, "UTF-8"));
-//        } catch (UnsupportedEncodingException e) {
-//            return null;    // won't happen. It's UTF-8
-//        }
     }
 
     @Override

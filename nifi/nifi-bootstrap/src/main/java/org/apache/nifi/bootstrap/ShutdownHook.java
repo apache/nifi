@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class ShutdownHook extends Thread {
@@ -28,14 +29,16 @@ public class ShutdownHook extends Thread {
     private final Process nifiProcess;
     private final RunNiFi runner;
     private final int gracefulShutdownSeconds;
+    private final ExecutorService executor;
 
     private volatile String secretKey;
 
-    public ShutdownHook(final Process nifiProcess, final RunNiFi runner, final String secretKey, final int gracefulShutdownSeconds) {
+    public ShutdownHook(final Process nifiProcess, final RunNiFi runner, final String secretKey, final int gracefulShutdownSeconds, final ExecutorService executor) {
         this.nifiProcess = nifiProcess;
         this.runner = runner;
         this.secretKey = secretKey;
         this.gracefulShutdownSeconds = gracefulShutdownSeconds;
+        this.executor = executor;
     }
 
     void setSecretKey(final String secretKey) {
@@ -44,6 +47,7 @@ public class ShutdownHook extends Thread {
 
     @Override
     public void run() {
+        executor.shutdown();
         runner.setAutoRestartNiFi(false);
         final int ccPort = runner.getNiFiCommandControlPort();
         if (ccPort > 0) {

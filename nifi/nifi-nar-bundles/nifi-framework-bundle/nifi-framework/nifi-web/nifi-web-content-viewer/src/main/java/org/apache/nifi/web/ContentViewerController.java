@@ -64,6 +64,9 @@ public class ContentViewerController extends HttpServlet {
      */
     @Override
     protected void doGet(final HttpServletRequest request, final HttpServletResponse response) throws ServletException, IOException {
+        // specify the charset in a response header
+        response.addHeader("Content-Type", "text/html; charset=UTF-8");
+
         // get the content
         final ServletContext servletContext = request.getServletContext();
         final ContentAccess contentAccess = (ContentAccess) servletContext.getAttribute("nifi-content-access");

@@ -39,11 +39,13 @@ public class IndexSearch {
     private final PersistentProvenanceRepository repository;
     private final File indexDirectory;
     private final IndexManager indexManager;
+    private final int maxAttributeChars;
 
-    public IndexSearch(final PersistentProvenanceRepository repo, final File indexDirectory, final IndexManager indexManager) {
+    public IndexSearch(final PersistentProvenanceRepository repo, final File indexDirectory, final IndexManager indexManager, final int maxAttributeChars) {
         this.repository = repo;
         this.indexDirectory = indexDirectory;
         this.indexManager = indexManager;
+        this.maxAttributeChars = maxAttributeChars;
     }
 
     public StandardQueryResult search(final org.apache.nifi.provenance.search.Query provenanceQuery, final AtomicInteger retrievedCount) throws IOException {
@@ -82,7 +84,8 @@ public class IndexSearch {
             }
 
             final DocsReader docsReader = new DocsReader(repository.getConfiguration().getStorageDirectories());
-            matchingRecords = docsReader.read(topDocs, searcher.getIndexReader(), repository.getAllLogFiles(), retrievedCount, provenanceQuery.getMaxResults());
+            matchingRecords = docsReader.read(topDocs, searcher.getIndexReader(), repository.getAllLogFiles(), retrievedCount,
+                provenanceQuery.getMaxResults(), maxAttributeChars);
 
             final long readRecordsNanos = System.nanoTime() - finishSearch;
             logger.debug("Reading {} records took {} millis for {}", matchingRecords.size(), TimeUnit.NANOSECONDS.toMillis(readRecordsNanos), this);

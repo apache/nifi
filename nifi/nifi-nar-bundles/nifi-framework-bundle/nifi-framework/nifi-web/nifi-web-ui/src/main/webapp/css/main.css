@@ -115,6 +115,7 @@ div.nifi-tooltip {
     border: 1px solid #454545;
     background-color: #FFFFA3;
     color: #454545;
+    max-width: 500px;
 }
 
 .ellipsis {

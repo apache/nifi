@@ -74,7 +74,7 @@ public class TestStandardRecordReaderWriter {
         final TocReader tocReader = new StandardTocReader(tocFile);
 
         try (final FileInputStream fis = new FileInputStream(journalFile);
-                final StandardRecordReader reader = new StandardRecordReader(fis, journalFile.getName(), tocReader)) {
+            final StandardRecordReader reader = new StandardRecordReader(fis, journalFile.getName(), tocReader, 2048)) {
             assertEquals(0, reader.getBlockIndex());
             reader.skipToBlock(0);
             final StandardProvenanceEventRecord recovered = reader.nextRecord();
@@ -102,7 +102,7 @@ public class TestStandardRecordReaderWriter {
         final TocReader tocReader = new StandardTocReader(tocFile);
 
         try (final FileInputStream fis = new FileInputStream(journalFile);
-                final StandardRecordReader reader = new StandardRecordReader(fis, journalFile.getName(), tocReader)) {
+            final StandardRecordReader reader = new StandardRecordReader(fis, journalFile.getName(), tocReader, 2048)) {
             assertEquals(0, reader.getBlockIndex());
             reader.skipToBlock(0);
             final StandardProvenanceEventRecord recovered = reader.nextRecord();
@@ -133,7 +133,7 @@ public class TestStandardRecordReaderWriter {
         final TocReader tocReader = new StandardTocReader(tocFile);
 
         try (final FileInputStream fis = new FileInputStream(journalFile);
-                final StandardRecordReader reader = new StandardRecordReader(fis, journalFile.getName(), tocReader)) {
+            final StandardRecordReader reader = new StandardRecordReader(fis, journalFile.getName(), tocReader, 2048)) {
             for (int i=0; i < 10; i++) {
                 assertEquals(0, reader.getBlockIndex());
 
@@ -172,12 +172,12 @@ public class TestStandardRecordReaderWriter {
         final TocReader tocReader = new StandardTocReader(tocFile);
 
         try (final FileInputStream fis = new FileInputStream(journalFile);
-                final StandardRecordReader reader = new StandardRecordReader(fis, journalFile.getName(), tocReader)) {
+            final StandardRecordReader reader = new StandardRecordReader(fis, journalFile.getName(), tocReader, 2048)) {
             for (int i=0; i < 10; i++) {
                 final StandardProvenanceEventRecord recovered = reader.nextRecord();
                 System.out.println(recovered);
                 assertNotNull(recovered);
-                assertEquals((long) i, recovered.getEventId());
+                assertEquals(i, recovered.getEventId());
                 assertEquals("nifi://unit-test", recovered.getTransitUri());
             }
 

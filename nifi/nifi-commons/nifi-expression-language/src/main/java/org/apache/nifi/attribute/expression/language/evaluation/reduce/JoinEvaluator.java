@@ -25,13 +25,13 @@ import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResul
 
 public class JoinEvaluator extends StringEvaluator implements ReduceEvaluator<String> {
 
-    private final StringEvaluator subjectEvaluator;
-    private final StringEvaluator delimiterEvaluator;
+    private final Evaluator<String> subjectEvaluator;
+    private final Evaluator<String> delimiterEvaluator;
 
     private final StringBuilder sb = new StringBuilder();
     private int evalCount = 0;
 
-    public JoinEvaluator(final StringEvaluator subject, final StringEvaluator delimiter) {
+    public JoinEvaluator(final Evaluator<String> subject, final Evaluator<String> delimiter) {
         this.subjectEvaluator = subject;
         this.delimiterEvaluator = delimiter;
     }

@@ -34,6 +34,7 @@ public abstract class Bulletin implements Comparable<Bulletin> {
     private String groupId;
     private String sourceId;
     private String sourceName;
+    private ComponentType sourceType;
 
     protected Bulletin(final long id) {
         this.timestamp = new Date();
@@ -104,9 +105,17 @@ public abstract class Bulletin implements Comparable<Bulletin> {
         this.sourceName = sourceName;
     }
 
+    public ComponentType getSourceType() {
+        return sourceType;
+    }
+
+    public void setSourceType(ComponentType sourceType) {
+        this.sourceType = sourceType;
+    }
+
     @Override
     public String toString() {
-        return "Bulletin{" + "id=" + id + ", message=" + message + ", sourceName=" + sourceName + '}';
+        return "Bulletin{" + "id=" + id + ", message=" + message + ", sourceName=" + sourceName + ", sourceType=" + sourceType + '}';
     }
 
     @Override
