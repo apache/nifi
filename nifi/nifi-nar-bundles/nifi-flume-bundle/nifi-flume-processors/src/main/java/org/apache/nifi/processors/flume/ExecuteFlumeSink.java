@@ -21,7 +21,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.util.List;
 import java.util.Set;
-import org.apache.flume.Context;
 import org.apache.flume.EventDeliveryException;
 import org.apache.flume.Sink;
 import org.apache.flume.conf.Configurables;
@@ -44,14 +43,14 @@ import org.apache.nifi.processor.util.StandardValidators;
 /**
  * This processor runs a Flume sink
  */
-@Tags({"flume", "hadoop", "get", "sink"})
-@CapabilityDescription("Write FlowFile data to a Flume sink")
+@Tags({"flume", "hadoop", "put", "sink"})
+@CapabilityDescription("Execute a Flume sink. Each input FlowFile is converted into a Flume Event for processing by the sink.")
 @TriggerSerially
 public class ExecuteFlumeSink extends AbstractFlumeProcessor {
 
     public static final PropertyDescriptor SINK_TYPE = new PropertyDescriptor.Builder()
             .name("Sink Type")
-            .description("The fully-qualified name of the Sink class")
+            .description("The component type name for the sink. For some sinks, this is a short, symbolic name (e.g. hdfs). For others, it's the fully-qualified name of the Sink class. See the Flume User Guide for details.")
             .required(true)
             .addValidator(createSinkValidator())
             .build();
