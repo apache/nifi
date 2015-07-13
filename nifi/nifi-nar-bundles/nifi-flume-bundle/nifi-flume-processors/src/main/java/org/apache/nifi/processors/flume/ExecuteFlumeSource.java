@@ -56,7 +56,8 @@ public class ExecuteFlumeSource extends AbstractFlumeProcessor {
 
     public static final PropertyDescriptor SOURCE_TYPE = new PropertyDescriptor.Builder()
         .name("Source Type")
-        .description("The component type name for the source. For some sources, this is a short, symbolic name (e.g. spooldir). For others, it's the fully-qualified name of the Source class. See the Flume User Guide for details.")
+        .description("The component type name for the source. For some sources, this is a short, symbolic name"
+                + " (e.g. spooldir). For others, it's the fully-qualified name of the Source class. See the Flume User Guide for details.")
         .required(true)
         .addValidator(createSourceValidator())
         .build();

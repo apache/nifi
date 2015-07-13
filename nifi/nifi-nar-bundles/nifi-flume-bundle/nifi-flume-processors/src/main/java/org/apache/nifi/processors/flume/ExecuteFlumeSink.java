@@ -50,7 +50,8 @@ public class ExecuteFlumeSink extends AbstractFlumeProcessor {
 
     public static final PropertyDescriptor SINK_TYPE = new PropertyDescriptor.Builder()
             .name("Sink Type")
-            .description("The component type name for the sink. For some sinks, this is a short, symbolic name (e.g. hdfs). For others, it's the fully-qualified name of the Sink class. See the Flume User Guide for details.")
+            .description("The component type name for the sink. For some sinks, this is a short, symbolic name (e.g. hdfs)."
+                    + " For others, it's the fully-qualified name of the Sink class. See the Flume User Guide for details.")
             .required(true)
             .addValidator(createSinkValidator())
             .build();
