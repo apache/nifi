@@ -140,7 +140,7 @@ public class ConvertAvroSchema extends AbstractKiteProcessor {
 
     private static final List<PropertyDescriptor> PROPERTIES = ImmutableList
             .<PropertyDescriptor> builder()
-            .addAll(AbstractKiteProcessor.getProperties()).add(INPUT_SCHEMA)
+            .add(INPUT_SCHEMA)
             .add(OUTPUT_SCHEMA).build();
 
     private static final Set<Relationship> RELATIONSHIPS = ImmutableSet
