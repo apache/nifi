@@ -14,11 +14,11 @@ language governing permissions and limitations under the License. -->
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi</artifactId>
-        <version>0.2.1-incubating-SNAPSHOT</version>
+        <version>0.2.1-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-assembly</artifactId>
     <packaging>pom</packaging>
-    <description>This is the assembly Apache NiFi (incubating)</description>
+    <description>This is the assembly Apache NiFi</description>
     <build>
         <plugins>
             <plugin>
@@ -175,7 +175,7 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-dbcp-service-nar</artifactId>
-	        <version>0.2.1-incubating-SNAPSHOT</version>
+	        <version>0.2.1-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
         <dependency>
@@ -191,25 +191,25 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-social-media-nar</artifactId>
-            <version>0.2.1-incubating-SNAPSHOT</version>
+            <version>0.2.1-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hl7-nar</artifactId>
-            <version>0.2.1-incubating-SNAPSHOT</version>
+            <version>0.2.1-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-language-translation-nar</artifactId>
-            <version>0.2.1-incubating-SNAPSHOT</version>
+            <version>0.2.1-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-geo-nar</artifactId>
-            <version>0.2.1-incubating-SNAPSHOT</version>
+            <version>0.2.1-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
     </dependencies>
@@ -398,10 +398,10 @@ language governing permissions and limitations under the License. -->
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>rpm-maven-plugin</artifactId>
                         <configuration>
-                            <summary>Apache NiFi (incubating)</summary>
-                            <description>Apache Nifi (incubating) is dataflow system based on the Flow-Based Programming concepts.</description>
+                            <summary>Apache NiFi</summary>
+                            <description>Apache NiFi is dataflow system based on the Flow-Based Programming concepts.</description>
                             <license>Apache License, Version 2.0 and others (see included LICENSE file)</license>
-                            <url>http://nifi.incubator.apache.org</url>
+                            <url>http://nifi.apache.org</url>
                             <group>Utilities</group>
                             <prefix>/opt/nifi</prefix>
                             <defineStatements>
@@ -435,9 +435,6 @@ language governing permissions and limitations under the License. -->
                                                 </source>
                                                 <source>
                                                     <location>./NOTICE</location>
-                                                </source>
-                                                <source>
-                                                    <location>../DISCLAIMER</location>
                                                 </source>
                                                 <source>
                                                     <location>./README.md</location>

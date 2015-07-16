@@ -17,10 +17,10 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>0.2.1-incubating-SNAPSHOT</version>
+        <version>0.2.1-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-flume-bundle</artifactId>
-    <version>0.2.1-incubating-SNAPSHOT</version>
+    <version>0.2.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <description>A bundle of processors that run Flume sources/sinks</description>
     <modules>
@@ -32,7 +32,7 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-flume-processors</artifactId>
-                <version>0.2.1-incubating-SNAPSHOT</version>
+                <version>0.2.1-SNAPSHOT</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

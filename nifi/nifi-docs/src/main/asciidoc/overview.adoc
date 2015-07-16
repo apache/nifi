@@ -16,8 +16,8 @@
 //
 Apache NiFi Overview
 ====================
-Apache NiFi Team <dev@nifi.incubator.apache.org>
-:homepage: http://nifi.incubator.apache.org
+Apache NiFi Team <dev@nifi.apache.org>
+:homepage: http://nifi.apache.org
 
 What is Apache NiFi?
 --------------------
