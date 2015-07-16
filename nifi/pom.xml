@@ -809,7 +809,7 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-flume-nar</artifactId>
-                <version>0.2.0-incubating-SNAPSHOT</version>
+                <version>0.2.1-incubating-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
             <dependency>
