@@ -20,7 +20,7 @@ Track issues on the "NIFI" Project on the Apache Jira ([browse][jira]).
 To check out the code:
 
 ```
-git clone http://git-wip-us.apache.org/repos/asf/incubator-nifi.git
+git clone http://git-wip-us.apache.org/repos/asf/nifi.git
 ```
 <br/>
 Then checkout the 'develop' branch
@@ -137,11 +137,11 @@ is ready for use:
 
     2014-12-09 00:42:03,540 INFO [main] org.apache.nifi.web.server.JettyServer NiFi has started. The UI is available at the following URLs:
 
-[adminguide]: https://nifi.incubator.apache.org/docs/nifi-docs/html/administration-guide.html
+[adminguide]: https://nifi.apache.org/docs/nifi-docs/html/administration-guide.html
 [maven]: http://maven.apache.org/
 [jira]: https://issues.apache.org/jira/browse/NIFI
 [git]: http://git-scm.com/
-[gitbrowse]: https://git-wip-us.apache.org/repos/asf?p=incubator-nifi.git;a=summary
-[gitrepo]: http://git-wip-us.apache.org/repos/asf/incubator-nifi.git
-[githubrepo]: https://github.com/apache/incubator-nifi
+[gitbrowse]: https://git-wip-us.apache.org/repos/asf?p=nifi.git;a=summary
+[gitrepo]: http://git-wip-us.apache.org/repos/asf/nifi.git
+[githubrepo]: https://github.com/apache/nifi
 
