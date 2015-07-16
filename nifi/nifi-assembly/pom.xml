@@ -14,7 +14,7 @@ language governing permissions and limitations under the License. -->
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi</artifactId>
-        <version>0.2.0-incubating-SNAPSHOT</version>
+        <version>0.2.1-incubating-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-assembly</artifactId>
     <packaging>pom</packaging>
@@ -175,7 +175,7 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-dbcp-service-nar</artifactId>
-	        <version>0.2.0-incubating-SNAPSHOT</version>
+	        <version>0.2.1-incubating-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
         <dependency>
@@ -191,25 +191,25 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-social-media-nar</artifactId>
-            <version>0.2.0-incubating-SNAPSHOT</version>
+            <version>0.2.1-incubating-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hl7-nar</artifactId>
-            <version>0.2.0-incubating-SNAPSHOT</version>
+            <version>0.2.1-incubating-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-language-translation-nar</artifactId>
-            <version>0.2.0-incubating-SNAPSHOT</version>
+            <version>0.2.1-incubating-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-geo-nar</artifactId>
-            <version>0.2.0-incubating-SNAPSHOT</version>
+            <version>0.2.1-incubating-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
     </dependencies>
