@@ -264,7 +264,7 @@ More details on Apache NiFi can be found here:
 http://nifi.apache.org/
 
 The release artifacts can be downloaded from here:
-http://nifi.apache.org/downloads/
+http://nifi.apache.org/download.html
     
 Maven artifacts have been made available here:
 https://repository.apache.org/content/repositories/releases/org/apache/nifi/
