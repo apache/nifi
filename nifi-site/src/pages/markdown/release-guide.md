@@ -152,7 +152,7 @@ Validate that all the various aspects of the staged artifacts appear correct
   - Validate the hashes match.
   - Validate that the sources contain no unexpected binaries.
   - Validate the signature for the build and hashes.
-  - Validate the LICENSE/NOTICE/DISCLAIMER/Headers.  
+  - Validate the LICENSE/NOTICE/Headers.  
   - Validate that the README is present and provides sufficient information to build and if necessary execute.
   
 If all looks good then push the branch to origin `git push origin NIFI-270`
