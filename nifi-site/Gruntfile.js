@@ -224,7 +224,7 @@ module.exports = function (grunt) {
                         command += (' --username ' + username);
                     }
                     if (password !== '') {
-                        command += (' --password ' + password);
+                        command += (' --password "' + password + '"');
                     }
                     return command + ' -m "' + message + '" --trust-server-cert --non-interactive .';
                 }
