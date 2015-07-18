@@ -1,11 +1,11 @@
 {
   "name": "apache-nifi-site",
-  "version": "0.1.0-incubating",
+  "version": "0.2.0",
   "description": "The artifacts for the Apache NiFi site.",
   "private": "true",
   "repository": {
     "type": "git",
-    "url": "http://git-wip-us.apache.org/repos/asf/incubator-nifi.git"
+    "url": "http://git-wip-us.apache.org/repos/asf/nifi.git"
   },
   "devDependencies": {
     "assemble": "^0.4.42",

@@ -5,7 +5,7 @@ module.exports = function (grunt) {
     grunt.initConfig({
         config: {
             svn: {
-                url: 'https://svn.apache.org/repos/asf/incubator/nifi/site/trunk'
+                url: 'https://svn.apache.org/repos/asf/nifi/site/trunk'
             }
         },
         pkg: grunt.file.readJSON('package.json'),
