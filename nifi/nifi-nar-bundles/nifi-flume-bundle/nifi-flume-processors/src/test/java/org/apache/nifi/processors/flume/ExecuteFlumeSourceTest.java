@@ -23,9 +23,9 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+
 import org.apache.flume.sink.NullSink;
 import org.apache.flume.source.AvroSource;
-
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockFlowFile;
@@ -33,8 +33,8 @@ import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.file.FileUtils;
-
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -118,6 +118,7 @@ public class ExecuteFlumeSourceTest {
     }
 
     @Test
+    @Ignore("Does not work on Windows")
     public void testSourceWithConfig() throws IOException {
         File spoolDirectory = temp.newFolder("spooldir");
         File dst = new File(spoolDirectory, "records.txt");
