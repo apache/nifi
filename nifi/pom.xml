@@ -808,7 +808,19 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-aws-nar</artifactId>
+                <version>0.3.0-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-flume-nar</artifactId>
+                <version>0.3.0-SNAPSHOT</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-dbcp-service-nar</artifactId>
                 <version>0.3.0-SNAPSHOT</version>
                 <type>nar</type>
             </dependency>
