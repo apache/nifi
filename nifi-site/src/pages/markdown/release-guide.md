@@ -277,7 +277,7 @@ The Apache NiFi team
     
 ```
 
-[quickstart-guide]: http://nifi.apache.org/development/quickstart.html
+[quickstart-guide]: http://nifi.apache.org/quickstart.html
 [release-manager]: http://www.apache.org/dev/release-publishing.html#release_manager
 [release-announce]: http://www.apache.org/dev/release.html#release-announcements
 [apache-license]: http://apache.org/licenses/LICENSE-2.0
