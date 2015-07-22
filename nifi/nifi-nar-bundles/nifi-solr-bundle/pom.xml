@@ -36,4 +36,15 @@
         <module>nifi-solr-nar</module>
     </modules>
 
+    <dependencyManagement>
+        <dependencies>
+            <!-- overriding these for solrj which needs 4.3.x -->
+            <dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>httpclient</artifactId>
+                <version>4.3.1</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
 </project>
