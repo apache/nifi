@@ -16,8 +16,8 @@
 //
 Apache NiFi Expression Language Guide
 =====================================
-Apache NiFi Team <dev@nifi.incubator.apache.org>
-:homepage: http://nifi.incubator.apache.org
+Apache NiFi Team <dev@nifi.apache.org>
+:homepage: http://nifi.apache.org
 
 [[overview]]
 Overview
@@ -543,8 +543,8 @@ Each of the following functions manipulates a String in some way.
 *Return Type*: [.returnType]#String#
 
 *Examples*: We can URL-Encode an attribute named "url" by using the Expression `${url:urlEncode()}`. If
-	the value of the "url" attribute is "https://nifi.incubator.apache.org/some value with spaces", this
-	Expression will then return "https://nifi.incubator.apache.org/some%20value%20with%20spaces".
+	the value of the "url" attribute is "https://nifi.apache.org/some value with spaces", this
+	Expression will then return "https://nifi.apache.org/some%20value%20with%20spaces".
 
 
 
@@ -561,8 +561,8 @@ Each of the following functions manipulates a String in some way.
 *Return Type*: [.returnType]#String#
 
 *Examples*: If we have a URL-Encoded attribute named "url" with the value 
-	"https://nifi.incubator.apache.org/some%20value%20with%20spaces", then the Expression
-	`${url:urlDecode()}` will return "https://nifi.incubator.apache.org/some value with spaces".
+	"https://nifi.apache.org/some%20value%20with%20spaces", then the Expression
+	`${url:urlDecode()}` will return "https://nifi.apache.org/some value with spaces".
 
 
 

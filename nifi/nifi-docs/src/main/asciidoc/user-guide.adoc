@@ -16,13 +16,13 @@
 //
 Apache NiFi User Guide
 ======================
-Apache NiFi Team <dev@nifi.incubator.apache.org>
-:homepage: http://nifi.incubator.apache.org
+Apache NiFi Team <dev@nifi.apache.org>
+:homepage: http://nifi.apache.org
 
 
 Introduction
 ------------
-Apache NiFi (Incubating) is a dataflow system based on the concepts of flow-based programming. It supports
+Apache NiFi is a dataflow system based on the concepts of flow-based programming. It supports
 powerful and scalable directed graphs of data routing, transformation, and system mediation logic. NiFi has
 a web-based user interface for design, control, feedback, and monitoring of dataflows. It is highly configurable
 along several dimensions of quality of service, such as loss-tolerant versus guaranteed delivery, low latency versus
