@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-web</artifactId>
-        <version>0.2.0-incubating</version>
+        <version>0.2.1-SNAPSHOT</version>
     </parent>
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-web-api</artifactId>
@@ -65,8 +65,8 @@
                                             to invoke each service.
                                         </description>
                                         <contact>
-                                            <email>dev@nifi.incubator.apache.org</email>
-                                            <url>https://nifi.incubator.apache.org</url>
+                                            <email>dev@nifi.apache.org</email>
+                                            <url>https://nifi.apache.org</url>
                                         </contact>
                                         <license>
                                             <url>http://www.apache.org/licenses/LICENSE-2.0.html</url>

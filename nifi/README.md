@@ -23,7 +23,6 @@ Apache NiFi is an easy to use, powerful, and reliable system to process and dist
 - [Getting Started](#getting-started)
 - [Getting Help](#getting-help)
 - [License](#license)
-- [Disclaimer](#disclaimer)
 - [Export Control] (#export-control)
 
 ## Features
@@ -75,9 +74,9 @@ To deploy:
 
         laptop:nifi fhampton$ cd nifi-assembly
         laptop:nifi-assembly fhampton$ ls -lhd target/nifi*
-        drwxr-xr-x  3 fhampton  staff   102B Apr 30 00:29 target/nifi-0.1.0-incubating-SNAPSHOT-bin
-        -rw-r--r--  1 fhampton  staff   144M Apr 30 00:30 target/nifi-0.1.0-incubating-SNAPSHOT-bin.tar.gz
-        -rw-r--r--  1 fhampton  staff   144M Apr 30 00:30 target/nifi-0.1.0-incubating-SNAPSHOT-bin.zip
+        drwxr-xr-x  3 fhampton  staff   102B Apr 30 00:29 target/nifi-0.1.0-SNAPSHOT-bin
+        -rw-r--r--  1 fhampton  staff   144M Apr 30 00:30 target/nifi-0.1.0-SNAPSHOT-bin.tar.gz
+        -rw-r--r--  1 fhampton  staff   144M Apr 30 00:30 target/nifi-0.1.0-SNAPSHOT-bin.zip
 
 - For testing ongoing development you could use the already unpacked build present in the directory
   named "nifi-*version*-bin", where *version* is the current project version. To deploy in another
@@ -88,27 +87,27 @@ To deploy:
         laptop:nifi-assembly fhampton$ tar xzf target/nifi-*-bin.tar.gz -C ~/example-nifi-deploy
         laptop:nifi-assembly fhampton$ ls -lh ~/example-nifi-deploy/
         total 0
-        drwxr-xr-x  10 fhampton  staff   340B Apr 30 01:06 nifi-0.1.0-incubating-SNAPSHOT
+        drwxr-xr-x  10 fhampton  staff   340B Apr 30 01:06 nifi-0.1.0-SNAPSHOT
 
 To run NiFi:
 - Change directory to the location where you installed NiFi and run it.
 
         laptop:~ fhampton$ cd ~/example-nifi-deploy/nifi-*
-        laptop:nifi-0.1.0-incubating-SNAPSHOT fhampton$ ./bin/nifi.sh start
+        laptop:nifi-0.1.0-SNAPSHOT fhampton$ ./bin/nifi.sh start
 
 - Direct your browser to http://localhost:8080/nifi/ and you should see a screen like this screenshot:
   ![image of a NiFi dataflow canvas](nifi-docs/src/main/asciidoc/images/nifi_first_launch_screenshot.png?raw=true)
 
-- For help building your first data flow see the [NiFi User Guide](http://nifi.incubator.apache.org/docs/nifi-docs/user-guide.html)
+- For help building your first data flow see the [NiFi User Guide](http://nifi.apache.org/docs/nifi-docs/user-guide.html)
 
 - If you are testing ongoing development, you will likely want to stop your instance.
 
         laptop:~ fhampton$ cd ~/example-nifi-deploy/nifi-*
-        laptop:nifi-0.1.0-incubating-SNAPSHOT fhampton$ ./bin/nifi.sh stop
+        laptop:nifi-0.1.0-SNAPSHOT fhampton$ ./bin/nifi.sh stop
 
 ## Getting Help
-If you have questions, you can reach out to our mailing list: dev@nifi.incubator.apache.org
-([archive](http://mail-archives.apache.org/mod_mbox/incubator-nifi-dev)).
+If you have questions, you can reach out to our mailing list: dev@nifi.apache.org
+([archive](http://mail-archives.apache.org/mod_mbox/nifi-dev)).
 We're also often available in IRC: #nifi on
 [irc.freenode.net](http://webchat.freenode.net/?channels=#nifi).
 
@@ -128,19 +127,6 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-
-## Disclaimer
-
-Apache NiFi is an effort undergoing incubation at the Apache Software
-Foundation (ASF), sponsored by the Apache Incubator PMC.
-
-Incubation is required of all newly accepted projects until a further review
-indicates that the infrastructure, communications, and decision making process
-have stabilized in a manner consistent with other successful ASF projects.
-
-While incubation status is not necessarily a reflection of the completeness
-or stability of the code, it does indicate that the project has yet to be
-fully endorsed by the ASF.
 
 ## Export Control
 

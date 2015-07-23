@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-hadoop-bundle</artifactId>
-        <version>0.2.0-incubating</version>
+        <version>0.2.1-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-hadoop-nar</artifactId>
     <packaging>nar</packaging>
