@@ -17,24 +17,43 @@
 package org.apache.nifi.events;
 
 import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.reporting.Bulletin;
+import org.apache.nifi.reporting.ComponentType;
 
-/**
- *
- */
 public final class BulletinFactory {
 
     private static final AtomicLong currentId = new AtomicLong(0);
 
     public static Bulletin createBulletin(final Connectable connectable, final String category, final String severity, final String message) {
-        return BulletinFactory.createBulletin(connectable.getProcessGroup().getIdentifier(), connectable.getIdentifier(), connectable.getName(), category, severity, message);
+        final ComponentType type;
+        switch (connectable.getConnectableType()) {
+            case REMOTE_INPUT_PORT:
+            case REMOTE_OUTPUT_PORT:
+                type = ComponentType.REMOTE_PROCESS_GROUP;
+                break;
+            case INPUT_PORT:
+                type = ComponentType.INPUT_PORT;
+                break;
+            case OUTPUT_PORT:
+                type = ComponentType.OUTPUT_PORT;
+                break;
+            case PROCESSOR:
+            default:
+                type = ComponentType.PROCESSOR;
+                break;
+        }
+
+        return BulletinFactory.createBulletin(connectable.getProcessGroup().getIdentifier(), connectable.getIdentifier(), type, connectable.getName(), category, severity, message);
     }
 
-    public static Bulletin createBulletin(final String groupId, final String sourceId, final String sourceName, final String category, final String severity, final String message) {
+    public static Bulletin createBulletin(final String groupId, final String sourceId, final ComponentType sourceType, final String sourceName,
+        final String category, final String severity, final String message) {
         final Bulletin bulletin = new ComponentBulletin(currentId.getAndIncrement());
         bulletin.setGroupId(groupId);
         bulletin.setSourceId(sourceId);
+        bulletin.setSourceType(sourceType);
         bulletin.setSourceName(sourceName);
         bulletin.setCategory(category);
         bulletin.setLevel(severity);
@@ -47,6 +66,7 @@ public final class BulletinFactory {
         bulletin.setCategory(category);
         bulletin.setLevel(severity);
         bulletin.setMessage(message);
+        bulletin.setSourceType(ComponentType.FLOW_CONTROLLER);
         return bulletin;
     }
 }

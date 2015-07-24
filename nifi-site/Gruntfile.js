@@ -5,7 +5,7 @@ module.exports = function (grunt) {
     grunt.initConfig({
         config: {
             svn: {
-                url: 'https://svn.apache.org/repos/asf/incubator/nifi/site/trunk'
+                url: 'https://svn.apache.org/repos/asf/nifi/site/trunk'
             }
         },
         pkg: grunt.file.readJSON('package.json'),
@@ -224,7 +224,7 @@ module.exports = function (grunt) {
                         command += (' --username ' + username);
                     }
                     if (password !== '') {
-                        command += (' --password ' + password);
+                        command += (' --password "' + password + '"');
                     }
                     return command + ' -m "' + message + '" --trust-server-cert --non-interactive .';
                 }

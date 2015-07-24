@@ -57,6 +57,7 @@ import org.apache.nifi.groups.ProcessGroupCounts;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroupPortDescriptor;
 import org.apache.nifi.reporting.BulletinRepository;
+import org.apache.nifi.reporting.ComponentType;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
@@ -159,12 +160,15 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
 
         final BulletinRepository bulletinRepository = flowController.getBulletinRepository();
         eventReporter = new EventReporter() {
+            private static final long serialVersionUID = 1L;
+
             @Override
             public void reportEvent(final Severity severity, final String category, final String message) {
                 final String groupId = StandardRemoteProcessGroup.this.getProcessGroup().getIdentifier();
                 final String sourceId = StandardRemoteProcessGroup.this.getIdentifier();
                 final String sourceName = StandardRemoteProcessGroup.this.getName();
-                bulletinRepository.addBulletin(BulletinFactory.createBulletin(groupId, sourceId, sourceName, category, severity.name(), message));
+                bulletinRepository.addBulletin(BulletinFactory.createBulletin(groupId, sourceId, ComponentType.REMOTE_PROCESS_GROUP,
+                    sourceName, category, severity.name(), message));
             }
         };
 
@@ -227,7 +231,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     @Override
     public String getName() {
         final String name = this.name.get();
-        return (name == null) ? targetUri.toString() : name;
+        return name == null ? targetUri.toString() : name;
     }
 
     @Override
@@ -671,7 +675,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
 
     private ProcessGroup getRootGroup(final ProcessGroup context) {
         final ProcessGroup parent = context.getParent();
-        return (parent == null) ? context : getRootGroup(parent);
+        return parent == null ? context : getRootGroup(parent);
     }
 
     private boolean isWebApiSecure() {
@@ -714,7 +718,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     public Date getLastRefreshTime() {
         readLock.lock();
         try {
-            return (refreshContentsTimestamp == null) ? null : new Date(refreshContentsTimestamp);
+            return refreshContentsTimestamp == null ? null : new Date(refreshContentsTimestamp);
         } finally {
             readLock.unlock();
         }
@@ -855,7 +859,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
         Set<RemoteProcessGroupPortDescriptor> remotePorts = null;
         if (ports != null) {
             remotePorts = new LinkedHashSet<>(ports.size());
-            for (PortDTO port : ports) {
+            for (final PortDTO port : ports) {
                 final StandardRemoteProcessGroupPortDescriptor descriptor = new StandardRemoteProcessGroupPortDescriptor();
                 final ScheduledState scheduledState = ScheduledState.valueOf(port.getState());
                 descriptor.setId(port.getId());
@@ -1093,7 +1097,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                     }
 
                     final String remoteInstanceId = dto.getInstanceId();
-                    boolean isPointingToCluster = flowController.getInstanceId().equals(remoteInstanceId);
+                    final boolean isPointingToCluster = flowController.getInstanceId().equals(remoteInstanceId);
                     pointsToCluster.set(isPointingToCluster);
                 } else if (statusCode == UNAUTHORIZED_STATUS_CODE) {
                     try {
@@ -1120,7 +1124,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                             new Object[]{this, response.getStatus(), response.getStatusInfo().getReasonPhrase(), message});
                     authorizationIssue = "Unable to determine Site-to-Site availability.";
                 }
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 logger.warn(String.format("Unable to connect to %s due to %s", StandardRemoteProcessGroup.this, e));
                 getEventReporter().reportEvent(Severity.WARNING, "Site to Site", String.format("Unable to connect to %s due to %s",
                         StandardRemoteProcessGroup.this.getTargetUri().toString(), e));

@@ -124,9 +124,21 @@ div.referencing-component-state {
     margin-top: -2px;
 }
 
-span.service.expansion-button {
+div.referencing-component-bulletins {
+    float: left;
+    margin-left: 5px;
+    width: 12px;
+    height: 12px;
+    background-color: transparent;
+    display: none;
+}
+
+div.service.expansion-button {
+    float: left;
     margin-right: 4px;
     margin-top: 2px;
+    width: 10px;
+    height: 10px;
 }
 
 span.referencing-component-active-thread-count {
@@ -147,6 +159,12 @@ div.referencing-component-references {
     margin-left: 20px;
     margin-top: 6px;
     clear: left;
+}
+
+div.controller-service-canceling {
+    position: absolute;
+    bottom: 10px;
+    right: 8px;
 }
 
 /*
@@ -186,6 +204,21 @@ div.referencing-component-references {
     margin-right: 40px;
 }
 
+#disable-controller-service-name {
+    float: left;
+    max-width: 280px;
+    text-overflow: ellipsis;
+}
+
+#disable-controller-service-bulletins {
+    float: left;
+    margin-left: 5px;
+    width: 12px;
+    height: 12px;
+    background-color: transparent;
+    display: none;
+}
+
 #disable-controller-service-referencing-components {
     border: 0 solid #CCCCCC;
     padding: 2px;
@@ -220,6 +253,21 @@ div.referencing-component-references {
 #enable-controller-service-dialog div.spacer {
     float: left;
     margin-right: 40px;
+}
+
+#enable-controller-service-name {
+    float: left;
+    max-width: 280px;
+    text-overflow: ellipsis;
+}
+
+#enable-controller-service-bulletins {
+    float: left;
+    margin-left: 5px;
+    width: 12px;
+    height: 12px;
+    background-color: transparent;
+    display: none;
 }
 
 #enable-controller-service-scope {

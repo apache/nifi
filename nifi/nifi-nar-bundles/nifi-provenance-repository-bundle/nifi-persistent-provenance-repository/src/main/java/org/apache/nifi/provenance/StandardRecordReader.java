@@ -369,7 +369,15 @@ public class StandardRecordReader implements RecordReader {
         for (int i = 0; i < numAttributes; i++) {
             final String key = readLongString(dis);
             final String value = valueNullable ? readLongNullableString(dis) : readLongString(dis);
-            final String truncatedValue = value.length() > maxAttributeChars ? value.substring(0, maxAttributeChars) : value;
+            final String truncatedValue;
+            if (value == null) {
+                truncatedValue = null;
+            } else if (value.length() > maxAttributeChars) {
+                truncatedValue = value.substring(0, maxAttributeChars);
+            } else {
+                truncatedValue = value;
+            }
+
             attrs.put(key, truncatedValue);
         }
 

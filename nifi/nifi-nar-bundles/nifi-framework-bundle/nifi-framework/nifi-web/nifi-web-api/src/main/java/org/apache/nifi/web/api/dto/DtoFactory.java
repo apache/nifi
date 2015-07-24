@@ -1487,6 +1487,20 @@ public final class DtoFactory {
     }
 
     /**
+     * Creates BulletinDTOs for the specified Bulletins.
+     *
+     * @param bulletins bulletin
+     * @return dto
+     */
+    public List<BulletinDTO> createBulletinDtos(final List<Bulletin> bulletins) {
+        final List<BulletinDTO> bulletinDtos = new ArrayList<>(bulletins.size());
+        for (final Bulletin bulletin : bulletins) {
+            bulletinDtos.add(createBulletinDto(bulletin));
+        }
+        return bulletinDtos;
+    }
+
+    /**
      * Creates a BulletinDTO for the specified Bulletin.
      *
      * @param bulletin bulletin
@@ -1507,7 +1521,8 @@ public final class DtoFactory {
     }
 
     /**
-     * Creates a ProvenanceEventNodeDTO for the specified ProvenanceEventLineageNode.
+     * Creates a ProvenanceEventNodeDTO for the specified
+     * ProvenanceEventLineageNode.
      *
      * @param node node
      * @return dto
@@ -2158,8 +2173,9 @@ public final class DtoFactory {
     /**
      *
      * @param original orig
-     * @param deep if <code>true</code>, all Connections, ProcessGroups, Ports, Processors, etc. will be copied. If <code>false</code>, the copy will have links to the same objects referenced by
-     * <code>original</code>.
+     * @param deep if <code>true</code>, all Connections, ProcessGroups, Ports,
+     * Processors, etc. will be copied. If <code>false</code>, the copy will
+     * have links to the same objects referenced by <code>original</code>.
      *
      * @return dto
      */

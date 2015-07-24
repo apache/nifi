@@ -728,20 +728,8 @@ public class RunNiFi {
         final NiFiListener listener = new NiFiListener();
         final int listenPort = listener.start(this);
 
-        String runAs = isWindows() ? null : props.get(RUN_AS_PROP);
-        if (runAs != null) {
-            runAs = runAs.trim();
-            if (runAs.isEmpty()) {
-                runAs = null;
-            }
-        }
-
         final List<String> cmd = new ArrayList<>();
-        if (runAs != null) {
-            cmd.add("sudo");
-            cmd.add("-u");
-            cmd.add(runAs);
-        }
+
         cmd.add(javaCmd);
         cmd.add("-classpath");
         cmd.add(classPath);

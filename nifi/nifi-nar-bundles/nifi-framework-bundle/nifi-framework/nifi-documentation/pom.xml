@@ -14,7 +14,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-framework</artifactId>
-        <version>0.2.0-incubating-SNAPSHOT</version>
+        <version>0.3.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-documentation</artifactId>
     <dependencies>
@@ -33,6 +33,11 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-processor-utils</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

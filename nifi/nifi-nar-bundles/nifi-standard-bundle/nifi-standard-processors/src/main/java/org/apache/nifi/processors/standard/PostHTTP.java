@@ -51,6 +51,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.http.Header;
 import org.apache.http.HttpException;
+import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpResponseInterceptor;
 import org.apache.http.auth.AuthScope;
@@ -67,6 +68,7 @@ import org.apache.http.config.RegistryBuilder;
 import org.apache.http.conn.HttpClientConnectionManager;
 import org.apache.http.conn.ManagedHttpClientConnection;
 import org.apache.http.conn.socket.ConnectionSocketFactory;
+import org.apache.http.conn.socket.PlainConnectionSocketFactory;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.conn.ssl.SSLContextBuilder;
 import org.apache.http.conn.ssl.SSLContexts;
@@ -80,9 +82,9 @@ import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpCoreContext;
 import org.apache.http.util.EntityUtils;
+import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
@@ -225,12 +227,23 @@ public class PostHTTP extends AbstractProcessor {
             .allowableValues("true", "false")
             .defaultValue("true")
             .build();
-
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
             .description("The Controller Service to use in order to obtain an SSL Context")
             .required(false)
             .identifiesControllerService(SSLContextService.class)
+            .build();
+    public static final PropertyDescriptor PROXY_HOST = new PropertyDescriptor.Builder()
+            .name("Proxy Host")
+            .description("The fully qualified hostname or IP address of the proxy server")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+    public static final PropertyDescriptor PROXY_PORT = new PropertyDescriptor.Builder()
+            .name("Proxy Port")
+            .description("The port of the proxy server")
+            .required(false)
+            .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -270,6 +283,8 @@ public class PostHTTP extends AbstractProcessor {
         properties.add(DATA_TIMEOUT);
         properties.add(ATTRIBUTES_AS_HEADERS_REGEX);
         properties.add(USER_AGENT);
+        properties.add(PROXY_HOST);
+        properties.add(PROXY_PORT);
         this.properties = Collections.unmodifiableList(properties);
     }
 
@@ -291,6 +306,14 @@ public class PostHTTP extends AbstractProcessor {
             results.add(new ValidationResult.Builder()
                     .explanation("URL is set to HTTPS protocol but no SSLContext has been specified")
                     .valid(false).subject("SSL Context").build());
+        }
+
+        if (context.getProperty(PROXY_HOST).isSet() && !context.getProperty(PROXY_PORT).isSet()) {
+            results.add(new ValidationResult.Builder()
+                    .explanation("Proxy Host was set but no Proxy Port was specified")
+                    .valid(false)
+                    .subject("Proxy server configuration")
+                    .build());
         }
 
         return results;
@@ -344,7 +367,12 @@ public class PostHTTP extends AbstractProcessor {
 
             final SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext, new String[]{"TLSv1"}, null, SSLConnectionSocketFactory.BROWSER_COMPATIBLE_HOSTNAME_VERIFIER);
 
-            final Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory>create().register("https", sslsf).build();
+            // Also use a plain socket factory for regular http connections (especially proxies)
+            final Registry<ConnectionSocketFactory> socketFactoryRegistry =
+                    RegistryBuilder.<ConnectionSocketFactory>create()
+                            .register("https", sslsf)
+                            .register("http", PlainConnectionSocketFactory.getSocketFactory())
+                            .build();
 
             conMan = new PoolingHttpClientConnectionManager(socketFactoryRegistry);
         }
@@ -354,7 +382,7 @@ public class PostHTTP extends AbstractProcessor {
         config = new Config(conMan);
         final Config existingConfig = configMap.putIfAbsent(baseUrl, config);
 
-        return (existingConfig == null) ? config : existingConfig;
+        return existingConfig == null ? config : existingConfig;
     }
 
     private SSLContext createSSLContext(final SSLContextService service)
@@ -378,7 +406,7 @@ public class PostHTTP extends AbstractProcessor {
             builder = builder.loadKeyMaterial(keystore, service.getKeyStorePassword().toCharArray());
         }
 
-        SSLContext sslContext = builder.build();
+        final SSLContext sslContext = builder.build();
         return sslContext;
     }
 
@@ -444,13 +472,13 @@ public class PostHTTP extends AbstractProcessor {
                 clientBuilder.addInterceptorFirst(new HttpResponseInterceptor() {
                     @Override
                     public void process(final HttpResponse response, final HttpContext httpContext) throws HttpException, IOException {
-                        HttpCoreContext coreContext = HttpCoreContext.adapt(httpContext);
-                        ManagedHttpClientConnection conn = coreContext.getConnection(ManagedHttpClientConnection.class);
+                        final HttpCoreContext coreContext = HttpCoreContext.adapt(httpContext);
+                        final ManagedHttpClientConnection conn = coreContext.getConnection(ManagedHttpClientConnection.class);
                         if (!conn.isOpen()) {
                             return;
                         }
 
-                        SSLSession sslSession = conn.getSSLSession();
+                        final SSLSession sslSession = conn.getSSLSession();
 
                         if (sslSession != null) {
                             final X509Certificate[] certChain = sslSession.getPeerCertificateChain();
@@ -479,6 +507,14 @@ public class PostHTTP extends AbstractProcessor {
                     }
                     clientBuilder.setDefaultCredentialsProvider(credentialsProvider);
                 }
+
+                // Set the proxy if specified
+                if (context.getProperty(PROXY_HOST).isSet() && context.getProperty(PROXY_PORT).isSet()) {
+                    final String host = context.getProperty(PROXY_HOST).getValue();
+                    final int port = context.getProperty(PROXY_PORT).asInteger();
+                    clientBuilder.setProxy(new HttpHost(host, port));
+                }
+
                 client = clientBuilder.build();
 
                 // determine whether or not destination accepts flowfile/gzip
@@ -492,7 +528,7 @@ public class PostHTTP extends AbstractProcessor {
                         }
 
                         config.setDestinationAccepts(destinationAccepts);
-                    } catch (IOException e) {
+                    } catch (final IOException e) {
                         flowFile = session.penalize(flowFile);
                         session.transfer(flowFile, REL_FAILURE);
                         logger.error("Unable to communicate with destination {} to determine whether or not it can accept "
@@ -505,7 +541,7 @@ public class PostHTTP extends AbstractProcessor {
 
             // if we are not sending as flowfile, or if the destination doesn't accept V3 or V2 (streaming) format,
             // then only use a single FlowFile
-            if (!sendAsFlowFile || (!destinationAccepts.isFlowFileV3Accepted() && !destinationAccepts.isFlowFileV2Accepted())) {
+            if (!sendAsFlowFile || !destinationAccepts.isFlowFileV3Accepted() && !destinationAccepts.isFlowFileV2Accepted()) {
                 break;
             }
 
@@ -528,7 +564,7 @@ public class PostHTTP extends AbstractProcessor {
         final EntityTemplate entity = new EntityTemplate(new ContentProducer() {
             @Override
             public void writeTo(final OutputStream rawOut) throws IOException {
-                final OutputStream throttled = (throttler == null) ? rawOut : throttler.newThrottledOutputStream(rawOut);
+                final OutputStream throttled = throttler == null ? rawOut : throttler.newThrottledOutputStream(rawOut);
                 OutputStream wrappedOut = new BufferedOutputStream(throttled);
                 if (compressionLevel > 0 && accepts.isGzipAccepted()) {
                     wrappedOut = new GZIPOutputStream(wrappedOut, compressionLevel);
@@ -602,7 +638,7 @@ public class PostHTTP extends AbstractProcessor {
             }
         } else {
             final String attributeValue = toSend.get(0).getAttribute(CoreAttributes.MIME_TYPE.key());
-            contentType = (attributeValue == null) ? DEFAULT_CONTENT_TYPE : attributeValue;
+            contentType = attributeValue == null ? DEFAULT_CONTENT_TYPE : attributeValue;
         }
 
         final String attributeHeaderRegex = context.getProperty(ATTRIBUTES_AS_HEADERS_REGEX).getValue();
@@ -654,7 +690,7 @@ public class PostHTTP extends AbstractProcessor {
             if (response != null) {
                 try {
                     response.close();
-                } catch (IOException e) {
+                } catch (final IOException e) {
                     getLogger().warn("Failed to close HTTP Response due to {}", new Object[]{e});
                 }
             }
@@ -770,7 +806,7 @@ public class PostHTTP extends AbstractProcessor {
 
                 logger.info("Successfully Posted {} to {} in {} milliseconds at a rate of {}", new Object[]{flowFileDescription, url, uploadMillis, uploadDataRate});
 
-                for (FlowFile flowFile : toSend) {
+                for (final FlowFile flowFile : toSend) {
                     session.getProvenanceReporter().send(flowFile, url);
                     session.transfer(flowFile, REL_SUCCESS);
                 }

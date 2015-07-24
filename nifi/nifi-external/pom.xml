@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi</artifactId>
-        <version>0.2.0-incubating-SNAPSHOT</version>
+        <version>0.3.0-SNAPSHOT</version>
     </parent>
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-external</artifactId>
@@ -26,5 +26,7 @@
     <modules>
         <module>nifi-spark-receiver</module>
         <module>nifi-storm-spout</module>
+        <module>nifi-example-bundle</module>
     </modules>
 </project>
+

@@ -100,6 +100,7 @@ public class ByteCountingInputStream extends InputStream {
     public void reset() throws IOException {
         in.reset();
         bytesRead -= bytesSinceMark;
+        bytesSinceMark = 0L;
     }
 
     @Override

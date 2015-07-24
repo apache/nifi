@@ -81,7 +81,7 @@ public class TestHandleHttpRequest {
 
             while ( runner.getFlowFilesForRelationship(HandleHttpRequest.REL_SUCCESS).isEmpty() ) {
                 // process the request.
-                runner.run(1, false);
+                runner.run(1, false, false);
             }
 
             runner.assertAllFlowFilesTransferred(HandleHttpRequest.REL_SUCCESS, 1);

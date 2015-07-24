@@ -104,14 +104,15 @@ public class TestGetSolr {
         File confDir = new File("conf");
         assertTrue(confDir.exists());
         File[] files = confDir.listFiles();
-        assertTrue(files.length > 0);
-        for (File file : files) {
-            assertTrue("Failed to delete " + file.getName(), file.delete());
+        if (files.length > 0) {
+            for (File file : files) {
+                assertTrue("Failed to delete " + file.getName(), file.delete());
+            }
         }
         assertTrue(confDir.delete());
 
         try {
-            solrClient.shutdown();
+            solrClient.close();
         } catch (Exception e) {
         }
     }
@@ -184,6 +185,26 @@ public class TestGetSolr {
         runner.assertAllFlowFilesTransferred(GetSolr.REL_SUCCESS, 0);
     }
 
+    @Test
+    public void testOnRemovedRemovesState() throws IOException, SolrServerException {
+        final TestableProcessor proc = new TestableProcessor(solrClient);
+
+        TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(GetSolr.SOLR_TYPE, PutSolrContentStream.SOLR_TYPE_STANDARD.getValue());
+        runner.setProperty(GetSolr.SOLR_LOCATION, "http://localhost:8443/solr");
+        runner.setProperty(GetSolr.SOLR_QUERY, "last:smith");
+        runner.setProperty(GetSolr.RETURN_FIELDS, "created");
+        runner.setProperty(GetSolr.SORT_CLAUSE, "created desc");
+        runner.setProperty(GetSolr.DATE_FIELD, "created");
+        runner.setProperty(GetSolr.BATCH_SIZE, "10");
+
+        runner.run();
+
+        File lastEndDateCache = new File(GetSolr.FILE_PREFIX + proc.getIdentifier());
+        Assert.assertTrue("State file should exist, but doesn't", lastEndDateCache.exists());
+        proc.onRemoved();
+        Assert.assertFalse("State file should have been removed, but wasn't", lastEndDateCache.exists());
+    }
 
     // Override createSolrClient and return the passed in SolrClient
     private class TestableProcessor extends GetSolr {

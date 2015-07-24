@@ -104,7 +104,7 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
 
     @Override
     public ConfigurationContext getConfigurationContext() {
-        return new StandardConfigurationContext(this, serviceLookup);
+        return new StandardConfigurationContext(this, serviceLookup, getSchedulingPeriod());
     }
 
     @Override
@@ -146,7 +146,7 @@ public abstract class AbstractReportingTaskNode extends AbstractConfiguredCompon
         // We need to invoke any method annotation with the OnConfigured annotation in order to
         // maintain backward compatibility. This will be removed when we remove the old, deprecated annotations.
         try (final NarCloseable x = NarCloseable.withNarLoader()) {
-            final ConfigurationContext configContext = new StandardConfigurationContext(this, serviceLookup);
+            final ConfigurationContext configContext = new StandardConfigurationContext(this, serviceLookup, getSchedulingPeriod());
             ReflectionUtils.invokeMethodsWithAnnotation(OnConfigured.class, reportingTask, configContext);
         } catch (final Exception e) {
             throw new ComponentLifeCycleException("Failed to invoke On-Configured Lifecycle methods of " + reportingTask, e);

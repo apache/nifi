@@ -13,7 +13,7 @@
   limitations under the License.
 -->
 # About
-[Apache NiFi project] (http://nifi.incubator.apache.org).
+[Apache NiFi project] (http://nifi.apache.org).
 
 ## Getting Started
 
@@ -69,7 +69,7 @@ Because of this, Maven must be installed and available on the PATH. Additionally
 must be installed in order for the Maven build to succeed. Refer to the [NiFi][] 
 documentation for minimum requirements for Maven and Java. 
 
-[NiFi]: https://nifi.incubator.apache.org/quickstart.html
+[NiFi]: https://nifi.apache.org/quickstart.html
 
 ```bash
 grunt

@@ -17,7 +17,7 @@
   <requiredProperties>
     <requiredProperty key="artifactBaseName" />
     <requiredProperty key="nifiVersion" >
-        <defaultValue>0.1.0-incubating-SNAPSHOT</defaultValue>
+        <defaultValue>0.2.1-SNAPSHOT</defaultValue>
     </requiredProperty>
 	<requiredProperty key="package">
 		<defaultValue>${groupId}.processors.${artifactBaseName}</defaultValue>

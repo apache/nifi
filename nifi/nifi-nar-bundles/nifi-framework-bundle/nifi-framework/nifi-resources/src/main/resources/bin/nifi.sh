@@ -151,9 +151,26 @@ install() {
 run() {
     BOOTSTRAP_CONF="$NIFI_HOME/conf/bootstrap.conf";
 
+    run_as=$(grep run.as ${BOOTSTRAP_CONF} | cut -d'=' -f2)
+
+    sudo_cmd_prefix=""
     if $cygwin; then
+        if [[ -n "$run_as" ]]; then
+            echo "The run.as option is not supported in a Cygwin environment. Exiting."
+            exit 1
+        fi;
+
         NIFI_HOME=`cygpath --path --windows "$NIFI_HOME"`
         BOOTSTRAP_CONF=`cygpath --path --windows "$BOOTSTRAP_CONF"`
+    else
+        if [[ -n "$run_as" ]]; then
+            if id -u "$run_as" >/dev/null 2>&1; then
+                sudo_cmd_prefix="sudo -u ${run_as}"
+            else
+                echo "The specified run.as user ${run_as} does not exist. Exiting."
+                exit 1
+            fi
+        fi;
     fi
 
     echo
@@ -166,9 +183,9 @@ run() {
     # run 'start' in the background because the process will continue to run, monitoring NiFi.
     # all other commands will terminate quickly so want to just wait for them
     if [ "$1" = "start" ]; then
-        ("$JAVA" -cp "$NIFI_HOME"/conf/:"$NIFI_HOME"/lib/bootstrap/* -Xms12m -Xmx24m -Dorg.apache.nifi.bootstrap.config.file="$BOOTSTRAP_CONF" org.apache.nifi.bootstrap.RunNiFi $@ &)
+        (cd $NIFI_HOME && ${sudo_cmd_prefix} "$JAVA" -cp "$NIFI_HOME"/conf/:"$NIFI_HOME"/lib/bootstrap/* -Xms12m -Xmx24m -Dorg.apache.nifi.bootstrap.config.file="$BOOTSTRAP_CONF" org.apache.nifi.bootstrap.RunNiFi $@ &)
     else
-        "$JAVA" -cp "$NIFI_HOME"/conf/:"$NIFI_HOME"/lib/bootstrap/* -Xms12m -Xmx24m -Dorg.apache.nifi.bootstrap.config.file="$BOOTSTRAP_CONF" org.apache.nifi.bootstrap.RunNiFi $@
+        (cd $NIFI_HOME && ${sudo_cmd_prefix} "$JAVA" -cp "$NIFI_HOME"/conf/:"$NIFI_HOME"/lib/bootstrap/* -Xms12m -Xmx24m -Dorg.apache.nifi.bootstrap.config.file="$BOOTSTRAP_CONF" org.apache.nifi.bootstrap.RunNiFi $@)
     fi
 
     # Wait just a bit (3 secs) to wait for the logging to finish and then echo a new-line.

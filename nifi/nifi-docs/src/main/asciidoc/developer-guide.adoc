@@ -16,13 +16,13 @@
 //
 NiFi Developer's Guide
 ======================
-Apache NiFi Team <dev@nifi.incubator.apache.org>
-:homepage: http://nifi.incubator.apache.org
+Apache NiFi Team <dev@nifi.apache.org>
+:homepage: http://nifi.apache.org
 
 
 == Introduction
 
-The intent of this Developer Guide is to provide the reader with the information needed to understand how Apache NiFi (incubating)
+The intent of this Developer Guide is to provide the reader with the information needed to understand how Apache NiFi
 extensions are developed and help to explain the thought process behind developing the components. It provides an introduction to
 and explanation of the API that is used to develop extensions. It does not, however, go into great detail about each
 of the methods in the API, as this guide is intended to supplement the JavaDocs of the API rather than replace them.
@@ -485,7 +485,7 @@ Methods with this annotation will be called when a Processor or
 ReportingTask is no longer scheduled to run
 and all threads have returned from the `onTrigger` method. If such a
 method throws an Exception,
-a lot message will be generated, and the Exception will otherwise be
+a log message will be generated, and the Exception will otherwise be
 ignored; other methods with
 this annotation will still be invoked. Methods with this annotation
 must take zero arguments.
@@ -2163,7 +2163,7 @@ and attaching that patch to a ticket, or by generating a Pull Request.
 
 === Contact Us
 
-The developer mailing list (dev@nifi.incubator.apache.org) is monitored pretty closely, and we tend to respond pretty
+The developer mailing list (dev@nifi.apache.org) is monitored pretty closely, and we tend to respond pretty
 quickly. If you have a question, don't hesitate to shoot us an e-mail - we're here to help! Unfortunately, though, e-mails
 can get lost in the shuffle, so if you do send an e-mail and don't get a response within a day or two, it's our fault - don't
 worry about bothering us. Just ping the mailing list again.

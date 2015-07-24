@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinQuery;
 import org.apache.nifi.reporting.BulletinRepository;
+import org.apache.nifi.reporting.ComponentType;
 import org.apache.nifi.util.RingBuffer;
 import org.apache.nifi.util.RingBuffer.Filter;
 
@@ -35,6 +36,8 @@ public class VolatileBulletinRepository implements BulletinRepository {
     private static final int CONTROLLER_BUFFER_SIZE = 10;
     private static final int COMPONENT_BUFFER_SIZE = 5;
     private static final String CONTROLLER_BULLETIN_STORE_KEY = "CONTROLLER";
+    private static final String SERVICE_BULLETIN_STORE_KEY = "SERVICE";
+    private static final String REPORTING_TASK_BULLETIN_STORE_KEY = "REPORTING_TASK";
 
     private final ConcurrentMap<String, ConcurrentMap<String, RingBuffer<Bulletin>>> bulletinStoreMap = new ConcurrentHashMap<>();
     private volatile BulletinProcessingStrategy processingStrategy = new DefaultBulletinProcessingStrategy();
@@ -101,6 +104,14 @@ public class VolatileBulletinRepository implements BulletinRepository {
                     }
                 }
 
+                // if a source component type was specified see if it should be excluded
+                if (bulletinQuery.getSourceType() != null) {
+                    // exclude if this bulletin source type doesn't match
+                    if (bulletin.getSourceType() == null || !bulletinQuery.getSourceType().equals(bulletin.getSourceType())) {
+                        return false;
+                    }
+                }
+
                 return true;
             }
         };
@@ -161,23 +172,45 @@ public class VolatileBulletinRepository implements BulletinRepository {
     public List<Bulletin> findBulletinsForController(final int max) {
         final long fiveMinutesAgo = System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(5);
 
-        final ConcurrentMap<String, RingBuffer<Bulletin>> componentMap = bulletinStoreMap.get(CONTROLLER_BULLETIN_STORE_KEY);
-        if (componentMap == null) {
-            return Collections.<Bulletin>emptyList();
-        }
-
-        final RingBuffer<Bulletin> buffer = componentMap.get(CONTROLLER_BULLETIN_STORE_KEY);
-        return (buffer == null) ? Collections.<Bulletin>emptyList() : buffer.getSelectedElements(new Filter<Bulletin>() {
+        final Filter<Bulletin> filter = new Filter<Bulletin>() {
             @Override
             public boolean select(final Bulletin bulletin) {
                 return bulletin.getTimestamp().getTime() >= fiveMinutesAgo;
             }
-        }, max);
+        };
+
+        final List<Bulletin> controllerBulletins = new ArrayList<>();
+
+        final ConcurrentMap<String, RingBuffer<Bulletin>> controllerBulletinMap = bulletinStoreMap.get(CONTROLLER_BULLETIN_STORE_KEY);
+        if (controllerBulletinMap != null) {
+            final RingBuffer<Bulletin> buffer = controllerBulletinMap.get(CONTROLLER_BULLETIN_STORE_KEY);
+            if (buffer != null) {
+                controllerBulletins.addAll(buffer.getSelectedElements(filter, max));
+            }
+        }
+
+        for (final String key : new String[] { SERVICE_BULLETIN_STORE_KEY, REPORTING_TASK_BULLETIN_STORE_KEY }) {
+            final ConcurrentMap<String, RingBuffer<Bulletin>> bulletinMap = bulletinStoreMap.get(key);
+            if (bulletinMap != null) {
+                for (final RingBuffer<Bulletin> buffer : bulletinMap.values()) {
+                    controllerBulletins.addAll(buffer.getSelectedElements(filter, max));
+                }
+            }
+        }
+
+        // We only want the newest bulletin, so we sort based on time and take the top 'max' entries
+        Collections.sort(controllerBulletins);
+        if (controllerBulletins.size() > max) {
+            return controllerBulletins.subList(0, max);
+        }
+
+        return controllerBulletins;
     }
 
     /**
-     * Overrides the default bulletin processing strategy. When a custom bulletin strategy is employed, bulletins will not be persisted in this repository and will sent to the specified strategy
-     * instead.
+     * Overrides the default bulletin processing strategy. When a custom
+     * bulletin strategy is employed, bulletins will not be persisted in this
+     * repository and will sent to the specified strategy instead.
      *
      * @param strategy bulletin strategy
      */
@@ -193,47 +226,80 @@ public class VolatileBulletinRepository implements BulletinRepository {
         this.processingStrategy = new DefaultBulletinProcessingStrategy();
     }
 
-    private RingBuffer<Bulletin> getBulletinBuffer(final Bulletin bulletin) {
-        final String groupId = getBulletinStoreKey(bulletin);
+    private List<RingBuffer<Bulletin>> getBulletinBuffers(final Bulletin bulletin) {
+        final String storageKey = getBulletinStoreKey(bulletin);
 
-        ConcurrentMap<String, RingBuffer<Bulletin>> componentMap = bulletinStoreMap.get(groupId);
+        ConcurrentMap<String, RingBuffer<Bulletin>> componentMap = bulletinStoreMap.get(storageKey);
         if (componentMap == null) {
             componentMap = new ConcurrentHashMap<>();
-            ConcurrentMap<String, RingBuffer<Bulletin>> existing = bulletinStoreMap.putIfAbsent(groupId, componentMap);
+            final ConcurrentMap<String, RingBuffer<Bulletin>> existing = bulletinStoreMap.putIfAbsent(storageKey, componentMap);
             if (existing != null) {
                 componentMap = existing;
             }
         }
 
-        final boolean controllerBulletin = isControllerBulletin(bulletin);
-        final String sourceId = controllerBulletin ? CONTROLLER_BULLETIN_STORE_KEY : bulletin.getSourceId();
-        RingBuffer<Bulletin> bulletinBuffer = componentMap.get(sourceId);
-        if (bulletinBuffer == null) {
-            final int bufferSize = controllerBulletin ? CONTROLLER_BUFFER_SIZE : COMPONENT_BUFFER_SIZE;
-            bulletinBuffer = new RingBuffer<>(bufferSize);
-            final RingBuffer<Bulletin> existingBuffer = componentMap.putIfAbsent(sourceId, bulletinBuffer);
-            if (existingBuffer != null) {
-                bulletinBuffer = existingBuffer;
+        final List<RingBuffer<Bulletin>> buffers = new ArrayList<>(2);
+
+        if (isControllerBulletin(bulletin)) {
+            RingBuffer<Bulletin> bulletinBuffer = componentMap.get(CONTROLLER_BULLETIN_STORE_KEY);
+            if (bulletinBuffer == null) {
+                bulletinBuffer = new RingBuffer<>(CONTROLLER_BUFFER_SIZE);
+                final RingBuffer<Bulletin> existingBuffer = componentMap.putIfAbsent(CONTROLLER_BULLETIN_STORE_KEY, bulletinBuffer);
+                if (existingBuffer != null) {
+                    bulletinBuffer = existingBuffer;
+                }
             }
+
+            buffers.add(bulletinBuffer);
         }
 
-        return bulletinBuffer;
+        if (bulletin.getSourceType() != ComponentType.FLOW_CONTROLLER) {
+            RingBuffer<Bulletin> bulletinBuffer = componentMap.get(bulletin.getSourceId());
+            if (bulletinBuffer == null) {
+                bulletinBuffer = new RingBuffer<>(COMPONENT_BUFFER_SIZE);
+                final RingBuffer<Bulletin> existingBuffer = componentMap.putIfAbsent(bulletin.getSourceId(), bulletinBuffer);
+                if (existingBuffer != null) {
+                    bulletinBuffer = existingBuffer;
+                }
+            }
+
+            buffers.add(bulletinBuffer);
+        }
+
+        return buffers;
     }
 
     private String getBulletinStoreKey(final Bulletin bulletin) {
-        return isControllerBulletin(bulletin) ? CONTROLLER_BULLETIN_STORE_KEY : bulletin.getGroupId();
+        switch (bulletin.getSourceType()) {
+            case FLOW_CONTROLLER:
+                return CONTROLLER_BULLETIN_STORE_KEY;
+            case CONTROLLER_SERVICE:
+                return SERVICE_BULLETIN_STORE_KEY;
+            case REPORTING_TASK:
+                return REPORTING_TASK_BULLETIN_STORE_KEY;
+            default:
+                return bulletin.getGroupId();
+        }
     }
 
     private boolean isControllerBulletin(final Bulletin bulletin) {
-        return bulletin.getGroupId() == null;
+        switch (bulletin.getSourceType()) {
+            case FLOW_CONTROLLER:
+            case CONTROLLER_SERVICE:
+            case REPORTING_TASK:
+                return true;
+            default:
+                return false;
+        }
     }
 
     private class DefaultBulletinProcessingStrategy implements BulletinProcessingStrategy {
 
         @Override
         public void update(final Bulletin bulletin) {
-            final RingBuffer<Bulletin> bulletinBuffer = getBulletinBuffer(bulletin);
-            bulletinBuffer.add(bulletin);
+            for (final RingBuffer<Bulletin> bulletinBuffer : getBulletinBuffers(bulletin)) {
+                bulletinBuffer.add(bulletin);
+            }
         }
     }
 }
