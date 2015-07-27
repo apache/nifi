@@ -155,7 +155,7 @@ run() {
 
     sudo_cmd_prefix=""
     if $cygwin; then
-        if [[ -n "$run_as" ]]; then
+        if [ -n "$run_as" ]; then
             echo "The run.as option is not supported in a Cygwin environment. Exiting."
             exit 1
         fi;
@@ -163,7 +163,7 @@ run() {
         NIFI_HOME=`cygpath --path --windows "$NIFI_HOME"`
         BOOTSTRAP_CONF=`cygpath --path --windows "$BOOTSTRAP_CONF"`
     else
-        if [[ -n "$run_as" ]]; then
+        if [ -n "$run_as" ]; then
             if id -u "$run_as" >/dev/null 2>&1; then
                 sudo_cmd_prefix="sudo -u ${run_as}"
             else
