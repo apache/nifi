@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-standard-services</artifactId>
-        <version>0.2.1-incubating-SNAPSHOT</version>
+        <version>0.2.2-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-standard-services-api-nar</artifactId>
     <packaging>nar</packaging>
@@ -37,15 +37,15 @@
             <artifactId>nifi-load-distribution-service-api</artifactId>
             <scope>compile</scope>
         </dependency>
-		<dependency>
-			<groupId>org.apache.nifi</groupId>
-			<artifactId>nifi-http-context-map-api</artifactId>
-			<scope>compile</scope>
-		</dependency>
+	<dependency>
+	    <groupId>org.apache.nifi</groupId>
+	    <artifactId>nifi-http-context-map-api</artifactId>
+	    <scope>compile</scope>
+	</dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-dbcp-service-api</artifactId>
-            <version>0.2.1-incubating-SNAPSHOT</version>
+            <version>0.2.2-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>
