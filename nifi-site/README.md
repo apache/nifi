@@ -22,10 +22,17 @@ the web, and [npm][] package manager for node. npm is used to manage the
 node modules required for building this site. bower is used to manage the 
 front end packages that the site will depend on.
 
-Both grunt and bower can be installed via npm once it is installed. 
+Before installing bower and grunt, the NodeJS Package Manager (npm) must
+be installed. For instructions on installing npm, see [npm-install][]
 
-```bash
+Both grunt and bower can be installed via npm once, it is installed. 
+
+
+```
 sudo npm install -g grunt-cli
+```
+
+```
 sudo npm install -g bower
 ```
 
@@ -43,15 +50,66 @@ command from the nifi-site directory.
 npm install
 ```
 
-The site is built using [foundation][] a responsive front end framework. 
+The site is built using [foundation][], a responsive front end framework. 
 Consequently, the site is using [sass][] and [compass][] for CSS pre-processing.
-This will also require ruby to be installed along with sass and compass. Both
-sass and compass can be installed via ruby once it is installed. In order to run
-gem install ruby-devel might also need to be installed.
+This will also require ruby to be installed, as it is a a pre-requisite for sass and compass.
 
-```bash
+After installing Ruby, sass can be installed via:
+```
+gem install sass
+```
+
+Compass will require that the `ruby-devel` package also be installed. This is typically
+accomplished by running
+
+```
+sudo yum install ruby-devel
+```
+
+for Fedora users or
+
+```
+sudo apt-get install ruby-dev
+```
+
+for Ubuntu users.
+
+The compass gem can then be installed:
+
+```
 gem install compass
 ```
+
+For Ubuntu users, it may also be necessary to install the `nodejs-legacy` package in order for
+grunt to run properly:
+
+```
+sudo apt-get install nodejs-legacy
+```
+
+
+Now that the necessary gems are installed, it is important that the gems' executable directory is
+in the user's PATH. For example:
+
+```
+export PATH=$PATH:/home/username/bin
+```
+
+**NOTE:** it is important that the fully qualified directory name be used. Simply using `~/bin` will
+result in errors when running Grunt, such as:
+
+```Running "compass:dist" (compass) task```
+
+```Warning: You need to have Ruby and Compass installed and in your system PATH for this task to work.
+	More info: https://github.com/gruntjs/grunt-contrib-compass Use --force to continue.
+```
+
+```
+	Aborted due to warnings.
+```
+
+It is recommended that you update your environment's configuration so that this is always in your PATH,
+as this will be required every time that grunt is run.
 
 [grunt]: http://gruntjs.com/
 [bower]: http://bower.io/
@@ -59,6 +117,7 @@ gem install compass
 [foundation]: http://foundation.zurb.com/
 [sass]: http://sass-lang.com/
 [compass]: http://compass-style.org/
+[npm-install]: https://github.com/joyent/node/wiki/installing-node.js-via-package-manager
 
 ## Grunt Tasks
 
@@ -151,3 +210,4 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+
