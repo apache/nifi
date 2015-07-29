@@ -15,6 +15,21 @@ Track issues on the "NIFI" Project on the Apache Jira ([browse][jira]).
 
 ## Building
 
+#### Configure your git client
+
+We recommend running the following git config commands in order to ensure
+that git checks out the repository in a consistent manner. These changes
+are particularly important if running on Windows, as the git client has
+trouble with long filenames otherwise. Additionally, in Windows, the
+default behavior of the git client, when installed, is to set the
+`core.autocrlf` configuration option to `true`, which can cause some of
+the unit tests to fail.
+
+```
+git config --global core.longpaths true
+git config --global core.autocrlf false
+```
+
 #### Checking out from Git
 
 To check out the code:
@@ -26,6 +41,7 @@ git clone http://git-wip-us.apache.org/repos/asf/nifi.git
 Then checkout the 'develop' branch
 
 ```
+cd nifi/
 git checkout develop
 ```
 <br/>
