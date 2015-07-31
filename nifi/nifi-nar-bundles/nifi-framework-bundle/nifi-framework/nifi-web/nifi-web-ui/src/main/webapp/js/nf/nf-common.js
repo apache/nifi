@@ -252,7 +252,7 @@ nf.Common = {
                 } else {
                     $('#message-content').text(xhr.responseText);
                 }
-            } else if (xhr.status === 200) {
+            } else if (xhr.status === 200 || xhr.status === 201) {
                 $('#message-title').text('Parse Error');
                 if ($.trim(xhr.responseText) === '') {
                     $('#message-content').text('Unable to interpret response from NiFi.');
