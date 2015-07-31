@@ -2522,7 +2522,9 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             newAttributes.put(key, value);
         }
 
-        fFileBuilder.lineageIdentifiers(parent.getLineageIdentifiers());
+        final Set<String> lineageIdentifiers = new HashSet<>(parent.getLineageIdentifiers());
+        lineageIdentifiers.add(parent.getAttribute(CoreAttributes.UUID.key()));
+        fFileBuilder.lineageIdentifiers(lineageIdentifiers);
         fFileBuilder.lineageStartDate(parent.getLineageStartDate());
         fFileBuilder.addAttributes(newAttributes);
 
@@ -2549,6 +2551,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
         final Set<String> lineageIdentifiers = new HashSet<>();
         for (final FlowFile parent : parents) {
             lineageIdentifiers.addAll(parent.getLineageIdentifiers());
+            lineageIdentifiers.add(parent.getAttribute(CoreAttributes.UUID.key()));
 
             final long parentLineageStartDate = parent.getLineageStartDate();
             if (lineageStartDate == 0L || parentLineageStartDate < lineageStartDate) {
