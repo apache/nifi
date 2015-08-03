@@ -60,7 +60,7 @@ import java.util.regex.Pattern;
 
 import org.apache.nifi.stream.io.BufferedInputStream;
 import org.apache.nifi.stream.io.BufferedOutputStream;
-
+import org.apache.nifi.stream.io.ByteCountingInputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -226,10 +226,10 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
 
                         try {
                             partition.update(records, transactionId, unmodifiableRecordMap, forceSync);
-                        } catch (final Exception e) {
+                        } catch (final Throwable t) {
                             partition.blackList();
                             numberBlackListedPartitions.incrementAndGet();
-                            throw e;
+                            throw t;
                         }
 
                         if (forceSync && syncListener != null) {
@@ -511,9 +511,10 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
                 for (final Partition<T> partition : partitions) {
                     try {
                         partition.rollover();
-                    } catch (final IOException ioe) {
+                    } catch (final Throwable t) {
                         partition.blackList();
-                        throw ioe;
+                        numberBlackListedPartitions.getAndIncrement();
+                        throw t;
                     }
                 }
 
@@ -878,7 +879,7 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
         }
 
         private DataInputStream createDataInputStream(final Path path) throws IOException {
-            return new DataInputStream(new BufferedInputStream(Files.newInputStream(path)));
+            return new DataInputStream(new ByteCountingInputStream(new BufferedInputStream(Files.newInputStream(path))));
         }
 
         private DataInputStream getRecoveryStream() throws IOException {
@@ -892,6 +893,7 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
                     return null;
                 }
 
+                logger.debug("{} recovering from {}", this, nextRecoveryPath);
                 recoveryIn = createDataInputStream(nextRecoveryPath);
                 if (hasMoreData(recoveryIn)) {
                     final String waliImplementationClass = recoveryIn.readUTF();
@@ -972,8 +974,8 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
             int transactionFlag;
             do {
                 final S record = serde.deserializeEdit(recoveryIn, currentRecordMap, recoveryVersion);
-                if (logger.isTraceEnabled()) {
-                    logger.trace("{} Recovering Transaction {}: {}", new Object[]{this, maxTransactionId.get(), record});
+                if (logger.isDebugEnabled()) {
+                    logger.debug("{} Recovering Transaction {}: {}", new Object[] { this, maxTransactionId.get(), record });
                 }
 
                 final Object recordId = serde.getRecordIdentifier(record);

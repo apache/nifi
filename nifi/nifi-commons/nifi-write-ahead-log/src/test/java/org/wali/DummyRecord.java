@@ -58,4 +58,9 @@ public class DummyRecord {
     public String getProperty(final String name) {
         return props.get(name);
     }
+
+    @Override
+    public String toString() {
+        return "DummyRecord [id=" + id + ", props=" + props + ", updateType=" + updateType + "]";
+    }
 }

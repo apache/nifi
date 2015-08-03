@@ -26,12 +26,16 @@ public class DummyRecordSerde implements SerDe<DummyRecord> {
 
     public static final int NUM_UPDATE_TYPES = UpdateType.values().length;
     private int throwIOEAfterNserializeEdits = -1;
+    private int throwOOMEAfterNserializeEdits = -1;
     private int serializeEditCount = 0;
 
     @Override
     public void serializeEdit(final DummyRecord previousState, final DummyRecord record, final DataOutputStream out) throws IOException {
         if (throwIOEAfterNserializeEdits >= 0 && (serializeEditCount++ >= throwIOEAfterNserializeEdits)) {
             throw new IOException("Serialized " + (serializeEditCount - 1) + " records successfully, so now it's time to throw IOE");
+        }
+        if (throwOOMEAfterNserializeEdits >= 0 && (serializeEditCount++ >= throwOOMEAfterNserializeEdits)) {
+            throw new OutOfMemoryError("Serialized " + (serializeEditCount - 1) + " records successfully, so now it's time to throw OOME");
         }
 
         out.write(record.getUpdateType().ordinal());
@@ -98,6 +102,10 @@ public class DummyRecordSerde implements SerDe<DummyRecord> {
 
     public void setThrowIOEAfterNSerializeEdits(final int n) {
         this.throwIOEAfterNserializeEdits = n;
+    }
+
+    public void setThrowOOMEAfterNSerializeEdits(final int n) {
+        this.throwOOMEAfterNserializeEdits = n;
     }
 
     @Override
