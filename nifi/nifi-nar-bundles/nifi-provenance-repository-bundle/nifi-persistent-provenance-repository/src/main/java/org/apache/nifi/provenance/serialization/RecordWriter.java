@@ -67,15 +67,23 @@ public interface RecordWriter extends Closeable {
     /**
      * Attempts to obtain a mutually exclusive lock for this Writer so that
      * operations that must be atomic can be achieved atomically. If the lock is
-     * not immediately available, returns <code>false</code>; otherwise, obtains
-     * the lock and returns <code>true</code>.
+     * not immediately available, or if the writer is 'dirty' (see {@link #markDirty()},
+     * returns <code>false</code>; otherwise, obtains the lock and returns <code>true</code>.
      *
      * @return <code>true</code> if the lock was obtained, <code>false</code> otherwise.
      */
     boolean tryLock();
 
     /**
+     * Indicates that this Record Writer is 'dirty', meaning that it can no longer be
+     * updated. This can happen, for example, if a partial record is written. In this case,
+     * writing to this RecordWriter again could cause corruption.
+     */
+    void markDirty();
+
+    /**
      * Syncs the content written to this writer to disk.
+     *
      * @throws IOException if unable to sync content to disk
      */
     void sync() throws IOException;
