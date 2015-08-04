@@ -23,7 +23,7 @@
     <artifactId>nifi-geo-nar</artifactId>
     <packaging>nar</packaging>
     <description>NiFi Geo Enrichment NAR</description>
-	
+
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
