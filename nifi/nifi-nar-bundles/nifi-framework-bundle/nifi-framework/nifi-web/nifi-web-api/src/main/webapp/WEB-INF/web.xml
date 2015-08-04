@@ -15,7 +15,6 @@
 -->
 <web-app version="3.0" xmlns="http://java.sun.com/xml/ns/javaee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd">
     <display-name>nifi-api</display-name>
-    
     <context-param>
         <param-name>contextConfigLocation</param-name>
         <param-value>
@@ -27,15 +26,12 @@
             classpath:nifi-cluster-protocol-context.xml
         </param-value>
     </context-param>
-    
     <listener>
         <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
     </listener>
-    
     <listener>
         <listener-class>org.apache.nifi.web.contextlistener.ApplicationStartupContextListener</listener-class>
     </listener>
-    
     <servlet>
         <servlet-name>jerseySpring</servlet-name>
         <servlet-class>com.sun.jersey.spi.spring.container.servlet.SpringServlet</servlet-class>
@@ -57,7 +53,6 @@
         <filter-name>timer</filter-name>
         <url-pattern>/*</url-pattern>
     </filter-mapping>
-    
     <filter>
         <filter-name>threadLocal</filter-name>
         <filter-class>org.apache.nifi.web.filter.ThreadLocalFilter</filter-class>
@@ -66,7 +61,6 @@
         <filter-name>threadLocal</filter-name>
         <url-pattern>/*</url-pattern>
     </filter-mapping>
-    
     <filter>
         <filter-name>springSecurityFilterChain</filter-name>
         <filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
@@ -75,7 +69,6 @@
         <filter-name>springSecurityFilterChain</filter-name>
         <url-pattern>/*</url-pattern>
     </filter-mapping>
-    
     <filter>
         <filter-name>requestLogger</filter-name>
         <filter-class>org.apache.nifi.web.filter.RequestLogger</filter-class>
@@ -84,11 +77,10 @@
         <filter-name>requestLogger</filter-name>
         <url-pattern>/*</url-pattern>
     </filter-mapping>
-    
     <filter>
         <filter-name>gzipCompressionFilter</filter-name>
         <filter-class>org.eclipse.jetty.servlets.GzipFilter</filter-class>
-		<init-param>
+        <init-param>
             <param-name>methods</param-name>
             <param-value>get,post,put</param-value>
         </init-param>
@@ -97,7 +89,6 @@
         <filter-name>gzipCompressionFilter</filter-name>
         <url-pattern>/*</url-pattern>
     </filter-mapping>
-    
     <filter>
         <filter-name>nodeRequestFilter</filter-name>
         <filter-class>org.apache.nifi.web.filter.NodeRequestFilter</filter-class>

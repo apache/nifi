@@ -28,10 +28,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -58,15 +60,21 @@ import org.apache.nifi.provenance.search.SearchTerms;
 import org.apache.nifi.provenance.search.SearchableField;
 import org.apache.nifi.provenance.serialization.RecordReader;
 import org.apache.nifi.provenance.serialization.RecordReaders;
+import org.apache.nifi.provenance.serialization.RecordWriter;
 import org.apache.nifi.reporting.Severity;
+import org.apache.nifi.stream.io.DataOutputStream;
 import org.apache.nifi.util.file.FileUtils;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
+import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 public class TestPersistentProvenanceRepository {
 
@@ -549,7 +557,12 @@ public class TestPersistentProvenanceRepository {
             builder.fromFlowFile(createFlowFile(3L, 3000L, attributes));
 
             for (int i = 0; i < 10; i++) {
-                attributes.put("uuid", "00000000-0000-0000-0000-00000000000" + String.valueOf(i + j * 10));
+                String uuidSuffix = String.valueOf(i + j * 10);
+                if (uuidSuffix.length() < 2) {
+                    uuidSuffix = "0" + uuidSuffix;
+                }
+
+                attributes.put("uuid", "00000000-0000-0000-0000-0000000000" + uuidSuffix);
                 builder.fromFlowFile(createFlowFile(i + j * 10, 3000L, attributes));
                 repo.registerEvent(builder.build());
             }
@@ -1200,6 +1213,111 @@ public class TestPersistentProvenanceRepository {
         assertNotNull(retrieved);
         assertEquals("12345678-0000-0000-0000-012345678912", retrieved.getAttributes().get("uuid"));
         assertEquals("12345678901234567890123456789012345678901234567890", retrieved.getAttributes().get("75chars"));
+    }
+
+    @Test
+    public void testBehaviorOnOutOfMemory() throws IOException, InterruptedException {
+        final RepositoryConfiguration config = createConfiguration();
+        config.setMaxEventFileLife(3, TimeUnit.MINUTES);
+        config.setJournalCount(4);
+
+        // Create a repository that overrides the createWriters() method so that we can return writers that will throw
+        // OutOfMemoryError where we want to
+        final AtomicBoolean causeOOME = new AtomicBoolean(false);
+        repo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS) {
+            @Override
+            protected RecordWriter[] createWriters(RepositoryConfiguration config, long initialRecordId) throws IOException {
+                final RecordWriter[] recordWriters = super.createWriters(config, initialRecordId);
+
+                // Spy on each of the writers so that a call to writeUUID throws an OutOfMemoryError if we set the
+                // causeOOME flag to true
+                final StandardRecordWriter[] spiedWriters = new StandardRecordWriter[recordWriters.length];
+                for (int i = 0; i < recordWriters.length; i++) {
+                    final StandardRecordWriter writer = (StandardRecordWriter) recordWriters[i];
+
+                    spiedWriters[i] = Mockito.spy(writer);
+                    Mockito.doAnswer(new Answer<Object>() {
+                        @Override
+                        public Object answer(final InvocationOnMock invocation) throws Throwable {
+                            if (causeOOME.get()) {
+                                throw new OutOfMemoryError();
+                            } else {
+                                writer.writeUUID(invocation.getArgumentAt(0, DataOutputStream.class), invocation.getArgumentAt(1, String.class));
+                            }
+                            return null;
+                        }
+                    }).when(spiedWriters[i]).writeUUID(Mockito.any(DataOutputStream.class), Mockito.any(String.class));
+                }
+
+                // return the writers that we are spying on
+                return spiedWriters;
+            }
+        };
+        repo.initialize(getEventReporter());
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("75chars", "123456789012345678901234567890123456789012345678901234567890123456789012345");
+
+        final ProvenanceEventBuilder builder = new StandardProvenanceEventRecord.Builder();
+        builder.setEventTime(System.currentTimeMillis());
+        builder.setEventType(ProvenanceEventType.RECEIVE);
+        builder.setTransitUri("nifi://unit-test");
+        attributes.put("uuid", "12345678-0000-0000-0000-012345678912");
+        builder.fromFlowFile(createFlowFile(3L, 3000L, attributes));
+        builder.setComponentId("1234");
+        builder.setComponentType("dummy processor");
+
+        // first make sure that we are able to write to the repo successfully.
+        for (int i = 0; i < 4; i++) {
+            final ProvenanceEventRecord record = builder.build();
+            repo.registerEvent(record);
+        }
+
+        // cause OOME to occur
+        causeOOME.set(true);
+
+        // write 4 times to make sure that we mark all partitions as dirty
+        for (int i = 0; i < 4; i++) {
+            final ProvenanceEventRecord record = builder.build();
+            try {
+                repo.registerEvent(record);
+                Assert.fail("Expected OutOfMmeoryError but was able to register event");
+            } catch (final OutOfMemoryError oome) {
+            }
+        }
+
+        // now that all partitions are dirty, ensure that as we keep trying to write, we get an IllegalStateException
+        // and that we don't corrupt the repository by writing partial records
+        for (int i = 0; i < 8; i++) {
+            final ProvenanceEventRecord record = builder.build();
+            try {
+                repo.registerEvent(record);
+                Assert.fail("Expected OutOfMmeoryError but was able to register event");
+            } catch (final IllegalStateException ise) {
+            }
+        }
+
+        // close repo so that we can create a new one to recover records
+        repo.close();
+
+        // make sure we can recover
+        final PersistentProvenanceRepository recoveryRepo = new PersistentProvenanceRepository(config, DEFAULT_ROLLOVER_MILLIS) {
+            @Override
+            protected Set<File> recoverJournalFiles() throws IOException {
+                try {
+                    return super.recoverJournalFiles();
+                } catch (final IOException ioe) {
+                    Assert.fail("Failed to recover properly");
+                    return null;
+                }
+            }
+        };
+
+        try {
+            recoveryRepo.initialize(getEventReporter());
+        } finally {
+            recoveryRepo.close();
+        }
     }
 
 }

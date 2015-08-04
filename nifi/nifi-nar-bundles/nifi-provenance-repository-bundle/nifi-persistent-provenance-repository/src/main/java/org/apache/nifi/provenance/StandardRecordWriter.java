@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Collection;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -44,6 +45,7 @@ public class StandardRecordWriter implements RecordWriter {
     private final TocWriter tocWriter;
     private final boolean compressed;
     private final int uncompressedBlockSize;
+    private final AtomicBoolean dirtyFlag = new AtomicBoolean(false);
 
     private DataOutputStream out;
     private ByteCountingOutputStream byteCountingOut;
@@ -65,11 +67,11 @@ public class StandardRecordWriter implements RecordWriter {
         this.tocWriter = writer;
     }
 
-    static void writeUUID(final DataOutputStream out, final String uuid) throws IOException {
+    protected void writeUUID(final DataOutputStream out, final String uuid) throws IOException {
         out.writeUTF(uuid);
     }
 
-    static void writeUUIDs(final DataOutputStream out, final Collection<String> list) throws IOException {
+    protected void writeUUIDs(final DataOutputStream out, final Collection<String> list) throws IOException {
         if (list == null) {
             out.writeInt(0);
         } else {
@@ -241,7 +243,7 @@ public class StandardRecordWriter implements RecordWriter {
         return byteCountingOut.getBytesWritten() - startBytes;
     }
 
-    private void writeNullableString(final DataOutputStream out, final String toWrite) throws IOException {
+    protected void writeNullableString(final DataOutputStream out, final String toWrite) throws IOException {
         if (toWrite == null) {
             out.writeBoolean(false);
         } else {
@@ -304,7 +306,16 @@ public class StandardRecordWriter implements RecordWriter {
 
     @Override
     public boolean tryLock() {
-        return lock.tryLock();
+        final boolean obtainedLock = lock.tryLock();
+        if (obtainedLock && dirtyFlag.get()) {
+            // once we have obtained the lock, we need to check if the writer
+            // has been marked dirty. If so, we cannot write to the underlying
+            // file, so we need to unlock and return false. Otherwise, it's okay
+            // to write to the underlying file, so return true.
+            lock.unlock();
+            return false;
+        }
+        return obtainedLock;
     }
 
     @Override
@@ -323,5 +334,10 @@ public class StandardRecordWriter implements RecordWriter {
     @Override
     public TocWriter getTocWriter() {
         return tocWriter;
+    }
+
+    @Override
+    public void markDirty() {
+        dirtyFlag.set(true);
     }
 }

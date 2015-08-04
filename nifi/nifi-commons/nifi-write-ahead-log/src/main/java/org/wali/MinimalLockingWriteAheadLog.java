@@ -60,7 +60,6 @@ import java.util.regex.Pattern;
 
 import org.apache.nifi.stream.io.BufferedInputStream;
 import org.apache.nifi.stream.io.BufferedOutputStream;
-import org.apache.nifi.stream.io.ByteCountingInputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -879,7 +878,7 @@ public final class MinimalLockingWriteAheadLog<T> implements WriteAheadRepositor
         }
 
         private DataInputStream createDataInputStream(final Path path) throws IOException {
-            return new DataInputStream(new ByteCountingInputStream(new BufferedInputStream(Files.newInputStream(path))));
+            return new DataInputStream(new BufferedInputStream(Files.newInputStream(path)));
         }
 
         private DataInputStream getRecoveryStream() throws IOException {

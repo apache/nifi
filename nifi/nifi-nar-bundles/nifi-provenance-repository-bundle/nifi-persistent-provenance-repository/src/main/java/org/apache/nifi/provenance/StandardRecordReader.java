@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 
 import org.apache.nifi.provenance.serialization.RecordReader;
@@ -40,6 +41,7 @@ import org.slf4j.LoggerFactory;
 
 public class StandardRecordReader implements RecordReader {
     private static final Logger logger = LoggerFactory.getLogger(StandardRecordReader.class);
+    private static final Pattern UUID_PATTERN = Pattern.compile("[a-fA-F0-9]{8}\\-([a-fA-F0-9]{4}\\-){3}[a-fA-F0-9]{12}");
 
     private final ByteCountingInputStream rawInputStream;
     private final String filename;
@@ -394,7 +396,11 @@ public class StandardRecordReader implements RecordReader {
             // write less data. However, in version 8 we changed to just writing
             // out the string because it's extremely expensive to call UUID.fromString.
             // In the end, since we generally compress, the savings in minimal anyway.
-            return in.readUTF();
+            final String uuid = in.readUTF();
+            if (!UUID_PATTERN.matcher(uuid).matches()) {
+                throw new IOException("Failed to parse Provenance Event Record: expected a UUID but got: " + uuid);
+            }
+            return uuid;
         }
     }
 
