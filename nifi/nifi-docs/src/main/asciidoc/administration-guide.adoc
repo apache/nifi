@@ -16,8 +16,8 @@
 //
 NiFi System Administrator's Guide
 =================================
-Apache NiFi Team <dev@nifi.incubator.apache.org>
-:homepage: http://nifi.incubator.apache.org
+Apache NiFi Team <dev@nifi.apache.org>
+:homepage: http://nifi.apache.org
 
 System Requirements
 -------------------

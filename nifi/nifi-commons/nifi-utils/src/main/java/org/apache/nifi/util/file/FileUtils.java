@@ -560,6 +560,19 @@ public class FileUtils {
      * @throws IOException if the MD5 hash could not be computed
      */
     public static byte[] computeMd5Digest(final File file) throws IOException {
+        try (final FileInputStream fis = new FileInputStream(file)) {
+            return computeMd5Digest(fis);
+        }
+    }
+
+    /**
+     * Returns the MD5 hash of the given stream.
+     *
+     * @param stream an input stream
+     * @return the MD5 hash
+     * @throws IOException if the MD5 hash could not be computed
+     */
+    public static byte[] computeMd5Digest(final InputStream stream) throws IOException {
         final MessageDigest digest;
         try {
             digest = MessageDigest.getInstance("MD5");
@@ -567,15 +580,15 @@ public class FileUtils {
             throw new IOException(nsae);
         }
 
-        try (final FileInputStream fis = new FileInputStream(file)) {
-            int len;
-            final byte[] buffer = new byte[8192];
-            while ((len = fis.read(buffer)) > -1) {
-                if (len > 0) {
-                    digest.update(buffer, 0, len);
-                }
+
+        int len;
+        final byte[] buffer = new byte[8192];
+        while ((len = stream.read(buffer)) > -1) {
+            if (len > 0) {
+                digest.update(buffer, 0, len);
             }
         }
+
         return digest.digest();
     }
 }

@@ -18,18 +18,18 @@
     <parent>
         <groupId>org.apache</groupId>
         <artifactId>apache</artifactId>
-        <version>16</version>
+        <version>17</version>
         <relativePath />
     </parent>
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-parent</artifactId>
-    <version>1.0.1-incubating-SNAPSHOT</version>
+    <version>1.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <description>The nifi-parent enables each apache nifi project to ensure consistent approaches and DRY</description>
-    <url>http://nifi.incubator.apache.org</url>
+    <url>http://nifi.apache.org</url>
     <organization>
-        <name>Apache NiFi(incubating) Project</name>
-        <url>http://nifi.incubator.apache.org/</url>
+        <name>Apache NiFi Project</name>
+        <url>http://nifi.apache.org/</url>
     </organization>
     <licenses>
         <license>
@@ -40,26 +40,33 @@
     <mailingLists>
         <mailingList>
             <name>Dev</name>
-            <subscribe>dev-subscribe@nifi.incubator.apache.org</subscribe>
-            <unsubscribe>dev-unsubscribe@nifi.incubator.apache.org</unsubscribe>
-            <post>dev@nifi.incubator.apache.org</post>
-            <archive>http://mail-archives.apache.org/mod_mbox/incubator-nifi-dev</archive>
+            <subscribe>dev-subscribe@nifi.apache.org</subscribe>
+            <unsubscribe>dev-unsubscribe@nifi.apache.org</unsubscribe>
+            <post>dev@nifi.apache.org</post>
+            <archive>http://mail-archives.apache.org/mod_mbox/nifi-dev</archive>
+        </mailingList>
+        <mailingList>
+            <name>Users</name>
+            <subscribe>users-subscribe@nifi.apache.org</subscribe>
+            <unsubscribe>users-unsubscribe@nifi.apache.org</unsubscribe>
+            <post>users@nifi.apache.org</post>
+            <archive>http://mail-archives.apache.org/mod_mbox/nifi-users</archive>
         </mailingList>
         <mailingList>
             <name>Commits</name>
-            <subscribe>commits-subscribe@nifi.incubator.apache.org</subscribe>
-            <unsubscribe>commits-unsubscribe@nifi.incubator.apache.org</unsubscribe>
-            <post>commits@nifi.incubator.apache.org</post>
-            <archive>http://mail-archives.apache.org/mod_mbox/incubator-nifi-commits</archive>
+            <subscribe>commits-subscribe@nifi.apache.org</subscribe>
+            <unsubscribe>commits-unsubscribe@nifi.apache.org</unsubscribe>
+            <post>commits@nifi.apache.org</post>
+            <archive>http://mail-archives.apache.org/mod_mbox/nifi-commits</archive>
         </mailingList>
     </mailingLists>
     <prerequisites>
         <maven>${maven.min-version}</maven>
     </prerequisites>
     <scm>
-        <connection>scm:git:git://git.apache.org/incubator-nifi.git</connection>
-        <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-nifi.git</developerConnection>
-        <url>https://git-wip-us.apache.org/repos/asf?p=incubator-nifi.git</url>
+        <connection>scm:git:git://git.apache.org/nifi.git</connection>
+        <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/nifi.git</developerConnection>
+        <url>https://git-wip-us.apache.org/repos/asf?p=nifi.git</url>
         <tag>HEAD</tag>
     </scm>
     <issueManagement>

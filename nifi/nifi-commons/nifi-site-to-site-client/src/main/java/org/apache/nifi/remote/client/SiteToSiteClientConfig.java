@@ -58,8 +58,38 @@ public interface SiteToSiteClientConfig extends Serializable {
     SSLContext getSslContext();
 
     /**
+     * @return the filename to use for the keystore, or <code>null</code> if none is configured
+     */
+    String getKeystoreFilename();
+
+    /**
+     * @return the password to use for the keystore, or <code>null</code> if none is configured
+     */
+    String getKeystorePassword();
+
+    /**
+     * @return the Type of the keystore, or <code>null</code> if none is configured
+     */
+    KeystoreType getKeystoreType();
+
+    /**
+     * @return the filename to use for the truststore, or <code>null</code> if none is configured
+     */
+    String getTruststoreFilename();
+
+    /**
+     * @return the password to use for the truststore, or <code>null</code> if none is configured
+     */
+    String getTruststorePassword();
+
+    /**
+     * @return the type of the truststore, or <code>null</code> if none is configured
+     */
+    KeystoreType getTruststoreType();
+
+    /**
      * @return the file that is to be used for persisting the nodes of a remote
-     * cluster, if any
+     *         cluster, if any
      */
     File getPeerPersistenceFile();
 

@@ -22,7 +22,7 @@ import java.io.InputStream;
 public class LimitedInputStream extends InputStream {
 
     private final InputStream in;
-    private final long limit;
+    private long limit;
     private long bytesRead = 0;
 
     public LimitedInputStream(final InputStream in, final long limit) {
@@ -82,7 +82,7 @@ public class LimitedInputStream extends InputStream {
 
     @Override
     public int available() throws IOException {
-        return in.available();
+        return (int)(limit - bytesRead);
     }
 
     @Override
@@ -93,6 +93,8 @@ public class LimitedInputStream extends InputStream {
     @Override
     public void mark(int readlimit) {
         in.mark(readlimit);
+        limit -= bytesRead;
+        bytesRead = 0;
     }
 
     @Override
@@ -103,5 +105,6 @@ public class LimitedInputStream extends InputStream {
     @Override
     public void reset() throws IOException {
         in.reset();
+        bytesRead = 0;
     }
 }

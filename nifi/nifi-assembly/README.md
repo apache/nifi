@@ -14,7 +14,7 @@
 -->
 # Apache NiFi
 
-Apache NiFi is an easy to use, powerful, and reliable system to process and distribute data. It is currently apart of the Apache Incubator.
+Apache NiFi is an easy to use, powerful, and reliable system to process and distribute data.
 
 ## Table of Contents
 
@@ -23,7 +23,6 @@ Apache NiFi is an easy to use, powerful, and reliable system to process and dist
 - [Getting Help](#getting-help)
 - [Requirements](#requirements)
 - [License](#license)
-- [Disclaimer](#disclaimer)
 - [Export Control] (#export-control)
 
 ## Features
@@ -55,8 +54,8 @@ To start NiFi:
 - Direct your browser to http://localhost:8080/nifi/
 
 ## Getting Help
-If you have questions, you can reach out to our mailing list: dev@nifi.incubator.apache.org
-([archive](http://mail-archives.apache.org/mod_mbox/incubator-nifi-dev)).
+If you have questions, you can reach out to our mailing list: dev@nifi.apache.org
+([archive](http://mail-archives.apache.org/mod_mbox/nifi-dev)).
 We're also often available in IRC: #nifi on
 [irc.freenode.net](http://webchat.freenode.net/?channels=#nifi).
 
@@ -79,19 +78,6 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-
-## Disclaimer
-
-Apache NiFi is an effort undergoing incubation at the Apache Software
-Foundation (ASF), sponsored by the Apache Incubator PMC.
-
-Incubation is required of all newly accepted projects until a further review
-indicates that the infrastructure, communications, and decision making process
-have stabilized in a manner consistent with other successful ASF projects.
-
-While incubation status is not necessarily a reflection of the completeness
-or stability of the code, it does indicate that the project has yet to be
-fully endorsed by the ASF.
 
 ## Export Control
 

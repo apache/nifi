@@ -4,11 +4,11 @@ title:     Apache NiFi Licensing Guide
 
 # Apache NiFi Release Guidelines
 
-This document provides guidance to contributors of Apache NiFi (incubating) to help properly account for licensing, notice, and legal requirements.
+This document provides guidance to contributors of Apache NiFi to help properly account for licensing, notice, and legal requirements.
 
 #### Disclaimer:
 
-This document is not written by lawyers.  The guidance in this document is meant to compliment Apache Incubator and Apache Software Foundation guides and policies.  If anything in this document is inconsistent with those then it is a defect in this document.
+This document is not written by lawyers.  The guidance in this document is meant to compliment Apache Software Foundation guides and policies.  If anything in this document is inconsistent with those then it is a defect in this document.
   
 ## Background Material
 
@@ -17,7 +17,6 @@ This document is not written by lawyers.  The guidance in this document is meant
 - [ASF Licensing How-To](http://www.apache.org/dev/licensing-howto.html)
 - [ASF Legal Resolved](http://www.apache.org/legal/resolved.html)
 - [ASF Release Policy](http://www.apache.org/dev/release.html)
-- [ASF Incubator License and Notice Guidance](http://incubator.apache.org/guides/releasemanagement.html#note-license-and-notice)
 
 ## How to consistently apply licensing/legal notice information for Apache NiFi
 

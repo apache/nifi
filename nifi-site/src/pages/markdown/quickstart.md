@@ -15,17 +15,33 @@ Track issues on the "NIFI" Project on the Apache Jira ([browse][jira]).
 
 ## Building
 
+#### Configure your git client
+
+We recommend running the following git config commands in order to ensure
+that git checks out the repository in a consistent manner. These changes
+are particularly important if running on Windows, as the git client has
+trouble with long filenames otherwise. Additionally, in Windows, the
+default behavior of the git client, when installed, is to set the
+`core.autocrlf` configuration option to `true`, which can cause some of
+the unit tests to fail.
+
+```
+git config --global core.longpaths true
+git config --global core.autocrlf false
+```
+
 #### Checking out from Git
 
 To check out the code:
 
 ```
-git clone http://git-wip-us.apache.org/repos/asf/incubator-nifi.git
+git clone http://git-wip-us.apache.org/repos/asf/nifi.git
 ```
 <br/>
 Then checkout the 'develop' branch
 
 ```
+cd nifi/
 git checkout develop
 ```
 <br/>
@@ -137,11 +153,11 @@ is ready for use:
 
     2014-12-09 00:42:03,540 INFO [main] org.apache.nifi.web.server.JettyServer NiFi has started. The UI is available at the following URLs:
 
-[adminguide]: https://nifi.incubator.apache.org/docs/nifi-docs/html/administration-guide.html
+[adminguide]: https://nifi.apache.org/docs/nifi-docs/html/administration-guide.html
 [maven]: http://maven.apache.org/
 [jira]: https://issues.apache.org/jira/browse/NIFI
 [git]: http://git-scm.com/
-[gitbrowse]: https://git-wip-us.apache.org/repos/asf?p=incubator-nifi.git;a=summary
-[gitrepo]: http://git-wip-us.apache.org/repos/asf/incubator-nifi.git
-[githubrepo]: https://github.com/apache/incubator-nifi
+[gitbrowse]: https://git-wip-us.apache.org/repos/asf?p=nifi.git;a=summary
+[gitrepo]: http://git-wip-us.apache.org/repos/asf/nifi.git
+[githubrepo]: https://github.com/apache/nifi
 

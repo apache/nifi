@@ -184,6 +184,16 @@ nf.Common = {
      * @argument {string} error     The error
      */
     handleAjaxError: function (xhr, status, error) {
+        // show the account registration page if necessary
+        if (xhr.status === 401 && $('#registration-pane').length) {
+            // show the registration pane
+            $('#registration-pane').show();
+
+            // close the canvas
+            nf.Common.closeCanvas();
+            return;
+        }
+        
         // if an error occurs while the splash screen is visible close the canvas show the error message
         if ($('#splash').is(':visible')) {
             $('#message-title').text('An unexpected error has occurred');
@@ -207,12 +217,6 @@ nf.Common = {
                 dialogContent: nf.Common.escapeHtml(xhr.responseText),
                 overlayBackground: false
             });
-        } else if (xhr.status === 401 && $('#registration-pane').length) {
-            // show the registration pane
-            $('#registration-pane').show();
-
-            // close the canvas
-            nf.Common.closeCanvas();
         } else {
             if (xhr.status < 99 || xhr.status === 12007 || xhr.status === 12029) {
                 var content = 'Please ensure the application is running and check the logs for any errors.';
@@ -248,7 +252,7 @@ nf.Common = {
                 } else {
                     $('#message-content').text(xhr.responseText);
                 }
-            } else if (xhr.status === 200) {
+            } else if (xhr.status === 200 || xhr.status === 201) {
                 $('#message-title').text('Parse Error');
                 if ($.trim(xhr.responseText) === '') {
                     $('#message-content').text('Unable to interpret response from NiFi.');

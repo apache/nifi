@@ -16,12 +16,14 @@
  */
 package org.apache.nifi.events;
 
+import java.io.Serializable;
+
 import org.apache.nifi.reporting.Severity;
 
 /**
  * Implementations MUST be thread-safe
  */
-public interface EventReporter {
+public interface EventReporter extends Serializable {
 
     void reportEvent(Severity severity, String category, String message);
 }
