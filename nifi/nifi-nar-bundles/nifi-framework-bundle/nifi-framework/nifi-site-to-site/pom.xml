@@ -22,7 +22,7 @@
     </parent>
     <artifactId>nifi-site-to-site</artifactId>
     <dependencies>
-        <dependency> <!-- This can be removed after testing.... -->
+        <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-security</artifactId>
         </dependency>

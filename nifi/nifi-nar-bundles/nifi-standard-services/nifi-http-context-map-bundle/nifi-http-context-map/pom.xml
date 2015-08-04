@@ -19,10 +19,10 @@
         <artifactId>nifi-http-context-map-bundle</artifactId>
         <version>0.3.0-SNAPSHOT</version>
     </parent>
-	
+
     <artifactId>nifi-http-context-map</artifactId>
     <packaging>jar</packaging>
-	
+
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>

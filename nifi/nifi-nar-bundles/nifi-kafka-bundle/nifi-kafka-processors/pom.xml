@@ -55,7 +55,6 @@
                 </exclusion>
             </exclusions>
         </dependency>
-	
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>

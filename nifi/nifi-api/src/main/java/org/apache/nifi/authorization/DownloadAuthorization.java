@@ -25,7 +25,7 @@ public class DownloadAuthorization {
 
         Approved,
         Denied;
-    };
+    }
 
     private static final DownloadAuthorization APPROVED = new DownloadAuthorization(Result.Approved, null);
 
