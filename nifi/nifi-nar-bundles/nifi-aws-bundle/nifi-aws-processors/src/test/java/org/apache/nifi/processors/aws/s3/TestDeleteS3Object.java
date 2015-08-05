@@ -67,4 +67,18 @@ public class TestDeleteS3Object {
 
         runner.assertAllFlowFilesTransferred(DeleteS3Object.REL_SUCCESS, 1);
     }
+
+    @Test(expected = java.lang.AssertionError.class)
+    public void testTryToDeleteNotExistingFile() throws IOException {
+        DeleteS3Object deleter = new DeleteS3Object();
+        final TestRunner runner = TestRunners.newTestRunner(deleter);
+        runner.setProperty(DeleteS3Object.CREDENTAILS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(DeleteS3Object.REGION, TEST_REGION);
+        runner.setProperty(DeleteS3Object.BUCKET, TEST_BUCKET);
+
+        final Map<String, String> attrs = new HashMap<>();
+        attrs.put("filename", "no-such-a-file");
+        runner.enqueue(new byte[0], attrs);
+        runner.run(1);
+    }
 }
