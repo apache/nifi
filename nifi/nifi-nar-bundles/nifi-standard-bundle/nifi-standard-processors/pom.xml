@@ -214,6 +214,8 @@ language governing permissions and limitations under the License. -->
                         <exclude>src/test/resources/TestMergeContent/demarcate</exclude>
                         <exclude>src/test/resources/TestMergeContent/foot</exclude>
                         <exclude>src/test/resources/TestMergeContent/head</exclude>
+                        <exclude>src/test/resources/TestMergeContent/user.avsc</exclude>
+                        <exclude>src/test/resources/TestMergeContent/place.avsc</exclude>
                         <exclude>src/test/resources/TestModifyBytes/noFooter.txt</exclude>
                         <exclude>src/test/resources/TestModifyBytes/noFooter_noHeader.txt</exclude>
                         <exclude>src/test/resources/TestModifyBytes/noHeader.txt</exclude>
