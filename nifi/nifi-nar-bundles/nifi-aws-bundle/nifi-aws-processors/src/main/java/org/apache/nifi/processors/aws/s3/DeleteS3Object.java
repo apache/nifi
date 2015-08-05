@@ -79,7 +79,6 @@ public class DeleteS3Object extends AbstractS3Processor {
         final String versionId = context.getProperty(VERSION_ID).evaluateAttributeExpressions(flowFile).getValue();
 
         final AmazonS3 s3 = getClient();
-        final FlowFile ff = flowFile;
         final GetObjectRequest request;
         if (versionId == null) {
             request = new GetObjectRequest(bucket, key);
@@ -87,10 +86,8 @@ public class DeleteS3Object extends AbstractS3Processor {
             request = new GetObjectRequest(bucket, key, versionId);
         }
 
-        final Map<String, String> attributes = new HashMap<>();
         try (final S3Object s3Object = s3.getObject(request)) {
             flowFile = session.importFrom(s3Object.getObjectContent(), flowFile);
-            attributes.put("s3.bucket", s3Object.getBucketName());
 
             ObjectMetadata metadata = s3Object.getObjectMetadata();
             String objectVersionId = metadata.getVersionId();
