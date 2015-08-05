@@ -37,16 +37,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 @SeeAlso({PutS3Object.class})
 @Tags({"Amazon", "S3", "AWS", "Archive", "Delete"})
 @CapabilityDescription("Deletes FlowFiles on an Amazon S3 Bucket")
-@DynamicProperty(name = "The name of a User-Defined Metadata field to add to the S3 Object",
-        value = "The value of a User-Defined Metadata field to add to the S3 Object",
-        description = "Allows user-defined metadata to be added to the S3 object as key/value pairs",
-        supportsExpressionLanguage = true)
-@ReadsAttribute(attribute = "filename", description = "Uses the FlowFile's filename as the filename for the S3 object")
-@WritesAttributes({
-        @WritesAttribute(attribute = "s3.bucket", description = "The name of the S3 bucket"),
-        @WritesAttribute(attribute = "s3.version", description = "The version of the S3 Object"),
-        @WritesAttribute(attribute = "path", description = "The path of the file"),
-})
 public class DeleteS3Object extends AbstractS3Processor {
 
     public static final PropertyDescriptor VERSION_ID = new PropertyDescriptor.Builder()
