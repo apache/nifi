@@ -104,6 +104,5 @@ public class DeleteS3Object extends AbstractS3Processor {
         session.transfer(flowFile, REL_SUCCESS);
         final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
         getLogger().info("Successfully delete S3 Object for {} in {} millis; routing to success", new Object[]{flowFile, transferMillis});
-        session.getProvenanceReporter().receive(flowFile, "https://" + bucket + ".amazonaws.com/" + key, transferMillis);
     }
 }
