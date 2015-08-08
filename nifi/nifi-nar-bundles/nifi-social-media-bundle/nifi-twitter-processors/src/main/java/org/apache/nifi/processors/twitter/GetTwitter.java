@@ -142,7 +142,7 @@ public class GetTwitter extends AbstractProcessor {
     private final BlockingQueue<Event> eventQueue = new LinkedBlockingQueue<>(1000);
 
     private volatile Client client;
-    private volatile BlockingQueue<String> messageQueue;
+    private volatile BlockingQueue<String> messageQueue = new LinkedBlockingQueue<>(10000);
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
@@ -200,14 +200,12 @@ public class GetTwitter extends AbstractProcessor {
 
     @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
-        // if any property is modified, the results are no longer valid. Destroy all messages in teh queue.
+        // if any property is modified, the results are no longer valid. Destroy all messages in the queue.
         messageQueue.clear();
     }
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws MalformedURLException {
-        messageQueue = new LinkedBlockingQueue<>(100000);
-
         final String endpointName = context.getProperty(ENDPOINT).getValue();
         final Authentication oauth = new OAuth1(context.getProperty(CONSUMER_KEY).getValue(),
                 context.getProperty(CONSUMER_SECRET).getValue(),
