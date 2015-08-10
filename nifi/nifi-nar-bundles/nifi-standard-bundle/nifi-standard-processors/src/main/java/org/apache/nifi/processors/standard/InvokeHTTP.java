@@ -331,6 +331,7 @@ public final class InvokeHTTP extends AbstractProcessor {
         private final ProcessSession session;
 
         private final long txId = txIdGenerator.incrementAndGet();
+        private final long startNanos = System.nanoTime();
 
         private FlowFile request;
         private FlowFile response;
@@ -482,7 +483,7 @@ public final class InvokeHTTP extends AbstractProcessor {
                 // and the status codes.
                 if (isSuccess()) {
                     // clone the flowfile to capture the response
-                    response = session.clone(request);
+                    response = session.create(request);
 
                     // write the status attributes
                     response = writeStatusAttributes(response);
@@ -495,10 +496,11 @@ public final class InvokeHTTP extends AbstractProcessor {
                     // can potentially be null in edge cases
                     if (is != null) {
                         response = session.importFrom(is, response);
-                    }
 
-                    // invoke provenance events
-                    session.getProvenanceReporter().receive(response, conn.getURL().toExternalForm());
+                        // emit provenance event
+                        final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+                        session.getProvenanceReporter().modifyContent(response, "Updated content with data received from " + conn.getURL().toExternalForm(), millis);
+                    }
 
                 }
 

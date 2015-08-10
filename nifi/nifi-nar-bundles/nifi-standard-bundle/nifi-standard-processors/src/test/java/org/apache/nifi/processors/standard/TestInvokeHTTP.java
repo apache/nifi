@@ -16,6 +16,11 @@
  */
 package org.apache.nifi.processors.standard;
 
+import static org.apache.commons.codec.binary.Base64.encodeBase64;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
@@ -23,6 +28,7 @@ import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -32,6 +38,8 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processors.standard.InvokeHTTP.Config;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -42,12 +50,6 @@ import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
-
-import static org.apache.commons.codec.binary.Base64.encodeBase64;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -217,6 +219,21 @@ public class TestInvokeHTTP {
         bundle1.assertAttributeEquals(Config.STATUS_MESSAGE, "OK");
         bundle1.assertAttributeEquals("Foo", "Bar");
         bundle1.assertAttributeEquals("Content-Type", "text/plain; charset=ISO-8859-1");
+
+        final List<ProvenanceEventRecord> provEvents = runner.getProvenanceEvents();
+        assertEquals(2, provEvents.size());
+        boolean forkEvent = false;
+        boolean contentModEvent = false;
+        for (final ProvenanceEventRecord event : provEvents) {
+            if (event.getEventType() == ProvenanceEventType.FORK) {
+                forkEvent = true;
+            } else if (event.getEventType() == ProvenanceEventType.CONTENT_MODIFIED) {
+                contentModEvent = true;
+            }
+        }
+
+        assertTrue(forkEvent);
+        assertTrue(contentModEvent);
     }
 
     @Test
