@@ -170,6 +170,7 @@ This section looks at each of the Components in that toolbar:
 
 image::components.png["Components"]
 
+[[processor]]
 image:iconProcessor.png["Processor", width=32]
 *Processor*: The Processor is the most commonly used component, as it is responsible for data ingress, egress, routing, and
 	manipulating. There are many different types of Processors. In fact, this is a very common Extension Point in NiFi,
@@ -192,29 +193,36 @@ location that it was dropped.
 
 *Note*: For any component added to the graph, it is possible to select it with the mouse and move it anywhere on the graph. Also, it is possible to select multiple items at once by either holding down the Shift key and selecting each item or by holding down the Shift key and dragging a selection box around the desired components. 
 
+
+[[input_port]]
 image:iconInputPort.png["Input Port", width=32]
 *Input Port*: Input Ports provide a mechanism for transferring data into a Process Group. When an Input Port is dragged
 onto the canvas, the DFM is prompted to name the Port. All Ports within a Process Group must have unique names.
 
-All components exist only within a Process Group. When a user initially navigates to the NiFi page, the user is placed in the
-Root Process Group. If the Input Port is dragged onto the Root Process Group, the Input Port provides a mechanism
-to receive data from remote instances of NiFi. In this case, the Input Port can be configured to restrict access to
-appropriate users.
+All components exist only within a Process Group. When a user initially navigates to the NiFi page, the user is placed 
+in the Root Process Group. If the Input Port is dragged onto the Root Process Group, the Input Port provides a mechanism
+to receive data from remote instances of NiFi via <<site-to-site,Site-to-Site>>. In this case, the Input Port can be configured 
+to restrict access to appropriate users, if NiFi is configured to run securely. For information on configuring NiFi to run 
+securely, see the 
+link:administration-guide.html[Admin Guide].
 
 
 
-
+[[output_port]]
 image:iconOutputPort.png["Output Port", width=32]
 *Output Port*: Output Ports provide a mechanism for transferring data from a Process Group to destinations outside
 of the Process Group. When an Output Port is dragged onto the canvas, the DFM is prompted to name the Port. All Ports
 within a Process Group must have unique names.
 
 If the Output Port is dragged onto the Root Process Group, the Output Port provides a mechanism for sending data to
-remote instances of NiFi. In this case, the Port acts as a queue. As remote instances of NiFi pull data from the port,
-that data is removed from the queues of the incoming Connections.
+remote instances of NiFi via <<site-to-site,Site-to-Site>>. In this case, the Port acts as a queue. As remote instances 
+of NiFi pull data from the port, that data is removed from the queues of the incoming Connections. If NiFi is configured 
+to run securely, the Output Port can be configured to restrict access to appropriate users. For information on configuring 
+NiFi to run securely, see the 
+link:administration-guide.html[Admin Guide].
 
 
-
+[[process_group]]
 image:iconProcessGroup.png["Process Group", width=32]
 *Process Group*: Process Groups can be used to logically group a set of components so that the dataflow is easier to understand
 and maintain. When a Process Group is dragged onto the canvas, the DFM is prompted to name the Process Group. All Process
@@ -222,6 +230,7 @@ Groups within the same parent group must have unique names. The Process Group wi
 
 
 
+[[remote_process_group]]
 image:iconRemoteProcessGroup.png["Remote Process Group", width=32]
 *Remote Process Group*: Remote Process Groups appear and behave similar to Process Groups. However, the Remote Process Group (RPG)
 references a remote instance of NiFi. When an RPG is dragged onto the canvas, rather than being prompted for a name, the DFM
@@ -229,10 +238,11 @@ is prompted for the URL of the remote NiFi instance. If the remote NiFi is a clu
 is the URL of the remote instance's NiFi Cluster Manager (NCM). When data is transferred to a clustered instance of NiFi
 via an RPG, the RPG it will first connect to the remote instance's NCM to determine which nodes are in the cluster and
 how busy each node is. This information is then used to load balance the data that is pushed to each node. The remote NCM is
-then interrogated periodically to determine information about any nodes that are dropped from or added to the cluster and to recalculate the load balancing based on each node's load.
+then interrogated periodically to determine information about any nodes that are dropped from or added to the cluster and to 
+recalculate the load balancing based on each node's load. For more information, see the section on <<site-to-site,Site-to-Site>>.
 
 
-
+[[funnel]]
 image:iconFunnel.png["Funnel", width=32]
 *Funnel*: Funnels are used to combine the data from many Connections into a single Connection. This has two advantages.
 First, if many Connections are created with the same destination, the canvas can become cluttered if those Connections
@@ -242,7 +252,7 @@ several Connections can be funneled into a single Connection, providing the abil
 one Connection, rather than prioritizing the data on each Connection independently.
 
 
-
+[[template]]
 image:iconTemplate.png["Template", width=32]
 *Template*: Templates can be created by DFMs from sections of the flow, or they can be imported from other
 dataflows. These Templates provide larger building blocks for creating a  complex flow quickly. When the Template is
@@ -257,7 +267,7 @@ image::instantiate-template-description.png["Instantiate Template Dialog"]
 
 
 
-
+[[label]]
 image:iconLabel.png["Label"]
 *Label*: Labels are used to provide documentation to parts of a dataflow. When a Label is dropped onto the canvas,
 it is created with a default size. The Label can then be resized by dragging the handle in the bottom-right corner.
@@ -588,6 +598,99 @@ errors for the Processor. Once all of the validation errors have been addressed,
 to a Stop icon, indicating that the Processor is valid and ready to be started but currently is not running:
 
 image::valid-processor.png["Valid Processor"]
+
+
+
+[[site-to-site]]
+=== Site-to-Site
+
+When sending data from one instance of NiFi to another, there are many different protocols that can be used. The preferred
+protocol, though, is the NiFi Site-to-Site Protocol. Site-to-Site makes it easy to transfer data from one NiFi instance to
+another easily, efficiently, and securely.
+
+Using Site-to-Site provides the following benefits:
+
+* Easy to configure
+** After entering the URL of the remote NiFi instance, the available ports (endpoints) are automatically discovered and provided in a drop-down list
+
+* Secure
+** Site-to-Site optionally makes use of Certificates in order to encrypt data and provide authentication and authorization. Each port can be configured
+   to allow only specific users, and only those users will be able to see that the port even exists. For information on configuring the Certificates,
+   see the
+link:administration-guide.html#security-configuration[Security Configuration] section of the
+link:administration-guide.html[Admin Guide].
+
+* Scalable
+** As nodes in the remote cluster change, those changes are automatically detected and data is scaled out across all nodes in the cluster.
+
+* Efficient
+** Site-to-Site allows batches of FlowFiles to be sent at once in order to avoid the overhead of establishing connections and making multiple
+   round-trip requests between peers.
+
+* Reliable
+** Checksums are automatically produced by both the sender and receiver and compared after the data has been transmitted, in order
+   to ensure that no corruption has occurred. If the checksums don't match, the transaction will simply be canceled and tried again.
+
+* Automatically load balanced
+** As nodes come online or drop out of the remote cluster, or a node's load becomes heavier or lighter, the amount of data that is directed
+   to that node will automatically be adjusted.
+
+* FlowFiles maintain attributes
+** When a FlowFile is transferred over this protocol, all of the FlowFile's attributes
+   are automatically transferred with it. This can be very advantageous in many situations, as all of the context and enrichment
+   that has been determined by one instance of NiFi travels with the data, making for easy routing of the data and allowing users
+   to easily inspect the data.
+
+* Adaptable
+** As new technologies and ideas emerge, the protocol for handling Site-to-Site communications are able to change with them. When a connection is
+   made to a remote NiFi instance, a handshake is performed in order to negotiate which protocol and which version of the protocol will be used.
+   This allows new capabilities to be added while still maintaining backward compatibility with all older instances. Additionally, if a vulnerability
+   or deficiency is ever discovered in a protocol, it allows a newer version of NiFi to forbid communication over the compromised versions of the protocol.
+
+In order to communicate with a remote NiFi instance via Site-to-Site, simply drag a <<remote_process_group,Remote Process Group>> onto the graph
+and enter the URL of the remote NiFi instance (for more information on the components of a Remote Process Group, see 
+<<Remote_Group_Transmission,Remote Process Group Transmission>> section of this guide.) The URL is the same 
+URL you would use to go to that instance's User Interface. At that point, you can drag a connection to or from the Remote Process Group 
+in the same way you would drag a connection to or from a Processor or a local Process Group. When you drag the connection, you will have
+a chance to choose which Port to connect to. Note that it may take up to one minute for the Remote Process Group to determine
+which ports are available.
+
+If the connection is dragged starting from the Remote Process Group, the ports shown will be the Output Ports of the remote group,
+as this indicates that you will be pulling data from the remote instance. If the connection instead ends on the Remote Process Group,
+the ports shown will be the Input Ports of the remote group, as this implies that you will be pushing data to the remote instance.
+
+*Note*: if the remote instance is configured to use secure data transmission, you will see only ports that you are authorized to
+communicate with. For information on configuring NiFi to run securely, see the
+link:administration-guide.html[Admin Guide].
+
+In order to allow another NiFi instance to push data to your local instance, you can simply drag an <<input_port,Input Port>> onto the Root Process Group
+of your graph. After entering a name for the port, it will be added to your flow. You can now right-click on the Input Port and choose Configure in order
+to adjust the name and the number of concurrent tasks that are used for the port. If Site-to-Site is configured to run securely, you will also be given
+the ability to adjust who has access to the port. If secure, only those who have been granted access to communicate with the port will be able to see
+that the port exists.
+
+After being given access to a particular port, in order to see that port, the operator of a remote NiFi instance may need to right-click on their Remote
+Process Group and choose to "Refresh" the flow.
+
+Similar to an Input Port, a DataFlow Manager may choose to add an <<output_port,Output Port>> to the Root Process Group. The Output Port allows an 
+authorized NiFi instance to remotely connect to your instance and pull data from the Output Port. Configuring the Output Port will again allow the
+DFM to control how many concurrent tasks are allowed, as well as which NiFi instances are authorized to pull data from the instance being configured. 
+
+In addition to other instances of NiFi, some other applications may use a Site-to-Site client in order to push data to or receive data from a NiFi instance.
+For example, NiFi provides an Apache Storm spout and an Apache Spark Receiver that are able to pull data from NiFi's Root Group Output Ports.
+
+If your instance of NiFi is running securely, the first time that a client establishes a connection to your instance, the client will be forbidden and
+a request for an account for that client will automatically be generated. The client will need to be granted the 'NiFi' role in order to communicate
+via Site-to-Site. For more information on managing user accounts, see the
+link:administration-guide.html#controlling-levels-of-access[Controlling Levels of Access]
+section of the link:administration-guide.html[Admin Guide].
+
+For information on how to enable and configure Site-to-Site on a NiFi instance, see the
+link:administration-guide.html#site_to_site_properties[Site-to-Site Properties] section of the
+link:administration-guide.html[Admin Guide].
+
+
+
 
 === Example Dataflow
 

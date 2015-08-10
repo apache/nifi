@@ -523,6 +523,8 @@ properties govern how that tool works.
 |nifi.components.status.snapshot.frequency|This value indicates how often to present a snapshot of the components' status history. The default value is 5 mins.
 |====
 
+
+[[site_to_site_properties]]
 *Site to Site Properties* +
 
 These properties govern how this instance of NiFi communicates with remote instances of NiFi when Remote Process Groups are configured in the dataflow.
