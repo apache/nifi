@@ -114,7 +114,7 @@ public abstract class GetFileTransfer extends AbstractProcessor {
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
         final long pollingIntervalMillis = context.getProperty(FileTransfer.POLLING_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
         final long nextPollTime = lastPollTime.get() + pollingIntervalMillis;
-        final BlockingQueue<FileInfo> fileQueue = fileQueueRef.get();
+        BlockingQueue<FileInfo> fileQueue = fileQueueRef.get();
         final ProcessorLog logger = getLogger();
 
         // dont do the listing if there are already 100 or more items in our queue
@@ -143,6 +143,7 @@ public abstract class GetFileTransfer extends AbstractProcessor {
             }
         }
 
+        fileQueue = fileQueueRef.get();
         if (fileQueue == null || fileQueue.isEmpty()) {
             // nothing to do!
             context.yield();
