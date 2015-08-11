@@ -66,7 +66,7 @@ public class MockProcessSession implements ProcessSession {
     private final Map<Long, MockFlowFile> originalVersions = new HashMap<>();
     private final SharedSessionState sharedState;
     private final Map<String, Long> counterMap = new HashMap<>();
-    private final ProvenanceReporter provenanceReporter;
+    private final MockProvenanceReporter provenanceReporter;
 
     private boolean committed = false;
     private boolean rolledback = false;
@@ -135,6 +135,7 @@ public class MockProcessSession implements ProcessSession {
             sharedState.adjustCounter(entry.getKey(), entry.getValue());
         }
 
+        sharedState.addProvenanceEvents(provenanceReporter.getEvents());
         counterMap.clear();
     }
 
