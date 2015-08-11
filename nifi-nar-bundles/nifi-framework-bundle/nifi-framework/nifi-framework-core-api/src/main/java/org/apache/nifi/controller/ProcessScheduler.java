@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.controller;
 
+import java.util.List;
+
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
@@ -161,6 +163,12 @@ public interface ProcessScheduler {
      * @param service to enable
      */
     void enableControllerService(ControllerServiceNode service);
+
+    /**
+     * Disables all of the given Controller Services in the order provided by the List
+     * @param services the controller services to disable
+     */
+    void disableControllerServices(List<ControllerServiceNode> services);
 
     /**
      * Disables the Controller Service so that it can be updated

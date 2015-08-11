@@ -153,10 +153,16 @@ public class StandardControllerServiceNode extends AbstractConfiguredComponent i
 
         final ControllerServiceReference references = getReferences();
 
+        final Set<ConfiguredComponent> activeReferences = new HashSet<>();
         for (final ConfiguredComponent activeReference : references.getActiveReferences()) {
             if (!ignoreReferences.contains(activeReference)) {
-                throw new IllegalStateException(implementation + " cannot be disabled because it is referenced by at least one component that is currently running");
+                activeReferences.add(activeReference);
             }
+        }
+
+        if (!activeReferences.isEmpty()) {
+            throw new IllegalStateException(implementation + " cannot be disabled because it is referenced by " + activeReferences.size() +
+                " components that are currently running: " + activeReferences);
         }
     }
 

@@ -214,13 +214,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         }
 
         Collections.reverse(toDisable);
-        for (final ControllerServiceNode nodeToDisable : toDisable) {
-            final ControllerServiceState state = nodeToDisable.getState();
-
-            if (state != ControllerServiceState.DISABLED && state != ControllerServiceState.DISABLING) {
-                disableControllerService(nodeToDisable);
-            }
-        }
+        processScheduler.disableControllerServices(toDisable);
     }
 
     @Override
@@ -428,7 +422,6 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
     @Override
     public void disableControllerService(final ControllerServiceNode serviceNode) {
-        serviceNode.verifyCanDisable();
         processScheduler.disableControllerService(serviceNode);
     }
 

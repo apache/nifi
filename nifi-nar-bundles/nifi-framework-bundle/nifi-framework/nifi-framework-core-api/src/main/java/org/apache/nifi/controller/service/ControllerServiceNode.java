@@ -23,18 +23,57 @@ import org.apache.nifi.controller.ControllerService;
 
 public interface ControllerServiceNode extends ConfiguredComponent {
 
+    /**
+     * <p>
+     * Returns a proxy implementation of the Controller Service that this ControllerServiceNode
+     * encapsulates. The object returned by this method may be passed to other components, as
+     * required. Invocations of methods on the object returned will be intercepted and the service's
+     * state will be verified before the underlying implementation's method is called.
+     * </p>
+     *
+     * @return a proxied ControllerService that can be addressed outside of the framework.
+     */
     ControllerService getProxiedControllerService();
 
+    /**
+     * <p>
+     * Returns the actual implementation of the Controller Service that this ControllerServiceNode
+     * encapsulates. This direct implementation should <strong>NEVER</strong> be passed to another
+     * pluggable component. This implementation should be addressed only by the framework itself.
+     * If providing the controller service to another pluggable component, provide it with the
+     * proxied entity obtained via {@link #getProxiedControllerService()}
+     * </p>
+     *
+     * @return the actual implementation of the Controller Service
+     */
     ControllerService getControllerServiceImplementation();
 
+    /**
+     * @return the current state of the Controller Service
+     */
     ControllerServiceState getState();
 
+    /**
+     * Updates the state of the Controller Service to the provided new state
+     * @param state the state to set the service to
+     */
     void setState(ControllerServiceState state);
 
+    /**
+     * @return the ControllerServiceReference that describes which components are referencing this Controller Service
+     */
     ControllerServiceReference getReferences();
 
+    /**
+     * Indicates that the given component is now referencing this Controller Service
+     * @param referringComponent the component referencing this service
+     */
     void addReference(ConfiguredComponent referringComponent);
 
+    /**
+     * Indicates that the given component is no longer referencing this Controller Service
+     * @param referringComponent the component that is no longer referencing this service
+     */
     void removeReference(ConfiguredComponent referringComponent);
 
     void setComments(String comment);

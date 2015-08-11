@@ -20,22 +20,28 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
+import org.apache.nifi.controller.Heartbeater;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.StandardProcessorNode;
+import org.apache.nifi.controller.scheduling.StandardProcessScheduler;
 import org.apache.nifi.controller.service.mock.DummyProcessor;
 import org.apache.nifi.controller.service.mock.ServiceA;
 import org.apache.nifi.controller.service.mock.ServiceB;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.groups.StandardProcessGroup;
 import org.apache.nifi.processor.StandardProcessorInitializationContext;
 import org.apache.nifi.processor.StandardValidationContextFactory;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
@@ -43,29 +49,14 @@ import org.mockito.stubbing.Answer;
 
 public class TestStandardControllerServiceProvider {
 
+    @BeforeClass
+    public static void setNiFiProps() {
+        System.setProperty("nifi.properties.file.path", "src/test/resources/nifi.properties");
+    }
+
     private ProcessScheduler createScheduler() {
-        final ProcessScheduler scheduler = Mockito.mock(ProcessScheduler.class);
-        Mockito.doAnswer(new Answer<Object>() {
-            @Override
-            public Object answer(final InvocationOnMock invocation) throws Throwable {
-                final ControllerServiceNode node = (ControllerServiceNode) invocation.getArguments()[0];
-                node.verifyCanEnable();
-                node.setState(ControllerServiceState.ENABLED);
-                return null;
-            }
-        }).when(scheduler).enableControllerService(Mockito.any(ControllerServiceNode.class));
-
-        Mockito.doAnswer(new Answer<Object>() {
-            @Override
-            public Object answer(final InvocationOnMock invocation) throws Throwable {
-                final ControllerServiceNode node = (ControllerServiceNode) invocation.getArguments()[0];
-                node.verifyCanDisable();
-                node.setState(ControllerServiceState.DISABLED);
-                return null;
-            }
-        }).when(scheduler).disableControllerService(Mockito.any(ControllerServiceNode.class));
-
-        return scheduler;
+        final Heartbeater heartbeater = Mockito.mock(Heartbeater.class);
+        return new StandardProcessScheduler(heartbeater, null, null);
     }
 
     @Test
@@ -78,7 +69,7 @@ public class TestStandardControllerServiceProvider {
         provider.disableControllerService(serviceNode);
     }
 
-    @Test
+    @Test(timeout=10000)
     public void testEnableDisableWithReference() {
         final ProcessScheduler scheduler = createScheduler();
         final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null);
@@ -104,10 +95,22 @@ public class TestStandardControllerServiceProvider {
         }
 
         provider.disableControllerService(serviceNodeA);
+        waitForServiceState(serviceNodeA, ControllerServiceState.DISABLED);
+
         provider.disableControllerService(serviceNodeB);
+        waitForServiceState(serviceNodeB, ControllerServiceState.DISABLED);
     }
 
-    @Test
+    private void waitForServiceState(final ControllerServiceNode service, final ControllerServiceState desiredState) {
+        while (service.getState() != desiredState) {
+            try {
+                Thread.sleep(50L);
+            } catch (final InterruptedException e) {
+            }
+        }
+    }
+
+    @Test(timeout=10000)
     public void testEnableReferencingServicesGraph() {
         final ProcessScheduler scheduler = createScheduler();
         final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null);
@@ -137,12 +140,20 @@ public class TestStandardControllerServiceProvider {
         provider.enableControllerService(serviceNode4);
         provider.enableReferencingServices(serviceNode4);
 
-        assertEquals(ControllerServiceState.ENABLED, serviceNode3.getState());
-        assertEquals(ControllerServiceState.ENABLED, serviceNode2.getState());
-        assertEquals(ControllerServiceState.ENABLED, serviceNode1.getState());
+        // Verify that the services are either ENABLING or ENABLED, and wait for all of them to become ENABLED.
+        // Note that we set a timeout of 10 seconds, in case a bug occurs and the services never become ENABLED.
+        final Set<ControllerServiceState> validStates = new HashSet<>();
+        validStates.add(ControllerServiceState.ENABLED);
+        validStates.add(ControllerServiceState.ENABLING);
+
+        while (serviceNode3.getState() != ControllerServiceState.ENABLED || serviceNode2.getState() != ControllerServiceState.ENABLED || serviceNode1.getState() != ControllerServiceState.ENABLED) {
+            assertTrue(validStates.contains(serviceNode3.getState()));
+            assertTrue(validStates.contains(serviceNode2.getState()));
+            assertTrue(validStates.contains(serviceNode1.getState()));
+        }
     }
 
-    @Test
+    @Test(timeout=10000)
     public void testStartStopReferencingComponents() {
         final ProcessScheduler scheduler = createScheduler();
         final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null);
@@ -208,9 +219,17 @@ public class TestStandardControllerServiceProvider {
         provider.enableReferencingServices(serviceNode4);
         provider.scheduleReferencingComponents(serviceNode4);
 
-        assertEquals(ControllerServiceState.ENABLED, serviceNode3.getState());
-        assertEquals(ControllerServiceState.ENABLED, serviceNode2.getState());
-        assertEquals(ControllerServiceState.ENABLED, serviceNode1.getState());
+        final Set<ControllerServiceState> enableStates = new HashSet<>();
+        enableStates.add(ControllerServiceState.ENABLED);
+        enableStates.add(ControllerServiceState.ENABLING);
+
+        while (serviceNode3.getState() != ControllerServiceState.ENABLED
+            || serviceNode2.getState() != ControllerServiceState.ENABLED
+            || serviceNode1.getState() != ControllerServiceState.ENABLED) {
+            assertTrue(enableStates.contains(serviceNode3.getState()));
+            assertTrue(enableStates.contains(serviceNode2.getState()));
+            assertTrue(enableStates.contains(serviceNode1.getState()));
+        }
         assertTrue(procNodeA.isRunning());
         assertTrue(procNodeB.isRunning());
 
@@ -218,18 +237,32 @@ public class TestStandardControllerServiceProvider {
         provider.unscheduleReferencingComponents(serviceNode4);
         assertFalse(procNodeA.isRunning());
         assertFalse(procNodeB.isRunning());
-        assertEquals(ControllerServiceState.ENABLED, serviceNode3.getState());
-        assertEquals(ControllerServiceState.ENABLED, serviceNode2.getState());
-        assertEquals(ControllerServiceState.ENABLED, serviceNode1.getState());
+        while (serviceNode3.getState() != ControllerServiceState.ENABLED
+            || serviceNode2.getState() != ControllerServiceState.ENABLED
+            || serviceNode1.getState() != ControllerServiceState.ENABLED) {
+            assertTrue(enableStates.contains(serviceNode3.getState()));
+            assertTrue(enableStates.contains(serviceNode2.getState()));
+            assertTrue(enableStates.contains(serviceNode1.getState()));
+        }
 
         provider.disableReferencingServices(serviceNode4);
-        assertEquals(ControllerServiceState.DISABLED, serviceNode3.getState());
-        assertEquals(ControllerServiceState.DISABLED, serviceNode2.getState());
-        assertEquals(ControllerServiceState.DISABLED, serviceNode1.getState());
+        final Set<ControllerServiceState> disableStates = new HashSet<>();
+        disableStates.add(ControllerServiceState.DISABLED);
+        disableStates.add(ControllerServiceState.DISABLING);
+
+        // Wait for the services to be disabled.
+        while (serviceNode3.getState() != ControllerServiceState.DISABLED
+            || serviceNode2.getState() != ControllerServiceState.DISABLED
+            || serviceNode1.getState() != ControllerServiceState.DISABLED) {
+            assertTrue(disableStates.contains(serviceNode3.getState()));
+            assertTrue(disableStates.contains(serviceNode2.getState()));
+            assertTrue(disableStates.contains(serviceNode1.getState()));
+        }
+
         assertEquals(ControllerServiceState.ENABLED, serviceNode4.getState());
 
         provider.disableControllerService(serviceNode4);
-        assertEquals(ControllerServiceState.DISABLED, serviceNode4.getState());
+        assertTrue(disableStates.contains(serviceNode4.getState()));
     }
 
     @Test
@@ -376,4 +409,36 @@ public class TestStandardControllerServiceProvider {
         assertTrue(ordered.get(1) == serviceNode3);
     }
 
+    private ProcessorNode createProcessor(final ProcessScheduler scheduler, final ControllerServiceProvider serviceProvider) {
+        final ProcessorNode procNode = new StandardProcessorNode(new DummyProcessor(), UUID.randomUUID().toString(),
+                new StandardValidationContextFactory(serviceProvider), scheduler, serviceProvider);
+
+        final ProcessGroup group = new StandardProcessGroup(UUID.randomUUID().toString(), serviceProvider, scheduler, null, null);
+        group.addProcessor(procNode);
+        procNode.setProcessGroup(group);
+
+        return procNode;
+    }
+
+    @Test
+    public void testEnableReferencingComponents() {
+        final ProcessScheduler scheduler = createScheduler();
+        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(null, null);
+        final ControllerServiceNode serviceNode = provider.createControllerService(ServiceA.class.getName(), "1", false);
+
+        final ProcessorNode procNode = createProcessor(scheduler, provider);
+        serviceNode.addReference(procNode);
+
+        procNode.setScheduledState(ScheduledState.STOPPED);
+        provider.unscheduleReferencingComponents(serviceNode);
+        assertEquals(ScheduledState.STOPPED, procNode.getScheduledState());
+
+        procNode.setScheduledState(ScheduledState.RUNNING);
+        provider.unscheduleReferencingComponents(serviceNode);
+        assertEquals(ScheduledState.STOPPED, procNode.getScheduledState());
+
+        procNode.setScheduledState(ScheduledState.DISABLED);
+        provider.unscheduleReferencingComponents(serviceNode);
+        assertEquals(ScheduledState.DISABLED, procNode.getScheduledState());
+    }
 }

@@ -19,7 +19,12 @@ package org.apache.nifi.controller.scheduling;
 import static java.util.Objects.requireNonNull;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -670,47 +675,84 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         componentLifeCycleThreadPool.execute(enableRunnable);
     }
 
+
     @Override
     public void disableControllerService(final ControllerServiceNode service) {
-        service.verifyCanDisable();
+        disableControllerServices(Collections.singletonList(service));
+    }
 
-        final ScheduleState state = getScheduleState(requireNonNull(service));
+    @Override
+    public void disableControllerServices(final List<ControllerServiceNode> services) {
+        if (requireNonNull(services).isEmpty()) {
+            return;
+        }
+
+        final List<ControllerServiceNode> servicesToDisable = new ArrayList<>(services.size());
+        for (final ControllerServiceNode serviceToDisable : services) {
+            if (serviceToDisable.getState() == ControllerServiceState.DISABLED || serviceToDisable.getState() == ControllerServiceState.DISABLING) {
+                continue;
+            }
+
+            servicesToDisable.add(serviceToDisable);
+        }
+
+        if (servicesToDisable.isEmpty()) {
+            return;
+        }
+
+        // ensure that all controller services can be disabled.
+        for (final ControllerServiceNode serviceNode : servicesToDisable) {
+            final Set<ControllerServiceNode> ignoredReferences = new HashSet<>(services);
+            ignoredReferences.remove(serviceNode);
+            serviceNode.verifyCanDisable(ignoredReferences);
+        }
+
+        // mark services as disabling
+        for (final ControllerServiceNode serviceNode : servicesToDisable) {
+            serviceNode.setState(ControllerServiceState.DISABLING);
+
+            final ScheduleState scheduleState = getScheduleState(serviceNode);
+            synchronized (scheduleState) {
+                scheduleState.setScheduled(false);
+            }
+        }
+
+        final Queue<ControllerServiceNode> nodes = new LinkedList<>(servicesToDisable);
         final Runnable disableRunnable = new Runnable() {
             @Override
             public void run() {
-                synchronized (state) {
-                    state.setScheduled(false);
-                }
+                ControllerServiceNode service;
+                while ((service = nodes.poll()) != null) {
+                    try (final NarCloseable x = NarCloseable.withNarLoader()) {
+                        final ConfigurationContext configContext = new StandardConfigurationContext(service, controllerServiceProvider, null);
 
-                try (final NarCloseable x = NarCloseable.withNarLoader()) {
-                    final ConfigurationContext configContext = new StandardConfigurationContext(service, controllerServiceProvider, null);
-
-                    try {
-                        ReflectionUtils.invokeMethodsWithAnnotation(OnDisabled.class, service.getControllerServiceImplementation(), configContext);
-                    } catch (final Exception e) {
-                        final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
-                        final ComponentLog componentLog = new SimpleProcessLogger(service.getIdentifier(), service);
-                        componentLog.error("Failed to invoke @OnDisabled method due to {}", cause);
-
-                        LOG.error("Failed to invoke @OnDisabled method of {} due to {}", service.getControllerServiceImplementation(), cause.toString());
-                        if (LOG.isDebugEnabled()) {
-                            LOG.error("", cause);
-                        }
-
-                        ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnDisabled.class, service.getControllerServiceImplementation(), configContext);
                         try {
-                            Thread.sleep(administrativeYieldMillis);
-                        } catch (final InterruptedException ie) {
+                            ReflectionUtils.invokeMethodsWithAnnotation(OnDisabled.class, service.getControllerServiceImplementation(), configContext);
+                        } catch (final Exception e) {
+                            final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
+                            final ComponentLog componentLog = new SimpleProcessLogger(service.getIdentifier(), service);
+                            componentLog.error("Failed to invoke @OnDisabled method due to {}", cause);
+
+                            LOG.error("Failed to invoke @OnDisabled method of {} due to {}", service.getControllerServiceImplementation(), cause.toString());
+                            if (LOG.isDebugEnabled()) {
+                                LOG.error("", cause);
+                            }
+
+                            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnDisabled.class, service.getControllerServiceImplementation(), configContext);
+                            try {
+                                Thread.sleep(administrativeYieldMillis);
+                            } catch (final InterruptedException ie) {
+                            }
+                        } finally {
+                            service.setState(ControllerServiceState.DISABLED);
+                            heartbeater.heartbeat();
                         }
-                    } finally {
-                        service.setState(ControllerServiceState.DISABLED);
-                        heartbeater.heartbeat();
                     }
                 }
             }
         };
 
-        service.setState(ControllerServiceState.DISABLING);
         componentLifeCycleThreadPool.execute(disableRunnable);
     }
+
 }
