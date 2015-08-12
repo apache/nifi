@@ -66,6 +66,9 @@ import java.util.concurrent.ConcurrentMap;
         + "JsonPaths are entered by adding user-defined properties; the name of the property maps to the Attribute Name "
         + "into which the result will be placed (if the Destination is flowfile-attribute; otherwise, the property name is ignored). "
         + "The value of the property must be a valid JsonPath expression. "
+        + "A Return Type of 'auto-detect' will make a determination based off the configured destination. "
+        + "When 'Destination' is set to 'flowfile-attribute,' a return type of 'scalar' will be used. "
+        + "When 'Destination' is set to 'flowfile-content,' a return type of 'JSON' will be used."
         + "If the JsonPath evaluates to a JSON array or JSON object and the Return Type is set to 'scalar' the FlowFile will be unmodified and will be routed to failure. "
         + "A Return Type of JSON can return scalar values if the provided JsonPath evaluates to the specified value and will be routed as a match."
         + "If Destination is 'flowfile-content' and the JsonPath does not evaluate to a defined path, the FlowFile will be routed to 'unmatched' without having its contents modified. "
@@ -99,7 +102,7 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
 
     public static final PropertyDescriptor RETURN_TYPE = new PropertyDescriptor.Builder()
             .name("Return Type").description("Indicates the desired return type of the JSON Path expressions.  Selecting 'auto-detect' will set the return type to 'json' "
-                    + "for a Destination of 'flowfile-content', and 'string' for a Destination of 'flowfile-attribute'.")
+                    + "for a Destination of 'flowfile-content', and 'scalar' for a Destination of 'flowfile-attribute'.")
             .required(true)
             .allowableValues(RETURN_TYPE_AUTO, RETURN_TYPE_JSON, RETURN_TYPE_SCALAR)
             .defaultValue(RETURN_TYPE_AUTO)
@@ -224,7 +227,7 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext processContext, final ProcessSession processSession) throws ProcessException {
+    public void onTrigger(final ProcessContext processContext, final ProcessSession processSession) throws ProcessException {
 
         FlowFile flowFile = processSession.get();
         if (flowFile == null) {
@@ -266,13 +269,13 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
 
         for (final Map.Entry<String, JsonPath> attributeJsonPathEntry : attributeToJsonPathMap.entrySet()) {
 
-            String jsonPathAttrKey = attributeJsonPathEntry.getKey();
-            JsonPath jsonPathExp = attributeJsonPathEntry.getValue();
+            final String jsonPathAttrKey = attributeJsonPathEntry.getKey();
+            final JsonPath jsonPathExp = attributeJsonPathEntry.getValue();
             final String pathNotFound = processContext.getProperty(PATH_NOT_FOUND).getValue();
 
             final ObjectHolder<Object> resultHolder = new ObjectHolder<>(null);
             try {
-                Object result = documentContext.read(jsonPathExp);
+                final Object result = documentContext.read(jsonPathExp);
                 if (returnType.equals(RETURN_TYPE_SCALAR) && !isJsonScalar(result)) {
                     logger.error("Unable to return a scalar value for the expression {} for FlowFile {}. Evaluated value was {}. Transferring to {}.",
                             new Object[]{jsonPathExp.getPath(), flowFile.getId(), result.toString(), REL_FAILURE.getName()});
