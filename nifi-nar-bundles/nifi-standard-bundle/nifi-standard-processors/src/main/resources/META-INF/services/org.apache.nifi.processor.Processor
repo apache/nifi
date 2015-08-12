@@ -16,6 +16,7 @@ org.apache.nifi.processors.standard.Base64EncodeContent
 org.apache.nifi.processors.standard.CompressContent
 org.apache.nifi.processors.standard.ControlRate
 org.apache.nifi.processors.standard.ConvertCharacterSet
+org.apache.nifi.processors.standard.ConvertJSONToSQL
 org.apache.nifi.processors.standard.DetectDuplicate
 org.apache.nifi.processors.standard.DistributeLoad
 org.apache.nifi.processors.standard.DuplicateFlowFile
@@ -52,6 +53,7 @@ org.apache.nifi.processors.standard.PutFile
 org.apache.nifi.processors.standard.PutFTP
 org.apache.nifi.processors.standard.PutJMS
 org.apache.nifi.processors.standard.PutSFTP
+org.apache.nifi.processors.standard.PutSQL
 org.apache.nifi.processors.standard.ReplaceText
 org.apache.nifi.processors.standard.ReplaceTextWithMapping
 org.apache.nifi.processors.standard.RouteOnAttribute
