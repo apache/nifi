@@ -782,7 +782,7 @@ nf.ControllerService = (function () {
             var stillRunning = false;
             $.each(referencingComponents, function(_, referencingComponent) {
                 if (referencingComponent.referenceType === 'Processor' || referencingComponent.referenceType === 'ReportingTask') {
-                    if (referencingComponent.state !== 'STOPPED' || referencingComponent.activeThreadCount > 0) {
+                    if (referencingComponent.state === 'RUNNING' || referencingComponent.activeThreadCount > 0) {
                         stillRunning = true;
                     }
                     
