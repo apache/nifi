@@ -607,7 +607,11 @@ public class SnippetResource extends ApplicationResource {
         entity.setRevision(updatedRevision);
         entity.setSnippet(populateRemainingSnippetContent(snippet));
 
-        return clusterContext(generateOkResponse(entity)).build();
+        if (controllerResponse.isNew()) {
+            return clusterContext(generateCreatedResponse(URI.create(snippet.getUri()), entity)).build();
+        } else {
+            return clusterContext(generateOkResponse(entity)).build();
+        }
     }
 
     /**

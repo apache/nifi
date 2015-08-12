@@ -283,8 +283,8 @@ public class ProcessGroupResource extends ApplicationResource {
     @ApiOperation(
             value = "Gets a process group",
             notes = "Gets a process group and includes all components contained in this group. The verbose and recursive flags can be used to adjust "
-                    + "the default behavior. This endpoint is starting point for obtaining the current flow and consequently includes the current "
-                    + "flow revision.",
+            + "the default behavior. This endpoint is starting point for obtaining the current flow and consequently includes the current "
+            + "flow revision.",
             response = ProcessGroupEntity.class,
             authorizations = {
                 @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
@@ -350,7 +350,10 @@ public class ProcessGroupResource extends ApplicationResource {
     }
 
     /**
-     * Copies the specified snippet within this ProcessGroup.
+     * Copies the specified snippet within this ProcessGroup. The snippet instance that is instantiated cannot be referenced at a later time, therefore there is no
+     * corresponding URI. Instead the request URI is returned.
+     *
+     * Alternatively, we could have performed a PUT request. However, PUT requests are supposed to be idempotent and this endpoint is certainly not.
      *
      * @param httpServletRequest request
      * @param version The revision is used to verify the client is working with the latest version of the flow.
@@ -457,11 +460,14 @@ public class ProcessGroupResource extends ApplicationResource {
         entity.setContents(populateRemainingSnippetContent(flowSnippet));
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return clusterContext(generateCreatedResponse(getAbsolutePath(), entity)).build();
     }
 
     /**
-     * Instantiates the specified template within this ProcessGroup.
+     * Instantiates the specified template within this ProcessGroup. The template instance that is instantiated cannot be referenced at a later time, therefore there is no
+     * corresponding URI. Instead the request URI is returned.
+     *
+     * Alternatively, we could have performed a PUT request. However, PUT requests are supposed to be idempotent and this endpoint is certainly not.
      *
      * @param httpServletRequest request
      * @param version The revision is used to verify the client is working with the latest version of the flow.
@@ -565,7 +571,7 @@ public class ProcessGroupResource extends ApplicationResource {
         entity.setContents(populateRemainingSnippetContent(flowSnippet));
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        return clusterContext(generateCreatedResponse(getAbsolutePath(), entity)).build();
     }
 
     /**
@@ -644,7 +650,7 @@ public class ProcessGroupResource extends ApplicationResource {
             @Context HttpServletRequest httpServletRequest,
             @ApiParam(
                     value = "The process group to update. The only action that is supported at this endpoint is to set the running flag in order "
-                            + "to start or stop all descendent schedulable components. This defines the schema of the expected input.",
+                    + "to start or stop all descendent schedulable components. This defines the schema of the expected input.",
                     required = true
             )
             ProcessGroupEntity processGroupEntity) {
@@ -1152,8 +1158,11 @@ public class ProcessGroupResource extends ApplicationResource {
         entity.setRevision(updatedRevision);
         entity.setProcessGroup(populateRemainingProcessGroupContent(processGroup, getProcessGroupReferenceUri(processGroup)));
 
-        // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        if (response.isNew()) {
+            return clusterContext(generateCreatedResponse(URI.create(processGroup.getUri()), entity)).build();
+        } else {
+            return clusterContext(generateOkResponse(entity)).build();
+        }
     }
 
     /**
@@ -1253,13 +1262,13 @@ public class ProcessGroupResource extends ApplicationResource {
     @ApiOperation(
             value = "Gets the status for a process group",
             notes = "The status for a process group includes status for all descendent components. When invoked on the root group with "
-                    + "recursive set to true, it will return the current status of every component in the flow.",
+            + "recursive set to true, it will return the current status of every component in the flow.",
             response = ProcessGroupStatusEntity.class,
             authorizations = {
                 @Authorization(value = "Read Only", type = "ROLE_MONITOR"),
                 @Authorization(value = "Data Flow Manager", type = "ROLE_DFM"),
                 @Authorization(value = "Administrator", type = "ROLE_ADMIN"),
-                @Authorization(value = "NiFi", type="ROLE_NIFI")
+                @Authorization(value = "NiFi", type = "ROLE_NIFI")
             }
     )
     @ApiResponses(

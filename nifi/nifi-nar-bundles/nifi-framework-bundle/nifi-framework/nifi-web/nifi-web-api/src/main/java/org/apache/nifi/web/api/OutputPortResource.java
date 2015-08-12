@@ -542,7 +542,11 @@ public class OutputPortResource extends ApplicationResource {
         entity.setRevision(updatedRevision);
         entity.setOutputPort(responsePortDTO);
 
-        return clusterContext(generateOkResponse(entity)).build();
+        if (controllerResponse.isNew()) {
+            return clusterContext(generateCreatedResponse(URI.create(responsePortDTO.getUri()), entity)).build();
+        } else {
+            return clusterContext(generateOkResponse(entity)).build();
+        }
     }
 
     /**

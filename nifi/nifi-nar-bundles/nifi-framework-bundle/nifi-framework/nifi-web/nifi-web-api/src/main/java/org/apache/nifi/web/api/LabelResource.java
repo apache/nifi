@@ -558,7 +558,11 @@ public class LabelResource extends ApplicationResource {
         entity.setRevision(updatedRevision);
         entity.setLabel(responseLabelDTO);
 
-        return clusterContext(generateOkResponse(entity)).build();
+        if (controllerResponse.isNew()) {
+            return clusterContext(generateCreatedResponse(URI.create(responseLabelDTO.getUri()), entity)).build();
+        } else {
+            return clusterContext(generateOkResponse(entity)).build();
+        }
     }
 
     /**

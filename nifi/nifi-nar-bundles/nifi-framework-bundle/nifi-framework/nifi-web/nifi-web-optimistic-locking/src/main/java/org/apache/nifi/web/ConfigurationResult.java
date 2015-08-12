@@ -23,13 +23,19 @@ package org.apache.nifi.web;
  *
  * @param <T> type of request
  */
-public interface ConfigurationRequest<T> {
+public interface ConfigurationResult<T> {
 
     /**
-     * Executes a configuration action and returns the updated resulting
-     * configuration.
+     * Returns whether the configuration represents a newly created resource.
+     *
+     * @return If the configuration represents a newly created resource
+     */
+    boolean isNew();
+
+    /**
+     * Returns the resulting configuration.
      *
      * @return The resulting configuration
      */
-    ConfigurationResult<T> execute();
+    T getConfiguration();
 }

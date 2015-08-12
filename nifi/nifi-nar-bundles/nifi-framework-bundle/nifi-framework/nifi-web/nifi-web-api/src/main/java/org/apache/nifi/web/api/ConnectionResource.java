@@ -787,13 +787,21 @@ public class ConnectionResource extends ApplicationResource {
         updatedRevision.setClientId(revision.getClientId());
         updatedRevision.setVersion(controllerResponse.getVersion());
 
+        // marshall the target and add the source processor
+        final ConnectionDTO connectionDTO = controllerResponse.getConfiguration();
+        populateRemainingConnectionContent(connectionDTO);
+
         // create the response entity
         ConnectionEntity entity = new ConnectionEntity();
         entity.setRevision(updatedRevision);
-        entity.setConnection(populateRemainingConnectionContent(controllerResponse.getConfiguration()));
+        entity.setConnection(connectionDTO);
 
         // generate the response
-        return clusterContext(generateOkResponse(entity)).build();
+        if (controllerResponse.isNew()) {
+            return clusterContext(generateCreatedResponse(URI.create(connectionDTO.getUri()), entity)).build();
+        } else {
+            return clusterContext(generateOkResponse(entity)).build();
+        }
     }
 
     /**

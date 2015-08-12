@@ -955,7 +955,11 @@ public class ControllerServiceResource extends ApplicationResource {
         entity.setRevision(updatedRevision);
         entity.setControllerService(populateRemainingControllerServiceContent(availability, responseControllerServiceDTO));
 
-        return clusterContext(generateOkResponse(entity)).build();
+        if (controllerResponse.isNew()) {
+            return clusterContext(generateCreatedResponse(URI.create(responseControllerServiceDTO.getUri()), entity)).build();
+        } else {
+            return clusterContext(generateOkResponse(entity)).build();
+        }
     }
 
     /**

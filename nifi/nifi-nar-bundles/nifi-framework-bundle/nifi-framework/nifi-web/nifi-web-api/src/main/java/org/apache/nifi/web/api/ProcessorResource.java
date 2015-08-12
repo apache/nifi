@@ -812,7 +812,11 @@ public class ProcessorResource extends ApplicationResource {
         entity.setRevision(updatedRevision);
         entity.setProcessor(responseProcessorDTO);
 
-        return clusterContext(generateOkResponse(entity)).build();
+        if (controllerResponse.isNew()) {
+            return clusterContext(generateCreatedResponse(URI.create(responseProcessorDTO.getUri()), entity)).build();
+        } else {
+            return clusterContext(generateOkResponse(entity)).build();
+        }
     }
 
     /**

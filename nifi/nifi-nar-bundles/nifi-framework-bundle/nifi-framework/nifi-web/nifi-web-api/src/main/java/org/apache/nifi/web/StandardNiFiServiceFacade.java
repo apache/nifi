@@ -376,12 +376,22 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<ConnectionDTO>() {
             @Override
-            public ConnectionDTO execute() {
+            public ConfigurationResult<ConnectionDTO> execute() {
                 final Connection connection = connectionDAO.updateConnection(groupId, connectionDTO);
 
                 controllerFacade.save();
 
-                return dtoFactory.createConnectionDto(connection);
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return false;
+                    }
+
+                    @Override
+                    public ConnectionDTO getConfiguration() {
+                        return dtoFactory.createConnectionDto(connection);
+                    }
+                };
             }
         });
     }
@@ -395,14 +405,24 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<ProcessorDTO>() {
             @Override
-            public ProcessorDTO execute() {
+            public ConfigurationResult<ProcessorDTO> execute() {
                 // update the processor
-                ProcessorNode processor = processorDAO.updateProcessor(groupId, processorDTO);
+                final ProcessorNode processor = processorDAO.updateProcessor(groupId, processorDTO);
 
                 // save the flow
                 controllerFacade.save();
 
-                return dtoFactory.createProcessorDto(processor);
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return false;
+                    }
+
+                    @Override
+                    public ProcessorDTO getConfiguration() {
+                        return dtoFactory.createProcessorDto(processor);
+                    }
+                };
             }
         });
     }
@@ -416,14 +436,24 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<LabelDTO>() {
             @Override
-            public LabelDTO execute() {
+            public ConfigurationResult<LabelDTO> execute() {
                 // update the existing label
                 final Label label = labelDAO.updateLabel(groupId, labelDTO);
 
                 // save updated controller
                 controllerFacade.save();
 
-                return dtoFactory.createLabelDto(label);
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return false;
+                    }
+
+                    @Override
+                    public LabelDTO getConfiguration() {
+                        return dtoFactory.createLabelDto(label);
+                    }
+                };
             }
         });
     }
@@ -437,14 +467,24 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<FunnelDTO>() {
             @Override
-            public FunnelDTO execute() {
+            public ConfigurationResult<FunnelDTO> execute() {
                 // update the existing label
                 final Funnel funnel = funnelDAO.updateFunnel(groupId, funnelDTO);
 
                 // save updated controller
                 controllerFacade.save();
 
-                return dtoFactory.createFunnelDto(funnel);
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return false;
+                    }
+
+                    @Override
+                    public FunnelDTO getConfiguration() {
+                        return dtoFactory.createFunnelDto(funnel);
+                    }
+                };
             }
         });
     }
@@ -467,7 +507,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<SnippetDTO>() {
             @Override
-            public SnippetDTO execute() {
+            public ConfigurationResult<SnippetDTO> execute() {
                 // update the snippet
                 final Snippet snippet = snippetDAO.updateSnippet(snippetDto);
 
@@ -480,7 +520,17 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     controllerFacade.save();
                 }
 
-                return responseSnippetDto;
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return false;
+                    }
+
+                    @Override
+                    public SnippetDTO getConfiguration() {
+                        return responseSnippetDto;
+                    }
+                };
             }
         });
     }
@@ -494,13 +544,23 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<PortDTO>() {
             @Override
-            public PortDTO execute() {
+            public ConfigurationResult<PortDTO> execute() {
                 final Port inputPort = inputPortDAO.updatePort(groupId, inputPortDTO);
 
                 // save updated controller
                 controllerFacade.save();
 
-                return dtoFactory.createPortDto(inputPort);
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return false;
+                    }
+
+                    @Override
+                    public PortDTO getConfiguration() {
+                        return dtoFactory.createPortDto(inputPort);
+                    }
+                };
             }
         });
     }
@@ -514,13 +574,23 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<PortDTO>() {
             @Override
-            public PortDTO execute() {
+            public ConfigurationResult<PortDTO> execute() {
                 final Port outputPort = outputPortDAO.updatePort(groupId, outputPortDTO);
 
                 // save updated controller
                 controllerFacade.save();
 
-                return dtoFactory.createPortDto(outputPort);
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return false;
+                    }
+
+                    @Override
+                    public PortDTO getConfiguration() {
+                        return dtoFactory.createPortDto(outputPort);
+                    }
+                };
             }
         });
     }
@@ -534,13 +604,23 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<RemoteProcessGroupDTO>() {
             @Override
-            public RemoteProcessGroupDTO execute() {
-                RemoteProcessGroup remoteProcessGroup = remoteProcessGroupDAO.updateRemoteProcessGroup(groupId, remoteProcessGroupDTO);
+            public ConfigurationResult<RemoteProcessGroupDTO> execute() {
+                final RemoteProcessGroup remoteProcessGroup = remoteProcessGroupDAO.updateRemoteProcessGroup(groupId, remoteProcessGroupDTO);
 
                 // save updated controller
                 controllerFacade.save();
 
-                return dtoFactory.createRemoteProcessGroupDto(remoteProcessGroup);
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return false;
+                    }
+
+                    @Override
+                    public RemoteProcessGroupDTO getConfiguration() {
+                        return dtoFactory.createRemoteProcessGroupDto(remoteProcessGroup);
+                    }
+                };
             }
         });
     }
@@ -550,14 +630,24 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             final Revision revision, final String groupId, final String remoteProcessGroupId, final RemoteProcessGroupPortDTO remoteProcessGroupPortDTO) {
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<RemoteProcessGroupPortDTO>() {
             @Override
-            public RemoteProcessGroupPortDTO execute() {
+            public ConfigurationResult<RemoteProcessGroupPortDTO> execute() {
                 // update the remote port
-                RemoteGroupPort remoteGroupPort = remoteProcessGroupDAO.updateRemoteProcessGroupInputPort(groupId, remoteProcessGroupId, remoteProcessGroupPortDTO);
+                final RemoteGroupPort remoteGroupPort = remoteProcessGroupDAO.updateRemoteProcessGroupInputPort(groupId, remoteProcessGroupId, remoteProcessGroupPortDTO);
 
                 // save updated controller
                 controllerFacade.save();
 
-                return dtoFactory.createRemoteProcessGroupPortDto(remoteGroupPort);
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return false;
+                    }
+
+                    @Override
+                    public RemoteProcessGroupPortDTO getConfiguration() {
+                        return dtoFactory.createRemoteProcessGroupPortDto(remoteGroupPort);
+                    }
+                };
             }
         });
     }
@@ -567,14 +657,24 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             final Revision revision, final String groupId, final String remoteProcessGroupId, final RemoteProcessGroupPortDTO remoteProcessGroupPortDTO) {
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<RemoteProcessGroupPortDTO>() {
             @Override
-            public RemoteProcessGroupPortDTO execute() {
+            public ConfigurationResult<RemoteProcessGroupPortDTO> execute() {
                 // update the remote port
-                RemoteGroupPort remoteGroupPort = remoteProcessGroupDAO.updateRemoteProcessGroupOutputPort(groupId, remoteProcessGroupId, remoteProcessGroupPortDTO);
+                final RemoteGroupPort remoteGroupPort = remoteProcessGroupDAO.updateRemoteProcessGroupOutputPort(groupId, remoteProcessGroupId, remoteProcessGroupPortDTO);
 
                 // save updated controller
                 controllerFacade.save();
 
-                return dtoFactory.createRemoteProcessGroupPortDto(remoteGroupPort);
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return false;
+                    }
+
+                    @Override
+                    public RemoteProcessGroupPortDTO getConfiguration() {
+                        return dtoFactory.createRemoteProcessGroupPortDto(remoteGroupPort);
+                    }
+                };
             }
         });
     }
@@ -592,14 +692,24 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<ProcessGroupDTO>() {
             @Override
-            public ProcessGroupDTO execute() {
+            public ConfigurationResult<ProcessGroupDTO> execute() {
                 // update the process group
-                ProcessGroup processGroup = processGroupDAO.updateProcessGroup(processGroupDTO);
+                final ProcessGroup processGroup = processGroupDAO.updateProcessGroup(processGroupDTO);
 
                 // save updated controller
                 controllerFacade.save();
 
-                return dtoFactory.createProcessGroupDto(processGroup);
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return false;
+                    }
+
+                    @Override
+                    public ProcessGroupDTO getConfiguration() {
+                        return dtoFactory.createProcessGroupDto(processGroup);
+                    }
+                };
             }
         });
     }
@@ -608,7 +718,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ConfigurationSnapshot<ControllerConfigurationDTO> updateControllerConfiguration(final Revision revision, final ControllerConfigurationDTO controllerConfigurationDTO) {
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<ControllerConfigurationDTO>() {
             @Override
-            public ControllerConfigurationDTO execute() {
+            public ConfigurationResult<ControllerConfigurationDTO> execute() {
                 // update the controller configuration through the proxy
                 if (controllerConfigurationDTO.getName() != null) {
                     controllerFacade.setName(controllerConfigurationDTO.getName());
@@ -624,12 +734,22 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 }
 
                 // create the controller configuration dto
-                ControllerConfigurationDTO controllerConfig = getControllerConfiguration();
+                final ControllerConfigurationDTO controllerConfig = getControllerConfiguration();
 
                 // save the flow
                 controllerFacade.save();
 
-                return controllerConfig;
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return false;
+                    }
+
+                    @Override
+                    public ControllerConfigurationDTO getConfiguration() {
+                        return controllerConfig;
+                    }
+                };
             }
         });
     }
@@ -667,13 +787,23 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ConfigurationSnapshot<Void> deleteConnection(final Revision revision, final String groupId, final String connectionId) {
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<Void>() {
             @Override
-            public Void execute() {
+            public ConfigurationResult<Void> execute() {
                 connectionDAO.deleteConnection(groupId, connectionId);
 
                 // save the flow
                 controllerFacade.save();
 
-                return null;
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return false;
+                    }
+
+                    @Override
+                    public ControllerConfigurationDTO getConfiguration() {
+                        return null;
+                    }
+                };
             }
         });
     }
@@ -682,14 +812,24 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ConfigurationSnapshot<Void> deleteProcessor(final Revision revision, final String groupId, final String processorId) {
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<Void>() {
             @Override
-            public Void execute() {
+            public ConfigurationResult<Void> execute() {
                 // delete the processor and synchronize the connection state
                 processorDAO.deleteProcessor(groupId, processorId);
 
                 // save the flow
                 controllerFacade.save();
 
-                return null;
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return false;
+                    }
+
+                    @Override
+                    public ControllerConfigurationDTO getConfiguration() {
+                        return null;
+                    }
+                };
             }
         });
     }
@@ -698,14 +838,24 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ConfigurationSnapshot<Void> deleteLabel(final Revision revision, final String groupId, final String labelId) {
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<Void>() {
             @Override
-            public Void execute() {
+            public ConfigurationResult<Void> execute() {
                 // delete the label
                 labelDAO.deleteLabel(groupId, labelId);
 
                 // save the flow
                 controllerFacade.save();
 
-                return null;
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return false;
+                    }
+
+                    @Override
+                    public ControllerConfigurationDTO getConfiguration() {
+                        return null;
+                    }
+                };
             }
         });
     }
@@ -714,14 +864,24 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ConfigurationSnapshot<Void> deleteFunnel(final Revision revision, final String groupId, final String funnelId) {
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<Void>() {
             @Override
-            public Void execute() {
+            public ConfigurationResult<Void> execute() {
                 // delete the label
                 funnelDAO.deleteFunnel(groupId, funnelId);
 
                 // save the flow
                 controllerFacade.save();
 
-                return null;
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return false;
+                    }
+
+                    @Override
+                    public ControllerConfigurationDTO getConfiguration() {
+                        return null;
+                    }
+                };
             }
         });
     }
@@ -735,7 +895,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ConfigurationSnapshot<Void> deleteSnippet(final Revision revision, final String snippetId) {
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<Void>() {
             @Override
-            public Void execute() {
+            public ConfigurationResult<Void> execute() {
                 // determine if this snippet was linked to the data flow
                 Snippet snippet = snippetDAO.getSnippet(snippetId);
                 boolean linked = snippet.isLinked();
@@ -748,7 +908,17 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     controllerFacade.save();
                 }
 
-                return null;
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return false;
+                    }
+
+                    @Override
+                    public ControllerConfigurationDTO getConfiguration() {
+                        return null;
+                    }
+                };
             }
         });
     }
@@ -757,13 +927,23 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ConfigurationSnapshot<Void> deleteInputPort(final Revision revision, final String groupId, final String inputPortId) {
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<Void>() {
             @Override
-            public Void execute() {
+            public ConfigurationResult<Void> execute() {
                 inputPortDAO.deletePort(groupId, inputPortId);
 
                 // save the flow
                 controllerFacade.save();
 
-                return null;
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return false;
+                    }
+
+                    @Override
+                    public ControllerConfigurationDTO getConfiguration() {
+                        return null;
+                    }
+                };
             }
         });
     }
@@ -772,13 +952,23 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ConfigurationSnapshot<Void> deleteOutputPort(final Revision revision, final String groupId, final String outputPortId) {
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<Void>() {
             @Override
-            public Void execute() {
+            public ConfigurationResult<Void> execute() {
                 outputPortDAO.deletePort(groupId, outputPortId);
 
                 // save the flow
                 controllerFacade.save();
 
-                return null;
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return false;
+                    }
+
+                    @Override
+                    public ControllerConfigurationDTO getConfiguration() {
+                        return null;
+                    }
+                };
             }
         });
     }
@@ -787,13 +977,23 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ConfigurationSnapshot<Void> deleteProcessGroup(final Revision revision, final String groupId) {
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<Void>() {
             @Override
-            public Void execute() {
+            public ConfigurationResult<Void> execute() {
                 processGroupDAO.deleteProcessGroup(groupId);
 
                 // save the flow
                 controllerFacade.save();
 
-                return null;
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return false;
+                    }
+
+                    @Override
+                    public ControllerConfigurationDTO getConfiguration() {
+                        return null;
+                    }
+                };
             }
         });
     }
@@ -802,13 +1002,23 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ConfigurationSnapshot<Void> deleteRemoteProcessGroup(final Revision revision, final String groupId, final String remoteProcessGroupId) {
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<Void>() {
             @Override
-            public Void execute() {
+            public ConfigurationResult<Void> execute() {
                 remoteProcessGroupDAO.deleteRemoteProcessGroup(groupId, remoteProcessGroupId);
 
                 // save the flow
                 controllerFacade.save();
 
-                return null;
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return false;
+                    }
+
+                    @Override
+                    public ControllerConfigurationDTO getConfiguration() {
+                        return null;
+                    }
+                };
             }
         });
     }
@@ -823,7 +1033,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ConfigurationSnapshot<ConnectionDTO> createConnection(final Revision revision, final String groupId, final ConnectionDTO connectionDTO) {
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<ConnectionDTO>() {
             @Override
-            public ConnectionDTO execute() {
+            public ConfigurationResult<ConnectionDTO> execute() {
                 // ensure id is set
                 if (StringUtils.isBlank(connectionDTO.getId())) {
                     connectionDTO.setId(UUID.randomUUID().toString());
@@ -834,7 +1044,17 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 // save the flow
                 controllerFacade.save();
 
-                return dtoFactory.createConnectionDto(connection);
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return true;
+                    }
+
+                    @Override
+                    public ConnectionDTO getConfiguration() {
+                        return dtoFactory.createConnectionDto(connection);
+                    }
+                };
             }
         });
     }
@@ -843,7 +1063,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ConfigurationSnapshot<ProcessorDTO> createProcessor(final Revision revision, final String groupId, final ProcessorDTO processorDTO) {
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<ProcessorDTO>() {
             @Override
-            public ProcessorDTO execute() {
+            public ConfigurationResult<ProcessorDTO> execute() {
                 // ensure id is set
                 if (StringUtils.isBlank(processorDTO.getId())) {
                     processorDTO.setId(UUID.randomUUID().toString());
@@ -855,7 +1075,17 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 // save the flow
                 controllerFacade.save();
 
-                return dtoFactory.createProcessorDto(processor);
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return true;
+                    }
+
+                    @Override
+                    public ProcessorDTO getConfiguration() {
+                        return dtoFactory.createProcessorDto(processor);
+                    }
+                };
             }
         });
     }
@@ -864,7 +1094,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ConfigurationSnapshot<LabelDTO> createLabel(final Revision revision, final String groupId, final LabelDTO labelDTO) {
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<LabelDTO>() {
             @Override
-            public LabelDTO execute() {
+            public ConfigurationResult<LabelDTO> execute() {
                 // ensure id is set
                 if (StringUtils.isBlank(labelDTO.getId())) {
                     labelDTO.setId(UUID.randomUUID().toString());
@@ -876,7 +1106,17 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 // save the flow
                 controllerFacade.save();
 
-                return dtoFactory.createLabelDto(label);
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return true;
+                    }
+
+                    @Override
+                    public LabelDTO getConfiguration() {
+                        return dtoFactory.createLabelDto(label);
+                    }
+                };
             }
         });
     }
@@ -885,7 +1125,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ConfigurationSnapshot<FunnelDTO> createFunnel(final Revision revision, final String groupId, final FunnelDTO funnelDTO) {
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<FunnelDTO>() {
             @Override
-            public FunnelDTO execute() {
+            public ConfigurationResult<FunnelDTO> execute() {
                 // ensure id is set
                 if (StringUtils.isBlank(funnelDTO.getId())) {
                     funnelDTO.setId(UUID.randomUUID().toString());
@@ -897,7 +1137,17 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 // save the flow
                 controllerFacade.save();
 
-                return dtoFactory.createFunnelDto(funnel);
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return true;
+                    }
+
+                    @Override
+                    public FunnelDTO getConfiguration() {
+                        return dtoFactory.createFunnelDto(funnel);
+                    }
+                };
             }
         });
     }
@@ -961,7 +1211,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ConfigurationSnapshot<FlowSnippetDTO> copySnippet(final Revision revision, final String groupId, final String snippetId, final Double originX, final Double originY) {
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<FlowSnippetDTO>() {
             @Override
-            public FlowSnippetDTO execute() {
+            public ConfigurationResult<FlowSnippetDTO> execute() {
                 String id = snippetId;
 
                 // ensure id is set
@@ -970,7 +1220,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 }
 
                 // create the new snippet
-                FlowSnippetDTO flowSnippet = snippetDAO.copySnippet(groupId, id, originX, originY);
+                final FlowSnippetDTO flowSnippet = snippetDAO.copySnippet(groupId, id, originX, originY);
 
                 // validate the new snippet
                 validateSnippetContents(flowSnippet, groupId);
@@ -978,7 +1228,17 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 // save the flow
                 controllerFacade.save();
 
-                return flowSnippet;
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return false;
+                    }
+
+                    @Override
+                    public FlowSnippetDTO getConfiguration() {
+                        return flowSnippet;
+                    }
+                };
             }
         });
     }
@@ -987,7 +1247,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ConfigurationSnapshot<SnippetDTO> createSnippet(final Revision revision, final SnippetDTO snippetDTO) {
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<SnippetDTO>() {
             @Override
-            public SnippetDTO execute() {
+            public ConfigurationResult<SnippetDTO> execute() {
                 // ensure id is set
                 if (StringUtils.isBlank(snippetDTO.getId())) {
                     snippetDTO.setId(UUID.randomUUID().toString());
@@ -998,7 +1258,17 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 final SnippetDTO responseSnippetDTO = dtoFactory.createSnippetDto(snippet);
                 responseSnippetDTO.setContents(snippetUtils.populateFlowSnippet(snippet, false, false));
 
-                return responseSnippetDTO;
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return true;
+                    }
+
+                    @Override
+                    public SnippetDTO getConfiguration() {
+                        return responseSnippetDTO;
+                    }
+                };
             }
         });
     }
@@ -1007,7 +1277,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ConfigurationSnapshot<PortDTO> createInputPort(final Revision revision, final String groupId, final PortDTO inputPortDTO) {
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<PortDTO>() {
             @Override
-            public PortDTO execute() {
+            public ConfigurationResult<PortDTO> execute() {
                 // ensure id is set
                 if (StringUtils.isBlank(inputPortDTO.getId())) {
                     inputPortDTO.setId(UUID.randomUUID().toString());
@@ -1018,7 +1288,17 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 // save the flow
                 controllerFacade.save();
 
-                return dtoFactory.createPortDto(inputPort);
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return true;
+                    }
+
+                    @Override
+                    public PortDTO getConfiguration() {
+                        return dtoFactory.createPortDto(inputPort);
+                    }
+                };
             }
         });
     }
@@ -1027,7 +1307,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ConfigurationSnapshot<PortDTO> createOutputPort(final Revision revision, final String groupId, final PortDTO outputPortDTO) {
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<PortDTO>() {
             @Override
-            public PortDTO execute() {
+            public ConfigurationResult<PortDTO> execute() {
                 // ensure id is set
                 if (StringUtils.isBlank(outputPortDTO.getId())) {
                     outputPortDTO.setId(UUID.randomUUID().toString());
@@ -1038,7 +1318,17 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 // save the flow
                 controllerFacade.save();
 
-                return dtoFactory.createPortDto(outputPort);
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return true;
+                    }
+
+                    @Override
+                    public PortDTO getConfiguration() {
+                        return dtoFactory.createPortDto(outputPort);
+                    }
+                };
             }
         });
     }
@@ -1047,7 +1337,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ConfigurationSnapshot<ProcessGroupDTO> createProcessGroup(final String parentGroupId, final Revision revision, final ProcessGroupDTO processGroupDTO) {
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<ProcessGroupDTO>() {
             @Override
-            public ProcessGroupDTO execute() {
+            public ConfigurationResult<ProcessGroupDTO> execute() {
                 // ensure id is set
                 if (StringUtils.isBlank(processGroupDTO.getId())) {
                     processGroupDTO.setId(UUID.randomUUID().toString());
@@ -1058,7 +1348,17 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 // save the flow
                 controllerFacade.save();
 
-                return dtoFactory.createProcessGroupDto(processGroup);
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return true;
+                    }
+
+                    @Override
+                    public ProcessGroupDTO getConfiguration() {
+                        return dtoFactory.createProcessGroupDto(processGroup);
+                    }
+                };
             }
         });
     }
@@ -1067,7 +1367,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ConfigurationSnapshot<RemoteProcessGroupDTO> createRemoteProcessGroup(final Revision revision, final String groupId, final RemoteProcessGroupDTO remoteProcessGroupDTO) {
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<RemoteProcessGroupDTO>() {
             @Override
-            public RemoteProcessGroupDTO execute() {
+            public ConfigurationResult<RemoteProcessGroupDTO> execute() {
                 // ensure id is set
                 if (StringUtils.isBlank(remoteProcessGroupDTO.getId())) {
                     remoteProcessGroupDTO.setId(UUID.randomUUID().toString());
@@ -1078,7 +1378,17 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 // save the flow
                 controllerFacade.save();
 
-                return dtoFactory.createRemoteProcessGroupDto(remoteProcessGroup);
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return true;
+                    }
+
+                    @Override
+                    public RemoteProcessGroupDTO getConfiguration() {
+                        return dtoFactory.createRemoteProcessGroupDto(remoteProcessGroup);
+                    }
+                };
             }
         });
     }
@@ -1129,10 +1439,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ConfigurationSnapshot<FlowSnippetDTO> createTemplateInstance(final Revision revision, final String groupId, final Double originX, final Double originY, final String templateId) {
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<FlowSnippetDTO>() {
             @Override
-            public FlowSnippetDTO execute() {
+            public ConfigurationResult<FlowSnippetDTO> execute() {
                 // instantiate the template - there is no need to make another copy of the flow snippet since the actual template
                 // was copied and this dto is only used to instantiate it's components (which as already completed)
-                FlowSnippetDTO flowSnippet = templateDAO.instantiateTemplate(groupId, originX, originY, templateId);
+                final FlowSnippetDTO flowSnippet = templateDAO.instantiateTemplate(groupId, originX, originY, templateId);
 
                 // validate the new snippet
                 validateSnippetContents(flowSnippet, groupId);
@@ -1140,7 +1450,17 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 // save the flow
                 controllerFacade.save();
 
-                return flowSnippet;
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return false;
+                    }
+
+                    @Override
+                    public FlowSnippetDTO getConfiguration() {
+                        return flowSnippet;
+                    }
+                };
             }
         });
     }
@@ -1149,10 +1469,21 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ConfigurationSnapshot<Void> createArchive(final Revision revision) {
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<Void>() {
             @Override
-            public Void execute() {
+            public ConfigurationResult<Void> execute() {
                 // create the archive
                 controllerFacade.createArchive();
-                return null;
+
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return false;
+                    }
+
+                    @Override
+                    public ControllerConfigurationDTO getConfiguration() {
+                        return null;
+                    }
+                };
             }
         });
     }
@@ -1161,7 +1492,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ConfigurationSnapshot<ProcessorDTO> setProcessorAnnotationData(final Revision revision, final String processorId, final String annotationData) {
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<ProcessorDTO>() {
             @Override
-            public ProcessorDTO execute() {
+            public ConfigurationResult<ProcessorDTO> execute() {
                 // create the processor config
                 final ProcessorConfigDTO config = new ProcessorConfigDTO();
                 config.setAnnotationData(annotationData);
@@ -1180,12 +1511,22 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 }
 
                 // update the processor configuration
-                ProcessorNode processor = processorDAO.updateProcessor(groupId, processorDTO);
+                final ProcessorNode processor = processorDAO.updateProcessor(groupId, processorDTO);
 
                 // save the flow
                 controllerFacade.save();
 
-                return dtoFactory.createProcessorDto(processor);
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return false;
+                    }
+
+                    @Override
+                    public ProcessorDTO getConfiguration() {
+                        return dtoFactory.createProcessorDto(processor);
+                    }
+                };
             }
         });
     }
@@ -1194,7 +1535,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ConfigurationSnapshot<ControllerServiceDTO> createControllerService(final Revision revision, final ControllerServiceDTO controllerServiceDTO) {
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<ControllerServiceDTO>() {
             @Override
-            public ControllerServiceDTO execute() {
+            public ConfigurationResult<ControllerServiceDTO> execute() {
                 // ensure id is set
                 if (StringUtils.isBlank(controllerServiceDTO.getId())) {
                     controllerServiceDTO.setId(UUID.randomUUID().toString());
@@ -1210,7 +1551,17 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     controllerFacade.save();
                 }
 
-                return dtoFactory.createControllerServiceDto(controllerService);
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return true;
+                    }
+
+                    @Override
+                    public ControllerServiceDTO getConfiguration() {
+                        return dtoFactory.createControllerServiceDto(controllerService);
+                    }
+                };
             }
         });
     }
@@ -1224,7 +1575,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<ControllerServiceDTO>() {
             @Override
-            public ControllerServiceDTO execute() {
+            public ConfigurationResult<ControllerServiceDTO> execute() {
                 final ControllerServiceNode controllerService = controllerServiceDAO.updateControllerService(controllerServiceDTO);
 
                 // save the update
@@ -1234,7 +1585,17 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     controllerFacade.save();
                 }
 
-                return dtoFactory.createControllerServiceDto(controllerService);
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return false;
+                    }
+
+                    @Override
+                    public ControllerServiceDTO getConfiguration() {
+                        return dtoFactory.createControllerServiceDto(controllerService);
+                    }
+                };
             }
         });
     }
@@ -1245,11 +1606,23 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             final String controllerServiceId,
             final org.apache.nifi.controller.ScheduledState scheduledState,
             final org.apache.nifi.controller.service.ControllerServiceState controllerServiceState) {
+
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<Set<ControllerServiceReferencingComponentDTO>>() {
             @Override
-            public Set<ControllerServiceReferencingComponentDTO> execute() {
+            public ConfigurationResult<Set<ControllerServiceReferencingComponentDTO>> execute() {
                 final ControllerServiceReference reference = controllerServiceDAO.updateControllerServiceReferencingComponents(controllerServiceId, scheduledState, controllerServiceState);
-                return dtoFactory.createControllerServiceReferencingComponentsDto(reference);
+
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return false;
+                    }
+
+                    @Override
+                    public Set<ControllerServiceReferencingComponentDTO> getConfiguration() {
+                        return dtoFactory.createControllerServiceReferencingComponentsDto(reference);
+                    }
+                };
             }
         });
     }
@@ -1258,7 +1631,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ConfigurationSnapshot<Void> deleteControllerService(final Revision revision, final String controllerServiceId) {
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<Void>() {
             @Override
-            public Void execute() {
+            public ConfigurationResult<Void> execute() {
                 // delete the label
                 controllerServiceDAO.deleteControllerService(controllerServiceId);
 
@@ -1269,7 +1642,17 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     controllerFacade.save();
                 }
 
-                return null;
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return false;
+                    }
+
+                    @Override
+                    public ControllerConfigurationDTO getConfiguration() {
+                        return null;
+                    }
+                };
             }
         });
     }
@@ -1278,7 +1661,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ConfigurationSnapshot<ReportingTaskDTO> createReportingTask(final Revision revision, final ReportingTaskDTO reportingTaskDTO) {
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<ReportingTaskDTO>() {
             @Override
-            public ReportingTaskDTO execute() {
+            public ConfigurationResult<ReportingTaskDTO> execute() {
                 // ensure id is set
                 if (StringUtils.isBlank(reportingTaskDTO.getId())) {
                     reportingTaskDTO.setId(UUID.randomUUID().toString());
@@ -1294,7 +1677,17 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     controllerFacade.save();
                 }
 
-                return dtoFactory.createReportingTaskDto(reportingTask);
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return true;
+                    }
+
+                    @Override
+                    public ReportingTaskDTO getConfiguration() {
+                        return dtoFactory.createReportingTaskDto(reportingTask);
+                    }
+                };
             }
         });
     }
@@ -1308,7 +1701,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<ReportingTaskDTO>() {
             @Override
-            public ReportingTaskDTO execute() {
+            public ConfigurationResult<ReportingTaskDTO> execute() {
                 final ReportingTaskNode reportingTask = reportingTaskDAO.updateReportingTask(reportingTaskDTO);
 
                 // save the update
@@ -1318,7 +1711,17 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     controllerFacade.save();
                 }
 
-                return dtoFactory.createReportingTaskDto(reportingTask);
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return false;
+                    }
+
+                    @Override
+                    public ReportingTaskDTO getConfiguration() {
+                        return dtoFactory.createReportingTaskDto(reportingTask);
+                    }
+                };
             }
         });
     }
@@ -1327,7 +1730,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ConfigurationSnapshot<Void> deleteReportingTask(final Revision revision, final String reportingTaskId) {
         return optimisticLockingManager.configureFlow(revision, new ConfigurationRequest<Void>() {
             @Override
-            public Void execute() {
+            public ConfigurationResult<Void> execute() {
                 // delete the label
                 reportingTaskDAO.deleteReportingTask(reportingTaskId);
 
@@ -1338,7 +1741,17 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     controllerFacade.save();
                 }
 
-                return null;
+                return new ConfigurationResult() {
+                    @Override
+                    public boolean isNew() {
+                        return false;
+                    }
+
+                    @Override
+                    public ControllerConfigurationDTO getConfiguration() {
+                        return null;
+                    }
+                };
             }
         });
     }

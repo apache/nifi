@@ -80,13 +80,13 @@ public class StandardOptimisticLockingManager implements OptimisticLockingManage
             checkRevision(revision);
 
             // execute the configuration request
-            final T result = configurationRequest.execute();
+            final ConfigurationResult<T> result = configurationRequest.execute();
 
             // update the revision
             final Revision newRevision = updateRevision(incrementRevision(revision.getClientId()));
 
             // build the result
-            return new ConfigurationSnapshot(newRevision.getVersion(), result);
+            return new ConfigurationSnapshot(newRevision.getVersion(), result.getConfiguration(), result.isNew());
         } finally {
             unlock();
         }

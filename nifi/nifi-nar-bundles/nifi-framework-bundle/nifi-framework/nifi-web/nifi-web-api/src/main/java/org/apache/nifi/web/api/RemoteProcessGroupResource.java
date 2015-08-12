@@ -1049,7 +1049,11 @@ public class RemoteProcessGroupResource extends ApplicationResource {
         entity.setRevision(updatedRevision);
         entity.setRemoteProcessGroup(responseRemoteProcessGroup);
 
-        return clusterContext(generateOkResponse(entity)).build();
+        if (controllerResponse.isNew()) {
+            return clusterContext(generateCreatedResponse(URI.create(responseRemoteProcessGroup.getUri()), entity)).build();
+        } else {
+            return clusterContext(generateOkResponse(entity)).build();
+        }
     }
 
     // setters

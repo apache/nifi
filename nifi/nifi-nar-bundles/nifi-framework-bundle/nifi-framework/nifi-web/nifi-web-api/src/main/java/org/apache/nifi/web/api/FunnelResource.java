@@ -514,7 +514,11 @@ public class FunnelResource extends ApplicationResource {
         entity.setRevision(updatedRevision);
         entity.setFunnel(responseFunnelDTO);
 
-        return clusterContext(generateOkResponse(entity)).build();
+        if (controllerResponse.isNew()) {
+            return clusterContext(generateCreatedResponse(URI.create(responseFunnelDTO.getUri()), entity)).build();
+        } else {
+            return clusterContext(generateOkResponse(entity)).build();
+        }
     }
 
     /**

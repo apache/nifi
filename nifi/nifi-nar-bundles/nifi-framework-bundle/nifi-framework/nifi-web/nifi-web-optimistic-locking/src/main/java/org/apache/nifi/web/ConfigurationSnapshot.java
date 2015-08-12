@@ -17,17 +17,18 @@
 package org.apache.nifi.web;
 
 /**
- * Response object that captures some configuration for a given revision.
+ * Response object that captures the context of a given configuration.
  *
  * @param <T> type of snapshot
  */
 public class ConfigurationSnapshot<T> {
 
-    private Long version;
-    private T configuration;
+    private final Long version;
+    private final T configuration;
+    private final boolean isNew;
 
     /**
-     * Creates a new ConfigurationSnapshot.
+     * Creates a new ConfigurationSnapshot with no configuration object.
      *
      * @param version The revision version
      */
@@ -36,14 +37,30 @@ public class ConfigurationSnapshot<T> {
     }
 
     /**
-     * Creates a new ConfigurationSnapshot.
+     * Creates a new ConfigurationSnapshot with the specified configuration
+     * object. The object is consider to have been existing prior to this
+     * request.
      *
      * @param version The revision version
      * @param configuration The configuration
      */
     public ConfigurationSnapshot(Long version, T configuration) {
+        this(version, configuration, false);
+    }
+
+    /**
+     * Creates a new ConfigurationSnapshot with the specified configuration
+     * object. The isNew parameter specifies whether the object was created as a
+     * result of this request.
+     *
+     * @param version       The revision version
+     * @param configuration The configuration
+     * @param isNew         Whether the resource was newly created
+     */
+    public ConfigurationSnapshot(Long version, T configuration, boolean isNew) {
         this.version = version;
         this.configuration = configuration;
+        this.isNew = isNew;
     }
 
     /**
@@ -62,6 +79,16 @@ public class ConfigurationSnapshot<T> {
      */
     public T getConfiguration() {
         return configuration;
+    }
+
+    /**
+     * Returns whether the configuration object was created as a result of this
+     * request.
+     *
+     * @return Whether the object was created as a result of this request
+     */
+    public boolean isNew() {
+        return isNew;
     }
 
 }

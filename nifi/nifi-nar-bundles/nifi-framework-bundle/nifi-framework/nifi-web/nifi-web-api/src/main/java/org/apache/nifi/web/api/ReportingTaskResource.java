@@ -739,7 +739,11 @@ public class ReportingTaskResource extends ApplicationResource {
         entity.setRevision(updatedRevision);
         entity.setReportingTask(populateRemainingReportingTaskContent(availability, responseReportingTaskDTO));
 
-        return clusterContext(generateOkResponse(entity)).build();
+        if (controllerResponse.isNew()) {
+            return clusterContext(generateCreatedResponse(URI.create(responseReportingTaskDTO.getUri()), entity)).build();
+        } else {
+            return clusterContext(generateOkResponse(entity)).build();
+        }
     }
 
     /**
