@@ -220,6 +220,13 @@ language governing permissions and limitations under the License. -->
                         <exclude>src/test/resources/TestMergeContent/head</exclude>
                         <exclude>src/test/resources/TestMergeContent/user.avsc</exclude>
                         <exclude>src/test/resources/TestMergeContent/place.avsc</exclude>
+                        <exclude>src/test/resources/TestConvertJSONToSQL/person-1.json</exclude>
+                        <exclude>src/test/resources/TestConvertJSONToSQL/persons.json</exclude>
+                        <exclude>src/test/resources/TestConvertJSONToSQL/malformed-person-extra-comma.json</exclude>
+                        <exclude>src/test/resources/TestConvertJSONToSQL/person-with-extra-field.json</exclude>
+                        <exclude>src/test/resources/TestConvertJSONToSQL/person-without-code.json</exclude>
+                        <exclude>src/test/resources/TestConvertJSONToSQL/person-with-null-code.json</exclude>
+                        <exclude>src/test/resources/TestConvertJSONToSQL/person-without-id.json</exclude>
                         <exclude>src/test/resources/TestModifyBytes/noFooter.txt</exclude>
                         <exclude>src/test/resources/TestModifyBytes/noFooter_noHeader.txt</exclude>
                         <exclude>src/test/resources/TestModifyBytes/noHeader.txt</exclude>
