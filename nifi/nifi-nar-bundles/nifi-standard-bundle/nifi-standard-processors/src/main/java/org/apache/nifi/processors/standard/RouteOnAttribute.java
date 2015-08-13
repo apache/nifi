@@ -193,8 +193,8 @@ public class RouteOnAttribute extends AbstractProcessor {
 
     @OnStopped
     public void onStopped() {
-    	getLogger().debug("Clearing propertyMap");
-    	propertyMap.clear();
+        getLogger().debug("Clearing propertyMap");
+        propertyMap.clear();
     }
 
     @Override
