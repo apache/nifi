@@ -370,6 +370,9 @@ language governing permissions and limitations under the License. -->
         <nifi.cluster.manager.flow.retrieval.delay>5 sec</nifi.cluster.manager.flow.retrieval.delay>
         <nifi.cluster.manager.protocol.threads>10</nifi.cluster.manager.protocol.threads>
         <nifi.cluster.manager.safemode.duration>0 sec</nifi.cluster.manager.safemode.duration>
+
+        <!-- nifi.properties: kerberos properties -->
+        <nifi.kerberos.krb5.file> </nifi.kerberos.krb5.file>
     </properties>
     <profiles>
         <profile>
