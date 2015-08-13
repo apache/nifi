@@ -77,7 +77,6 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         .name("Database User")
         .description("Database user name")
         .defaultValue(null)
-        .required(true)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 
