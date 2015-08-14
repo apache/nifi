@@ -552,6 +552,11 @@ public class MockProcessSession implements ProcessSession {
 
     @Override
     public void transfer(final FlowFile flowFile, final Relationship relationship) {
+        if (relationship == Relationship.SELF) {
+            transfer(flowFile);
+            return;
+        }
+
         validateState(flowFile);
         List<MockFlowFile> list = transferMap.get(relationship);
         if (list == null) {
@@ -565,6 +570,11 @@ public class MockProcessSession implements ProcessSession {
 
     @Override
     public void transfer(final Collection<FlowFile> flowFiles, final Relationship relationship) {
+        if (relationship == Relationship.SELF) {
+            transfer(flowFiles);
+            return;
+        }
+
         for (final FlowFile flowFile : flowFiles) {
             validateState(flowFile);
         }
