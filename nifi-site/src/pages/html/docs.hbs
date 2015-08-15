@@ -1,7 +1,0 @@
----
-title: Apache NiFi Documentation
----
-
-<div class="external-guide">
-    <iframe src="docs/nifi-docs/index.html"></iframe>
-</div>
