@@ -14,9 +14,3 @@ nb-configuration.xml
 *.iws
 *~
 
-# nifi site
-/nifi-site/nbproject/
-/nifi-site/bower_components/
-/nifi-site/dist/
-/nifi-site/node_modules/
-/nifi-site/.sass-cache
