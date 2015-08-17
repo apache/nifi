@@ -289,7 +289,7 @@ nf.CanvasUtils = (function () {
             selection.text(text);
 
             // see if the field is too big for the field
-            if (node.getSubStringLength(0, text.length - 1) > width) {
+            if (text.length > 0 && node.getSubStringLength(0, text.length - 1) > width) {
                 // make some room for the ellipsis
                 width -= 5;
 
