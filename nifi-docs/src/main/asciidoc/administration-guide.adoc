@@ -468,7 +468,16 @@ FlowFile Repository, if also on that disk, could become corrupt. To avoid this s
 |nifi.content.repository.implementation|The Content Repository implementation. The default value is org.apache.nifi.controller.repository.FileSystemRepository and should not be changed.
 |nifi.content.claim.max.appendable.size|The maximum size for a content claim. The default value is 10 MB.
 |nifi.content.claim.max.flow.files|The maximum number of FlowFiles to assign to one content claim. The default value is 100.
-|nifi.content.repository.directory.default*|The location of the Content Repository. The default value is ./content_repository.
+|nifi.content.repository.directory.default*|The location of the Content Repository. The default value is ./content_repository. +
+ +
+*NOTE*: Multiple content repositories can be specified by using the *_nifi.content.repository.directory._* prefix with unique suffixes and separate paths as values. +
+ +
+For example, to provide two additional locations to act as part of the content repository, a user could also specify additional properties with keys of: +
+ +
+nifi.provenance.repository.directory.content1=/repos/provenance1 +
+nifi.provenance.repository.directory.content2=/repos/provenance2 +
+ +
+Providing three total locations, including  _nifi.content.repository.directory.default_.
 |nifi.content.repository.archive.max.retention.period|If archiving is enabled (see nifi.content.repository.archive.enabled below), then
 this property specifies the maximum amount of time to keep the archived data. It is blank by default.
 |nifi.content.repository.archive.max.usage.percentage|If archiving is enabled (see nifi.content.repository.archive.enabled below), then this property also must have a value to indicate the maximum percentage of disk space that may be used for archiving. It is blank by default.
@@ -490,7 +499,16 @@ The Provenance Repository contains the information related to Data Provenance. T
 
 |====
 |*Property*|*Description*
-|nifi.provenance.repository.directory.default*|The location of the Provenance Repository. The default value is ./provenance_repository.
+|nifi.provenance.repository.directory.default*|The location of the Provenance Repository. The default value is ./provenance_repository. +
+ +
+*NOTE*: Multiple provenance repositories can be specified by using the *_nifi.provenance.repository.directory._* prefix with unique suffixes and separate paths as values. +
+ +
+For example, to provide two additional locations to act as part of the provenance repository, a user could also specify additional properties with keys of: +
+ +
+nifi.provenance.repository.directory.provenance1=/repos/provenance1 +
+nifi.provenance.repository.directory.provenance2=/repos/provenance2 +
+ +
+Providing three total locations, including  _nifi.provenance.repository.directory.default_.
 |nifi.provenance.repository.max.storage.time|The maximum amount of time to keep data provenance information. The default value is 24 hours.
 |nifi.provenance.repository.max.storage.size|The maximum amount of data provenance information to store at a time. The default is 1 GB.
 |nifi.provenance.repository.rollover.time|The amount of time to wait before rolling over the latest data provenance information so that it is available in the User Interface. The default value is 5 mins. 
