@@ -306,22 +306,27 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
             final long claimRemovalStart = System.nanoTime();
             final long updateProvenanceNanos = claimRemovalStart - updateProvenanceStart;
 
-	        // Figure out which content claims can be released.
-            // At this point, we will decrement the Claimant Count for the claims via the Content Repository.
-            // We do not actually destroy the content because otherwise, we could remove the
-            // Original Claim and crash/restart before the FlowFileRepository is updated. This will result in the FlowFile being restored such that
-            // the content claim points to the Original Claim -- which has already been removed!
+            /**
+             * Figure out which content claims can be released. At this point,
+             * we will decrement the Claimant Count for the claims via the
+             * Content Repository. We do not actually destroy the content
+             * because otherwise, we could remove the Original Claim and
+             * crash/restart before the FlowFileRepository is updated. This will
+             * result in the FlowFile being restored such that the content claim
+             * points to the Original Claim -- which has already been removed!
+             *
+             */
             for (final Map.Entry<FlowFileRecord, StandardRepositoryRecord> entry : checkpoint.records.entrySet()) {
                 final FlowFile flowFile = entry.getKey();
                 final StandardRepositoryRecord record = entry.getValue();
 
                 if (record.isMarkedForDelete()) {
-	                // if the working claim is not the same as the original claim, we can immediately destroy the working claim
+                    // if the working claim is not the same as the original claim, we can immediately destroy the working claim
                     // because it was created in this session and is to be deleted. We don't need to wait for the FlowFile Repo to sync.
                     removeContent(record.getWorkingClaim());
 
                     if (record.getOriginalClaim() != null && !record.getOriginalClaim().equals(record.getWorkingClaim())) {
-	                    // if working & original claim are same, don't remove twice; we only want to remove the original
+                        // if working & original claim are same, don't remove twice; we only want to remove the original
                         // if it's different from the working. Otherwise, we remove two claimant counts. This causes
                         // an issue if we only updated the FlowFile attributes.
                         removeContent(record.getOriginalClaim());
@@ -361,7 +366,7 @@ public final class StandardProcessSession implements ProcessSession, ProvenanceE
                 if (record.isMarkedForAbort() || record.isMarkedForDelete()) {
                     continue; //these don't need to be transferred
                 }
-	            // record.getCurrent() will return null if this record was created in this session --
+                // record.getCurrent() will return null if this record was created in this session --
                 // in this case, we just ignore it, and it will be cleaned up by clearing the records map.
                 if (record.getCurrent() != null) {
                     Collection<FlowFileRecord> collection = recordMap.get(record.getDestination());
