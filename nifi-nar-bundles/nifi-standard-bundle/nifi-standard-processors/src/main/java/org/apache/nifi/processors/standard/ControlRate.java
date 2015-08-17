@@ -79,7 +79,7 @@ public class ControlRate extends AbstractProcessor {
     public static final PropertyDescriptor RATE_CONTROL_ATTRIBUTE_NAME = new PropertyDescriptor.Builder()
             .name("Rate Controlled Attribute")
             .description("The name of an attribute whose values build toward the rate limit if Rate Control Criteria is set to 'attribute value'. "
-                    + "The value of the attribute referenced by this property must be a positive integer, or the FlowFile will be routed to failure. "
+                    + "The value of the attribute referenced by this property must be a positive long, or the FlowFile will be routed to failure. "
                     + "This value is ignored if Rate Control Criteria is not set to 'attribute value'. Changing this value resets the rate counters.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -249,7 +249,7 @@ public class ControlRate extends AbstractProcessor {
                 }
 
                 if (!POSITIVE_LONG_PATTERN.matcher(attributeValue).matches()) {
-                    logger.error("routing {} to 'failure' because FlowFile attribute {} has a value of {}, which is not a positive integer",
+                    logger.error("routing {} to 'failure' because FlowFile attribute {} has a value of {}, which is not a positive long",
                             new Object[]{flowFile, rateControlAttributeName, attributeValue});
                     session.transfer(flowFile, REL_FAILURE);
                     return;
