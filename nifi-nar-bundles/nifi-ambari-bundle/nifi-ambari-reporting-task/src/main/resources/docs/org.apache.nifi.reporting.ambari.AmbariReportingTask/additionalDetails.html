@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+    <head>
+        <meta charset="utf-8" />
+        <title>AmbariReportingTask</title>
+        <link rel="stylesheet" href="../../css/component-usage.css" type="text/css" />
+    </head>
+
+    <body>
+        <h2>AmbariReportingTask</h2>
+
+        <p>This ReportingTask sends the following metrics to Ambari:</p>
+        <ul>
+            <li>FlowFilesReceivedLast5Minutes</li>
+            <li>BytesReceivedLast5Minutes</li>
+            <li>FlowFilesSentLast5Minutes</li>
+            <li>BytesSentLast5Minutes</li>
+            <li>FlowFilesQueued</li>
+            <li>BytesQueued</li>
+            <li>BytesReadLast5Minutes</li>
+            <li>BytesWrittenLast5Minutes</li>
+            <li>ActiveThreads</li>
+            <li>TotalTaskDurationSeconds</li>
+            <li>jvm.uptime</li>
+            <li>jvm.heap_used</li>
+            <li>jvm.heap_usage</li>
+            <li>jvm.non_heap_usage</li>
+            <li>jvm.thread_states.runnable</li>
+            <li>jvm.thread_states.blocked</li>
+            <li>jvm.thread_states.timed_waiting</li>
+            <li>jvm.thread_states.terminated</li>
+            <li>jvm.thread_count</li>
+            <li>jvm.daemon_thread_count</li>
+            <li>jvm.file_descriptor_usage</li>
+            <li>jvm.gc.runs</li>
+            <li>jvm.gc.time</li>
+        </ul>
+        <p>
+            In order to make use of these metrics in Ambari, a NIFI service must be created and installed
+            in Ambari. Please consult the Ambari and NiFi documentation for further details.
+        </p>
+    </body>
+</html>
