@@ -40,4 +40,12 @@
             <version>2.1.0</version>
         </dependency>        
     </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-documentation-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
 </project>

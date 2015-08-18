@@ -62,6 +62,10 @@
                     </excludes>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-documentation-plugin</artifactId>
+            </plugin>
         </plugins>
     </build>
 </project>
