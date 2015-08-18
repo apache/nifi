@@ -18,19 +18,31 @@ package org.apache.nifi.controller.scheduling;
 
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.Heartbeater;
+import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
+import org.apache.nifi.controller.StandardProcessorNode;
 import org.apache.nifi.controller.ValidationContextFactory;
 import org.apache.nifi.controller.reporting.StandardReportingInitializationContext;
 import org.apache.nifi.controller.reporting.StandardReportingTaskNode;
+import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.controller.service.StandardControllerServiceProvider;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.StandardValidationContextFactory;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingContext;
@@ -84,6 +96,26 @@ public class TestStandardProcessScheduler {
         assertTrue("After unscheduling Reporting Task, task ran an additional " + attemptsAfterStop + " times", attemptsAfterStop <= 1);
     }
 
+    @Test(timeout = 6000)
+    public void testDisableControllerServiceWithProcessorTryingToStartUsingIt() throws InterruptedException {
+        final Processor proc = new ServiceReferencingProcessor();
+
+        final ControllerServiceProvider serviceProvider = new StandardControllerServiceProvider(scheduler, null);
+        final ControllerServiceNode service = serviceProvider.createControllerService(NoStartServiceImpl.class.getName(), "service", true);
+        final ProcessorNode procNode = new StandardProcessorNode(proc, UUID.randomUUID().toString(),
+                new StandardValidationContextFactory(serviceProvider), scheduler, serviceProvider);
+
+        procNode.setProperty(ServiceReferencingProcessor.SERVICE_DESC.getName(), service.getIdentifier());
+
+        scheduler.enableControllerService(service);
+        scheduler.startProcessor(procNode);
+
+        Thread.sleep(1000L);
+
+        scheduler.stopProcessor(procNode);
+        scheduler.disableControllerService(service);
+    }
+
 
     private class TestReportingTask extends AbstractReportingTask {
         private final AtomicBoolean failOnScheduled = new AtomicBoolean(true);
@@ -102,6 +134,26 @@ public class TestStandardProcessScheduler {
         @Override
         public void onTrigger(final ReportingContext context) {
             triggerCount.getAndIncrement();
+        }
+    }
+
+
+    private static class ServiceReferencingProcessor extends AbstractProcessor {
+        static final PropertyDescriptor SERVICE_DESC = new PropertyDescriptor.Builder()
+                .name("service")
+                .identifiesControllerService(NoStartService.class)
+                .required(true)
+                .build();
+
+        @Override
+        protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+            final List<PropertyDescriptor> properties = new ArrayList<>();
+            properties.add(SERVICE_DESC);
+            return properties;
+        }
+
+        @Override
+        public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         }
     }
 }

@@ -320,15 +320,23 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                         }
                     }
 
-                    attemptOnScheduled:
-                    while (true) {
+                    boolean needSleep = false;
+                    attemptOnScheduled: while (true) {
                         try {
+                            // We put this here so that we can sleep outside of the synchronized block, as
+                            // we can't hold the synchronized block the whole time. If we do hold it the whole time,
+                            // we will not be able to stop the controller service if it has trouble starting because
+                            // the call to disable the service will block when attempting to synchronize on scheduleState.
+                            if (needSleep) {
+                                Thread.sleep(administrativeYieldMillis);
+                            }
+
                             synchronized (scheduleState) {
                                 for (final String serviceId : serviceIds) {
                                     final boolean enabled = processContext.isControllerServiceEnabled(serviceId);
                                     if (!enabled) {
                                         LOG.debug("Controller Service with ID {} is not yet enabled, so will not start {} yet", serviceId, procNode);
-                                        Thread.sleep(administrativeYieldMillis);
+                                        needSleep = true;
                                         continue attemptOnScheduled;
                                     }
                                 }
