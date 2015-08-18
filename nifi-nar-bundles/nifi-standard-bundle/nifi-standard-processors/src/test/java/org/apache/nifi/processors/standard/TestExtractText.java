@@ -310,4 +310,43 @@ public class TestExtractText {
         assertEquals(2, relationships.size());
     }
 
+    @Test
+    public void testIncludeZeroCaptureGroupProperty() throws Exception {
+        final TestRunner testRunner = TestRunners.newTestRunner(new ExtractText());
+
+        final String attributeKey = "regex.result";
+
+        testRunner.setProperty(attributeKey, "(?s)(.*)");
+
+        testRunner.enqueue(SAMPLE_STRING.getBytes("UTF-8"));
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(ExtractText.REL_MATCH, 1);
+        final MockFlowFile out = testRunner.getFlowFilesForRelationship(ExtractText.REL_MATCH).get(0);
+
+        // Ensure the zero capture group is in the resultant attributes
+        out.assertAttributeExists(attributeKey + ".0");
+        out.assertAttributeEquals(attributeKey, SAMPLE_STRING);
+    }
+
+    @Test
+    public void testIgnoreZeroCaptureGroupProperty() throws Exception {
+        final TestRunner testRunner = TestRunners.newTestRunner(new ExtractText());
+
+        testRunner.setProperty(ExtractText.INCLUDE_CAPTURE_GROUP_ZERO, "false");
+
+        final String attributeKey = "regex.result";
+
+        testRunner.setProperty(attributeKey, "(?s)(.*)");
+
+        testRunner.enqueue(SAMPLE_STRING.getBytes("UTF-8"));
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(ExtractText.REL_MATCH, 1);
+        final MockFlowFile out = testRunner.getFlowFilesForRelationship(ExtractText.REL_MATCH).get(0);
+
+        // Ensure the zero capture group is not in the resultant attributes
+        out.assertAttributeNotExists(attributeKey + ".0");
+        out.assertAttributeEquals(attributeKey, SAMPLE_STRING);
+    }
 }
