@@ -36,6 +36,7 @@
             	<exclude>nifi-bootstrap</exclude>
                 <exclude>nifi-resources</exclude>
                 <exclude>nifi-docs</exclude>
+                <exclude>nifi-web-api</exclude>
             </excludes>
         </dependencySet>
         

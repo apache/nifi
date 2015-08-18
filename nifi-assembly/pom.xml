@@ -46,8 +46,58 @@ language governing permissions and limitations under the License. -->
                             <tarLongFileMode>posix</tarLongFileMode>
                         </configuration>
                     </execution>
+                    <execution>
+                        <id>make site</id>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <phase>package</phase>
+                        <configuration>
+                            <archiverConfig>
+                                <defaultDirectoryMode>0775</defaultDirectoryMode>
+                                <directoryMode>0775</directoryMode>
+                                <fileMode>0664</fileMode>
+                            </archiverConfig>
+                            <descriptors>
+                                <descriptor>src/main/assembly/site.xml</descriptor>
+                            </descriptors>
+                            <tarLongFileMode>posix</tarLongFileMode>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-dependency-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>unpack</id>
+						<phase>generate-resources</phase>
+						<goals>
+							<goal>unpack-dependencies</goal>
+						</goals>
+						<configuration>
+							<includeArtifactIds>nifi-web-api</includeArtifactIds>
+							<includes>**/*.*</includes>
+							<outputDirectory>${project.build.directory}/nifi-web-api</outputDirectory>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+            <plugin>
+				<groupId>org.apache.nifi</groupId>
+				<artifactId>nifi-documentation-plugin</artifactId>
+				<version>1.0.0-SNAPSHOT</version>
+				<executions>
+					<execution>
+						<id>extract</id>
+						<goals>
+							<goal>extract</goal>
+						</goals>
+						<phase>process-classes</phase>
+					</execution>
+				</executions>
+			</plugin>
         </plugins>
     </build>
     <dependencies>
@@ -216,6 +266,13 @@ language governing permissions and limitations under the License. -->
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-ambari-nar</artifactId>
             <type>nar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-web-api</artifactId>
+            <version>0.3.0-SNAPSHOT</version>
+            <type>war</type>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
 
