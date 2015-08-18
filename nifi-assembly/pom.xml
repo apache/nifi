@@ -217,6 +217,12 @@ language governing permissions and limitations under the License. -->
             <artifactId>nifi-ambari-nar</artifactId>
             <type>nar</type>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-image-nar</artifactId>
+            <version>0.3.0-SNAPSHOT</version>
+            <type>nar</type>
+        </dependency>
     </dependencies>
 
     <properties>
