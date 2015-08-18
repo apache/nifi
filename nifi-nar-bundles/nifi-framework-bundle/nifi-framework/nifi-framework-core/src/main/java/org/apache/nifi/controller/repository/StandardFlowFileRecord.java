@@ -95,7 +95,7 @@ public final class StandardFlowFileRecord implements FlowFile, FlowFileRecord {
 
     @Override
     public boolean isPenalized() {
-        return (penaltyExpirationMs > 0) ? penaltyExpirationMs > System.currentTimeMillis() : false;
+        return penaltyExpirationMs > 0 ? penaltyExpirationMs > System.currentTimeMillis() : false;
     }
 
     @Override
@@ -150,7 +150,7 @@ public final class StandardFlowFileRecord implements FlowFile, FlowFileRecord {
     public String toString() {
         final ToStringBuilder builder = new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE);
         builder.append("uuid", getAttribute(CoreAttributes.UUID.key()));
-        builder.append("claim", claim == null ? "" : claim.getId());
+        builder.append("claim", claim == null ? "" : claim.toString());
         builder.append("offset", claimOffset);
         builder.append("name", getAttribute(CoreAttributes.FILENAME.key())).append("size", size);
         return builder.toString();
@@ -169,7 +169,7 @@ public final class StandardFlowFileRecord implements FlowFile, FlowFileRecord {
         private final Set<String> bLineageIdentifiers = new HashSet<>();
         private long bPenaltyExpirationMs = -1L;
         private long bSize = 0L;
-        private Map<String, String> bAttributes = new HashMap<>();
+        private final Map<String, String> bAttributes = new HashMap<>();
         private ContentClaim bClaim = null;
         private long bClaimOffset = 0L;
         private long bLastQueueDate = System.currentTimeMillis();

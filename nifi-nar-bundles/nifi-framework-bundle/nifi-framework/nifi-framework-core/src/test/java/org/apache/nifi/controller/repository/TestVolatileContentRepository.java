@@ -17,6 +17,7 @@
 package org.apache.nifi.controller.repository;
 
 import org.apache.nifi.controller.repository.VolatileContentRepository;
+
 import static org.junit.Assert.assertEquals;
 
 import java.io.ByteArrayOutputStream;
@@ -29,10 +30,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.controller.repository.claim.ContentClaim;
-import org.apache.nifi.controller.repository.claim.ContentClaimManager;
-import org.apache.nifi.controller.repository.claim.StandardContentClaimManager;
+import org.apache.nifi.controller.repository.claim.ResourceClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
+import org.apache.nifi.controller.repository.claim.StandardContentClaim;
+import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.util.NiFiProperties;
-
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -41,11 +43,11 @@ import org.mockito.Mockito;
 
 public class TestVolatileContentRepository {
 
-    private ContentClaimManager claimManager;
+    private ResourceClaimManager claimManager;
 
     @Before
     public void setup() {
-        claimManager = new StandardContentClaimManager();
+        claimManager = new StandardResourceClaimManager();
     }
 
     @Test
@@ -81,8 +83,9 @@ public class TestVolatileContentRepository {
 
         final ContentRepository mockRepo = Mockito.mock(ContentRepository.class);
         contentRepo.setBackupRepository(mockRepo);
-        final ContentClaim newClaim = claimManager.newContentClaim("container", "section", "1000", true);
-        Mockito.when(mockRepo.create(Matchers.anyBoolean())).thenReturn(newClaim);
+        final ResourceClaim resourceClaim = claimManager.newResourceClaim("container", "section", "1000", true);
+        final ContentClaim contentClaim = new StandardContentClaim(resourceClaim, 0L);
+        Mockito.when(mockRepo.create(Matchers.anyBoolean())).thenReturn(contentClaim);
 
         final ByteArrayOutputStream overflowStream = new ByteArrayOutputStream();
         Mockito.when(mockRepo.write(Matchers.any(ContentClaim.class))).thenReturn(overflowStream);

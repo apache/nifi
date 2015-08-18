@@ -22,7 +22,9 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.nifi.controller.FlowFileQueue;
-import org.apache.nifi.controller.repository.claim.ContentClaimManager;
+import org.apache.nifi.controller.repository.claim.ContentClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 
 /**
  * <p>
@@ -32,10 +34,10 @@ import org.apache.nifi.controller.repository.claim.ContentClaimManager;
 public class VolatileFlowFileRepository implements FlowFileRepository {
 
     private final AtomicLong idGenerator = new AtomicLong(0L);
-    private ContentClaimManager claimManager; // effectively final
+    private ResourceClaimManager claimManager; // effectively final
 
     @Override
-    public void initialize(final ContentClaimManager claimManager) {
+    public void initialize(final ResourceClaimManager claimManager) {
         this.claimManager = claimManager;
     }
 
@@ -58,23 +60,49 @@ public class VolatileFlowFileRepository implements FlowFileRepository {
     public void close() throws IOException {
     }
 
+    private void markDestructable(final ContentClaim contentClaim) {
+        if (contentClaim == null) {
+            return;
+        }
+
+        final ResourceClaim resourceClaim = contentClaim.getResourceClaim();
+        if (resourceClaim == null) {
+            return;
+        }
+
+        claimManager.markDestructable(resourceClaim);
+    }
+
+    private int getClaimantCount(final ContentClaim claim) {
+        if (claim == null) {
+            return 0;
+        }
+
+        final ResourceClaim resourceClaim = claim.getResourceClaim();
+        if (resourceClaim == null) {
+            return 0;
+        }
+
+        return claimManager.getClaimantCount(resourceClaim);
+    }
+
     @Override
     public void updateRepository(final Collection<RepositoryRecord> records) throws IOException {
         for (final RepositoryRecord record : records) {
             if (record.getType() == RepositoryRecordType.DELETE) {
                 // For any DELETE record that we have, if current claim's claimant count <= 0, mark it as destructable
-                if (record.getCurrentClaim() != null && claimManager.getClaimantCount(record.getCurrentClaim()) <= 0) {
-                    claimManager.markDestructable(record.getCurrentClaim());
+                if (record.getCurrentClaim() != null && getClaimantCount(record.getCurrentClaim()) <= 0) {
+                    markDestructable(record.getCurrentClaim());
                 }
 
                 // If the original claim is different than the current claim and the original claim has a claimant count <= 0, mark it as destructable.
-                if (record.getOriginalClaim() != null && !record.getOriginalClaim().equals(record.getCurrentClaim()) && claimManager.getClaimantCount(record.getOriginalClaim()) <= 0) {
-                    claimManager.markDestructable(record.getOriginalClaim());
+                if (record.getOriginalClaim() != null && !record.getOriginalClaim().equals(record.getCurrentClaim()) && getClaimantCount(record.getOriginalClaim()) <= 0) {
+                    markDestructable(record.getOriginalClaim());
                 }
             } else if (record.getType() == RepositoryRecordType.UPDATE) {
                 // if we have an update, and the original is no longer needed, mark original as destructable
-                if (record.getOriginalClaim() != null && record.getCurrentClaim() != record.getOriginalClaim() && claimManager.getClaimantCount(record.getOriginalClaim()) <= 0) {
-                    claimManager.markDestructable(record.getOriginalClaim());
+                if (record.getOriginalClaim() != null && record.getCurrentClaim() != record.getOriginalClaim() && getClaimantCount(record.getOriginalClaim()) <= 0) {
+                    markDestructable(record.getOriginalClaim());
                 }
             }
         }

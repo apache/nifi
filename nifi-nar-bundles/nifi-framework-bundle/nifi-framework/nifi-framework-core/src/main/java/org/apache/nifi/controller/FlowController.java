@@ -98,9 +98,12 @@ import org.apache.nifi.controller.repository.StandardCounterRepository;
 import org.apache.nifi.controller.repository.StandardFlowFileRecord;
 import org.apache.nifi.controller.repository.StandardRepositoryRecord;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
-import org.apache.nifi.controller.repository.claim.ContentClaimManager;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
-import org.apache.nifi.controller.repository.claim.StandardContentClaimManager;
+import org.apache.nifi.controller.repository.claim.ResourceClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
+import org.apache.nifi.controller.repository.claim.StandardContentClaim;
+import org.apache.nifi.controller.repository.claim.StandardResourceClaim;
+import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.controller.repository.io.LimitedInputStream;
 import org.apache.nifi.controller.scheduling.EventDrivenSchedulingAgent;
 import org.apache.nifi.controller.scheduling.ProcessContextFactory;
@@ -176,7 +179,6 @@ import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.scheduling.SchedulingStrategy;
-import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
@@ -282,7 +284,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
     private final NodeProtocolSender protocolSender;
 
     private final ScheduledExecutorService clusterTaskExecutor = new FlowEngine(3, "Clustering Tasks");
-    private final ContentClaimManager contentClaimManager = new StandardContentClaimManager();
+    private final ResourceClaimManager contentClaimManager = new StandardResourceClaimManager();
 
     // guarded by rwLock
     /**
@@ -495,7 +497,7 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         heartbeatBeanRef.set(new HeartbeatBean(rootGroup, false, false));
     }
 
-    private static FlowFileRepository createFlowFileRepository(final NiFiProperties properties, final ContentClaimManager contentClaimManager) {
+    private static FlowFileRepository createFlowFileRepository(final NiFiProperties properties, final ResourceClaimManager contentClaimManager) {
         final String implementationClassName = properties.getProperty(NiFiProperties.FLOWFILE_REPOSITORY_IMPLEMENTATION, DEFAULT_FLOWFILE_REPO_IMPLEMENTATION);
         if (implementationClassName == null) {
             throw new RuntimeException("Cannot create FlowFile Repository because the NiFi Properties is missing the following property: "
@@ -3108,7 +3110,8 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             @Override
             public boolean isInputAvailable() {
                 try {
-                    return contentRepository.isAccessible(createClaim(event.getPreviousContentClaimContainer(), event.getPreviousContentClaimSection(), event.getPreviousContentClaimIdentifier()));
+                    return contentRepository.isAccessible(createClaim(event.getPreviousContentClaimContainer(), event.getPreviousContentClaimSection(),
+                        event.getPreviousContentClaimIdentifier(), event.getPreviousContentClaimOffset()));
                 } catch (final IOException e) {
                     return false;
                 }
@@ -3117,43 +3120,20 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
             @Override
             public boolean isOutputAvailable() {
                 try {
-                    return contentRepository.isAccessible(createClaim(event.getContentClaimContainer(), event.getContentClaimSection(), event.getContentClaimIdentifier()));
+                    return contentRepository.isAccessible(createClaim(event.getContentClaimContainer(), event.getContentClaimSection(),
+                        event.getContentClaimIdentifier(), event.getContentClaimOffset()));
                 } catch (final IOException e) {
                     return false;
                 }
             }
 
-            private ContentClaim createClaim(final String container, final String section, final String identifier) {
+            private ContentClaim createClaim(final String container, final String section, final String identifier, final Long offset) {
                 if (container == null || section == null || identifier == null) {
                     return null;
                 }
 
-                return new ContentClaim() {
-                    @Override
-                    public int compareTo(final ContentClaim o) {
-                        return 0;
-                    }
-
-                    @Override
-                    public String getId() {
-                        return identifier;
-                    }
-
-                    @Override
-                    public String getContainer() {
-                        return container;
-                    }
-
-                    @Override
-                    public String getSection() {
-                        return section;
-                    }
-
-                    @Override
-                    public boolean isLossTolerant() {
-                        return false;
-                    }
-                };
+                final StandardResourceClaim resourceClaim = new StandardResourceClaim(container, section, identifier, false);
+                return new StandardContentClaim(resourceClaim, offset == null ? 0L : offset.longValue());
             }
 
             @Override
@@ -3170,45 +3150,48 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         requireNonNull(requestUri);
 
         final ContentClaim claim;
-        final Long offset;
         final long size;
+        final long offset;
         if (direction == ContentDirection.INPUT) {
             if (provEvent.getPreviousContentClaimContainer() == null || provEvent.getPreviousContentClaimSection() == null || provEvent.getPreviousContentClaimIdentifier() == null) {
                 throw new IllegalArgumentException("Input Content Claim not specified");
             }
 
-            claim = contentClaimManager.newContentClaim(provEvent.getPreviousContentClaimContainer(), provEvent.getPreviousContentClaimSection(), provEvent.getPreviousContentClaimIdentifier(), false);
-            offset = provEvent.getPreviousContentClaimOffset();
+            final ResourceClaim resourceClaim = contentClaimManager.newResourceClaim(provEvent.getPreviousContentClaimContainer(), provEvent.getPreviousContentClaimSection(),
+                provEvent.getPreviousContentClaimIdentifier(), false);
+            claim = new StandardContentClaim(resourceClaim, provEvent.getPreviousContentClaimOffset());
+            offset = provEvent.getPreviousContentClaimOffset() == null ? 0L : provEvent.getPreviousContentClaimOffset();
             size = provEvent.getPreviousFileSize();
         } else {
             if (provEvent.getContentClaimContainer() == null || provEvent.getContentClaimSection() == null || provEvent.getContentClaimIdentifier() == null) {
                 throw new IllegalArgumentException("Output Content Claim not specified");
             }
 
-            claim = contentClaimManager.newContentClaim(provEvent.getContentClaimContainer(), provEvent.getContentClaimSection(), provEvent.getContentClaimIdentifier(), false);
-            offset = provEvent.getContentClaimOffset();
+            final ResourceClaim resourceClaim = contentClaimManager.newResourceClaim(provEvent.getContentClaimContainer(), provEvent.getContentClaimSection(),
+                provEvent.getContentClaimIdentifier(), false);
+
+            claim = new StandardContentClaim(resourceClaim, provEvent.getContentClaimOffset());
+            offset = provEvent.getContentClaimOffset() == null ? 0L : provEvent.getContentClaimOffset();
             size = provEvent.getFileSize();
         }
 
         final InputStream rawStream = contentRepository.read(claim);
-        if (offset != null) {
-            StreamUtils.skip(rawStream, offset.longValue());
-        }
+        final ResourceClaim resourceClaim = claim.getResourceClaim();
 
         // Register a Provenance Event to indicate that we replayed the data.
         final ProvenanceEventRecord sendEvent = new StandardProvenanceEventRecord.Builder()
-                .setEventType(ProvenanceEventType.SEND)
-                .setFlowFileUUID(provEvent.getFlowFileUuid())
-                .setAttributes(provEvent.getAttributes(), Collections.<String, String>emptyMap())
-                .setCurrentContentClaim(claim.getContainer(), claim.getSection(), claim.getId(), offset, size)
-                .setTransitUri(requestUri)
-                .setEventTime(System.currentTimeMillis())
-                .setFlowFileEntryDate(provEvent.getFlowFileEntryDate())
-                .setLineageStartDate(provEvent.getLineageStartDate())
-                .setComponentType(getName())
-                .setComponentId(getRootGroupId())
-                .setDetails("Download of " + (direction == ContentDirection.INPUT ? "Input" : "Output") + " Content requested by " + requestor + " for Provenance Event " + provEvent.getEventId())
-                .build();
+            .setEventType(ProvenanceEventType.SEND)
+            .setFlowFileUUID(provEvent.getFlowFileUuid())
+            .setAttributes(provEvent.getAttributes(), Collections.<String, String> emptyMap())
+            .setCurrentContentClaim(resourceClaim.getContainer(), resourceClaim.getSection(), resourceClaim.getId(), offset, size)
+            .setTransitUri(requestUri)
+            .setEventTime(System.currentTimeMillis())
+            .setFlowFileEntryDate(provEvent.getFlowFileEntryDate())
+            .setLineageStartDate(provEvent.getLineageStartDate())
+            .setComponentType(getName())
+            .setComponentId(getRootGroupId())
+            .setDetails("Download of " + (direction == ContentDirection.INPUT ? "Input" : "Output") + " Content requested by " + requestor + " for Provenance Event " + provEvent.getEventId())
+            .build();
 
         provenanceEventRepository.registerEvent(sendEvent);
 
@@ -3233,7 +3216,10 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
 
         try {
-            if (!contentRepository.isAccessible(contentClaimManager.newContentClaim(contentClaimContainer, contentClaimSection, contentClaimId, false))) {
+            final ResourceClaim resourceClaim = contentClaimManager.newResourceClaim(contentClaimContainer, contentClaimSection, contentClaimId, false);
+            final ContentClaim contentClaim = new StandardContentClaim(resourceClaim, event.getPreviousContentClaimOffset());
+
+            if (!contentRepository.isAccessible(contentClaim)) {
                 return "Content is no longer available in Content Repository";
             }
         } catch (final IOException ioe) {
@@ -3310,18 +3296,20 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
         }
 
         // Create the ContentClaim
-        final ContentClaim claim = contentClaimManager.newContentClaim(event.getPreviousContentClaimContainer(),
+        final ResourceClaim resourceClaim = contentClaimManager.newResourceClaim(event.getPreviousContentClaimContainer(),
                 event.getPreviousContentClaimSection(), event.getPreviousContentClaimIdentifier(), false);
 
         // Increment Claimant Count, since we will now be referencing the Content Claim
-        contentClaimManager.incrementClaimantCount(claim);
+        contentClaimManager.incrementClaimantCount(resourceClaim);
+        final long claimOffset = event.getPreviousContentClaimOffset() == null ? 0L : event.getPreviousContentClaimOffset().longValue();
+        final StandardContentClaim contentClaim = new StandardContentClaim(resourceClaim, claimOffset);
+        contentClaim.setLength(event.getPreviousFileSize() == null ? -1L : event.getPreviousFileSize());
 
-        if (!contentRepository.isAccessible(claim)) {
-            contentClaimManager.decrementClaimantCount(claim);
+        if (!contentRepository.isAccessible(contentClaim)) {
+            contentClaimManager.decrementClaimantCount(resourceClaim);
             throw new IllegalStateException("Cannot replay data from Provenance Event because the data is no longer available in the Content Repository");
         }
 
-        final long claimOffset = event.getPreviousContentClaimOffset() == null ? 0L : event.getPreviousContentClaimOffset().longValue();
         final String parentUUID = event.getFlowFileUuid();
 
         // Create the FlowFile Record
@@ -3331,39 +3319,39 @@ public class FlowController implements EventAccess, ControllerServiceProvider, R
 
         final String newFlowFileUUID = UUID.randomUUID().toString();
         final FlowFileRecord flowFileRecord = new StandardFlowFileRecord.Builder()
-                // Copy relevant info from source FlowFile
-                .addAttributes(event.getPreviousAttributes())
-                .contentClaim(claim)
-                .contentClaimOffset(claimOffset)
-                .entryDate(System.currentTimeMillis())
-                .id(flowFileRepository.getNextFlowFileSequence())
-                .lineageIdentifiers(lineageIdentifiers)
-                .lineageStartDate(event.getLineageStartDate())
-                .size(contentSize.longValue())
-                // Create a new UUID and add attributes indicating that this is a replay
-                .addAttribute("flowfile.replay", "true")
-                .addAttribute("flowfile.replay.timestamp", String.valueOf(new Date()))
-                .addAttribute(CoreAttributes.UUID.key(), newFlowFileUUID)
-                // remove attributes that may have existed on the source FlowFile that we don't want to exist on the new FlowFile
-                .removeAttributes(CoreAttributes.DISCARD_REASON.key(), CoreAttributes.ALTERNATE_IDENTIFIER.key())
-                // build the record
-                .build();
+            // Copy relevant info from source FlowFile
+            .addAttributes(event.getPreviousAttributes())
+            .contentClaim(contentClaim)
+            .contentClaimOffset(0L) // use 0 because we used the content claim offset in the Content Claim itself
+            .entryDate(System.currentTimeMillis())
+            .id(flowFileRepository.getNextFlowFileSequence())
+            .lineageIdentifiers(lineageIdentifiers)
+            .lineageStartDate(event.getLineageStartDate())
+            .size(contentSize.longValue())
+            // Create a new UUID and add attributes indicating that this is a replay
+            .addAttribute("flowfile.replay", "true")
+            .addAttribute("flowfile.replay.timestamp", String.valueOf(new Date()))
+            .addAttribute(CoreAttributes.UUID.key(), newFlowFileUUID)
+            // remove attributes that may have existed on the source FlowFile that we don't want to exist on the new FlowFile
+            .removeAttributes(CoreAttributes.DISCARD_REASON.key(), CoreAttributes.ALTERNATE_IDENTIFIER.key())
+            // build the record
+            .build();
 
         // Register a Provenance Event to indicate that we replayed the data.
         final ProvenanceEventRecord replayEvent = new StandardProvenanceEventRecord.Builder()
-                .setEventType(ProvenanceEventType.REPLAY)
-                .addChildUuid(newFlowFileUUID)
-                .addParentUuid(parentUUID)
-                .setFlowFileUUID(parentUUID)
-                .setAttributes(Collections.<String, String>emptyMap(), flowFileRecord.getAttributes())
-                .setCurrentContentClaim(event.getContentClaimSection(), event.getContentClaimContainer(), event.getContentClaimIdentifier(), event.getContentClaimOffset(), event.getFileSize())
-                .setDetails("Replay requested by " + requestor)
-                .setEventTime(System.currentTimeMillis())
-                .setFlowFileEntryDate(System.currentTimeMillis())
-                .setLineageStartDate(event.getLineageStartDate())
-                .setComponentType(event.getComponentType())
-                .setComponentId(event.getComponentId())
-                .build();
+            .setEventType(ProvenanceEventType.REPLAY)
+            .addChildUuid(newFlowFileUUID)
+            .addParentUuid(parentUUID)
+            .setFlowFileUUID(parentUUID)
+            .setAttributes(Collections.<String, String> emptyMap(), flowFileRecord.getAttributes())
+            .setCurrentContentClaim(event.getContentClaimSection(), event.getContentClaimContainer(), event.getContentClaimIdentifier(), event.getContentClaimOffset(), event.getFileSize())
+            .setDetails("Replay requested by " + requestor)
+            .setEventTime(System.currentTimeMillis())
+            .setFlowFileEntryDate(System.currentTimeMillis())
+            .setLineageStartDate(event.getLineageStartDate())
+            .setComponentType(event.getComponentType())
+            .setComponentId(event.getComponentId())
+            .build();
         provenanceEventRepository.registerEvent(replayEvent);
 
         // Update the FlowFile Repository to indicate that we have added the FlowFile to the flow

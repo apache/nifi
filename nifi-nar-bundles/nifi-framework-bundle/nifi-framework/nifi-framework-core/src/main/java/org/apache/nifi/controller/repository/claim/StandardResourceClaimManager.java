@@ -27,19 +27,19 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class StandardContentClaimManager implements ContentClaimManager {
+public class StandardResourceClaimManager implements ResourceClaimManager {
 
-    private static final ConcurrentMap<ContentClaim, AtomicInteger> claimantCounts = new ConcurrentHashMap<>();
-    private static final Logger logger = LoggerFactory.getLogger(StandardContentClaimManager.class);
+    private static final ConcurrentMap<ResourceClaim, AtomicInteger> claimantCounts = new ConcurrentHashMap<>();
+    private static final Logger logger = LoggerFactory.getLogger(StandardResourceClaimManager.class);
 
-    private static final BlockingQueue<ContentClaim> destructableClaims = new LinkedBlockingQueue<>(50000);
+    private static final BlockingQueue<ResourceClaim> destructableClaims = new LinkedBlockingQueue<>(50000);
 
     @Override
-    public ContentClaim newContentClaim(final String container, final String section, final String id, final boolean lossTolerant) {
-        return new StandardContentClaim(container, section, id, lossTolerant);
+    public ResourceClaim newResourceClaim(final String container, final String section, final String id, final boolean lossTolerant) {
+        return new StandardResourceClaim(container, section, id, lossTolerant);
     }
 
-    private static AtomicInteger getCounter(final ContentClaim claim) {
+    private static AtomicInteger getCounter(final ResourceClaim claim) {
         if (claim == null) {
             return null;
         }
@@ -50,21 +50,21 @@ public class StandardContentClaimManager implements ContentClaimManager {
         }
 
         counter = new AtomicInteger(0);
-        AtomicInteger existingCounter = claimantCounts.putIfAbsent(claim, counter);
-        return (existingCounter == null) ? counter : existingCounter;
+        final AtomicInteger existingCounter = claimantCounts.putIfAbsent(claim, counter);
+        return existingCounter == null ? counter : existingCounter;
     }
 
     @Override
-    public int getClaimantCount(final ContentClaim claim) {
+    public int getClaimantCount(final ResourceClaim claim) {
         if (claim == null) {
             return 0;
         }
         final AtomicInteger counter = claimantCounts.get(claim);
-        return (counter == null) ? 0 : counter.get();
+        return counter == null ? 0 : counter.get();
     }
 
     @Override
-    public int decrementClaimantCount(final ContentClaim claim) {
+    public int decrementClaimantCount(final ResourceClaim claim) {
         if (claim == null) {
             return 0;
         }
@@ -84,12 +84,12 @@ public class StandardContentClaimManager implements ContentClaimManager {
     }
 
     @Override
-    public int incrementClaimantCount(final ContentClaim claim) {
+    public int incrementClaimantCount(final ResourceClaim claim) {
         return incrementClaimantCount(claim, false);
     }
 
     @Override
-    public int incrementClaimantCount(final ContentClaim claim, final boolean newClaim) {
+    public int incrementClaimantCount(final ResourceClaim claim, final boolean newClaim) {
         final AtomicInteger counter = getCounter(claim);
 
         final int newClaimantCount = counter.incrementAndGet();
@@ -102,7 +102,7 @@ public class StandardContentClaimManager implements ContentClaimManager {
     }
 
     @Override
-    public void markDestructable(final ContentClaim claim) {
+    public void markDestructable(final ResourceClaim claim) {
         if (claim == null) {
             return;
         }
@@ -120,15 +120,15 @@ public class StandardContentClaimManager implements ContentClaimManager {
     }
 
     @Override
-    public void drainDestructableClaims(final Collection<ContentClaim> destination, final int maxElements) {
+    public void drainDestructableClaims(final Collection<ResourceClaim> destination, final int maxElements) {
         final int drainedCount = destructableClaims.drainTo(destination, maxElements);
         logger.debug("Drained {} destructable claims to {}", drainedCount, destination);
     }
 
     @Override
-    public void drainDestructableClaims(final Collection<ContentClaim> destination, final int maxElements, final long timeout, final TimeUnit unit) {
+    public void drainDestructableClaims(final Collection<ResourceClaim> destination, final int maxElements, final long timeout, final TimeUnit unit) {
         try {
-            final ContentClaim firstClaim = destructableClaims.poll(timeout, unit);
+            final ResourceClaim firstClaim = destructableClaims.poll(timeout, unit);
             if (firstClaim != null) {
                 destination.add(firstClaim);
                 destructableClaims.drainTo(destination, maxElements - 1);

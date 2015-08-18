@@ -30,8 +30,8 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.controller.repository.FlowFileRecord;
-import org.apache.nifi.controller.repository.claim.ContentClaim;
-import org.apache.nifi.controller.repository.claim.ContentClaimManager;
+import org.apache.nifi.controller.repository.claim.ResourceClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -48,7 +48,7 @@ public class TestFileSystemSwapManager {
             final FlowFileQueue flowFileQueue = Mockito.mock(FlowFileQueue.class);
             Mockito.when(flowFileQueue.getIdentifier()).thenReturn("87bb99fe-412c-49f6-a441-d1b0af4e20b4");
 
-            final List<FlowFileRecord> records = FileSystemSwapManager.deserializeFlowFiles(in, flowFileQueue, new NopContentClaimManager());
+            final List<FlowFileRecord> records = FileSystemSwapManager.deserializeFlowFiles(in, flowFileQueue, new NopResourceClaimManager());
             assertEquals(10000, records.size());
 
             for (final FlowFileRecord record : records) {
@@ -58,43 +58,43 @@ public class TestFileSystemSwapManager {
         }
     }
 
-    public class NopContentClaimManager implements ContentClaimManager {
+    public class NopResourceClaimManager implements ResourceClaimManager {
 
         @Override
-        public ContentClaim newContentClaim(String container, String section, String id, boolean lossTolerant) {
+        public ResourceClaim newResourceClaim(String container, String section, String id, boolean lossTolerant) {
             return null;
         }
 
         @Override
-        public int getClaimantCount(ContentClaim claim) {
+        public int getClaimantCount(ResourceClaim claim) {
             return 0;
         }
 
         @Override
-        public int decrementClaimantCount(ContentClaim claim) {
+        public int decrementClaimantCount(ResourceClaim claim) {
             return 0;
         }
 
         @Override
-        public int incrementClaimantCount(ContentClaim claim) {
+        public int incrementClaimantCount(ResourceClaim claim) {
             return 0;
         }
 
         @Override
-        public int incrementClaimantCount(ContentClaim claim, boolean newClaim) {
+        public int incrementClaimantCount(ResourceClaim claim, boolean newClaim) {
             return 0;
         }
 
         @Override
-        public void markDestructable(ContentClaim claim) {
+        public void markDestructable(ResourceClaim claim) {
         }
 
         @Override
-        public void drainDestructableClaims(Collection<ContentClaim> destination, int maxElements) {
+        public void drainDestructableClaims(Collection<ResourceClaim> destination, int maxElements) {
         }
 
         @Override
-        public void drainDestructableClaims(Collection<ContentClaim> destination, int maxElements, long timeout, TimeUnit unit) {
+        public void drainDestructableClaims(Collection<ResourceClaim> destination, int maxElements, long timeout, TimeUnit unit) {
         }
 
         @Override

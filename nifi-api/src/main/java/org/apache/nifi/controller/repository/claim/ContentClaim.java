@@ -18,35 +18,30 @@ package org.apache.nifi.controller.repository.claim;
 
 /**
  * <p>
- * A ContentClaim is a reference to a given flow file's content. Multiple flow
- * files may reference the same content by both having the same content
- * claim.</p>
+ * A reference to a section of a {@link ResourceClaim}, which may or may not encompass
+ * the entire ResourceClaim. Multiple FlowFiles may reference the same content by both
+ * having the same content claim.
+ * </p>
  *
  * <p>
- * Must be thread safe</p>
- *
+ * Must be thread safe
+ * </p>
  */
 public interface ContentClaim extends Comparable<ContentClaim> {
 
     /**
-     * @return the unique identifier for this claim
+     * @return the ResourceClaim that this ContentClaim references
      */
-    String getId();
+    ResourceClaim getResourceClaim();
 
     /**
-     * @return the container identifier in which this claim is held
+     * @return the offset into the ResourceClaim where the content for this
+     * claim begins
      */
-    String getContainer();
+    long getOffset();
 
     /**
-     * @return the section within a given container the claim is held
+     * @return the length of this ContentClaim
      */
-    String getSection();
-
-    /**
-     * @return Indicates whether or not the Claim is loss-tolerant. If so, we will
-     * attempt to keep the content but will not sacrifice a great deal of
-     * performance to do so
-     */
-    boolean isLossTolerant();
+    long getLength();
 }

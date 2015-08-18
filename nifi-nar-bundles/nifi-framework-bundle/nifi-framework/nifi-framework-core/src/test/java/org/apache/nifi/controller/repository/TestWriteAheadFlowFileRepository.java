@@ -34,7 +34,7 @@ import java.util.List;
 
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.FlowFileQueue;
-import org.apache.nifi.controller.repository.claim.StandardContentClaimManager;
+import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.util.file.FileUtils;
 
 import org.junit.Test;
@@ -53,7 +53,7 @@ public class TestWriteAheadFlowFileRepository {
         }
 
         final WriteAheadFlowFileRepository repo = new WriteAheadFlowFileRepository();
-        repo.initialize(new StandardContentClaimManager());
+        repo.initialize(new StandardResourceClaimManager());
 
         final List<Connection> connectionList = new ArrayList<>();
         final QueueProvider queueProvider = new QueueProvider() {
@@ -119,7 +119,7 @@ public class TestWriteAheadFlowFileRepository {
 
         // restore
         final WriteAheadFlowFileRepository repo2 = new WriteAheadFlowFileRepository();
-        repo2.initialize(new StandardContentClaimManager());
+        repo2.initialize(new StandardResourceClaimManager());
         repo2.loadFlowFiles(queueProvider, 0L);
 
         assertEquals(1, flowFileCollection.size());

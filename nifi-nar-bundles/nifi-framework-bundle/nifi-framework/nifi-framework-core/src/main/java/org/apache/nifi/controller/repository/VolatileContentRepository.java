@@ -27,8 +27,10 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -38,7 +40,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.nifi.controller.repository.claim.ContentClaim;
-import org.apache.nifi.controller.repository.claim.ContentClaimManager;
+import org.apache.nifi.controller.repository.claim.ResourceClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.controller.repository.claim.StandardContentClaim;
 import org.apache.nifi.controller.repository.io.ArrayManagedOutputStream;
 import org.apache.nifi.controller.repository.io.MemoryManager;
@@ -92,7 +95,7 @@ public class VolatileContentRepository implements ContentRepository {
     private final ConcurrentMap<ContentClaim, ContentClaim> backupRepoClaimMap = new ConcurrentHashMap<>(256);
     private final AtomicReference<ContentRepository> backupRepositoryRef = new AtomicReference<>(null);
 
-    private ContentClaimManager claimManager; // effectively final
+    private ResourceClaimManager claimManager; // effectively final
 
     public VolatileContentRepository() {
         this(NiFiProperties.getInstance());
@@ -119,7 +122,7 @@ public class VolatileContentRepository implements ContentRepository {
     }
 
     @Override
-    public void initialize(final ContentClaimManager claimManager) {
+    public void initialize(final ResourceClaimManager claimManager) {
         this.claimManager = claimManager;
 
         for (int i = 0; i < 3; i++) {
@@ -199,9 +202,10 @@ public class VolatileContentRepository implements ContentRepository {
 
     private ContentClaim createLossTolerant() {
         final long id = idGenerator.getAndIncrement();
-        final ContentClaim claim = claimManager.newContentClaim(CONTAINER_NAME, "section", String.valueOf(id), true);
+        final ResourceClaim resourceClaim = claimManager.newResourceClaim(CONTAINER_NAME, "section", String.valueOf(id), true);
+        final ContentClaim claim = new StandardContentClaim(resourceClaim, 0L);
         final ContentBlock contentBlock = new ContentBlock(claim, repoSize);
-        claimManager.incrementClaimantCount(claim, true);
+        claimManager.incrementClaimantCount(resourceClaim, true);
 
         claimMap.put(claim, contentBlock);
 
@@ -216,7 +220,7 @@ public class VolatileContentRepository implements ContentRepository {
         }
         final ContentClaim backupClaim = getBackupClaim(claim);
         if (backupClaim == null) {
-            return claimManager.incrementClaimantCount(resolveClaim(claim));
+            return claimManager.incrementClaimantCount(resolveClaim(claim).getResourceClaim());
         } else {
             return getBackupRepository().incrementClaimaintCount(backupClaim);
         }
@@ -230,7 +234,7 @@ public class VolatileContentRepository implements ContentRepository {
 
         final ContentClaim backupClaim = getBackupClaim(claim);
         if (backupClaim == null) {
-            return claimManager.decrementClaimantCount(resolveClaim(claim));
+            return claimManager.decrementClaimantCount(resolveClaim(claim).getResourceClaim());
         } else {
             return getBackupRepository().decrementClaimantCount(backupClaim);
         }
@@ -244,7 +248,7 @@ public class VolatileContentRepository implements ContentRepository {
 
         final ContentClaim backupClaim = getBackupClaim(claim);
         if (backupClaim == null) {
-            return claimManager.getClaimantCount(resolveClaim(claim));
+            return claimManager.getClaimantCount(resolveClaim(claim).getResourceClaim());
         } else {
             return getBackupRepository().getClaimantCount(backupClaim);
         }
@@ -271,6 +275,29 @@ public class VolatileContentRepository implements ContentRepository {
         }
 
         return true;
+    }
+
+    private boolean remove(final ResourceClaim claim) {
+        if (claim == null) {
+            return false;
+        }
+
+        final Set<ContentClaim> contentClaims = new HashSet<>();
+        for (final Map.Entry<ContentClaim, ContentBlock> entry : claimMap.entrySet()) {
+            final ContentClaim contentClaim = entry.getKey();
+            if (contentClaim.getResourceClaim().equals(claim)) {
+                contentClaims.add(contentClaim);
+            }
+        }
+
+        boolean removed = false;
+        for (final ContentClaim contentClaim : contentClaims) {
+            if (remove(contentClaim)) {
+                removed = true;
+            }
+        }
+
+        return removed;
     }
 
     @Override
@@ -435,7 +462,7 @@ public class VolatileContentRepository implements ContentRepository {
     @Override
     public void purge() {
         for (final ContentClaim claim : claimMap.keySet()) {
-            claimManager.decrementClaimantCount(resolveClaim(claim));
+            claimManager.decrementClaimantCount(resolveClaim(claim).getResourceClaim());
             final ContentClaim backup = getBackupClaim(claim);
             if (backup != null) {
                 getBackupRepository().remove(backup);
@@ -624,7 +651,7 @@ public class VolatileContentRepository implements ContentRepository {
 
         @Override
         public void run() {
-            final List<ContentClaim> destructable = new ArrayList<>(1000);
+            final List<ResourceClaim> destructable = new ArrayList<>(1000);
             while (true) {
                 destructable.clear();
                 claimManager.drainDestructableClaims(destructable, 1000, 5, TimeUnit.SECONDS);
@@ -632,7 +659,7 @@ public class VolatileContentRepository implements ContentRepository {
                     return;
                 }
 
-                for (final ContentClaim claim : destructable) {
+                for (final ResourceClaim claim : destructable) {
                     remove(claim);
                 }
             }
