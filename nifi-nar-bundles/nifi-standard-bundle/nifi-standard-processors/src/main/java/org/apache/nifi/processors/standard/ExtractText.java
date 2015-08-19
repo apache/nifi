@@ -170,11 +170,20 @@ public class ExtractText extends AbstractProcessor {
 
     public static final PropertyDescriptor UNIX_LINES = new PropertyDescriptor.Builder()
             .name("Enable Unix Lines Mode")
-            .description("Indicates that only the '\n' line terminator is recognized int the behavior of '.', '^', and '$'.  Can also be specified "
+            .description("Indicates that only the '\n' line terminator is recognized in the behavior of '.', '^', and '$'.  Can also be specified "
                     + "via the embeded flag (?d).")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
+            .build();
+
+    public static final PropertyDescriptor INCLUDE_CAPTURE_GROUP_ZERO = new PropertyDescriptor.Builder()
+            .name("Include Capture Group 0")
+            .description("Indicates that Capture Group 0 should be included as an attribute. Capture Group 0 represents the entirety of the regular expression match, is typically not used, and "
+                    + "could have considerable length.")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("true")
             .build();
 
     public static final Relationship REL_MATCH = new Relationship.Builder()
@@ -212,6 +221,7 @@ public class ExtractText extends AbstractProcessor {
         props.add(UNICODE_CASE);
         props.add(UNICODE_CHARACTER_CLASS);
         props.add(UNIX_LINES);
+        props.add(INCLUDE_CAPTURE_GROUP_ZERO);
         this.properties = Collections.unmodifiableList(props);
     }
 
@@ -297,13 +307,16 @@ public class ExtractText extends AbstractProcessor {
         final Map<String, String> regexResults = new HashMap<>();
 
         final Map<String, Pattern> patternMap = compiledPattersMapRef.get();
+
+        final int startGroupIdx = context.getProperty(INCLUDE_CAPTURE_GROUP_ZERO).asBoolean() ? 0 : 1;
+
         for (final Map.Entry<String, Pattern> entry : patternMap.entrySet()) {
 
             final Matcher matcher = entry.getValue().matcher(contentString);
 
             if (matcher.find()) {
                 final String baseKey = entry.getKey();
-                for (int i = 0; i <= matcher.groupCount(); i++) {
+                for (int i = startGroupIdx; i <= matcher.groupCount(); i++) {
                     final String key = new StringBuilder(baseKey).append(".").append(i).toString();
                     String value = matcher.group(i);
                     if (value.length() > maxCaptureGroupLength) {
