@@ -742,10 +742,10 @@ public interface TestRunner {
 
     /**
      * Removes the {@link PropertyDescriptor} from the {@link ProcessContext},
-     * effectively setting its value to null.
+     * effectively setting its value to null, or the property's default value, if it has one.
      *
      * @param descriptor of property to remove
-     * @return true if removed
+     * @return <code>true</code> if removed, <code>false</code> if the property was not set
      */
     boolean removeProperty(PropertyDescriptor descriptor);
 
