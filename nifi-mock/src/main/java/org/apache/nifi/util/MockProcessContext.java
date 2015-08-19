@@ -132,8 +132,12 @@ public class MockProcessContext extends MockControllerServiceLookup implements S
         Objects.requireNonNull(descriptor);
         final PropertyDescriptor fullyPopulatedDescriptor = component.getPropertyDescriptor(descriptor.getName());
         String value = null;
-        if (!fullyPopulatedDescriptor.isRequired() && (value = properties.remove(fullyPopulatedDescriptor)) != null) {
-            component.onPropertyModified(fullyPopulatedDescriptor, value, null);
+
+        if ((value = properties.remove(fullyPopulatedDescriptor)) != null) {
+            if (!value.equals(fullyPopulatedDescriptor.getDefaultValue())) {
+                component.onPropertyModified(fullyPopulatedDescriptor, value, null);
+            }
+
             return true;
         }
         return false;
@@ -266,6 +270,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements S
     public void leaseControllerService(final String identifier) {
     }
 
+    @Override
     public Set<Relationship> getAvailableRelationships() {
         if (!(component instanceof Processor)) {
             return Collections.emptySet();
